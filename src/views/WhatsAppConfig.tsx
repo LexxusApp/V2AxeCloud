@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { whatsappApiUrl, whatsappRailwayAuthHeaders, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 
 const WHATSAPP_INIT_FALLBACK =
   'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
@@ -45,6 +46,14 @@ export default function WhatsAppConfig() {
     throw new Error('Sessão expirada. Faça login novamente.');
   };
 
+  const getSessionUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed?.session?.user?.id) return refreshed.session.user.id;
+    throw new Error('Sessão expirada. Faça login novamente.');
+  };
+
   // Polling para checar status
   useEffect(() => {
     let intervalId: any;
@@ -52,9 +61,10 @@ export default function WhatsAppConfig() {
     const checkStatus = async () => {
       try {
         const token = await getAccessToken();
+        const userId = await getSessionUserId();
 
-        const res = await fetch('/api/whatsapp/status', {
-          headers: { 'Authorization': `Bearer ${token}` },
+        const res = await fetch(whatsappApiUrl('/api/whatsapp/status'), {
+          headers: whatsappRailwayAuthHeaders(token, userId),
           cache: 'no-store',
         });
         const data = await res.json().catch(() => ({}));
@@ -111,10 +121,11 @@ export default function WhatsAppConfig() {
     setErrorMsg(null);
     try {
       const token = await getAccessToken();
+      const userId = await getSessionUserId();
 
-      const res = await fetch('/api/whatsapp/start', {
+      const res = await fetch(whatsappApiUrl('/api/whatsapp/start'), {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: whatsappRailwayHeaders(token, userId),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -158,10 +169,11 @@ export default function WhatsAppConfig() {
     setErrorMsg(null);
     try {
       const token = await getAccessToken();
+      const userId = await getSessionUserId();
 
-      const res = await fetch('/api/whatsapp/logout', {
+      const res = await fetch(whatsappApiUrl('/api/whatsapp/logout'), {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: whatsappRailwayHeaders(token, userId),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -213,14 +225,12 @@ export default function WhatsAppConfig() {
     setErrorMsg(null);
     try {
       const token = await getAccessToken();
+      const userId = await getSessionUserId();
 
-      const response = await fetch('/api/whatsapp/test-message', {
+      const response = await fetch(whatsappApiUrl('/api/whatsapp/test-message'), {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ phone: testPhone })
+        headers: whatsappRailwayHeaders(token, userId),
+        body: JSON.stringify({ phone: testPhone }),
       });
 
       const data = await response.json().catch(() => ({}));

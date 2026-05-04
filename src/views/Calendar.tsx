@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
@@ -353,12 +354,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       if (isPremium && newGuestPhone.trim()) {
          try {
            const { data: { session } } = await supabase.auth.getSession();
-           await fetch('/api/whatsapp/send', {
+           const token = session?.access_token;
+           const uid = session?.user?.id;
+           if (!token || !uid) return;
+           await fetch(whatsappApiUrl('/api/whatsapp/send'), {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`
-              },
+              headers: whatsappRailwayHeaders(token, uid),
               body: JSON.stringify({
                 tipo: 'convite_evento',
                 forcePhone: newGuestPhone.trim(),

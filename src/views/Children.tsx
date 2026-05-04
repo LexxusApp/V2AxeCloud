@@ -3,6 +3,7 @@ import { Search, Filter, Plus, MoreVertical, User, Calendar, MapPin, Phone, Load
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import LuxuryLoading from '../components/LuxuryLoading';
 import PageHeader from '../components/PageHeader';
@@ -115,12 +116,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       // Trigger WhatsApp Welcome Message
       if (formData.whatsapp_phone) {
         try {
-          await fetch('/api/whatsapp/send', {
+          const token = session?.access_token;
+          const uid = session?.user?.id ?? user.id;
+          if (!token || !uid) return;
+          await fetch(whatsappApiUrl('/api/whatsapp/send'), {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
+            headers: whatsappRailwayHeaders(token, uid),
             body: JSON.stringify({
               tipo: 'boas_vindas',
               filhoId: result.data.id,

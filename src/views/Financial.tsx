@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import LuxuryLoading from '../components/LuxuryLoading';
 import FinanceiroBasico from '../components/FinanceiroBasico';
 import PageHeader from '../components/PageHeader';
@@ -680,12 +681,12 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       const mesAno = `${month}/${year}`;
 
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/whatsapp/send', {
+      const token = session?.access_token;
+      const uid = session?.user?.id;
+      if (!token || !uid) throw new Error('Sessão expirada');
+      const response = await fetch(whatsappApiUrl('/api/whatsapp/send'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
+        headers: whatsappRailwayHeaders(token, uid),
         body: JSON.stringify({
           tipo: 'cobranca_mensalidade',
           filhoId: childId,
@@ -1069,12 +1070,12 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                       onClick={async () => {
                         try {
                           const { data: { session } } = await supabase.auth.getSession();
-                          await fetch('/api/whatsapp/send', {
+                          const token = session?.access_token;
+                          const uid = session?.user?.id;
+                          if (!token || !uid) throw new Error('Sessão expirada');
+                          await fetch(whatsappApiUrl('/api/whatsapp/send'), {
                             method: 'POST',
-                            headers: { 
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${session?.access_token}`
-                            },
+                            headers: whatsappRailwayHeaders(token, uid),
                             body: JSON.stringify({
                               tipo: 'financeiro',
                               filhoId: (t as any).filho_id,

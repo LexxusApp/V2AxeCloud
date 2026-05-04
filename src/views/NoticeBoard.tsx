@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -214,17 +215,17 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       
       if (childrenData && childrenData.length > 0) {
         const { data: { session } } = await supabase.auth.getSession();
-        
+        const token = session?.access_token;
+        const uid = session?.user?.id ?? user.id;
+        if (!token || !uid) throw new Error('Sessão inválida para envio de WhatsApp');
+
         let count = 0;
         for (const child of childrenData) {
           if (child.whatsapp_phone) {
             count++;
-            fetch('/api/whatsapp/send', {
+            fetch(whatsappApiUrl('/api/whatsapp/send'), {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`
-              },
+              headers: whatsappRailwayHeaders(token, uid),
               body: JSON.stringify({
                 tipo: 'mural_aviso',
                 filhoId: child.id,
