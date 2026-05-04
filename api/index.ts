@@ -2899,6 +2899,51 @@ async function startServer() {
     }
   });
 
+  /**
+   * Pedidos recentes da loja (dashboard). Via servidor para evitar 404 no browser
+   * quando a tabela `loja_pedidos` ainda não existe no PostgREST (migração pendente).
+   */
+  app.get("/api/loja-pedidos", async (req, res) => {
+    try {
+      const userId = String(req.query.userId || "").trim();
+      const userRoleStr = String(req.query.userRole || "").toLowerCase();
+      const tenantIdRaw = normalizeQueryTenantId(req.query.tenantId);
+      if (userRoleStr === "filho" || !userId) {
+        return res.json({ data: [] });
+      }
+      const tenantIdEfetivo = await resolveFinanceiroTenantScope(
+        supabaseAdmin,
+        userId,
+        userRoleStr,
+        tenantIdRaw
+      );
+      const seed = tenantIdEfetivo || userId;
+      const { data: plRow } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("id")
+        .or(`id.eq.${seed},tenant_id.eq.${seed}`)
+        .maybeSingle();
+      const lojaTenantPk = String(plRow?.id || seed || "").trim();
+      if (!lojaTenantPk) {
+        return res.json({ data: [] });
+      }
+      const { data, error } = await supabaseAdmin
+        .from("loja_pedidos")
+        .select("*")
+        .eq("tenant_id", lojaTenantPk)
+        .order("created_at", { ascending: false })
+        .limit(12);
+      if (error) {
+        console.warn("[SERVER] /api/loja-pedidos (retornando vazio):", error.message || error);
+        return res.json({ data: [] });
+      }
+      return res.json({ data: data || [] });
+    } catch (e: any) {
+      console.warn("[SERVER] /api/loja-pedidos:", e?.message || e);
+      return res.json({ data: [] });
+    }
+  });
+
   function isFinanceiroFkDeleteError(err: any): boolean {
     const code = String(err?.code || "");
     const msg = String(err?.message || err || "");

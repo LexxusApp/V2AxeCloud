@@ -85,13 +85,15 @@ async function fetchDashboardFinanceBundle(
         return r.json() as Promise<{ data?: any[] }>;
       }),
       userRole !== 'filho' && lojaTenantPk
-        ? supabase
-            .from('loja_pedidos')
-            .select('*')
-            .eq('tenant_id', lojaTenantPk)
-            .order('created_at', { ascending: false })
-            .limit(12)
-        : Promise.resolve({ data: [], error: null } as { data: any[]; error: any }),
+        ? fetch(
+            `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
+              userRole || ''
+            )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`
+          ).then(async (r) => {
+            if (!r.ok) return { data: [] as any[] };
+            return r.json() as Promise<{ data?: any[] }>;
+          })
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => c.status === 'Ativo');
@@ -108,15 +110,18 @@ async function fetchDashboardFinanceBundle(
       else if (mt === 'saida') des += n;
     }
     const saldoLiquido = rec - des;
-    console.log('[FinanceDebug][Dashboard]', {
-      userId: user.id,
-      tenantIdEfetivo: tenantIdEfetivo || '(vazio)',
-      tenantIdDasProps: tenantIdDasProps != null && String(tenantIdDasProps).trim() !== '' ? tenantIdDasProps : '(vazio)',
-      usouFallbackLocalStorage:
-        !String(tenantIdDasProps ?? '').trim() && Boolean(String(tenantIdEfetivo || '').trim()),
-      saldoLiquido,
-      txCount: normalized.length,
-    });
+    if (import.meta.env.DEV) {
+      console.log('[FinanceDebug][Dashboard]', {
+        userId: user.id,
+        tenantIdEfetivo: tenantIdEfetivo || '(vazio)',
+        tenantIdDasProps:
+          tenantIdDasProps != null && String(tenantIdDasProps).trim() !== '' ? tenantIdDasProps : '(vazio)',
+        usouFallbackLocalStorage:
+          !String(tenantIdDasProps ?? '').trim() && Boolean(String(tenantIdEfetivo || '').trim()),
+        saldoLiquido,
+        txCount: normalized.length,
+      });
+    }
 
     const lojaRows = (lojaRes.data || []) as any[];
 

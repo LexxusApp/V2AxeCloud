@@ -244,16 +244,18 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       else if (mt === 'saida') saidas += v;
     }
     const saldoRecuperado = entradas - saidas;
-    console.log('[FinanceDebug][Financial]', {
-      userId,
-      tenantIdEfetivo: tenantId || '(vazio)',
-      tenantIdDasProps:
-        tenantData?.tenant_id != null && String(tenantData.tenant_id).trim() !== ''
-          ? tenantData.tenant_id
-          : '(vazio)',
-      saldoRecuperado,
-      txCount: rows.length,
-    });
+    if (import.meta.env.DEV) {
+      console.log('[FinanceDebug][Financial]', {
+        userId,
+        tenantIdEfetivo: tenantId || '(vazio)',
+        tenantIdDasProps:
+          tenantData?.tenant_id != null && String(tenantData.tenant_id).trim() !== ''
+            ? tenantData.tenant_id
+            : '(vazio)',
+        saldoRecuperado,
+        txCount: rows.length,
+      });
+    }
   }, [txJson, userId, tenantId, tenantData?.tenant_id]);
 
   const loading = Boolean(financialTxKey && txLoading && !txJson);
@@ -307,7 +309,11 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     if (!tenantId) return;
     setMensalidadesLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session ?? session;
+      }
       if (!session?.access_token) return;
       const skipSync = opts?.skipSync === true;
       if (!skipSync) {
@@ -362,11 +368,19 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   useEffect(() => {
     if (!isAdmin || isAxePlan || !tenantId) return;
     if (activeView !== 'mensalidades') return;
-    const onWindowFocus = () => {
-      void refreshMensalidades({ skipSync: true });
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (debounce) window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => {
+        void refreshMensalidades({ skipSync: true });
+      }, 400);
     };
-    window.addEventListener('focus', onWindowFocus);
-    return () => window.removeEventListener('focus', onWindowFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (debounce) window.clearTimeout(debounce);
+    };
   }, [activeView, tenantId, isAdmin, isAxePlan, refreshMensalidades]);
 
   useEffect(() => {

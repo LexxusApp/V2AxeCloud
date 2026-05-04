@@ -845,11 +845,6 @@ export default function App() {
     if (!session?.user?.id || !tenantData) return;
     const raw = tenantData.tenant_id;
     if (String(raw || '').trim()) {
-      console.warn('[TenantContext][App]', {
-        userId: session.user.id,
-        tenant_id: raw,
-        cacheParalelo: readCachedTenantIdForUser(session.user.id) || null,
-      });
       return;
     }
     let cancelled = false;
@@ -859,12 +854,14 @@ export default function App() {
       if (fallback) {
         writeCachedTenantIdForUser(session.user.id, fallback);
         setTenantData((prev) => (prev ? { ...prev, tenant_id: fallback } : prev));
-        console.warn('[TenantContext][App]', {
-          userId: session.user.id,
-          tenant_id: fallback,
-          origem: 'supabase_fallback_cliente',
-        });
-      } else {
+        if (import.meta.env.DEV) {
+          console.warn('[TenantContext][App]', {
+            userId: session.user.id,
+            tenant_id: fallback,
+            origem: 'supabase_fallback_cliente',
+          });
+        }
+      } else if (import.meta.env.DEV) {
         console.warn('[TenantContext][App]', {
           userId: session.user.id,
           tenant_id: null,

@@ -73,6 +73,19 @@ function isJwtExpiredMessage(value: unknown): boolean {
   return msg.includes('jwt') && msg.includes('expir');
 }
 
+/** Só força logout global em erros de refresh claramente fatais — rede/lock não podem apagar sessão. */
+function isRefreshFailureFatal(value: unknown): boolean {
+  if (isJwtExpiredMessage(value)) return true;
+  const msg = String((value as { message?: string })?.message || value || '').toLowerCase();
+  const code = String((value as { code?: string })?.code || '').toLowerCase();
+  if (msg.includes('invalid_grant')) return true;
+  if (msg.includes('invalid refresh')) return true;
+  if (msg.includes('refresh token not found')) return true;
+  if (msg.includes('session not found')) return true;
+  if (code === 'bad_jwt' || code === 'invalid_jwt') return true;
+  return false;
+}
+
 function emitSessionExpired(reason: string) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { reason } }));
@@ -120,11 +133,10 @@ function createResilientFetch(getClient: () => SupabaseClient): typeof fetch {
 
     const { error: refreshErr } = await supabase.auth.refreshSession();
     if (refreshErr) {
-      if (isJwtExpiredMessage(refreshErr)) {
-        emitSessionExpired('jwt_expired');
+      if (isRefreshFailureFatal(refreshErr)) {
+        emitSessionExpired('refresh_fatal');
         return response;
       }
-      emitSessionExpired('refresh_failed');
       return response;
     }
 
@@ -168,4 +180,39 @@ export const supabase: SupabaseClient =
 
 if (typeof globalThis !== 'undefined') {
   globalForSupabase.__AXECLOUD_SUPABASE__ = supabase;
+}
+
+/** Abas em segundo plano pausam timers do browser — religa auto-refresh e renova token perto do fim ao voltar. */
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const authExt = supabase.auth as {
+    startAutoRefresh?: () => void;
+    stopAutoRefresh?: () => void;
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (typeof authExt.stopAutoRefresh === 'function') {
+        try {
+          authExt.stopAutoRefresh();
+        } catch {
+          /* noop */
+        }
+      }
+      return;
+    }
+    if (typeof authExt.startAutoRefresh === 'function') {
+      try {
+        authExt.startAutoRefresh();
+      } catch {
+        /* noop */
+      }
+    }
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      const exp = session?.expires_at;
+      if (exp == null || !Number.isFinite(exp)) return;
+      const expMs = Number(exp) * 1000;
+      if (expMs < Date.now() + 120_000) {
+        void supabase.auth.refreshSession();
+      }
+    });
+  });
 }

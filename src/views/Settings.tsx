@@ -16,7 +16,6 @@ interface SettingsProps {
 }
 
 export default function Settings({ user, session, tenantData, onRefresh, setActiveTab }: SettingsProps) {
-  console.log('[DEBUG] Settings component rendering');
   const tenantId = tenantData?.tenant_id;
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -37,14 +36,14 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   }, []);
 
   useEffect(() => {
-    console.log('[DEBUG] Settings component mounted');
     if (user) {
       fetchData();
-      // Teste de conectividade com a API
-      fetch('/api/ping')
-        .then(res => res.json())
-        .then(data => console.log('[DEBUG] API Ping result:', data))
-        .catch(err => console.error('[DEBUG] API Ping failed:', err));
+      if (import.meta.env.DEV) {
+        fetch('/api/ping')
+          .then((res) => res.json())
+          .then((data) => console.log('[DEBUG] API Ping result:', data))
+          .catch((err) => console.error('[DEBUG] API Ping failed:', err));
+      }
     }
     
     // Safety timeout to prevent infinite loading
@@ -56,20 +55,17 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   }, [user, tenantId]);
 
   async function fetchData() {
-    console.log('[DEBUG] Settings fetchData started');
     setLoading(true);
     try {
       if (!user) return;
-      
-      let profileQuery = supabase.from('perfil_lider').select('*').eq('id', user.id);
 
-      if (tenantId) {
-        profileQuery = profileQuery.eq('tenant_id', tenantId);
-      }
-
-      const { data: profileData, error: profileError } = await profileQuery.maybeSingle();
-
-      console.log('[DEBUG] Settings profileRes:', profileError ? profileError.message : 'Success');
+      // Só `id` = usuário logado: `tenant_id` no estado pode ser líder/terreiro e não bater com a coluna
+      // `tenant_id` da linha em `perfil_lider`, o que zerava o perfil ao voltar de outra aba.
+      const { data: profileData, error: profileError } = await supabase
+        .from('perfil_lider')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
       if (profileData) {
         setProfile(profileData);
@@ -82,7 +78,6 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
       setError('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
-      console.log('[DEBUG] Settings fetchData finished');
     }
   }
 
