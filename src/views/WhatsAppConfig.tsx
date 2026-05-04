@@ -3,11 +3,36 @@ import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2 } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
+const WHATSAPP_INIT_FALLBACK =
+  'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
+
+function isWhatsappServiceWarmingPayload(data: unknown, httpStatus: number): boolean {
+  const code = data && typeof data === 'object' && 'code' in data ? String((data as { code?: string }).code) : '';
+  if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) {
+    if (
+      code === 'WHATSAPP_INITIALIZING' ||
+      code === 'WHATSAPP_PROXY_FAILED' ||
+      code === 'WHATSAPP_VERCEL_SERVERLESS'
+    ) {
+      return true;
+    }
+    const hasErrorField =
+      data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string';
+    if (!hasErrorField && !code) return true;
+  }
+  return false;
+}
+
+function isBadGatewayOrTimeout(httpStatus: number): boolean {
+  return httpStatus === 502 || httpStatus === 503 || httpStatus === 504;
+}
+
 export default function WhatsAppConfig() {
   const [status, setStatus] = useState<'DISCONNECTED' | 'LOADING' | 'QRCODE' | 'CONNECTED'>('DISCONNECTED');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [serviceNotice, setServiceNotice] = useState<string | null>(null);
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -33,21 +58,45 @@ export default function WhatsAppConfig() {
           cache: 'no-store',
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(String(data?.error || `Falha ao consultar status (${res.status})`));
-        
-        const nextStatus = String(data?.status || '').toUpperCase();
+        if (!res.ok) {
+          if (res.status === 401) {
+            setErrorMsg(
+              typeof (data as { error?: string })?.error === 'string'
+                ? (data as { error: string }).error
+                : 'Sessão expirada. Faça login novamente.',
+            );
+            setServiceNotice(null);
+            return;
+          }
+          if (isBadGatewayOrTimeout(res.status) || isWhatsappServiceWarmingPayload(data, res.status)) {
+            const msg =
+              typeof (data as { error?: string })?.error === 'string'
+                ? (data as { error: string }).error
+                : WHATSAPP_INIT_FALLBACK;
+            setServiceNotice(msg);
+            setErrorMsg(null);
+            setStatus('LOADING');
+            setQrCode(null);
+            return;
+          }
+          throw new Error(String((data as { error?: string })?.error || `Falha ao consultar status (${res.status})`));
+        }
+
+        const nextStatus = String((data as { status?: string })?.status || '').toUpperCase();
         if (nextStatus === 'CONNECTED' || nextStatus === 'QRCODE' || nextStatus === 'LOADING' || nextStatus === 'DISCONNECTED') {
           setStatus(nextStatus as 'CONNECTED' | 'QRCODE' | 'LOADING' | 'DISCONNECTED');
         } else {
           setStatus('DISCONNECTED');
         }
-        setQrCode(typeof data?.qrcode === 'string' ? data.qrcode : null);
+        setQrCode(typeof (data as { qrcode?: string })?.qrcode === 'string' ? (data as { qrcode: string }).qrcode : null);
         setErrorMsg(null);
+        setServiceNotice(null);
       } catch (err) {
         console.error('Erro ao checar status do WhatsApp:', err);
-        setStatus('DISCONNECTED');
+        setServiceNotice(WHATSAPP_INIT_FALLBACK);
+        setStatus('LOADING');
         setQrCode(null);
-        setErrorMsg(err instanceof Error ? err.message : 'Não foi possível consultar o status do WhatsApp.');
+        setErrorMsg(null);
       }
     };
 
@@ -68,12 +117,35 @@ export default function WhatsAppConfig() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data?.error || `Falha ao iniciar WhatsApp (${res.status})`));
+      if (!res.ok) {
+        if (res.status === 401) {
+          setErrorMsg(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : 'Sessão expirada. Faça login novamente.',
+          );
+          setServiceNotice(null);
+          return;
+        }
+        if (isBadGatewayOrTimeout(res.status) || isWhatsappServiceWarmingPayload(data, res.status)) {
+          setServiceNotice(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : WHATSAPP_INIT_FALLBACK,
+          );
+          setErrorMsg(null);
+          setStatus('LOADING');
+          return;
+        }
+        throw new Error(String((data as { error?: string })?.error || `Falha ao iniciar WhatsApp (${res.status})`));
+      }
       setStatus('LOADING');
+      setServiceNotice(null);
     } catch (err) {
       console.error('Erro ao iniciar WhatsApp:', err);
-      setStatus('DISCONNECTED');
-      setErrorMsg(err instanceof Error ? err.message : 'Não foi possível iniciar a conexão do WhatsApp.');
+      setServiceNotice(WHATSAPP_INIT_FALLBACK);
+      setStatus('LOADING');
+      setErrorMsg(null);
     } finally {
       setLoading(false);
     }
@@ -92,11 +164,41 @@ export default function WhatsAppConfig() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data?.error || `Falha ao deslogar WhatsApp (${res.status})`));
+      if (!res.ok) {
+        if (res.status === 401) {
+          setErrorMsg(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : 'Sessão expirada. Faça login novamente.',
+          );
+          setServiceNotice(null);
+          return;
+        }
+        if (isBadGatewayOrTimeout(res.status) || isWhatsappServiceWarmingPayload(data, res.status)) {
+          setServiceNotice(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : WHATSAPP_INIT_FALLBACK,
+          );
+          setErrorMsg(null);
+          return;
+        }
+        throw new Error(String((data as { error?: string })?.error || `Falha ao deslogar WhatsApp (${res.status})`));
+      }
       setStatus('DISCONNECTED');
       setQrCode(null);
+      setServiceNotice(null);
     } catch (err) {
       console.error('Erro ao deslogar WhatsApp:', err);
+      const isNetwork =
+        err instanceof TypeError ||
+        (err instanceof Error && /network|failed to fetch|load failed|abort/i.test(err.message));
+      if (isNetwork) {
+        setServiceNotice(WHATSAPP_INIT_FALLBACK);
+        setErrorMsg(null);
+        return;
+      }
+      setServiceNotice(null);
       setErrorMsg(err instanceof Error ? err.message : 'Não foi possível desconectar o WhatsApp.');
     } finally {
       setLoading(false);
@@ -122,12 +224,42 @@ export default function WhatsAppConfig() {
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(String(data?.error || 'Falha no envio'));
-      
+      if (!response.ok) {
+        if (response.status === 401) {
+          setErrorMsg(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : 'Sessão expirada. Faça login novamente.',
+          );
+          setTestStatus('error');
+          return;
+        }
+        if (isBadGatewayOrTimeout(response.status) || isWhatsappServiceWarmingPayload(data, response.status)) {
+          setServiceNotice(
+            typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : WHATSAPP_INIT_FALLBACK,
+          );
+          setErrorMsg(null);
+          setTestStatus('idle');
+          return;
+        }
+        throw new Error(String((data as { error?: string })?.error || 'Falha no envio'));
+      }
+
       setTestStatus('success');
       setTestPhone('');
     } catch (err) {
       console.error('Erro ao enviar mensagem de teste:', err);
+      const isNetwork =
+        err instanceof TypeError ||
+        (err instanceof Error && /network|failed to fetch|load failed|abort/i.test(err.message));
+      if (isNetwork) {
+        setServiceNotice(WHATSAPP_INIT_FALLBACK);
+        setErrorMsg(null);
+        setTestStatus('idle');
+        return;
+      }
       setTestStatus('error');
       setErrorMsg(err instanceof Error ? err.message : 'Erro ao enviar mensagem de teste.');
     } finally {
@@ -150,6 +282,11 @@ export default function WhatsAppConfig() {
 
       <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-2 md:gap-8">
         <div className="space-y-6">
+          {serviceNotice && (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-200/90">
+              {serviceNotice}
+            </div>
+          )}
           {errorMsg && (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-300">
               {errorMsg}
