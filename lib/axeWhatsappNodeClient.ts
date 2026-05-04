@@ -78,7 +78,7 @@ export function createAxeWhatsappNodeClient(cfg: AxeWhatsappNodeClientConfig) {
   }> {
     let stRes: Response;
     try {
-      stRes = await fetchNode(tenantId, `/api/whatsapp/session/${encodeURIComponent(tenantId)}/status`);
+      stRes = await fetchNode(tenantId, `/whatsapp/status`);
     } catch {
       throwInitializing();
     }
@@ -98,7 +98,7 @@ export function createAxeWhatsappNodeClient(cfg: AxeWhatsappNodeClientConfig) {
     let qrcode: string | null = null;
     if (status === "QRCODE") {
       try {
-        const qrRes = await fetchNode(tenantId, `/api/whatsapp/session/${encodeURIComponent(tenantId)}/qr`);
+        const qrRes = await fetchNode(tenantId, `/whatsapp/qr`);
         const qrData = await parseJsonResponse(qrRes);
         if (qrRes.ok && typeof qrData?.qr_image_data_url === "string") {
           qrcode = qrData.qr_image_data_url;

@@ -357,7 +357,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
            const token = session?.access_token;
            const uid = session?.user?.id;
            if (!token || !uid) return;
-           await fetch(whatsappApiUrl('/api/whatsapp/send'), {
+           await fetch(whatsappApiUrl('/whatsapp/send'), {
               method: 'POST',
               headers: whatsappRailwayHeaders(token, uid),
               body: JSON.stringify({

@@ -684,7 +684,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       const token = session?.access_token;
       const uid = session?.user?.id;
       if (!token || !uid) throw new Error('Sessão expirada');
-      const response = await fetch(whatsappApiUrl('/api/whatsapp/send'), {
+      const response = await fetch(whatsappApiUrl('/whatsapp/send'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, uid),
         body: JSON.stringify({
@@ -1073,7 +1073,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                           const token = session?.access_token;
                           const uid = session?.user?.id;
                           if (!token || !uid) throw new Error('Sessão expirada');
-                          await fetch(whatsappApiUrl('/api/whatsapp/send'), {
+                          await fetch(whatsappApiUrl('/whatsapp/send'), {
                             method: 'POST',
                             headers: whatsappRailwayHeaders(token, uid),
                             body: JSON.stringify({

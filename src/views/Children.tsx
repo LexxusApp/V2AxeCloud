@@ -119,7 +119,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           const token = session?.access_token;
           const uid = session?.user?.id ?? user.id;
           if (!token || !uid) return;
-          await fetch(whatsappApiUrl('/api/whatsapp/send'), {
+          await fetch(whatsappApiUrl('/whatsapp/send'), {
             method: 'POST',
             headers: whatsappRailwayHeaders(token, uid),
             body: JSON.stringify({

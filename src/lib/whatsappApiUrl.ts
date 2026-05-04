@@ -1,6 +1,6 @@
 /**
  * Base pública do serviço WhatsApp (Railway), injetada no bundle via Vite (`AXE_WHATSAPP_NODE_BASE_URL`).
- * Com base vazia, mantém caminhos relativos `/api/whatsapp/...` (útil em dev com proxy).
+ * Com base vazia, mantém caminhos relativos `/whatsapp/...` (Railway sem domínio próprio no dev, se o proxy espelhar).
  */
 export function getAxeWhatsappNodeBaseUrl(): string {
   const v = import.meta.env.AXE_WHATSAPP_NODE_BASE_URL;

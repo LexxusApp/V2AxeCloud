@@ -3842,7 +3842,7 @@ async function startServer() {
       setTimeout(async () => {
         try {
           const externalId = `msg_${Math.random().toString(36).substr(2, 9)}`;
-          await whatsappNode!.jsonOrThrow(tenantId, `/api/whatsapp/send`, {
+          await whatsappNode!.jsonOrThrow(tenantId, `/whatsapp/send`, {
             method: "POST",
             body: { tenant_id: tenantId, phone: phoneFinal, message: messageFinal },
           });
@@ -3903,7 +3903,7 @@ async function startServer() {
         return res.json({ message: "WhatsApp já está conectado." });
       }
 
-      await whatsappNode!.jsonOrThrow(user.id, `/api/whatsapp/session/${encodeURIComponent(user.id)}/start`, {
+      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/start`, {
         method: "POST",
         body: { tenant_id: user.id },
       });
@@ -3928,7 +3928,7 @@ async function startServer() {
       if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
 
       const msg = "Axé! Este é um teste de conexão do AxéCloud. Se você recebeu isso, seu terreiro já está automatizado!";
-      await whatsappNode!.jsonOrThrow(user.id, `/api/whatsapp/send`, {
+      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/send`, {
         method: "POST",
         body: { tenant_id: user.id, phone: String(phone).replace(/\D/g, ""), message: msg },
       });
@@ -3968,7 +3968,7 @@ async function startServer() {
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-      await whatsappNode!.jsonOrThrow(user.id, `/api/whatsapp/session/${encodeURIComponent(user.id)}/logout`, {
+      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/logout`, {
         method: "POST",
         body: { tenant_id: user.id },
       });

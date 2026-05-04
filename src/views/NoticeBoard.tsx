@@ -223,7 +223,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         for (const child of childrenData) {
           if (child.whatsapp_phone) {
             count++;
-            fetch(whatsappApiUrl('/api/whatsapp/send'), {
+            fetch(whatsappApiUrl('/whatsapp/send'), {
               method: 'POST',
               headers: whatsappRailwayHeaders(token, uid),
               body: JSON.stringify({

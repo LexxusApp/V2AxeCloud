@@ -63,7 +63,7 @@ export default function WhatsAppConfig() {
         const token = await getAccessToken();
         const userId = await getSessionUserId();
 
-        const res = await fetch(whatsappApiUrl('/api/whatsapp/status'), {
+        const res = await fetch(whatsappApiUrl('/whatsapp/status'), {
           headers: whatsappRailwayAuthHeaders(token, userId),
           cache: 'no-store',
         });
@@ -123,7 +123,7 @@ export default function WhatsAppConfig() {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
 
-      const res = await fetch(whatsappApiUrl('/api/whatsapp/start'), {
+      const res = await fetch(whatsappApiUrl('/whatsapp/start'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
       });
@@ -171,7 +171,7 @@ export default function WhatsAppConfig() {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
 
-      const res = await fetch(whatsappApiUrl('/api/whatsapp/logout'), {
+      const res = await fetch(whatsappApiUrl('/whatsapp/logout'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
       });
@@ -227,7 +227,7 @@ export default function WhatsAppConfig() {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
 
-      const response = await fetch(whatsappApiUrl('/api/whatsapp/test-message'), {
+      const response = await fetch(whatsappApiUrl('/whatsapp/test-message'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
         body: JSON.stringify({ phone: testPhone }),
