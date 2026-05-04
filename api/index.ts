@@ -2934,7 +2934,13 @@ async function startServer() {
         .order("created_at", { ascending: false })
         .limit(12);
       if (error) {
-        console.warn("[SERVER] /api/loja-pedidos (retornando vazio):", error.message || error);
+        const msg = String((error as { message?: string }).message || error || "");
+        const tabelaAusente =
+          /could not find the table|schema cache/i.test(msg) ||
+          String((error as { code?: string }).code || "") === "PGRST205";
+        if (!tabelaAusente) {
+          console.warn("[SERVER] /api/loja-pedidos (retornando vazio):", msg);
+        }
         return res.json({ data: [] });
       }
       return res.json({ data: data || [] });
