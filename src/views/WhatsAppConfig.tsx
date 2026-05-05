@@ -128,7 +128,7 @@ export default function WhatsAppConfig() {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
 
-      const res = await fetch(whatsappApiUrl('/whatsapp/start'), {
+      const res = await fetch(whatsappApiUrl('/connect'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
         body: whatsappRailwayJsonBody(userId),

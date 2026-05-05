@@ -3331,7 +3331,7 @@ async function startServer() {
         return res.json({ message: "WhatsApp já está conectado." });
       }
 
-      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/start`, {
+      await whatsappNode!.jsonOrThrow(user.id, `/connect`, {
         method: "POST",
         body: { tenant_id: user.id },
       });
