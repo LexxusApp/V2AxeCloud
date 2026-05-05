@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { whatsappApiUrl, whatsappRailwayAuthHeaders, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
+import {
+  whatsappApiUrl,
+  whatsappRailwayAuthHeaders,
+  whatsappRailwayHeaders,
+  whatsappRailwayJsonBody,
+} from '../lib/whatsappApiUrl';
 
 const WHATSAPP_INIT_FALLBACK =
   'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
@@ -126,6 +131,7 @@ export default function WhatsAppConfig() {
       const res = await fetch(whatsappApiUrl('/whatsapp/start'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
+        body: whatsappRailwayJsonBody(userId),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -174,6 +180,7 @@ export default function WhatsAppConfig() {
       const res = await fetch(whatsappApiUrl('/whatsapp/logout'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
+        body: whatsappRailwayJsonBody(userId),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -230,7 +237,7 @@ export default function WhatsAppConfig() {
       const response = await fetch(whatsappApiUrl('/whatsapp/test-message'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, userId),
-        body: JSON.stringify({ phone: testPhone }),
+        body: whatsappRailwayJsonBody(userId, { phone: testPhone }),
       });
 
       const data = await response.json().catch(() => ({}));

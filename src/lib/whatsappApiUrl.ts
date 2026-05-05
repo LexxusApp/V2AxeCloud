@@ -31,3 +31,11 @@ export function whatsappRailwayHeaders(accessToken: string, tenantUserId: string
     "Content-Type": "application/json",
   };
 }
+
+/** Corpo JSON com `tenant_id` do usuário logado (Supabase); mescla campos extras (ex.: `phone`). */
+export function whatsappRailwayJsonBody(tenantUserId: string, extra?: Record<string, unknown>): string {
+  return JSON.stringify({
+    ...(extra && typeof extra === "object" ? extra : {}),
+    tenant_id: tenantUserId,
+  });
+}
