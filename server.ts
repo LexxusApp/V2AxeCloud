@@ -18,10 +18,12 @@ import {
   startOfDay,
 } from "date-fns";
 import {
-  createAxeWhatsappNodeClient,
+  createAxeInstance,
+  getAxeEvolutionStatusAndQr,
+  logoutEvolutionInstance,
+  sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
-} from "./lib/axeWhatsappNodeClient.js";
-import { createAxeInstance, getAxeEvolutionStatusAndQr } from "./src/services/evolution.service.js";
+} from "./src/services/evolution.service.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1009,34 +1011,6 @@ async function verifyUser(token: string) {
     console.error("[SERVER] verifyUser exceção:", err);
     return { user: null, error: err };
   }
-}
-
-/** Auth para rotas raiz usadas pelo app com AXE_WHATSAPP_NODE_BASE_URL (Bearer + x-tenant-id / tenant_id). */
-async function requireWhatsappBridgeUser(req: express.Request, res: express.Response) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const token = authHeader.replace("Bearer ", "");
-  const { user, error: authError } = await verifyUser(token);
-  if (authError || !user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const bodyTenant =
-    req.body && typeof req.body === "object" && req.body !== null && "tenant_id" in req.body
-      ? String((req.body as { tenant_id?: unknown }).tenant_id ?? "").trim()
-      : "";
-  const headerTenant = String(
-    req.headers["x-tenant-id"] || req.headers["x-supabase-tenant-id"] || "",
-  ).trim();
-  const claimed = bodyTenant || headerTenant;
-  if (claimed && claimed !== user.id) {
-    res.status(403).json({ error: "tenant_id não corresponde ao usuário autenticado." });
-    return null;
-  }
-  return user;
 }
 
 async function startServer() {
@@ -3726,33 +3700,7 @@ async function startServer() {
     }
   });
 
-  /**
-   * WhatsApp: envio ainda pode ir ao Node Baileys (AXE_WHATSAPP_NODE_BASE_URL). Conexão/QR usa Evolution API (src/services/evolution.service).
-   * O tenant_id (id do usuário Supabase / zelador) é enviado no header x-tenant-id e no corpo JSON quando aplicável.
-   */
-  const WHATSAPP_NODE_BASE = String(process.env.AXE_WHATSAPP_NODE_BASE_URL || "")
-    .trim()
-    .replace(/\/$/, "");
-  const isVercelServerless = process.env.VERCEL === "1";
-  const WHATSAPP_PROXY_SECRET = String(process.env.AXE_WHATSAPP_PROXY_SECRET || "").trim();
-  const WHATSAPP_NODE_TIMEOUT_MS = Number(process.env.AXE_WHATSAPP_NODE_TIMEOUT_MS) || 15_000;
-
-  const whatsappNode = WHATSAPP_NODE_BASE
-    ? createAxeWhatsappNodeClient({
-        baseUrl: WHATSAPP_NODE_BASE,
-        proxySecret: WHATSAPP_PROXY_SECRET,
-        timeoutMs: WHATSAPP_NODE_TIMEOUT_MS,
-      })
-    : null;
-
-  function whatsappVercelWithoutNodeMessage() {
-    return {
-      error:
-        "WhatsApp (Baileys) não funciona neste host serverless (Vercel): a conexão precisa de processo Node contínuo e armazenamento de sessão. Configure no painel da Vercel a variável AXE_WHATSAPP_NODE_BASE_URL com a URL pública do backend no Railway (sem barra no final). Cada zelador tem sessão própria (tenant_id = usuário Supabase).",
-      code: "WHATSAPP_VERCEL_SERVERLESS",
-    };
-  }
-
+  /** WhatsApp via Evolution API (src/services/evolution.service). */
   function whatsappInitializingResponse(res: express.Response, err?: unknown) {
     const msg =
       err && typeof err === "object" && "message" in err && String((err as { message?: string }).message)
@@ -3764,21 +3712,7 @@ async function startServer() {
     });
   }
 
-  function requireWhatsappNode(res: express.Response): boolean {
-    if (whatsappNode) return true;
-    if (isVercelServerless) {
-      res.status(503).json(whatsappVercelWithoutNodeMessage());
-      return false;
-    }
-    res.status(400).json({
-      error:
-        "Defina AXE_WHATSAPP_NODE_BASE_URL com a URL pública do serviço WhatsApp (Railway).",
-      code: "WHATSAPP_NODE_MISSING",
-    });
-    return false;
-  }
-
-  // --- WHATSAPP INTEGRATION ENDPOINTS ---
+  // --- WHATSAPP INTEGRATION ENDPOINTS (Evolution API) ---
   app.post("/api/whatsapp/config", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
@@ -3808,7 +3742,6 @@ async function startServer() {
   app.post("/api/whatsapp/send", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    if (!requireWhatsappNode(res)) return;
 
     try {
       const token = authHeader.replace("Bearer ", "");
@@ -3870,11 +3803,8 @@ async function startServer() {
 
       setTimeout(async () => {
         try {
-          const externalId = `msg_${Math.random().toString(36).substr(2, 9)}`;
-          await whatsappNode!.jsonOrThrow(tenantId, `/whatsapp/send`, {
-            method: "POST",
-            body: { tenant_id: tenantId, phone: phoneFinal, message: messageFinal },
-          });
+          const { messageId } = await sendEvolutionTextMessage(tenantId, phoneFinal, messageFinal);
+          const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
           await supabaseAdmin.from('whatsapp_logs').insert({
             tenant_id: tenantId,
             filho_id: filhoId,
@@ -3885,7 +3815,7 @@ async function startServer() {
             external_id: externalId
           });
         } catch (err: any) {
-          console.error(`[WHATSAPP - ${tenantId}] Dispatch Error:`, err?.message || err);
+          console.error(`[WHATSAPP - ${tenantId}] Evolution send Error:`, err?.message || err);
         }
       }, 500);
 
@@ -3942,7 +3872,6 @@ async function startServer() {
   app.post("/api/whatsapp/test-message", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    if (!requireWhatsappNode(res)) return;
 
     try {
       const token = authHeader.replace("Bearer ", "");
@@ -3953,10 +3882,9 @@ async function startServer() {
       if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
 
       const msg = "Axé! Este é um teste de conexão do AxéCloud. Se você recebeu isso, seu terreiro já está automatizado!";
-      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/send`, {
-        method: "POST",
-        body: { tenant_id: user.id, phone: String(phone).replace(/\D/g, ""), message: msg },
-      });
+      let phoneDigits = String(phone).replace(/\D/g, "");
+      if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
+      await sendEvolutionTextMessage(user.id, phoneDigits, msg);
       return res.json({ success: true, message: "Mensagem enviada com sucesso!" });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
@@ -3973,11 +3901,6 @@ async function startServer() {
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-      if (whatsappNode) {
-        const merged = await whatsappNode.getStatusAndQr(user.id);
-        res.json({ status: merged.status, qrcode: merged.qrcode });
-        return;
-      }
       const merged = await getAxeEvolutionStatusAndQr(user.id);
       res.json({ status: merged.status, qrcode: merged.qrcode });
     } catch (err: any) {
@@ -3990,66 +3913,18 @@ async function startServer() {
   app.post("/api/whatsapp/logout", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    if (!requireWhatsappNode(res)) return;
 
     try {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-      await whatsappNode!.jsonOrThrow(user.id, `/whatsapp/logout`, {
-        method: "POST",
-        body: { tenant_id: user.id },
-      });
+      await logoutEvolutionInstance(user.id);
 
-      res.json({ message: "Sessão WhatsApp encerrada no servidor de mensageria." });
+      res.json({ message: "Sessão WhatsApp encerrada na Evolution API." });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao deslogar" });
-    }
-  });
-
-  // Rotas na raiz: chamadas diretas do front quando AXE_WHATSAPP_NODE_BASE_URL aponta para este servidor (Evolution API por trás).
-  app.post("/connect", async (req, res) => {
-    const user = await requireWhatsappBridgeUser(req, res);
-    if (!user) return;
-    try {
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      if (merged.status === "CONNECTED") {
-        return res.json({ message: "WhatsApp já está conectado." });
-      }
-      const qrcode = await createAxeInstance(user.id);
-      res.json({ message: "Iniciando conexão WhatsApp...", qrcode });
-    } catch (err: any) {
-      console.error("[WHATSAPP] POST /connect:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro ao conectar na Evolution API." });
-    }
-  });
-
-  app.get("/whatsapp/status", async (req, res) => {
-    const user = await requireWhatsappBridgeUser(req, res);
-    if (!user) return;
-    try {
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      res.json({ status: merged.status, qrcode: merged.qrcode });
-    } catch (err: any) {
-      console.error("[WHATSAPP] GET /whatsapp/status:", err?.message || err);
-      res.status(503).json({ error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
-    }
-  });
-
-  app.get("/whatsapp/qr", async (req, res) => {
-    const user = await requireWhatsappBridgeUser(req, res);
-    if (!user) return;
-    try {
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      if (merged.status !== "QRCODE" || !merged.qrcode) {
-        return res.status(404).json({ error: "QR code não disponível" });
-      }
-      res.json({ qr_image_data_url: merged.qrcode });
-    } catch (err: any) {
-      console.error("[WHATSAPP] GET /whatsapp/qr:", err?.message || err);
-      res.status(503).json({ error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
     }
   });
 

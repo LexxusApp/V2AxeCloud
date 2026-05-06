@@ -2,6 +2,6 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
-  /** URL do serviço WhatsApp no Railway (sem barra final); injetada em build pelo `vite.config.ts`. */
-  readonly AXE_WHATSAPP_NODE_BASE_URL?: string;
+  /** Origem do backend (sem barra final) quando o front não é same-origin com a API — ex.: https://seu-app.railway.app */
+  readonly VITE_API_ORIGIN?: string;
 }

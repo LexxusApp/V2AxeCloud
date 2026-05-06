@@ -90,10 +90,6 @@ export default defineConfig(({mode}) => {
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      /** Disponível no cliente: use a mesma variável AXE_WHATSAPP_NODE_BASE_URL na Vercel (Build + Runtime). */
-      'import.meta.env.AXE_WHATSAPP_NODE_BASE_URL': JSON.stringify(
-        env.AXE_WHATSAPP_NODE_BASE_URL || env.VITE_AXE_WHATSAPP_NODE_BASE_URL || '',
-      ),
     },
     resolve: {
       alias: {

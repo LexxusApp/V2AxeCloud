@@ -15,11 +15,7 @@ const WHATSAPP_INIT_FALLBACK =
 function isWhatsappServiceWarmingPayload(data: unknown, httpStatus: number): boolean {
   const code = data && typeof data === 'object' && 'code' in data ? String((data as { code?: string }).code) : '';
   if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) {
-    if (
-      code === 'WHATSAPP_INITIALIZING' ||
-      code === 'WHATSAPP_PROXY_FAILED' ||
-      code === 'WHATSAPP_VERCEL_SERVERLESS'
-    ) {
+    if (code === 'WHATSAPP_INITIALIZING' || code === 'WHATSAPP_PROXY_FAILED') {
       return true;
     }
     const hasErrorField =
@@ -156,7 +152,20 @@ export default function WhatsAppConfig() {
         }
         throw new Error(String((data as { error?: string })?.error || `Falha ao iniciar WhatsApp (${res.status})`));
       }
-      setStatus('LOADING');
+      const msgOk = String((data as { message?: string })?.message || '');
+      if (msgOk.includes('já está conectado')) {
+        setStatus('CONNECTED');
+        setQrCode(null);
+      } else {
+        const qrcode =
+          typeof (data as { qrcode?: string })?.qrcode === 'string' ? (data as { qrcode: string }).qrcode : null;
+        if (qrcode) {
+          setQrCode(qrcode);
+          setStatus('QRCODE');
+        } else {
+          setStatus('LOADING');
+        }
+      }
       setServiceNotice(null);
     } catch (err) {
       console.error('Erro ao iniciar WhatsApp:', err);
@@ -293,7 +302,7 @@ export default function WhatsAppConfig() {
         </div>
         <div className="min-w-0">
           <h2 className="text-3xl font-black leading-tight text-white sm:text-3xl">Conexão WhatsApp</h2>
-          <p className="mt-1 max-w-xl text-sm font-medium leading-relaxed text-gray-500 sm:text-base">Integre seu Terreiro com notificações automáticas via WhatsApp usando Baileys (Leve).</p>
+          <p className="mt-1 max-w-xl text-sm font-medium leading-relaxed text-gray-500 sm:text-base">Integre seu Terreiro com notificações automáticas via WhatsApp pela Evolution API.</p>
         </div>
       </div>
 
@@ -478,7 +487,7 @@ export default function WhatsAppConfig() {
         <div className="space-y-1">
           <h4 className="text-amber-500 font-black uppercase tracking-widest text-[10px]">Aviso Importante</h4>
           <p className="text-xs text-amber-500/80 font-medium text-left">
-            Certifique-se de manter o celular conectado à internet ocasionalmente para manter a sessão ativa. O Baileys é uma biblioteca leve e segura para automação de mensagens.
+            Certifique-se de manter o celular conectado à internet ocasionalmente para manter a sessão ativa. A conexão é gerenciada pela Evolution API no seu servidor.
           </p>
         </div>
       </div>

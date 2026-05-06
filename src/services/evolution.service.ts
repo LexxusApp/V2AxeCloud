@@ -4,6 +4,9 @@
  */
 import QRCode from "qrcode";
 
+export const WHATSAPP_INITIALIZING_MESSAGE_PT =
+  "O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.";
+
 /** URL pública da Evolution no Railway (placeholder; substitua xxx ou use env). */
 export const BASE_URL = "https://evolution-api-production-xxx.up.railway.app";
 
@@ -297,4 +300,94 @@ export function toQrCodeBase64(displayString: string): string {
     return stripDataUrlPrefix(s);
   }
   return s;
+}
+
+function evolutionErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    if (typeof d.error === "string" && d.error) return d.error;
+    if (d.response && typeof d.response === "object") {
+      const r = d.response as Record<string, unknown>;
+      const m = r.message;
+      if (Array.isArray(m) && m.length) return String(m[0]);
+      if (typeof m === "string") return m;
+    }
+  }
+  return fallback;
+}
+
+/**
+ * Envia texto via Evolution (`POST /message/sendText/{instance}`).
+ * `phoneDigits`: apenas dígitos, com DDI (ex.: 5511999999999).
+ */
+export async function sendEvolutionTextMessage(
+  tenantId: string,
+  phoneDigits: string,
+  text: string,
+): Promise<{ messageId?: string }> {
+  const instanceName = evolutionInstanceName(tenantId);
+  const number = String(phoneDigits).replace(/\D/g, "");
+  if (!number) throw new Error("Número inválido para envio WhatsApp.");
+
+  const path = `/message/sendText/${encodeURIComponent(instanceName)}`;
+  console.log(`[Evolution API] sendText | instance=${instanceName} | number=${number.slice(0, 4)}…`);
+
+  const res = await evolutionRequest(path, {
+    method: "POST",
+    body: JSON.stringify({
+      number,
+      text,
+      linkPreview: false,
+    }),
+  });
+
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`POST ${path}`, res.status, summarizeBody(data));
+
+  if (res.status === 401) {
+    console.error("[Evolution API] sendText 401: verifique API_KEY.");
+    throw new Error("Evolution API retornou 401 ao enviar mensagem.");
+  }
+  if (res.status === 404) {
+    console.error(`[Evolution API] sendText 404: instância "${instanceName}" não encontrada.`);
+    throw new Error("Instância WhatsApp não encontrada na Evolution. Conecte o WhatsApp nas configurações.");
+  }
+
+  if (!res.ok) {
+    const msg = evolutionErrorMessage(data, `Falha ao enviar mensagem (${res.status})`);
+    console.error(`[Evolution API] sendText erro: ${msg}`);
+    throw new Error(msg);
+  }
+
+  const key =
+    data && typeof data === "object" && "key" in data
+      ? (data as { key?: { id?: string } }).key
+      : undefined;
+  const messageId = typeof key?.id === "string" ? key.id : undefined;
+  console.log("[Evolution API] sendText concluído com sucesso.", messageId ? `id=${messageId}` : "");
+  return { messageId };
+}
+
+/** Encerra sessão na Evolution (`DELETE /instance/logout/{instance}`). */
+export async function logoutEvolutionInstance(tenantId: string): Promise<void> {
+  const instanceName = evolutionInstanceName(tenantId);
+  const path = `/instance/logout/${encodeURIComponent(instanceName)}`;
+  const res = await evolutionRequest(path, { method: "DELETE" });
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`DELETE ${path}`, res.status, summarizeBody(data));
+
+  if (res.status === 401) {
+    console.error("[Evolution API] logout 401.");
+    throw new Error("Evolution API retornou 401 ao desconectar.");
+  }
+  if (res.status === 404) {
+    console.log(`[Evolution API] logout 404 — instância "${instanceName}" já inexistente; considerando desconectado.`);
+    return;
+  }
+  if (!res.ok) {
+    const msg = evolutionErrorMessage(data, `Falha ao desconectar (${res.status})`);
+    console.error(`[Evolution API] logout: ${msg}`);
+    throw new Error(msg);
+  }
+  console.log(`[Evolution API] Instância "${instanceName}" desconectada com sucesso.`);
 }
