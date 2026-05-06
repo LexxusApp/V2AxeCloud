@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.23';
+export const APP_VERSION = '2.0.24';
 
 /** Versionamento numérico contínuo para controle de sessão/cache. */
 export const SYSTEM_VERSION = `V${APP_VERSION}`;

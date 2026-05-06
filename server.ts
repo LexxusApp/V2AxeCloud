@@ -21,7 +21,7 @@ import {
   createAxeWhatsappNodeClient,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "./lib/axeWhatsappNodeClient.js";
-import { createAxeInstance, getAxeEvolutionStatusAndQr } from "./lib/evolution.service.js";
+import { createAxeInstance, getAxeEvolutionStatusAndQr } from "./src/services/evolution.service.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -3727,7 +3727,7 @@ async function startServer() {
   });
 
   /**
-   * WhatsApp: envio ainda pode ir ao Node Baileys (AXE_WHATSAPP_NODE_BASE_URL). Conexão/QR usa Evolution API (lib/evolution.service).
+   * WhatsApp: envio ainda pode ir ao Node Baileys (AXE_WHATSAPP_NODE_BASE_URL). Conexão/QR usa Evolution API (src/services/evolution.service).
    * O tenant_id (id do usuário Supabase / zelador) é enviado no header x-tenant-id e no corpo JSON quando aplicável.
    */
   const WHATSAPP_NODE_BASE = String(process.env.AXE_WHATSAPP_NODE_BASE_URL || "")
@@ -3931,8 +3931,8 @@ async function startServer() {
         return res.json({ message: "WhatsApp já está conectado." });
       }
 
-      const { qrImageDataUrl } = await createAxeInstance(user.id);
-      res.json({ message: "Iniciando conexão WhatsApp...", qrcode: qrImageDataUrl });
+      const qrcode = await createAxeInstance(user.id);
+      res.json({ message: "Iniciando conexão WhatsApp...", qrcode });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao iniciar" });
@@ -4018,8 +4018,8 @@ async function startServer() {
       if (merged.status === "CONNECTED") {
         return res.json({ message: "WhatsApp já está conectado." });
       }
-      const { qrImageDataUrl } = await createAxeInstance(user.id);
-      res.json({ message: "Iniciando conexão WhatsApp...", qrcode: qrImageDataUrl });
+      const qrcode = await createAxeInstance(user.id);
+      res.json({ message: "Iniciando conexão WhatsApp...", qrcode });
     } catch (err: any) {
       console.error("[WHATSAPP] POST /connect:", err?.message || err);
       res.status(500).json({ error: err?.message || "Erro ao conectar na Evolution API." });
