@@ -91,9 +91,9 @@ export function createAxeWhatsappNodeClient(cfg: AxeWhatsappNodeClientConfig) {
     }
     const railway = String(stData?.status || "").toLowerCase();
     let status: "DISCONNECTED" | "LOADING" | "QRCODE" | "CONNECTED" = "DISCONNECTED";
-    if (railway === "open") status = "CONNECTED";
-    else if (railway === "qr") status = "QRCODE";
-    else if (railway === "connecting") status = "LOADING";
+    if (railway === "open" || railway === "connected") status = "CONNECTED";
+    else if (railway === "qr" || railway === "qrcode") status = "QRCODE";
+    else if (railway === "connecting" || railway === "loading") status = "LOADING";
 
     let qrcode: string | null = null;
     if (status === "QRCODE") {

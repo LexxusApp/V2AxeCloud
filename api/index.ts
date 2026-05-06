@@ -20,6 +20,7 @@ import {
   createAxeWhatsappNodeClient,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../lib/axeWhatsappNodeClient.js";
+import { createAxeInstance, getAxeEvolutionStatusAndQr } from "../lib/evolution.service.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -990,6 +991,33 @@ async function verifyUser(token: string) {
     console.error("[SERVER] verifyUser exceção:", err);
     return { user: null, error: err };
   }
+}
+
+async function requireWhatsappBridgeUser(req: express.Request, res: express.Response) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const token = authHeader.replace("Bearer ", "");
+  const { user, error: authError } = await verifyUser(token);
+  if (authError || !user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const bodyTenant =
+    req.body && typeof req.body === "object" && req.body !== null && "tenant_id" in req.body
+      ? String((req.body as { tenant_id?: unknown }).tenant_id ?? "").trim()
+      : "";
+  const headerTenant = String(
+    req.headers["x-tenant-id"] || req.headers["x-supabase-tenant-id"] || "",
+  ).trim();
+  const claimed = bodyTenant || headerTenant;
+  if (claimed && claimed !== user.id) {
+    res.status(403).json({ error: "tenant_id não corresponde ao usuário autenticado." });
+    return null;
+  }
+  return user;
 }
 
 /** Resolve perfil_lider.id a partir do id do zelador ou do tenant_id (ex.: tenant compartilhado). */
@@ -3126,7 +3154,7 @@ async function startServer() {
   });
 
   /**
-   * WhatsApp: Baileys roda só no Node contínuo (Railway). Este host chama process.env.AXE_WHATSAPP_NODE_BASE_URL.
+   * WhatsApp: envio ainda pode ir ao Node Baileys (AXE_WHATSAPP_NODE_BASE_URL). Conexão/QR usa Evolution API (lib/evolution.service).
    * O tenant_id (id do usuário Supabase / zelador) é enviado no header x-tenant-id e no corpo JSON quando aplicável.
    */
   const WHATSAPP_NODE_BASE = String(process.env.AXE_WHATSAPP_NODE_BASE_URL || "")
@@ -3319,23 +3347,19 @@ async function startServer() {
   app.post("/api/whatsapp/start", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    if (!requireWhatsappNode(res)) return;
 
     try {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-      const merged = await whatsappNode!.getStatusAndQr(user.id);
+      const merged = await getAxeEvolutionStatusAndQr(user.id);
       if (merged.status === "CONNECTED") {
         return res.json({ message: "WhatsApp já está conectado." });
       }
 
-      await whatsappNode!.jsonOrThrow(user.id, `/connect`, {
-        method: "POST",
-        body: { tenant_id: user.id },
-      });
-      res.json({ message: "Iniciando conexão WhatsApp..." });
+      const { qrImageDataUrl } = await createAxeInstance(user.id);
+      res.json({ message: "Iniciando conexão WhatsApp...", qrcode: qrImageDataUrl });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao iniciar" });
@@ -3370,14 +3394,18 @@ async function startServer() {
   app.get("/api/whatsapp/status", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    if (!requireWhatsappNode(res)) return;
 
     try {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-      const merged = await whatsappNode!.getStatusAndQr(user.id);
+      if (whatsappNode) {
+        const merged = await whatsappNode.getStatusAndQr(user.id);
+        res.json({ status: merged.status, qrcode: merged.qrcode });
+        return;
+      }
+      const merged = await getAxeEvolutionStatusAndQr(user.id);
       res.json({ status: merged.status, qrcode: merged.qrcode });
     } catch (err: any) {
       console.error("[WHATSAPP] /api/whatsapp/status:", err?.message || err);
@@ -3405,6 +3433,49 @@ async function startServer() {
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao deslogar" });
+    }
+  });
+
+  app.post("/connect", async (req, res) => {
+    const user = await requireWhatsappBridgeUser(req, res);
+    if (!user) return;
+    try {
+      const merged = await getAxeEvolutionStatusAndQr(user.id);
+      if (merged.status === "CONNECTED") {
+        return res.json({ message: "WhatsApp já está conectado." });
+      }
+      const { qrImageDataUrl } = await createAxeInstance(user.id);
+      res.json({ message: "Iniciando conexão WhatsApp...", qrcode: qrImageDataUrl });
+    } catch (err: any) {
+      console.error("[WHATSAPP] POST /connect:", err?.message || err);
+      res.status(500).json({ error: err?.message || "Erro ao conectar na Evolution API." });
+    }
+  });
+
+  app.get("/whatsapp/status", async (req, res) => {
+    const user = await requireWhatsappBridgeUser(req, res);
+    if (!user) return;
+    try {
+      const merged = await getAxeEvolutionStatusAndQr(user.id);
+      res.json({ status: merged.status, qrcode: merged.qrcode });
+    } catch (err: any) {
+      console.error("[WHATSAPP] GET /whatsapp/status:", err?.message || err);
+      res.status(503).json({ error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
+    }
+  });
+
+  app.get("/whatsapp/qr", async (req, res) => {
+    const user = await requireWhatsappBridgeUser(req, res);
+    if (!user) return;
+    try {
+      const merged = await getAxeEvolutionStatusAndQr(user.id);
+      if (merged.status !== "QRCODE" || !merged.qrcode) {
+        return res.status(404).json({ error: "QR code não disponível" });
+      }
+      res.json({ qr_image_data_url: merged.qrcode });
+    } catch (err: any) {
+      console.error("[WHATSAPP] GET /whatsapp/qr:", err?.message || err);
+      res.status(503).json({ error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
     }
   });
 
