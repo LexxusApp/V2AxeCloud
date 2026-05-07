@@ -13,9 +13,11 @@ export const BASE_URL = "https://evolution-api-production-xxx.up.railway.app";
 export const API_KEY = "AxeCloud_2026";
 
 function resolvedBaseUrl(): string {
-  return String(process.env.EVOLUTION_API_BASE_URL || BASE_URL)
-    .trim()
-    .replace(/\/$/, "");
+  const raw = String(process.env.EVOLUTION_API_BASE_URL || BASE_URL).trim().replace(/\/$/, "");
+  if (!raw) return BASE_URL;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  // Alguns ambientes salvam apenas o host (sem protocolo); normalizamos para URL válida.
+  return `https://${raw}`;
 }
 
 function resolvedApiKey(): string {
