@@ -314,9 +314,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         setActiveTab={setActiveTab}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar Settings */}
-        <div className="lg:col-span-4 space-y-3">
+        <div className="lg:col-span-3 lg:max-w-sm space-y-3">
           <button 
             onClick={() => setActiveSection('profile')}
             className={cn(
@@ -350,7 +350,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         </div>
 
         {/* Content Settings */}
-        <div className="lg:col-span-8 space-y-10">
+        <div className="lg:col-span-9 space-y-10">
           {activeSection === 'profile' ? (
             <div className="card-luxury p-10 space-y-10">
               <div className="flex flex-col md:flex-row items-center gap-8">

@@ -21,10 +21,10 @@ interface PlanCardProps {
 function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan }: PlanCardProps) {
   return (
     <motion.div 
-      whileHover={{ y: -10 }}
+      whileHover={{ y: -6 }}
       className={cn(
-        "relative flex flex-col p-8 rounded-3xl border transition-all duration-500 bg-card/50 backdrop-blur-sm",
-        isPopular ? "border-[#FBBC00] shadow-2xl shadow-[#FBBC00]/10 scale-105 z-10" : "border-white/5 hover:border-white/20",
+        "relative flex flex-col p-6 rounded-2xl border transition-all duration-500 bg-card/50 backdrop-blur-sm",
+        isPopular ? "border-[#FBBC00] shadow-xl shadow-[#FBBC00]/10 z-10" : "border-white/5 hover:border-white/20",
         isCurrentPlan && "border-primary shadow-lg shadow-primary/20"
       )}
     >
@@ -40,28 +40,28 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
         </div>
       )}
 
-      <div className="mb-8">
-        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg", color)}>
-          <Icon className="w-8 h-8 text-white" />
+      <div className="mb-6">
+        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-lg", color)}>
+          <Icon className="w-6 h-6 text-white" />
         </div>
-        <h3 className="text-2xl font-black text-white mb-2">{name}</h3>
-        <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+        <h3 className="text-xl font-black text-white mb-2">{name}</h3>
+        <p className="text-gray-400 text-xs leading-relaxed">{description}</p>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-black text-white">R$ {price}</span>
-          <span className="text-gray-500 font-bold">/mês</span>
+          <span className="text-3xl font-black text-white">R$ {price}</span>
+          <span className="text-gray-500 font-bold text-sm">/mês</span>
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 mb-10">
+      <div className="flex-1 space-y-3 mb-7">
         {features.map((feature, index) => (
-          <div key={index} className="flex items-start gap-3">
+          <div key={index} className="flex items-start gap-2.5">
             <div className="mt-1 bg-emerald-500/10 rounded-full p-0.5">
               <Check className="w-3 h-3 text-emerald-500" />
             </div>
-            <span className="text-sm text-gray-300 font-medium">{feature}</span>
+            <span className="text-xs text-gray-300 font-medium">{feature}</span>
           </div>
         ))}
       </div>
@@ -70,7 +70,7 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
         onClick={onSelect}
         disabled={loading || isCurrentPlan}
         className={cn(
-          "w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all group",
+          "w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2.5 transition-all group",
           isCurrentPlan
             ? "bg-white/10 text-white cursor-not-allowed border border-white/10"
             : isPopular 
@@ -231,7 +231,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   }
 
   const plansGrid = (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
       <PlanCard
         name={plansConfig.axe?.name || "Plano Axé"}
         price={formatPrice(plansConfig.axe?.price, "49,90")}
