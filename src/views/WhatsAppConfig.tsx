@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -38,6 +38,16 @@ export default function WhatsAppConfig() {
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const statusRef = useRef(status);
+  const qrCodeRef = useRef<string | null>(qrCode);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    qrCodeRef.current = qrCode;
+  }, [qrCode]);
 
   const getAccessToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -86,6 +96,9 @@ export default function WhatsAppConfig() {
                 : WHATSAPP_INIT_FALLBACK;
             setServiceNotice(msg);
             setErrorMsg(null);
+            if (statusRef.current === 'QRCODE' && qrCodeRef.current) {
+              return;
+            }
             setStatus('DISCONNECTED');
             setQrCode(null);
             return;
@@ -94,20 +107,39 @@ export default function WhatsAppConfig() {
         }
 
         const nextStatus = String((data as { status?: string })?.status || '').toUpperCase();
-        if (nextStatus === 'CONNECTED' || nextStatus === 'QRCODE' || nextStatus === 'DISCONNECTED') {
-          setStatus(nextStatus as 'CONNECTED' | 'QRCODE' | 'DISCONNECTED');
-        } else if (nextStatus === 'LOADING') {
-          // No polling, LOADING confunde como auto-conexão; mantém estado manual.
-          setStatus('DISCONNECTED');
+        const nextQr =
+          typeof (data as { qrcode?: string })?.qrcode === 'string' ? (data as { qrcode: string }).qrcode : null;
+
+        if (nextStatus === 'CONNECTED') {
+          setStatus('CONNECTED');
+          setQrCode(null);
+        } else if (nextStatus === 'QRCODE') {
+          if (nextQr) setQrCode(nextQr);
+          setStatus('QRCODE');
+        } else if (nextStatus === 'DISCONNECTED' || nextStatus === 'LOADING') {
+          // Evita "piscar e sumir": se já existe QR visível, preserva até ação do usuário.
+          if (statusRef.current === 'QRCODE' && qrCodeRef.current) {
+            setStatus('QRCODE');
+          } else {
+            setStatus('DISCONNECTED');
+            setQrCode(null);
+          }
         } else {
-          setStatus('DISCONNECTED');
+          if (statusRef.current === 'QRCODE' && qrCodeRef.current) {
+            setStatus('QRCODE');
+          } else {
+            setStatus('DISCONNECTED');
+            setQrCode(null);
+          }
         }
-        setQrCode(typeof (data as { qrcode?: string })?.qrcode === 'string' ? (data as { qrcode: string }).qrcode : null);
         setErrorMsg(null);
         setServiceNotice(null);
       } catch (err) {
         console.error('Erro ao checar status do WhatsApp:', err);
         setServiceNotice(WHATSAPP_INIT_FALLBACK);
+        if (statusRef.current === 'QRCODE' && qrCodeRef.current) {
+          return;
+        }
         setStatus('DISCONNECTED');
         setQrCode(null);
         setErrorMsg(null);
