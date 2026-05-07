@@ -241,7 +241,7 @@ export async function getAxeEvolutionStatusAndQr(tenantId: string): Promise<{
     res = await evolutionRequest(path, { method: "GET" });
   } catch (e) {
     console.error("[Evolution API] fetchInstances rede/timeout:", e);
-    return { status: "LOADING", qrcode: null };
+    return { status: "DISCONNECTED", qrcode: null };
   }
 
   const raw = await res.json().catch(() => null);

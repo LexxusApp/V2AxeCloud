@@ -86,7 +86,7 @@ export default function WhatsAppConfig() {
                 : WHATSAPP_INIT_FALLBACK;
             setServiceNotice(msg);
             setErrorMsg(null);
-            setStatus('LOADING');
+            setStatus('DISCONNECTED');
             setQrCode(null);
             return;
           }
@@ -94,8 +94,11 @@ export default function WhatsAppConfig() {
         }
 
         const nextStatus = String((data as { status?: string })?.status || '').toUpperCase();
-        if (nextStatus === 'CONNECTED' || nextStatus === 'QRCODE' || nextStatus === 'LOADING' || nextStatus === 'DISCONNECTED') {
-          setStatus(nextStatus as 'CONNECTED' | 'QRCODE' | 'LOADING' | 'DISCONNECTED');
+        if (nextStatus === 'CONNECTED' || nextStatus === 'QRCODE' || nextStatus === 'DISCONNECTED') {
+          setStatus(nextStatus as 'CONNECTED' | 'QRCODE' | 'DISCONNECTED');
+        } else if (nextStatus === 'LOADING') {
+          // No polling, LOADING confunde como auto-conexão; mantém estado manual.
+          setStatus('DISCONNECTED');
         } else {
           setStatus('DISCONNECTED');
         }
@@ -105,7 +108,7 @@ export default function WhatsAppConfig() {
       } catch (err) {
         console.error('Erro ao checar status do WhatsApp:', err);
         setServiceNotice(WHATSAPP_INIT_FALLBACK);
-        setStatus('LOADING');
+        setStatus('DISCONNECTED');
         setQrCode(null);
         setErrorMsg(null);
       }
