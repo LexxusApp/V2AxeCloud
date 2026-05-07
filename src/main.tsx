@@ -12,8 +12,7 @@ let reloadingFromSwUpdate = false;
 function hardReloadForSwUpdate() {
   if (reloadingFromSwUpdate) return;
   reloadingFromSwUpdate = true;
-  // Compatibilidade explícita com navegadores antigos/PWA embarcado.
-  window.location.reload(true as any);
+  window.location.reload();
 }
 
 function checkServiceWorkerUpdate() {

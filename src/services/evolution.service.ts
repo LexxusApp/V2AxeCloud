@@ -271,26 +271,20 @@ export async function getAxeEvolutionStatusAndQr(tenantId: string): Promise<{
     return { status: "CONNECTED", qrcode: null };
   }
 
-  try {
-    const conn = await evolutionRequest(`/instance/connect/${encodeURIComponent(instanceName)}`, {
-      method: "GET",
-    });
-    const connData = await conn.json().catch(() => ({}));
-    logEvolution("GET /instance/connect (status poll)", conn.status, summarizeBody(connData));
-    if (conn.status === 401) {
-      console.error("[Evolution API] Erro 401 no connect durante poll.");
-    } else if (conn.status === 404) {
-      console.error("[Evolution API] Erro 404 no connect durante poll.");
-    }
-    if (conn.ok) {
-      const qr = await resolveDisplayString(connData);
+  // Evita auto-conexão involuntária: polling de status não deve chamar /instance/connect.
+  // A geração de QR fica exclusiva no clique do botão "Conectar agora" (fluxo /api/whatsapp/start).
+  const qrFromInstance = pickQrOrLinkFromPayload(inst);
+  if (qrFromInstance) {
+    try {
+      const qr = await resolveDisplayString(inst);
       return { status: "QRCODE", qrcode: qr };
+    } catch (e) {
+      console.error("[Evolution API] Não foi possível normalizar QR do fetchInstances:", e);
     }
-  } catch (e) {
-    console.error("[Evolution API] Erro ao obter QR no poll:", e);
   }
 
-  return { status: "LOADING", qrcode: null };
+  // Instância existe, mas sem sessão aberta e sem QR disponível no snapshot.
+  return { status: "DISCONNECTED", qrcode: null };
 }
 
 /** Base64 do PNG sem prefixo `data:` (útil para armazenar). */

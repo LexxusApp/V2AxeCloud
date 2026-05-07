@@ -369,7 +369,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   useEffect(() => {
     if (!isAdmin || isAxePlan || !tenantId) return;
     if (activeView !== 'mensalidades') return;
-    let debounce: ReturnType<typeof setTimeout> | undefined;
+    let debounce: number | undefined;
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       if (debounce) window.clearTimeout(debounce);
