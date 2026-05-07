@@ -214,6 +214,11 @@ async function fetchConnectQr(instanceName: string): Promise<string> {
 
 type UiStatus = "CONNECTED" | "QRCODE" | "LOADING" | "DISCONNECTED";
 
+function isConnectedStateValue(value: string): boolean {
+  const v = String(value || "").toLowerCase().trim();
+  return v === "open" || v === "connected" || v === "online";
+}
+
 function firstInstanceRecord(raw: unknown): Record<string, unknown> | null {
   if (!raw) return null;
   if (Array.isArray(raw)) {
@@ -230,6 +235,47 @@ function firstInstanceRecord(raw: unknown): Record<string, unknown> | null {
     return inner && typeof inner === "object" ? (inner as Record<string, unknown>) : null;
   }
   return null;
+}
+
+function pickConnectionStateValue(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const p = payload as Record<string, unknown>;
+  const instance = p.instance && typeof p.instance === "object" ? (p.instance as Record<string, unknown>) : null;
+
+  const candidates = [
+    p.state,
+    p.status,
+    p.connectionStatus,
+    instance?.state,
+    instance?.status,
+    instance?.connectionStatus,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c;
+  }
+  return "";
+}
+
+async function isConnectedByConnectionState(instanceName: string): Promise<boolean | null> {
+  const path = `/instance/connectionState/${encodeURIComponent(instanceName)}`;
+  try {
+    const res = await evolutionRequest(path, { method: "GET" });
+    const data: unknown = await res.json().catch(() => ({}));
+    logEvolution(`GET ${path}`, res.status, summarizeBody(data));
+    if (!res.ok) return null;
+
+    if (data && typeof data === "object" && "connected" in (data as object)) {
+      const connected = (data as { connected?: unknown }).connected;
+      if (typeof connected === "boolean") return connected;
+    }
+
+    const state = pickConnectionStateValue(data);
+    if (!state) return null;
+    return isConnectedStateValue(state);
+  } catch (e) {
+    console.error("[Evolution API] connectionState falhou:", e);
+    return null;
+  }
 }
 
 export async function getAxeEvolutionStatusAndQr(tenantId: string): Promise<{
@@ -267,9 +313,15 @@ export async function getAxeEvolutionStatusAndQr(tenantId: string): Promise<{
     return { status: "DISCONNECTED", qrcode: null };
   }
 
-  const st = String(inst.status || "").toLowerCase();
-  if (st === "open") {
+  const st = String(inst.status || inst.state || inst.connectionStatus || "").toLowerCase();
+  if (isConnectedStateValue(st)) {
     console.log(`[Evolution API] Instância ${instanceName} conectada (open).`);
+    return { status: "CONNECTED", qrcode: null };
+  }
+
+  const connectedFromState = await isConnectedByConnectionState(instanceName);
+  if (connectedFromState === true) {
+    console.log(`[Evolution API] Instância ${instanceName} conectada (connectionState).`);
     return { status: "CONNECTED", qrcode: null };
   }
 
