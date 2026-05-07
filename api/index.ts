@@ -2446,7 +2446,8 @@ async function startServer() {
   app.get("/api/children/:id", async (req, res) => {
     const childId = req.params.id;
     const userId = req.query.userId as string;
-    const tenantIdFromQuery = req.query.tenantId as string;
+    const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+    const userRoleQ = String(req.query.userRole || "");
     
     console.log(`[SERVER] GET /api/children/${childId} request received. userId:`, userId, "tenantId:", tenantIdFromQuery);
 
@@ -2455,30 +2456,19 @@ async function startServer() {
     }
 
     try {
-      let tenantId = tenantIdFromQuery;
-
-      // 1. Get user's tenant_id if not provided
-      if (!tenantId) {
-        const { data: profile, error: profileError } = await supabaseAdmin
-          .from('perfil_lider')
-          .select('tenant_id')
-          .eq('id', userId)
-          .single();
-
-        if (profileError) {
-          console.error("[SERVER] Error fetching profile for tenant_id:", profileError);
-          return res.status(500).json({ error: "Failed to verify user tenant" });
-        }
-        tenantId = profile?.tenant_id;
-      }
-
+      const tenantId = await resolveFinanceiroTenantScope(
+        supabaseAdmin,
+        userId,
+        userRoleQ,
+        tenantIdFromQuery
+      );
       console.log(`[SERVER] Using tenant_id:`, tenantId);
 
       // 2. Fetch the child, ensuring it belongs to the same tenant_id or lider_id
       let query = supabaseAdmin.from('filhos_de_santo').select('*').eq('id', childId);
       
       if (tenantId) {
-         query = query.eq('tenant_id', tenantId);
+         query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
       } else {
          query = query.eq('lider_id', userId);
       }
@@ -2501,7 +2491,8 @@ async function startServer() {
   app.put("/api/children/:id", async (req, res) => {
     const childId = req.params.id;
     const userId = req.query.userId as string;
-    const tenantIdFromQuery = req.query.tenantId as string;
+    const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+    const userRoleQ = String(req.query.userRole || "");
     const updateData = req.body;
     
     console.log(`[SERVER] PUT /api/children/${childId} request received. userId:`, userId, "tenantId:", tenantIdFromQuery);
@@ -2511,27 +2502,17 @@ async function startServer() {
     }
 
     try {
-      let tenantId = tenantIdFromQuery;
-
-      // 1. Get user's tenant_id if not provided
-      if (!tenantId) {
-        const { data: profile, error: profileError } = await supabaseAdmin
-          .from('perfil_lider')
-          .select('tenant_id')
-          .eq('id', userId)
-          .single();
-
-        if (profileError) {
-          console.error("[SERVER] Error fetching profile for tenant_id:", profileError);
-          return res.status(500).json({ error: "Failed to verify user tenant" });
-        }
-        tenantId = profile?.tenant_id;
-      }
+      const tenantId = await resolveFinanceiroTenantScope(
+        supabaseAdmin,
+        userId,
+        userRoleQ,
+        tenantIdFromQuery
+      );
 
       // 2. Verify ownership before update
       let query = supabaseAdmin.from('filhos_de_santo').select('id').eq('id', childId);
       if (tenantId) {
-         query = query.eq('tenant_id', tenantId);
+         query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
       } else {
          query = query.eq('lider_id', userId);
       }

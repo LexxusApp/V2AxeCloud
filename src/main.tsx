@@ -21,30 +21,37 @@ function checkServiceWorkerUpdate() {
   });
 }
 
-registerSW({
-  immediate: true,
-  onNeedRefresh() {
-    // Nova versão publicada — reload completo para não ficar preso em bundle/cache antigo
-    hardReloadForSwUpdate();
-  },
-  onRegisteredSW(swUrl, registration) {
-    swRegistration = registration;
-    if (import.meta.env.DEV) {
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      // Nova versão publicada — reload completo para não ficar preso em bundle/cache antigo
+      hardReloadForSwUpdate();
+    },
+    onRegisteredSW(swUrl, registration) {
+      swRegistration = registration;
       console.info('[PWA] Service Worker ativo:', swUrl, registration?.scope);
-    }
-  },
-  onRegisterError(error) {
-    console.error('[PWA] Falha ao registrar o Service Worker:', error);
-  },
-});
+    },
+    onRegisterError(error) {
+      console.error('[PWA] Falha ao registrar o Service Worker:', error);
+    },
+  });
 
-/** Ao voltar ao app (mobile/PWA), verifica atualização do SW — evita estado quebrado após deploy. */
-window.addEventListener('focus', checkServiceWorkerUpdate);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    checkServiceWorkerUpdate();
-  }
-});
+  /** Ao voltar ao app (mobile/PWA), verifica atualização do SW — evita estado quebrado após deploy. */
+  window.addEventListener('focus', checkServiceWorkerUpdate);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkServiceWorkerUpdate();
+    }
+  });
+} else if ('serviceWorker' in navigator) {
+  // Em desenvolvimento, removemos SW antigos para evitar tela em branco/caches presos.
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      void registration.unregister();
+    }
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

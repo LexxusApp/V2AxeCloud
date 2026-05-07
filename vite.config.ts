@@ -15,7 +15,7 @@ export default defineConfig(({mode}) => {
         injectRegister: false,
         includeAssets: ['axecloud_192.png', 'axecloud_512.png', 'sw-push.js'],
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
         manifest: {
           id: '/',

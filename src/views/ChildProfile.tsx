@@ -97,7 +97,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           data = selfData;
         } else {
           const { data: { session } } = await supabase.auth.getSession();
-          const response = await fetch(`/api/children/${childId}?userId=${user?.id}&tenantId=${tenantId || ''}`, {
+          const response = await fetch(`/api/children/${childId}?userId=${user?.id}&tenantId=${tenantId || ''}&userRole=${tenantData?.role || ''}`, {
             headers: {
               'Authorization': `Bearer ${session?.access_token}`
             }
@@ -182,7 +182,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       delete updatePayload.created_at;
 
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`/api/children/${child.id}?userId=${user?.id}&tenantId=${tenantData?.tenant_id || ''}`, {
+      const response = await fetch(`/api/children/${child.id}?userId=${user?.id}&tenantId=${tenantData?.tenant_id || ''}&userRole=${tenantData?.role || ''}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
