@@ -247,28 +247,28 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 space-y-10 px-4 pb-20 animate-in fade-in duration-700 md:px-6 lg:px-10">
+      <div className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 space-y-8 px-4 pb-20 animate-in fade-in duration-700 md:px-6 lg:px-10">
         
         {/* Superior Dashboard Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           
           {/* Main Info Box */}
-          <div className="card-luxury p-8 md:col-span-6 lg:col-span-5 relative overflow-hidden group flex flex-col justify-between min-h-[220px]">
+          <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden p-6 md:col-span-6 lg:col-span-5">
              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-20 -mt-20 group-hover:bg-primary/20 transition-all duration-700" />
              <div className="relative z-10 flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-1">Total em Estoque</h3>
+                  <h3 className="mb-1 text-xs font-black uppercase tracking-widest text-gray-400">Total em Estoque</h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-black text-white tracking-tighter">{products.length}</span>
-                    <span className="text-xl text-primary font-bold">itens</span>
+                    <span className="text-5xl font-black tracking-tighter text-white">{products.length}</span>
+                    <span className="text-lg font-bold text-primary">itens</span>
                   </div>
                 </div>
-                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-lg backdrop-blur-md">
-                   <Package className="w-7 h-7 text-primary" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-md">
+                   <Package className="h-6 w-6 text-primary" />
                 </div>
              </div>
              
-             <div className="relative z-10 flex items-center gap-4 mt-8">
+             <div className="relative z-10 mt-5 flex items-center gap-3">
                <div className="flex-1 bg-white/5 h-2 rounded-full overflow-hidden">
                  <div className="h-full bg-primary w-full" />
                </div>
@@ -277,32 +277,32 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
           </div>
 
           {/* Alerts Box */}
-          <div className="md:col-span-6 lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="card-luxury p-6 relative overflow-hidden group border-primary/20 hover:border-primary/40 bg-primary/5 min-h-[220px] flex flex-col justify-between">
+          <div className="grid grid-cols-1 gap-4 md:col-span-6 lg:col-span-7 sm:grid-cols-2">
+            <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden border-primary/20 bg-primary/5 p-5 hover:border-primary/40">
                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[50px] -mr-10 -mt-10" />
-               <div className="relative z-10 flex items-center gap-4 mb-4">
-                 <div className="p-3.5 bg-primary/20 rounded-xl">
-                   <AlertTriangle className="w-6 h-6 text-primary" />
+               <div className="relative z-10 mb-3 flex items-center gap-3">
+                 <div className="rounded-lg bg-primary/20 p-2.5">
+                   <AlertTriangle className="h-5 w-5 text-primary" />
                  </div>
-                 <span className="text-sm font-black text-primary uppercase tracking-widest">Atenção</span>
+                 <span className="text-xs font-black uppercase tracking-widest text-primary">Atenção</span>
                </div>
                <div className="relative z-10">
-                 <div className="text-4xl font-black text-white tracking-tighter mb-1">{lowStockItems.length}</div>
-                 <p className="text-sm font-bold text-gray-400 leading-snug">Itens se aproximando do limite mínimo de estoque.</p>
+                 <div className="mb-1 text-3xl font-black tracking-tighter text-white">{lowStockItems.length}</div>
+                 <p className="text-xs font-bold leading-snug text-gray-400">Itens se aproximando do limite mínimo de estoque.</p>
                </div>
             </div>
 
-            <div className="card-luxury p-6 relative overflow-hidden group border-red-500/20 hover:border-red-500/40 bg-red-500/5 min-h-[220px] flex flex-col justify-between">
+            <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden border-red-500/20 bg-red-500/5 p-5 hover:border-red-500/40">
                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-[50px] -mr-10 -mt-10" />
-               <div className="relative z-10 flex items-center gap-4 mb-4">
-                 <div className="p-3.5 bg-red-500/20 rounded-xl">
-                   <XCircle className="w-6 h-6 text-red-500" />
+               <div className="relative z-10 mb-3 flex items-center gap-3">
+                 <div className="rounded-lg bg-red-500/20 p-2.5">
+                   <XCircle className="h-5 w-5 text-red-500" />
                  </div>
-                 <span className="text-sm font-black text-red-500 uppercase tracking-widest">Crítico</span>
+                 <span className="text-xs font-black uppercase tracking-widest text-red-500">Crítico</span>
                </div>
                <div className="relative z-10">
-                 <div className="text-4xl font-black text-white tracking-tighter mb-1">{outOfStockItems.length}</div>
-                 <p className="text-sm font-bold text-gray-400 leading-snug">Itens que acabaram e precisam de reposição urgente.</p>
+                 <div className="mb-1 text-3xl font-black tracking-tighter text-white">{outOfStockItems.length}</div>
+                 <p className="text-xs font-bold leading-snug text-gray-400">Itens que acabaram e precisam de reposição urgente.</p>
                </div>
             </div>
           </div>

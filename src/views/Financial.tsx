@@ -940,42 +940,42 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
         {activeView === 'overview' ? (
         <>
           {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-4">
-        <div className="card-luxury p-6 md:p-8 lg:p-5 rounded-3xl border-white/5 bg-gradient-to-br from-emerald-500/10 to-transparent shadow-xl">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="p-3 md:p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              <TrendingUp className="w-6 h-6 md:w-7 md:h-7" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-emerald-500/10 to-transparent p-5 shadow-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-emerald-500">
+              <TrendingUp className="h-5 w-5" />
             </div>
-            <span className="text-[10px] md:text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">+15%</span>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">+15%</span>
           </div>
-          <p className="text-xs md:text-sm font-bold text-gray-500 uppercase tracking-widest">Entradas (confirmadas)</p>
-          <h3 className="text-3xl md:text-4xl font-black text-white mt-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Entradas (confirmadas)</p>
+          <h3 className="mt-2 text-3xl font-black text-white">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.entradas)}
           </h3>
         </div>
 
-        <div className="card-luxury p-6 md:p-8 rounded-3xl border-white/5 bg-gradient-to-br from-red-500/10 to-transparent shadow-xl">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="p-3 md:p-4 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20">
-              <TrendingDown className="w-6 h-6 md:w-7 md:h-7" />
+        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-red-500/10 to-transparent p-5 shadow-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-red-500">
+              <TrendingDown className="h-5 w-5" />
             </div>
-            <span className="text-[10px] md:text-xs font-black text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">-5%</span>
+            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-500">-5%</span>
           </div>
-          <p className="text-xs md:text-sm font-bold text-gray-500 uppercase tracking-widest">Saídas (confirmadas)</p>
-          <h3 className="text-3xl md:text-4xl font-black text-white mt-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Saídas (confirmadas)</p>
+          <h3 className="mt-2 text-3xl font-black text-white">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.saidas)}
           </h3>
         </div>
 
-        <div className="card-luxury p-6 md:p-8 rounded-3xl border-white/5 bg-gradient-to-br from-primary/10 to-transparent shadow-xl">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="p-3 md:p-4 rounded-2xl bg-primary/10 text-primary border border-primary/20">
-              <DollarSign className="w-6 h-6 md:w-7 md:h-7" />
+        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-primary/10 to-transparent p-5 shadow-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2.5 text-primary">
+              <DollarSign className="h-5 w-5" />
             </div>
-            <span className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full border border-primary/20">Saldo</span>
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-primary">Saldo</span>
           </div>
-          <p className="text-xs md:text-sm font-bold text-gray-500 uppercase tracking-widest">Saldo no caixa</p>
-          <h3 className="text-3xl md:text-4xl font-black text-white mt-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Saldo no caixa</p>
+          <h3 className="mt-2 text-3xl font-black text-white">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}
           </h3>
         </div>

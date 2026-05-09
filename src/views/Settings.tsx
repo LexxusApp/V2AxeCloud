@@ -316,11 +316,11 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar Settings */}
-        <div className="lg:col-span-3 lg:max-w-sm space-y-3">
+        <div className="lg:col-span-3 lg:max-w-sm space-y-3 lg:pl-3">
           <button 
             onClick={() => setActiveSection('profile')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-xl font-black text-sm transition-all",
+              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
               activeSection === 'profile' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
@@ -330,7 +330,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           <button 
             onClick={() => setActiveSection('subscription')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-xl font-black text-sm transition-all",
+              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
               activeSection === 'subscription' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
@@ -340,7 +340,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           <button 
             onClick={() => setActiveSection('whatsapp')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-xl font-black text-sm transition-all",
+              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
               activeSection === 'whatsapp' ? "bg-emerald-500 text-background shadow-xl shadow-emerald-500/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >

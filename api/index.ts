@@ -23,6 +23,10 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
+import {
+  normalizeWhatsAppTemplates,
+  resolveWhatsAppTemplate,
+} from "../src/constants/whatsappTemplates.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -3122,6 +3126,31 @@ async function startServer() {
   }
 
   // --- WHATSAPP INTEGRATION ENDPOINTS (Evolution API) ---
+  app.get("/api/whatsapp/config", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+      const { data, error } = await supabaseAdmin
+        .from("whatsapp_config")
+        .select("templates")
+        .eq("tenant_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+
+      return res.json({
+        success: true,
+        templates: normalizeWhatsAppTemplates(data?.templates),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error?.message || "Erro ao carregar configurações do WhatsApp." });
+    }
+  });
+
   app.post("/api/whatsapp/config", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
@@ -3132,10 +3161,12 @@ async function startServer() {
       if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
       const config = req.body;
+      const safeTemplates = normalizeWhatsAppTemplates(config?.templates);
       const { error } = await supabaseAdmin
         .from('whatsapp_config')
         .upsert({
           ...config,
+          templates: safeTemplates,
           id: user.id,
           tenant_id: user.id,
           updated_at: new Date().toISOString()
@@ -3178,25 +3209,7 @@ async function startServer() {
       phone = String(phone).replace(/\D/g, '');
       if (!phone.startsWith('55')) phone = `55${phone}`;
 
-      let message = config?.templates?.[tipo] || "Mensagem do AxéCloud";
-      if (tipo === 'cobranca_mensalidade' && !config?.templates?.[tipo]) {
-        message = "Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!";
-      }
-      if (tipo === 'financeiro' && !config?.templates?.[tipo]) {
-        message = "Olá, {{nome_filho}}! Lembramos do pagamento de sua mensalidade no valor de R$ {{valor_mensalidade}}, com vencimento em {{data_vencimento}}, para o terreiro {{nome_terreiro}}. Axé!";
-      }
-      if (tipo === 'mural_aviso' && !config?.templates?.[tipo]) {
-        message = "Paz e Luz, {{nome_filho}}! Há um novo aviso no Mural do terreiro {{nome_terreiro}}:\n\n*{{titulo_aviso}}*\n\nAcesse o sistema para ver os detalhes. Axé!";
-      }
-      if (tipo === 'estoque_critico' && !config?.templates?.[tipo]) {
-        message = "⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.";
-      }
-      if (tipo === 'convite_evento' && !config?.templates?.[tipo]) {
-        message = "Paz e Luz, {{nome_convidado}}!\nO terreiro {{nome_terreiro}} tem a honra de te convidar para o nosso próximo encontro:\n\n*{{nome_evento}}*\n📅 Data: {{data_evento}}\n⏰ Horário: {{hora_evento}}\n\n⏳ *Por favor, responda com SIM para confirmar sua presença, ou NÃO caso não possa comparecer.*\n\nAguardamos sua presença! Axé!";
-      }
-      if (tipo === 'boas_vindas' && !config?.templates?.[tipo]) {
-        message = "Seja muito bem-vindo(a), porta de entrada do Axé, {{nome_filho}}! 🙏\n\nÉ uma alegria imensa ter você fazendo parte da família {{nome_terreiro}}. Que sua caminhada seja de muita luz, aprendizado e evolução sob a proteção dos nossos Orixás e Guias.\n\nEste é o nosso canal oficial de comunicação. Por aqui você receberá avisos, calendários e informações importantes do terreiro.\n\nAxé! ✨";
-      }
+      let message = resolveWhatsAppTemplate(config?.templates, String(tipo || ""));
 
       Object.entries(variables || {}).forEach(([key, value]) => {
         message = message.replace(new RegExp(`{{${key}}}`, 'g'), String(value));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Link, Shield, AlertCircle, Loader2, CheckCircle2, Save, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import {
@@ -8,6 +8,11 @@ import {
   whatsappRailwayHeaders,
   whatsappRailwayJsonBody,
 } from '../lib/whatsappApiUrl';
+import {
+  WHATSAPP_TEMPLATE_DEFAULTS,
+  WHATSAPP_TEMPLATE_ORDER,
+  type WhatsAppTemplateType,
+} from '../constants/whatsappTemplates';
 
 const WHATSAPP_INIT_FALLBACK =
   'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
@@ -38,8 +43,37 @@ export default function WhatsAppConfig() {
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [templates, setTemplates] = useState<Record<WhatsAppTemplateType, string>>(WHATSAPP_TEMPLATE_DEFAULTS);
+  const [savingTemplates, setSavingTemplates] = useState(false);
+  const [templatesSaved, setTemplatesSaved] = useState(false);
   const statusRef = useRef(status);
   const qrCodeRef = useRef<string | null>(qrCode);
+  const templateMeta: Record<WhatsAppTemplateType, { title: string; hint: string }> = {
+    boas_vindas: {
+      title: 'Boas-vindas',
+      hint: 'Enviada ao cadastrar novo filho.',
+    },
+    cobranca_mensalidade: {
+      title: 'Cobrança de Mensalidade',
+      hint: 'Usada no botão de cobrar mensalidade.',
+    },
+    financeiro: {
+      title: 'Financeiro (Lembrete)',
+      hint: 'Modelo de lembrete financeiro geral.',
+    },
+    mural_aviso: {
+      title: 'Aviso de Mural',
+      hint: 'Disparada ao publicar aviso no mural.',
+    },
+    convite_evento: {
+      title: 'Convite de Evento',
+      hint: 'Enviada para convidados de evento.',
+    },
+    estoque_critico: {
+      title: 'Estoque Crítico',
+      hint: 'Alerta automático de item em nível crítico.',
+    },
+  };
 
   useEffect(() => {
     statusRef.current = status;
@@ -329,6 +363,65 @@ export default function WhatsAppConfig() {
     }
   };
 
+  const loadTemplates = async () => {
+    try {
+      const token = await getAccessToken();
+      const userId = await getSessionUserId();
+      const response = await fetch(whatsappApiUrl('/whatsapp/config'), {
+        method: 'GET',
+        headers: whatsappRailwayAuthHeaders(token, userId),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(String((data as { error?: string })?.error || 'Falha ao carregar modelos de mensagem.'));
+      }
+      if ((data as { templates?: unknown })?.templates) {
+        setTemplates((data as { templates: Record<WhatsAppTemplateType, string> }).templates);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar templates de WhatsApp:', err);
+    }
+  };
+
+  useEffect(() => {
+    void loadTemplates();
+  }, []);
+
+  const handleTemplateChange = (key: WhatsAppTemplateType, value: string) => {
+    setTemplatesSaved(false);
+    setTemplates((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleResetTemplate = (key: WhatsAppTemplateType) => {
+    handleTemplateChange(key, WHATSAPP_TEMPLATE_DEFAULTS[key]);
+  };
+
+  const handleSaveTemplates = async () => {
+    setSavingTemplates(true);
+    setTemplatesSaved(false);
+    setErrorMsg(null);
+    try {
+      const token = await getAccessToken();
+      const userId = await getSessionUserId();
+      const response = await fetch(whatsappApiUrl('/whatsapp/config'), {
+        method: 'POST',
+        headers: whatsappRailwayHeaders(token, userId),
+        body: whatsappRailwayJsonBody(userId, { templates }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(String((data as { error?: string })?.error || 'Falha ao salvar modelos.'));
+      }
+      setTemplatesSaved(true);
+      setTimeout(() => setTemplatesSaved(false), 3500);
+    } catch (err) {
+      console.error('Erro ao salvar templates de WhatsApp:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Erro ao salvar modelos de mensagem.');
+    } finally {
+      setSavingTemplates(false);
+    }
+  };
+
   return (
     <div className="card-luxury mx-auto w-full max-w-5xl space-y-6 p-5 sm:space-y-8 sm:p-8 lg:p-10">
       <div className="grid gap-4 border-b border-white/5 pb-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-6">
@@ -524,6 +617,57 @@ export default function WhatsAppConfig() {
           <p className="text-xs text-amber-500/80 font-medium text-left">
             Certifique-se de manter o celular conectado à internet ocasionalmente para manter a sessão ativa. A conexão é gerenciada pela Evolution API no seu servidor.
           </p>
+        </div>
+      </div>
+
+      <div className="space-y-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h4 className="text-lg font-black text-white">Mensagens Programadas</h4>
+            <p className="text-xs text-gray-400">
+              Já preenchemos com os textos atuais do sistema. Você pode manter ou personalizar.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveTemplates}
+            disabled={savingTemplates}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black uppercase tracking-widest text-background disabled:opacity-60"
+          >
+            {savingTemplates ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savingTemplates ? 'Salvando...' : 'Salvar Mensagens'}
+          </button>
+        </div>
+        {templatesSaved && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] font-bold text-emerald-300">
+            Modelos salvos com sucesso.
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {WHATSAPP_TEMPLATE_ORDER.map((key) => (
+            <div key={key} className="space-y-2 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-white">{templateMeta[key].title}</p>
+                  <p className="text-[11px] text-gray-500">{templateMeta[key].hint}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleResetTemplate(key)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/5"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Padrão
+                </button>
+              </div>
+              <textarea
+                value={templates[key] ?? ''}
+                onChange={(e) => handleTemplateChange(key, e.target.value)}
+                rows={7}
+                className="w-full resize-y rounded-xl border border-white/10 bg-background px-3 py-2 text-xs text-white outline-none transition-all focus:border-primary"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

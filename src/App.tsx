@@ -55,7 +55,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 10;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 19;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -1216,16 +1216,7 @@ export default function App() {
 
   if (isMasterActive && isAdminGlobal) {
     return (
-      <div className="min-h-screen text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
-        {/* Background Image - Árvore (Always Present) */}
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none -z-20 opacity-70"
-          style={{ 
-            backgroundImage: `url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80')`
-          }}
-        />
-        <div className="fixed inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/80 pointer-events-none -z-10" />
-
+      <div className="min-h-screen bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
         <MasterPortal 
           session={session} 
           onLogout={() => setIsMasterActive(false)} 
@@ -1236,16 +1227,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-[100dvh] w-full text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
-      {/* Background Image - Árvore (Always Present) */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none -z-20 opacity-70"
-        style={{ 
-          backgroundImage: `url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80')`
-        }}
-      />
-      <div className="fixed inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/80 pointer-events-none -z-10" />
-
+    <div className="h-[100dvh] w-full bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
       {userRole === 'filho' ? (
         <FilhoSidebar 
           activeTab={activeTab} 

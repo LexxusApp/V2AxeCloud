@@ -8,6 +8,14 @@
   --color-background: #18191c;
   --color-card: #222327;
   --color-border: rgba(255, 255, 255, 0.08);
+  --radius-xs: 0.4rem;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.4rem;
+  --radius-lg: 0.4rem;
+  --radius-xl: 0.4rem;
+  --radius-2xl: 0.4rem;
+  --radius-3xl: 0.4rem;
+  --radius-4xl: 0.4rem;
 }
 
 @layer base {
@@ -66,25 +74,12 @@
 }
 
 .card-luxury {
-  @apply rounded-[2rem] shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
+  @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
-/* Cantos menos arredondados em todos os cards — zelador e filho de santo */
-[data-role="filho"] .card-luxury,
-[data-role="filho"] .rounded-3xl,
-[data-role="filho"] .rounded-\[2rem\],
-[data-role="filho"] .rounded-\[2\.5rem\],
-[data-role="filho"] .rounded-\[40px\],
-[data-role="filho"] .rounded-t-3xl,
-[data-role="filho"] .sm\:rounded-3xl,
-[data-role="admin"] .card-luxury,
-[data-role="admin"] .rounded-3xl,
-[data-role="admin"] .rounded-\[2rem\],
-[data-role="admin"] .rounded-\[2\.5rem\],
-[data-role="admin"] .rounded-\[40px\],
-[data-role="admin"] .rounded-t-3xl,
-[data-role="admin"] .sm\:rounded-3xl {
-  border-radius: 0.75rem !important;
+/* Padroniza cantos do sistema em um único raio (exceto formas circulares). */
+[class*="rounded-["]:not([class*="rounded-full"]) {
+  border-radius: 0.4rem !important;
 }
 
 @layer utilities {

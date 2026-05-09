@@ -356,15 +356,26 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     userRole === 'filho' ? 'Filho de Santo' : (tenantData?.cargo?.trim() || null);
 
   const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
-  const greetingEmoji = hour < 12 ? '🌅' : hour < 18 ? '☀️' : '🌙';
-  const greetingSubtitle =
-    hour < 12
-      ? 'Que o Axé abra os caminhos desta manhã.'
-      : hour < 18
-      ? 'O terreiro pulsa com energia. Veja o resumo.'
-      : 'A força dos Orixás guia esta noite.';
+  const dayOfYear = Math.floor(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
+      new Date(now.getFullYear(), 0, 0).getTime()) /
+      86400000
+  );
+  const dailyGreetings = [
+    'Que o Axé abra caminhos de prosperidade para hoje.',
+    'Que seu dia seja leve, forte e cheio de boas notícias.',
+    'Hoje é dia de firmeza, foco e vitória no seu terreiro.',
+    'Que os Orixás iluminem cada decisão desta jornada.',
+    'Siga com fé: a energia certa já está trabalhando por você.',
+    'Que seu terreiro floresça com harmonia, ordem e abundância.',
+    'Hoje o movimento é de crescimento e proteção.',
+    'Que a força da ancestralidade conduza um dia extraordinário.',
+    'Disciplina, fundamento e Axé: combinação perfeita para hoje.',
+    'Que cada passo de hoje fortaleça seu propósito.',
+    'Que o dia traga paz no coração e avanço no trabalho.',
+    'Tudo que começa com Axé termina com vitória.',
+  ];
+  const greetingSubtitle = dailyGreetings[dayOfYear % dailyGreetings.length];
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
@@ -379,11 +390,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     <div className="min-h-screen bg-transparent text-white p-6 lg:p-10 font-sans selection:bg-[#D4AF37]/30">
       
       {/* Header Bar */}
-      <header className="flex justify-between items-center mb-10">
+      <header className="mb-10 flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#D4AF37] mb-1">{greetingEmoji} {greeting}, {terreiroNome.split(' ')[0]}</p>
+          <p className="mb-2 inline-flex items-center rounded-md border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#D4AF37]">
+            Seja Bem-vindo, {terreiroNome.split(' ')[0]}
+          </p>
           <h1 className="text-2xl font-bold tracking-tight text-white leading-tight">Axé em Movimento</h1>
-          <p className="text-[11px] text-gray-500 mt-1 font-medium">{greetingSubtitle}</p>
+          <p className="mt-1 text-xs font-semibold text-gray-300">{greetingSubtitle}</p>
         </div>
         {/* Atualizar junto ao sino — lg+; no mobile só o ícone à direita do título (sino fica no header global) */}
         <div className="flex shrink-0 items-center gap-2 lg:gap-3">

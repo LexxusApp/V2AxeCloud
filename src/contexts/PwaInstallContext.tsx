@@ -24,6 +24,12 @@ export type PwaInstallContextValue = {
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
 
 export function PwaInstallProvider({ children }: { children: React.ReactNode }) {
+  // Hotfix DEV: alguns ambientes locais podem falhar com Invalid Hook Call
+  // antes da árvore React estabilizar. Em dev, o PWA install é opcional.
+  if (import.meta.env.DEV) {
+    return <>{children}</>;
+  }
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(readStandalone);
 
@@ -86,6 +92,14 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
 export function usePwaInstall(): PwaInstallContextValue {
   const ctx = useContext(PwaInstallContext);
   if (!ctx) {
+    if (import.meta.env.DEV) {
+      return {
+        canPromptInstall: false,
+        promptInstall: async () => {
+          /* noop em dev */
+        },
+      };
+    }
     throw new Error('usePwaInstall deve ser usado dentro de PwaInstallProvider');
   }
   return ctx;
