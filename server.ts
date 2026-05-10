@@ -2,6 +2,7 @@ import express from "express";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
+import { existsSync } from "node:fs";
 import axios from "axios";
 import { fileURLToPath } from "url";
 import cors from "cors";
@@ -26,7 +27,6 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "./src/services/evolution.service.js";
-import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.ts";
 import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
@@ -52,11 +52,15 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BEKar2pRRjBhX5Pz-EtX1QT07JbDBhSBx_-t5mAPZ3TevskbdG0w9JJNz-TbR-TzuIigtXTg27vCX_8GElZUM7Y";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "QsB2TftnfoqwCo7UhYYmmLMNR2yoorTI-FKjsmgrjA0";
 
-webpush.setVapidDetails(
-  "mailto:contato@axecloud.com.br",
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+try {
+  webpush.setVapidDetails(
+    "mailto:contato@axecloud.com.br",
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+} catch (e) {
+  console.error("[webpush] setVapidDetails falhou (push pode não funcionar):", e);
+}
 
 // --- Financeiro + mensalidades (inline; mesma lógica que api/index.ts) ---
 
@@ -1080,10 +1084,44 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  /** Na Vercel o path interno pode ser `/api/index`; restaura o URL público a partir de headers. */
+  app.use((req, _res, next) => {
+    if (process.env.VERCEL === "1") {
+      const orig = typeof req.originalUrl === "string" ? req.originalUrl.split("#")[0] : "";
+      if (orig.startsWith("/api/") && orig !== req.url) {
+        delete (req as any)._parsedUrl;
+        req.url = orig;
+        return next();
+      }
+      const h = req.headers;
+      const candidates = [
+        h["x-vercel-original-url"],
+        h["x-forwarded-uri"],
+        h["x-invoke-path"],
+      ].filter((x): x is string => typeof x === "string" && x.length > 0);
+      for (const raw of candidates) {
+        try {
+          const pathAndQuery = raw.startsWith("http")
+            ? new URL(raw).pathname + new URL(raw).search
+            : raw.split("#")[0];
+          if (pathAndQuery.startsWith("/api/") && pathAndQuery !== req.url) {
+            delete (req as any)._parsedUrl;
+            req.url = pathAndQuery;
+            break;
+          }
+        } catch {
+          /* ignorar */
+        }
+      }
+    }
+    next();
+  });
+
   // Middleware de log global (antes de qualquer rota)
   app.use((req, res, next) => {
-    if (!req.url.startsWith('/@vite') && !req.url.startsWith('/src')) {
-      console.log(`[SERVER] ${req.method} ${req.url}`);
+    const u = req.url || "";
+    if (!u.startsWith('/@vite') && !u.startsWith('/src')) {
+      console.log(`[SERVER] ${req.method} ${u}`);
     }
     next();
   });
@@ -2529,6 +2567,7 @@ async function startServer() {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
     try {
+      const { permanentDeleteZeladorAccount } = await import("./api/permanentAccountDelete.ts");
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) {
@@ -4343,10 +4382,33 @@ async function startServer() {
     }
   } else {
     console.log("[SERVER] Serving static files (Production)...");
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    const distPath = path.join(process.cwd(), "dist");
+    const indexPath = path.join(distPath, "index.html");
+    const hasSpa = existsSync(indexPath);
+    if (hasSpa) {
+      app.use(express.static(distPath));
+    } else {
+      console.warn(
+        "[SERVER] dist/index.html ausente neste bundle (comum na função serverless só-API na Vercel)."
+      );
+    }
+    app.get("*", (req, res) => {
+      const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
+      if (pathOnly.startsWith("/api")) {
+        return res.status(404).json({
+          error: "Rota API não encontrada",
+          path: req.originalUrl || req.url,
+        });
+      }
+      if (!hasSpa) {
+        return res.status(503).type("text/plain").send("Frontend não incluído nesta função serverless.");
+      }
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("[SERVER] sendFile index.html:", err.message);
+          if (!res.headersSent) res.status(503).type("text/plain").send("Erro ao servir SPA");
+        }
+      });
     });
   }
 
