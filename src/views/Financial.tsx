@@ -10,7 +10,7 @@ import LuxuryLoading from '../components/LuxuryLoading';
 import FinanceiroBasico from '../components/FinanceiroBasico';
 import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
-import { hasPlanAccess } from '../constants/plans';
+import { hasPlanAccess, canonicalPlanSlug } from '../constants/plans';
 import {
   countsTowardSaldo,
   normalizeMovimentoTipo,
@@ -161,8 +161,8 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     () => resolveTenantIdForFinance(tenantData?.tenant_id, userId),
     [tenantData?.tenant_id, userId]
   );
-  const plan = tenantData?.plan?.toLowerCase().trim();
-  const isAxePlan = plan === 'axe' || plan === 'free';
+  const plan = canonicalPlanSlug(tenantData?.plan);
+  const isBasicFinancePlan = plan === 'free';
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -207,7 +207,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   });
 
   const financialTxKey =
-    userId && tenantId && isSessionReady && !(isAxePlan && userRole !== 'filho')
+    userId && tenantId && isSessionReady && !(isBasicFinancePlan && userRole !== 'filho')
       ? (['financial-transactions', tenantId, userId, userRole] as const)
       : null;
 
@@ -262,14 +262,14 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   const loading = Boolean(financialTxKey && txLoading && !txJson);
 
   useEffect(() => {
-    if (isAxePlan && userRole !== 'filho') return;
+    if (isBasicFinancePlan && userRole !== 'filho') return;
     if (isAdmin) {
       void fetchMensalidadesGrid();
       if (hasCaixinhaAccess) {
         fetchCaixinhaData();
       }
     }
-  }, [userRole, userId, isAxePlan, hasCaixinhaAccess, tenantId]);
+  }, [userRole, userId, isBasicFinancePlan, hasCaixinhaAccess, tenantId]);
 
   /** Pix + lista de filhos (modal de lançamento / configs). Mensalidades pendentes vêm da API (status pendente ou legado com "(vencimento" na descrição). */
   async function fetchMensalidadesGrid() {
@@ -361,13 +361,13 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   );
 
   useEffect(() => {
-    if (!isAdmin || isAxePlan || !tenantId) return;
+    if (!isAdmin || isBasicFinancePlan || !tenantId) return;
     if (activeView !== 'mensalidades') return;
     void refreshMensalidades();
-  }, [activeView, tenantId, isAdmin, isAxePlan, refreshMensalidades]);
+  }, [activeView, tenantId, isAdmin, isBasicFinancePlan, refreshMensalidades]);
 
   useEffect(() => {
-    if (!isAdmin || isAxePlan || !tenantId) return;
+    if (!isAdmin || isBasicFinancePlan || !tenantId) return;
     if (activeView !== 'mensalidades') return;
     let debounce: number | undefined;
     const onVisibility = () => {
@@ -382,10 +382,10 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       document.removeEventListener('visibilitychange', onVisibility);
       if (debounce) window.clearTimeout(debounce);
     };
-  }, [activeView, tenantId, isAdmin, isAxePlan, refreshMensalidades]);
+  }, [activeView, tenantId, isAdmin, isBasicFinancePlan, refreshMensalidades]);
 
   useEffect(() => {
-    if (!isAdmin || isAxePlan || !tenantId) return;
+    if (!isAdmin || isBasicFinancePlan || !tenantId) return;
     if (activeView !== 'mensalidades') return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -413,7 +413,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       window.clearTimeout(subscribeTimer);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [activeView, tenantId, isAdmin, isAxePlan, refreshMensalidades, mutateTransactions]);
+  }, [activeView, tenantId, isAdmin, isBasicFinancePlan, refreshMensalidades, mutateTransactions]);
 
   async function handleSavePixConfig(e: React.FormEvent) {
     e.preventDefault();
@@ -537,8 +537,8 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     }
   }
 
-  // Se for plano Axe, renderiza o componente simplificado (Exceto para Filhos de Santo que têm acesso livre para visualização)
-  if (isAxePlan && userRole !== 'filho') {
+  // Mantido para eventual plano básico legado; hoje a régua oficial é Premium/Vita.
+  if (isBasicFinancePlan && userRole !== 'filho') {
     return (
       <div className="flex flex-col min-h-full">
         <PageHeader 

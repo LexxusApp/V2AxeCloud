@@ -70,7 +70,7 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
     nome_zelador: '',
     email: '',
     whatsapp: '',
-    plan: 'axe',
+    plan: 'premium',
     observacao: '',
     password: Math.random().toString(36).slice(-8) // Random initial password
   });
@@ -131,7 +131,7 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
         const sub = subs?.find((s: any) => s.id === p.id);
         return {
           ...p,
-          plano: sub?.plan || 'axe'
+          plano: sub?.plan || 'premium'
         };
       });
 
@@ -329,7 +329,7 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
   );
 
   const mrr = tenants.reduce((acc, t) => {
-    const planKey = (t.plano || 'axe').toLowerCase();
+    const planKey = (t.plano || 'premium').toLowerCase();
     const price = plans[planKey]?.price || 0;
     return !t.is_blocked ? acc + price : acc;
   }, 0);
@@ -381,7 +381,7 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
                 nome_zelador: '',
                 email: '',
                 whatsapp: '',
-                plan: 'axe',
+                plan: 'premium',
                 observacao: '',
                 password: Math.random().toString(36).slice(-8)
               });
@@ -488,12 +488,10 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
                     </td>
                     <td className="px-6 py-4">
                       <select 
-                        value={tenant.plano || 'axe'}
+                        value={tenant.plano || 'premium'}
                         onChange={(e) => updatePlan(tenant.id, e.target.value)}
                         className="bg-background border border-white/10 rounded-lg px-2 py-1 text-xs font-bold text-primary focus:outline-none [&>option]:bg-[#1B1C1C]"
                       >
-                        <option value="axe">Axé</option>
-                        <option value="oro">Orô</option>
                         <option value="premium">Premium 👑</option>
                         <option value="cortesia">Cortesia</option>
                         <option value="vita">Plano Vita (vitalício)</option>
@@ -562,12 +560,10 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
                   <div className="space-y-1">
                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Plano</span>
                     <select 
-                      value={tenant.plano || 'axe'}
+                      value={tenant.plano || 'premium'}
                       onChange={(e) => updatePlan(tenant.id, e.target.value)}
                       className="w-full bg-background border border-white/10 rounded-lg px-2 py-2 text-xs font-bold text-primary focus:outline-none [&>option]:bg-[#1B1C1C]"
                     >
-                      <option value="axe">Axé</option>
-                      <option value="oro">Orô</option>
                       <option value="premium">Premium 👑</option>
                       <option value="cortesia">Cortesia</option>
                       <option value="vita">Plano Vita (vitalício)</option>
@@ -800,11 +796,9 @@ export default function Admin({ session: propSession, tenantData, setActiveTab }
                           usesDistantSubscriptionExpiry(newTenant.plan) && "border-primary/50 text-primary"
                         )}
                       >
-                        <option value="axe">Plano Axé (R$ {plans.axe?.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '49,90'})</option>
-                        <option value="oro">Plano Orô (R$ {plans.oro?.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '89,90'})</option>
+                        <option value="vita">Plano Vita (R$ {plans.vita?.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '49,90'})</option>
                         <option value="premium">Plano Premium (R$ {plans.premium?.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '149,90'}) 👑</option>
                         <option value="cortesia">Cortesia (vitalício)</option>
-                        <option value="vita">Plano Vita (vitalício)</option>
                       </select>
                       {usesDistantSubscriptionExpiry(newTenant.plan) && (
                         <Crown className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-pulse" />

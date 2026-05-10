@@ -1,4 +1,4 @@
-export type PlanType = 'axe' | 'oro' | 'premium' | 'cortesia' | 'vita';
+export type PlanType = 'premium' | 'cortesia' | 'vita';
 
 const PREMIUM_LIKE_FEATURES = [
   'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'inventory', 'library', 'notes',
@@ -8,7 +8,7 @@ const PREMIUM_LIKE_FEATURES = [
 
 /** Normaliza slug gravado no banco (ex.: "Plano Vita", "plano_vita", "Orô") para chave usada em PLAN_FEATURES / PLAN_LIMITS. */
 export function canonicalPlanSlug(plan: string | undefined): string {
-  if (!plan) return 'axe';
+  if (!plan) return 'premium';
   // Normaliza acentos/diacríticos: "Orô" → "oro", "Axé" → "axe", etc.
   const stripped = plan.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const p = stripped.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -16,9 +16,9 @@ export function canonicalPlanSlug(plan: string | undefined): string {
 
   if (p === 'vita' || p === 'plano vita' || compact === 'planovita') return 'vita';
   if (p === 'premium' || compact === 'premium') return 'premium';
-  if (p === 'oro' || p === 'oro' || compact === 'oro' || compact === 'planoor') return 'oro';
+  if (p === 'oro' || compact === 'oro' || compact === 'planoor') return 'premium';
   if (p === 'cortesia' || compact === 'cortesia') return 'cortesia';
-  if (p === 'axe' || p === 'free' || compact === 'axe' || compact === 'free') return p === 'free' ? 'free' : 'axe';
+  if (p === 'axe' || p === 'free' || compact === 'axe' || compact === 'free') return 'premium';
   return p;
 }
 
@@ -43,27 +43,18 @@ export function usesDistantSubscriptionExpiry(plan: string | undefined): boolean
 }
 
 export const PLAN_LIMITS: Record<string, number> = {
-  free: 20,
-  axe: 20,
-  oro: 50,
   premium: 999999,
   cortesia: 999999,
   vita: 999999,
 };
 
 export const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['dashboard', 'children', 'calendar', 'financial', 'settings'],
-  axe: ['dashboard', 'children', 'calendar', 'financial', 'settings'],
-  oro: ['dashboard', 'children', 'calendar', 'mural', 'inventory', 'financial', 'settings'],
   premium: [...PREMIUM_LIKE_FEATURES],
   cortesia: [...PREMIUM_LIKE_FEATURES],
   vita: [...PREMIUM_LIKE_FEATURES],
 };
 
 export const PLAN_NAMES: Record<string, string> = {
-  free: 'Axé',
-  axe: 'Axé',
-  oro: 'Orô',
   premium: 'Premium',
   cortesia: 'Cortesia',
   vita: 'Plano Vita',
@@ -73,19 +64,18 @@ export const PLAN_NAMES: Record<string, string> = {
 // Usamos optional chaining para não quebrar o servidor ao importar este arquivo.
 const _env = (import.meta as any).env ?? {};
 export const CHECKOUT_URLS: Record<string, string> = {
-  axe: _env.VITE_KIWIFY_AXE_URL || '',
-  oro: _env.VITE_KIWIFY_ORO_URL || '',
   premium: _env.VITE_KIWIFY_PREMIUM_URL || '',
+  vita: _env.VITE_KIWIFY_VITA_URL || '',
 };
 
 export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'admin' | 'subscription' | 'caixinha' | 'saude_axe';
 
 export const hasPlanAccess = (plan: string | undefined, feature: string, isAdminGlobal: boolean = false): boolean => {
   if (isAdminGlobal) return true;
-  if (!plan) return PLAN_FEATURES.axe.includes(feature);
+  if (!plan) return PLAN_FEATURES.premium.includes(feature);
 
   const key = canonicalPlanSlug(plan);
-  const features = PLAN_FEATURES[key] || PLAN_FEATURES.axe;
+  const features = PLAN_FEATURES[key] || PLAN_FEATURES.premium;
 
   return features.includes(feature);
 };

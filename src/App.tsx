@@ -55,7 +55,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 19;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 22;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -269,7 +269,7 @@ export default function App() {
         ? { ...prev, tenant_id: tenantAnchorId }
         : {
             nome: '',
-            plan: 'axe',
+            plan: 'premium',
             tenant_id: tenantAnchorId,
             role: userRole ?? undefined,
           }
@@ -379,7 +379,7 @@ export default function App() {
         setRoleAnchor(isFilhoAuth ? 'filho' : 'admin');
         setTenantData({
           nome: '',
-          plan: 'axe',
+          plan: 'premium',
           tenant_id: tid,
           role: isFilhoAuth ? 'filho' : 'admin',
         });
@@ -403,7 +403,7 @@ export default function App() {
         const superAdm = fresh.user.email === 'lucasilvasiqueira@outlook.com.br';
         setTenantData({
           nome: '',
-          plan: superAdm ? 'premium' : 'axe',
+          plan: 'premium',
           tenant_id: userId,
           role: 'admin',
         });
@@ -431,7 +431,7 @@ export default function App() {
     if (cachedSnap) {
       setTenantData((prev) => ({
         nome: prev?.nome ?? '',
-        plan: prev?.plan ?? 'axe',
+        plan: prev?.plan ?? 'premium',
         tenant_id: cachedSnap,
         expires_at: prev?.expires_at,
         status: prev?.status,
@@ -480,7 +480,7 @@ export default function App() {
         persistFilhoFlag(role === 'filho', userId);
         
         // 2. Tenant Info
-        const plan = (data.plan || 'axe').toLowerCase().trim();
+        const plan = (data.plan || 'premium').toLowerCase().trim();
         const isGlobalAdmin = !!data.is_admin_global;
         let nome = data.nome_terreiro || (role === 'filho' ? '' : 'Meu Terreiro');
         let tenantId = role === 'filho' ? (data.tenant_id || '') : (data.tenant_id || userId);
@@ -679,7 +679,7 @@ export default function App() {
                 ? prev
                 : {
                     nome: prev?.nome ?? '',
-                    plan: prev?.plan ?? 'axe',
+                    plan: prev?.plan ?? 'premium',
                     tenant_id: cachedMerge,
                     expires_at: prev?.expires_at,
                     status: prev?.status,
@@ -716,7 +716,7 @@ export default function App() {
             if (cachedImmediate) {
               setTenantData({
                 nome: '',
-                plan: 'axe',
+                plan: 'premium',
                 tenant_id: cachedImmediate,
               });
             }
@@ -826,7 +826,7 @@ export default function App() {
             ? { ...prev, tenant_id: storageAnchor }
             : {
                 nome: '',
-                plan: 'axe',
+                plan: 'premium',
                 tenant_id: storageAnchor,
                 role: userRole ?? undefined,
               }
@@ -1206,8 +1206,6 @@ export default function App() {
   const getPlanColor = (plan: string) => {
     switch (plan.toLowerCase()) {
       case 'premium': return 'text-[#FBBC00]';
-      case 'oro': return 'text-emerald-500';
-      case 'axe': return 'text-blue-500';
       case 'vita':
       case 'cortesia': return 'text-purple-400';
       default: return 'text-gray-400';
@@ -1353,7 +1351,7 @@ export default function App() {
 
         {/* Main Content Area with Scroll */}
         <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <main className={cn("flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]/80 backdrop-blur-[2px] lg:pb-0", userRole !== 'filho' ? "pb-24" : "pb-6")} data-role={userRole ?? undefined}>
+          <main className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]/80 pb-6 backdrop-blur-[2px] lg:pb-0" data-role={userRole ?? undefined}>
             {/* Notificações push: apenas filhos — banner só com permissão ainda "default"; granted/denied o navegador já decidiu */}
             {userRole === 'filho' && permission === 'default' && session && (
               <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
@@ -1384,34 +1382,6 @@ export default function App() {
             {renderView()}
           </main>
         </div>
-
-        {/* Mobile Bottom Tab Bar — apenas para zelador */}
-        {userRole !== 'filho' && <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 flex min-w-0 items-stretch justify-between gap-0.5 border-t border-white/5 bg-black/40 px-2 py-3 backdrop-blur-xl sm:gap-1 sm:px-4 lg:hidden">
-          {(userRole === 'admin' ? [
-            { id: 'dashboard', icon: LayoutIcon, label: 'Início' },
-            { id: 'children', icon: UserIcon, label: 'Filhos' },
-            { id: 'calendar', icon: CalendarIcon, label: 'Agenda' },
-            { id: 'financial', icon: DollarSignIcon, label: 'Axé' },
-            { id: 'settings', icon: BookOpen, label: 'Mais' }
-          ] : [
-            { id: 'dashboard', icon: LayoutIcon, label: 'Início' },
-            { id: 'profile', icon: UserIcon, label: 'Meu Perfil' },
-            { id: 'calendar', icon: CalendarIcon, label: 'Agenda' },
-            { id: 'financial', icon: DollarSignIcon, label: 'Financeiro' }
-          ]).map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigateToTab(item.id)}
-              className={cn(
-                "flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 px-0.5 transition-all",
-                activeTab === item.id ? "text-primary" : "text-gray-500"
-              )}
-            >
-              <item.icon className={cn("h-6 w-6 shrink-0", activeTab === item.id && "drop-shadow-[0_0_8px_rgba(251,188,0,0.5)]")} />
-              <span className="w-full max-w-[5.5rem] truncate text-center text-[9px] font-black uppercase leading-tight tracking-widest sm:max-w-none sm:text-[10px]">{item.label}</span>
-            </button>
-          ))}
-        </nav>}
 
         {/* Footer */}
         <footer className="px-6 py-4 border-t border-white/5 text-center bg-black/20 backdrop-blur-md">

@@ -183,7 +183,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   }, [children, searchTerm, filterStatus]);
   
   const currentPlan = canonicalPlanSlug(tenantData?.plan);
-  const childLimit = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.axe;
+  const childLimit = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.premium;
   const isLimitReached = children.length >= childLimit;
 
   if (loading && children.length === 0) {

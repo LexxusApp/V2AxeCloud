@@ -7,7 +7,7 @@ export const CreateTenantSchema = z.object({
   nome_terreiro: z.string().min(3, "Nome do terreiro muito curto"),
   nome_zelador: z.string().min(3, "Nome do zelador muito curto"),
   whatsapp: z.string().optional(),
-  plan: z.enum(['axe', 'oro', 'free', 'premium', 'cortesia', 'vita']).default('axe'),
+  plan: z.enum(['premium', 'cortesia', 'vita']).default('premium'),
   observacao: z.string().optional(),
 });
 

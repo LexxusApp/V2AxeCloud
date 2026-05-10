@@ -794,16 +794,16 @@ async function estornarMensalidadePaga(
 // --- fim bloco financeiro / mensalidades ---
 
 function canonicalPlanSlug(plan: string | undefined): string {
-  if (!plan) return 'axe';
+  if (!plan) return 'premium';
   const stripped = plan.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const p = stripped.toLowerCase().trim().replace(/\s+/g, ' ');
   const compact = p.replace(/[\s_-]/g, '');
 
   if (p === 'vita' || p === 'plano vita' || compact === 'planovita') return 'vita';
   if (p === 'premium' || compact === 'premium') return 'premium';
-  if (p === 'oro' || compact === 'oro' || compact === 'planoor') return 'oro';
+  if (p === 'oro' || compact === 'oro' || compact === 'planoor') return 'premium';
   if (p === 'cortesia' || compact === 'cortesia') return 'cortesia';
-  if (p === 'axe' || p === 'free' || compact === 'axe' || compact === 'free') return p === 'free' ? 'free' : 'axe';
+  if (p === 'axe' || p === 'free' || compact === 'axe' || compact === 'free') return 'premium';
   return p;
 }
 
@@ -1064,7 +1064,7 @@ async function ensureSubscriptionForMural(zeladorId: string, logicalTenant: stri
   let payload: Record<string, unknown> = {
     id: zeladorId,
     tenant_id: logicalTenant,
-    plan: 'axe',
+    plan: 'premium',
     status: 'active',
     expires_at: expires,
     updated_at: now,
@@ -2246,8 +2246,7 @@ async function startServer() {
   // GET /api/tenant-info: implementado em /api/tenant-info.ts (função serverless isolada; sem /src no bundle da Vercel)
 
   const DEFAULT_PLANS = {
-    axe: { name: "Axé", price: 49.90, description: "Ideal para terreiros que estão começando a digitalização." },
-    oro: { name: "Orô", price: 89.90, description: "Controle de estoque e biblioteca de estudos para o seu corpo mediúnico." },
+    vita: { name: "Plano Vita", price: 49.90, description: "Plano vitalício com acesso completo e sem expiração." },
     premium: { name: "Premium", price: 149.90, description: "Gestão espiritual e financeira completa para o seu terreiro." }
   };
 
@@ -2701,13 +2700,8 @@ async function startServer() {
         .eq('id', user.id)
         .single();
 
-      const plan = sub?.plan?.toLowerCase() || 'axe';
+      const plan = canonicalPlanSlug(sub?.plan);
       const isGlobalAdmin = profile?.is_admin_global;
-
-      // Se for plano axe e não for admin global, bloqueia
-      if (plan === 'axe' && !isGlobalAdmin) {
-        return res.status(403).json({ error: "O plano Axé não permite a criação de eventos. Faça upgrade para o plano Orô." });
-      }
 
       const tenant_id = profile?.tenant_id || user.id;
       const rawBanner = req.body?.banner_url;
@@ -2774,12 +2768,8 @@ async function startServer() {
         .eq('id', user.id)
         .single();
 
-      const plan = sub?.plan?.toLowerCase() || 'axe';
+      const plan = canonicalPlanSlug(sub?.plan);
       const isGlobalAdmin = profile?.is_admin_global;
-
-      if (plan === 'axe' && !isGlobalAdmin) {
-        return res.status(403).json({ error: "O plano Axé não permite a exclusão de eventos." });
-      }
 
       const { error } = await supabaseAdmin
         .from('calendario_axe')
@@ -3377,8 +3367,8 @@ async function startServer() {
 
         // 2. Mapear o product_id para o plano (Isso deve ser configurado conforme seus produtos no Kiwify)
         // Exemplo de mapeamento:
-        let planToSet = 'axe';
-        // if (product_id === 'ID_DO_PRODUTO_ORO') planToSet = 'oro';
+        let planToSet = 'premium';
+        // if (product_id === 'ID_DO_PRODUTO_VITA') planToSet = 'vita';
         // if (product_id === 'ID_DO_PRODUTO_PREMIUM') planToSet = 'premium';
 
         console.log(`[KIWIFY WEBHOOK] Atualizando plano para ${planToSet} para o tenant ${userData.tenant_id}`);

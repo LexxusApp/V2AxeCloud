@@ -99,7 +99,7 @@ export default function MasterPortal({ session, onLogout, onSwitchToNormal }: Ma
     nome_zelador: '',
     email: '',
     whatsapp: '',
-    plan: 'axe',
+    plan: 'premium',
     observacao: '',
     password: Math.random().toString(36).slice(-8)
   });
@@ -133,7 +133,7 @@ export default function MasterPortal({ session, onLogout, onSwitchToNormal }: Ma
       const { profiles, subs, plans: plansConfig } = await response.json();
       const merged = (profiles || []).map((p: any) => {
         const sub = subs?.find((s: any) => s.id === p.id);
-        return { ...p, plan: sub?.plan || 'axe', expires_at: sub?.expires_at };
+        return { ...p, plan: sub?.plan || 'premium', expires_at: sub?.expires_at };
       });
 
       setTenants(merged);
@@ -587,7 +587,7 @@ export default function MasterPortal({ session, onLogout, onSwitchToNormal }: Ma
                               <td className="px-8 py-6">
                                  <span className={cn(
                                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                    t.plan === 'premium' ? "bg-yellow-400/10 text-yellow-400 border-yellow-400/20" : (t.plan === 'vita' || t.plan === 'plano vita' || t.plan === 'cortesia') ? "bg-purple-500/10 text-purple-400 border-purple-400/20" : t.plan === 'oro' ? "bg-emerald-500/10 text-emerald-400 border-emerald-400/20" : "bg-white/5 text-zinc-500 border-white/10"
+                                    t.plan === 'premium' ? "bg-yellow-400/10 text-yellow-400 border-yellow-400/20" : (t.plan === 'vita' || t.plan === 'plano vita' || t.plan === 'cortesia') ? "bg-purple-500/10 text-purple-400 border-purple-400/20" : "bg-white/5 text-zinc-500 border-white/10"
                                  )}>
                                     {t.plan}
                                  </span>
@@ -633,8 +633,8 @@ export default function MasterPortal({ session, onLogout, onSwitchToNormal }: Ma
                    <button onClick={saveGlobalPlans} className="px-8 py-3 bg-yellow-400 text-black font-black uppercase text-[11px] tracking-widest rounded-xl hover:bg-yellow-300 transition-colors">Confirmar Alterações</button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                   {['axe', 'oro', 'premium'].map(k => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {['vita', 'premium'].map(k => {
                       const p = plans[k] || {};
                       return (
                          <div key={k} className="bg-[#222327] border border-white/5 p-8 rounded-2xl space-y-6 shadow-lg shadow-black/20">

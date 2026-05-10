@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Crown, Zap, Star, ShieldCheck, ArrowRight, Loader2, X, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Crown, Zap, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { PLAN_NAMES, CHECKOUT_URLS, isLifetimePlan, canonicalPlanSlug } from '../constants/plans';
 import PageHeader from '../components/PageHeader';
@@ -231,42 +231,23 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   }
 
   const plansGrid = (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
       <PlanCard
-        name={plansConfig.axe?.name || "Plano Axé"}
-        price={formatPrice(plansConfig.axe?.price, "49,90")}
-        description={plansConfig.axe?.description || "Ideal para terreiros que estão começando a digitalização."}
+        name={plansConfig.vita?.name || "Plano Vita"}
+        price={formatPrice(plansConfig.vita?.price, "49,90")}
+        description={plansConfig.vita?.description || "Seu plano vitalício sem vencimento, com acesso completo ao sistema."}
         icon={Zap}
         color="bg-blue-500 shadow-blue-500/20"
         features={[
+          "Acesso completo sem expiração",
           "Gestão de Filhos de Santo",
-          "Mural de Avisos",
-          "Calendário de Giras",
-          "Suporte via WhatsApp",
-          "Acesso para 1 Zelador"
+          "Financeiro completo",
+          "Loja do Axé e Biblioteca",
+          "Acesso ilimitado"
         ]}
-        onSelect={() => handleSelectPlan('axe')}
-        loading={loading === 'axe'}
-        isCurrentPlan={tenantData?.plan === 'axe' || tenantData?.plan === 'free'}
-      />
-
-      <PlanCard
-        name={plansConfig.oro?.name || "Plano Orô"}
-        price={formatPrice(plansConfig.oro?.price, "89,90")}
-        description={plansConfig.oro?.description || "Controle de estoque e biblioteca de estudos para o seu corpo mediúnico."}
-        icon={Star}
-        isPopular
-        color="bg-emerald-500 shadow-emerald-500/20"
-        features={[
-          "Tudo do Plano Axé",
-          "Almoxarifado (Estoque)",
-          "Biblioteca de Estudos",
-          "Gestão de Eventos",
-          "Acesso para 2 Administradores"
-        ]}
-        onSelect={() => handleSelectPlan('oro')}
-        loading={loading === 'oro'}
-        isCurrentPlan={tenantData?.plan === 'oro'}
+        onSelect={() => handleSelectPlan('vita')}
+        loading={loading === 'vita'}
+        isCurrentPlan={planKey === 'vita'}
       />
 
       <PlanCard
@@ -276,7 +257,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
         icon={Crown}
         color="bg-[#FBBC00] shadow-[#FBBC00]/20"
         features={[
-          "Tudo do Plano Orô",
+          "Tudo do Plano Vita",
           "Financeiro Completo",
           "Prontuário Espiritual",
           "Loja do Axé (Vendas)",
