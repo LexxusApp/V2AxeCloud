@@ -25,7 +25,7 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
-import { permanentDeleteZeladorAccount } from "../src/server/permanentAccountDelete.ts";
+import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.ts";
 import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
@@ -3757,4 +3757,4 @@ export default async function handler(req: any, res: any) {
   }
 }
 
-// deploy-bump: 2026-04-26 — financeiro/mensalidades inline em api/index (sem módulos extra em /api)
+// deploy-bump: 2026-05-10 — permanentAccountDelete em /api (compatível com bundle Vercel)

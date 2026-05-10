@@ -26,7 +26,7 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "./src/services/evolution.service.js";
-import { permanentDeleteZeladorAccount } from "./src/server/permanentAccountDelete.ts";
+import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.ts";
 import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
