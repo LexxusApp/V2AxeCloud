@@ -503,7 +503,7 @@ export default function MasterPortal({ session, onLogout, onSwitchToNormal }: Ma
                            </div>
                         </div>
                      </div>
-                     <div className="h-[300px] w-full" style={{ minWidth: 0 }}>
+                     <div className="h-[300px] w-full min-w-0">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300} debounce={50}>
                            <AreaChart data={chartData}>
                               <defs>

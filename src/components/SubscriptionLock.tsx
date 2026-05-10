@@ -34,13 +34,7 @@ export default function SubscriptionLock({ plan }: SubscriptionLockProps) {
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 overflow-hidden">
       {/* Background Image - Árvore */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-        style={{ 
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-          backgroundAttachment: 'fixed'
-        }}
-      />
+      <div className="fixed inset-0 pointer-events-none login-bg-screen" />
       {/* Animated Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />

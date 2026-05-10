@@ -116,9 +116,8 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
     return () => { cancelled = true; };
   }, [url]);
 
-  const coverH = compact ? 120 : 200;
   return (
-    <div className="relative w-full overflow-hidden bg-[#0d0d0d]" style={{ height: `${coverH}px` }}>
+    <div className={`relative w-full overflow-hidden bg-[#0d0d0d] ${compact ? 'pdf-cover-compact' : 'pdf-cover-normal'}`}>
       {/* Spinner enquanto processa */}
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -137,11 +136,7 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
       {/* Canvas: 100% de largura via CSS, altura natural — container clipa em 200px */}
       <canvas
         ref={canvasRef}
-        style={{
-          display: status === 'loaded' ? 'block' : 'none',
-          width: '100%',
-          height: 'auto',
-        }}
+        className={status === 'loaded' ? 'pdf-canvas block' : 'pdf-canvas hidden'}
       />
 
       {/* Gradiente inferior */}

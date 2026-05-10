@@ -474,7 +474,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                </div>
             </div>
 
-            <div className="h-44 w-full mt-6 relative z-10" style={{ minWidth: 0 }}>
+            <div className="h-44 w-full mt-6 relative z-10 min-w-0">
               {!hasMonthFinanceData ? (
                 <div className="flex h-full min-h-[176px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/25 px-6 text-center">
                   <Wallet className="mb-3 h-10 w-10 text-[#D4AF37]/35" aria-hidden />
@@ -544,7 +544,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                     {/* Avatar com anel pulsante permanente */}
                     <div className="relative w-20 h-20">
                       {/* Anel externo pulsante */}
-                      <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/60 animate-ping" style={{ animationDuration: '2.4s' }} />
+                      <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/60 animate-ping-slow" />
                       {/* Anel fixo dourado */}
                       <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/80 group-hover:border-[#D4AF37] transition-colors" />
                       {/* Foto */}
@@ -617,7 +617,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
              
              <div className="flex flex-col items-center justify-center p-6 bg-black/20 rounded-3xl border border-white/5 min-w-[200px] relative overflow-hidden group">
                 <div className="absolute inset-0 bg-[#D4AF37]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative z-10 w-40 h-40" style={{ minWidth: 0 }}>
+                <div className="relative z-10 w-40 h-40 min-w-0">
                   {!hasMonthFinanceData ? (
                     <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-2 text-center">
                       <Wallet className="mb-2 h-8 w-8 text-[#D4AF37]/30" aria-hidden />

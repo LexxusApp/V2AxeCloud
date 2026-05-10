@@ -178,15 +178,16 @@ export default function Login() {
             className="flex justify-center"
           >
             <div className="flex flex-col items-center">
-              <div className="flex items-baseline gap-3">
-                <h1 className="text-6xl font-black tracking-tighter flex items-baseline">
+              <h1 className="sr-only">Plataforma de gestão para zeladores, terreiros e casas de axé</h1>
+              <div className="flex items-baseline gap-3" aria-hidden="true">
+                <div className="text-6xl font-black tracking-tighter flex items-baseline">
                   <span className="text-white">AX</span>
                   <span className="text-primary ml-1">É</span>
-                </h1>
+                </div>
               </div>
-              <h2 className="text-3xl font-black text-white/60 tracking-[0.3em] -mt-2 ml-2">
+              <div className="text-3xl font-black text-white/60 tracking-[0.3em] -mt-2 ml-2" aria-hidden="true">
                 CLOUD
-              </h2>
+              </div>
               <div className="flex items-center gap-4 mt-6 w-full max-w-[300px]">
                 <div className="h-[1px] w-10 bg-white/20" />
                 <p className="text-white/40 font-bold tracking-[0.5em] uppercase text-[9px] whitespace-nowrap">

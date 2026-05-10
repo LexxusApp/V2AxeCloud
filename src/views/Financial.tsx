@@ -997,7 +997,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
             </div>
             
             {chartData.length > 0 ? (
-              <div className="h-64 md:h-80 w-full" style={{ minHeight: '256px', minWidth: '0' }}>
+              <div className="h-64 md:h-80 w-full min-h-[256px] min-w-0">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256} debounce={50}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#333434" vertical={false} />

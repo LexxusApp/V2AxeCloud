@@ -56,7 +56,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 42;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 46;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -939,13 +939,7 @@ export default function App() {
   if (sessionExpiredState) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        <div
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.72)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed',
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen-dark" />
         <div className="relative z-10 max-w-md w-full bg-card border border-white/10 rounded-[32px] p-8 text-center space-y-6">
           <ShieldAlert className="w-14 h-14 text-red-500 mx-auto" />
           <h2 className="text-xl font-black text-white tracking-tight">Sessão expirada</h2>
@@ -969,13 +963,7 @@ export default function App() {
   if (isInitializing || loading) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden px-4">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed'
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen" />
         <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
         {connectionEmergencyCta}
       </div>
@@ -989,13 +977,7 @@ export default function App() {
   if (isDeleted) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed'
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen" />
         <div className="max-w-md w-full bg-card border border-white/5 p-12 rounded-[40px] text-center space-y-6 relative z-10">
           <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto">
             <ShieldAlert className="w-10 h-10 text-red-500" />
@@ -1013,13 +995,7 @@ export default function App() {
   if (isBlocked) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed'
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen" />
         <div className="max-w-md w-full bg-card border border-white/5 p-12 rounded-[40px] text-center space-y-6 relative z-10">
           <div className="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto">
             <ShieldAlert className="w-10 h-10 text-amber-500" />
@@ -1043,13 +1019,7 @@ export default function App() {
   if (loading || isSessionHydrating || !userRole || pendingFilhoHydration) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center relative overflow-hidden px-4">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed'
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen" />
         <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
         <p className="relative z-10 mt-6 text-sm font-bold uppercase tracking-widest text-gray-400">
           Carregando Perfil...
@@ -1063,13 +1033,7 @@ export default function App() {
     if (tenantRecoveryFailed) {
       return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
-          <div
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-              backgroundAttachment: 'fixed',
-            }}
-          />
+          <div className="fixed inset-0 pointer-events-none login-bg-screen" />
           <div className="relative z-10 max-w-md w-full bg-card border border-white/10 rounded-[32px] p-8 text-center space-y-6">
             <ShieldAlert className="w-14 h-14 text-amber-500 mx-auto" />
             <h2 className="text-xl font-black text-white tracking-tight">Não foi possível carregar o terreiro</h2>
@@ -1106,13 +1070,7 @@ export default function App() {
     }
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center relative overflow-hidden px-4">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png')`,
-            backgroundAttachment: 'fixed'
-          }}
-        />
+        <div className="fixed inset-0 pointer-events-none login-bg-screen" />
         <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
         {connectionEmergencyCta}
       </div>

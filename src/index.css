@@ -77,6 +77,36 @@
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
+/* Fundo padrão das telas de bloqueio / sessão / loading (substitui style inline para CSP sem unsafe-inline). */
+.login-bg-screen {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Variante com overlay mais escuro (usada na tela de "Sessão expirada"). */
+.login-bg-screen-dark {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.72)), url('/login-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Cover de PDF (Library) — alturas fixas via classe ao invés de style inline. */
+.pdf-cover-compact { height: 120px; }
+.pdf-cover-normal { height: 200px; }
+
+/* Canvas de preview de PDF */
+.pdf-canvas { width: 100%; height: auto; }
+
+/* Animação ping com duração customizada (avatar do filho no Dashboard) */
+.animate-ping-slow {
+  animation: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 /* Padroniza cantos do sistema em um único raio (exceto formas circulares). */
 [class*="rounded-["]:not([class*="rounded-full"]) {
   border-radius: 0.4rem !important;
