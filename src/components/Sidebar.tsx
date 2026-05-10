@@ -3,7 +3,7 @@ import {
   LayoutDashboard, 
   Users, 
   Calendar as CalendarIcon, 
-  Package, 
+  Images, 
   Wallet, 
   Bell,
   Settings as SettingsIcon, 
@@ -51,7 +51,7 @@ const navItems = [
   { id: 'children', label: 'Filhos de Santo', icon: Users },
   { id: 'calendar', label: 'Calendário / Eventos', icon: CalendarIcon },
   { id: 'mural', label: 'Mural', icon: Bell },
-  { id: 'inventory', label: 'Almoxarifado', icon: Package },
+  { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'financial', label: 'Financeiro', icon: Wallet },
 ];
 
@@ -223,7 +223,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
                   {isLocked && (
                     <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-card border border-primary/20 rounded-lg text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
-                      DISPONÍVEL NO PLANO {item.id === 'financial' || item.id === 'store' ? 'FUNDAMENTO' : 'ORÔ'}
+                      DISPONÍVEL NO PLANO PREMIUM
                     </div>
                   )}
                 </div>

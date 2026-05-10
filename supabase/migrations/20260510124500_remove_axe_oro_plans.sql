@@ -3,8 +3,7 @@
 -- 1) Normaliza subscriptions existentes para premium.
 update public.subscriptions
 set
-  plan = 'premium',
-  updated_at = now()
+  plan = 'premium'
 where lower(coalesce(plan, '')) in ('axe', 'oro', 'free');
 
 -- 2) Remove chaves axe/oro da configuração global de planos.

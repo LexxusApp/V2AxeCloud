@@ -1,7 +1,7 @@
 export type PlanType = 'premium' | 'cortesia' | 'vita';
 
 const PREMIUM_LIKE_FEATURES = [
-  'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'inventory', 'library', 'notes',
+  'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'gallery', 'inventory', 'library', 'notes',
   'financial', 'financial_reports', 'financial_whatsapp', 'whatsapp_invites', 'store', 'settings',
   'admin', 'caixinha', 'saude_axe',
 ] as const;
@@ -68,7 +68,7 @@ export const CHECKOUT_URLS: Record<string, string> = {
   vita: _env.VITE_KIWIFY_VITA_URL || '',
 };
 
-export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'admin' | 'subscription' | 'caixinha' | 'saude_axe';
+export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'admin' | 'subscription' | 'caixinha' | 'saude_axe';
 
 export const hasPlanAccess = (plan: string | undefined, feature: string, isAdminGlobal: boolean = false): boolean => {
   if (isAdminGlobal) return true;

@@ -7,6 +7,8 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import geoip from "geoip-lite";
 import webpush from "web-push";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   addMonths,
   differenceInCalendarDays,
@@ -846,6 +848,61 @@ function sanitizePixConfigData(configData: any) {
   if (!pixSupportsValorMensalidade) delete sanitized.valor_mensalidade;
   if (!pixSupportsDiaVencimento) delete sanitized.dia_vencimento;
   return sanitized;
+}
+
+function slugifyStoragePath(str: string) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_.-]/g, "_")
+    .toLowerCase();
+}
+
+const GALLERY_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;
+const R2_ENDPOINT = process.env.R2_S3_ENDPOINT || process.env.R2_ENDPOINT;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL;
+
+const r2Client =
+  R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY
+    ? new S3Client({
+        region: "auto",
+        endpoint: R2_ENDPOINT,
+        credentials: {
+          accessKeyId: R2_ACCESS_KEY_ID,
+          secretAccessKey: R2_SECRET_ACCESS_KEY,
+        },
+      })
+    : null;
+
+function buildR2PublicUrl(storageKey: string): string {
+  const base =
+    R2_PUBLIC_BASE_URL ||
+    (R2_ENDPOINT && R2_BUCKET_NAME ? `${R2_ENDPOINT.replace(/\/+$/, "")}/${R2_BUCKET_NAME}` : "");
+  return `${String(base).replace(/\/+$/, "")}/${storageKey}`;
+}
+
+async function resolveTenantAccessForUser(userId: string) {
+  const { data: profile } = await supabaseAdmin
+    .from("perfil_lider")
+    .select("id, tenant_id, is_admin_global")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const profileTenant = String(profile?.tenant_id || profile?.id || "").trim();
+  if (profileTenant) {
+    return { tenantId: profileTenant, isGlobalAdmin: !!profile?.is_admin_global, role: "admin" as const };
+  }
+
+  const { data: child } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("tenant_id, lider_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const childTenant = String(child?.tenant_id || child?.lider_id || "").trim();
+  return { tenantId: childTenant, isGlobalAdmin: false, role: "filho" as const };
 }
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -1862,6 +1919,219 @@ async function startServer() {
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar materiais:", err.message);
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/v1/gallery/albums", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const tenantId = String(req.query.tenantId || "").trim();
+    if (!authHeader || !tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+      const access = await resolveTenantAccessForUser(user.id);
+      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Sem permissão para este terreiro" });
+      }
+
+      const { data: albums, error: albumsError } = await supabaseAdmin
+        .from("gallery_albums")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false });
+      if (albumsError) throw albumsError;
+
+      const { data: media, error: mediaError } = await supabaseAdmin
+        .from("gallery_media")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false });
+      if (mediaError) throw mediaError;
+
+      const usedBytes = (media || []).reduce((acc: number, item: any) => acc + Number(item.size_bytes || 0), 0);
+      res.json({
+        albums: (albums || []).map((album: any) => ({
+          ...album,
+          media: (media || []).filter((item: any) => item.album_id === album.id),
+        })),
+        quota: {
+          usedBytes,
+          limitBytes: GALLERY_QUOTA_BYTES,
+          remainingBytes: Math.max(0, GALLERY_QUOTA_BYTES - usedBytes),
+        },
+      });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao buscar albuns da galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao buscar galeria" });
+    }
+  });
+
+  app.post("/api/v1/gallery/albums", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { tenantId, name, description } = req.body;
+    if (!authHeader || !tenantId || !name) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+      const access = await resolveTenantAccessForUser(user.id);
+      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Sem permissão para este terreiro" });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("gallery_albums")
+        .insert([
+          {
+            tenant_id: tenantId,
+            name: String(name).trim(),
+            description: String(description || "").trim(),
+            created_by: user.id,
+          },
+        ])
+        .select("*")
+        .single();
+      if (error) throw error;
+      res.json({ album: { ...data, media: [] } });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao criar album:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao criar album" });
+    }
+  });
+
+  app.post("/api/v1/gallery/upload-url", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { tenantId, albumId, fileName, contentType, sizeBytes } = req.body;
+    if (!authHeader || !tenantId || !albumId || !fileName || !contentType || !sizeBytes) {
+      return res.status(400).json({ error: "Dados incompletos" });
+    }
+    if (!r2Client || !R2_BUCKET_NAME) {
+      return res.status(500).json({ error: "R2 não configurado no servidor" });
+    }
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+      const access = await resolveTenantAccessForUser(user.id);
+      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Sem permissão para este terreiro" });
+      }
+
+      const normalizedType = String(contentType).toLowerCase();
+      if (!normalizedType.startsWith("image/") && !normalizedType.startsWith("video/")) {
+        return res.status(400).json({ error: "Envie apenas imagem ou vídeo" });
+      }
+
+      const numericSize = Number(sizeBytes);
+      if (!Number.isFinite(numericSize) || numericSize <= 0) {
+        return res.status(400).json({ error: "Tamanho de arquivo inválido" });
+      }
+      if (numericSize > 500 * 1024 * 1024) {
+        return res.status(400).json({ error: "Arquivo muito grande (máx. 500MB)" });
+      }
+
+      const { data: album, error: albumError } = await supabaseAdmin
+        .from("gallery_albums")
+        .select("id, tenant_id")
+        .eq("id", albumId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (albumError) throw albumError;
+      if (!album) return res.status(404).json({ error: "Álbum não encontrado" });
+
+      const { data: mediaRows, error: mediaError } = await supabaseAdmin
+        .from("gallery_media")
+        .select("size_bytes")
+        .eq("tenant_id", tenantId);
+      if (mediaError) throw mediaError;
+
+      const usedBytes = (mediaRows || []).reduce((acc: number, item: any) => acc + Number(item.size_bytes || 0), 0);
+      if (usedBytes + numericSize > GALLERY_QUOTA_BYTES) {
+        return res.status(403).json({
+          error: "Cota da galeria excedida (10GB por terreiro)",
+          quota: {
+            usedBytes,
+            limitBytes: GALLERY_QUOTA_BYTES,
+            remainingBytes: Math.max(0, GALLERY_QUOTA_BYTES - usedBytes),
+          },
+        });
+      }
+
+      const safeFileName = slugifyStoragePath(fileName);
+      const storageKey = `${tenantId}/${albumId}/${Date.now()}_${safeFileName}`;
+      const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: storageKey,
+        ContentType: normalizedType,
+      });
+      const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 });
+      const publicUrl = buildR2PublicUrl(storageKey);
+
+      res.json({
+        uploadUrl,
+        storageKey,
+        publicUrl,
+        quota: {
+          usedBytes,
+          limitBytes: GALLERY_QUOTA_BYTES,
+          remainingBytes: Math.max(0, GALLERY_QUOTA_BYTES - usedBytes),
+        },
+      });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao preparar upload da galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+    }
+  });
+
+  app.post("/api/v1/gallery/complete-upload", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const { tenantId, albumId, storageKey, publicUrl, fileName, contentType, sizeBytes } = req.body;
+    if (!authHeader || !tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
+      return res.status(400).json({ error: "Dados incompletos" });
+    }
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+      const access = await resolveTenantAccessForUser(user.id);
+      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Sem permissão para este terreiro" });
+      }
+
+      const numericSize = Number(sizeBytes);
+      const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
+      const { data, error } = await supabaseAdmin
+        .from("gallery_media")
+        .insert([
+          {
+            album_id: albumId,
+            tenant_id: tenantId,
+            media_type: mediaType,
+            file_name: String(fileName),
+            mime_type: String(contentType),
+            size_bytes: numericSize,
+            storage_key: String(storageKey),
+            public_url: String(publicUrl),
+            created_by: user.id,
+          },
+        ])
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      res.json({ media: data });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao concluir upload da galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao concluir upload" });
     }
   });
 

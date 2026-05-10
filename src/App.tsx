@@ -6,6 +6,7 @@ import Children from './views/Children';
 import Calendar from './views/Calendar';
 import Financial from './views/Financial';
 import Inventory from './views/Inventory';
+import Gallery from './views/Gallery';
 import NoticeBoard from './views/NoticeBoard';
 import Settings from './views/Settings';
 import Admin from './views/Admin';
@@ -55,7 +56,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 22;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 27;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -892,6 +893,12 @@ export default function App() {
     }
   }, [userRole, activeTab]);
 
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      setActiveTab('gallery');
+    }
+  }, [activeTab]);
+
   /** Loading prolongado: evita recarga automática para não entrar em loop no mobile. */
   useEffect(() => {
     if (!loading) return;
@@ -1149,6 +1156,7 @@ export default function App() {
       profile: true,
       admin: isAdminGlobal,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
+      gallery: hasPlanAccess(tenantData?.plan, 'gallery', isAdminGlobal),
       library: hasPlanAccess(tenantData?.plan, 'library', isAdminGlobal),
       financial: hasPlanAccess(tenantData?.plan, 'financial', isAdminGlobal),
       store: hasPlanAccess(tenantData?.plan, 'store', isAdminGlobal),
@@ -1161,7 +1169,7 @@ export default function App() {
       const requiredPlan = activeTab === 'financial' || activeTab === 'store' ? 'Fundamento' : 'Orô';
       return (
         <Paywall 
-          featureName={activeTab === 'financial' ? 'Financeiro' : activeTab === 'store' ? 'Loja do Axé' : activeTab === 'inventory' ? 'Almoxarifado' : 'Biblioteca'} 
+          featureName={activeTab === 'financial' ? 'Financeiro' : activeTab === 'store' ? 'Loja do Axé' : activeTab === 'gallery' ? 'Galeria' : activeTab === 'inventory' ? 'Almoxarifado' : 'Biblioteca'} 
           requiredPlan={requiredPlan}
           onUpgrade={() => navigateToTab('subscription')}
         />
@@ -1175,6 +1183,8 @@ export default function App() {
         return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
       case 'inventory': 
         return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
+      case 'gallery':
+        return <Gallery tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'calendar': 
         return <Calendar user={session.user} userRole={userRole} tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'mural':
