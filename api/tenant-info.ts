@@ -4,6 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { applyCors } from "./_lib/cors";
 
 dotenv.config();
 
@@ -34,11 +35,8 @@ const supabaseAdmin =
       })
     : null;
 
-export default async function handler(req: { method?: string; query?: Record<string, string | string[] | undefined> }, res: any) {
-  if (req.method === "OPTIONS") {
-    res.setHeader("Allow", "GET, OPTIONS");
-    return res.status(204).end();
-  }
+export default async function handler(req: { method?: string; query?: Record<string, string | string[] | undefined>; headers?: any }, res: any) {
+  if (applyCors(req as any, res)) return;
   if (req.method && req.method !== "GET") {
     res.setHeader("Allow", "GET, OPTIONS");
     return res.status(405).json({ error: "Method not allowed" });

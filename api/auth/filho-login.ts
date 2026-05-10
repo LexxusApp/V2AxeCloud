@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { applyCors } from "../_lib/cors";
 
 dotenv.config();
 
@@ -36,10 +37,7 @@ function sendJson(res: any, status: number, body: Record<string, unknown>) {
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.method === "OPTIONS") {
-    res.setHeader("Allow", "POST, OPTIONS");
-    return res.status(204).end();
-  }
+  if (applyCors(req, res)) return;
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST, OPTIONS");

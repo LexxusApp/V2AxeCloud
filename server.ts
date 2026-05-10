@@ -3,9 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "node:fs";
+import { constants as zlibConstants } from "node:zlib";
 import axios from "axios";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import compression from "compression";
 import geoip from "geoip-lite";
 import webpush from "web-push";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -1125,6 +1127,16 @@ async function startServer() {
     }
     next();
   });
+
+  app.use(compression({
+    brotli: { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 } },
+    level: 5,
+    filter: (_req, res) => {
+      const type = String(res.getHeader("Content-Type") || "").toLowerCase();
+      if (!type) return false;
+      return /^(text\/(?:html|plain|css)|application\/(?:javascript|json)|image\/svg\+xml)(?:;|$)/.test(type);
+    },
+  }));
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())

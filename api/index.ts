@@ -3,9 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "node:fs";
+import { constants as zlibConstants } from "node:zlib";
 import axios from "axios";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import compression from "compression";
 import webpush from "web-push";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -1178,7 +1180,54 @@ async function startServer() {
     next();
   });
 
-  app.use(cors());
+  app.use(compression({
+    brotli: { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 } },
+    level: 5,
+    filter: (_req, res) => {
+      const type = String(res.getHeader("Content-Type") || "").toLowerCase();
+      if (!type) return false;
+      return /^(text\/(?:html|plain|css)|application\/(?:javascript|json)|image\/svg\+xml)(?:;|$)/.test(type);
+    },
+  }));
+
+  // CORS endurecido — origens explícitas, sem "*" quando credentials=true.
+  // Espelha o helper api/_lib/cors.ts usado pelos handlers discretos.
+  const STATIC_ALLOWED_ORIGINS = [
+    "https://axecloud.app",
+    "https://www.axecloud.app",
+    "https://axecloud-app.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:4173",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ];
+  const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // sem Origin (ex.: server-to-server, curl, webhooks) — permitir
+        if (!origin) return callback(null, true);
+        if (STATIC_ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        if (VERCEL_PREVIEW_REGEX.test(origin)) return callback(null, true);
+        return callback(new Error(`CORS bloqueado para origem: ${origin}`));
+      },
+      credentials: true,
+      methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "apikey",
+        "X-Client-Info",
+        "X-Requested-With",
+        "X-Supabase-Api-Version",
+        "Range",
+      ],
+      exposedHeaders: ["Content-Length", "Content-Type", "Content-Range", "X-Request-Id"],
+      maxAge: 86400,
+      optionsSuccessStatus: 204,
+    })
+  );
   app.use(express.json({ limit: '10mb' }));
 
   app.get("/api/health-check", (req, res) => {
@@ -2265,7 +2314,6 @@ async function startServer() {
         'Content-Type': response.headers.get('content-type') || 'application/pdf',
         'Content-Length': String(buffer.length),
         'Cache-Control': 'public, max-age=3600',
-        'Access-Control-Allow-Origin': '*',
       });
       res.send(buffer);
     } catch (err: any) {
