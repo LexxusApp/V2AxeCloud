@@ -25,6 +25,7 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
+import { permanentDeleteZeladorAccount } from "../src/server/permanentAccountDelete.ts";
 import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
@@ -2502,6 +2503,49 @@ async function startServer() {
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar configurações:", error);
       res.status(500).json({ error: error.message || "Internal Server Error" });
+    }
+  });
+
+  /** Exclusão total da conta do zelador, dados do terreiro no Postgres, storage, R2 (galeria) e auth (incl. filhos com login). */
+  app.post("/api/v1/account/permanent-delete", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+
+      const confirmEmail = String((req.body || {}).confirmEmail || "").trim().toLowerCase();
+      const email = String(user.email || "").trim().toLowerCase();
+      if (!confirmEmail || confirmEmail !== email) {
+        return res.status(400).json({ error: "Confirme digitando o mesmo e-mail da conta." });
+      }
+
+      const result = await permanentDeleteZeladorAccount(
+        {
+          supabaseAdmin,
+          r2:
+            r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
+          beforeDbPurge: async (lid) => {
+            try {
+              await logoutEvolutionInstance(lid);
+            } catch (e) {
+              console.warn("[permanent-delete] Evolution:", e);
+            }
+          },
+        },
+        user.id
+      );
+
+      if (result.ok === false) {
+        return res.status(result.status).json({ error: result.message });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[permanent-delete]", error);
+      res.status(500).json({ error: error?.message || "Erro interno" });
     }
   });
 

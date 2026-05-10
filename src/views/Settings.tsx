@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Loader2, CheckCircle2, Save, CreditCard, Camera, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
 import WhatsAppConfig from './WhatsAppConfig';
 import PageHeader from '../components/PageHeader';
@@ -25,6 +27,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [activeSection, setActiveSection] = useState<'profile' | 'subscription' | 'whatsapp'>('profile');
   const [photoUploading, setPhotoUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleOpenSubscription = () => {
@@ -268,6 +274,46 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
     }
   }
 
+  async function handlePermanentDelete() {
+    setDeleteError(null);
+    const email = String(user?.email || '').trim().toLowerCase();
+    const typed = deleteConfirmEmail.trim().toLowerCase();
+    if (!email) {
+      setDeleteError('E-mail da conta não disponível. Faça login novamente.');
+      return;
+    }
+    if (typed !== email) {
+      setDeleteError('Digite exatamente o e-mail da conta para confirmar.');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (!s?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const res = await fetch('/api/v1/account/permanent-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${s.access_token}`,
+        },
+        body: JSON.stringify({ confirmEmail: typed }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || `Falha ao excluir (${res.status})`);
+      }
+      setDeleteModalOpen(false);
+      await performFastLogout();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erro ao excluir conta.';
+      setDeleteError(msg);
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }
+
   const Toggle = ({ active, onToggle, label, description, icon: Icon }: any) => (
     <div className="flex items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
       <div className="flex items-center gap-5">
@@ -482,7 +528,15 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
               <div className="card-luxury p-6 border-red-500/20 bg-red-500/5 max-w-md mx-auto w-full">
                 <h3 className="text-xl font-black text-red-500 mb-1">Zona de Perigo</h3>
                 <p className="text-sm text-gray-400 font-medium mb-6">Ações irreversíveis que afetam sua conta e dados do terreiro.</p>
-                <button className="bg-red-500/10 text-red-500 border border-red-500/20 px-6 py-3 rounded-xl font-black hover:bg-red-500 hover:text-white transition-all text-sm w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteConfirmEmail('');
+                    setDeleteError(null);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="bg-red-500/10 text-red-500 border border-red-500/20 px-6 py-3 rounded-xl font-black hover:bg-red-500 hover:text-white transition-all text-sm w-full"
+                >
                   Excluir Conta Permanentemente
                 </button>
               </div>
@@ -502,6 +556,67 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           />
         </div>
       )}
+
+      <Dialog.Root
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          setDeleteModalOpen(open);
+          if (!open) {
+            setDeleteConfirmEmail('');
+            setDeleteError(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[201] w-[min(100vw-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-red-500/30 bg-background p-6 shadow-2xl outline-none">
+            <Dialog.Title className="text-lg font-black text-red-500">
+              Excluir conta e terreiro permanentemente?
+            </Dialog.Title>
+            <Dialog.Description className="mt-3 text-sm text-gray-400 leading-relaxed">
+              Todos os dados deste terreiro serão apagados no banco (financeiro, mural, calendário, filhos, galeria, loja, etc.),
+              ficheiros no armazenamento e as contas de autenticação dos filhos com login. Esta ação não pode ser desfeita.
+            </Dialog.Description>
+            <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Digite seu e-mail para confirmar
+            </p>
+            <input
+              type="email"
+              autoComplete="off"
+              value={deleteConfirmEmail}
+              onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+              placeholder={user?.email || 'seu@email.com'}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-red-500/50"
+            />
+            {deleteError && <p className="mt-2 text-xs font-bold text-red-400">{deleteError}</p>}
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  disabled={isDeletingAccount}
+                  className="rounded-xl border border-white/10 px-4 py-3 text-sm font-black text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </Dialog.Close>
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => void handlePermanentDelete()}
+                className="rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {isDeletingAccount ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Excluindo…
+                  </span>
+                ) : (
+                  'Excluir definitivamente'
+                )}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

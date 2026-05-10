@@ -16,52 +16,61 @@ interface PlanCardProps {
   onSelect: () => void;
   loading?: boolean;
   isCurrentPlan?: boolean;
+  /** Card mais estreito e tipografia reduzida (ex.: único plano na tela) */
+  compact?: boolean;
 }
 
-function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan }: PlanCardProps) {
+function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan, compact }: PlanCardProps) {
   return (
     <motion.div 
-      whileHover={{ y: -6 }}
+      whileHover={{ y: compact ? -3 : -6 }}
       className={cn(
-        "relative flex flex-col p-6 rounded-2xl border transition-all duration-500 bg-card/50 backdrop-blur-sm",
+        "relative flex flex-col rounded-2xl border transition-all duration-500 bg-card/50 backdrop-blur-sm",
+        compact ? "p-4 md:p-5" : "p-6",
         isPopular ? "border-[#FBBC00] shadow-xl shadow-[#FBBC00]/10 z-10" : "border-white/5 hover:border-white/20",
         isCurrentPlan && "border-primary shadow-lg shadow-primary/20"
       )}
     >
       {isPopular && !isCurrentPlan && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FBBC00] text-background text-[10px] font-black px-4 py-1 rounded-full tracking-widest uppercase">
+        <div className={cn(
+          "absolute left-1/2 -translate-x-1/2 bg-[#FBBC00] text-background font-black rounded-full tracking-widest uppercase",
+          compact ? "-top-3 text-[9px] px-3 py-0.5" : "-top-4 text-[10px] px-4 py-1"
+        )}>
           Mais Escolhido
         </div>
       )}
       {isCurrentPlan && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-background text-[10px] font-black px-4 py-1 rounded-full tracking-widest uppercase flex items-center gap-1">
-          <Check className="w-3 h-3" />
+        <div className={cn(
+          "absolute left-1/2 -translate-x-1/2 bg-primary text-background font-black rounded-full tracking-widest uppercase flex items-center gap-1",
+          compact ? "-top-3 text-[9px] px-3 py-0.5" : "-top-4 text-[10px] px-4 py-1"
+        )}>
+          <Check className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
           Seu Plano Atual
         </div>
       )}
 
-      <div className="mb-6">
-        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-lg", color)}>
-          <Icon className="w-6 h-6 text-white" />
+      <div className={cn(compact ? "mb-4" : "mb-6")}>
+        <div className={cn("rounded-xl flex items-center justify-center shadow-lg mb-3", compact ? "w-10 h-10 mb-3" : "w-12 h-12 mb-4", color)}>
+          <Icon className={compact ? "w-5 h-5 text-white" : "w-6 h-6 text-white"} />
         </div>
-        <h3 className="text-xl font-black text-white mb-2">{name}</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">{description}</p>
+        <h3 className={cn("font-black text-white mb-1.5", compact ? "text-lg" : "text-xl mb-2")}>{name}</h3>
+        <p className={cn("text-gray-400 leading-relaxed", compact ? "text-[11px]" : "text-xs")}>{description}</p>
       </div>
 
-      <div className="mb-6">
+      <div className={cn(compact ? "mb-4" : "mb-6")}>
         <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-black text-white">R$ {price}</span>
-          <span className="text-gray-500 font-bold text-sm">/mês</span>
+          <span className={cn("font-black text-white", compact ? "text-2xl" : "text-3xl")}>R$ {price}</span>
+          <span className={cn("text-gray-500 font-bold", compact ? "text-xs" : "text-sm")}>/mês</span>
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 mb-7">
+      <div className={cn("flex-1", compact ? "mb-5 space-y-2" : "mb-7 space-y-3")}>
         {features.map((feature, index) => (
-          <div key={index} className="flex items-start gap-2.5">
-            <div className="mt-1 bg-emerald-500/10 rounded-full p-0.5">
-              <Check className="w-3 h-3 text-emerald-500" />
+          <div key={index} className="flex items-start gap-2">
+            <div className={cn("mt-0.5 bg-emerald-500/10 rounded-full", compact ? "p-0.5" : "p-0.5")}>
+              <Check className={compact ? "w-2.5 h-2.5 text-emerald-500" : "w-3 h-3 text-emerald-500"} />
             </div>
-            <span className="text-xs text-gray-300 font-medium">{feature}</span>
+            <span className={cn("text-gray-300 font-medium", compact ? "text-[11px] leading-snug" : "text-xs")}>{feature}</span>
           </div>
         ))}
       </div>
@@ -70,7 +79,8 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
         onClick={onSelect}
         disabled={loading || isCurrentPlan}
         className={cn(
-          "w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2.5 transition-all group",
+          "w-full rounded-xl font-black flex items-center justify-center gap-2 transition-all group",
+          compact ? "py-2.5 text-xs" : "py-3 text-sm gap-2.5",
           isCurrentPlan
             ? "bg-white/10 text-white cursor-not-allowed border border-white/10"
             : isPopular 
@@ -79,16 +89,16 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
         )}
       >
         {loading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-5 h-5 animate-spin"} />
         ) : isCurrentPlan ? (
           <>
-            <Check className="w-5 h-5" />
+            <Check className={compact ? "w-4 h-4" : "w-5 h-5"} />
             PLANO ATIVO
           </>
         ) : (
           <>
             ASSINAR AGORA
-            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className={compact ? "w-4 h-4 transition-transform group-hover:translate-x-1" : "w-5 h-5 transition-transform group-hover:translate-x-1"} />
           </>
         )}
       </button>
@@ -231,43 +241,28 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   }
 
   const plansGrid = (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
-      <PlanCard
-        name={plansConfig.vita?.name || "Plano Vita"}
-        price={formatPrice(plansConfig.vita?.price, "49,90")}
-        description={plansConfig.vita?.description || "Seu plano vitalício sem vencimento, com acesso completo ao sistema."}
-        icon={Zap}
-        color="bg-blue-500 shadow-blue-500/20"
-        features={[
-          "Acesso completo sem expiração",
-          "Gestão de Filhos de Santo",
-          "Financeiro completo",
-          "Loja do Axé e Biblioteca",
-          "Acesso ilimitado"
-        ]}
-        onSelect={() => handleSelectPlan('vita')}
-        loading={loading === 'vita'}
-        isCurrentPlan={planKey === 'vita'}
-      />
-
-      <PlanCard
-        name={plansConfig.premium?.name || "Plano Premium"}
-        price={formatPrice(plansConfig.premium?.price, "149,90")}
-        description={plansConfig.premium?.description || "Gestão espiritual e financeira completa para o seu terreiro."}
-        icon={Crown}
-        color="bg-[#FBBC00] shadow-[#FBBC00]/20"
-        features={[
-          "Tudo do Plano Vita",
-          "Financeiro Completo",
-          "Prontuário Espiritual",
-          "Loja do Axé (Vendas)",
-          "Relatórios Avançados",
-          "Acesso Ilimitado"
-        ]}
-        onSelect={() => handleSelectPlan('premium')}
-        loading={loading === 'premium'}
-        isCurrentPlan={planKey === 'premium' || planKey === 'cortesia' || planKey === 'vita'}
-      />
+    <div className="flex w-full justify-center px-1">
+      <div className="w-full max-w-[22rem] sm:max-w-sm">
+        <PlanCard
+          name={plansConfig.premium?.name || "Plano Premium"}
+          price={formatPrice(plansConfig.premium?.price, "149,90")}
+          description={plansConfig.premium?.description || "Gestão espiritual e financeira completa para o seu terreiro."}
+          icon={Crown}
+          color="bg-[#FBBC00] shadow-[#FBBC00]/20"
+          features={[
+            "Gestão completa do terreiro",
+            "Financeiro completo",
+            "Prontuário espiritual",
+            "Loja do Axé (vendas)",
+            "Relatórios avançados",
+            "Acesso ilimitado",
+          ]}
+          onSelect={() => handleSelectPlan('premium')}
+          loading={loading === 'premium'}
+          isCurrentPlan={planKey === 'premium'}
+          compact
+        />
+      </div>
     </div>
   );
 

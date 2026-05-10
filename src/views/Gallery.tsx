@@ -34,18 +34,6 @@ type AlbumItem = {
   media: MediaItem[];
 };
 
-const formatBytes = (bytes: number) => {
-  if (!bytes) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(unit >= 3 ? 2 : 0)} ${units[unit]}`;
-};
-
 export default function Gallery({ tenantData, userRole, isAdminGlobal, setActiveTab }: GalleryProps) {
   const isAdmin = userRole !== 'filho' || !!isAdminGlobal;
   const tenantId = String(tenantData?.tenant_id || '').trim();
@@ -56,7 +44,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
   const [albumDescription, setAlbumDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [quota, setQuota] = useState({ usedBytes: 0, limitBytes: 10 * 1024 * 1024 * 1024, remainingBytes: 10 * 1024 * 1024 * 1024 });
+  const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
 
   const selectedAlbum = useMemo(
     () => albums.find((album) => album.id === selectedAlbumId) || null,
@@ -77,7 +65,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Erro ao carregar galeria');
       setAlbums(payload.albums || []);
-      if (payload.quota) setQuota(payload.quota);
     } catch (error: any) {
       alert(error.message || 'Erro ao carregar galeria');
     } finally {
@@ -88,6 +75,15 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
   useEffect(() => {
     void fetchAlbums();
   }, [tenantId]);
+
+  useEffect(() => {
+    if (!lightboxItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxItem(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxItem]);
 
   const createAlbum = async () => {
     const name = albumName.trim();
@@ -130,7 +126,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
       if (!token) throw new Error('Sessão expirada');
 
       const uploadedItems: MediaItem[] = [];
-      let latestQuota = quota;
 
       for (const file of files) {
         const uploadPrep = await fetch('/api/v1/gallery/upload-url', {
@@ -149,7 +144,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
         });
         const uploadPrepJson = await uploadPrep.json();
         if (!uploadPrep.ok) throw new Error(uploadPrepJson.error || 'Erro ao preparar upload');
-        if (uploadPrepJson.quota) latestQuota = uploadPrepJson.quota;
 
         const uploadToR2 = await fetch(uploadPrepJson.uploadUrl, {
           method: 'PUT',
@@ -184,12 +178,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
           album.id === selectedAlbum.id ? { ...album, media: [...uploadedItems, ...album.media] } : album
         )
       );
-      setQuota((prev) => ({
-        ...latestQuota,
-        usedBytes: latestQuota.usedBytes + uploadedItems.reduce((sum, item) => sum + Number(item.size_bytes || 0), 0),
-        remainingBytes:
-          latestQuota.remainingBytes - uploadedItems.reduce((sum, item) => sum + Number(item.size_bytes || 0), 0),
-      }));
     } catch (error: any) {
       alert(error.message || 'Erro ao enviar mídia');
     } finally {
@@ -219,16 +207,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
       />
 
       <div className="mx-auto w-full max-w-[1440px] flex-1 space-y-5 px-4 pb-20 md:px-6 lg:px-10">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm font-bold text-white">Cota da galeria por terreiro</p>
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">{formatBytes(quota.usedBytes)} / {formatBytes(quota.limitBytes)}</p>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full bg-primary" style={{ width: `${Math.min(100, (quota.usedBytes / Math.max(1, quota.limitBytes)) * 100)}%` }} />
-          </div>
-        </div>
-
         {loading ? (
           <div className="flex h-[45vh] items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -289,13 +267,23 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {selectedAlbum.media.map((item) => (
                 <div key={item.id} className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-                  <div className="aspect-video bg-black">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxItem(item)}
+                    className="group relative block aspect-video w-full cursor-zoom-in overflow-hidden bg-black text-left outline-none ring-primary/40 focus-visible:ring-2"
+                    aria-label={`Ampliar ${item.file_name}`}
+                  >
                     {item.media_type === 'image' ? (
-                      <img src={item.public_url} alt={item.file_name} className="h-full w-full object-cover" />
+                      <img src={item.public_url} alt={item.file_name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                     ) : (
-                      <video src={item.public_url} className="h-full w-full object-cover" controls preload="metadata" />
+                      <>
+                        <video src={item.public_url} className="pointer-events-none h-full w-full object-cover" muted playsInline preload="metadata" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-90 transition-opacity group-hover:bg-black/45">
+                          <span className="rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white">Toque para assistir</span>
+                        </div>
+                      </>
                     )}
-                  </div>
+                  </button>
                   <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-400">
                     <span className="truncate">{item.file_name}</span>
                     <span className={cn('ml-3 inline-flex items-center gap-1', item.media_type === 'video' ? 'text-purple-300' : 'text-blue-300')}>
@@ -337,6 +325,57 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
                     Criar álbum
                   </button>
                 </div>
+              </motion.div>
+            </div>
+          </BodyPortal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {lightboxItem && (
+          <BodyPortal>
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-8">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setLightboxItem(null)}
+                className="absolute inset-0 bg-black/92"
+              />
+              <motion.div
+                initial={MODAL_DLG_IN}
+                animate={MODAL_DLG_DONE}
+                exit={MODAL_DLG_OUT}
+                transition={MODAL_TW}
+                className="relative z-10 flex max-h-[92vh] w-full max-w-[min(96vw,1200px)] flex-col items-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setLightboxItem(null)}
+                  className="absolute -right-1 -top-12 z-20 rounded-xl border border-white/10 bg-white/10 p-2 text-white transition-colors hover:bg-white/20 sm:-right-2 sm:-top-14"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <div className="max-h-[85vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+                  {lightboxItem.media_type === 'image' ? (
+                    <img
+                      src={lightboxItem.public_url}
+                      alt={lightboxItem.file_name}
+                      className="mx-auto max-h-[85vh] w-auto max-w-full object-contain"
+                    />
+                  ) : (
+                    <video
+                      src={lightboxItem.public_url}
+                      controls
+                      playsInline
+                      className="mx-auto max-h-[85vh] w-full max-w-full"
+                      autoPlay
+                    />
+                  )}
+                </div>
+                <p className="mt-4 max-w-full truncate px-2 text-center text-sm font-medium text-gray-300">{lightboxItem.file_name}</p>
               </motion.div>
             </div>
           </BodyPortal>
