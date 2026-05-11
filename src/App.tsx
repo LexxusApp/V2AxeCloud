@@ -56,7 +56,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 46;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 48;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -1240,9 +1240,9 @@ export default function App() {
                   />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col pr-2">
-                  <h1 className="truncate text-sm font-black text-white">
+                  <p className="truncate text-sm font-black text-white">
                     {session?.user?.user_metadata?.nome || 'Filho de Santo'}
-                  </h1>
+                  </p>
                   <div className="mt-1 flex items-center gap-1.5">
                     <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-yellow-500" />
                     <p className="text-[9px] font-black uppercase tracking-widest text-yellow-500">
@@ -1279,9 +1279,9 @@ export default function App() {
                   )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col pr-2">
-                  <h1 className="truncate text-sm font-black text-white" title={tenantData?.nome || 'AXÉCLOUD'}>
+                  <p className="truncate text-sm font-black text-white" title={tenantData?.nome || 'AXÉCLOUD'}>
                     {tenantData?.nome || 'AXÉCLOUD'}
-                  </h1>
+                  </p>
                   <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                     <div className="flex shrink-0 items-center gap-1.5">
                       <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />

@@ -168,7 +168,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
                 </div>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-xl font-black tracking-[0.1em] text-white leading-none">AXÉCLOUD</h1>
+                <div className="text-xl font-black tracking-[0.1em] text-white leading-none">AXÉCLOUD</div>
                 <p className="text-[10px] font-bold tracking-[0.2em] text-primary mt-1">GESTÃO SAGRADA</p>
               </div>
             </div>

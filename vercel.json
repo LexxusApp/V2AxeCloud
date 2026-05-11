@@ -74,11 +74,11 @@
         },
         {
           "key": "X-Powered-By",
-          "value": "axecloud"
+          "value": ""
         },
         {
           "key": "Server",
-          "value": "axecloud"
+          "value": ""
         }
       ]
     },
