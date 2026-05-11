@@ -33,6 +33,7 @@ import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
 } from "./src/constants/whatsappTemplates.js";
+import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2579,7 +2580,6 @@ async function startServer() {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
     try {
-      const { permanentDeleteZeladorAccount } = await import("./api/permanentAccountDelete.ts");
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) {
