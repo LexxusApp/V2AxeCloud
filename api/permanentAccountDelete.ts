@@ -11,6 +11,15 @@ export type PermanentDeleteOptions = {
   r2?: { client: S3Client; bucket: string };
   /** Ex.: logout na Evolution antes de apagar linhas no Postgres. */
   beforeDbPurge?: (leaderId: string) => Promise<void>;
+  /**
+   * Ignora o bloqueio de exclusão para `is_admin_global` (apenas scripts operacionais / emergência).
+   */
+  force?: boolean;
+  /**
+   * Ignora o bloqueio quando `tenant_id` é `SHARED_GLOBAL_TENANT_ID` (risco de dados partilhados).
+   * Só para scripts controlados — nunca expor em API pública.
+   */
+  forceIgnoreSharedTenantGuard?: boolean;
 };
 
 function isUuidLike(s: string): boolean {
@@ -95,7 +104,7 @@ export async function permanentDeleteZeladorAccount(
     return { ok: false, status: 403, message: "Esta ação só está disponível para o zelador do terreiro." };
   }
 
-  if ((profile as { is_admin_global?: boolean }).is_admin_global) {
+  if (!opts.force && (profile as { is_admin_global?: boolean }).is_admin_global) {
     return {
       ok: false,
       status: 403,
@@ -104,7 +113,7 @@ export async function permanentDeleteZeladorAccount(
   }
 
   const tenantScope = String((profile as { tenant_id?: string | null }).tenant_id || uid).trim();
-  if (tenantScope === SHARED_GLOBAL_TENANT_ID) {
+  if (tenantScope === SHARED_GLOBAL_TENANT_ID && !opts.forceIgnoreSharedTenantGuard) {
     return {
       ok: false,
       status: 403,

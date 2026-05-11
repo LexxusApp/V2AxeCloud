@@ -33,6 +33,11 @@ import {
   resolveWhatsAppTemplate,
 } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
+import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
+import { normalizePlansCatalog } from "./lib/plansCatalog.js";
+import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
+import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1006,16 +1011,15 @@ async function initializeDatabase() {
       console.warn("[SERVER] Por favor, execute o conteúdo de 'setup_admin_role.sql' e 'harden_rls.sql' no SQL Editor do Supabase.");
     } else if (!checkError) {
       console.log("[SERVER] Esquema do banco OK (is_admin_global presente).");
-      
-      // Garante que os super admins tenham a flag
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const { error: updateError } = await supabaseAdmin
-        .from('perfil_lider')
-        .update({ is_admin_global: true })
-        .in('email', superAdmins);
-      
-      if (updateError) console.error("[SERVER] Erro ao atualizar super admins:", updateError);
-      else console.log("[SERVER] Super admins atualizados com sucesso:", superAdmins.join(', '));
+      const allow = getConsoleAdminEmailAllowlist();
+      if (allow.length) {
+        const { error: updateError } = await supabaseAdmin
+          .from('perfil_lider')
+          .update({ is_admin_global: true })
+          .in('email', allow);
+        if (updateError) console.error("[SERVER] Erro ao atualizar admins (ADMIN_CONSOLE_EMAILS):", updateError);
+        else console.log("[SERVER] perfil_lider.is_admin_global para:", allow.join(", "));
+      }
     }
   } catch (err) {
     console.error("[SERVER] Erro ao inicializar banco:", err);
@@ -1200,7 +1204,9 @@ async function startServer() {
     "http://localhost:3000",
     "http://localhost:4173",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
   ];
   const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
   app.use(
@@ -2342,8 +2348,7 @@ async function startServer() {
 
       const { user, error: authError } = await verifyUser(token);
 
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      if (authError || !user || !superAdmins.includes(user.email || '')) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
 
@@ -2561,7 +2566,7 @@ async function startServer() {
       }
 
       // 1. Save Profile
-      const isSuperAdmin = profile?.email === 'lucasilvasiqueira@outlook.com.br';
+      const isSuperAdmin = await isConsoleGlobalAdmin(supabaseAdmin, user);
       const SHARED_TENANT_ID = '6588b6c9-ce84-4140-a69a-f487a0c61dab';
 
       const profileData: any = {
@@ -2642,11 +2647,6 @@ async function startServer() {
 
   // GET /api/tenant-info: implementado em /api/tenant-info.ts (função serverless isolada; sem /src no bundle da Vercel)
 
-  const DEFAULT_PLANS = {
-    vita: { name: "Plano Vita", price: 49.90, description: "Plano vitalício com acesso completo e sem expiração." },
-    premium: { name: "Premium", price: 149.90, description: "Gestão espiritual e financeira completa para o seu terreiro." }
-  };
-
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {
     const authHeader = req.headers.authorization;
@@ -2666,24 +2666,14 @@ async function startServer() {
         return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
       }
 
-      // Verificar se é Admin Global
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-
-      const { data: adminProfile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminProfile?.is_admin_global && !isSuperAdmin) {
+      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Acesso restrito a administradores globais" });
       }
 
       // 1. Fetch Profiles
       const { data: profiles, error: pError } = await supabaseAdmin
         .from('perfil_lider')
-        .select('id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at')
+        .select('id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at')
         .is('deleted_at', null);
 
       if (pError) throw pError;
@@ -2691,9 +2681,15 @@ async function startServer() {
       // 2. Fetch Subscriptions
       const { data: subs, error: sError } = await supabaseAdmin
         .from('subscriptions')
-        .select('id, plan');
+        .select('id, plan, expires_at, status');
 
       if (sError) throw sError;
+
+      const { data: childrenRaw, error: cError } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .select("tenant_id, lider_id");
+      if (cError) throw cError;
+      const childrenList = (childrenRaw || []) as { tenant_id?: string | null; lider_id?: string | null }[];
 
       // 3. Fetch Global Settings
       const { data: settings } = await supabaseAdmin
@@ -2702,9 +2698,21 @@ async function startServer() {
         .eq('id', 'plans')
         .single();
 
-      const plans = settings?.data && Object.keys(settings.data).length > 0 ? settings.data : DEFAULT_PLANS;
+      const plans = normalizePlansCatalog(settings?.data);
 
-      res.json({ profiles, subs, plans });
+      const augmentedProfiles =
+        profiles?.map((p: { id: string; tenant_id?: string | null }) => {
+          const sub = subs?.find((s: any) => s.id === p.id);
+          return {
+            ...p,
+            totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
+            plan: sub?.plan || "premium",
+            expires_at: sub?.expires_at ?? null,
+            subscription_status: sub?.status ?? null,
+          };
+        }) || [];
+
+      res.json({ profiles: augmentedProfiles, subs, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao listar tenants:", error);
       return res.status(500).json({ error: "Erro ao listar tenants", details: error.message || String(error) });
@@ -2720,7 +2728,7 @@ async function startServer() {
         .eq('id', 'plans')
         .single();
         
-      const plans = settings?.data && Object.keys(settings.data).length > 0 ? settings.data : DEFAULT_PLANS;
+      const plans = normalizePlansCatalog(settings?.data);
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);
@@ -2744,17 +2752,7 @@ async function startServer() {
         return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
       }
 
-      // Verificar se é Admin Global
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-
-      const { data: adminProfile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminProfile?.is_admin_global && !isSuperAdmin) {
+      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Acesso restrito a administradores globais" });
       }
 
@@ -2780,6 +2778,47 @@ async function startServer() {
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
           break;
+        case 'renew': {
+          const { amount, unit } = req.body as { amount?: string; unit?: string };
+          if (!amount || !unit) {
+            return res.status(400).json({ error: "Quantidade e unidade são obrigatórios para renovação" });
+          }
+          const { data: currentSub } = await supabaseAdmin
+            .from('subscriptions')
+            .select('expires_at')
+            .eq('id', targetUserId)
+            .maybeSingle();
+          let baseDate = new Date();
+          if (currentSub?.expires_at && new Date(String((currentSub as any).expires_at)) > new Date()) {
+            baseDate = new Date(String((currentSub as any).expires_at));
+          }
+          if (unit === 'days') {
+            baseDate.setDate(baseDate.getDate() + parseInt(String(amount), 10));
+          } else if (unit === 'months') {
+            baseDate.setMonth(baseDate.getMonth() + parseInt(String(amount), 10));
+          } else {
+            return res.status(400).json({ error: "Unidade inválida (days ou months)" });
+          }
+          await supabaseAdmin.from('subscriptions').upsert({
+            id: targetUserId,
+            expires_at: baseDate.toISOString(),
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
+          break;
+        }
+        case "set-lifetime":
+          await supabaseAdmin.from("subscriptions").upsert(
+            {
+              id: targetUserId,
+              plan: "vita",
+              status: "active",
+              expires_at: "2099-12-31T23:59:59.000Z",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+          break;
         default:
           return res.status(400).json({ error: "Ação inválida" });
       }
@@ -2789,6 +2828,13 @@ async function startServer() {
       console.error("[SERVER] Erro ao gerenciar tenant:", error);
       res.status(500).json({ error: error.message });
     }
+  });
+
+  registerAdminConsoleRoutes(app, {
+    verifyUser,
+    supabaseAdmin,
+    r2Client,
+    r2Bucket: R2_BUCKET_NAME,
   });
 
   // API Route: Update User Plan (Self-service / Payment Simulation)
@@ -3222,7 +3268,7 @@ async function startServer() {
 
   // API Route: Get Transactions (Bypasses RLS)
   app.get("/api/transactions", async (req, res) => {
-    const { tenantId, userId, userRole, limit } = req.query;
+    const { tenantId, userId, userRole, limit, userEmail: userEmailQ } = req.query;
     try {
       const userRoleStr = String(userRole || "").toLowerCase();
       const tenantIdRaw = normalizeQueryTenantId(tenantId);
@@ -3242,23 +3288,32 @@ async function startServer() {
         query = query.or(`tenant_id.eq.${effectiveTenant},lider_id.eq.${effectiveTenant}`);
       }
       
-      if (userRole === 'filho' && userId) {
-        const { data: childData } = await supabaseAdmin
-          .from('filhos_de_santo')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle();
-        
-        if (childData) {
-          const fid = childData.id;
-          const { error: checkColError } = await supabaseAdmin.from('financeiro').select('filho_id').limit(1);
-          if (!checkColError) {
-            query = query.or(`filho_id.eq.${fid},and(categoria.eq.Mensalidade,descricao.ilike.%(ID:${fid})%)`);
-          } else {
-            query = query.ilike('descricao', `% (ID:${fid})%`);
+      if (userRoleStr === "filho") {
+        let jwtUid = "";
+        let jwtEm = "";
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+          if (token) {
+            const { user } = await verifyUser(token);
+            if (user?.id) jwtUid = user.id;
+            jwtEm = String((user as { email?: string | null }).email || "").trim().toLowerCase();
           }
-        } else {
+        }
+        const fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+          queryUserId: String(userId || "").trim(),
+          queryUserEmail: String(userEmailQ || "").trim().toLowerCase(),
+          jwtUserId: jwtUid,
+          jwtEmail: jwtEm,
+        });
+        if (!fid) {
           return res.json({ data: [] });
+        }
+        const { error: checkColError } = await supabaseAdmin.from("financeiro").select("filho_id").limit(1);
+        if (!checkColError) {
+          query = query.or(`filho_id.eq.${fid},and(categoria.eq.Mensalidade,descricao.ilike.%(ID:${fid})%)`);
+        } else {
+          query = query.ilike("descricao", `% (ID:${fid})%`);
         }
       }
 
@@ -3339,15 +3394,14 @@ async function startServer() {
   async function userMayDeleteFinanceiroRow(user: { id: string; user_metadata?: Record<string, unknown> }, row: any) {
     const role = String(user.user_metadata?.role || "").toLowerCase();
     if (role === "filho") {
-      const { data: child } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!child?.id) return false;
-      if (row.filho_id === child.id) return true;
+      const fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+        jwtUserId: user.id,
+        jwtEmail: String((user as { email?: string | null }).email || "").trim().toLowerCase(),
+      });
+      if (!fid) return false;
+      if (row.filho_id === fid) return true;
       const m = String(row.descricao || "").match(/\(ID:([^)]+)\)/);
-      return !!(m && m[1] === child.id);
+      return !!(m && m[1] === fid);
     }
     const { data: profile } = await supabaseAdmin
       .from("perfil_lider")

@@ -34,6 +34,12 @@ import {
   resolveWhatsAppTemplate,
 } from "./src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
+import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
+import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
+import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
+import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
+import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
+import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -813,32 +819,6 @@ let supabaseAdmin: any;
 let pixSupportsValorMensalidade = true;
 let pixSupportsDiaVencimento = true;
 
-function canonicalPlanSlug(plan: string | undefined): string {
-  if (!plan) return 'axe';
-  const stripped = plan.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const p = stripped.toLowerCase().trim().replace(/\s+/g, ' ');
-  const compact = p.replace(/[\s_-]/g, '');
-
-  if (p === 'vita' || p === 'plano vita' || compact === 'planovita') return 'vita';
-  if (p === 'premium' || compact === 'premium') return 'premium';
-  if (p === 'oro' || compact === 'oro' || compact === 'planoor') return 'oro';
-  if (p === 'cortesia' || compact === 'cortesia') return 'cortesia';
-  if (p === 'axe' || p === 'free' || compact === 'axe' || compact === 'free') return p === 'free' ? 'free' : 'axe';
-  return p;
-}
-
-function isLifetimePlan(plan: string | undefined): boolean {
-  const c = canonicalPlanSlug(plan);
-  return c === 'cortesia' || c === 'vita';
-}
-
-function usesDistantSubscriptionExpiry(plan: string | undefined): boolean {
-  if (!plan) return false;
-  const raw = plan.toLowerCase().trim();
-  if (raw === 'premium') return true;
-  return isLifetimePlan(plan);
-}
-
 function isMissingColumnError(error: any, columnName: string) {
   const message = error?.message || '';
   return message.includes(`column "${columnName}" does not exist`) || error?.code === 'PGRST204';
@@ -1033,15 +1013,15 @@ async function initializeDatabase() {
     if (!checkError && !checkFotoError) {
       console.log("[SERVER] Esquema do banco OK.");
       
-      // Garante que os super admins tenham a flag
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const { error: updateError } = await supabaseAdmin
-        .from('perfil_lider')
-        .update({ is_admin_global: true })
-        .in('email', superAdmins);
-      
-      if (updateError) console.error("[SERVER] Erro ao atualizar super admins:", updateError);
-      else console.log("[SERVER] Super admins atualizados com sucesso:", superAdmins.join(', '));
+      const allow = getConsoleAdminEmailAllowlist();
+      if (allow.length) {
+        const { error: updateError } = await supabaseAdmin
+          .from('perfil_lider')
+          .update({ is_admin_global: true })
+          .in('email', allow);
+        if (updateError) console.error("[SERVER] Erro ao atualizar admins (ADMIN_CONSOLE_EMAILS):", updateError);
+        else console.log("[SERVER] perfil_lider.is_admin_global atualizado para:", allow.join(", "));
+      }
     }
   } catch (err) {
     console.error("[SERVER] Erro ao inicializar banco:", err);
@@ -1141,7 +1121,7 @@ async function startServer() {
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:3000', 'http://localhost:5173'];
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
 
   app.use(cors({
     origin: (origin, callback) => {
@@ -1221,10 +1201,7 @@ async function startServer() {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user?.email || '');
-      
-      if (authError || !user || !isSuperAdmin) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
 
@@ -1280,10 +1257,7 @@ async function startServer() {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-      
-      if (authError || !user || !isSuperAdmin) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
@@ -1341,8 +1315,7 @@ async function startServer() {
 
       const { user, error: authError } = await verifyUser(token);
 
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      if (authError || !user || !superAdmins.includes(user.email || '')) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
 
@@ -1705,7 +1678,7 @@ async function startServer() {
     let payload: Record<string, unknown> = {
       id: zeladorId,
       tenant_id: logicalTenant,
-      plan: 'axe',
+      plan: "premium",
       status: 'active',
       expires_at: expires,
       updated_at: now,
@@ -2538,7 +2511,7 @@ async function startServer() {
       }
 
       // 1. Save Profile
-      const isSuperAdmin = profile?.email === 'lucasilvasiqueira@outlook.com.br';
+      const isSuperAdmin = await isConsoleGlobalAdmin(supabaseAdmin, user);
       const SHARED_TENANT_ID = '6588b6c9-ce84-4140-a69a-f487a0c61dab';
 
       const profileData: any = {
@@ -2688,7 +2661,7 @@ async function startServer() {
           role: 'filho',
           is_admin_global: false,
           tenant_id: leaderId || userId,
-          plan: (leaderSubData?.plan || 'axe').toLowerCase().trim(),
+          plan: (leaderSubData?.plan || "premium").toLowerCase().trim(),
           status: 'active', // Filho sempre ativo
           expires_at: '2099-12-31T23:59:59Z', // Filho não expira (Acesso Livre)
           foto_url: leaderProfileData?.foto_url || null
@@ -2698,9 +2671,9 @@ async function startServer() {
       // 2. Se não for filho, busca Perfil de Líder
       let profileRes: any = await supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url').eq('id', userId).maybeSingle();
       
-      const isSuperAdmin = (profileRes.data?.is_admin_global === true) || 
-                          email === 'lucasilvasiqueira@outlook.com.br' ||
-                          email === 'vendasmercadolivrev1@gmail.com';
+      const emailNorm = String(email || "").trim().toLowerCase();
+      const isSuperAdmin =
+        profileRes.data?.is_admin_global === true || getConsoleAdminEmailAllowlist().includes(emailNorm);
 
       // 2.5 Auto-create profile for Admins if missing
       if (!profileRes.data) {
@@ -2735,7 +2708,7 @@ async function startServer() {
       let subRes: any = await supabaseAdmin.from('subscriptions').select('plan, status, expires_at').eq('id', userId).maybeSingle();
 
       // 3. Determinação do Plano e Módulos
-      let plan = (subRes.data?.plan || 'axe').toLowerCase().trim();
+      let plan = (subRes.data?.plan || "premium").toLowerCase().trim();
       if (isSuperAdmin) plan = 'premium';
 
       return res.json({
@@ -2754,12 +2727,6 @@ async function startServer() {
       return res.status(500).json({ error: "Erro ao buscar dados do tenant", details: error.message || String(error) });
     }
   });
-
-  const DEFAULT_PLANS = {
-    axe: { name: "Axé", price: 49.90, description: "Ideal para terreiros que estão começando a digitalização." },
-    oro: { name: "Orô", price: 89.90, description: "Controle de estoque e biblioteca de estudos para o seu corpo mediúnico." },
-    premium: { name: "Premium", price: 149.90, description: "Gestão espiritual e financeira completa para o seu terreiro." }
-  };
 
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {
@@ -2780,24 +2747,14 @@ async function startServer() {
         return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
       }
 
-      // Verificar se é Admin Global
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-
-      const { data: adminProfile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminProfile?.is_admin_global && !isSuperAdmin) {
+      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Acesso restrito a administradores globais" });
       }
 
       // 1. Fetch Profiles
       const { data: profiles, error: pError } = await supabaseAdmin
         .from('perfil_lider')
-        .select('id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at')
+        .select('id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at')
         .is('deleted_at', null);
 
       if (pError) throw pError;
@@ -2809,17 +2766,13 @@ async function startServer() {
 
       if (sError) throw sError;
 
-      // 3. Fetch Children Counts (Batch)
+      // 3. Filhos: tenant_id pode ser o UUID lógico do terreiro; lider_id costuma ser perfil_lider.id
       const { data: childrenRaw, error: cError } = await supabaseAdmin
         .from('filhos_de_santo')
-        .select('tenant_id');
-        
+        .select('tenant_id, lider_id');
+
       if (cError) throw cError;
-      
-      const childrenCountMap: Record<string, number> = {};
-      (childrenRaw || []).forEach(child => {
-        childrenCountMap[child.tenant_id] = (childrenCountMap[child.tenant_id] || 0) + 1;
-      });
+      const childrenList = (childrenRaw || []) as { tenant_id?: string | null; lider_id?: string | null }[];
 
       // 4. Fetch Global Settings
       const { data: settings } = await supabaseAdmin
@@ -2828,14 +2781,14 @@ async function startServer() {
         .eq('id', 'plans')
         .single();
 
-      const plans = settings?.data && Object.keys(settings.data).length > 0 ? settings.data : DEFAULT_PLANS;
+      const plans = normalizePlansCatalog(settings?.data);
 
-      const augmentedProfiles = profiles?.map(p => {
+      const augmentedProfiles = profiles?.map((p: { id: string; tenant_id?: string | null }) => {
         const sub = subs?.find((s: any) => s.id === p.id);
         return {
           ...p,
-          totalChildren: childrenCountMap[p.id] || 0,
-          plan: sub?.plan || 'axe'
+          totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
+          plan: sub?.plan || "premium",
         };
       }) || [];
 
@@ -2855,7 +2808,7 @@ async function startServer() {
         .eq('id', 'plans')
         .single();
         
-      const plans = settings?.data && Object.keys(settings.data).length > 0 ? settings.data : DEFAULT_PLANS;
+      const plans = normalizePlansCatalog(settings?.data);
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);
@@ -2874,8 +2827,7 @@ async function startServer() {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      if (authError || !user || !superAdmins.includes(user.email || '')) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
@@ -2919,7 +2871,7 @@ async function startServer() {
 
   // API Route: Update Global Plans Config
   app.post("/api/admin/update-plans", async (req, res) => {
-    const { plans } = req.body;
+    const { plans: incoming } = req.body;
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
 
@@ -2927,12 +2879,11 @@ async function startServer() {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-      
-      if (authError || !user || !isSuperAdmin) {
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Forbidden" });
       }
+
+      const plans = normalizePlansCatalog(incoming);
 
       const { error: saveError } = await supabaseAdmin
         .from('global_settings')
@@ -2967,17 +2918,7 @@ async function startServer() {
         return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
       }
 
-      // Verificar se é Admin Global
-      const superAdmins = ['lucasilvasiqueira@outlook.com.br'];
-      const isSuperAdmin = superAdmins.includes(user.email || '');
-
-      const { data: adminProfile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminProfile?.is_admin_global && !isSuperAdmin) {
+      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
         return res.status(403).json({ error: "Acesso restrito a administradores globais" });
       }
 
@@ -3030,6 +2971,18 @@ async function startServer() {
             status: 'active'
           }, { onConflict: 'id' });
           break;
+        case "set-lifetime":
+          await supabaseAdmin.from("subscriptions").upsert(
+            {
+              id: targetUserId,
+              plan: "vita",
+              status: "active",
+              expires_at: "2099-12-31T23:59:59.000Z",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+          break;
         default:
           return res.status(400).json({ error: "Ação inválida" });
       }
@@ -3039,6 +2992,13 @@ async function startServer() {
       console.error("[SERVER] Erro ao gerenciar tenant:", error);
       res.status(500).json({ error: error.message });
     }
+  });
+
+  registerAdminConsoleRoutes(app, {
+    verifyUser,
+    supabaseAdmin,
+    r2Client,
+    r2Bucket: R2_BUCKET_NAME,
   });
 
   // API Route: Update User Plan (Self-service / Payment Simulation)
@@ -3370,12 +3330,13 @@ async function startServer() {
         .eq('id', user.id)
         .single();
 
-      const plan = sub?.plan?.toLowerCase() || 'axe';
+      const rawPlan = sub?.plan || "premium";
       const isGlobalAdmin = profile?.is_admin_global;
 
-      // Se for plano axe e não for admin global, bloqueia
-      if (plan === 'axe' && !isGlobalAdmin) {
-        return res.status(403).json({ error: "O plano Axé não permite a criação de eventos. Faça upgrade para o plano Orô." });
+      if (!hasPremiumTierFeatures(rawPlan) && !isGlobalAdmin) {
+        return res.status(403).json({
+          error: "O teu plano actual não inclui gestão de eventos no calendário. É necessário Premium ou Plano Vita.",
+        });
       }
 
       const tenant_id = profile?.tenant_id || user.id;
@@ -3446,11 +3407,13 @@ async function startServer() {
         .eq('id', user.id)
         .single();
 
-      const plan = sub?.plan?.toLowerCase() || 'axe';
+      const rawPlan = sub?.plan || "premium";
       const isGlobalAdmin = profile?.is_admin_global;
 
-      if (plan === 'axe' && !isGlobalAdmin) {
-        return res.status(403).json({ error: "O plano Axé não permite a exclusão de eventos." });
+      if (!hasPremiumTierFeatures(rawPlan) && !isGlobalAdmin) {
+        return res.status(403).json({
+          error: "O teu plano actual não permite eliminar eventos do calendário. É necessário Premium ou Plano Vita.",
+        });
       }
 
       const { error } = await supabaseAdmin
@@ -3720,7 +3683,7 @@ async function startServer() {
 
   // API Route: Get Transactions (Bypasses RLS)
   app.get("/api/transactions", async (req, res) => {
-    const { tenantId, userId, userRole, limit } = req.query;
+    const { tenantId, userId, userRole, limit, userEmail: userEmailQ } = req.query;
     try {
       const userRoleStr = String(userRole || "").toLowerCase();
       const tenantIdRaw = normalizeQueryTenantId(tenantId);
@@ -3740,27 +3703,38 @@ async function startServer() {
         query = query.or(`tenant_id.eq.${effectiveTenant},lider_id.eq.${effectiveTenant}`);
       }
       
-      if (userRole === 'filho' && userId) {
+      if (userRoleStr === "filho") {
+        let jwtUid = "";
+        let jwtEm = "";
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+          if (token) {
+            const { user } = await verifyUser(token);
+            if (user?.id) jwtUid = user.id;
+            jwtEm = String((user as { email?: string | null }).email || "").trim().toLowerCase();
+          }
+        }
+        const fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+          queryUserId: String(userId || "").trim(),
+          queryUserEmail: String(userEmailQ || "").trim().toLowerCase(),
+          jwtUserId: jwtUid,
+          jwtEmail: jwtEm,
+        });
+        if (!fid) {
+          return res.json({ data: [] });
+        }
         try {
-          const { data: childData } = await supabaseAdmin
-            .from('filhos_de_santo')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-          
-          if (childData) {
-            const fid = childData.id;
-            const { error: checkColError } = await supabaseAdmin.from('financeiro').select('filho_id').limit(1);
-            if (!checkColError) {
-              query = query.or(`filho_id.eq.${fid},and(categoria.eq.Mensalidade,descricao.ilike.%(ID:${fid})%)`);
-            } else {
-              query = query.ilike('descricao', `% (ID:${fid})%`);
-            }
+          const { error: checkColError } = await supabaseAdmin.from("financeiro").select("filho_id").limit(1);
+          if (!checkColError) {
+            query = query.or(
+              `filho_id.eq.${fid},and(categoria.eq.Mensalidade,descricao.ilike.%(ID:${fid})%)`
+            );
           } else {
-            return res.json({ data: [] });
+            query = query.ilike("descricao", `% (ID:${fid})%`);
           }
         } catch (e) {
-          console.error("[SERVER] Error resolving child ID for financial query:", e);
+          console.error("[SERVER] Error building filho financeiro query:", e);
         }
       }
 
@@ -3789,15 +3763,14 @@ async function startServer() {
   async function userMayDeleteFinanceiroRow(user: { id: string; user_metadata?: Record<string, unknown> }, row: any) {
     const role = String(user.user_metadata?.role || "").toLowerCase();
     if (role === "filho") {
-      const { data: child } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!child?.id) return false;
-      if (row.filho_id === child.id) return true;
+      const fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+        jwtUserId: user.id,
+        jwtEmail: String((user as { email?: string | null }).email || "").trim().toLowerCase(),
+      });
+      if (!fid) return false;
+      if (row.filho_id === fid) return true;
       const m = String(row.descricao || "").match(/\(ID:([^)]+)\)/);
-      return !!(m && m[1] === child.id);
+      return !!(m && m[1] === fid);
     }
     const { data: profile } = await supabaseAdmin
       .from("perfil_lider")
@@ -4344,9 +4317,8 @@ async function startServer() {
 
         // 2. Mapear o product_id para o plano (Isso deve ser configurado conforme seus produtos no Kiwify)
         // Exemplo de mapeamento:
-        let planToSet = 'axe';
-        // if (product_id === 'ID_DO_PRODUTO_ORO') planToSet = 'oro';
-        // if (product_id === 'ID_DO_PRODUTO_PREMIUM') planToSet = 'premium';
+        let planToSet = "premium";
+        // Mapear product_id do Kiwify para "premium" | "vita" conforme os teus produtos.
 
         console.log(`[KIWIFY WEBHOOK] Atualizando plano para ${planToSet} para o tenant ${userData.tenant_id}`);
 

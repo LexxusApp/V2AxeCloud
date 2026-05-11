@@ -9,8 +9,6 @@ import Inventory from './views/Inventory';
 import Gallery from './views/Gallery.tsx';
 import NoticeBoard from './views/NoticeBoard';
 import Settings from './views/Settings';
-import Admin from './views/Admin';
-import MasterPortal from './views/MasterPortal';
 import Login from './views/Login';
 import ChildProfile from './views/ChildProfile';
 import PerfilFilho from './views/PerfilFilho';
@@ -22,7 +20,7 @@ import Store from './views/Store';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
-import { Loader2, Menu, BookOpen, ShoppingBag, Layout as LayoutIcon, User as UserIcon, Calendar as CalendarIcon, DollarSign as DollarSignIcon, Sun, ShieldAlert, Crown, Bell } from 'lucide-react';
+import { Loader2, Menu, ShieldAlert, Bell } from 'lucide-react';
 import NotificationPanel from './components/NotificationPanel';
 import { cn } from './lib/utils';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
@@ -148,7 +146,6 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [subscriptionActive, setSubscriptionActive] = useState(true);
   const [isAdminGlobal, setIsAdminGlobal] = useState(false);
-  const [isMasterActive, setIsMasterActive] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'filho' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -385,11 +382,8 @@ export default function App() {
           role: isFilhoAuth ? 'filho' : 'admin',
         });
         setSubscriptionActive(true);
-        const superAdm = fresh.user.email === 'lucasilvasiqueira@outlook.com.br';
-        setIsAdminGlobal(superAdm);
-        if (superAdm) setIsMasterActive(true);
+        setIsAdminGlobal(false);
         if (isFilhoAuth) {
-          setIsMasterActive(false);
           setActiveTab((prev) => normalizeFilhoTab(prev));
         }
         return true;
@@ -401,7 +395,6 @@ export default function App() {
         setUserRole('admin');
         writeUserRoleAnchor('admin');
         setRoleAnchor('admin');
-        const superAdm = fresh.user.email === 'lucasilvasiqueira@outlook.com.br';
         setTenantData({
           nome: '',
           plan: 'premium',
@@ -409,8 +402,7 @@ export default function App() {
           role: 'admin',
         });
         setSubscriptionActive(true);
-        setIsAdminGlobal(superAdm);
-        if (superAdm) setIsMasterActive(true);
+        setIsAdminGlobal(false);
         return true;
       }
 
@@ -556,17 +548,12 @@ export default function App() {
 
           setIsAdminGlobal(isGlobalAdmin);
 
-          if (isGlobalAdmin) {
-            setIsMasterActive(true);
-          }
-          
-          if (!isGlobalAdmin && activeTab === 'admin') {
+          if (activeTab === 'admin') {
             setActiveTab('dashboard');
           }
 
           // Se for filho, garante que ele caia no Perfil (profile)
           if (role === 'filho') {
-            setIsMasterActive(false);
             setActiveTab(prev => normalizeFilhoTab(prev));
           }
 
@@ -729,7 +716,6 @@ export default function App() {
             if (isFilhoAuth) {
               setUserRole('filho');
               setIsAdminGlobal(false);
-              setIsMasterActive(false);
               setSubscriptionActive(true);
             }
             await loadAllTenantData(session.user.id, session.user.email, session.user.user_metadata?.role);
@@ -1112,7 +1098,6 @@ export default function App() {
       mural: true,
       settings: true,
       profile: true,
-      admin: isAdminGlobal,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
       gallery: hasPlanAccess(tenantData?.plan, 'gallery', isAdminGlobal),
       library: hasPlanAccess(tenantData?.plan, 'library', isAdminGlobal),
@@ -1156,8 +1141,19 @@ export default function App() {
         return <Library user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'store':
         return <Store userRole={userRole} tenantData={tenantData} userId={session.user.id} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'admin': 
-        return isAdminGlobal ? <Admin session={session} tenantData={tenantData} setActiveTab={navigateToTab} /> : <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} tenantData={tenantData} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
+      case 'admin':
+        return (
+          <Dashboard
+            setActiveTab={navigateToTab}
+            user={session.user}
+            userRole={userRole}
+            tenantData={tenantData}
+            isAdminGlobal={isAdminGlobal}
+            setSelectedChildId={setSelectedChildId}
+            systemVersion={SYSTEM_VERSION}
+            isSessionReady={isSessionReady}
+          />
+        );
       case 'profile':
       case 'perfil':
         if (!selectedChildId) {
@@ -1180,18 +1176,6 @@ export default function App() {
     }
   };
 
-  if (isMasterActive && isAdminGlobal) {
-    return (
-      <div className="min-h-screen bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
-        <MasterPortal 
-          session={session} 
-          onLogout={() => setIsMasterActive(false)} 
-          onSwitchToNormal={() => setIsMasterActive(false)}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="h-[100dvh] w-full bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
       {userRole === 'filho' ? (
@@ -1213,7 +1197,6 @@ export default function App() {
           isAdmin={isAdminGlobal}
           userRole={userRole}
           tenantData={tenantData}
-          onSwitchToMaster={() => setIsMasterActive(true)}
         />
       )}
 

@@ -10,16 +10,11 @@ import {
   LogOut,
   Smartphone,
   Download,
-  Sun,
-  ShieldCheck,
   User,
   X,
   BookOpen,
   ShoppingBag,
   Lock,
-  Crown,
-  Star,
-  Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,7 +38,6 @@ interface SidebarProps {
     role?: string | null;
   } | null;
   pendingDonationsCount?: number;
-  onSwitchToMaster?: () => void;
 }
 
 const navItems = [
@@ -55,7 +49,7 @@ const navItems = [
   { id: 'financial', label: 'Financeiro', icon: Wallet },
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMobileOpen, isAdmin, userRole = 'admin', tenantData, onSwitchToMaster }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMobileOpen, isAdmin, userRole = 'admin', tenantData }: SidebarProps) {
   const [pendingDonations, setPendingDonations] = React.useState(0);
   const { canPromptInstall, promptInstall } = usePwaInstall();
 
@@ -109,8 +103,6 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
         { id: 'settings', label: 'Configurações', icon: SettingsIcon },
       ];
   
-  const isSuperAdmin = isAdmin; // In the App.tsx, isAdminGlobal is passed as isAdmin
-
   const getPlanBadge = (plan: string) => {
     const p = plan.toLowerCase();
     const config = {
@@ -233,15 +225,6 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
           {/* Footer: Logout */}
           <div className="pt-4 mt-auto border-t border-white/10 shrink-0 space-y-2">
-            {isSuperAdmin && (
-              <button 
-                onClick={onSwitchToMaster}
-                className="w-full flex items-center gap-4 px-6 py-3 rounded-xl font-black text-[10px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all uppercase tracking-widest"
-              >
-                <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                Master Portal
-              </button>
-            )}
             {canPromptInstall && (
               <button
                 type="button"

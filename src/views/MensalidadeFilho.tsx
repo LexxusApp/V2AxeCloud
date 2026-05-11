@@ -17,7 +17,8 @@ import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig } from '../components/PixPaymentModal';
 import PageHeader from '../components/PageHeader';
 import { MensalidadeCardSkeleton } from '../components/Skeleton';
-import { readStaleCache, writeStaleCache } from '../lib/staleCache';
+import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
+import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/staleCache';
 import { format, setDate, addMonths, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -80,6 +81,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   async function fetchData() {
     if (!userId || !tenantId) return;
     const cacheKey = `mensalidade_${userId}_${tenantId}`;
+    clearStaleCacheKey(cacheKey);
 
     let snapValor = MENSALIDADE_VALOR_PADRAO;
     let snapPending: any = null;
@@ -158,9 +160,19 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       let mensalidadesList: any[] = [];
       try {
         if (childData?.id) {
-          const txRes = await fetch(
-            `/api/transactions?tenantId=${encodeURIComponent(tenantId)}&userId=${encodeURIComponent(userId)}&userRole=filho&limit=150`
-          );
+          const { data: sess } = await supabase.auth.getSession();
+          const token = sess.session?.access_token;
+          const txParams = new URLSearchParams({
+            tenantId,
+            userId,
+            userRole: "filho",
+            limit: "150",
+          });
+          const em = String(user?.email || "").trim();
+          if (em) txParams.set("userEmail", em);
+          const txHeaders: Record<string, string> = {};
+          if (token) txHeaders.Authorization = `Bearer ${token}`;
+          const txRes = await fetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
           if (txRes.ok) {
             const { data: txRaw } = await txRes.json();
             const txs = (txRaw || []) as any[];
@@ -168,30 +180,25 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
             const y = now.getFullYear();
             const mo = now.getMonth();
             const paidThisMonth = txs.some((t) => {
-              if (String(t.tipo || '').toLowerCase() !== 'entrada') return false;
-              if (String(t.categoria || '') !== 'Mensalidade') return false;
+              if (!isPaidMensalidadeFinanceRow(t)) return false;
               const d = new Date(t.data);
               if (d.getFullYear() !== y || d.getMonth() !== mo) return false;
               if (t.filho_id === childData.id) return true;
-              return new RegExp(`\\(ID:${childData.id}\\)`).test(String(t.descricao || ''));
+              return new RegExp(`\\(ID:${childData.id}\\)`).test(String(t.descricao || ""));
             });
             if (paidThisMonth) {
               snapPending = null;
               setPendingMensalidade(null);
             }
             mensalidadesList = txs
-              .filter(
-                (t) =>
-                  String(t.tipo || '').toLowerCase() === 'entrada' &&
-                  String(t.categoria || '') === 'Mensalidade'
-              )
+              .filter((t) => isPaidMensalidadeFinanceRow(t))
               .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
               .map((t) => ({
                 id: t.id,
-                descricao: t.descricao || 'Mensalidade',
+                descricao: t.descricao || "Mensalidade",
                 valor: Number(t.valor) || 0,
                 data: t.data,
-                status: 'pago',
+                status: "pago",
               }));
             setMensalidades(mensalidadesList);
           } else {

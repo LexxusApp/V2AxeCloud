@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 
-let code = fs.readFileSync('src/views/MasterPortal.tsx', 'utf8');
+const MP = 'src/views/MasterPortal.tsx';
+if (!fs.existsSync(MP)) {
+  console.log('MasterPortal removido; skip bento_redesign.ts');
+  process.exit(0);
+}
+
+let code = fs.readFileSync(MP, 'utf8');
 
 // Change Layout structure
 // 1. Remove Sidebar component and sidebar logic
@@ -290,5 +296,5 @@ code = code.replace(/return \([\s\S]*?<\/AnimatePresence>[\s\S]*?<\/div>[\s\S]*?
 // Since we don't have Playfair easily reachable without editing index.css, we'll use serif fallback.
 // But I'll edit index.css too.
 
-fs.writeFileSync('src/views/MasterPortal.tsx', code);
+fs.writeFileSync(MP, code);
 console.log('Bento Design Re-engineered.');

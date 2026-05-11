@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 
-let code = fs.readFileSync('src/views/MasterPortal.tsx', 'utf8');
+const MP = 'src/views/MasterPortal.tsx';
+if (!fs.existsSync(MP)) {
+  console.log('MasterPortal removido; skip final_polish.ts');
+  process.exit(0);
+}
+
+let code = fs.readFileSync(MP, 'utf8');
 
 // Section Titles
 code = code.replace(/<p className="text-\[10px\] font-black text-indigo-600 uppercase tracking-\[0\.4em\] leading-none mb-3 flex items-center gap-2">[\s\S]*?<Star className="w-3\.5 h-3\.5" \/> Portal Master Admin[\s\S]*?<\/p>/g, 
@@ -37,5 +43,5 @@ code = code.replace(/OPERAÇÕES/g, 'AÇÕES');
 // Modal/Inputs
 code = code.replace(/rounded-sm/g, 'rounded-xl'); // Let's make everything rounded-xl for consistency
 
-fs.writeFileSync('src/views/MasterPortal.tsx', code);
+fs.writeFileSync(MP, code);
 console.log('Final polish applied.');

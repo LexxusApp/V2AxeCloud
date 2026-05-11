@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { addMonths, endOfMonth, format, parseISO, startOfDay } from 'date-fns';
 import { computeProximaDataMensalidadePrevisao } from '../lib/mensalidadeDueDate';
+import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { ptBR } from 'date-fns/locale';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
@@ -239,9 +240,19 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     (async () => {
       setLoadingDebt(true);
       try {
-        const res = await fetch(
-          `/api/transactions?tenantId=${encodeURIComponent(tenantId)}&userId=${encodeURIComponent(user.id)}&userRole=filho&limit=150`
-        );
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        const txParams = new URLSearchParams({
+          tenantId,
+          userId: user.id,
+          userRole: 'filho',
+          limit: '150',
+        });
+        const em = String(user?.email || '').trim();
+        if (em) txParams.set('userEmail', em);
+        const txHeaders: Record<string, string> = {};
+        if (token) txHeaders.Authorization = `Bearer ${token}`;
+        const res = await fetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
         if (!res.ok) throw new Error('tx');
         const { data } = await res.json();
         const txs = (data || []) as any[];
@@ -249,8 +260,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         const y = now.getFullYear();
         const mo = now.getMonth();
         const paid = txs.some((t) => {
-          if (String(t.tipo || '').toLowerCase() !== 'entrada') return false;
-          if (String(t.categoria || '') !== 'Mensalidade') return false;
+          if (!isPaidMensalidadeFinanceRow(t as Record<string, unknown>)) return false;
           const d = new Date(t.data);
           if (d.getFullYear() !== y || d.getMonth() !== mo) return false;
           if (t.filho_id === filho.id) return true;

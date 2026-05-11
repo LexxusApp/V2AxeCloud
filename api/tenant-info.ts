@@ -19,7 +19,9 @@ const STATIC_ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:3000",
   "http://localhost:4173",
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
 ]);
 const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 function applyCors(req: any, res: any): boolean {
@@ -51,7 +53,13 @@ function applyCors(req: any, res: any): boolean {
 }
 
 // --- Valores alinhados ao app (não importar de src) ---
-const SUPER_ADMIN_EMAIL = "lucasilvasiqueira@outlook.com.br";
+function consoleAdminEmailAllowlist(): string[] {
+  const raw = process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
 // Slugs de plano alinhados ao app: axe, oro, premium, vita, cortesia (sem import de src)
 
@@ -166,7 +174,7 @@ export default async function handler(req: { method?: string; query?: Record<str
         is_admin_global: false,
         tenant_id:
           leaderProfile.data?.tenant_id || linkedChild.tenant_id || leaderProfile.data?.id || leaderRef || userId,
-        plan: (leaderSub.data?.plan || "axe").toLowerCase().trim(),
+        plan: (leaderSub.data?.plan || "premium").toLowerCase().trim(),
         status: "active",
         expires_at: "2099-12-31T23:59:59Z",
         foto_url: leaderProfile.data?.foto_url || null,
@@ -190,7 +198,7 @@ export default async function handler(req: { method?: string; query?: Record<str
     let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at").eq("id", userId).maybeSingle();
     if (subRes.error) throw subRes.error;
 
-    const isSuperAdmin = profileRes.data?.is_admin_global || email === SUPER_ADMIN_EMAIL;
+    const isSuperAdmin = profileRes.data?.is_admin_global === true || consoleAdminEmailAllowlist().includes(email);
 
     if (isSuperAdmin && !profileRes.data) {
       console.log(`[tenant-info] Auto-criando perfil Super Admin: ${email}`);
@@ -275,7 +283,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       }
     }
 
-    let plan = (subRes.data?.plan || "axe").toLowerCase().trim();
+    let plan = (subRes.data?.plan || "premium").toLowerCase().trim();
     if (isSuperAdmin) plan = "premium";
 
     const roleOut = isSuperAdmin ? "admin" : profileRes.data?.role || (profileRes.data ? "admin" : null);
