@@ -4096,7 +4096,18 @@ async function startServer() {
         .select("templates")
         .eq("tenant_id", user.id)
         .maybeSingle();
-      if (error) throw error;
+      if (error) {
+        const msg = String((error as { message?: string })?.message || "");
+        const code = String((error as { code?: string })?.code || "");
+        if (code === "PGRST205" || code === "42P01" || /schema cache|whatsapp_config/i.test(msg)) {
+          return res.json({
+            success: true,
+            templates: normalizeWhatsAppTemplates(null),
+            warning: "WHATSAPP_TABLE_NOT_READY",
+          });
+        }
+        throw error;
+      }
 
       return res.json({
         success: true,

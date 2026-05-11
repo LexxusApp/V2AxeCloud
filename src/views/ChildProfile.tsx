@@ -114,20 +114,43 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         setEditData(data);
         setPrivateNotes(data.notas_sigilosas || '');
 
-        // Check for debt
-        let debtQuery = supabase
-          .from('financeiro')
-          .select('id')
-          .eq('filho_id', data.id)
-          .eq('status', 'pendente');
-        
-        if (tenantId) {
-          debtQuery = debtQuery.eq('tenant_id', tenantId);
-        }
+        // Check for debt (compatível com schema novo e legado).
+        // Schema novo: colunas `filho_id` + `status` em `financeiro`.
+        // Schema legado: vínculo do filho via descrição ("(ID:<uuid>)" ou "FILHO_ID:<uuid>") e
+        // status inferido por palavra-chave ("vencimento" = pendente; "competência" = paga).
+        const detectDebt = async (): Promise<boolean> => {
+          try {
+            let q = supabase
+              .from('financeiro')
+              .select('id')
+              .eq('filho_id', data.id)
+              .eq('status', 'pendente');
+            if (tenantId) q = q.eq('tenant_id', tenantId);
+            const { data: rows, error: dbErr } = await q.limit(1);
+            if (dbErr) throw dbErr;
+            if (rows && rows.length > 0) return true;
+          } catch (queryErr: any) {
+            // Provavelmente schema legado (coluna ausente → PostgREST 400). Cai para fallback.
+            if (import.meta.env?.DEV) {
+              console.warn('[ChildProfile] debt query (schema novo) falhou, usando fallback por descrição:', queryErr?.message || queryErr);
+            }
+          }
 
-        const { data: debtData } = await debtQuery.limit(1);
-        
-        setHasDebt(!!debtData && debtData.length > 0);
+          try {
+            let legacy = supabase
+              .from('financeiro')
+              .select('id,descricao')
+              .ilike('descricao', `%${data.id}%`)
+              .ilike('descricao', '%vencimento%');
+            if (tenantId) legacy = legacy.eq('tenant_id', tenantId);
+            const { data: legacyRows } = await legacy.limit(1);
+            return !!legacyRows && legacyRows.length > 0;
+          } catch {
+            return false;
+          }
+        };
+
+        setHasDebt(await detectDebt());
 
         // Fetch Obligations
         let obsQuery = supabase

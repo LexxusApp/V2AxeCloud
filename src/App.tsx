@@ -6,7 +6,7 @@ import Children from './views/Children';
 import Calendar from './views/Calendar';
 import Financial from './views/Financial';
 import Inventory from './views/Inventory';
-import Gallery from './views/Gallery';
+import Gallery from './views/Gallery.tsx';
 import NoticeBoard from './views/NoticeBoard';
 import Settings from './views/Settings';
 import Admin from './views/Admin';
@@ -56,7 +56,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 48;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 51;
 
 function readTenantAnchorFromStorage() {
   try {
