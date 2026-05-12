@@ -13,7 +13,15 @@ async function filhoIdByUuidOrPrefix(supabaseAdmin: Sb, raw: string): Promise<st
   const { data: exact } = await supabaseAdmin.from("filhos_de_santo").select("id").eq("id", id).maybeSingle();
   if (exact?.id) return exact.id as string;
   if (id.length >= 8 && id.length < 36) {
-    const { data: rows } = await supabaseAdmin.from("filhos_de_santo").select("id").ilike("id", `${id}%`).limit(2);
+    const { data: rows, error: ilikeErr } = await supabaseAdmin
+      .from("filhos_de_santo")
+      .select("id")
+      .ilike("id", `${id}%`)
+      .limit(2);
+    if (ilikeErr) {
+      console.warn("[resolveFilhoRowIdForFinance] prefix ilike em filhos_de_santo.id:", ilikeErr.message);
+      return null;
+    }
     if (rows?.length === 1) return (rows[0] as { id: string }).id;
   }
   return null;

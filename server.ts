@@ -39,6 +39,7 @@ import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
 import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
+import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
@@ -3687,22 +3688,8 @@ async function startServer() {
     try {
       const userRoleStr = String(userRole || "").toLowerCase();
       const tenantIdRaw = normalizeQueryTenantId(tenantId);
-      let effectiveTenant = "";
-      if (userRoleStr !== "filho") {
-        effectiveTenant = await resolveFinanceiroTenantScope(
-          supabaseAdmin,
-          userId as string,
-          userRoleStr,
-          tenantIdRaw
-        );
-      }
+      const limNum = limit ? Number(limit) : 150;
 
-      let query = supabaseAdmin.from('financeiro').select('*').order('data', { ascending: false });
-      
-      if (userRoleStr !== "filho" && effectiveTenant) {
-        query = query.or(`tenant_id.eq.${effectiveTenant},lider_id.eq.${effectiveTenant}`);
-      }
-      
       if (userRoleStr === "filho") {
         let jwtUid = "";
         let jwtEm = "";
@@ -3715,27 +3702,43 @@ async function startServer() {
             jwtEm = String((user as { email?: string | null }).email || "").trim().toLowerCase();
           }
         }
-        const fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
-          queryUserId: String(userId || "").trim(),
-          queryUserEmail: String(userEmailQ || "").trim().toLowerCase(),
-          jwtUserId: jwtUid,
-          jwtEmail: jwtEm,
-        });
+        let fid: string | null = null;
+        try {
+          fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+            queryUserId: String(userId || "").trim(),
+            queryUserEmail: String(userEmailQ || "").trim().toLowerCase(),
+            jwtUserId: jwtUid,
+            jwtEmail: jwtEm,
+          });
+        } catch (e: any) {
+          console.error("[SERVER] resolveFilhoRowIdForFinance:", e?.message || e);
+        }
         if (!fid) {
           return res.json({ data: [] });
         }
         try {
-          const { error: checkColError } = await supabaseAdmin.from("financeiro").select("filho_id").limit(1);
-          if (!checkColError) {
-            query = query.or(
-              `filho_id.eq.${fid},and(categoria.eq.Mensalidade,descricao.ilike.%(ID:${fid})%)`
-            );
-          } else {
-            query = query.ilike("descricao", `% (ID:${fid})%`);
-          }
-        } catch (e) {
-          console.error("[SERVER] Error building filho financeiro query:", e);
+          const rows = await fetchFinanceiroRowsForFilho(supabaseAdmin, fid, limNum);
+          const filtered = rows.filter(
+            (r: any) => String(r?.status || "").toLowerCase() !== "excluido"
+          );
+          return res.json({ data: filtered });
+        } catch (e: any) {
+          console.error("[SERVER] fetchFinanceiroRowsForFilho:", e?.message || e);
+          return res.status(500).json({ error: e?.message || "Erro ao listar financeiro" });
         }
+      }
+
+      const effectiveTenant = await resolveFinanceiroTenantScope(
+        supabaseAdmin,
+        userId as string,
+        userRoleStr,
+        tenantIdRaw
+      );
+
+      let query = supabaseAdmin.from('financeiro').select('*').order('data', { ascending: false });
+
+      if (effectiveTenant) {
+        query = query.or(`tenant_id.eq.${effectiveTenant},lider_id.eq.${effectiveTenant}`);
       }
 
       if (limit) {
