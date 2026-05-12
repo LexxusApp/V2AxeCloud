@@ -4,15 +4,13 @@ import {
   ShoppingBag, 
   BookOpen, 
   LogOut,
-  Smartphone,
-  Download,
   User as UserIcon,
   CreditCard,
   X,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { performFastLogout } from '../lib/logout';
-import { usePwaInstall } from '../contexts/PwaInstallContext';
+import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
 
 const MOBILE_DRAWER_TRANSITION =
   'will-change-transform [transition:transform_250ms_cubic-bezier(0.4,0,0.2,1)] lg:will-change-auto';
@@ -36,8 +34,6 @@ export default function FilhoSidebar({
   isMobileOpen = false,
   setIsMobileOpen,
 }: FilhoSidebarProps) {
-  const { canPromptInstall, promptInstall } = usePwaInstall();
-
   const menuItems = [
     { id: 'profile', label: 'Meu Perfil', icon: UserIcon },
     { id: 'financial', label: 'Mensalidade', icon: CreditCard },
@@ -111,22 +107,7 @@ export default function FilhoSidebar({
       </div>
 
       <div className="pt-6 border-t border-white/5 space-y-2">
-        {canPromptInstall && (
-          <button
-            type="button"
-            onClick={() => {
-              void promptInstall();
-              setIsMobileOpen?.(false);
-            }}
-            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-emerald-100 bg-emerald-500/20 border-2 border-emerald-400/50 hover:bg-emerald-500/30 transition-colors duration-200"
-          >
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="w-5 h-5 shrink-0 text-emerald-300" />
-              <Download className="w-4 h-4 shrink-0 text-emerald-400/90" />
-            </span>
-            <span className="text-[11px] uppercase font-black tracking-[0.15em]">Instalar Aplicativo</span>
-          </button>
-        )}
+        <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen?.(false)} />
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-4 px-6 py-4 text-gray-500 hover:text-red-500 transition-colors duration-200 group rounded-2xl hover:bg-red-500/5"

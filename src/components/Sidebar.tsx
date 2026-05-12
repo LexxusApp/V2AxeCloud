@@ -8,8 +8,6 @@ import {
   Bell,
   Settings as SettingsIcon, 
   LogOut,
-  Smartphone,
-  Download,
   User,
   X,
   BookOpen,
@@ -21,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { performFastLogout } from '../lib/logout';
 import { hasPlanAccess } from '../constants/plans';
-import { usePwaInstall } from '../contexts/PwaInstallContext';
+import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
 
 interface SidebarProps {
   activeTab: string;
@@ -51,7 +49,6 @@ const navItems = [
 
 export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMobileOpen, isAdmin, userRole = 'admin', tenantData }: SidebarProps) {
   const [pendingDonations, setPendingDonations] = React.useState(0);
-  const { canPromptInstall, promptInstall } = usePwaInstall();
 
   React.useEffect(() => {
     if (userRole !== 'admin') return;
@@ -225,22 +222,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
           {/* Footer: Logout */}
           <div className="pt-4 mt-auto border-t border-white/10 shrink-0 space-y-2">
-            {canPromptInstall && (
-              <button
-                type="button"
-                onClick={() => {
-                  void promptInstall();
-                  setIsMobileOpen(false);
-                }}
-                className="w-full flex items-center gap-4 px-6 py-3 rounded-xl font-bold text-emerald-100 bg-emerald-500/20 border-2 border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.12)] hover:bg-emerald-500/30 transition-all"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Smartphone className="w-5 h-5 shrink-0 text-emerald-300" />
-                  <Download className="w-4 h-4 shrink-0 text-emerald-400/90" />
-                </span>
-                Instalar Aplicativo
-              </button>
-            )}
+            <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen(false)} />
             <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-4 px-6 py-3 rounded-xl font-bold text-red-500 hover:bg-red-500/10 transition-all group"
