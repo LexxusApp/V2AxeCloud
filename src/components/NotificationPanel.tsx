@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle2, CreditCard, RefreshCw, Zap, Info, Trash2, Megaphone } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
-import { PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 
 export interface AppNotification {
   id: string;
@@ -93,53 +92,70 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // ── Notificações do sistema / plano / pagamento (zelador) ──
+  // ── Notificações do zelador ──
+  // Antes geravamos automaticamente "Sistema atualizado para vX" e "Plano ativo" a cada
+  // load. Como `performVersionBumpLogout` limpava o localStorage em todo deploy, essas
+  // notificações eram **recriadas** com `created_at: now` e voltavam a aparecer com
+  // "1min atrás". Além disso são informações repetidas e poluentes (o zelador sabe que
+  // o sistema está atualizado e que o plano dele está ativo).
+  //
+  // Agora geramos apenas notificações com utilidade real: pagamento/entrada registado
+  // neste mês. Também removemos automaticamente notificações residuais antigas de
+  // sistema/plano que possam estar no localStorage do usuário.
   useEffect(() => {
     if (isFilho) return; // filho usa canal próprio (mural)
 
     let saved = loadNotifications();
-    saved = saved.filter(n => !(n.type === 'system' && n.id?.startsWith('sys_') && n.id !== `sys_${systemVersion}`));
-    if (tenantData?.plan) {
-      const canonical = canonicalPlanSlug(tenantData.plan);
-      const planKey = `plan_${canonical}_active`;
-      saved = saved.filter(n => !(n.type === 'plan' && n.id?.startsWith('plan_') && n.id?.endsWith('_active') && n.id !== planKey));
-    }
 
-    const toAdd: AppNotification[] = [];
-
-    const sysKey = `sys_${systemVersion}`;
-    if (!saved.find(n => n.id === sysKey)) {
-      toAdd.push({ id: sysKey, type: 'system', title: `Sistema atualizado para v${systemVersion}`, body: 'Novidades e correções foram aplicadas. Aproveite as melhorias.', read: false, created_at: new Date().toISOString() });
-    }
-
-    if (tenantData?.plan) {
-      const canonical = canonicalPlanSlug(tenantData.plan);
-      const planKey = `plan_${canonical}_active`;
-      const planDisplayName = PLAN_NAMES[canonical] || canonical.toUpperCase();
-      if (!saved.find(n => n.id === planKey)) {
-        toAdd.push({ id: planKey, type: 'plan', title: 'Plano ativo', body: `Seu plano ${planDisplayName} está ativo. Aproveite todos os recursos disponíveis.`, read: true, created_at: new Date().toISOString() });
-      }
+    // Migração silenciosa: limpa notificações automáticas legadas (sistema/plano "ativo").
+    const cleaned = saved.filter(
+      (n) =>
+        !(n.type === 'system' && typeof n.id === 'string' && n.id.startsWith('sys_')) &&
+        !(n.type === 'plan' && typeof n.id === 'string' && n.id.startsWith('plan_') && n.id.endsWith('_active'))
+    );
+    if (cleaned.length !== saved.length) {
+      saved = cleaned;
+      saveNotifications(saved);
     }
 
     if (tenantData?.tenant_id) {
       const now = new Date();
       const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const payKey = `payment_${tenantData.tenant_id}_${thisMonth}`;
-      supabase.from('financeiro').select('id, descricao, valor, created_at').eq('tenant_id', tenantData.tenant_id).eq('tipo', 'entrada').gte('created_at', `${thisMonth}-01`).limit(1).maybeSingle().then(({ data }) => {
-        if (data) {
-          setNotifs(prev => {
-            if (prev.find(n => n.id === payKey)) return prev;
-            const updated = [{ id: payKey, type: 'payment' as const, title: 'Entrada registrada', body: `${data.descricao || 'Entrada'} — ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.valor)} registrada neste mês.`, read: false, created_at: data.created_at }, ...prev];
-            saveNotifications(updated);
-            return updated;
-          });
-        }
-      });
+      supabase
+        .from('financeiro')
+        .select('id, descricao, valor, created_at')
+        .eq('tenant_id', tenantData.tenant_id)
+        .eq('tipo', 'entrada')
+        .gte('created_at', `${thisMonth}-01`)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setNotifs((prev) => {
+              if (prev.find((n) => n.id === payKey)) return prev;
+              const updated = [
+                {
+                  id: payKey,
+                  type: 'payment' as const,
+                  title: 'Entrada registrada',
+                  body: `${data.descricao || 'Entrada'} — ${new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(data.valor)} registrada neste mês.`,
+                  read: false,
+                  created_at: data.created_at,
+                },
+                ...prev,
+              ];
+              saveNotifications(updated);
+              return updated;
+            });
+          }
+        });
     }
 
-    const merged = toAdd.length ? [...toAdd, ...saved] : saved;
-    saveNotifications(merged);
-    setNotifs(merged);
+    setNotifs(saved);
   }, [tenantData, systemVersion, isFilho]);
 
   // ── Avisos do mural para filho de santo ──

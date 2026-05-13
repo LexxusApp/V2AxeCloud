@@ -251,11 +251,19 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       })
       .filter((x) => x.ts > 0)
       .sort((a, b) => a.ts - b.ts);
-    let cum = 0;
-    const series = entradasOrdenadas.map((row) => {
-      cum += row.valor;
-      return { val: cum };
-    });
+
+    // Recharts (AreaChart) precisa de pelo menos 2 pontos para desenhar a linha.
+    // Começamos a série em 0 (antes da primeira entrada) e adicionamos o cumulativo
+    // a cada entrada — garante N+1 pontos e visualização correta mesmo com 1 só entrada.
+    const series: Array<{ val: number }> = [];
+    if (entradasOrdenadas.length > 0) {
+      series.push({ val: 0 });
+      let cum = 0;
+      for (const row of entradasOrdenadas) {
+        cum += row.valor;
+        series.push({ val: cum });
+      }
+    }
 
     return {
       stats: {
@@ -266,7 +274,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         marginPct,
       },
       hasMonthFinanceData: hasData,
-      chartData: series.length > 0 ? series : [{ val: 0 }],
+      chartData: series.length > 0 ? series : [{ val: 0 }, { val: 0 }],
     };
   }, [transactions]);
 
