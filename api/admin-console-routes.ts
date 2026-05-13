@@ -16,6 +16,7 @@ import {
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
 import { logEvent } from "./lib/auditLog.js";
+import { scanUrl } from "./lib/audit/scan.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -772,6 +773,47 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/whatsapp/test-message]", e);
       res.status(500).json({ error: e?.message || "Falha ao enviar mensagem" });
+    }
+  });
+
+  // ============================================================================
+  // Auditoria do sistema (Fase 1): scan estático completo de uma URL.
+  //   - Meta tags / Open Graph / Twitter Card / Schema.org
+  //   - Headers de segurança com grading A–F
+  //   - SSL/TLS, ALPN/HTTP-2, cadeia de redirects
+  //   - robots.txt, sitemap.xml, manifest PWA
+  //   - Diagnóstico (lista de issues classificados por nível)
+  // Sem dependências externas — só Node nativo + fetch + tls.
+  // ============================================================================
+  app.post("/api/admin-console/audit/scan", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const targetUrl = String((req.body || {}).url || "").trim();
+    if (!targetUrl) {
+      return res.status(400).json({ error: "Informe uma URL para auditar." });
+    }
+    try {
+      const result = await scanUrl(targetUrl);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.scan",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit",
+        targetId: result.finalUrl,
+        description: `Auditoria executada em ${result.finalUrl} (score segurança ${result.security.grade}).`,
+        metadata: {
+          status: result.status,
+          grade: result.security.grade,
+          issues: result.issues.length,
+          redirects: result.redirects.length,
+          isHttp2: result.http.isHttp2,
+        },
+        req,
+      });
+      res.json({ ok: true, result });
+    } catch (e: any) {
+      console.error("[admin-console/audit/scan]", e);
+      res.status(500).json({ error: e?.message || "Falha ao auditar URL." });
     }
   });
 

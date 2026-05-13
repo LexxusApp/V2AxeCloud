@@ -24,6 +24,7 @@ import {
   PlusCircle,
   RefreshCw,
   ScrollText,
+  ShieldCheck,
   Sparkles,
   Users,
   X,
@@ -33,8 +34,9 @@ import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { TenantDrawer } from "./TenantDrawer";
+import { AuditPanel } from "./AuditPanel";
 
-type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp";
+type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp" | "audit";
 
 type Overview = {
   leadersCount: number;
@@ -78,6 +80,7 @@ const NAV: { id: Tab; label: string; icon: ComponentType<{ className?: string }>
   { id: "demo", label: "Conta demo", icon: Sparkles },
   { id: "plans", label: "Planos globais", icon: FileJson2 },
   { id: "whatsapp", label: "WhatsApp admin", icon: MessageCircle },
+  { id: "audit", label: "Auditoria", icon: ShieldCheck },
 ];
 
 export function CommandShell({ session }: { session: Session }) {
@@ -617,6 +620,7 @@ export function CommandShell({ session }: { session: Session }) {
           {tab === "demo" && <DemoForm />}
           {tab === "plans" && <PlansEditor initial={plansCatalog} />}
           {tab === "whatsapp" && <WhatsAppPanel />}
+          {tab === "audit" && <AuditPanel />}
         </main>
       </div>
 
