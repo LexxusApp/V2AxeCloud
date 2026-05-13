@@ -183,7 +183,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const [transactions, setTransactions] = useState<any[]>([]);
   const [childrenData, setChildrenData] = useState<any[]>([]);
   const [historyData, setHistoryData] = useState<any[]>([]);
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const dashboardCalendar = useMemo(() => {
     const anchor = new Date();
@@ -365,35 +364,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     userRole === 'filho' ? 'Filho de Santo' : (tenantData?.cargo?.trim() || null);
 
   const now = new Date();
-  const dayOfYear = Math.floor(
-    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
-      new Date(now.getFullYear(), 0, 0).getTime()) /
-      86400000
-  );
-  const dailyGreetings = [
-    'Que o Axé abra caminhos de prosperidade para hoje.',
-    'Que seu dia seja leve, forte e cheio de boas notícias.',
-    'Hoje é dia de firmeza, foco e vitória no seu terreiro.',
-    'Que os Orixás iluminem cada decisão desta jornada.',
-    'Siga com fé: a energia certa já está trabalhando por você.',
-    'Que seu terreiro floresça com harmonia, ordem e abundância.',
-    'Hoje o movimento é de crescimento e proteção.',
-    'Que a força da ancestralidade conduza um dia extraordinário.',
-    'Disciplina, fundamento e Axé: combinação perfeita para hoje.',
-    'Que cada passo de hoje fortaleça seu propósito.',
-    'Que o dia traga paz no coração e avanço no trabalho.',
-    'Tudo que começa com Axé termina com vitória.',
-  ];
-  const greetingSubtitle = dailyGreetings[dayOfYear % dailyGreetings.length];
-
-  const handleManualRefresh = async () => {
-    setIsManualRefreshing(true);
-    try {
-      await mutate();
-    } finally {
-      setIsManualRefreshing(false);
-    }
-  };
+  const hour = now.getHours();
+  const timeGreeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const firstName = (terreiroNome.split(' ')[0] || 'Zelador').trim();
+  const formattedDate = (() => {
+    const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  })();
 
   return (
     <div className="min-h-screen bg-transparent text-white p-6 lg:p-10 font-sans selection:bg-[#D4AF37]/30">
@@ -401,24 +378,14 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       {/* Header Bar */}
       <header className="mb-10 flex items-center justify-between">
         <div className="min-w-0">
-          <p className="mb-2 inline-flex items-center rounded-md border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#D4AF37]">
-            Seja Bem-vindo, {terreiroNome.split(' ')[0]}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+            {formattedDate}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-white leading-tight">Axé em Movimento</h1>
-          <p className="mt-1 text-xs font-semibold text-gray-300">{greetingSubtitle}</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white leading-tight lg:text-4xl">
+            {timeGreeting}, <span className="text-[#D4AF37]">{firstName}</span>
+          </h1>
         </div>
-        {/* Atualizar junto ao sino — lg+; no mobile só o ícone à direita do título (sino fica no header global) */}
         <div className="flex shrink-0 items-center gap-2 lg:gap-3">
-          <button
-            type="button"
-            onClick={() => void handleManualRefresh()}
-            disabled={isManualRefreshing}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-base transition-colors hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed lg:h-10 lg:w-10"
-            title="Atualizar dados"
-            aria-label="Atualizar dados da dashboard"
-          >
-            <span aria-hidden className={isManualRefreshing ? 'inline-block animate-spin' : ''}>🔄</span>
-          </button>
           <div className="hidden lg:flex items-center gap-3">
             <NotificationPanel tenantData={tenantData} systemVersion={systemVersion} userRole={userRole} userId={user?.id} />
             <div className="flex items-center gap-3 bg-[#121212]/50 p-1 pr-4 rounded-full border border-white/5 cursor-pointer hover:bg-[#1a1a1a] transition-all">
