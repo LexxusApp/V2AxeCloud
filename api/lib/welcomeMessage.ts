@@ -24,7 +24,7 @@ export const WELCOME_MESSAGE_DEFAULT: WelcomeMessageConfig = {
     "Site: {{site}}\n" +
     "E-mail: {{email}}\n" +
     "Senha: {{senha}}\n\n" +
-    "Recomendamos entrar e alterar a sua senha no primeiro acesso. Qualquer dúvida estamos aqui.\n\n" +
+    "Qualquer dúvida estamos aqui.\n\n" +
     "— {{assinatura}}",
 };
 
@@ -35,16 +35,36 @@ const WELCOME_KEYS: ReadonlyArray<keyof WelcomeMessageConfig> = [
   "signature",
 ];
 
+/**
+ * Frase antiga (recomendação de troca de senha) removida — a senha gerada é permanente.
+ * Mantemos esta limpeza para migrar templates salvos antes desta mudança.
+ */
+const DEPRECATED_PHRASES: ReadonlyArray<string> = [
+  "Recomendamos entrar e alterar a sua senha no primeiro acesso. ",
+  "Recomendamos entrar e alterar a sua senha no primeiro acesso.",
+  "Recomendamos entrar e alterar sua senha no primeiro acesso. ",
+  "Recomendamos entrar e alterar sua senha no primeiro acesso.",
+];
+
+function stripDeprecatedPhrases(template: string): string {
+  let out = template;
+  for (const ph of DEPRECATED_PHRASES) {
+    out = out.split(ph).join("");
+  }
+  // Limpa eventuais espaços/linhas duplicadas deixadas pela remoção.
+  out = out.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  return out;
+}
+
 function coerceConfig(raw: unknown): WelcomeMessageConfig {
   if (!raw || typeof raw !== "object") return { ...WELCOME_MESSAGE_DEFAULT };
   const o = raw as Record<string, unknown>;
+  const rawTemplate =
+    typeof o.template === "string" && o.template.trim() ? o.template : WELCOME_MESSAGE_DEFAULT.template;
   return {
     enabled:
       typeof o.enabled === "boolean" ? o.enabled : WELCOME_MESSAGE_DEFAULT.enabled,
-    template:
-      typeof o.template === "string" && o.template.trim()
-        ? o.template
-        : WELCOME_MESSAGE_DEFAULT.template,
+    template: stripDeprecatedPhrases(rawTemplate),
     loginUrl:
       typeof o.loginUrl === "string" && o.loginUrl.trim()
         ? o.loginUrl.trim()
