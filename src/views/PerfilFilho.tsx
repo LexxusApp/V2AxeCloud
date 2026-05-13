@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabase';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPaymentModal';
+import Avatar from '../components/Avatar';
 import Library from './Library';
 
 type Tenant =
@@ -469,11 +470,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   const displayName = filho?.nome?.trim() || fallbackName;
   const cargo = filho?.cargo?.trim();
   const orixa = filho?.orixa_frente?.trim();
-  const fotoUrl =
-    filho?.foto_url ||
-    `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(
-      filho?.id || user.id
-    )}&backgroundColor=1F1F1F`;
+  const fotoUrl = filho?.foto_url || null;
 
   const proximoEvento = useMemo(() => {
     const now = Date.now();
@@ -518,14 +515,13 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                     <Loader2 className="w-7 h-7 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <img
+                  <Avatar
                     src={fotoUrl}
+                    name={displayName}
                     alt={displayName}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(displayName)}`;
-                    }}
+                    shape="circle"
+                    textSize="text-2xl sm:text-3xl"
+                    className="w-full h-full"
                   />
                 )}
               </div>

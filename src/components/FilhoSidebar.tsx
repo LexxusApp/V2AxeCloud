@@ -11,6 +11,7 @@ import {
 import { cn } from '../lib/utils';
 import { performFastLogout } from '../lib/logout';
 import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
+import Avatar from './Avatar';
 
 const MOBILE_DRAWER_TRANSITION =
   'will-change-transform [transition:transform_250ms_cubic-bezier(0.4,0,0.2,1)] lg:will-change-auto';
@@ -60,11 +61,13 @@ export default function FilhoSidebar({
         <div className="flex flex-col items-center text-center pt-2">
           <div className="relative mb-5">
             <div className="w-20 h-20 rounded-full border-4 border-yellow-500/20 p-1 bg-black/40 shadow-lg shadow-yellow-500/5 overflow-hidden ring-2 ring-black/40">
-              <img
-                src={fotoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`}
-                alt="Profile"
-                className="w-full h-full object-cover rounded-full"
-                referrerPolicy="no-referrer"
+              <Avatar
+                src={fotoUrl}
+                name={displayName}
+                alt="Foto do filho de santo"
+                shape="circle"
+                textSize="text-xl"
+                className="w-full h-full"
               />
             </div>
             <div className="absolute bottom-0 right-0 w-6 h-6 bg-yellow-500 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center">

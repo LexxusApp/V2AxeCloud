@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import PageHeader from '../components/PageHeader';
+import Avatar from '../components/Avatar';
 import { hasPlanAccess } from '../constants/plans';
 
 interface ChildProfileProps {
@@ -492,13 +493,14 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               
               <div className="flex items-start gap-4 md:gap-8 lg:gap-6">
                 <div className="relative shrink-0 group">
-                  <img 
-                    src={child.foto_url || `https://api.dicebear.com/7.x/personas/svg?seed=${child.id}&backgroundColor=1F1F1F`} 
-                    alt={child.nome} 
-                    className="w-24 h-24 md:w-32 md:h-32 lg:w-24 lg:h-24 rounded-full object-cover border border-[#FBBC00]/30 shadow-2xl transition-all"
-                    referrerPolicy="no-referrer"
+                  <Avatar
+                    src={child.foto_url}
+                    name={child.nome}
+                    shape="circle"
+                    textSize="text-2xl md:text-3xl"
+                    className="w-24 h-24 md:w-32 md:h-32 lg:w-24 lg:h-24 border border-[#FBBC00]/30 shadow-2xl transition-all"
                   />
-                  
+
                   {!isSelfView && (
                     <button 
                       onClick={() => fileInputRef.current?.click()}

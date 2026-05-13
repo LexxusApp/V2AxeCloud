@@ -7,6 +7,7 @@ import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import LuxuryLoading from '../components/LuxuryLoading';
 import PageHeader from '../components/PageHeader';
+import Avatar from '../components/Avatar';
 import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 
 interface Child {
@@ -296,14 +297,15 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               singleCard ? 'flex-col items-center text-center gap-2.5' : 'items-center'
             )}>
               <div className="relative shrink-0">
-                <img 
-                  src={child.foto_url || `https://api.dicebear.com/7.x/personas/svg?seed=${child.id}&backgroundColor=1F1F1F`} 
-                  alt={child.nome} 
+                <Avatar
+                  src={child.foto_url}
+                  name={child.nome}
+                  shape="rounded"
+                  textSize={singleCard ? 'text-base' : 'text-sm'}
                   className={cn(
-                    'rounded-xl object-cover border-2 border-white/5 group-hover:border-primary/50 transition-all duration-500 shadow-lg',
+                    'border-2 border-white/5 group-hover:border-primary/50 transition-all duration-500 shadow-lg',
                     singleCard ? 'w-14 h-14' : 'w-11 h-11'
                   )}
-                  referrerPolicy="no-referrer"
                 />
                 <div className={cn(
                   "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#1A1A1A]",

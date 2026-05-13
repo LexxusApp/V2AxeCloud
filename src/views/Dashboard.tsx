@@ -31,6 +31,7 @@ import {
 } from 'recharts';
 import { cn } from '../lib/utils';
 import LuxuryLoading from '../components/LuxuryLoading';
+import Avatar from '../components/Avatar';
 import { supabase } from '../lib/supabase';
 import {
   countsTowardSaldo,
@@ -549,11 +550,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/80 group-hover:border-[#D4AF37] transition-colors" />
                       {/* Foto */}
                       <div className="absolute inset-[3px] rounded-full overflow-hidden">
-                        {filho.foto_url ? (
-                          <img src={filho.foto_url} alt={filho.nome} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${filho.nome}`} alt={filho.nome} className="w-full h-full object-cover bg-[#0a0a0a]" />
-                        )}
+                        <Avatar
+                          src={filho.foto_url}
+                          name={filho.nome}
+                          shape="circle"
+                          textSize="text-lg"
+                          className="w-full h-full"
+                        />
                       </div>
                       {/* Brilho ao hover */}
                       <div className="absolute inset-0 rounded-full bg-[#D4AF37]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
