@@ -15,12 +15,14 @@ import {
   BarChart3,
   Building2,
   Cloud,
+  Copy,
   FileJson2,
   Info,
   LayoutDashboard,
   LogOut,
   MessageCircle,
   PlusCircle,
+  RefreshCw,
   ScrollText,
   Sparkles,
   Users,
@@ -586,20 +588,50 @@ function MiniBtn({ children, onClick }: { children: ReactNode; onClick: () => vo
   );
 }
 
+/** Gera senha numérica aleatória de 8 dígitos via Web Crypto (sem viés). */
+function generateNumericPassword(length = 8): string {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const buf = new Uint32Array(length);
+    crypto.getRandomValues(buf);
+    let out = "";
+    for (let i = 0; i < length; i++) out += String(buf[i] % 10);
+    return out;
+  }
+  let out = "";
+  for (let i = 0; i < length; i++) out += String(Math.floor(Math.random() * 10));
+  return out;
+}
+
 function CreateTenantForm({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(() => generateNumericPassword(8));
+  const [pwdCopied, setPwdCopied] = useState(false);
   const [nomeTerreiro, setNomeTerreiro] = useState("");
   const [nomeZelador, setNomeZelador] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [plan, setPlan] = useState<"premium" | "vita">("premium");
   const [status, setStatus] = useState<string | null>(null);
 
+  function regeneratePassword() {
+    setPassword(generateNumericPassword(8));
+    setPwdCopied(false);
+  }
+
+  async function copyPassword() {
+    try {
+      await navigator.clipboard?.writeText(password);
+      setPwdCopied(true);
+      window.setTimeout(() => setPwdCopied(false), 1500);
+    } catch {
+      /* clipboard pode estar bloqueado; ignorar silenciosamente */
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setStatus(null);
     try {
-      await apiJson("/api/admin/create-tenant", {
+      const r = await apiJson<{ welcome?: { status?: string } }>("/api/admin/create-tenant", {
         method: "POST",
         body: JSON.stringify({
           email,
@@ -611,7 +643,12 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
           observacao: "axecloud-admin",
         }),
       });
-      setStatus("Terreiro criado.");
+      const w = String(r?.welcome?.status || "");
+      let suffix = "";
+      if (w === "queued") suffix = " · WhatsApp de boas-vindas em rota.";
+      else if (w === "no-phone") suffix = " · sem WhatsApp do zelador — boas-vindas pulada.";
+      else if (w === "disabled") suffix = " · boas-vindas desligada nas configurações.";
+      setStatus(`Terreiro criado.${suffix}`);
       onDone();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Erro");
@@ -625,7 +662,48 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
     >
       <h3 className="text-lg font-bold text-white">Criar conta + terreiro</h3>
       <Field label="E-mail" value={email} onChange={setEmail} type="email" required />
-      <Field label="Senha inicial" value={password} onChange={setPassword} type="password" required />
+
+      <div>
+        <label className="text-xs font-bold uppercase text-slate-500">Senha inicial</label>
+        <div className="mt-1 flex items-stretch gap-2">
+          <input
+            className="flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 font-mono-data text-base tracking-[0.35em] text-emerald-100 outline-none ring-cyan-500/30 focus:ring-2"
+            value={password}
+            required
+            type="text"
+            inputMode="numeric"
+            pattern="\d{8}"
+            maxLength={8}
+            onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            aria-label="Senha numérica de 8 dígitos"
+          />
+          <button
+            type="button"
+            onClick={regeneratePassword}
+            title="Gerar nova senha"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-slate-200 hover:bg-white/[0.08]"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => void copyPassword()}
+            title="Copiar senha"
+            className={cn(
+              "inline-flex shrink-0 items-center justify-center rounded-xl border px-3 text-xs font-bold transition",
+              pwdCopied
+                ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+                : "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]"
+            )}
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-1.5 text-[11px] text-slate-500">
+          Senha numérica de 8 dígitos gerada automaticamente. Você pode regenerar ou editar manualmente antes de criar.
+        </p>
+      </div>
+
       <Field label="Nome do terreiro" value={nomeTerreiro} onChange={setNomeTerreiro} required />
       <Field label="Nome do zelador" value={nomeZelador} onChange={setNomeZelador} />
       <Field label="WhatsApp" value={whatsapp} onChange={setWhatsapp} />
