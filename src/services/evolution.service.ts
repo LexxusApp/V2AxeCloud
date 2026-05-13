@@ -419,10 +419,23 @@ export async function sendEvolutionTextMessage(
 /** Nome canónico da instância usada pelo Console Admin global (separada dos terreiros). */
 export const CONSOLE_ADMIN_INSTANCE_NAME = "axecloud_console_admin";
 
+/**
+ * Normaliza para MSISDN aceito pela Evolution/Baileys (DDI + DDD + linha, só dígitos).
+ * Regras:
+ *  - 10 ou 11 dígitos (DDD + linha brasileira) → prefixa "55".
+ *  - 12 ou 13 dígitos começando com "55" → mantém.
+ *  - 12+ dígitos com outro DDI (ex.: "351", "1", "44") → mantém.
+ *  - <10 dígitos → erro.
+ */
 function normalizeMsisdn(phone: string): string {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) throw new Error("Número de telefone inválido");
-  return digits.startsWith("55") || digits.length >= 11 ? digits : `55${digits}`;
+  if (digits.length < 10) {
+    throw new Error("Número incompleto: digite DDD + linha (10 ou 11 dígitos).");
+  }
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
+  return digits;
 }
 
 function pickPairingCode(data: unknown): string | null {
@@ -461,7 +474,9 @@ export async function createInstanceWithPairingCode(
     qrcode: false,
     number,
   };
-  console.log(`[Evolution API] pairing | POST ${createPath} | instance=${cleanInstance}`);
+  console.log(
+    `[Evolution API] pairing | POST ${createPath} | instance=${cleanInstance} | number=${number} (len=${number.length})`
+  );
 
   const res = await evolutionRequest(createPath, {
     method: "POST",

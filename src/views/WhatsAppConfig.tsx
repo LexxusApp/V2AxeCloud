@@ -497,7 +497,7 @@ export default function WhatsAppConfig() {
               <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 sm:p-6">
                 <h4 className="text-sm font-black text-white uppercase tracking-widest">Conectar via Código</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Digite o número do celular que vai parear com o sistema (com DDD; DDI 55 para Brasil é opcional).
+                  Digite o número do celular que vai parear com o sistema. Para Brasil, basta DDD + linha (11 dígitos) — o DDI <span className="font-mono text-emerald-300">55</span> é adicionado automaticamente.
                 </p>
                 <input
                   type="tel"
@@ -508,6 +508,16 @@ export default function WhatsAppConfig() {
                   disabled={loading || status === 'PAIRING'}
                   className="w-full rounded-xl border border-white/10 bg-background px-4 py-3 font-mono text-sm text-white outline-none transition-all placeholder:text-gray-600 focus:border-emerald-500 disabled:opacity-60"
                 />
+                {phone && digitsOnly(phone).length >= 10 && (
+                  <p className="text-[11px] text-gray-500">
+                    Será enviado para a Evolution como{' '}
+                    <span className="font-mono text-emerald-300">
+                      {digitsOnly(phone).length === 10 || digitsOnly(phone).length === 11
+                        ? `55${digitsOnly(phone)}`
+                        : digitsOnly(phone)}
+                    </span>
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={handleStart}
