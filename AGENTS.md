@@ -1,5 +1,6 @@
 # Project Rules
 
-- **Force Logout on Every Turn**: Every time you make a change to the code, you MUST increment the `SYSTEM_VERSION` constant in `src/App.tsx`. This ensures the user is redirected to the login screen to test the full flow with the new changes.
-- **Reboot a pedido**: Se o usuário pedir reboot do sistema, atualização forçada dos clientes ou disser que quer reboot em todo prompt, incremente `SYSTEM_VERSION` em `src/App.tsx` nessa mesma rodada (mesmo sem outras alterações de código), para disparar logout + reload.
+- **SYSTEM_VERSION (soft por padrão)**: NÃO incremente `SYSTEM_VERSION` em `src/App.tsx` em commits/turnos normais. A atualização de bundle entre deploys é feita silenciosamente pelo Service Worker (`src/main.tsx` → `onNeedRefresh`), e `performVersionBumpLogout` agora é "soft" (não desloga, só marca a versão). Não derrube sessões dos usuários sem motivo real.
+- **Quando bumpar `SYSTEM_VERSION`**: somente em mudanças **incompatíveis** que exijam logout/limpeza geral — por exemplo: alteração no formato de cache em `localStorage`, troca de schema de auth, refactor que invalida tenant_anchor, etc. Nesses casos, além de bumpar, troque a chamada para `performFastLogout()` no fluxo necessário (o "version bump" sozinho não desloga mais ninguém).
+- **Reboot a pedido (logout/reload forçado)**: se o usuário pedir explicitamente "reboot do sistema", "atualização forçada", "derrubar todos os usuários", "forçar logout", aí sim bumpe `SYSTEM_VERSION` E adicione um `performFastLogout()` ou `performEmergencyClientReset()` no caminho adequado — porque o bump por si só virou soft.
 - **Language Preference**: All responses from the AI must be in Portuguese (PT-BR), as requested by the user.

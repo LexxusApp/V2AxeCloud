@@ -59,36 +59,24 @@ export async function performFastLogout(): Promise<void> {
 }
 
 /**
- * Deploy / nova versão: mesmo reset agressivo, grava a nova versão e recarrega na raiz.
+ * Deploy / nova versão (SOFT): NÃO desconecta o usuário. Apenas registra a nova versão
+ * em localStorage para que o aviso de "nova versão" não se repita no próximo carregamento.
+ *
+ * A atualização do bundle é tratada pelo Service Worker (src/main.tsx → onNeedRefresh),
+ * que dispara um `location.reload()` quando o cliente passa a servir o novo build.
+ *
+ * Mantemos o nome `performVersionBumpLogout` por compatibilidade com chamadores,
+ * mas o comportamento destrutivo (signOut + localStorage.clear) foi removido.
+ *
+ * Para forçar logout (mudança realmente incompatível), use `performFastLogout()` ou
+ * `performEmergencyClientReset()` diretamente.
  */
 export async function performVersionBumpLogout(systemVersion: string): Promise<void> {
   if (typeof window === 'undefined') return;
-
   try {
-    await supabase.auth.signOut();
+    localStorage.setItem('axecloud_version', systemVersion);
   } catch {
     /* ignorar */
-  }
-
-  try {
-    await deleteAllCacheStorage();
-    await unregisterAllServiceWorkers();
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-    try {
-      localStorage.setItem('axecloud_version', systemVersion);
-    } catch {
-      /* ignorar */
-    }
-    window.location.assign('/?updated=true');
-  } catch {
-    try {
-      window.localStorage.clear();
-      localStorage.setItem('axecloud_version', systemVersion);
-    } catch {
-      /* ignorar */
-    }
-    window.location.assign('/?updated=true');
   }
 }
 

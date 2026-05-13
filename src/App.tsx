@@ -620,9 +620,11 @@ export default function App() {
       const lastVersion = localStorage.getItem('axecloud_version');
 
       if (lastVersion !== SYSTEM_VERSION) {
-        console.log('[SYSTEM] Nova versão detectada:', SYSTEM_VERSION);
+        // SOFT version bump: apenas registra a nova versão e segue o fluxo normal.
+        // A sessão Supabase é preservada — o novo bundle JS já foi carregado pelo SW
+        // (src/main.tsx → onNeedRefresh fez o reload). O usuário NÃO é deslogado.
+        console.log('[SYSTEM] Nova versão detectada (soft):', SYSTEM_VERSION);
         void performVersionBumpLogout(SYSTEM_VERSION);
-        return;
       }
 
       const {
