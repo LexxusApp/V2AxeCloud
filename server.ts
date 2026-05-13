@@ -49,7 +49,7 @@ import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
-import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry } from "./src/constants/plans.js";
+import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1379,22 +1379,37 @@ async function startServer() {
 
       // 3. Update Profile and Subscription
       if (plan && plan !== 'free') {
-        const isDemo = plan === 'demo';
-        
-        let expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        if (usesDistantSubscriptionExpiry(plan)) expiresAt = '2099-12-31T23:59:59Z';
-        if (req.body.isDemo) expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(); // 48h for any demo base plan
-        
+        const planSlug = String(plan).toLowerCase().trim();
+        const isLifetime = planSlug === 'vita' || planSlug === 'cortesia';
+        // Vitalício / cortesia: SEM expiração (expires_at = null). Premium: +30 dias. Demo: +2 dias.
+        let expiresAt: string | null;
+        if (isLifetime) {
+          expiresAt = null;
+        } else if (req.body.isDemo) {
+          expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+        } else {
+          expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        console.log(
+          `[ADMIN][create-tenant] plan="${planSlug}" lifetime=${isLifetime} expires_at=${expiresAt ?? 'null'} user=${targetUser.id}`
+        );
+
         const { error: subError } = await supabaseAdmin
           .from('subscriptions')
-          .upsert({ 
+          .upsert({
             id: targetUser.id,
-            plan: plan.toLowerCase(),
+            plan: planSlug,
             status: 'active',
             expires_at: expiresAt
           }, { onConflict: 'id' });
-        
-        if (subError) console.error("Error updating subscription plan:", subError);
+
+        if (subError) {
+          console.error("[ADMIN][create-tenant] subscription upsert FAILED:", subError);
+          return res.status(500).json({
+            error: `Falha ao gravar assinatura (${planSlug}): ${subError.message || subError}`,
+          });
+        }
       }
 
       // Update profile with extra info
@@ -2696,13 +2711,14 @@ async function startServer() {
         if (leaderProfileData?.deleted_at) return res.status(403).json({ error: "Conta excluída", status: "deleted" });
         if (leaderProfileData?.is_blocked) return res.status(403).json({ error: "Acesso suspenso", status: "blocked" });
 
+        const filhoPlanSlug = canonicalPlanSlug(leaderSubData?.plan);
         return res.json({
           nome_terreiro: leaderProfileData?.nome_terreiro || 'Meu Terreiro',
           cargo: null,
           role: 'filho',
           is_admin_global: false,
           tenant_id: leaderId || userId,
-          plan: (leaderSubData?.plan || "premium").toLowerCase().trim(),
+          plan: filhoPlanSlug,
           status: 'active', // Filho sempre ativo
           expires_at: '2099-12-31T23:59:59Z', // Filho não expira (Acesso Livre)
           foto_url: leaderProfileData?.foto_url || null
@@ -2749,8 +2765,17 @@ async function startServer() {
       let subRes: any = await supabaseAdmin.from('subscriptions').select('plan, status, expires_at').eq('id', userId).maybeSingle();
 
       // 3. Determinação do Plano e Módulos
-      let plan = (subRes.data?.plan || "premium").toLowerCase().trim();
+      let plan = canonicalPlanSlug(subRes.data?.plan);
       if (isSuperAdmin) plan = 'premium';
+
+      const lifetime = plan === 'vita' || plan === 'cortesia';
+
+      // Para vitalício/cortesia: expires_at=null (front trata como "sem expiração" via isLifetime).
+      const expiresOut = isSuperAdmin
+        ? '2099-12-31T23:59:59Z'
+        : lifetime
+        ? null
+        : (subRes.data?.expires_at || null);
 
       return res.json({
         nome_terreiro: profileRes.data?.nome_terreiro || 'Meu Terreiro',
@@ -2760,7 +2785,7 @@ async function startServer() {
         tenant_id: profileRes.data?.tenant_id || profileRes.data?.id || (isSuperAdmin ? userId : null),
         plan: plan,
         status: isSuperAdmin ? 'active' : (subRes.data?.status || 'active'),
-        expires_at: isSuperAdmin ? '2099-12-31T23:59:59Z' : (subRes.data?.expires_at || null),
+        expires_at: expiresOut,
         foto_url: profileRes.data?.foto_url || null
       });
     } catch (error: any) {

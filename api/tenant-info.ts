@@ -61,7 +61,26 @@ function consoleAdminEmailAllowlist(): string[] {
     .filter(Boolean);
 }
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
-// Slugs de plano alinhados ao app: axe, oro, premium, vita, cortesia (sem import de src)
+// Slugs de plano alinhados ao app: premium, vita, cortesia (sem import de src)
+
+/**
+ * Normaliza slug do plano gravado no banco. Inline para não importar /src no bundle da Vercel.
+ * Espelha src/constants/plans.ts → canonicalPlanSlug, mas restrito aos slugs ativos.
+ */
+function canonicalPlanSlug(plan: string | undefined | null): string {
+  if (!plan) return "premium";
+  const stripped = String(plan).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const p = stripped.toLowerCase().trim().replace(/\s+/g, " ");
+  const compact = p.replace(/[\s_-]/g, "");
+  if (p === "vita" || p === "plano vita" || compact === "planovita") return "vita";
+  if (p === "cortesia" || compact === "cortesia") return "cortesia";
+  if (p === "premium" || compact === "premium") return "premium";
+  // Planos legados (axe/oro/free) caem em premium para manter acesso.
+  return "premium";
+}
+function isLifetimePlanSlug(slug: string): boolean {
+  return slug === "vita" || slug === "cortesia";
+}
 
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL ||
@@ -167,6 +186,7 @@ export default async function handler(req: { method?: string; query?: Record<str
         : { data: null, error: null };
       if (leaderSub.error) throw leaderSub.error;
 
+      const filhoPlanSlug = canonicalPlanSlug(leaderSub.data?.plan);
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
         cargo: null,
@@ -174,7 +194,7 @@ export default async function handler(req: { method?: string; query?: Record<str
         is_admin_global: false,
         tenant_id:
           leaderProfile.data?.tenant_id || linkedChild.tenant_id || leaderProfile.data?.id || leaderRef || userId,
-        plan: (leaderSub.data?.plan || "premium").toLowerCase().trim(),
+        plan: filhoPlanSlug,
         status: "active",
         expires_at: "2099-12-31T23:59:59Z",
         foto_url: leaderProfile.data?.foto_url || null,
@@ -283,11 +303,22 @@ export default async function handler(req: { method?: string; query?: Record<str
       }
     }
 
-    let plan = (subRes.data?.plan || "premium").toLowerCase().trim();
+    let plan = canonicalPlanSlug(subRes.data?.plan);
     if (isSuperAdmin) plan = "premium";
+
+    const lifetime = isLifetimePlanSlug(plan);
 
     const roleOut = isSuperAdmin ? "admin" : profileRes.data?.role || (profileRes.data ? "admin" : null);
     const cargoOut = roleOut === "filho" ? null : profileRes.data?.cargo?.trim() || null;
+
+    // Para vitalício/cortesia: front trata expires_at=null como "sem expiração" via isLifetime.
+    // Para super admin: data distante (acesso permanente).
+    // Demais: usa expires_at do banco (ou null se ausente).
+    const expiresOut = isSuperAdmin
+      ? "2099-12-31T23:59:59Z"
+      : lifetime
+      ? null
+      : subRes.data?.expires_at || null;
 
     return res.json({
       nome_terreiro: profileRes.data?.nome_terreiro || null,
@@ -297,7 +328,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       tenant_id: profileRes.data?.tenant_id || profileRes.data?.id || (isSuperAdmin ? userId : null),
       plan: plan,
       status: isSuperAdmin ? "active" : subRes.data?.status || null,
-      expires_at: isSuperAdmin ? "2099-12-31T23:59:59Z" : subRes.data?.expires_at || null,
+      expires_at: expiresOut,
       foto_url: profileRes.data?.foto_url || null,
     });
   } catch (error: any) {

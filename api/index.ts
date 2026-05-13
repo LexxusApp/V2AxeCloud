@@ -2412,21 +2412,33 @@ async function startServer() {
 
       // 3. Update Profile and Subscription
       if (plan && plan !== 'free') {
-        const expiresAt = usesDistantSubscriptionExpiry(plan)
-          ? '2099-12-31T23:59:59Z'
+        const planSlug = String(plan).toLowerCase().trim();
+        const isLifetime = planSlug === 'vita' || planSlug === 'cortesia';
+        // Vitalício / cortesia: SEM expiração (expires_at = null). Premium: +30 dias.
+        const expiresAt: string | null = isLifetime
+          ? null
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        
+
+        console.log(
+          `[ADMIN][create-tenant] plan="${planSlug}" lifetime=${isLifetime} expires_at=${expiresAt ?? 'null'} user=${targetUser.id}`
+        );
+
         const { error: subError } = await supabaseAdmin
           .from('subscriptions')
-          .upsert({ 
+          .upsert({
             id: targetUser.id,
-            plan: plan.toLowerCase(),
+            plan: planSlug,
             status: 'active',
             expires_at: expiresAt,
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
-        
-        if (subError) console.error("Error updating subscription plan:", subError);
+
+        if (subError) {
+          console.error("[ADMIN][create-tenant] subscription upsert FAILED:", subError);
+          return res.status(500).json({
+            error: `Falha ao gravar assinatura (${planSlug}): ${subError.message || subError}`,
+          });
+        }
       }
 
       // Update profile with extra info
