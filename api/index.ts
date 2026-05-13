@@ -1131,14 +1131,12 @@ async function ensureSubscriptionForMural(zeladorId: string, logicalTenant: stri
   const { data: row } = await supabaseAdmin.from('subscriptions').select('id').eq('id', zeladorId).maybeSingle();
   if (row) return;
   const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  const now = new Date().toISOString();
   let payload: Record<string, unknown> = {
     id: zeladorId,
     tenant_id: logicalTenant,
     plan: 'premium',
     status: 'active',
     expires_at: expires,
-    updated_at: now,
   };
   let { error } = await supabaseAdmin.from('subscriptions').upsert(payload, { onConflict: 'id' });
   if (error && isMissingColumnErr(error, 'tenant_id')) {
@@ -2429,8 +2427,7 @@ async function startServer() {
             id: targetUser.id,
             plan: planSlug,
             status: 'active',
-            expires_at: expiresAt,
-            updated_at: new Date().toISOString()
+            expires_at: expiresAt
           }, { onConflict: 'id' });
 
         if (subError) {
@@ -2821,16 +2818,20 @@ async function startServer() {
         case 'delete':
           await supabaseAdmin.from('perfil_lider').update({ deleted_at: new Date().toISOString() }).eq('id', targetUserId);
           break;
-        case 'change-plan':
+        case 'change-plan': {
           if (!newPlan) return res.status(400).json({ error: "Novo plano é obrigatório" });
-          // Atualiza na tabela subscriptions
-          await supabaseAdmin.from('subscriptions').upsert({ 
-            id: targetUserId, 
-            plan: newPlan,
+          const newPlanSlug = String(newPlan).toLowerCase().trim();
+          const lifetimeChange = newPlanSlug === 'vita' || newPlanSlug === 'cortesia';
+          // Vitalício/cortesia: zera expires_at; outros planos mantêm o que estiver no banco.
+          const changePayload: Record<string, unknown> = {
+            id: targetUserId,
+            plan: newPlanSlug,
             status: 'active',
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' });
+          };
+          if (lifetimeChange) changePayload.expires_at = null;
+          await supabaseAdmin.from('subscriptions').upsert(changePayload, { onConflict: 'id' });
           break;
+        }
         case 'renew': {
           const { amount, unit } = req.body as { amount?: string; unit?: string };
           if (!amount || !unit) {
@@ -2856,7 +2857,6 @@ async function startServer() {
             id: targetUserId,
             expires_at: baseDate.toISOString(),
             status: 'active',
-            updated_at: new Date().toISOString(),
           }, { onConflict: 'id' });
           break;
         }
@@ -2866,8 +2866,7 @@ async function startServer() {
               id: targetUserId,
               plan: "vita",
               status: "active",
-              expires_at: "2099-12-31T23:59:59.000Z",
-              updated_at: new Date().toISOString(),
+              expires_at: null,
             },
             { onConflict: "id" }
           );
@@ -2916,7 +2915,6 @@ async function startServer() {
           tenant_id: user.id, 
           plan: plan,
           status: 'active',
-          updated_at: new Date().toISOString()
         }, { onConflict: 'tenant_id' });
 
       if (updateError) throw updateError;
@@ -3915,7 +3913,6 @@ async function startServer() {
           .update({
             plan: planToSet,
             status: 'active',
-            updated_at: new Date().toISOString(),
             // Adicionar 30 dias de expiração se não for vitalício
             expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           })

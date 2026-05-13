@@ -1730,14 +1730,12 @@ async function startServer() {
     const { data: row } = await supabaseAdmin.from('subscriptions').select('id').eq('id', zeladorId).maybeSingle();
     if (row) return;
     const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-    const now = new Date().toISOString();
     let payload: Record<string, unknown> = {
       id: zeladorId,
       tenant_id: logicalTenant,
       plan: "premium",
       status: 'active',
       expires_at: expires,
-      updated_at: now,
     };
     let { error } = await supabaseAdmin.from('subscriptions').upsert(payload, { onConflict: 'id' });
     if (error && isMissingColumnError(error, 'tenant_id')) {
@@ -2916,7 +2914,6 @@ async function startServer() {
         plan: plan.toLowerCase(),
         status: 'active',
         expires_at: expiresAt,
-        updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
 
       // 3. Setup Profile
@@ -3028,23 +3025,26 @@ async function startServer() {
             status: 'active'
           }, { onConflict: 'id' });
           break;
-        case 'change-plan':
+        case 'change-plan': {
           if (!newPlan) return res.status(400).json({ error: "Novo plano é obrigatório" });
-          // Atualiza na tabela subscriptions
-          await supabaseAdmin.from('subscriptions').upsert({ 
-            id: targetUserId, 
-            plan: newPlan,
-            status: 'active'
-          }, { onConflict: 'id' });
+          const newPlanSlug = String(newPlan).toLowerCase().trim();
+          const lifetimeChange = newPlanSlug === 'vita' || newPlanSlug === 'cortesia';
+          const changePayload: Record<string, unknown> = {
+            id: targetUserId,
+            plan: newPlanSlug,
+            status: 'active',
+          };
+          if (lifetimeChange) changePayload.expires_at = null;
+          await supabaseAdmin.from('subscriptions').upsert(changePayload, { onConflict: 'id' });
           break;
+        }
         case "set-lifetime":
           await supabaseAdmin.from("subscriptions").upsert(
             {
               id: targetUserId,
               plan: "vita",
               status: "active",
-              expires_at: "2099-12-31T23:59:59.000Z",
-              updated_at: new Date().toISOString(),
+              expires_at: null,
             },
             { onConflict: "id" }
           );
@@ -4407,7 +4407,6 @@ async function startServer() {
           .update({
             plan: planToSet,
             status: 'active',
-            updated_at: new Date().toISOString(),
             // Adicionar 30 dias de expiração se não for vitalício
             expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           })
