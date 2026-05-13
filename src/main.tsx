@@ -1,6 +1,8 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
+import {Analytics} from '@vercel/analytics/react';
+import {SpeedInsights} from '@vercel/speed-insights/react';
 import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import App from './App.tsx';
@@ -58,6 +60,8 @@ createRoot(document.getElementById('root')!).render(
     <PwaInstallProvider>
       <EmergencyReloadBeacon />
       <App />
+      <Analytics />
+      <SpeedInsights />
     </PwaInstallProvider>
   </StrictMode>,
 );

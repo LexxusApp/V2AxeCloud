@@ -49,6 +49,7 @@ import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
+import { logEvent } from "./api/lib/auditLog.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
@@ -1457,6 +1458,18 @@ async function startServer() {
         console.error("[ADMIN] Welcome WhatsApp setup error:", welErr?.message || welErr);
       }
 
+      void logEvent(supabaseAdmin, {
+        eventType: "tenant.created",
+        userId: user?.id,
+        userEmail: user?.email,
+        targetType: "tenant",
+        targetId: targetUser.id,
+        tenantId: targetUser.id,
+        description: `Terreiro "${nome_terreiro}" criado para ${email} (plano ${plan || "free"}).`,
+        metadata: { email, nome_terreiro, nome_zelador, plan, welcome: welcomeStatus },
+        req,
+      });
+
       res.json({ 
         success: true, 
         user: {
@@ -1502,16 +1515,38 @@ async function startServer() {
       );
 
       if (!child) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: childId,
+          description: "Tentativa de login: filho de santo não encontrado com este ID.",
+          req,
+        });
         return res.status(404).json({ error: "Filho de santo não encontrado com este ID." });
       }
 
       if (!child.cpf) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: String(child.id),
+          description: `Login negado: filho ${child.nome} sem CPF cadastrado.`,
+          req,
+        });
         return res.status(400).json({ error: "Este filho de santo não possui CPF cadastrado." });
       }
 
       // 2. Valida o prefixo do CPF
       const cleanCpf = child.cpf.replace(/\D/g, '');
       if (!cleanCpf.startsWith(cpfPrefix)) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: String(child.id),
+          description: `Login do filho "${child.nome}" recusado: CPF incorreto.`,
+          metadata: { cpfPrefix },
+          req,
+        });
         return res.status(401).json({ error: "CPF incorreto." });
       }
 
@@ -1558,6 +1593,15 @@ async function startServer() {
           await supabaseAdmin.from('filhos_de_santo').update({ user_id: authUser.id }).eq('id', child.id);
         }
 
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login",
+          userId: authUser.id,
+          userEmail: fakeEmail,
+          targetType: "filho",
+          targetId: String(child.id),
+          description: `Filho "${child.nome}" entrou no sistema.`,
+          req,
+        });
         return res.json({ email: fakeEmail, password: generatedPassword });
       } else {
         // 5. Cria novo usuário
@@ -1577,6 +1621,15 @@ async function startServer() {
              if (found) {
                 await supabaseAdmin.auth.admin.updateUserById(found.id, { password: generatedPassword });
                 await supabaseAdmin.from('filhos_de_santo').update({ user_id: found.id }).eq('id', child.id);
+                void logEvent(supabaseAdmin, {
+                  eventType: "filho.login",
+                  userId: found.id,
+                  userEmail: fakeEmail,
+                  targetType: "filho",
+                  targetId: String(child.id),
+                  description: `Filho "${child.nome}" entrou no sistema (recuperação de vínculo).`,
+                  req,
+                });
                 return res.json({ email: fakeEmail, password: generatedPassword });
              }
           }
@@ -1584,6 +1637,15 @@ async function startServer() {
         }
 
         await supabaseAdmin.from('filhos_de_santo').update({ user_id: newUser.user.id }).eq('id', child.id);
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login",
+          userId: newUser.user.id,
+          userEmail: fakeEmail,
+          targetType: "filho",
+          targetId: String(child.id),
+          description: `Filho "${child.nome}" entrou no sistema (primeira vez, shadow user criado).`,
+          req,
+        });
         return res.json({ email: fakeEmail, password: generatedPassword });
       }
 
@@ -2826,17 +2888,24 @@ async function startServer() {
       // 2. Fetch Subscriptions
       const { data: subs, error: sError } = await supabaseAdmin
         .from('subscriptions')
-        .select('id, plan, expires_at');
+        .select('id, plan, expires_at, status');
 
       if (sError) throw sError;
 
-      // 3. Filhos: tenant_id pode ser o UUID lógico do terreiro; lider_id costuma ser perfil_lider.id
+      // 3. Filhos: precisamos do user_id também para filtrar shadow filhos (auto-perfis criados pelo tenant-info).
       const { data: childrenRaw, error: cError } = await supabaseAdmin
         .from('filhos_de_santo')
-        .select('tenant_id, lider_id');
+        .select('tenant_id, lider_id, user_id');
 
       if (cError) throw cError;
-      const childrenList = (childrenRaw || []) as { tenant_id?: string | null; lider_id?: string | null }[];
+      const childrenList = (childrenRaw || []) as {
+        tenant_id?: string | null;
+        lider_id?: string | null;
+        user_id?: string | null;
+      }[];
+      const childUserIdSet = new Set<string>(
+        childrenList.map((c) => String(c.user_id || "")).filter(Boolean)
+      );
 
       // 4. Fetch Global Settings
       const { data: settings } = await supabaseAdmin
@@ -2847,14 +2916,26 @@ async function startServer() {
 
       const plans = normalizePlansCatalog(settings?.data);
 
-      const augmentedProfiles = profiles?.map((p: { id: string; tenant_id?: string | null }) => {
+      const isShadowFilhoEmail = (email?: string | null) =>
+        typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
+
+      const realTenants =
+        profiles?.filter((p: { id: string; email?: string | null }) => {
+          if (childUserIdSet.has(String(p.id))) return false;
+          if (isShadowFilhoEmail(p.email)) return false;
+          return true;
+        }) || [];
+
+      const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null }) => {
         const sub = subs?.find((s: any) => s.id === p.id);
         return {
           ...p,
           totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
           plan: sub?.plan || "premium",
+          expires_at: sub?.expires_at ?? null,
+          subscription_status: (sub as any)?.status ?? null,
         };
-      }) || [];
+      });
 
       res.json({ profiles: augmentedProfiles, subs, plans });
     } catch (error: any) {
@@ -2958,6 +3039,17 @@ async function startServer() {
 
       if (saveError) throw saveError;
 
+      void logEvent(supabaseAdmin, {
+        eventType: "plans.updated",
+        userId: user?.id,
+        userEmail: user?.email,
+        targetType: "global_settings",
+        targetId: "plans",
+        description: `Admin actualizou o catálogo global de planos (${plans.length} planos).`,
+        metadata: { count: plans.length, slugs: plans.map((p: any) => p.slug || p.id).slice(0, 20) },
+        req,
+      });
+
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar planos:", error);
@@ -2987,44 +3079,53 @@ async function startServer() {
 
       console.log(`[ADMIN COMMAND] Action: ${action} on User: ${targetUserId}`);
 
+      let logDescription = "";
+      let logMetadata: Record<string, unknown> = {};
+
       switch (action) {
         case 'block':
           await supabaseAdmin.from('perfil_lider').update({ is_blocked: true }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} bloqueado.`;
           break;
         case 'unblock':
           await supabaseAdmin.from('perfil_lider').update({ is_blocked: false }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} desbloqueado.`;
           break;
         case 'delete':
           await supabaseAdmin.from('perfil_lider').update({ deleted_at: new Date().toISOString() }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} marcado como excluído (soft delete).`;
           break;
-        case 'renew':
+        case 'renew': {
           const { amount, unit } = req.body;
           if (!amount || !unit) return res.status(400).json({ error: "Quantidade e unidade são obrigatórios para renovação" });
-          
+
           // Buscar expiração atual
           const { data: currentSub } = await supabaseAdmin
             .from('subscriptions')
             .select('expires_at')
             .eq('id', targetUserId)
             .single();
-            
+
           let baseDate = new Date();
           if (currentSub?.expires_at && new Date(currentSub.expires_at) > new Date()) {
             baseDate = new Date(currentSub.expires_at);
           }
-          
+
           if (unit === 'days') {
             baseDate.setDate(baseDate.getDate() + parseInt(amount));
           } else if (unit === 'months') {
             baseDate.setMonth(baseDate.getMonth() + parseInt(amount));
           }
-          
+
           await supabaseAdmin.from('subscriptions').upsert({
             id: targetUserId,
             expires_at: baseDate.toISOString(),
             status: 'active'
           }, { onConflict: 'id' });
+          logDescription = `Assinatura renovada (+${amount} ${unit}) até ${baseDate.toISOString().split("T")[0]}.`;
+          logMetadata = { amount, unit, newExpiresAt: baseDate.toISOString() };
           break;
+        }
         case 'change-plan': {
           if (!newPlan) return res.status(400).json({ error: "Novo plano é obrigatório" });
           const newPlanSlug = String(newPlan).toLowerCase().trim();
@@ -3036,6 +3137,8 @@ async function startServer() {
           };
           if (lifetimeChange) changePayload.expires_at = null;
           await supabaseAdmin.from('subscriptions').upsert(changePayload, { onConflict: 'id' });
+          logDescription = `Plano do terreiro alterado para "${newPlanSlug}".`;
+          logMetadata = { newPlan: newPlanSlug, lifetime: lifetimeChange };
           break;
         }
         case "set-lifetime":
@@ -3048,10 +3151,23 @@ async function startServer() {
             },
             { onConflict: "id" }
           );
+          logDescription = "Terreiro marcado como Vitalício (sem expiração).";
           break;
         default:
           return res.status(400).json({ error: "Ação inválida" });
       }
+
+      void logEvent(supabaseAdmin, {
+        eventType: `tenant.${action}`,
+        userId: user?.id,
+        userEmail: user?.email,
+        targetType: "tenant",
+        targetId: targetUserId,
+        tenantId: targetUserId,
+        description: logDescription,
+        metadata: logMetadata,
+        req,
+      });
 
       res.json({ success: true, message: "Comando enviado com sucesso" });
     } catch (error: any) {

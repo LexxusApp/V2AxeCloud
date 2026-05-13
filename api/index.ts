@@ -48,6 +48,7 @@ import { normalizePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./lib/fetchFinanceiroRowsForFilho.js";
+import { logEvent } from "./lib/auditLog.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2483,6 +2484,24 @@ async function startServer() {
         console.error("[ADMIN] Welcome WhatsApp setup error:", welErr?.message || welErr);
       }
 
+      void logEvent(supabaseAdmin, {
+        eventType: "tenant.created",
+        userId: user?.id,
+        userEmail: user?.email,
+        targetType: "tenant",
+        targetId: targetUser.id,
+        tenantId: targetUser.id,
+        description: `Terreiro "${nome_terreiro}" criado para ${email} (plano ${plan || "free"}).`,
+        metadata: {
+          email,
+          nome_terreiro,
+          nome_zelador,
+          plan,
+          welcome: welcomeStatus,
+        },
+        req,
+      });
+
       res.json({ 
         success: true, 
         user: {
@@ -2511,21 +2530,45 @@ async function startServer() {
       // 1. Find the child
       const { data: child, error: childError } = await supabaseAdmin
         .from('filhos_de_santo')
-        .select('id, cpf, user_id, nome')
+        .select('id, cpf, user_id, nome, tenant_id, lider_id')
         .eq('id', childId)
         .maybeSingle();
 
       if (childError || !child) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: childId,
+          description: "Tentativa de login: filho de santo não encontrado.",
+          req,
+        });
         return res.status(404).json({ error: "Filho de santo não encontrado." });
       }
 
       if (!child.cpf) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: String(child.id),
+          tenantId: (child as any).tenant_id || (child as any).lider_id || null,
+          description: `Login negado: filho ${child.nome} sem CPF cadastrado.`,
+          req,
+        });
         return res.status(400).json({ error: "Este filho de santo não possui CPF cadastrado. Peça ao zelador para atualizar o cadastro." });
       }
 
       // 2. Verify CPF prefix
       const cleanCpf = child.cpf.replace(/\D/g, '');
       if (!cleanCpf.startsWith(cpfPrefix)) {
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login-failed",
+          targetType: "filho",
+          targetId: String(child.id),
+          tenantId: (child as any).tenant_id || (child as any).lider_id || null,
+          description: `Login do filho "${child.nome}" recusado: CPF incorreto.`,
+          metadata: { cpfPrefix },
+          req,
+        });
         return res.status(401).json({ error: "CPF incorreto." });
       }
 
@@ -2558,6 +2601,16 @@ async function startServer() {
 
         // Ensure password is correct
         await supabaseAdmin.auth.admin.updateUserById(child.user_id, { password: generatedPassword });
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login",
+          userId: child.user_id,
+          userEmail: fakeEmail,
+          targetType: "filho",
+          targetId: String(child.id),
+          tenantId: (child as any).tenant_id || (child as any).lider_id || null,
+          description: `Filho "${child.nome}" entrou no sistema.`,
+          req,
+        });
         return res.json({ email: fakeEmail, password: generatedPassword });
       } else {
         // Create new shadow user
@@ -2571,11 +2624,28 @@ async function startServer() {
         if (createError) throw createError;
 
         await supabaseAdmin.from('filhos_de_santo').update({ user_id: newUser.user.id }).eq('id', childId);
+        void logEvent(supabaseAdmin, {
+          eventType: "filho.login",
+          userId: newUser.user.id,
+          userEmail: fakeEmail,
+          targetType: "filho",
+          targetId: String(child.id),
+          tenantId: (child as any).tenant_id || (child as any).lider_id || null,
+          description: `Filho "${child.nome}" entrou no sistema (primeira vez, shadow user criado).`,
+          req,
+        });
         return res.json({ email: fakeEmail, password: generatedPassword });
       }
 
     } catch (error: any) {
       console.error("Filho Login Error:", error);
+      void logEvent(supabaseAdmin, {
+        eventType: "filho.login-error",
+        targetType: "filho",
+        targetId: childId,
+        description: `Erro interno ao tentar login do filho: ${String(error?.message || error).slice(0, 200)}`,
+        req,
+      });
       res.status(500).json({ error: error.message || "Erro interno do servidor." });
     }
   });
@@ -2735,11 +2805,19 @@ async function startServer() {
 
       if (sError) throw sError;
 
+      // 2b. Fetch filhos_de_santo para filtrar "shadow filhos" (auto-perfis criados pelo tenant-info para usuários filho).
       const { data: childrenRaw, error: cError } = await supabaseAdmin
         .from("filhos_de_santo")
-        .select("tenant_id, lider_id");
+        .select("tenant_id, lider_id, user_id");
       if (cError) throw cError;
-      const childrenList = (childrenRaw || []) as { tenant_id?: string | null; lider_id?: string | null }[];
+      const childrenList = (childrenRaw || []) as {
+        tenant_id?: string | null;
+        lider_id?: string | null;
+        user_id?: string | null;
+      }[];
+      const childUserIdSet = new Set<string>(
+        childrenList.map((c) => String(c.user_id || "")).filter(Boolean)
+      );
 
       // 3. Fetch Global Settings
       const { data: settings } = await supabaseAdmin
@@ -2750,17 +2828,26 @@ async function startServer() {
 
       const plans = normalizePlansCatalog(settings?.data);
 
-      const augmentedProfiles =
-        profiles?.map((p: { id: string; tenant_id?: string | null }) => {
-          const sub = subs?.find((s: any) => s.id === p.id);
-          return {
-            ...p,
-            totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
-            plan: sub?.plan || "premium",
-            expires_at: sub?.expires_at ?? null,
-            subscription_status: sub?.status ?? null,
-          };
+      const isShadowFilhoEmail = (email?: string | null) =>
+        typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
+
+      const realTenants =
+        profiles?.filter((p: { id: string; email?: string | null }) => {
+          if (childUserIdSet.has(String(p.id))) return false; // está cadastrado como filho de santo
+          if (isShadowFilhoEmail(p.email)) return false; // email interno de login de filho
+          return true;
         }) || [];
+
+      const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null }) => {
+        const sub = subs?.find((s: any) => s.id === p.id);
+        return {
+          ...p,
+          totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
+          plan: sub?.plan || "premium",
+          expires_at: sub?.expires_at ?? null,
+          subscription_status: sub?.status ?? null,
+        };
+      });
 
       res.json({ profiles: augmentedProfiles, subs, plans });
     } catch (error: any) {
@@ -2808,21 +2895,26 @@ async function startServer() {
 
       console.log(`[ADMIN COMMAND] Action: ${action} on User: ${targetUserId}`);
 
+      let logDescription = "";
+      let logMetadata: Record<string, unknown> = {};
+
       switch (action) {
         case 'block':
           await supabaseAdmin.from('perfil_lider').update({ is_blocked: true }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} bloqueado.`;
           break;
         case 'unblock':
           await supabaseAdmin.from('perfil_lider').update({ is_blocked: false }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} desbloqueado.`;
           break;
         case 'delete':
           await supabaseAdmin.from('perfil_lider').update({ deleted_at: new Date().toISOString() }).eq('id', targetUserId);
+          logDescription = `Terreiro ${targetUserId} marcado como excluído (soft delete).`;
           break;
         case 'change-plan': {
           if (!newPlan) return res.status(400).json({ error: "Novo plano é obrigatório" });
           const newPlanSlug = String(newPlan).toLowerCase().trim();
           const lifetimeChange = newPlanSlug === 'vita' || newPlanSlug === 'cortesia';
-          // Vitalício/cortesia: zera expires_at; outros planos mantêm o que estiver no banco.
           const changePayload: Record<string, unknown> = {
             id: targetUserId,
             plan: newPlanSlug,
@@ -2830,6 +2922,8 @@ async function startServer() {
           };
           if (lifetimeChange) changePayload.expires_at = null;
           await supabaseAdmin.from('subscriptions').upsert(changePayload, { onConflict: 'id' });
+          logDescription = `Plano do terreiro alterado para "${newPlanSlug}".`;
+          logMetadata = { newPlan: newPlanSlug, lifetime: lifetimeChange };
           break;
         }
         case 'renew': {
@@ -2858,6 +2952,8 @@ async function startServer() {
             expires_at: baseDate.toISOString(),
             status: 'active',
           }, { onConflict: 'id' });
+          logDescription = `Assinatura renovada (+${amount} ${unit}) até ${baseDate.toISOString().split("T")[0]}.`;
+          logMetadata = { amount, unit, newExpiresAt: baseDate.toISOString() };
           break;
         }
         case "set-lifetime":
@@ -2870,10 +2966,23 @@ async function startServer() {
             },
             { onConflict: "id" }
           );
+          logDescription = "Terreiro marcado como Vitalício (sem expiração).";
           break;
         default:
           return res.status(400).json({ error: "Ação inválida" });
       }
+
+      void logEvent(supabaseAdmin, {
+        eventType: `tenant.${action}`,
+        userId: user?.id,
+        userEmail: user?.email,
+        targetType: "tenant",
+        targetId: targetUserId,
+        tenantId: targetUserId,
+        description: logDescription,
+        metadata: logMetadata,
+        req,
+      });
 
       res.json({ success: true, message: "Comando enviado com sucesso" });
     } catch (error: any) {

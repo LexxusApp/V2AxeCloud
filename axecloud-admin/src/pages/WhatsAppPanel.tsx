@@ -163,7 +163,7 @@ export function WhatsAppPanel() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <header className="overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-br from-emerald-950/60 via-[#0a1d18]/80 to-[#080c14]/90 p-6 shadow-xl ring-1 ring-emerald-400/10">
+      <header className="overflow-hidden rounded-md border border-emerald-400/20 bg-gradient-to-br from-emerald-950/60 via-[#0a1d18]/80 to-[#080c14]/90 p-6 shadow-xl ring-1 ring-emerald-400/10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300/80">
@@ -185,7 +185,7 @@ export function WhatsAppPanel() {
       {feedback && (
         <div
           className={cn(
-            "rounded-2xl border px-4 py-3 text-sm shadow",
+            "rounded-md border px-4 py-3 text-sm shadow",
             feedback.kind === "ok"
               ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
               : "border-rose-500/35 bg-rose-950/35 text-rose-100"
@@ -196,7 +196,7 @@ export function WhatsAppPanel() {
       )}
 
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-4 rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+        <div className="space-y-4 rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
             <PhoneCall className="h-4 w-4 text-emerald-300" />
             Número do aparelho
@@ -212,13 +212,13 @@ export function WhatsAppPanel() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="(11) 91234-5678"
               disabled={connected || busy === "connect"}
-              className="flex-1 rounded-xl border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/30 placeholder:text-slate-600 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/30 placeholder:text-slate-600 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => void connect()}
               disabled={connected || busy === "connect"}
-              className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {busy === "connect" ? "A gerar…" : "Gerar código"}
             </button>
@@ -248,7 +248,7 @@ export function WhatsAppPanel() {
               type="button"
               onClick={() => void refreshStatus()}
               disabled={busy === "status"}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07] disabled:opacity-60"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", busy === "status" && "animate-spin")} />
               Atualizar estado
@@ -258,7 +258,7 @@ export function WhatsAppPanel() {
                 type="button"
                 onClick={() => void logout()}
                 disabled={busy === "logout"}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Desconectar
@@ -276,7 +276,7 @@ export function WhatsAppPanel() {
       </section>
 
       {connected && (
-        <section className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+        <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
             <Send className="h-4 w-4 text-cyan-300" />
             Enviar mensagem de teste
@@ -291,13 +291,13 @@ export function WhatsAppPanel() {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="(11) 99999-9999"
-              className="flex-1 rounded-xl border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/30 focus:ring-2"
+              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/30 focus:ring-2"
             />
             <button
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              className="rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
             >
               {busy === "test" ? "A enviar…" : "Enviar"}
             </button>
@@ -417,14 +417,14 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
 
   if (!cfg) {
     return (
-      <section className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 text-sm text-slate-400 shadow-xl ring-1 ring-white/[0.04]">
+      <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 text-sm text-slate-400 shadow-xl ring-1 ring-white/[0.04]">
         A carregar configuração da mensagem de boas-vindas…
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+    <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
@@ -435,7 +435,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
             Quando um novo terreiro é criado no console, esta mensagem é enviada pelo WhatsApp do administrador para o número do zelador, com login, senha e URL de acesso.
           </p>
         </div>
-        <label className="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-200">
+        <label className="inline-flex shrink-0 items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-200">
           <span className="uppercase tracking-widest text-[10px] text-slate-400">Disparo</span>
           <button
             type="button"
@@ -459,7 +459,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
       {feedback && (
         <div
           className={cn(
-            "mt-4 rounded-xl border px-3 py-2 text-xs",
+            "mt-4 rounded-md border px-3 py-2 text-xs",
             feedback.kind === "ok"
               ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
               : "border-rose-500/35 bg-rose-950/35 text-rose-100"
@@ -476,7 +476,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
             value={cfg.loginUrl}
             onChange={(e) => setCfg({ ...cfg, loginUrl: e.target.value })}
             placeholder="https://axecloud-app.vercel.app"
-            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
           />
         </div>
         <div>
@@ -485,7 +485,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
             value={cfg.signature}
             onChange={(e) => setCfg({ ...cfg, signature: e.target.value })}
             placeholder="Equipe AxéCloud"
-            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
           />
         </div>
       </div>
@@ -512,7 +512,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           rows={9}
           value={cfg.template}
           onChange={(e) => setCfg({ ...cfg, template: e.target.value })}
-          className="mt-2 w-full resize-y rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-3 font-mono-data text-xs leading-relaxed text-white outline-none ring-emerald-400/25 focus:ring-2"
+          className="mt-2 w-full resize-y rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-3 font-mono-data text-xs leading-relaxed text-white outline-none ring-emerald-400/25 focus:ring-2"
         />
         <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
           Variáveis disponíveis: <code className="font-mono-data text-emerald-200">{`{{nome_terreiro}}`}</code>,{" "}
@@ -529,20 +529,20 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           type="button"
           onClick={() => void save()}
           disabled={busy === "save"}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:opacity-60"
         >
           <Save className="h-4 w-4" /> {busy === "save" ? "A guardar…" : "Guardar"}
         </button>
         <button
           type="button"
           onClick={resetToDefault}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/[0.07]"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/[0.07]"
         >
           <RotateCcw className="h-3.5 w-3.5" /> Restaurar padrão
         </button>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#080c14]/70 p-4">
+      <div className="mt-6 rounded-md border border-white/[0.06] bg-[#080c14]/70 p-4">
         <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">
           Enviar pré-visualização (teste)
         </h4>
@@ -558,13 +558,13 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="(11) 91234-5678"
-              className="flex-1 rounded-xl border border-white/[0.1] bg-[#06090f] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/25 focus:ring-2"
+              className="flex-1 rounded-md border border-white/[0.1] bg-[#06090f] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/25 focus:ring-2"
             />
             <button
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
               {busy === "test" ? "A enviar…" : "Enviar teste"}
@@ -620,7 +620,7 @@ function PairingCard({
 }) {
   const grouped = code?.split("-") || [];
   return (
-    <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-emerald-400/15 bg-[#06120f]/95 p-6 shadow-xl ring-1 ring-emerald-400/10">
+    <div className="relative flex flex-col gap-4 overflow-hidden rounded-md border border-emerald-400/15 bg-[#06120f]/95 p-6 shadow-xl ring-1 ring-emerald-400/10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500/40 opacity-90" />
       <h3 className="flex items-center gap-2 text-sm font-bold text-white">
         <Smartphone className="h-4 w-4 text-emerald-300" />
@@ -628,17 +628,17 @@ function PairingCard({
       </h3>
 
       {connected ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl bg-emerald-500/10 px-6 py-10 text-center ring-1 ring-emerald-400/25">
+        <div className="flex flex-col items-center gap-3 rounded-md bg-emerald-500/10 px-6 py-10 text-center ring-1 ring-emerald-400/25">
           <CheckCircle2 className="h-10 w-10 text-emerald-300" />
           <p className="text-sm font-semibold text-emerald-100">WhatsApp do console conectado.</p>
           {phone && <p className="font-mono-data text-xs text-emerald-200/80">{maskPhone(phone) || `+${phone}`}</p>}
         </div>
       ) : code ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-emerald-500/[0.04] px-4 py-8 ring-1 ring-emerald-400/15">
+        <div className="flex flex-col items-center gap-4 rounded-md bg-emerald-500/[0.04] px-4 py-8 ring-1 ring-emerald-400/15">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {(grouped.length ? grouped : [code]).map((seg, idx, arr) => (
               <span key={`${seg}-${idx}`} className="flex items-center gap-2">
-                <span className="rounded-xl border border-emerald-400/30 bg-[#03100c] px-4 py-3 font-mono-data text-2xl font-black tracking-[0.4em] text-emerald-100 shadow-inner shadow-black/40">
+                <span className="rounded-md border border-emerald-400/30 bg-[#03100c] px-4 py-3 font-mono-data text-2xl font-black tracking-[0.4em] text-emerald-100 shadow-inner shadow-black/40">
                   {seg}
                 </span>
                 {idx < arr.length - 1 && <span className="text-emerald-300/60">—</span>}
@@ -652,21 +652,21 @@ function PairingCard({
               onClick={() => {
                 void navigator.clipboard?.writeText(code.replace(/-/g, ""));
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-100 hover:bg-emerald-500/25"
+              className="inline-flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-100 hover:bg-emerald-500/25"
             >
               <Copy className="h-3.5 w-3.5" /> Copiar
             </button>
             <button
               type="button"
               onClick={onRefresh}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07]"
+              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07]"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Verificar conexão
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-white/10 px-6 py-10 text-center">
           <Smartphone className="h-9 w-9 text-slate-600" />
           <p className="text-sm font-medium text-slate-300">Nenhum código gerado.</p>
           <p className="max-w-xs text-xs text-slate-500">

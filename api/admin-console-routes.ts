@@ -15,6 +15,7 @@ import {
   saveWelcomeMessageConfig,
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
+import { logEvent } from "./lib/auditLog.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -58,7 +59,28 @@ async function requireConsoleAdmin(
   }
   const ok = await isConsoleGlobalAdmin(deps.supabaseAdmin, user);
   if (!ok) {
-    res.status(403).json({ error: "Acesso negado ao console administrativo" });
+    const allow = (process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const userEmail = String(user.email || "").trim().toLowerCase();
+    console.warn(
+      `[admin-console] ACESSO NEGADO | userId=${user.id} | userEmail="${userEmail}" | allowlist=[${allow.join(", ")}] | path=${req.path}`
+    );
+    res.status(403).json({
+      error: "Acesso negado ao console administrativo",
+      debug: {
+        userEmail,
+        allowlistCount: allow.length,
+        allowlistSample: allow.slice(0, 3),
+        hint:
+          allow.length === 0
+            ? "ADMIN_CONSOLE_EMAILS está vazio no .env do servidor. Pare o npm run dev e inicie de novo após ajustar o .env."
+            : !allow.includes(userEmail)
+              ? `O email "${userEmail}" não está em ADMIN_CONSOLE_EMAILS. Adicione-o e reinicie o backend.`
+              : "O email está na allowlist mas isConsoleGlobalAdmin retornou false (cheque perfil_lider).",
+      },
+    });
     return null;
   }
   return { user };
@@ -113,24 +135,51 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
     try {
-      const { count: leadersCount, error: e1 } = await deps.supabaseAdmin
+      // 1) Perfis líder reais — exclui os auto-perfis "shadow" criados para filhos shadow.
+      const { data: leaderRows, error: e1 } = await deps.supabaseAdmin
         .from("perfil_lider")
-        .select("*", { count: "exact", head: true })
+        .select("id, email")
         .is("deleted_at", null);
       if (e1) throw e1;
 
-      const { count: filhosCount, error: e2 } = await deps.supabaseAdmin
+      // Filhos de santo: id de auth (user_id) usado pra excluir do conjunto de zeladores.
+      const { data: filhosRows, error: e2 } = await deps.supabaseAdmin
         .from("filhos_de_santo")
-        .select("*", { count: "exact", head: true });
+        .select("user_id");
       if (e2) throw e2;
+      const filhosCount = (filhosRows || []).length;
+      const childUserIdSet = new Set<string>(
+        (filhosRows || []).map((r: any) => String(r.user_id || "")).filter(Boolean)
+      );
 
-      const { data: subs, error: e3 } = await deps.supabaseAdmin.from("subscriptions").select("plan, status");
+      const isShadowFilhoEmail = (email?: string | null) =>
+        typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
+
+      const realLeaderIdSet = new Set<string>();
+      for (const p of leaderRows || []) {
+        const pid = String((p as any).id || "");
+        const pem = (p as any).email as string | null | undefined;
+        if (!pid) continue;
+        if (childUserIdSet.has(pid)) continue;
+        if (isShadowFilhoEmail(pem)) continue;
+        realLeaderIdSet.add(pid);
+      }
+      const leadersCount = realLeaderIdSet.size;
+
+      const { data: subs, error: e3 } = await deps.supabaseAdmin
+        .from("subscriptions")
+        .select("id, plan, status");
       if (e3) throw e3;
 
+      // Histograma só conta subscriptions ligadas a terreiros reais.
       const planHistogram: Record<string, number> = {};
+      let realSubscriptionsCount = 0;
       for (const row of subs || []) {
+        const subId = String((row as any).id || "");
+        if (subId && !realLeaderIdSet.has(subId)) continue;
         const p = String((row as any).plan || "unknown").toLowerCase();
         planHistogram[p] = (planHistogram[p] || 0) + 1;
+        realSubscriptionsCount++;
       }
 
       let accessLast7d = 0;
@@ -158,9 +207,9 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       }
 
       res.json({
-        leadersCount: leadersCount ?? 0,
+        leadersCount,
         filhosCount: filhosCount ?? 0,
-        subscriptionsCount: (subs || []).length,
+        subscriptionsCount: realSubscriptionsCount,
         planHistogram,
         accessLogsAvailable,
         accessEventsLast7Days: accessLast7d,
@@ -171,51 +220,285 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  /**
+   * Detalhe completo de um terreiro: perfil + assinatura + filhos + uso de R2 (storage)
+   * pelo prefixo do tenant. Usado pelo drawer do painel admin.
+   */
+  app.get("/api/admin-console/tenant/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+
+    try {
+      const [profileRes, subRes, authUser, childrenRes] = await Promise.all([
+        deps.supabaseAdmin
+          .from("perfil_lider")
+          .select("id, tenant_id, email, nome_terreiro, cargo, role, is_admin_global, is_blocked, deleted_at, foto_url, updated_at")
+          .eq("id", id)
+          .maybeSingle(),
+        deps.supabaseAdmin
+          .from("subscriptions")
+          .select("id, plan, status, expires_at")
+          .eq("id", id)
+          .maybeSingle(),
+        deps.supabaseAdmin.auth.admin.getUserById(id).catch(() => ({ data: null, error: null })),
+        deps.supabaseAdmin
+          .from("filhos_de_santo")
+          .select("id, nome, status, cargo, foto_url, data_entrada")
+          .or(`lider_id.eq.${id},tenant_id.eq.${id}`)
+          .limit(500),
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      if (subRes.error) throw subRes.error;
+      if (childrenRes.error) throw childrenRes.error;
+
+      const profile = profileRes.data;
+      const sub = subRes.data;
+      const authMeta = (authUser as any)?.data?.user ?? null;
+      const children = childrenRes.data || [];
+
+      // Uso de R2 pelo prefixo do tenant (apenas se R2 configurado).
+      let storage: { configured: boolean; objects?: number; bytes?: number; mb?: number; truncated?: boolean } = {
+        configured: false,
+      };
+      if (deps.r2Client && deps.r2Bucket) {
+        try {
+          let objects = 0;
+          let bytes = 0;
+          let token: string | undefined;
+          let truncated = false;
+          const prefix = `${id}/`;
+          const HARD_CAP = 5000;
+          do {
+            const out = await deps.r2Client.send(
+              new ListObjectsV2Command({
+                Bucket: deps.r2Bucket,
+                Prefix: prefix,
+                MaxKeys: 1000,
+                ContinuationToken: token,
+              })
+            );
+            for (const o of out.Contents || []) {
+              objects += 1;
+              bytes += o.Size || 0;
+              if (objects >= HARD_CAP) {
+                truncated = !!out.IsTruncated;
+                break;
+              }
+            }
+            if (objects >= HARD_CAP) break;
+            token = out.IsTruncated ? out.NextContinuationToken : undefined;
+            if (!token) break;
+          } while (true);
+          storage = {
+            configured: true,
+            objects,
+            bytes,
+            mb: Math.round((bytes / (1024 * 1024)) * 100) / 100,
+            truncated,
+          };
+        } catch (storageErr: any) {
+          console.warn("[admin-console/tenant] storage lookup:", storageErr?.message || storageErr);
+          storage = { configured: true, objects: 0, bytes: 0, mb: 0 };
+        }
+      }
+
+      res.json({
+        profile: profile
+          ? {
+              id: profile.id,
+              tenant_id: profile.tenant_id,
+              email: profile.email,
+              nome_terreiro: profile.nome_terreiro,
+              cargo: profile.cargo,
+              role: profile.role,
+              is_admin_global: profile.is_admin_global,
+              is_blocked: profile.is_blocked,
+              deleted_at: profile.deleted_at,
+              foto_url: profile.foto_url,
+              updated_at: profile.updated_at,
+            }
+          : null,
+        auth: authMeta
+          ? {
+              id: authMeta.id,
+              email: authMeta.email,
+              phone: authMeta.phone,
+              created_at: authMeta.created_at,
+              last_sign_in_at: authMeta.last_sign_in_at,
+              user_metadata: authMeta.user_metadata || {},
+            }
+          : null,
+        subscription: sub
+          ? {
+              plan: sub.plan,
+              status: sub.status,
+              expires_at: sub.expires_at,
+            }
+          : null,
+        childrenCount: children.length,
+        children: children.slice(0, 50),
+        storage,
+      });
+    } catch (e: any) {
+      console.error("[admin-console/tenant detail]", e);
+      res.status(500).json({ error: e?.message || "Erro ao buscar tenant" });
+    }
+  });
+
+  /**
+   * Regenera a senha de um terreiro. Como a senha original do Supabase Auth não pode ser
+   * recuperada (é hash), o admin pode gerar uma nova senha numérica de 8 dígitos.
+   * Útil quando o zelador perde a senha inicial.
+   */
+  app.post("/api/admin-console/tenant/:id/reset-password", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+
+    try {
+      const bytes = new Uint8Array(8);
+      try {
+        // crypto global existe no Node 18+/runtime serverless da Vercel.
+        (globalThis as any).crypto.getRandomValues(bytes);
+      } catch {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+      }
+      const newPassword = Array.from(bytes, (b) => String((b ?? 0) % 10)).join("");
+
+      const { error: updErr } = await deps.supabaseAdmin.auth.admin.updateUserById(id, {
+        password: newPassword,
+      });
+      if (updErr) throw updErr;
+
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "tenant.password-reset",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: id,
+        tenantId: id,
+        description: `Senha do terreiro ${id} redefinida pelo admin.`,
+        req,
+      });
+
+      res.json({ success: true, password: newPassword });
+    } catch (e: any) {
+      console.error("[admin-console/tenant reset-password]", e);
+      res.status(500).json({ error: e?.message || "Erro ao redefinir senha" });
+    }
+  });
+
   app.get("/api/admin-console/access-logs", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
     const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
     const offset = Math.max(0, Number(req.query.offset || 0));
+    const filterType = String(req.query.eventType || "").trim();
+    const filterTenant = String(req.query.tenantId || "").trim();
+    const filterUser = String(req.query.userId || "").trim();
+
+    const FALLBACK_COLUMNS = "id, user_id, ip, city, region, country, user_agent, created_at";
+    const FULL_COLUMNS =
+      "id, created_at, event_type, user_id, user_email, target_type, target_id, description, ip, user_agent, city, region, country, metadata, tenant_id";
+
     try {
-      let data: any[] | null = [];
+      let rows: any[] | null = [];
+      let usingFullSchema = true;
+
+      const runQuery = async (cols: string) => {
+        let q = deps.supabaseAdmin.from("access_logs").select(cols);
+        if (filterType) q = q.eq("event_type", filterType);
+        if (filterTenant) q = q.eq("tenant_id", filterTenant);
+        if (filterUser) q = q.eq("user_id", filterUser);
+        return q.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+      };
+
       try {
-        const q = await deps.supabaseAdmin
-          .from("access_logs")
-          .select("id, user_id, ip, city, region, country, user_agent, created_at")
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1);
+        const q = await runQuery(FULL_COLUMNS);
         if (q.error && isMissingOrUnknownTable(q.error, "access_logs")) {
           return res.json({
             rows: [],
             emailByUser: {},
             accessLogsAvailable: false,
-            notice: "A tabela access_logs não existe neste projecto Supabase.",
+            notice:
+              "A tabela access_logs não existe neste projecto Supabase. Aplique supabase/migrations/20260513192500_access_logs.sql.",
           });
         }
-        if (q.error) throw q.error;
-        data = q.data;
+        if (q.error) {
+          const msg = String(q.error.message || "").toLowerCase();
+          // Esquema antigo (sem event_type/description/etc.) — cai no fallback.
+          if (/column .* does not exist|could not find the .* column/.test(msg)) {
+            usingFullSchema = false;
+          } else {
+            throw q.error;
+          }
+        } else {
+          rows = q.data;
+        }
       } catch (readErr: any) {
         if (isMissingOrUnknownTable(readErr, "access_logs")) {
           return res.json({
             rows: [],
             emailByUser: {},
             accessLogsAvailable: false,
-            notice: "A tabela access_logs não existe neste projecto Supabase.",
+            notice:
+              "A tabela access_logs não existe neste projecto Supabase. Aplique supabase/migrations/20260513192500_access_logs.sql.",
           });
         }
-        throw readErr;
+        const msg = String(readErr?.message || "").toLowerCase();
+        if (/column .* does not exist|could not find the .* column/.test(msg)) {
+          usingFullSchema = false;
+        } else {
+          throw readErr;
+        }
       }
 
-      const ids = [...new Set((data || []).map((r: any) => r.user_id).filter(Boolean))];
+      if (!usingFullSchema) {
+        const q = await runQuery(FALLBACK_COLUMNS);
+        if (q.error) throw q.error;
+        rows = q.data;
+      }
+
+      const ids = [...new Set((rows || []).map((r: any) => r.user_id).filter(Boolean))];
       let emailByUser: Record<string, string> = {};
       if (ids.length) {
-        const { data: profs } = await deps.supabaseAdmin.from("perfil_lider").select("id, email").in("id", ids);
+        const { data: profs } = await deps.supabaseAdmin
+          .from("perfil_lider")
+          .select("id, email")
+          .in("id", ids);
         for (const p of profs || []) {
           emailByUser[(p as any).id] = (p as any).email || "";
         }
       }
 
-      res.json({ rows: data || [], emailByUser });
+      // Lista de tipos disponíveis (para popular o filtro do front).
+      let eventTypes: string[] = [];
+      if (usingFullSchema) {
+        try {
+          const { data: distinct } = await deps.supabaseAdmin
+            .from("access_logs")
+            .select("event_type")
+            .not("event_type", "is", null)
+            .limit(1000);
+          const set = new Set<string>();
+          for (const r of distinct || []) set.add(String((r as any).event_type || ""));
+          eventTypes = [...set].filter(Boolean).sort();
+        } catch {
+          eventTypes = [];
+        }
+      }
+
+      res.json({
+        rows: rows || [],
+        emailByUser,
+        accessLogsAvailable: true,
+        schema: usingFullSchema ? "full" : "legacy",
+        eventTypes,
+      });
     } catch (e: any) {
       res.status(500).json({ error: e?.message || "Tabela access_logs indisponível ou erro ao ler." });
     }
@@ -299,6 +582,18 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         { onConflict: "id" }
       );
 
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "demo.created",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: u.id,
+        tenantId: u.id,
+        description: `Conta demo criada para ${email} (válida até ${expires.toISOString().split("T")[0]}).`,
+        metadata: { email, nome_terreiro, nome_zelador, demoDays },
+        req,
+      });
+
       res.json({
         success: true,
         user: { id: u.id, email: u.email },
@@ -344,6 +639,16 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         });
       }
       const out = await createInstanceWithPairingCode(CONSOLE_ADMIN_INSTANCE_NAME, phone);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.connect-requested",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp",
+        targetId: CONSOLE_ADMIN_INSTANCE_NAME,
+        description: `Admin solicitou pareamento do WhatsApp para ${phone}.`,
+        metadata: { phone },
+        req,
+      });
       res.json({ ...out, message: "Use o código abaixo no WhatsApp do dispositivo." });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/connect]", e);
@@ -356,6 +661,15 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     if (!ctx) return;
     try {
       await logoutEvolutionInstanceByName(CONSOLE_ADMIN_INSTANCE_NAME);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.disconnect",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp",
+        targetId: CONSOLE_ADMIN_INSTANCE_NAME,
+        description: "Admin desconectou o WhatsApp do console.",
+        req,
+      });
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/logout]", e);
@@ -385,6 +699,20 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         template: typeof body.template === "string" ? body.template : undefined,
         loginUrl: typeof body.loginUrl === "string" ? body.loginUrl : undefined,
         signature: typeof body.signature === "string" ? body.signature : undefined,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "welcome-message.updated",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global_settings",
+        targetId: "welcome_message",
+        description: "Admin actualizou a mensagem de boas-vindas do WhatsApp.",
+        metadata: {
+          enabled: saved.enabled,
+          loginUrl: saved.loginUrl,
+          templatePreview: String(saved.template || "").slice(0, 120),
+        },
+        req,
       });
       res.json(saved);
     } catch (e: any) {
@@ -430,6 +758,16 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
     try {
       const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phoneDigits, text);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.test-message",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp",
+        targetId: CONSOLE_ADMIN_INSTANCE_NAME,
+        description: `Admin enviou mensagem de teste para ${phoneDigits}.`,
+        metadata: { phone: phoneDigits, textPreview: text.slice(0, 120) },
+        req,
+      });
       res.json({ success: true, ...out });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/test-message]", e);

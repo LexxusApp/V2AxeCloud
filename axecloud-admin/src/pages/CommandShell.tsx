@@ -32,6 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { WhatsAppPanel } from "./WhatsAppPanel";
+import { TenantDrawer } from "./TenantDrawer";
 
 type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp";
 
@@ -55,6 +56,19 @@ type TenantRow = {
   totalChildren?: number;
 };
 
+function eventTypeTone(t: string): string {
+  if (!t) return "bg-white/[0.05] text-slate-300";
+  if (t.startsWith("tenant.created") || t.startsWith("demo.")) return "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20";
+  if (t.startsWith("tenant.block") || t.includes("delete") || t.endsWith("failed") || t.endsWith("-error")) return "bg-red-500/15 text-red-300 ring-1 ring-red-400/20";
+  if (t.startsWith("tenant.unblock") || t.startsWith("tenant.renew") || t.startsWith("tenant.set-lifetime")) return "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-400/20";
+  if (t.startsWith("tenant.change-plan") || t.startsWith("plans.")) return "bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/20";
+  if (t.startsWith("filho.login")) return "bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20";
+  if (t.startsWith("whatsapp.")) return "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20";
+  if (t.startsWith("welcome-message.")) return "bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-400/20";
+  if (t.includes("password")) return "bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20";
+  return "bg-slate-500/15 text-slate-300 ring-1 ring-slate-400/20";
+}
+
 const NAV: { id: Tab; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "tenants", label: "Terreiros", icon: Building2 },
@@ -73,10 +87,15 @@ export function CommandShell({ session }: { session: Session }) {
   const [plansCatalog, setPlansCatalog] = useState<Record<string, unknown>>({});
   const [logs, setLogs] = useState<any[]>([]);
   const [logEmails, setLogEmails] = useState<Record<string, string>>({});
+  const [logEventTypes, setLogEventTypes] = useState<string[]>([]);
+  const [logFilterType, setLogFilterType] = useState<string>("");
+  const [logsAvailable, setLogsAvailable] = useState<boolean>(true);
+  const [logsNotice, setLogsNotice] = useState<string>("");
   const [r2, setR2] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [drawerTenantId, setDrawerTenantId] = useState<string | null>(null);
 
   const email = session.user.email || "";
 
@@ -92,12 +111,21 @@ export function CommandShell({ session }: { session: Session }) {
   }, []);
 
   const refreshLogs = useCallback(async () => {
-    const j = await apiJson<{ rows: any[]; emailByUser: Record<string, string> }>(
-      "/api/admin-console/access-logs?limit=150"
-    );
+    const qs = new URLSearchParams({ limit: "200" });
+    if (logFilterType) qs.set("eventType", logFilterType);
+    const j = await apiJson<{
+      rows: any[];
+      emailByUser: Record<string, string>;
+      accessLogsAvailable?: boolean;
+      notice?: string;
+      eventTypes?: string[];
+    }>(`/api/admin-console/access-logs?${qs.toString()}`);
     setLogs(j.rows || []);
     setLogEmails(j.emailByUser || {});
-  }, []);
+    setLogsAvailable(j.accessLogsAvailable !== false);
+    setLogsNotice(j.notice || "");
+    if (Array.isArray(j.eventTypes) && j.eventTypes.length) setLogEventTypes(j.eventTypes);
+  }, [logFilterType]);
 
   const refreshR2 = useCallback(async () => {
     const j = await apiJson("/api/admin-console/r2-usage?maxKeys=12000");
@@ -180,7 +208,7 @@ export function CommandShell({ session }: { session: Session }) {
 
       <aside className="relative z-10 hidden w-[272px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0a101c]/90 p-6 shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-xl lg:flex">
         <div className="mb-10">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/25 to-violet-500/20 ring-1 ring-white/10">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400/25 to-violet-500/20 ring-1 ring-white/10">
             <Activity className="h-5 w-5 text-cyan-300" />
           </div>
           <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-cyan-400/80">Console</p>
@@ -200,7 +228,7 @@ export function CommandShell({ session }: { session: Session }) {
                   setTab(n.id);
                 }}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-all",
+                  "group flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition-all",
                   active
                     ? "bg-gradient-to-r from-cyan-500/20 to-transparent text-white shadow-[inset_3px_0_0_0_rgba(34,211,238,0.9)] ring-1 ring-cyan-500/25"
                     : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
@@ -218,14 +246,14 @@ export function CommandShell({ session }: { session: Session }) {
           })}
         </nav>
         <div className="mt-auto space-y-4 border-t border-white/[0.06] pt-6">
-          <div className="truncate rounded-xl bg-white/[0.03] px-3 py-2 text-xs text-slate-400 ring-1 ring-white/[0.05]">
+          <div className="truncate rounded-md bg-white/[0.03] px-3 py-2 text-xs text-slate-400 ring-1 ring-white/[0.05]">
             <Users className="mb-1 inline h-3.5 w-3.5 text-slate-500" />
             <span className="block truncate font-medium text-slate-300">{email}</span>
           </div>
           <button
             type="button"
             onClick={() => void logout()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/[0.07]"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] py-2.5 text-xs font-bold text-slate-200 transition hover:bg-white/[0.07]"
           >
             <LogOut className="h-3.5 w-3.5" /> Terminar sessão
           </button>
@@ -264,7 +292,7 @@ export function CommandShell({ session }: { session: Session }) {
           {msg && (
             <div
               className={cn(
-                "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm",
+                "flex items-start gap-3 rounded-md border px-4 py-3 text-sm shadow-lg backdrop-blur-sm",
                 /concluída|guardados|criado|criada|demo criada/i.test(msg)
                   ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
                   : "border-rose-500/35 bg-rose-950/35 text-rose-100"
@@ -287,27 +315,20 @@ export function CommandShell({ session }: { session: Session }) {
 
           {tab === "overview" && (
             <div className="space-y-8">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <StatCard
-                  label="Zeladores"
-                  hint="perfis activos"
+                  label="Terreiros"
+                  hint="terreiros activos"
                   value={busy && !overview ? "…" : (overview?.leadersCount ?? "—")}
-                  icon={Users}
+                  icon={Building2}
                   accent="cyan"
                 />
                 <StatCard
                   label="Filhos de santo"
                   hint="registos"
                   value={busy && !overview ? "…" : (overview?.filhosCount ?? "—")}
-                  icon={Building2}
+                  icon={Users}
                   accent="violet"
-                />
-                <StatCard
-                  label="Assinaturas"
-                  hint="linhas em subscriptions"
-                  value={busy && !overview ? "…" : (overview?.subscriptionsCount ?? "—")}
-                  icon={LayoutDashboard}
-                  accent="amber"
                 />
                 <StatCard
                   label="Acessos (7d)"
@@ -325,7 +346,7 @@ export function CommandShell({ session }: { session: Session }) {
               </div>
 
               {overview?.accessLogsAvailable === false && (
-                <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/95">
+                <div className="flex items-start gap-3 rounded-md border border-amber-500/25 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/95">
                   <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                   <p>
                     A tabela <code className="font-mono-data text-amber-200">access_logs</code> não existe neste
@@ -335,7 +356,7 @@ export function CommandShell({ session }: { session: Session }) {
               )}
 
               <div className="grid gap-6 lg:grid-cols-2">
-                <div className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/80 p-6 shadow-xl shadow-black/20 ring-1 ring-white/[0.04] backdrop-blur-md">
+                <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/80 p-6 shadow-xl shadow-black/20 ring-1 ring-white/[0.04] backdrop-blur-md">
                   <h3 className="mb-5 flex items-center gap-2 text-sm font-bold text-white">
                     <BarChart3 className="h-4 w-4 text-cyan-400" /> Distribuição de planos
                   </h3>
@@ -343,27 +364,27 @@ export function CommandShell({ session }: { session: Session }) {
                     {Object.entries(overview?.planHistogram || {}).map(([k, v]) => (
                       <li
                         key={k}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-white/[0.05]"
+                        className="flex items-center justify-between gap-3 rounded-md bg-white/[0.03] px-3 py-2.5 ring-1 ring-white/[0.05]"
                       >
                         <span className="font-mono-data text-sm text-slate-300">{k}</span>
-                        <span className="rounded-lg bg-cyan-500/15 px-2 py-0.5 font-mono-data text-sm font-bold text-cyan-200">
+                        <span className="rounded-md bg-cyan-500/15 px-2 py-0.5 font-mono-data text-sm font-bold text-cyan-200">
                           {v}
                         </span>
                       </li>
                     ))}
                     {!Object.keys(overview?.planHistogram || {}).length && (
-                      <li className="rounded-xl border border-dashed border-white/10 py-8 text-center text-sm text-slate-500">
+                      <li className="rounded-md border border-dashed border-white/10 py-8 text-center text-sm text-slate-500">
                         Sem dados de planos para mostrar.
                       </li>
                     )}
                   </ul>
                 </div>
-                <div className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/80 p-6 shadow-xl shadow-black/20 ring-1 ring-white/[0.04] backdrop-blur-md">
+                <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/80 p-6 shadow-xl shadow-black/20 ring-1 ring-white/[0.04] backdrop-blur-md">
                   <h3 className="mb-1 flex items-center gap-2 text-sm font-bold text-white">
                     <Activity className="h-4 w-4 text-emerald-400" /> Ritmo de acessos
                   </h3>
                   <p className="mb-5 text-xs text-slate-500">Últimos dias com dados em access_logs (quando existir).</p>
-                  <div className="flex h-44 items-end gap-1.5 rounded-xl bg-black/20 px-2 pb-2 pt-4 ring-1 ring-white/[0.05]">
+                  <div className="flex h-44 items-end gap-1.5 rounded-md bg-black/20 px-2 pb-2 pt-4 ring-1 ring-white/[0.05]">
                     {dailySeries.map(([day, count]) => {
                       const hPct = Math.round((count / maxDaily) * 100);
                       const hPx = 12 + Math.round((hPct / 100) * 120);
@@ -394,7 +415,7 @@ export function CommandShell({ session }: { session: Session }) {
           )}
 
           {tab === "tenants" && (
-            <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#0c121f]/60 shadow-xl ring-1 ring-white/[0.04]">
+            <div className="overflow-x-auto rounded-md border border-white/[0.08] bg-[#0c121f]/60 shadow-xl ring-1 ring-white/[0.04]">
               <table className="min-w-full text-left text-sm">
                 <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <tr>
@@ -409,7 +430,12 @@ export function CommandShell({ session }: { session: Session }) {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {tenants.map((row) => (
-                    <tr key={row.id} className="hover:bg-white/[0.02]">
+                    <tr
+                      key={row.id}
+                      onClick={() => setDrawerTenantId(row.id)}
+                      className="cursor-pointer transition-colors hover:bg-cyan-500/[0.04]"
+                      title="Ver detalhes do terreiro"
+                    >
                       <td className="px-4 py-3 font-medium text-white">{row.nome_terreiro || "—"}</td>
                       <td className="px-4 py-3 font-mono-data text-xs text-slate-400">{row.email}</td>
                       <td className="px-4 py-3 text-cyan-300">{row.plan || "—"}</td>
@@ -428,7 +454,7 @@ export function CommandShell({ session }: { session: Session }) {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-wrap justify-end gap-1">
                           <MiniBtn onClick={() => void manageTenant(row.id, "renew", { amount: "1", unit: "months" })}>
                             +1 mês
@@ -456,47 +482,106 @@ export function CommandShell({ session }: { session: Session }) {
           )}
 
           {tab === "logs" && (
-            <div className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/60 shadow-xl ring-1 ring-white/[0.04]">
-              {!logs.length ? (
-                <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                  <ScrollText className="h-10 w-10 text-slate-600" />
-                  <p className="text-sm font-medium text-slate-300">Sem linhas de acesso</p>
-                  <p className="max-w-md text-xs leading-relaxed text-slate-500">
-                    Ou a tabela <code className="font-mono-data text-cyan-200/80">access_logs</code> ainda não foi
-                    criada no Supabase, ou não há visitas registadas.
-                  </p>
-                </div>
-              ) : (
-                <table className="min-w-full text-left text-sm">
-                  <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Quando</th>
-                      <th className="px-4 py-3">Utilizador</th>
-                      <th className="px-4 py-3">IP</th>
-                      <th className="px-4 py-3">Local</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.05]">
-                    {logs.map((r) => (
-                      <tr key={r.id} className="font-mono-data text-xs text-slate-300 hover:bg-white/[0.02]">
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-400">
-                          {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
-                        </td>
-                        <td className="px-4 py-3">{logEmails[r.user_id] || r.user_id?.slice(0, 8) || "—"}</td>
-                        <td className="px-4 py-3">{r.ip || "—"}</td>
-                        <td className="px-4 py-3">
-                          {[r.city, r.region, r.country].filter(Boolean).join(", ") || "—"}
-                        </td>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-white/[0.08] bg-[#0c121f]/60 px-3 py-2 shadow-xl ring-1 ring-white/[0.04]">
+                <span className="text-xs uppercase tracking-widest text-slate-500">Tipo</span>
+                <select
+                  value={logFilterType}
+                  onChange={(e) => setLogFilterType(e.target.value)}
+                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-slate-200 outline-none focus:border-cyan-400/40"
+                >
+                  <option value="">Todos os eventos</option>
+                  {logEventTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => void refreshLogs()}
+                  className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-200 transition hover:bg-white/[0.08]"
+                >
+                  Actualizar
+                </button>
+                <span className="ml-auto text-[11px] text-slate-500">
+                  {logs.length} {logs.length === 1 ? "linha" : "linhas"}
+                </span>
+              </div>
+
+              <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/60 shadow-xl ring-1 ring-white/[0.04]">
+                {!logsAvailable ? (
+                  <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                    <ScrollText className="h-10 w-10 text-amber-400/70" />
+                    <p className="text-sm font-medium text-slate-200">Tabela <code className="font-mono-data text-amber-200">access_logs</code> ainda não existe</p>
+                    <p className="max-w-md text-xs leading-relaxed text-slate-400">
+                      {logsNotice || "Crie a tabela no Supabase para começar a registar eventos."}
+                    </p>
+                    <p className="max-w-lg text-[11px] leading-relaxed text-slate-500">
+                      Aplique o ficheiro{" "}
+                      <code className="font-mono-data text-cyan-200/80">supabase/migrations/20260513192500_access_logs.sql</code>{" "}
+                      no SQL Editor do Supabase. Depois reinicie o backend e os eventos passarão a aparecer aqui em tempo real.
+                    </p>
+                  </div>
+                ) : !logs.length ? (
+                  <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                    <ScrollText className="h-10 w-10 text-slate-600" />
+                    <p className="text-sm font-medium text-slate-300">Sem eventos registados ainda</p>
+                    <p className="max-w-md text-xs leading-relaxed text-slate-500">
+                      Faça uma ação no sistema (login de filho, criar terreiro, mudar plano, etc.) para gerar o primeiro evento.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Quando</th>
+                        <th className="px-4 py-3">Tipo</th>
+                        <th className="px-4 py-3">Descrição</th>
+                        <th className="px-4 py-3">Utilizador</th>
+                        <th className="px-4 py-3">IP</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.05]">
+                      {logs.map((r) => {
+                        const type = String(r.event_type || "");
+                        const tone = eventTypeTone(type);
+                        const userLabel =
+                          r.user_email ||
+                          logEmails[r.user_id] ||
+                          (r.user_id ? String(r.user_id).slice(0, 8) : "—");
+                        return (
+                          <tr key={r.id} className="text-xs text-slate-300 hover:bg-white/[0.02]">
+                            <td className="px-4 py-3 whitespace-nowrap font-mono-data text-slate-400">
+                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {type ? (
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>
+                                  {type}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-slate-200">
+                              {r.description || (
+                                <span className="text-slate-500">{r.target_type ? `${r.target_type}: ${r.target_id || ""}` : "—"}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 font-mono-data text-slate-400">{userLabel}</td>
+                            <td className="px-4 py-3 font-mono-data text-slate-500">{r.ip || "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           )}
 
           {tab === "storage" && (
-            <div className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/70 p-6 shadow-xl ring-1 ring-white/[0.04]">
+            <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/70 p-6 shadow-xl ring-1 ring-white/[0.04]">
               {!r2?.configured ? (
                 <p className="text-sm text-slate-400">{r2?.message || "A carregar…"}</p>
               ) : (
@@ -534,6 +619,14 @@ export function CommandShell({ session }: { session: Session }) {
           {tab === "whatsapp" && <WhatsAppPanel />}
         </main>
       </div>
+
+      <TenantDrawer
+        tenantId={drawerTenantId}
+        onClose={() => {
+          setDrawerTenantId(null);
+          void refreshTenants();
+        }}
+      />
     </div>
   );
 }
@@ -560,14 +653,14 @@ function StatCard({
           ? "from-amber-400/90 to-orange-500/30"
           : "from-emerald-400/90 to-green-600/30";
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0c121f]/90 p-5 shadow-lg shadow-black/30 ring-1 ring-white/[0.04] backdrop-blur-sm transition hover:border-white/[0.12] hover:ring-cyan-500/10">
+    <div className="group relative overflow-hidden rounded-md border border-white/[0.07] bg-[#0c121f]/90 p-5 shadow-lg shadow-black/30 ring-1 ring-white/[0.04] backdrop-blur-sm transition hover:border-white/[0.12] hover:ring-cyan-500/10">
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${ring} opacity-90`} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{label}</p>
           <p className="mt-1 text-[11px] text-slate-600">{hint}</p>
         </div>
-        <div className="rounded-xl bg-white/[0.05] p-2 ring-1 ring-white/[0.06]">
+        <div className="rounded-md bg-white/[0.05] p-2 ring-1 ring-white/[0.06]">
           <Icon className="h-4 w-4 text-slate-300" />
         </div>
       </div>
@@ -658,7 +751,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
   return (
     <form
       onSubmit={submit}
-      className="mx-auto max-w-lg space-y-4 rounded-2xl border border-white/[0.08] bg-[#0c121f]/70 p-6 shadow-xl ring-1 ring-white/[0.04]"
+      className="mx-auto max-w-lg space-y-4 rounded-md border border-white/[0.08] bg-[#0c121f]/70 p-6 shadow-xl ring-1 ring-white/[0.04]"
     >
       <h3 className="text-lg font-bold text-white">Criar conta + terreiro</h3>
       <Field label="E-mail" value={email} onChange={setEmail} type="email" required />
@@ -667,7 +760,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
         <label className="text-xs font-bold uppercase text-slate-500">Senha inicial</label>
         <div className="mt-1 flex items-stretch gap-2">
           <input
-            className="flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 font-mono-data text-base tracking-[0.35em] text-emerald-100 outline-none ring-cyan-500/30 focus:ring-2"
+            className="flex-1 rounded-md border border-white/10 bg-slate-950 px-3 py-2 font-mono-data text-base tracking-[0.35em] text-emerald-100 outline-none ring-cyan-500/30 focus:ring-2"
             value={password}
             required
             type="text"
@@ -681,7 +774,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={regeneratePassword}
             title="Gerar nova senha"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-slate-200 hover:bg-white/[0.08]"
+            className="inline-flex shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-slate-200 hover:bg-white/[0.08]"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -690,7 +783,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
             onClick={() => void copyPassword()}
             title="Copiar senha"
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-xl border px-3 text-xs font-bold transition",
+              "inline-flex shrink-0 items-center justify-center rounded-md border px-3 text-xs font-bold transition",
               pwdCopied
                 ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
                 : "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]"
@@ -710,7 +803,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
       <div>
         <label className="text-xs font-bold uppercase text-slate-500">Plano</label>
         <select
-          className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm"
           value={plan}
           onChange={(e) => setPlan(e.target.value as typeof plan)}
         >
@@ -721,7 +814,7 @@ function CreateTenantForm({ onDone }: { onDone: () => void }) {
       {status && <p className="text-sm text-cyan-300">{status}</p>}
       <button
         type="submit"
-        className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 py-3 text-sm font-bold text-white"
+        className="w-full rounded-md bg-gradient-to-r from-violet-600 to-cyan-500 py-3 text-sm font-bold text-white"
       >
         Criar
       </button>
@@ -750,7 +843,7 @@ function DemoForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-lg space-y-4 rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+    <form onSubmit={submit} className="mx-auto max-w-lg space-y-4 rounded-md border border-white/10 bg-slate-900/50 p-6">
       <h3 className="text-lg font-bold text-white">Conta demonstração</h3>
       <p className="text-xs text-slate-500">Plano premium com expiração curta; ideal para testes controlados.</p>
       <Field label="E-mail" value={email} onChange={setEmail} type="email" required />
@@ -761,13 +854,13 @@ function DemoForm() {
           type="number"
           min={3}
           max={90}
-          className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm"
           value={days}
           onChange={(e) => setDays(Number(e.target.value))}
         />
       </div>
       {status && <p className="text-sm text-emerald-300">{status}</p>}
-      <button type="submit" className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white">
+      <button type="submit" className="w-full rounded-md bg-emerald-600 py-3 text-sm font-bold text-white">
         Gerar demo
       </button>
     </form>
@@ -791,7 +884,7 @@ function Field({
     <div>
       <label className="text-xs font-bold uppercase text-slate-500">{label}</label>
       <input
-        className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none ring-cyan-500/30 focus:ring-2"
+        className="mt-1 w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none ring-cyan-500/30 focus:ring-2"
         value={value}
         required={required}
         type={type}
@@ -844,7 +937,7 @@ function PlanCatalogCard({
       ? "from-cyan-400 to-teal-500"
       : "from-violet-400 to-fuchsia-500";
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c121f]/90 shadow-xl ring-1 ring-white/[0.04]">
+    <div className="overflow-hidden rounded-md border border-white/[0.08] bg-[#0c121f]/90 shadow-xl ring-1 ring-white/[0.04]">
       <div className={`h-1.5 bg-gradient-to-r ${bar}`} />
       <div className="space-y-4 p-6">
         <div>
@@ -854,7 +947,7 @@ function PlanCatalogCard({
         <div>
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nome público</label>
           <input
-            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/20 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/20 focus:ring-2"
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
           />
@@ -865,7 +958,7 @@ function PlanCatalogCard({
             type="number"
             step="0.01"
             min={0}
-            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-cyan-100 outline-none ring-cyan-500/20 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-cyan-100 outline-none ring-cyan-500/20 focus:ring-2"
             value={Number.isFinite(data.price) ? data.price : 0}
             onChange={(e) => onChange({ ...data, price: Number(e.target.value) || 0 })}
           />
@@ -874,7 +967,7 @@ function PlanCatalogCard({
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Descrição</label>
           <textarea
             rows={4}
-            className="mt-1 w-full resize-none rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm leading-relaxed text-slate-200 outline-none ring-cyan-500/20 focus:ring-2"
+            className="mt-1 w-full resize-none rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm leading-relaxed text-slate-200 outline-none ring-cyan-500/20 focus:ring-2"
             value={data.description}
             onChange={(e) => onChange({ ...data, description: e.target.value })}
           />
@@ -910,7 +1003,7 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 ring-1 ring-white/[0.04]">
+      <div className="rounded-md border border-white/[0.06] bg-white/[0.02] px-5 py-4 ring-1 ring-white/[0.04]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-cyan-400/90">Catálogo</p>
@@ -957,7 +1050,7 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
       <button
         type="button"
         onClick={() => void save()}
-        className="rounded-xl bg-gradient-to-r from-violet-600 to-cyan-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition hover:opacity-95"
+        className="rounded-md bg-gradient-to-r from-violet-600 to-cyan-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition hover:opacity-95"
       >
         Guardar planos
       </button>
