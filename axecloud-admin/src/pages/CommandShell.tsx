@@ -19,6 +19,7 @@ import {
   Info,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   PlusCircle,
   ScrollText,
   Sparkles,
@@ -28,8 +29,9 @@ import {
 import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { WhatsAppPanel } from "./WhatsAppPanel";
 
-type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans";
+type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp";
 
 type Overview = {
   leadersCount: number;
@@ -59,6 +61,7 @@ const NAV: { id: Tab; label: string; icon: ComponentType<{ className?: string }>
   { id: "create", label: "Novo terreiro", icon: PlusCircle },
   { id: "demo", label: "Conta demo", icon: Sparkles },
   { id: "plans", label: "Planos globais", icon: FileJson2 },
+  { id: "whatsapp", label: "WhatsApp admin", icon: MessageCircle },
 ];
 
 export function CommandShell({ session }: { session: Session }) {
@@ -526,6 +529,7 @@ export function CommandShell({ session }: { session: Session }) {
           {tab === "create" && <CreateTenantForm onDone={() => void refreshTenants()} />}
           {tab === "demo" && <DemoForm />}
           {tab === "plans" && <PlansEditor initial={plansCatalog} />}
+          {tab === "whatsapp" && <WhatsAppPanel />}
         </main>
       </div>
     </div>

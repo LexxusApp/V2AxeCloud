@@ -1,6 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import {
+  CONSOLE_ADMIN_INSTANCE_NAME,
+  createInstanceWithPairingCode,
+  getConsoleInstanceStatus,
+  logoutEvolutionInstanceByName,
+  sendEvolutionTextByInstance,
+} from "../src/services/evolution.service.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -293,6 +300,78 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/create-demo]", e);
       res.status(500).json({ error: e?.message || "Erro ao criar demo" });
+    }
+  });
+
+  // ============================================================================
+  // WhatsApp do Console Admin — instância única "axecloud_console_admin", pareada
+  // por CÓDIGO (sem QR). Usada para envios globais do administrador da plataforma.
+  // ============================================================================
+  app.get("/api/admin-console/whatsapp/status", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const out = await getConsoleInstanceStatus(CONSOLE_ADMIN_INSTANCE_NAME);
+      res.json({ instanceName: CONSOLE_ADMIN_INSTANCE_NAME, ...out });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/status]", e);
+      res.status(500).json({ error: e?.message || "Erro ao consultar status" });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp/connect", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const phone = String((req.body || {}).phone || "").trim();
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
+      return res.status(400).json({ error: "Informe o número com DDD (ex.: 11 91234-5678)." });
+    }
+    try {
+      const current = await getConsoleInstanceStatus(CONSOLE_ADMIN_INSTANCE_NAME);
+      if (current.status === "CONNECTED") {
+        return res.json({
+          alreadyConnected: true,
+          instanceName: CONSOLE_ADMIN_INSTANCE_NAME,
+          number: current.number,
+          message: "WhatsApp do console já está conectado.",
+        });
+      }
+      const out = await createInstanceWithPairingCode(CONSOLE_ADMIN_INSTANCE_NAME, phone);
+      res.json({ ...out, message: "Use o código abaixo no WhatsApp do dispositivo." });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/connect]", e);
+      res.status(500).json({ error: e?.message || "Erro ao gerar pairing code" });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp/logout", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      await logoutEvolutionInstanceByName(CONSOLE_ADMIN_INSTANCE_NAME);
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/logout]", e);
+      res.status(500).json({ error: e?.message || "Erro ao desconectar" });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp/test-message", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const rawPhone = String((req.body || {}).phone || "").trim();
+    const text =
+      String((req.body || {}).text || "").trim() ||
+      "AxéCloud Console — teste de mensagem. Se você recebeu isto, o WhatsApp do administrador está conectado.";
+    if (!rawPhone) return res.status(400).json({ error: "Informe o número de destino." });
+    let phoneDigits = rawPhone.replace(/\D/g, "");
+    if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
+    try {
+      const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phoneDigits, text);
+      res.json({ success: true, ...out });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/test-message]", e);
+      res.status(500).json({ error: e?.message || "Falha ao enviar mensagem" });
     }
   });
 

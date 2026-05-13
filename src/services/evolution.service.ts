@@ -416,6 +416,154 @@ export async function sendEvolutionTextMessage(
   return { messageId };
 }
 
+/** Nome canónico da instância usada pelo Console Admin global (separada dos terreiros). */
+export const CONSOLE_ADMIN_INSTANCE_NAME = "axecloud_console_admin";
+
+function normalizeMsisdn(phone: string): string {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) throw new Error("Número de telefone inválido");
+  return digits.startsWith("55") || digits.length >= 11 ? digits : `55${digits}`;
+}
+
+function pickPairingCode(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  const direct = d.pairingCode ?? d.pairing_code ?? d.code;
+  if (typeof direct === "string" && direct.length >= 6) return direct;
+  if (d.qrcode && typeof d.qrcode === "object") {
+    const inner = (d.qrcode as Record<string, unknown>).pairingCode;
+    if (typeof inner === "string" && inner.length >= 6) return inner;
+  }
+  if (d.instance && typeof d.instance === "object") {
+    const inner = (d.instance as Record<string, unknown>).pairingCode;
+    if (typeof inner === "string" && inner.length >= 6) return inner;
+  }
+  return null;
+}
+
+/**
+ * Conecta uma instância via PAIRING CODE (sem QR).
+ * 1) Tenta criar a instância passando o número (Evolution devolve `pairingCode` no body).
+ * 2) Se já existir, pede `/instance/connect/{instance}?number=…` que também devolve pairing code.
+ * Retorna o código no formato exibido pelo WhatsApp (ex.: "ABCD-1234").
+ */
+export async function createInstanceWithPairingCode(
+  instanceName: string,
+  phone: string
+): Promise<{ pairingCode: string; instanceName: string }> {
+  const cleanInstance = evolutionInstanceName(instanceName);
+  const number = normalizeMsisdn(phone);
+
+  const createPath = "/instance/create";
+  const createBody = {
+    instanceName: cleanInstance,
+    integration: "WHATSAPP-BAILEYS" as const,
+    qrcode: false,
+    number,
+  };
+  console.log(`[Evolution API] pairing | POST ${createPath} | instance=${cleanInstance}`);
+
+  const res = await evolutionRequest(createPath, {
+    method: "POST",
+    body: JSON.stringify(createBody),
+  });
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`POST ${createPath}`, res.status, summarizeBody(data));
+
+  if (res.status === 401) {
+    throw new Error("Evolution API retornou 401 (apikey inválida).");
+  }
+
+  if (res.ok) {
+    const code = pickPairingCode(data);
+    if (code) return { pairingCode: code, instanceName: cleanInstance };
+  }
+
+  // Já existe — pedir connect com o número.
+  if (isInstanceAlreadyExists(res.status, data) || res.ok) {
+    const path = `/instance/connect/${encodeURIComponent(cleanInstance)}?number=${encodeURIComponent(number)}`;
+    const r2 = await evolutionRequest(path, { method: "GET" });
+    const d2: unknown = await r2.json().catch(() => ({}));
+    logEvolution(`GET ${path}`, r2.status, summarizeBody(d2));
+    if (r2.status === 401) throw new Error("Evolution API retornou 401 em /instance/connect.");
+    if (!r2.ok) {
+      const msg = evolutionErrorMessage(d2, `Falha ao gerar pairing (${r2.status})`);
+      throw new Error(msg);
+    }
+    const code = pickPairingCode(d2);
+    if (code) return { pairingCode: code, instanceName: cleanInstance };
+    throw new Error("Evolution API não devolveu pairingCode. Verifique a versão da API.");
+  }
+
+  const msg = evolutionErrorMessage(data, `Evolution create falhou (${res.status})`);
+  throw new Error(msg);
+}
+
+/** Status simples da instância do console (sem QR). */
+export async function getConsoleInstanceStatus(instanceName: string): Promise<{
+  status: UiStatus;
+  number: string | null;
+}> {
+  const cleanInstance = evolutionInstanceName(instanceName);
+  const path = `/instance/fetchInstances?instanceName=${encodeURIComponent(cleanInstance)}`;
+  let res: Response;
+  try {
+    res = await evolutionRequest(path, { method: "GET" });
+  } catch (e) {
+    console.error("[Evolution API] console fetchInstances rede/timeout:", e);
+    return { status: "DISCONNECTED", number: null };
+  }
+  const raw = await res.json().catch(() => null);
+  logEvolution(`GET ${path}`, res.status, summarizeBody(raw));
+  if (!res.ok) return { status: "DISCONNECTED", number: null };
+
+  const inst = firstInstanceRecord(raw);
+  if (!inst) return { status: "DISCONNECTED", number: null };
+  const st = String(inst.status || inst.state || inst.connectionStatus || "").toLowerCase();
+  const number =
+    (typeof inst.ownerJid === "string" && (inst.ownerJid as string).split("@")[0]) ||
+    (typeof inst.number === "string" ? (inst.number as string) : null);
+  if (isConnectedStateValue(st)) return { status: "CONNECTED", number };
+  const fromState = await isConnectedByConnectionState(cleanInstance);
+  if (fromState === true) return { status: "CONNECTED", number };
+  return { status: "DISCONNECTED", number };
+}
+
+/** Envia mensagem usando a instância dada (sem mapear por user.id como em sendEvolutionTextMessage). */
+export async function sendEvolutionTextByInstance(
+  instanceName: string,
+  phoneDigits: string,
+  text: string
+): Promise<{ messageId?: string }> {
+  const cleanInstance = evolutionInstanceName(instanceName);
+  const number = String(phoneDigits).replace(/\D/g, "");
+  if (!number) throw new Error("Número inválido para envio WhatsApp.");
+  const path = `/message/sendText/${encodeURIComponent(cleanInstance)}`;
+  const res = await evolutionRequest(path, {
+    method: "POST",
+    body: JSON.stringify({ number, text, linkPreview: false }),
+  });
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`POST ${path}`, res.status, summarizeBody(data));
+  if (res.status === 401) throw new Error("Evolution API retornou 401 ao enviar mensagem.");
+  if (res.status === 404) throw new Error("Instância WhatsApp não encontrada na Evolution.");
+  if (!res.ok) throw new Error(evolutionErrorMessage(data, `Falha ao enviar (${res.status})`));
+  const key = data && typeof data === "object" && "key" in data ? (data as { key?: { id?: string } }).key : undefined;
+  return { messageId: typeof key?.id === "string" ? key.id : undefined };
+}
+
+/** Logout para uma instância arbitrária (não usa tenantId). */
+export async function logoutEvolutionInstanceByName(instanceName: string): Promise<void> {
+  const cleanInstance = evolutionInstanceName(instanceName);
+  const path = `/instance/logout/${encodeURIComponent(cleanInstance)}`;
+  const res = await evolutionRequest(path, { method: "DELETE" });
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`DELETE ${path}`, res.status, summarizeBody(data));
+  if (res.status === 401) throw new Error("Evolution API retornou 401 ao desconectar.");
+  if (res.status === 404) return;
+  if (!res.ok) throw new Error(evolutionErrorMessage(data, `Falha ao desconectar (${res.status})`));
+}
+
 /** Encerra sessão na Evolution (`DELETE /instance/logout/{instance}`). */
 export async function logoutEvolutionInstance(tenantId: string): Promise<void> {
   const instanceName = evolutionInstanceName(tenantId);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
-import { apiJson, getAccessToken, isApiUnreachable, setAccessToken } from "./lib/api";
+import { apiJson, isApiUnreachable, setAccessToken } from "./lib/api";
 import { LoginPage } from "./pages/LoginPage";
 import { CommandShell } from "./pages/CommandShell";
 
