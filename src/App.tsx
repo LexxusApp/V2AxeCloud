@@ -54,7 +54,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 52;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 53;
 
 function readTenantAnchorFromStorage() {
   try {

@@ -24,6 +24,8 @@ import {
 } from "date-fns";
 import {
   createAxeInstance,
+  createInstanceWithPairingCode,
+  evolutionInstanceName,
   getAxeEvolutionStatusAndQr,
   logoutEvolutionInstance,
   sendEvolutionTextMessage,
@@ -4226,8 +4228,19 @@ async function startServer() {
         return res.json({ message: "WhatsApp já está conectado." });
       }
 
+      const phone = String((req.body && (req.body.phone || req.body.number)) || "").trim();
+      if (phone) {
+        const out = await createInstanceWithPairingCode(evolutionInstanceName(user.id), phone);
+        return res.json({
+          message: "Use o código no WhatsApp em até 60 segundos.",
+          pairingCode: out.pairingCode,
+          mode: "pairing",
+        });
+      }
+
+      // Fallback (sem telefone) — mantém compat. com clientes antigos: gera QR.
       const qrcode = await createAxeInstance(user.id);
-      res.json({ message: "Iniciando conexão WhatsApp...", qrcode });
+      res.json({ message: "Iniciando conexão WhatsApp...", qrcode, mode: "qrcode" });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao iniciar" });
