@@ -25,11 +25,18 @@ import {
   createAxeInstance,
   createInstanceWithPairingCode,
   evolutionInstanceName,
+  CONSOLE_ADMIN_INSTANCE_NAME,
   getAxeEvolutionStatusAndQr,
   logoutEvolutionInstance,
+  sendEvolutionTextByInstance,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
+import {
+  loadWelcomeMessageConfig,
+  normalizeBrazilMsisdn,
+  renderWelcomeMessage,
+} from "./lib/welcomeMessage.js";
 import {
   normalizeWhatsAppTemplates,
   resolveWhatsAppTemplate,
@@ -2437,13 +2444,44 @@ async function startServer() {
 
       if (profileError) console.error("Error updating profile info:", profileError);
 
+      // 4. Boas-vindas via WhatsApp (instância do console admin) — não bloqueia a resposta.
+      let welcomeStatus: "skipped" | "queued" | "no-phone" | "disabled" = "skipped";
+      try {
+        const cfg = await loadWelcomeMessageConfig(supabaseAdmin);
+        if (!cfg.enabled) {
+          welcomeStatus = "disabled";
+        } else {
+          const msisdn = normalizeBrazilMsisdn(whatsapp || "");
+          if (!msisdn) {
+            welcomeStatus = "no-phone";
+            console.log("[ADMIN] Welcome WhatsApp: número do zelador ausente/inválido — pulado.");
+          } else {
+            const text = renderWelcomeMessage(cfg.template, {
+              nome_terreiro,
+              nome_zelador,
+              email,
+              senha: password,
+              site: cfg.loginUrl,
+              assinatura: cfg.signature,
+            });
+            welcomeStatus = "queued";
+            void sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
+              .then((r) => console.log(`[ADMIN] Welcome WhatsApp enviado para ${msisdn}`, r?.messageId || ""))
+              .catch((err) => console.error(`[ADMIN] Welcome WhatsApp falhou (${msisdn}):`, err?.message || err));
+          }
+        }
+      } catch (welErr: any) {
+        console.error("[ADMIN] Welcome WhatsApp setup error:", welErr?.message || welErr);
+      }
+
       res.json({ 
         success: true, 
         user: {
           id: targetUser.id,
           email: targetUser.email,
           password // Returning password for the "Copy" feature
-        } 
+        },
+        welcome: { status: welcomeStatus },
       });
 
     } catch (error: any) {

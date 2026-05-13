@@ -3,9 +3,12 @@ import {
   CheckCircle2,
   Copy,
   LogOut,
+  MailPlus,
   MessageCircle,
   PhoneCall,
   RefreshCw,
+  RotateCcw,
+  Save,
   Send,
   ShieldAlert,
   Smartphone,
@@ -301,7 +304,278 @@ export function WhatsAppPanel() {
           </div>
         </section>
       )}
+
+      <WelcomeMessageEditor connected={connected} />
     </div>
+  );
+}
+
+type WelcomeConfig = {
+  enabled: boolean;
+  template: string;
+  loginUrl: string;
+  signature: string;
+  defaults?: { enabled: boolean; template: string; loginUrl: string; signature: string };
+};
+
+const WELCOME_VARS: ReadonlyArray<{ token: string; label: string }> = [
+  { token: "{{nome_terreiro}}", label: "Nome do terreiro" },
+  { token: "{{nome_zelador}}", label: "Nome do zelador" },
+  { token: "{{email}}", label: "E-mail de acesso" },
+  { token: "{{senha}}", label: "Senha gerada" },
+  { token: "{{site}}", label: "URL de acesso" },
+  { token: "{{assinatura}}", label: "Assinatura" },
+];
+
+function WelcomeMessageEditor({ connected }: { connected: boolean }) {
+  const [cfg, setCfg] = useState<WelcomeConfig | null>(null);
+  const [busy, setBusy] = useState<"idle" | "load" | "save" | "test">("idle");
+  const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [testPhone, setTestPhone] = useState("");
+
+  const load = useCallback(async () => {
+    setBusy("load");
+    try {
+      const r = await apiJson<WelcomeConfig>("/api/admin-console/welcome-message");
+      setCfg(r);
+    } catch (e) {
+      setFeedback({ kind: "err", msg: e instanceof Error ? e.message : "Erro ao carregar." });
+    } finally {
+      setBusy("idle");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save() {
+    if (!cfg) return;
+    setBusy("save");
+    setFeedback(null);
+    try {
+      const r = await apiJson<WelcomeConfig>("/api/admin-console/welcome-message", {
+        method: "POST",
+        body: JSON.stringify({
+          enabled: cfg.enabled,
+          template: cfg.template,
+          loginUrl: cfg.loginUrl,
+          signature: cfg.signature,
+        }),
+      });
+      setCfg(r);
+      setFeedback({ kind: "ok", msg: "Mensagem guardada." });
+    } catch (e) {
+      setFeedback({ kind: "err", msg: e instanceof Error ? e.message : "Erro ao guardar." });
+    } finally {
+      setBusy("idle");
+    }
+  }
+
+  function resetToDefault() {
+    if (!cfg?.defaults) return;
+    setCfg({ ...cfg, ...cfg.defaults });
+  }
+
+  function insertVar(token: string) {
+    if (!cfg) return;
+    const ta = document.getElementById("welcome-template-ta") as HTMLTextAreaElement | null;
+    if (!ta) {
+      setCfg({ ...cfg, template: `${cfg.template}${token}` });
+      return;
+    }
+    const start = ta.selectionStart ?? cfg.template.length;
+    const end = ta.selectionEnd ?? cfg.template.length;
+    const next = cfg.template.slice(0, start) + token + cfg.template.slice(end);
+    setCfg({ ...cfg, template: next });
+    queueMicrotask(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + token.length;
+    });
+  }
+
+  async function sendTest() {
+    setFeedback(null);
+    const digits = testPhone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      setFeedback({ kind: "err", msg: "Informe o número de destino com DDD." });
+      return;
+    }
+    setBusy("test");
+    try {
+      await apiJson("/api/admin-console/welcome-message/test", {
+        method: "POST",
+        body: JSON.stringify({ phone: digits }),
+      });
+      setFeedback({ kind: "ok", msg: "Mensagem de teste enviada." });
+    } catch (e) {
+      setFeedback({ kind: "err", msg: e instanceof Error ? e.message : "Falha ao enviar teste." });
+    } finally {
+      setBusy("idle");
+    }
+  }
+
+  if (!cfg) {
+    return (
+      <section className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 text-sm text-slate-400 shadow-xl ring-1 ring-white/[0.04]">
+        A carregar configuração da mensagem de boas-vindas…
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-white">
+            <MailPlus className="h-4 w-4 text-emerald-300" />
+            Boas-vindas automáticas
+          </h3>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
+            Quando um novo terreiro é criado no console, esta mensagem é enviada pelo WhatsApp do administrador para o número do zelador, com login, senha e URL de acesso.
+          </p>
+        </div>
+        <label className="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-200">
+          <span className="uppercase tracking-widest text-[10px] text-slate-400">Disparo</span>
+          <button
+            type="button"
+            onClick={() => setCfg({ ...cfg, enabled: !cfg.enabled })}
+            className={cn(
+              "relative h-5 w-9 rounded-full transition-colors",
+              cfg.enabled ? "bg-emerald-500/80" : "bg-slate-700"
+            )}
+            aria-pressed={cfg.enabled}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all",
+                cfg.enabled ? "left-[18px]" : "left-0.5"
+              )}
+            />
+          </button>
+        </label>
+      </div>
+
+      {feedback && (
+        <div
+          className={cn(
+            "mt-4 rounded-xl border px-3 py-2 text-xs",
+            feedback.kind === "ok"
+              ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
+              : "border-rose-500/35 bg-rose-950/35 text-rose-100"
+          )}
+        >
+          {feedback.msg}
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">URL de acesso</label>
+          <input
+            value={cfg.loginUrl}
+            onChange={(e) => setCfg({ ...cfg, loginUrl: e.target.value })}
+            placeholder="https://axecloud-app.vercel.app"
+            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Assinatura</label>
+          <input
+            value={cfg.signature}
+            onChange={(e) => setCfg({ ...cfg, signature: e.target.value })}
+            placeholder="Equipe AxéCloud"
+            className="mt-1 w-full rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+          />
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mensagem (suporta WhatsApp markdown)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {WELCOME_VARS.map((v) => (
+              <button
+                key={v.token}
+                type="button"
+                onClick={() => insertVar(v.token)}
+                title={v.label}
+                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 font-mono-data text-[10px] font-bold text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-200"
+              >
+                {v.token}
+              </button>
+            ))}
+          </div>
+        </div>
+        <textarea
+          id="welcome-template-ta"
+          rows={9}
+          value={cfg.template}
+          onChange={(e) => setCfg({ ...cfg, template: e.target.value })}
+          className="mt-2 w-full resize-y rounded-xl border border-white/[0.1] bg-[#080c14] px-3 py-3 font-mono-data text-xs leading-relaxed text-white outline-none ring-emerald-400/25 focus:ring-2"
+        />
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          Variáveis disponíveis: <code className="font-mono-data text-emerald-200">{`{{nome_terreiro}}`}</code>,{" "}
+          <code className="font-mono-data text-emerald-200">{`{{nome_zelador}}`}</code>,{" "}
+          <code className="font-mono-data text-emerald-200">{`{{email}}`}</code>,{" "}
+          <code className="font-mono-data text-emerald-200">{`{{senha}}`}</code>,{" "}
+          <code className="font-mono-data text-emerald-200">{`{{site}}`}</code>,{" "}
+          <code className="font-mono-data text-emerald-200">{`{{assinatura}}`}</code>.
+        </p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={busy === "save"}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" /> {busy === "save" ? "A guardar…" : "Guardar"}
+        </button>
+        <button
+          type="button"
+          onClick={resetToDefault}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/[0.07]"
+        >
+          <RotateCcw className="h-3.5 w-3.5" /> Restaurar padrão
+        </button>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#080c14]/70 p-4">
+        <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+          Enviar pré-visualização (teste)
+        </h4>
+        {!connected ? (
+          <p className="mt-2 text-xs text-amber-200/85">
+            Conecte o WhatsApp do administrador acima antes de enviar testes.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              placeholder="(11) 91234-5678"
+              className="flex-1 rounded-xl border border-white/[0.1] bg-[#06090f] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/25 focus:ring-2"
+            />
+            <button
+              type="button"
+              onClick={() => void sendTest()}
+              disabled={busy === "test"}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" />
+              {busy === "test" ? "A enviar…" : "Enviar teste"}
+            </button>
+          </div>
+        )}
+        <p className="mt-2 text-[10px] text-slate-500">
+          O teste preenche as variáveis com valores de exemplo (terreiro/zelador/senha demonstrativos).
+        </p>
+      </div>
+    </section>
   );
 }
 

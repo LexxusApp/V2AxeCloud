@@ -8,6 +8,13 @@ import {
   logoutEvolutionInstanceByName,
   sendEvolutionTextByInstance,
 } from "../src/services/evolution.service.js";
+import {
+  loadWelcomeMessageConfig,
+  normalizeBrazilMsisdn,
+  renderWelcomeMessage,
+  saveWelcomeMessageConfig,
+  WELCOME_MESSAGE_DEFAULT,
+} from "./lib/welcomeMessage.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -353,6 +360,61 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/whatsapp/logout]", e);
       res.status(500).json({ error: e?.message || "Erro ao desconectar" });
+    }
+  });
+
+  // -------------- Boas-vindas automáticas (criar terreiro) --------------------
+  app.get("/api/admin-console/welcome-message", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const cfg = await loadWelcomeMessageConfig(deps.supabaseAdmin);
+      res.json({ ...cfg, defaults: WELCOME_MESSAGE_DEFAULT });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Erro ao carregar mensagem" });
+    }
+  });
+
+  app.post("/api/admin-console/welcome-message", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const saved = await saveWelcomeMessageConfig(deps.supabaseAdmin, {
+        enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
+        template: typeof body.template === "string" ? body.template : undefined,
+        loginUrl: typeof body.loginUrl === "string" ? body.loginUrl : undefined,
+        signature: typeof body.signature === "string" ? body.signature : undefined,
+      });
+      res.json(saved);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Erro ao guardar mensagem" });
+    }
+  });
+
+  app.post("/api/admin-console/welcome-message/test", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    const phone = String(body.phone || "").trim();
+    if (!phone) return res.status(400).json({ error: "Informe o número de destino." });
+    const msisdn = normalizeBrazilMsisdn(phone);
+    if (!msisdn) return res.status(400).json({ error: "Número inválido." });
+    try {
+      const cfg = await loadWelcomeMessageConfig(deps.supabaseAdmin);
+      const text = renderWelcomeMessage(cfg.template, {
+        nome_terreiro: String(body.nome_terreiro || "Terreiro Exemplo"),
+        nome_zelador: String(body.nome_zelador || "Zelador Exemplo"),
+        email: String(body.email || "exemplo@email.com"),
+        senha: String(body.senha || "Senha-Demonstracao-123"),
+        site: cfg.loginUrl,
+        assinatura: cfg.signature,
+      });
+      const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
+      res.json({ success: true, msisdn, ...out });
+    } catch (e: any) {
+      console.error("[admin-console/welcome-message/test]", e);
+      res.status(500).json({ error: e?.message || "Falha ao enviar teste" });
     }
   });
 
