@@ -21,6 +21,8 @@ import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
 import { checkLinks } from "./lib/audit/links.js";
 import { validateHreflang } from "./lib/audit/hreflang.js";
+import { runFullAudit, type AuditTargetRow } from "./lib/audit/runFull.js";
+import { sendAuditWebhook } from "./lib/audit/webhook.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -914,6 +916,234 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/audit/psi]", e);
       res.status(500).json({ error: e?.message || "Falha no PageSpeed Insights." });
+    }
+  });
+
+  // -------------------- Audit Monitor (Fase 4) --------------------
+  // GET  /audit/targets                  - lista todos os alvos
+  // POST /audit/targets                  - cria alvo
+  // PATCH /audit/targets/:id             - atualiza alvo
+  // DELETE /audit/targets/:id            - remove alvo
+  // POST /audit/targets/:id/run          - executa agora
+  // GET  /audit/targets/:id/history?n=50 - historico de runs do alvo
+  // POST /audit/targets/:id/test-webhook - dispara webhook de teste
+
+  app.get("/api/admin-console/audit/targets", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("audit_targets")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingOrUnknownTable(error, "audit_targets")) {
+          return res.json({ ok: true, targets: [], notice: "Tabela audit_targets ausente — aplique a migracao 20260514100000_audit_targets_runs.sql." });
+        }
+        throw error;
+      }
+      res.json({ ok: true, targets: data || [] });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:list]", e);
+      res.status(500).json({ error: e?.message || "Falha ao listar alvos." });
+    }
+  });
+
+  app.post("/api/admin-console/audit/targets", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Partial<AuditTargetRow> & { url?: string };
+    const url = String(body.url || "").trim();
+    if (!url || !/^https?:\/\//i.test(url)) return res.status(400).json({ error: "URL inválida." });
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("audit_targets")
+        .insert({
+          url,
+          label: body.label ?? null,
+          enabled: body.enabled ?? true,
+          run_dns: body.run_dns ?? true,
+          run_psi: body.run_psi ?? false,
+          alert_webhook: body.alert_webhook ?? null,
+          alert_threshold: body.alert_threshold ?? 60,
+          alert_grade: body.alert_grade ?? null,
+          schedule: body.schedule ?? "hourly",
+          created_by: ctx.user.id,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.target.created",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit_target",
+        targetId: data.id,
+        description: `Alvo de auditoria criado: ${data.label || data.url}`,
+        metadata: { url: data.url, schedule: data.schedule, run_psi: data.run_psi },
+        req,
+      });
+      res.json({ ok: true, target: data });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:create]", e);
+      res.status(500).json({ error: e?.message || "Falha ao criar alvo." });
+    }
+  });
+
+  app.patch("/api/admin-console/audit/targets/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    const body = (req.body || {}) as Partial<AuditTargetRow>;
+    const patch: Record<string, unknown> = {};
+    const allow = ["url", "label", "enabled", "run_dns", "run_psi", "alert_webhook", "alert_threshold", "alert_grade", "schedule"];
+    for (const k of allow) {
+      if (k in body) patch[k] = (body as any)[k];
+    }
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("audit_targets")
+        .update(patch)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.target.updated",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit_target",
+        targetId: id,
+        description: `Alvo de auditoria atualizado.`,
+        metadata: { patch },
+        req,
+      });
+      res.json({ ok: true, target: data });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:update]", e);
+      res.status(500).json({ error: e?.message || "Falha ao atualizar alvo." });
+    }
+  });
+
+  app.delete("/api/admin-console/audit/targets/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    try {
+      const { error } = await deps.supabaseAdmin.from("audit_targets").delete().eq("id", id);
+      if (error) throw error;
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.target.deleted",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit_target",
+        targetId: id,
+        description: `Alvo de auditoria removido.`,
+        req,
+      });
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:delete]", e);
+      res.status(500).json({ error: e?.message || "Falha ao remover alvo." });
+    }
+  });
+
+  app.post("/api/admin-console/audit/targets/:id/run", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    try {
+      const { data: target, error } = await deps.supabaseAdmin
+        .from("audit_targets")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !target) return res.status(404).json({ error: "Alvo não encontrado." });
+      const out = await runFullAudit(deps.supabaseAdmin, {
+        url: target.url,
+        source: "manual",
+        runBy: ctx.user.id,
+        target: target as AuditTargetRow,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.target.run",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit_target",
+        targetId: id,
+        description: `Auditoria executada (score ${out.scoreTotal}/${out.scoreGrade}).`,
+        metadata: { scoreTotal: out.scoreTotal, deltaTotal: out.deltaTotal, alerted: out.alerted },
+        req,
+      });
+      res.json({ ok: out.ok, run: out });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:run]", e);
+      res.status(500).json({ error: e?.message || "Falha na execução." });
+    }
+  });
+
+  app.get("/api/admin-console/audit/targets/:id/history", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    const limit = Math.max(1, Math.min(200, Number(req.query.n) || 50));
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("audit_runs")
+        .select("id, created_at, source, status, score_total, score_grade, delta_total, http_status, issues_count, performance_score, ran_psi, ran_dns, alerted, error")
+        .eq("target_id", id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) {
+        if (isMissingOrUnknownTable(error, "audit_runs")) {
+          return res.json({ ok: true, runs: [], notice: "Tabela audit_runs ausente — aplique a migracao." });
+        }
+        throw error;
+      }
+      res.json({ ok: true, runs: data || [] });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:history]", e);
+      res.status(500).json({ error: e?.message || "Falha ao listar histórico." });
+    }
+  });
+
+  app.get("/api/admin-console/audit/runs/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("audit_runs")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !data) return res.status(404).json({ error: "Run não encontrada." });
+      res.json({ ok: true, run: data });
+    } catch (e: any) {
+      console.error("[admin-console/audit/runs:get]", e);
+      res.status(500).json({ error: e?.message || "Falha ao buscar run." });
+    }
+  });
+
+  app.post("/api/admin-console/audit/targets/:id/test-webhook", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "");
+    try {
+      const { data: target } = await deps.supabaseAdmin.from("audit_targets").select("*").eq("id", id).single();
+      if (!target?.alert_webhook) return res.status(400).json({ error: "Alvo sem webhook configurado." });
+      const r = await sendAuditWebhook(target.alert_webhook, {
+        url: target.url,
+        label: target.label,
+        total: target.last_score ?? 50,
+        grade: target.last_grade ?? "C",
+        threshold: target.alert_threshold,
+        reason: "Teste manual disparado pelo painel.",
+      });
+      res.json({ ok: r.ok, status: r.status, error: r.error });
+    } catch (e: any) {
+      console.error("[admin-console/audit/targets:test-webhook]", e);
+      res.status(500).json({ error: e?.message || "Falha no webhook." });
     }
   });
 

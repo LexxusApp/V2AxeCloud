@@ -35,8 +35,9 @@ import { cn } from "@/lib/cn";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { TenantDrawer } from "./TenantDrawer";
 import { AuditPanel } from "./AuditPanel";
+import { AuditMonitor } from "./AuditMonitor";
 
-type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp" | "audit";
+type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp" | "audit" | "monitor";
 
 type Overview = {
   leadersCount: number;
@@ -81,6 +82,7 @@ const NAV: { id: Tab; label: string; icon: ComponentType<{ className?: string }>
   { id: "plans", label: "Planos globais", icon: FileJson2 },
   { id: "whatsapp", label: "WhatsApp admin", icon: MessageCircle },
   { id: "audit", label: "Auditoria", icon: ShieldCheck },
+  { id: "monitor", label: "Monitor contínuo", icon: Activity },
 ];
 
 export function CommandShell({ session }: { session: Session }) {
@@ -621,6 +623,8 @@ export function CommandShell({ session }: { session: Session }) {
           {tab === "plans" && <PlansEditor initial={plansCatalog} />}
           {tab === "whatsapp" && <WhatsAppPanel />}
           {tab === "audit" && <AuditPanel />}
+
+          {tab === "monitor" && <AuditMonitor />}
         </main>
       </div>
 

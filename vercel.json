@@ -2,6 +2,12 @@
   "env": {
     "NODE_OPTIONS": "--disable-warning=DEP0169"
   },
+  "crons": [
+    {
+      "path": "/api/cron/audit-tick",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/auth/filho-login",

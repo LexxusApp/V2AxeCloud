@@ -45,6 +45,7 @@ import {
 import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
+import { handleAuditTick } from "./api/lib/audit/cronTick.js";
 import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
@@ -3181,6 +3182,10 @@ async function startServer() {
     supabaseAdmin,
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
+  });
+
+  app.all("/api/cron/audit-tick", async (req, res) => {
+    await handleAuditTick(req, res, supabaseAdmin);
   });
 
   // API Route: Update User Plan (Self-service / Payment Simulation)

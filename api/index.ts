@@ -44,6 +44,7 @@ import {
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
+import { handleAuditTick } from "./lib/audit/cronTick.js";
 import { normalizePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
@@ -2996,6 +2997,12 @@ async function startServer() {
     supabaseAdmin,
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
+  });
+
+  // Cron Vercel (Fase 4): roda monitoramento contínuo dos audit_targets.
+  // Configure o schedule em vercel.json e o secret em CRON_SECRET.
+  app.all("/api/cron/audit-tick", async (req, res) => {
+    await handleAuditTick(req, res, supabaseAdmin);
   });
 
   // API Route: Update User Plan (Self-service / Payment Simulation)
