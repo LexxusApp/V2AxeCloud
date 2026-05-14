@@ -1,8 +1,4 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, LogOut, User } from 'lucide-react';
-import { performFastLogout } from '../lib/logout';
-import { cn } from '../lib/utils';
+import React from 'react';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -10,12 +6,15 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   tabs?: React.ReactNode;
   tenantData?: any;
+  /**
+   * Mantido por compatibilidade com chamadores antigos. O dropdown de
+   * perfil foi removido (era redundante com a sidebar), entao esta prop
+   * nao e mais utilizada internamente.
+   */
   setActiveTab: (tab: string) => void;
 }
 
-export default function PageHeader({ title, subtitle, actions, tabs, tenantData, setActiveTab }: PageHeaderProps) {
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-
+export default function PageHeader({ title, subtitle, actions, tabs, tenantData }: PageHeaderProps) {
   return (
     <div className="mb-0 w-full min-w-0 max-w-full overflow-x-hidden bg-transparent px-3 py-3 sm:px-4 md:mb-6 md:px-6 md:py-8 lg:px-10">
       <header className="mx-auto flex min-w-0 max-w-[1440px] flex-col justify-between gap-6 md:gap-8 lg:flex-row lg:items-center">
@@ -37,18 +36,19 @@ export default function PageHeader({ title, subtitle, actions, tabs, tenantData,
             </div>
           )}
 
-          {/* User Profile - Top Right - Hidden on mobile as it's redundant */}
-          <div className="relative shrink-0 hidden lg:block">
-            <button 
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-3 p-1 pr-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+          {/* Badge de identificacao do zelador - apenas visual, sem dropdown.
+             Configuracoes e Sair do Sistema vivem na sidebar para evitar duplicidade. */}
+          <div className="relative hidden shrink-0 lg:block">
+            <div
+              className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 p-1 pr-3"
+              aria-label="Identificação do zelador"
             >
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary flex items-center justify-center text-background font-black text-sm border border-primary shadow-lg shadow-primary/20 transition-transform group-hover:scale-105 overflow-hidden">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-primary bg-primary text-sm font-black text-background shadow-lg shadow-primary/20 md:h-9 md:w-9">
                 {tenantData?.foto_url ? (
-                  <img 
-                    src={tenantData.foto_url} 
-                    alt={tenantData?.nome || 'Terreiro'} 
-                    className="w-full h-full object-cover"
+                  <img
+                    src={tenantData.foto_url}
+                    alt={tenantData?.nome || 'Terreiro'}
+                    className="h-full w-full object-cover"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -64,60 +64,22 @@ export default function PageHeader({ title, subtitle, actions, tabs, tenantData,
                   (tenantData?.nome?.[0] || 'T').toUpperCase()
                 )}
               </div>
-              <div className="hidden md:flex flex-col items-start gap-0.5">
+              <div className="hidden flex-col items-start gap-0.5 md:flex">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white tracking-tight">
+                  <span className="text-sm font-bold tracking-tight text-white">
                     {tenantData?.nome || 'Zelador'}
                   </span>
-                  <span className="bg-[#FBBC00]/10 text-[#FBBC00] text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] tracking-wider">
+                  <span className="rounded-[4px] bg-[#FBBC00]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#FBBC00]">
                     {tenantData?.plan?.toUpperCase() || 'PREMIUM'}
                   </span>
                 </div>
                 {(tenantData?.role === 'filho' || tenantData?.cargo?.trim()) && (
-                  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest max-w-[180px] truncate">
+                  <span className="max-w-[180px] truncate text-[10px] font-bold uppercase tracking-widest text-gray-500">
                     {tenantData?.role === 'filho' ? 'Filho de Santo' : tenantData?.cargo?.trim()}
                   </span>
                 )}
               </div>
-            </button>
-
-            <AnimatePresence>
-              {isProfileOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsProfileOpen(false)} 
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-56 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden"
-                  >
-                    <div className="p-2 space-y-1">
-                      <button
-                        onClick={() => {
-                          setActiveTab('settings');
-                          setIsProfileOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Configurações
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => performFastLogout()}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold text-red-500 hover:bg-red-500/10 transition-all"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sair do Sistema
-                      </button>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
