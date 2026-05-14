@@ -163,6 +163,9 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
             </div>
           </div>
 
+          {/* Divisor estetico entre a marca e a navegacao: esticado ate as
+              bordas da sidebar via -mx-6 (compensa o p-6 do container). */}
+          <div className="-mx-6 mb-4 h-px shrink-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pb-4">
