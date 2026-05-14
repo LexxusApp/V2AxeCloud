@@ -83,6 +83,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
   const [pwdVisible, setPwdVisible] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [roleBusy, setRoleBusy] = useState(false);
 
   const fetchData = useCallback(async (id: string) => {
     setLoading(true);
@@ -125,6 +126,26 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
       window.setTimeout(() => setCopied((c) => (c === tag ? null : c)), 1500);
     } catch {
       /* clipboard pode estar bloqueado; ignorar */
+    }
+  }
+
+  async function setRole(role: "admin" | "filho") {
+    if (!tenantId) return;
+    const current = String(data?.profile?.role || "").toLowerCase();
+    if (current === role) return;
+    if (!confirm(`Definir o papel deste terreiro como "${role}"?`)) return;
+    setRoleBusy(true);
+    setError(null);
+    try {
+      await apiJson(`/api/admin-console/tenant/${tenantId}/set-role`, {
+        method: "POST",
+        body: JSON.stringify({ role }),
+      });
+      await fetchData(tenantId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao atualizar papel");
+    } finally {
+      setRoleBusy(false);
     }
   }
 
@@ -207,7 +228,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                   tag="tenant"
                 />
                 <Row label="Cargo" value={data.profile?.cargo || "—"} />
-                <Row label="Papel" value={data.profile?.role || "—"} />
+                <RoleRow role={data.profile?.role || null} busy={roleBusy} onSet={setRole} />
               </Section>
 
               <Section title="Acesso" icon={Mail}>
@@ -373,6 +394,58 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+function RoleRow({
+  role,
+  busy,
+  onSet,
+}: {
+  role: string | null;
+  busy: boolean;
+  onSet: (r: "admin" | "filho") => void;
+}) {
+  const normalized = String(role || "").toLowerCase().trim();
+  const isFilho = normalized === "filho";
+  const isAdmin = normalized === "admin";
+  const isInconsistent = !!normalized && !isFilho && !isAdmin;
+  const tone = isFilho
+    ? "bg-violet-500/15 text-violet-200 ring-violet-400/30"
+    : isAdmin
+      ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30"
+      : "bg-amber-500/15 text-amber-200 ring-amber-400/30";
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Papel</span>
+      <div className="flex items-center gap-2">
+        <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-bold ring-1", tone)}>
+          {role || "—"}
+        </span>
+        {isInconsistent && (
+          <button
+            type="button"
+            onClick={() => onSet("admin")}
+            disabled={busy}
+            title="Normalizar papel para 'admin' (zelador)."
+            className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            {busy ? "..." : "definir admin"}
+          </button>
+        )}
+        {!isInconsistent && (
+          <button
+            type="button"
+            onClick={() => onSet(isFilho ? "admin" : "filho")}
+            disabled={busy}
+            title={isFilho ? "Marcar como Admin (zelador)" : "Marcar como Filho"}
+            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300 hover:bg-white/[0.08] disabled:opacity-50"
+          >
+            {busy ? "..." : isFilho ? "→ admin" : "→ filho"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

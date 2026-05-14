@@ -360,6 +360,85 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
    * recuperada (é hash), o admin pode gerar uma nova senha numérica de 8 dígitos.
    * Útil quando o zelador perde a senha inicial.
    */
+  /**
+   * Ajusta o role de um tenant especifico (admin <-> filho). O app inteiro so
+   * distingue 'filho' do resto, mas valores inconsistentes (ex.: 'user') ficam
+   * mostrando esquisito no painel.
+   */
+  app.post("/api/admin-console/tenant/:id/set-role", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    const rawRole = String((req.body || {}).role || "").toLowerCase().trim();
+    const role = rawRole === "filho" ? "filho" : "admin";
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("perfil_lider")
+        .update({ role, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("id, role")
+        .single();
+      if (error) throw error;
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "tenant.role-set",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: id,
+        description: `Role definido como ${role}.`,
+        metadata: { role },
+        req,
+      });
+      res.json({ ok: true, role: data?.role || role });
+    } catch (e: any) {
+      console.error("[admin-console/tenant:set-role]", e);
+      res.status(500).json({ error: e?.message || "Falha ao atualizar role." });
+    }
+  });
+
+  /**
+   * Normaliza role de todos os perfil_lider: qualquer não-filho vira 'admin'.
+   * Equivalente em runtime à migration SQL 20260514120000_normalize_perfil_lider_role.sql,
+   * mas pode ser disparada do painel sem rodar SQL manual.
+   */
+  app.post("/api/admin-console/maintenance/normalize-roles", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { data: pre, error: preErr } = await deps.supabaseAdmin
+        .from("perfil_lider")
+        .select("id, role");
+      if (preErr) throw preErr;
+      const inconsistent = (pre || []).filter((r: any) => {
+        const v = String(r.role || "").toLowerCase().trim();
+        return v !== "filho" && v !== "admin";
+      });
+      if (inconsistent.length === 0) {
+        return res.json({ ok: true, updated: 0, total: (pre || []).length });
+      }
+      const ids = inconsistent.map((r: any) => r.id);
+      const { error: updErr } = await deps.supabaseAdmin
+        .from("perfil_lider")
+        .update({ role: "admin", updated_at: new Date().toISOString() })
+        .in("id", ids);
+      if (updErr) throw updErr;
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "maintenance.normalize-roles",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "maintenance",
+        description: `Normalizados ${ids.length} perfil_lider para role='admin'.`,
+        metadata: { updatedIds: ids.slice(0, 50), total: (pre || []).length },
+        req,
+      });
+      res.json({ ok: true, updated: ids.length, total: (pre || []).length });
+    } catch (e: any) {
+      console.error("[admin-console/maintenance/normalize-roles]", e);
+      res.status(500).json({ error: e?.message || "Falha ao normalizar roles." });
+    }
+  });
+
   app.post("/api/admin-console/tenant/:id/reset-password", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
