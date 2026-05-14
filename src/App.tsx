@@ -54,7 +54,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 65;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 66;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -431,7 +431,10 @@ export default function App() {
   };
 
   const loadAllTenantData = async (userId: string, userEmail?: string, authRole?: string) => {
-    let retries = 3;
+    // Timeouts curtos: melhor cair pro cache+recovery do que travar a UI.
+    // Quem ja tem cache hidratado nao ve o spinner — esse fetch e essencialmente
+    // "background refresh" da maioria das vezes.
+    let retries = 2;
     const isFilhoAuth = readPersistedFilhoFlag(userId) || isFilhoIdentity(null, userEmail, authRole);
     persistFilhoFlag(isFilhoAuth, userId);
 
@@ -453,10 +456,10 @@ export default function App() {
     const safetyAbort = new AbortController();
     let safetyFired = false;
 
-    // Safety Net: Garantia de que o loader sairá em no máximo 15s
+    // Safety Net: Garantia de que o loader sairá em no máximo 6s.
     const safetyTimeout = setTimeout(() => {
       safetyFired = true;
-      console.warn('[SYSTEM] Safety timeout atingido — recuperação por cache/Supabase.');
+      console.warn('[SYSTEM] Safety timeout (6s) — caindo para recuperação por cache/Supabase.');
       try {
         safetyAbort.abort();
       } catch {
@@ -465,15 +468,15 @@ export default function App() {
       void recoverTenantAfterFailure(userId, userEmail, authRole).then((ok) => {
         if (!ok) setTenantRecoveryFailed(true);
       });
-    }, 15000);
+    }, 6000);
 
     try {
       setTenantRecoveryFailed(false);
       while (retries > 0) {
         try {
           const url = `/api/tenant-info?userId=${userId}&email=${encodeURIComponent(userEmail || '')}`;
-          // Cada tentativa tem hard timeout próprio (8s) e também respeita o safety global.
-          const perAttempt = AbortSignal.timeout(8000);
+          // Cada tentativa tem hard timeout próprio (3.5s) e também respeita o safety global.
+          const perAttempt = AbortSignal.timeout(3500);
           const signal = AbortSignal.any
             ? AbortSignal.any([perAttempt, safetyAbort.signal])
             : perAttempt;
@@ -625,8 +628,8 @@ export default function App() {
           retries--;
 
           if (retries > 0) {
-            // Atraso progressivo (1.5s) antes de tentar novamente para contornar reinícios de server em deploy
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Atraso breve antes de tentar novamente — total maximo ~7s para 2 tentativas.
+            await new Promise(resolve => setTimeout(resolve, 600));
             continue;
           }
 
@@ -679,8 +682,30 @@ export default function App() {
       if (initialSession?.user) {
         setSession(initialSession);
         lastAuthUserIdRef.current = initialSession.user.id;
-        setLoading(true);
-        setIsSessionHydrating(true);
+        // Hidratação otimista: se ja temos cache de tenant + role no localStorage,
+        // renderizamos a UI IMEDIATAMENTE com cache e o fetch de /api/tenant-info
+        // roda em background. Evita "spinner amarelo" em mobile com rede lenta.
+        const cachedTenant = peekCachedTenantId(initialSession.user.id);
+        const cachedRole = readUserRoleAnchor();
+        if (cachedTenant && cachedRole) {
+          console.log('[SYSTEM] Hidratação otimista do cache (tenant + role).');
+          setTenantData((prev) => prev ?? {
+            nome: '',
+            plan: 'premium',
+            tenant_id: cachedTenant,
+            role: cachedRole,
+          });
+          setUserRole(cachedRole);
+          setIsAdminGlobal(false);
+          setSubscriptionActive(true);
+          setLoading(false);
+          setIsSessionHydrating(false);
+          authFirstEventHandledRef.current = true;
+          setIsInitializing(false);
+        } else {
+          setLoading(true);
+          setIsSessionHydrating(true);
+        }
       } else {
         setSession(null);
         // Libera o spinner inicial mesmo se o listener ainda não disparou —
@@ -752,19 +777,40 @@ export default function App() {
             // Garante que qualquer papel residual de sessão anterior não vaze para a UI
             // enquanto os dados do novo usuário ainda estão sendo carregados.
             roleRecoveryOnceForUserRef.current = null;
-            setUserRole(null);
-            setLoading(true);
-            setIsSessionHydrating(true);
             setTenantRecoveryFailed(false);
             setIsMobileOpen(false);
             const cachedImmediate = peekCachedTenantId(session.user.id);
-            if (cachedImmediate) {
+            const cachedRoleAnchor = readUserRoleAnchor();
+            const hasFullCache = !!cachedImmediate && !!cachedRoleAnchor;
+
+            // Hidratação otimista: se há cache valido, hidratamos a UI IMEDIATAMENTE
+            // sem mostrar spinner. O loadAllTenantData roda em background e atualiza
+            // detalhes quando responder.
+            if (hasFullCache) {
+              setUserRole(cachedRoleAnchor);
               setTenantData({
                 nome: '',
                 plan: 'premium',
                 tenant_id: cachedImmediate,
+                role: cachedRoleAnchor,
               });
+              setIsAdminGlobal(false);
+              setSubscriptionActive(true);
+              setLoading(false);
+              setIsSessionHydrating(false);
+            } else {
+              setUserRole(null);
+              setLoading(true);
+              setIsSessionHydrating(true);
+              if (cachedImmediate) {
+                setTenantData({
+                  nome: '',
+                  plan: 'premium',
+                  tenant_id: cachedImmediate,
+                });
+              }
             }
+
             // Sempre inicia na Home após sessão válida; evita aba 'profile' órfã (sem filho)
             // da sessão anterior. Filhos de santo são reposicionados em loadAllTenantData.
             const isFilhoAuth = readPersistedFilhoFlag(session.user.id) || isFilhoIdentity(session.user);
