@@ -156,6 +156,61 @@ function createResilientFetch(getClient: () => SupabaseClient): typeof fetch {
 
 const globalForSupabase = globalThis as unknown as { __AXECLOUD_SUPABASE__?: SupabaseClient };
 
+/**
+ * Lock resiliente para o GoTrue do Supabase.
+ *
+ * Default do supabase-js usa `navigator.locks.request(name, { mode: 'exclusive' }, fn)`.
+ * Em alguns navegadores (Brave/Chrome) a lock fica órfã quando uma aba é fechada no
+ * meio de um `getSession`/`refreshSession`, e a próxima aba esperaria indefinidamente,
+ * causando "tela de loading eterna" ao reabrir o app.
+ *
+ * Aqui adquirimos a lock com timeout duro (3.5s). Se não conseguir nesse prazo,
+ * a função é executada sem lock — pior cenário é um refresh duplicado, melhor que
+ * UI travada. `acquireTimeout` enviado pelo GoTrue é respeitado como teto adicional.
+ */
+const SUPABASE_LOCK_TIMEOUT_MS = 3500;
+
+async function resilientLock<R>(
+  name: string,
+  acquireTimeout: number,
+  fn: () => Promise<R>
+): Promise<R> {
+  if (typeof navigator === 'undefined' || !navigator.locks) {
+    return fn();
+  }
+  const timeoutMs = Math.min(
+    SUPABASE_LOCK_TIMEOUT_MS,
+    acquireTimeout > 0 ? acquireTimeout : SUPABASE_LOCK_TIMEOUT_MS
+  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    try {
+      controller.abort();
+    } catch {
+      /* noop */
+    }
+  }, timeoutMs);
+  try {
+    return await navigator.locks.request(
+      name,
+      { mode: 'exclusive', signal: controller.signal },
+      async () => {
+        clearTimeout(timer);
+        return await fn();
+      }
+    );
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (err?.name === 'AbortError') {
+      console.warn(
+        `[supabase-lock] não foi possível adquirir "${name}" em ${timeoutMs}ms — executando sem lock.`
+      );
+      return fn();
+    }
+    throw err;
+  }
+}
+
 function createAxecloudSupabaseClient(): SupabaseClient {
   return createClient(
     supabaseUrl || 'https://placeholder.supabase.co',
@@ -167,7 +222,10 @@ function createAxecloudSupabaseClient(): SupabaseClient {
         detectSessionInUrl: true,
         storageKey: 'axecloud-auth-token',
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      },
+        // Lock resiliente para evitar travamento eterno quando uma aba anterior
+        // morreu segurando a lock (`navigator.locks` órfão).
+        lock: resilientLock,
+      } as any,
       global: {
         fetch: createResilientFetch(() => supabase),
       },

@@ -54,7 +54,7 @@ export function getIsSessionReady() {
 }
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 63;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 64;
 
 function readTenantAnchorFromStorage() {
   try {
@@ -290,18 +290,18 @@ export default function App() {
     document.body.style.overscrollBehavior = 'none';
   }, []);
 
-  // Safety global: se o spinner inicial ficar 25s travado (auth listener nunca finalizar,
+  // Safety global: se o spinner inicial ficar travado (auth listener nunca finalizar,
   // lock do Supabase entre abas, etc.), libera para a UI poder seguir — Login se sem sessão,
-  // recovery/erro se com sessão sem tenant. Evita "tela de loading eterna" ao abrir nova aba.
+  // recovery/erro se com sessão sem tenant. Evita "tela de loading eterna" ao reabrir o app.
   useEffect(() => {
     if (!isInitializing) return;
     const id = window.setTimeout(() => {
-      console.warn('[SYSTEM] isInitializing > 25s — forçando liberação do spinner.');
+      console.warn('[SYSTEM] isInitializing > 6s — forçando liberação do spinner.');
       authFirstEventHandledRef.current = true;
       setIsInitializing(false);
       setLoading(false);
       setIsSessionHydrating(false);
-    }, 25000);
+    }, 6000);
     return () => window.clearTimeout(id);
   }, [isInitializing]);
 
@@ -661,9 +661,21 @@ export default function App() {
         void performVersionBumpLogout(SYSTEM_VERSION);
       }
 
+      // getSession() pode travar em ~30s em locks órfãs do GoTrue entre abas.
+      // O lock resiliente em src/lib/supabase.ts já corta em ~3.5s, mas mantemos
+      // um teto extra aqui para nunca prender o boot. Se exceder, prosseguimos
+      // como "sem sessão" — o auth listener corrige depois quando a lock liberar.
+      const SESSION_BOOT_TIMEOUT_MS = 4500;
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => {
+        window.setTimeout(() => {
+          console.warn('[SYSTEM] getSession inicial > 4.5s — liberando boot sem sessão.');
+          resolve({ data: { session: null } });
+        }, SESSION_BOOT_TIMEOUT_MS);
+      });
       const {
         data: { session: initialSession },
-      } = await supabase.auth.getSession();
+      } = (await Promise.race([sessionPromise, timeoutPromise])) as { data: { session: Session | null } };
       if (initialSession?.user) {
         setSession(initialSession);
         lastAuthUserIdRef.current = initialSession.user.id;
@@ -671,6 +683,15 @@ export default function App() {
         setIsSessionHydrating(true);
       } else {
         setSession(null);
+        // Libera o spinner inicial mesmo se o listener ainda não disparou —
+        // o Login será exibido e, se a sessão chegar via listener depois, o
+        // app re-hidrata normalmente sem flicker.
+        if (!authFirstEventHandledRef.current) {
+          authFirstEventHandledRef.current = true;
+          setIsInitializing(false);
+          setLoading(false);
+          setIsSessionHydrating(false);
+        }
       }
     };
 
