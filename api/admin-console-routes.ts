@@ -19,6 +19,8 @@ import { logEvent } from "./lib/auditLog.js";
 import { scanUrl } from "./lib/audit/scan.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
+import { checkLinks } from "./lib/audit/links.js";
+import { validateHreflang } from "./lib/audit/hreflang.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -847,6 +849,44 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/audit/dns]", e);
       res.status(500).json({ error: e?.message || "Falha ao consultar DNS/WHOIS." });
+    }
+  });
+
+  // Link checker + validacao de hreflang (Fase 3, ~10-30s dependendo da pagina).
+  app.post("/api/admin-console/audit/links", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as { url?: string; limit?: number; alternates?: { lang: string; href: string }[] };
+    const targetUrl = String(body.url || "").trim();
+    const limit = typeof body.limit === "number" ? body.limit : undefined;
+    if (!targetUrl) return res.status(400).json({ error: "Informe a URL." });
+    try {
+      const [links, hreflang] = await Promise.all([
+        checkLinks(targetUrl, { limit }),
+        Array.isArray(body.alternates) && body.alternates.length > 0
+          ? validateHreflang(targetUrl, body.alternates as { lang: string; href: string }[])
+          : Promise.resolve(null),
+      ]);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.links",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit",
+        targetId: links.source,
+        description: `Links auditados (${links.checked}/${links.totalAnchors}) — ${links.summary.broken} quebrados.`,
+        metadata: {
+          totalAnchors: links.totalAnchors,
+          checked: links.checked,
+          summary: links.summary,
+          hreflangCount: hreflang?.count ?? 0,
+          hreflangIssues: hreflang?.issues.length ?? 0,
+        },
+        req,
+      });
+      res.json({ ok: true, links, hreflang });
+    } catch (e: any) {
+      console.error("[admin-console/audit/links]", e);
+      res.status(500).json({ error: e?.message || "Falha ao verificar links." });
     }
   });
 

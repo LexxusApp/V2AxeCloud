@@ -4,9 +4,13 @@ import {
   ArrowRight,
   Award,
   CheckCircle2,
+  ExternalLink,
   Gauge,
   Globe,
   Info,
+  Languages,
+  Link2,
+  Link2Off,
   Loader2,
   Lock,
   Mail,
@@ -166,6 +170,43 @@ type PsiResult = {
     inpMs: number | null;
     cls: number | null;
   };
+};
+
+type LinkStatus = "ok" | "redirect" | "broken" | "timeout" | "network";
+
+type LinkCheck = {
+  url: string;
+  status: LinkStatus;
+  httpStatus: number | null;
+  finalUrl: string | null;
+  durationMs: number;
+  contentType: string | null;
+  method: "HEAD" | "GET" | "—";
+  internal: boolean;
+  anchorText: string | null;
+  rel: string | null;
+  error?: string;
+};
+
+type LinksReport = {
+  source: string;
+  totalAnchors: number;
+  uniqueLinks: number;
+  checked: number;
+  limit: number;
+  summary: { ok: number; redirect: number; broken: number; timeout: number; network: number };
+  items: LinkCheck[];
+  skippedSamples: { url: string; reason: string }[];
+};
+
+type HreflangIssue = { level: "error" | "warn" | "info"; message: string; details?: string };
+type ReciprocityResult = { url: string; lang: string; reciprocates: boolean | null; reason?: string };
+type HreflangReport = {
+  count: number;
+  entries: { lang: string; href: string }[];
+  issues: HreflangIssue[];
+  reciprocity: ReciprocityResult[];
+  hasXDefault: boolean;
 };
 
 const PRESETS = [
@@ -330,6 +371,11 @@ export function AuditPanel() {
   const [psiBusy, setPsiBusy] = useState(false);
   const [psiError, setPsiError] = useState<string | null>(null);
   const [psiStrategy, setPsiStrategy] = useState<"mobile" | "desktop">("mobile");
+  const [links, setLinks] = useState<LinksReport | null>(null);
+  const [linksBusy, setLinksBusy] = useState(false);
+  const [linksError, setLinksError] = useState<string | null>(null);
+  const [hreflang, setHreflang] = useState<HreflangReport | null>(null);
+  const [linkLimit, setLinkLimit] = useState<number>(30);
 
   async function runScan() {
     if (!url.trim()) return;
@@ -340,6 +386,9 @@ export function AuditPanel() {
     setDnsError(null);
     setPsi(null);
     setPsiError(null);
+    setLinks(null);
+    setLinksError(null);
+    setHreflang(null);
     try {
       const j = await apiJson<{ ok: boolean; result: ScanResult }>("/api/admin-console/audit/scan", {
         method: "POST",
@@ -384,6 +433,31 @@ export function AuditPanel() {
       setPsiError(e instanceof Error ? e.message : "Falha no PageSpeed Insights.");
     } finally {
       setPsiBusy(false);
+    }
+  }
+
+  async function runLinks(limit = linkLimit) {
+    if (!result) return;
+    setLinksBusy(true);
+    setLinksError(null);
+    try {
+      const j = await apiJson<{ ok: boolean; links: LinksReport; hreflang: HreflangReport | null }>(
+        "/api/admin-console/audit/links",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            url: result.finalUrl,
+            limit,
+            alternates: result.hreflang || [],
+          }),
+        }
+      );
+      setLinks(j.links);
+      setHreflang(j.hreflang);
+    } catch (e) {
+      setLinksError(e instanceof Error ? e.message : "Falha ao verificar links.");
+    } finally {
+      setLinksBusy(false);
     }
   }
 
@@ -704,6 +778,187 @@ export function AuditPanel() {
             </div>
           </Section>
 
+          {/* Links & hreflang (Fase 3) */}
+          <Section
+            icon={<Link2 className="h-4 w-4 text-violet-300" />}
+            title={`Links & hreflang${links ? ` · ${links.checked}/${links.totalAnchors} verificados` : ""}`}
+          >
+            <div className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => void runLinks(linkLimit)}
+                  disabled={linksBusy}
+                  className="inline-flex items-center gap-2 rounded-md bg-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-200 ring-1 ring-violet-400/30 hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {linksBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+                  Verificar links
+                </button>
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  Limite:
+                  <select
+                    value={linkLimit}
+                    onChange={(e) => setLinkLimit(Number(e.target.value))}
+                    disabled={linksBusy}
+                    className="rounded-md border border-white/10 bg-black/40 px-2 py-0.5 text-[11px] text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                  >
+                    {[15, 30, 45, 60].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="text-[11px] text-slate-500">~ {Math.max(2, Math.round(linkLimit / 8) * 2)}s</span>
+                {linksError && <span className="text-[11px] text-red-300">{linksError}</span>}
+              </div>
+
+              {links && (
+                <>
+                  <div className="grid gap-2 md:grid-cols-5">
+                    <LinkStatChip label="OK" value={links.summary.ok} tone="text-emerald-300 bg-emerald-500/15 ring-emerald-400/30" />
+                    <LinkStatChip label="Redirect" value={links.summary.redirect} tone="text-cyan-300 bg-cyan-500/15 ring-cyan-400/30" />
+                    <LinkStatChip label="Quebrados" value={links.summary.broken} tone="text-red-300 bg-red-500/15 ring-red-400/30" />
+                    <LinkStatChip label="Timeout" value={links.summary.timeout} tone="text-amber-300 bg-amber-500/15 ring-amber-400/30" />
+                    <LinkStatChip label="Erro de rede" value={links.summary.network} tone="text-slate-300 bg-white/[0.06] ring-white/10" />
+                  </div>
+
+                  {/* Lista priorizando problemas */}
+                  <div className="overflow-hidden rounded-md border border-white/10">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-white/[0.04] text-slate-400">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left">Status</th>
+                          <th className="px-2 py-1.5 text-left">URL</th>
+                          <th className="px-2 py-1.5 text-left">Texto âncora</th>
+                          <th className="px-2 py-1.5 text-right">Tempo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...links.items]
+                          .sort((a, b) => statusRank(a.status) - statusRank(b.status))
+                          .slice(0, 60)
+                          .map((it, i) => (
+                            <tr key={i} className="border-t border-white/5 hover:bg-white/[0.02]">
+                              <td className="px-2 py-1.5">
+                                <LinkStatusPill check={it} />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <a
+                                  href={it.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex max-w-[420px] items-center gap-1 truncate font-mono-data text-slate-300 hover:text-cyan-300"
+                                >
+                                  <span className="truncate">{it.url}</span>
+                                  <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+                                </a>
+                                {it.internal && (
+                                  <span className="ml-1 rounded bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-200">interno</span>
+                                )}
+                                {it.rel?.includes("nofollow") && (
+                                  <span className="ml-1 rounded bg-white/[0.06] px-1 py-0.5 text-[9px] text-slate-400">nofollow</span>
+                                )}
+                              </td>
+                              <td className="px-2 py-1.5 max-w-[260px] truncate text-slate-400">
+                                {it.anchorText || <span className="italic opacity-50">sem texto</span>}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-mono-data text-slate-500">
+                                {it.durationMs}ms
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {links.skippedSamples.length > 0 && (
+                    <p className="text-[10px] text-slate-500">
+                      + {links.totalAnchors - links.checked} link(s) acima do limite. Aumente o limite para verificar mais.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* hreflang */}
+              {(hreflang || (result?.hreflang?.length || 0) > 0) && (
+                <div className="mt-2 rounded-md border border-white/10 bg-black/30 p-3">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                    <Languages className="h-3.5 w-3.5" /> hreflang ({hreflang?.count ?? result?.hreflang?.length ?? 0})
+                    {hreflang?.hasXDefault && (
+                      <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] text-emerald-200">
+                        x-default ✓
+                      </span>
+                    )}
+                  </div>
+
+                  {!hreflang && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Clique em "Verificar links" para validar reciprocidade dos hreflangs.
+                    </p>
+                  )}
+
+                  {hreflang && hreflang.entries.length > 0 && (
+                    <ul className="mt-2 flex flex-wrap gap-1.5">
+                      {hreflang.entries.map((e, i) => (
+                        <li
+                          key={i}
+                          className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 font-mono-data text-[10px] text-slate-300 ring-1 ring-white/10"
+                          title={e.href}
+                        >
+                          <span className="text-violet-300">{e.lang}</span>
+                          <span className="opacity-50 truncate max-w-[160px]">{e.href.replace(/^https?:\/\//, "")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {hreflang && hreflang.issues.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-[11px]">
+                      {hreflang.issues.map((iss, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          {issueIcon(iss.level)}
+                          <span className={iss.level === "error" ? "text-red-200" : iss.level === "warn" ? "text-amber-200" : "text-slate-300"}>
+                            {iss.message}
+                            {iss.details && (
+                              <span className="ml-1 opacity-60 font-mono-data">{iss.details}</span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {hreflang && hreflang.reciprocity.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Reciprocidade</p>
+                      <ul className="mt-1 space-y-0.5 text-[11px]">
+                        {hreflang.reciprocity.map((r, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            {r.reciprocates ? (
+                              <CheckCircle2 className="h-3 w-3 text-emerald-300" />
+                            ) : r.reciprocates === false ? (
+                              <Link2Off className="h-3 w-3 text-red-300" />
+                            ) : (
+                              <Info className="h-3 w-3 text-slate-400" />
+                            )}
+                            <span className="text-slate-400 font-mono-data">{r.lang}</span>
+                            <span className="truncate text-slate-300">{r.url}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {hreflang && hreflang.issues.length === 0 && hreflang.reciprocity.every((r) => r.reciprocates) && (
+                    <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-300">
+                      <CheckCircle2 className="h-3 w-3" /> Sem problemas detectados.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </Section>
+
           {/* Issues */}
           {result.issues.length > 0 && (
             <Section
@@ -1008,6 +1263,56 @@ function FacebookPreview({
         </div>
       </div>
     </div>
+  );
+}
+
+function statusRank(s: LinkStatus): number {
+  switch (s) {
+    case "broken":
+      return 0;
+    case "timeout":
+      return 1;
+    case "network":
+      return 2;
+    case "redirect":
+      return 3;
+    case "ok":
+      return 4;
+    default:
+      return 5;
+  }
+}
+
+function LinkStatChip({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className={cn("rounded-md p-2 ring-1", tone)}>
+      <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
+      <p className="mt-0.5 font-mono-data text-2xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function LinkStatusPill({ check }: { check: LinkCheck }) {
+  const httpLabel = check.httpStatus ? `${check.httpStatus}` : check.status;
+  const tone =
+    check.status === "ok"
+      ? "bg-emerald-500/20 text-emerald-200 ring-emerald-400/30"
+      : check.status === "redirect"
+        ? "bg-cyan-500/20 text-cyan-200 ring-cyan-400/30"
+        : check.status === "broken"
+          ? "bg-red-500/20 text-red-200 ring-red-400/30"
+          : check.status === "timeout"
+            ? "bg-amber-500/20 text-amber-200 ring-amber-400/30"
+            : "bg-white/[0.06] text-slate-300 ring-white/10";
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono-data text-[10px] font-bold ring-1", tone)}>
+      {check.status === "broken" && <XCircle className="h-3 w-3" />}
+      {check.status === "ok" && <CheckCircle2 className="h-3 w-3" />}
+      {check.status === "redirect" && <ArrowRight className="h-3 w-3" />}
+      {check.status === "timeout" && <AlertTriangle className="h-3 w-3" />}
+      {check.status === "network" && <Info className="h-3 w-3" />}
+      {httpLabel}
+    </span>
   );
 }
 
