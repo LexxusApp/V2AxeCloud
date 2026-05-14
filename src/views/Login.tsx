@@ -1,12 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Mail, ArrowRight, Loader2, UserCircle2, KeyRound, AlertCircle, X } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2, UserCircle2, KeyRound, AlertCircle, X, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
+
+/**
+ * Converte erros tecnicos do auth/fetch em mensagens amigaveis ao usuario.
+ * Cobre os casos mais comuns: rede indisponivel, credenciais erradas, JWT expirado
+ * e tabelas/colunas faltando (deploy em andamento).
+ */
+function humanizeAuthError(err: unknown): string {
+  const msg = String((err as { message?: string })?.message || err || '').trim();
+  const lower = msg.toLowerCase();
+  if (!msg) return 'Não foi possível efetuar o login. Tente novamente em instantes.';
+
+  if (lower.includes('failed to fetch') || lower === 'load failed' || lower.includes('networkerror')) {
+    return 'Não conseguimos conectar ao servidor. Verifique sua internet, aguarde alguns segundos e tente de novo.';
+  }
+  if (lower.includes('timeout') || lower.includes('aborted')) {
+    return 'O servidor demorou para responder. Tente novamente em alguns instantes.';
+  }
+  if (lower.includes('invalid login credentials') || lower.includes('invalid email or password')) {
+    return 'E-mail ou senha incorretos. Confira os dados e tente de novo.';
+  }
+  if (lower.includes('email not confirmed')) {
+    return 'Confirme seu e-mail antes de entrar.';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    return 'Muitas tentativas seguidas. Aguarde um minuto e tente de novo.';
+  }
+  if (lower.includes('jwt') && lower.includes('expir')) {
+    return 'Sua sessão expirou. Faça login novamente.';
+  }
+  if (lower.includes('user banned') || lower.includes('user_banned')) {
+    return 'Conta bloqueada. Entre em contato com o suporte.';
+  }
+  return msg;
+}
 
 function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
   try {
@@ -30,6 +64,7 @@ export default function Login() {
   const [cpfPrefix, setCpfPrefix] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   // true = exibir o aviso amarelo (somente se a URL tiver vindo de atualização; não usar useState(true) fixo)
   const [showAlert, setShowAlert] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -127,7 +162,7 @@ export default function Login() {
       }
       // Pós-login: rota inicial é controlada pelo App (aba dashboard / ajuste para filho em loadAllTenantData).
     } catch (err: any) {
-      setError(err.message);
+      setError(humanizeAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -262,13 +297,23 @@ export default function Login() {
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                       <input 
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                        autoComplete="current-password"
+                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-12 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-primary hover:bg-white/5 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                   </div>
                 </motion.div>
