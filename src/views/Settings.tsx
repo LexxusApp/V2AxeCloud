@@ -381,7 +381,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             )}
           >
             <CreditCard className="w-5 h-5" />
-            Assinatura e Planos
+            Assinatura
           </button>
           <button 
             onClick={() => setActiveSection('whatsapp')}

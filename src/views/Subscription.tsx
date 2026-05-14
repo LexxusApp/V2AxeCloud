@@ -208,6 +208,9 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   const currentPlanName = PLAN_NAMES[planKey] || plansConfig[tenantData?.plan]?.name || tenantData?.plan || 'Nenhum';
   const expiresAt = tenantData?.expires_at ? new Date(tenantData.expires_at).toLocaleDateString('pt-BR') : 'Sem validade definida';
   const isLifetime = isLifetimePlan(tenantData?.plan);
+  // Nome amigavel para o cabecalho do card: evita duplicacao "Plano Plano Vita"
+  // e usa terminologia mais clara para vitalicios.
+  const displayPlanName = isLifetime ? 'Mensalidade Vitalícia' : `Plano ${currentPlanName}`;
 
   if (onlyCurrentPlan) {
     return (
@@ -218,7 +221,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h3 className="text-2xl font-black text-white">Plano {currentPlanName}</h3>
+              <h3 className="text-2xl font-black text-white">{displayPlanName}</h3>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-500 text-xs font-black tracking-widest uppercase">Ativo</span>
             </div>
             <p className="text-gray-400 font-medium">
@@ -267,6 +270,8 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   );
 
   if (onlyAvailablePlans) {
+    // Vitalicio: nao faz sentido oferecer upgrade — escondemos a grade de planos.
+    if (isLifetime) return null;
     return (
       <div className="w-full">
         {plansGrid}
@@ -294,7 +299,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-2xl font-black text-white">Plano {currentPlanName}</h3>
+                  <h3 className="text-2xl font-black text-white">{displayPlanName}</h3>
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-500 text-xs font-black tracking-widest uppercase">Ativo</span>
                 </div>
                 <p className="text-gray-400 font-medium">
