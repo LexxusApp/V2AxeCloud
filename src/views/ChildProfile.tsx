@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, User, Phone, MapPin, Activity, AlertTriangle, Edit2, Save, X, FileText, History, CircleDollarSign, Trash2, Loader2, Plus, MessageCircle, CreditCard, CheckCircle2, Lock, ShieldAlert, ShieldCheck, Camera } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ArrowLeft, Calendar, User, Phone, MapPin, Activity, AlertTriangle, Edit2, Save, X, FileText, History, CircleDollarSign, Trash2, Loader2, Plus, MessageCircle, CreditCard, CheckCircle2, Lock, ShieldCheck, Camera, NotebookPen, StickyNote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
@@ -14,6 +14,92 @@ interface ChildProfileProps {
   user: any;
   tenantData?: any;
   isSelfView?: boolean;
+}
+
+/**
+ * Estrutura de uma nota do zelador, armazenada como item de array
+ * dentro do campo `filhos_de_santo.notas_sigilosas` (JSON stringificado).
+ * Backwards-compatible: textos antigos sao migrados em parseZeladorNotes.
+ */
+type ZeladorNote = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** UUID resiliente: prefere crypto.randomUUID() quando disponivel. */
+function makeNoteId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* segue para fallback */
+  }
+  return `note_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Le o campo `notas_sigilosas` do banco e retorna um array de notas.
+ * - Se o valor for JSON valido com array de notas, devolve direto.
+ * - Se for texto legado nao-vazio, gera uma unica nota de migracao
+ *   ("Notas anteriores") preservando o conteudo original.
+ * - Sempre devolve array (vazio em caso de campo nulo/vazio).
+ */
+function parseZeladorNotes(raw: unknown): ZeladorNote[] {
+  if (raw == null) return [];
+  const text = typeof raw === 'string' ? raw : String(raw);
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      const out: ZeladorNote[] = [];
+      for (const item of list) {
+        if (!item || typeof item !== 'object') continue;
+        const obj = item as Record<string, unknown>;
+        const content = typeof obj.content === 'string' ? obj.content : null;
+        if (content === null) continue;
+        const now = new Date().toISOString();
+        out.push({
+          id: typeof obj.id === 'string' && obj.id.trim() ? obj.id : makeNoteId(),
+          title: typeof obj.title === 'string' && obj.title.trim() ? obj.title.trim() : 'Sem título',
+          content,
+          createdAt: typeof obj.createdAt === 'string' ? obj.createdAt : now,
+          updatedAt: typeof obj.updatedAt === 'string' ? obj.updatedAt : (typeof obj.createdAt === 'string' ? obj.createdAt : now),
+        });
+      }
+      if (out.length) return out;
+    } catch {
+      /* nao era JSON -> trata como texto legado abaixo */
+    }
+  }
+
+  const now = new Date().toISOString();
+  return [
+    {
+      id: makeNoteId(),
+      title: 'Notas anteriores',
+      content: text,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+/** Formata data ISO -> "12/05/2026 18:42" em PT-BR. */
+function formatNoteDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
 }
 
 export default function ChildProfile({ childId, setActiveTab, user, tenantData, isSelfView = false }: ChildProfileProps) {
@@ -37,8 +123,20 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     descricao: '',
     notifyChild: true
   });
-  const [privateNotes, setPrivateNotes] = useState('');
+  const [zeladorNotes, setZeladorNotes] = useState<ZeladorNote[]>([]);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  // Modal de criacao/edicao de nota individual. Quando aberto, draft segura
+  // os campos editaveis; selectedNoteId === null indica que e nota nova.
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [noteDraftTitle, setNoteDraftTitle] = useState('');
+  const [noteDraftContent, setNoteDraftContent] = useState('');
+
+  /** Notas mais recentes primeiro (ordenadas por updatedAt desc). */
+  const sortedZeladorNotes = useMemo(
+    () => [...zeladorNotes].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')),
+    [zeladorNotes]
+  );
 
   const tenantId = tenantData?.tenant_id;
   /** Alinhado à configuração do zelador (tabela / API pix-config), não hardcoded. */
@@ -113,7 +211,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         
         setChild(data);
         setEditData(data);
-        setPrivateNotes(data.notas_sigilosas || '');
+        setZeladorNotes(parseZeladorNotes(data?.notas_sigilosas));
 
         // Check for debt (compatível com schema novo e legado).
         // Schema novo: colunas `filho_id` + `status` em `financeiro`.
@@ -320,29 +418,90 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     }
   }
 
-  async function handleSavePrivateNotes() {
-    if (!child || isSelfView) return;
+  /**
+   * Persiste o array completo de notas no banco como JSON.
+   * Atualiza estado otimisticamente e reverte em caso de erro.
+   */
+  async function persistZeladorNotes(next: ZeladorNote[]): Promise<boolean> {
+    if (!child || isSelfView) return false;
+    const previous = zeladorNotes;
+    setZeladorNotes(next);
     setIsSavingNotes(true);
     try {
+      const payload = next.length ? JSON.stringify(next) : '';
       const { error } = await supabase
         .from('filhos_de_santo')
-        .update({ notas_sigilosas: privateNotes })
+        .update({ notas_sigilosas: payload })
         .eq('id', child.id);
-
       if (error) throw error;
-      
-      setChild({ ...child, notas_sigilosas: privateNotes });
-      alert('Notas sigilosas salvas com sucesso!');
+      setChild({ ...child, notas_sigilosas: payload });
+      return true;
     } catch (err: any) {
-      console.error('Error saving private notes:', err);
+      console.error('Error saving zelador notes:', err);
+      setZeladorNotes(previous);
       if (err.message?.includes('notas_sigilosas') || err.code === 'PGRST204') {
-        alert('ERRO DE BANCO DE DADOS: A coluna "notas_sigilosas" não foi encontrada. Por favor, execute o script SQL de atualização (fix_schema.sql) no seu painel do Supabase para ativar esta função.');
+        alert('ERRO DE BANCO DE DADOS: A coluna "notas_sigilosas" não foi encontrada. Execute a migração do schema no Supabase.');
       } else {
-        alert('Erro ao salvar notas: ' + err.message);
+        alert('Erro ao salvar notas: ' + (err?.message || 'desconhecido'));
       }
+      return false;
     } finally {
       setIsSavingNotes(false);
     }
+  }
+
+  function openNewNoteModal() {
+    if (isSelfView) return;
+    setSelectedNoteId(null);
+    setNoteDraftTitle('');
+    setNoteDraftContent('');
+    setIsNoteModalOpen(true);
+  }
+
+  function openExistingNoteModal(note: ZeladorNote) {
+    setSelectedNoteId(note.id);
+    setNoteDraftTitle(note.title);
+    setNoteDraftContent(note.content);
+    setIsNoteModalOpen(true);
+  }
+
+  function closeNoteModal() {
+    setIsNoteModalOpen(false);
+    setSelectedNoteId(null);
+    setNoteDraftTitle('');
+    setNoteDraftContent('');
+  }
+
+  async function handleSaveCurrentNote() {
+    if (isSelfView) return;
+    const title = noteDraftTitle.trim() || 'Sem título';
+    const content = noteDraftContent;
+    if (!content.trim()) {
+      alert('Escreva algum conteúdo antes de salvar a nota.');
+      return;
+    }
+    const now = new Date().toISOString();
+    let next: ZeladorNote[];
+    if (selectedNoteId) {
+      next = zeladorNotes.map((n) =>
+        n.id === selectedNoteId ? { ...n, title, content, updatedAt: now } : n
+      );
+    } else {
+      next = [
+        { id: makeNoteId(), title, content, createdAt: now, updatedAt: now },
+        ...zeladorNotes,
+      ];
+    }
+    const ok = await persistZeladorNotes(next);
+    if (ok) closeNoteModal();
+  }
+
+  async function handleDeleteCurrentNote() {
+    if (isSelfView || !selectedNoteId) return;
+    if (!confirm('Excluir esta nota? Esta ação não pode ser desfeita.')) return;
+    const next = zeladorNotes.filter((n) => n.id !== selectedNoteId);
+    const ok = await persistZeladorNotes(next);
+    if (ok) closeNoteModal();
   }
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -627,7 +786,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
             )}
           </button>
 
-          {/* Notas Sigilosas */}
+          {/* Notas do Zelador */}
           <button 
             onClick={() => setActiveProfileTab('notes')}
             className={cn(
@@ -636,8 +795,8 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               !hasPlanAccess(tenantData?.plan, 'notes') && "opacity-50"
             )}
           >
-            <ShieldAlert className={cn("w-4 h-4 shrink-0", activeProfileTab === 'notes' ? "text-[#FBBC00]" : "text-gray-600")} />
-            <span className="text-[9px] sm:text-xs sm:tracking-[0.2em] leading-tight text-center">Sigilosas</span>
+            <NotebookPen className={cn("w-4 h-4 shrink-0", activeProfileTab === 'notes' ? "text-[#FBBC00]" : "text-gray-600")} />
+            <span className="text-[9px] sm:text-xs sm:tracking-[0.2em] leading-tight text-center">Notas</span>
             {!hasPlanAccess(tenantData?.plan, 'notes') && <Lock className="w-2.5 h-2.5 text-[#FBBC00] absolute top-2 right-2" />}
             {activeProfileTab === 'notes' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#FBBC00] shadow-[0_0_10px_#FBBC00]"
@@ -818,56 +977,205 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         )}
 
         {activeProfileTab === 'notes' && hasPlanAccess(tenantData?.plan, 'notes') && (
-          <div className="space-y-10 animate-in fade-in duration-500 max-w-4xl">
-            <div className="flex items-center gap-3 text-[#FBBC00]">
-              <ShieldAlert className="w-5 h-5" />
-              <h3 className="text-sm font-black uppercase tracking-[0.3em]">Notas Sigilosas do Zelador</h3>
+          <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-center gap-3 text-[#FBBC00]">
+                <NotebookPen className="w-5 h-5" />
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.3em]">Notas do Zelador</h3>
+                  <p className="mt-1 text-[11px] font-medium text-gray-500">
+                    Apenas o Zelador tem acesso. Clique em uma nota para abrir, editar ou excluir.
+                  </p>
+                </div>
+              </div>
+              {!isSelfView && (
+                <button
+                  type="button"
+                  onClick={openNewNoteModal}
+                  disabled={isSavingNotes}
+                  className="self-start sm:self-auto inline-flex items-center gap-2 bg-[#FBBC00] text-black px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-[#FBBC00]/20 hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nova nota
+                </button>
+              )}
             </div>
 
-            <div className="bg-[#1F1F1F] border border-[#FBBC00]/10 rounded-[2.5rem] p-10 space-y-8 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-10">
-                <Lock className="w-24 h-24 text-[#FBBC00]" />
-              </div>
-              
-              <div className="space-y-4 relative z-10">
-                <p className="text-sm text-gray-400 font-medium leading-relaxed">
-                  Este espaço é exclusivo para anotações do Zelador sobre o desenvolvimento espiritual do filho. 
-                  <span className="text-white font-bold"> Apenas o Zelador tem acesso a estas notas.</span>
+            {sortedZeladorNotes.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-white/10 bg-[#1A1A1A] p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FBBC00]/10">
+                  <StickyNote className="h-8 w-8 text-[#FBBC00]" />
+                </div>
+                <p className="text-sm font-bold text-white">
+                  {isSelfView ? 'O Zelador ainda não escreveu nenhuma nota.' : 'Nenhuma nota criada ainda.'}
                 </p>
-                
-                <textarea 
-                  className="w-full bg-[#121212] border border-white/5 rounded-[2rem] p-8 text-white focus:border-[#FBBC00]/50 outline-none transition-all font-bold h-64 resize-none shadow-inner"
-                  placeholder="Descreva aqui observações sobre o desenvolvimento, preceitos específicos ou orientações espirituais..."
-                  value={privateNotes}
-                  onChange={(e) => setPrivateNotes(e.target.value)}
-                  readOnly={isSelfView}
-                />
-
                 {!isSelfView && (
-                  <div className="flex justify-end">
+                  <>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Crie a primeira nota sobre o desenvolvimento espiritual deste filho.
+                    </p>
                     <button
-                      onClick={handleSavePrivateNotes}
-                      disabled={isSavingNotes}
-                      className="bg-[#FBBC00] text-black px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 uppercase tracking-widest text-xs shadow-lg shadow-[#FBBC00]/20"
+                      type="button"
+                      onClick={openNewNoteModal}
+                      className="mt-5 inline-flex items-center gap-2 bg-[#FBBC00]/10 text-[#FBBC00] border border-[#FBBC00]/30 px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-[#FBBC00]/20 transition-all"
                     >
-                      {isSavingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      {isSavingNotes ? 'Salvando...' : 'Salvar Notas'}
+                      <Plus className="w-4 h-4" />
+                      Criar primeira nota
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
-
-              <div className="flex items-center gap-3 p-4 bg-[#FBBC00]/5 rounded-2xl border border-[#FBBC00]/10">
-                <ShieldCheck className="w-5 h-5 text-[#FBBC00]" />
-                <p className="text-[10px] font-black text-[#FBBC00] uppercase tracking-widest">
-                  Criptografia de Ponta a Ponta Ativa
-                </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {sortedZeladorNotes.map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => openExistingNoteModal(note)}
+                    className="group flex h-full flex-col items-start gap-3 rounded-2xl border border-white/10 bg-[#1F1F1F] p-5 text-left shadow-lg transition-all hover:-translate-y-0.5 hover:border-[#FBBC00]/40 hover:shadow-[#FBBC00]/10"
+                  >
+                    <div className="flex w-full items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FBBC00]/10 ring-1 ring-[#FBBC00]/20">
+                          <StickyNote className="h-4 w-4 text-[#FBBC00]" />
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                          {formatNoteDate(note.updatedAt)}
+                        </span>
+                      </div>
+                      <Edit2 className="h-3.5 w-3.5 text-gray-700 opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                    <h4 className="line-clamp-2 text-base font-black leading-tight text-white">
+                      {note.title || 'Sem título'}
+                    </h4>
+                    <p className="line-clamp-4 text-xs leading-relaxed text-gray-400 whitespace-pre-wrap">
+                      {note.content}
+                    </p>
+                  </button>
+                ))}
               </div>
+            )}
+
+            <div className="flex items-center gap-3 rounded-2xl border border-[#FBBC00]/10 bg-[#FBBC00]/5 p-4">
+              <ShieldCheck className="h-5 w-5 text-[#FBBC00]" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#FBBC00]">
+                Espaço privado · acessível apenas pelo Zelador
+              </p>
             </div>
           </div>
         )}
 
       </div>
+
+      {/* Modal: criar / editar nota individual */}
+      <AnimatePresence>
+        {isNoteModalOpen && !isSelfView && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeNoteModal}
+              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
+            />
+            <motion.div
+              initial={MODAL_PANEL_IN}
+              animate={MODAL_PANEL_DONE}
+              exit={MODAL_PANEL_OUT}
+              transition={MODAL_TW}
+              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#FBBC00]/20 bg-[#1F1F1F] shadow-2xl sm:max-h-[88dvh] sm:max-w-xl"
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FBBC00]/10 ring-1 ring-[#FBBC00]/30">
+                    <NotebookPen className="h-5 w-5 text-[#FBBC00]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-black text-white sm:text-lg">
+                      {selectedNoteId ? 'Editar nota' : 'Nova nota'}
+                    </h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-0.5">
+                      Apenas o Zelador acessa
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeNoteModal}
+                  className="shrink-0 rounded-2xl p-2 text-gray-500 transition-colors hover:bg-white/5"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 no-scrollbar">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Título</label>
+                  <input
+                    type="text"
+                    value={noteDraftTitle}
+                    onChange={(e) => setNoteDraftTitle(e.target.value)}
+                    placeholder="Ex.: Orientação do dia, observação espiritual..."
+                    className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50"
+                    maxLength={120}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Conteúdo</label>
+                  <textarea
+                    value={noteDraftContent}
+                    onChange={(e) => setNoteDraftContent(e.target.value)}
+                    placeholder="Escreva aqui o conteúdo da nota..."
+                    rows={10}
+                    className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium leading-relaxed text-white outline-none transition-all focus:border-[#FBBC00]/50 resize-none"
+                  />
+                </div>
+                {selectedNoteId && (
+                  <p className="text-[10px] text-gray-600">
+                    Criada em {formatNoteDate(zeladorNotes.find((n) => n.id === selectedNoteId)?.createdAt || '')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/5 bg-[#181818] px-5 py-4 sm:px-6">
+                {selectedNoteId ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentNote}
+                    disabled={isSavingNotes}
+                    className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Excluir
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeNoteModal}
+                    disabled={isSavingNotes}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-gray-300 transition-all hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveCurrentNote}
+                    disabled={isSavingNotes}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#FBBC00] px-5 py-2 text-[11px] font-black uppercase tracking-widest text-black shadow-lg shadow-[#FBBC00]/20 transition-all hover:scale-105 disabled:opacity-50"
+                  >
+                    {isSavingNotes ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    {isSavingNotes ? 'Salvando…' : 'Salvar nota'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal: Editar Perfil */}
       <AnimatePresence>
