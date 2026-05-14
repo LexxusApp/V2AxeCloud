@@ -290,6 +290,21 @@ export default function App() {
     document.body.style.overscrollBehavior = 'none';
   }, []);
 
+  // Safety global: se o spinner inicial ficar 25s travado (auth listener nunca finalizar,
+  // lock do Supabase entre abas, etc.), libera para a UI poder seguir — Login se sem sessão,
+  // recovery/erro se com sessão sem tenant. Evita "tela de loading eterna" ao abrir nova aba.
+  useEffect(() => {
+    if (!isInitializing) return;
+    const id = window.setTimeout(() => {
+      console.warn('[SYSTEM] isInitializing > 25s — forçando liberação do spinner.');
+      authFirstEventHandledRef.current = true;
+      setIsInitializing(false);
+      setLoading(false);
+      setIsSessionHydrating(false);
+    }, 25000);
+    return () => window.clearTimeout(id);
+  }, [isInitializing]);
+
   useEffect(() => {
     const handleSessionExpired = async () => {
       try {
@@ -416,7 +431,7 @@ export default function App() {
   };
 
   const loadAllTenantData = async (userId: string, userEmail?: string, authRole?: string) => {
-    let retries = 5;
+    let retries = 3;
     const isFilhoAuth = readPersistedFilhoFlag(userId) || isFilhoIdentity(null, userEmail, authRole);
     persistFilhoFlag(isFilhoAuth, userId);
 
@@ -434,9 +449,19 @@ export default function App() {
       }));
     }
 
+    // Aborta fetches em andamento quando o safety timeout dispara, para destravar o await principal.
+    const safetyAbort = new AbortController();
+    let safetyFired = false;
+
     // Safety Net: Garantia de que o loader sairá em no máximo 15s
     const safetyTimeout = setTimeout(() => {
+      safetyFired = true;
       console.warn('[SYSTEM] Safety timeout atingido — recuperação por cache/Supabase.');
+      try {
+        safetyAbort.abort();
+      } catch {
+        /* noop */
+      }
       void recoverTenantAfterFailure(userId, userEmail, authRole).then((ok) => {
         if (!ok) setTenantRecoveryFailed(true);
       });
@@ -447,7 +472,12 @@ export default function App() {
       while (retries > 0) {
         try {
           const url = `/api/tenant-info?userId=${userId}&email=${encodeURIComponent(userEmail || '')}`;
-          const response = await fetch(url);
+          // Cada tentativa tem hard timeout próprio (8s) e também respeita o safety global.
+          const perAttempt = AbortSignal.timeout(8000);
+          const signal = AbortSignal.any
+            ? AbortSignal.any([perAttempt, safetyAbort.signal])
+            : perAttempt;
+          const response = await fetch(url, { signal });
           
           if (response.status === 403) {
             const errorData = await response.json();
@@ -577,7 +607,11 @@ export default function App() {
           return; 
 
         } catch (err: any) {
-          console.warn(`[WARN] Recuperando Tenant (Tentativa ${6 - retries}): ${err?.message || 'Failed to fetch'}`);
+          console.warn(`[WARN] Recuperando Tenant (Tentativa ${4 - retries}): ${err?.message || 'Failed to fetch'}`);
+          // Se o safety timeout já disparou, não adianta retentar — recovery já foi acionado em paralelo.
+          if (safetyFired) {
+            return;
+          }
           const {
             data: { session: alive },
           } = await supabase.auth.getSession();
@@ -589,10 +623,10 @@ export default function App() {
             return;
           }
           retries--;
-          
+
           if (retries > 0) {
-            // Atraso progressivo (2s) antes de tentar novamente para contornar reinícios de server em deploy
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Atraso progressivo (1.5s) antes de tentar novamente para contornar reinícios de server em deploy
+            await new Promise(resolve => setTimeout(resolve, 1500));
             continue;
           }
 
