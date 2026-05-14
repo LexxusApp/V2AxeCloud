@@ -35,6 +35,15 @@ type MensalidadeZeladorRow = {
 
 const FINANCE_UPDATED_EVENT = 'axecloud:finance-updated';
 
+/**
+ * Feature flag: a aba "Caixinha do Axé" esta temporariamente desativada
+ * a pedido do produto - sera revisitada futuramente. Para reabilitar
+ * basta trocar este valor para true (toda a logica de plano e dados
+ * permanece no codigo). Esconde aba, bloqueia fetch e impede o
+ * setActiveView de cair na tela de caixinha.
+ */
+const CAIXINHA_ENABLED = false;
+
 /** Alinha status do financeiro (pt) com filtros de aba pending/paid. */
 function mensalidadeStatusIsPending(status: string | null) {
   const t = String(status ?? '').toLowerCase();
@@ -194,7 +203,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
 
   const hasMensalidadesAccess = hasPlanAccess(tenantData?.plan, 'financial_whatsapp', isAdminGlobal);
   const hasReportsAccess = hasPlanAccess(tenantData?.plan, 'financial_reports', isAdminGlobal);
-  const hasCaixinhaAccess = hasPlanAccess(tenantData?.plan, 'caixinha', isAdminGlobal);
+  const hasCaixinhaAccess = CAIXINHA_ENABLED && hasPlanAccess(tenantData?.plan, 'caixinha', isAdminGlobal);
 
   // Form state
   const [formData, setFormData] = useState({
