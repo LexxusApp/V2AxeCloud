@@ -106,6 +106,8 @@ const supabaseAdmin =
 
 export default async function handler(req: { method?: string; query?: Record<string, string | string[] | undefined>; headers?: any }, res: any) {
   if (applyCors(req as any, res)) return;
+  // Fase 3: padrão sem cache; respostas 200 de perfil sobrescrevem com TTL curto.
+  res.setHeader("Cache-Control", "private, no-store, must-revalidate");
   if (req.method && req.method !== "GET") {
     res.setHeader("Allow", "GET, OPTIONS");
     return res.status(405).json({ error: "Method not allowed" });
@@ -187,6 +189,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       if (leaderSub.error) throw leaderSub.error;
 
       const filhoPlanSlug = canonicalPlanSlug(leaderSub.data?.plan);
+      res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
         cargo: null,
@@ -317,9 +320,10 @@ export default async function handler(req: { method?: string; query?: Record<str
     const expiresOut = isSuperAdmin
       ? "2099-12-31T23:59:59Z"
       : lifetime
-      ? null
-      : subRes.data?.expires_at || null;
+        ? null
+        : subRes.data?.expires_at || null;
 
+    res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
     return res.json({
       nome_terreiro: profileRes.data?.nome_terreiro || null,
       cargo: cargoOut,

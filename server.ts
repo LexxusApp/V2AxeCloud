@@ -1149,6 +1149,19 @@ async function startServer() {
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+  // Fase 3 — Cache-Control HTTP (espelha api/index.ts): padrão seguro; leituras estáveis sobrescrevem no 200.
+  const pathOnlyForCache = (req: express.Request) =>
+    typeof req.path === "string" && req.path.length > 0
+      ? req.path
+      : String(req.url || "").split("?")[0] || "";
+  app.use((req, res, next) => {
+    if (!pathOnlyForCache(req).startsWith("/api")) return next();
+    const m = (req.method || "GET").toUpperCase();
+    if (m === "OPTIONS" || m === "TRACE" || m === "HEAD") return next();
+    res.setHeader("Cache-Control", "private, no-store, must-revalidate");
+    next();
+  });
+
   app.get("/api/health-check", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
@@ -1821,6 +1834,7 @@ async function startServer() {
         .or(`terreiro_id.eq.${resolvedId},terreiro_id.eq.${tenantId}`)
         .maybeSingle();
       if (error) throw error;
+      res.setHeader("Cache-Control", "private, max-age=60, stale-while-revalidate=300");
       res.json({ data });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar pix config:", err.message);
@@ -2955,6 +2969,10 @@ async function startServer() {
         .single();
         
       const plans = normalizePlansCatalog(settings?.data);
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"
+      );
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);
@@ -3288,6 +3306,7 @@ async function startServer() {
         return res.status(404).json({ error: "Filho não encontrado ou acesso negado" });
       }
 
+      res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=60");
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in GET /api/children/:id:", error);
@@ -3397,6 +3416,7 @@ async function startServer() {
       }
       
       console.log(`[SERVER] GET /api/children success. Found ${data?.length || 0} children.`);
+      res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=60");
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar filhos:", error);
