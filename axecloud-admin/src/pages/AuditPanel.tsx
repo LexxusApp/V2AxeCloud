@@ -508,7 +508,7 @@ export function AuditPanel() {
           <button
             onClick={() => void runScan()}
             disabled={busy || !url.trim()}
-            className="inline-flex items-center gap-2 rounded-md bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/30 hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {busy ? "Analisando…" : "Inspecionar"}
@@ -551,7 +551,7 @@ export function AuditPanel() {
                   Score global ponderado
                 </div>
                 <div className="mt-3 flex items-end gap-4">
-                  <div className={cn("text-5xl font-black tracking-tight", gradeTone(globalScore.grade).split(" ")[1])}>
+                  <div className={cn("text-5xl font-semibold tracking-tight", gradeTone(globalScore.grade).split(" ")[1])}>
                     {globalScore.grade}
                   </div>
                   <div className="text-2xl font-mono-data text-slate-300">{globalScore.total}<span className="text-sm text-slate-500">/100</span></div>
@@ -1003,7 +1003,7 @@ export function AuditPanel() {
           {/* Headers de segurança */}
           <Section icon={<Shield className="h-4 w-4 text-emerald-300" />} title="Headers de segurança">
             <table className="min-w-full text-left text-xs">
-              <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                 <tr>
                   <th className="px-4 py-2">Header</th>
                   <th className="px-4 py-2">Pontos</th>
@@ -1287,7 +1287,7 @@ function LinkStatChip({ label, value, tone }: { label: string; value: number; to
   return (
     <div className={cn("rounded-md p-2 ring-1", tone)}>
       <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-0.5 font-mono-data text-2xl font-black">{value}</p>
+      <p className="mt-0.5 font-mono-data text-2xl font-semibold">{value}</p>
     </div>
   );
 }
@@ -1329,7 +1329,7 @@ function PsiScoreCard({ label, value }: { label: string; value: number | null | 
   return (
     <div className={cn("rounded-md p-3 ring-1 ring-white/10", tone)}>
       <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-1 font-mono-data text-3xl font-black">{v == null ? "—" : v}</p>
+      <p className="mt-1 font-mono-data text-3xl font-semibold">{v == null ? "—" : v}</p>
     </div>
   );
 }

@@ -244,7 +244,7 @@ export function AuditMonitor() {
   return (
     <div className="space-y-4">
       {/* Header / KPIs */}
-      <div className="rounded-md border border-white/10 bg-gradient-to-br from-violet-500/[0.04] to-cyan-500/[0.04] p-4 shadow-xl ring-1 ring-violet-400/10">
+      <div className="rounded-md border border-white/[0.08] bg-white/[0.02] p-4 shadow-md ring-1 ring-white/[0.04]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold text-white">
@@ -283,7 +283,7 @@ export function AuditMonitor() {
             tone={summary.alerting > 0 ? "text-red-200 bg-red-500/10 ring-red-400/30" : undefined}
             icon={<Bell className="h-4 w-4 text-red-300" />}
           />
-          <Kpi label="Score médio" value={summary.avg ?? "—"} icon={<TrendingUp className="h-4 w-4 text-cyan-300" />} />
+          <Kpi label="Score médio" value={summary.avg ?? "—"} icon={<TrendingUp className="h-4 w-4 text-slate-300" />} />
         </div>
       </div>
 
@@ -388,7 +388,7 @@ export function AuditMonitor() {
                 >
                   <span
                     className={cn(
-                      "inline-flex h-9 w-12 items-center justify-center rounded-md font-mono-data text-xs font-black ring-1",
+                      "inline-flex h-9 w-12 items-center justify-center rounded-md font-mono-data text-xs font-semibold ring-1",
                       gradeBadge(t.last_grade)
                     )}
                   >
@@ -641,7 +641,7 @@ function Kpi({
         {icon}
         {label}
       </div>
-      <p className="mt-0.5 font-mono-data text-2xl font-black text-white">{value}</p>
+      <p className="mt-0.5 font-mono-data text-2xl font-semibold text-white">{value}</p>
     </div>
   );
 }

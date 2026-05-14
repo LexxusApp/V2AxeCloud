@@ -166,7 +166,7 @@ export function WhatsAppPanel() {
       <header className="overflow-hidden rounded-md border border-emerald-400/20 bg-gradient-to-br from-emerald-950/60 via-[#0a1d18]/80 to-[#080c14]/90 p-6 shadow-xl ring-1 ring-emerald-400/10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300/80">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-300/80">
               Console · Mensageria
             </p>
             <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold text-white">
@@ -231,7 +231,7 @@ export function WhatsAppPanel() {
 
           <hr className="border-white/[0.06]" />
 
-          <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Como usar o código</h4>
+          <h4 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Como usar o código</h4>
           <ol className="space-y-2 text-xs leading-relaxed text-slate-300">
             {steps.map((s, i) => (
               <li key={s} className="flex gap-3">
@@ -278,7 +278,7 @@ export function WhatsAppPanel() {
       {connected && (
         <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-            <Send className="h-4 w-4 text-cyan-300" />
+            <Send className="h-4 w-4 text-slate-300" />
             Enviar mensagem de teste
           </h3>
           <p className="mt-1 text-xs text-slate-400">
@@ -291,13 +291,13 @@ export function WhatsAppPanel() {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="(11) 99999-9999"
-              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/30 focus:ring-2"
+              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 font-mono-data text-sm text-white outline-none ring-slate-400/25 focus:ring-2"
             />
             <button
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              className="rounded-md bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
             >
               {busy === "test" ? "A enviar…" : "Enviar"}
             </button>
@@ -476,7 +476,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
             value={cfg.loginUrl}
             onChange={(e) => setCfg({ ...cfg, loginUrl: e.target.value })}
             placeholder="https://axecloud-app.vercel.app"
-            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 font-mono-data text-sm text-white outline-none ring-slate-400/20 focus:ring-2"
           />
         </div>
         <div>
@@ -485,7 +485,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
             value={cfg.signature}
             onChange={(e) => setCfg({ ...cfg, signature: e.target.value })}
             placeholder="Equipe AxéCloud"
-            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2.5 text-sm text-white outline-none ring-cyan-400/25 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 text-sm text-white outline-none ring-slate-400/20 focus:ring-2"
           />
         </div>
       </div>
@@ -543,7 +543,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
       </div>
 
       <div className="mt-6 rounded-md border border-white/[0.06] bg-[#080c14]/70 p-4">
-        <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+        <h4 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
           Enviar pré-visualização (teste)
         </h4>
         {!connected ? (
@@ -564,7 +564,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
               {busy === "test" ? "A enviar…" : "Enviar teste"}
@@ -590,7 +590,7 @@ function StatusBadge({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-widest ring-1",
+        "flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest ring-1",
         isOk
           ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
           : "bg-slate-700/30 text-slate-300 ring-white/10"
@@ -638,7 +638,7 @@ function PairingCard({
           <div className="flex flex-wrap items-center justify-center gap-2">
             {(grouped.length ? grouped : [code]).map((seg, idx, arr) => (
               <span key={`${seg}-${idx}`} className="flex items-center gap-2">
-                <span className="rounded-md border border-emerald-400/30 bg-[#03100c] px-4 py-3 font-mono-data text-2xl font-black tracking-[0.4em] text-emerald-100 shadow-inner shadow-black/40">
+                <span className="rounded-md border border-emerald-400/30 bg-[#03100c] px-4 py-3 font-mono-data text-2xl font-semibold tracking-[0.4em] text-emerald-100 shadow-inner shadow-black/40">
                   {seg}
                 </span>
                 {idx < arr.length - 1 && <span className="text-emerald-300/60">—</span>}

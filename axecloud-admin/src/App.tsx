@@ -58,8 +58,8 @@ export default function App() {
   if (!supabase) {
     return (
       <div className="flex min-h-full items-center justify-center p-8 text-center text-slate-400">
-        Defina <span className="font-mono-data text-cyan-300">VITE_SUPABASE_URL</span> e{" "}
-        <span className="font-mono-data text-cyan-300">VITE_SUPABASE_ANON_KEY</span> no{" "}
+        Defina <span className="font-mono-data text-slate-200">VITE_SUPABASE_URL</span> e{" "}
+        <span className="font-mono-data text-slate-200">VITE_SUPABASE_ANON_KEY</span> no{" "}
         <span className="font-mono-data">axecloud-admin/.env</span>.
       </div>
     );
