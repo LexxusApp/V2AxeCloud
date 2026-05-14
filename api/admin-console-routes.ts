@@ -17,6 +17,8 @@ import {
 } from "./lib/welcomeMessage.js";
 import { logEvent } from "./lib/auditLog.js";
 import { scanUrl } from "./lib/audit/scan.js";
+import { dnsReport } from "./lib/audit/dns.js";
+import { runPsi } from "./lib/audit/psi.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -814,6 +816,64 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/audit/scan]", e);
       res.status(500).json({ error: e?.message || "Falha ao auditar URL." });
+    }
+  });
+
+  // DNS / WHOIS / SPF / DMARC / DKIM (Fase 2, rapido ~2-4s)
+  app.post("/api/admin-console/audit/dns", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const targetUrl = String((req.body || {}).url || "").trim();
+    if (!targetUrl) return res.status(400).json({ error: "Informe a URL ou domínio." });
+    try {
+      const report = await dnsReport(targetUrl);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.dns",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit",
+        targetId: report.domain,
+        description: `DNS/WHOIS auditados para ${report.domain}.`,
+        metadata: {
+          domain: report.domain,
+          hasSpf: report.email.spf.found,
+          hasDmarc: report.email.dmarc.found,
+          dkimSelectors: report.email.dkim.length,
+          expiresInDays: report.whois?.daysUntilExpiry ?? null,
+        },
+        req,
+      });
+      res.json({ ok: true, report });
+    } catch (e: any) {
+      console.error("[admin-console/audit/dns]", e);
+      res.status(500).json({ error: e?.message || "Falha ao consultar DNS/WHOIS." });
+    }
+  });
+
+  // PageSpeed Insights (Fase 2, demorado ~10-30s).
+  // Aceita ?strategy=desktop. Por padrão roda mobile.
+  app.post("/api/admin-console/audit/psi", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const targetUrl = String((req.body || {}).url || "").trim();
+    const strategy = String((req.body || {}).strategy || "mobile").toLowerCase() === "desktop" ? "desktop" : "mobile";
+    if (!targetUrl) return res.status(400).json({ error: "Informe a URL." });
+    try {
+      const result = await runPsi(targetUrl, strategy);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "audit.psi",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "audit",
+        targetId: result.finalUrl,
+        description: `PageSpeed (${strategy}) para ${result.finalUrl}: perf=${result.scores.performance ?? "n/d"}.`,
+        metadata: { strategy, scores: result.scores, fieldOverall: result.fieldData.overall },
+        req,
+      });
+      res.json({ ok: true, result });
+    } catch (e: any) {
+      console.error("[admin-console/audit/psi]", e);
+      res.status(500).json({ error: e?.message || "Falha no PageSpeed Insights." });
     }
   });
 

@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
   CheckCircle2,
+  Gauge,
   Globe,
   Info,
   Loader2,
   Lock,
+  Mail,
+  Network,
   Search,
   Shield,
   ShieldAlert,
@@ -103,11 +107,187 @@ type ScanResult = {
   issues: { level: "error" | "warn" | "info"; key: string; message: string }[];
 };
 
+type DnsReport = {
+  domain: string;
+  records: {
+    a: string[];
+    aaaa: string[];
+    cname: string[];
+    mx: { exchange: string; priority: number }[];
+    ns: string[];
+    txt: string[];
+  };
+  email: {
+    spf: { found: boolean; record: string | null; valid: boolean; notes: string[] };
+    dmarc: { found: boolean; record: string | null; policy: string | null; notes: string[] };
+    dkim: { selector: string; record: string }[];
+  };
+  whois: {
+    registrar: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    expiresAt: string | null;
+    daysUntilExpiry: number | null;
+    status: string[] | null;
+    nameservers: string[] | null;
+  } | null;
+};
+
+type WebVital = {
+  id: string;
+  title: string;
+  numericValue: number | null;
+  displayValue: string | null;
+  score: number | null;
+};
+
+type PsiResult = {
+  strategy: "mobile" | "desktop";
+  finalUrl: string;
+  scores: {
+    performance: number | null;
+    accessibility: number | null;
+    bestPractices: number | null;
+    seo: number | null;
+    pwa?: number | null;
+  };
+  metrics: {
+    lcp: WebVital | null;
+    cls: WebVital | null;
+    inp: WebVital | null;
+    tbt: WebVital | null;
+    fcp: WebVital | null;
+    ttfb: WebVital | null;
+    si: WebVital | null;
+  };
+  fieldData: {
+    overall: "FAST" | "AVERAGE" | "SLOW" | null;
+    lcpMs: number | null;
+    inpMs: number | null;
+    cls: number | null;
+  };
+};
+
 const PRESETS = [
   { label: "axecloud-app", url: "https://axecloud-app.vercel.app" },
   { label: "axecloud-admin", url: "https://axecloud-admin.vercel.app" },
   { label: "landing", url: "https://axecloud.com.br" },
 ];
+
+// ------- Score global ponderado (mesma lógica do backend) -------
+
+const SCORE_WEIGHTS = {
+  performance: 30,
+  security: 20,
+  seo: 20,
+  ssl: 10,
+  pwa: 5,
+  crawl: 5,
+  dns: 10,
+} as const;
+
+type Bucket = { weight: number; pct: number | null; awarded: number };
+type GlobalScore = {
+  total: number;
+  grade: "A+" | "A" | "B" | "C" | "D" | "F";
+  buckets: Record<keyof typeof SCORE_WEIGHTS, Bucket>;
+};
+
+function calcSeoPct(scan: ScanResult): number {
+  let pts = 0;
+  let total = 0;
+  const add = (cond: boolean, w: number) => {
+    total += w;
+    if (cond) pts += w;
+  };
+  add(!!scan.meta.title && scan.meta.title.length >= 25 && scan.meta.title.length <= 70, 20);
+  add(!!scan.meta.description && scan.meta.description.length >= 80 && scan.meta.description.length <= 170, 20);
+  add(!!scan.meta.canonical, 10);
+  add(!!scan.meta.viewport, 10);
+  add(!!scan.meta.lang, 5);
+  add(!!scan.openGraph["og:title"], 10);
+  add(!!scan.openGraph["og:description"], 5);
+  add(!!scan.openGraph["og:image"], 10);
+  add(scan.schemaOrg.length > 0, 10);
+  return Math.round((pts / total) * 100);
+}
+
+function calcSslPct(scan: ScanResult): number | null {
+  if (scan.url.startsWith("http://")) return 0;
+  if (!scan.ssl) return null;
+  let pts = 60;
+  if (scan.ssl.daysUntilExpiry == null) return pts;
+  if (scan.ssl.daysUntilExpiry >= 60) pts += 20;
+  else if (scan.ssl.daysUntilExpiry >= 30) pts += 10;
+  else if (scan.ssl.daysUntilExpiry < 7) pts -= 30;
+  if (scan.ssl.isHttp2) pts += 20;
+  return Math.max(0, Math.min(100, pts));
+}
+
+function calcPwaPct(scan: ScanResult): number {
+  let pts = 0;
+  if (scan.icons.favicons.length > 0) pts += 30;
+  if (scan.icons.appleTouchIcons.length > 0) pts += 20;
+  if (scan.pwa.manifestUrl) pts += 20;
+  if (scan.pwa.manifest) pts += 30;
+  return Math.min(100, pts);
+}
+
+function calcCrawlPct(scan: ScanResult): number {
+  let pts = 0;
+  if (scan.robotsTxt.exists) pts += 40;
+  if (scan.sitemap.exists) pts += 40;
+  if (scan.robotsTxt.sitemaps.length > 0) pts += 20;
+  return Math.min(100, pts);
+}
+
+function calcDnsPct(dns: DnsReport | null): number | null {
+  if (!dns) return null;
+  let pts = 0;
+  if (dns.records.a.length > 0 || dns.records.aaaa.length > 0) pts += 25;
+  if (dns.records.ns.length >= 2) pts += 15;
+  if (dns.email.spf.found) pts += 20;
+  if (dns.email.spf.valid) pts += 5;
+  if (dns.email.dmarc.found) pts += 20;
+  if (dns.email.dmarc.policy === "reject" || dns.email.dmarc.policy === "quarantine") pts += 5;
+  if (dns.email.dkim.length > 0) pts += 10;
+  return Math.min(100, pts);
+}
+
+function computeGlobalScore(scan: ScanResult, psi: PsiResult | null, dns: DnsReport | null): GlobalScore {
+  const buckets: GlobalScore["buckets"] = {
+    performance: { weight: SCORE_WEIGHTS.performance, pct: psi?.scores.performance ?? null, awarded: 0 },
+    security: {
+      weight: SCORE_WEIGHTS.security,
+      pct: Math.round((scan.security.score / scan.security.maxScore) * 100),
+      awarded: 0,
+    },
+    seo: { weight: SCORE_WEIGHTS.seo, pct: calcSeoPct(scan), awarded: 0 },
+    ssl: { weight: SCORE_WEIGHTS.ssl, pct: calcSslPct(scan), awarded: 0 },
+    pwa: { weight: SCORE_WEIGHTS.pwa, pct: calcPwaPct(scan), awarded: 0 },
+    crawl: { weight: SCORE_WEIGHTS.crawl, pct: calcCrawlPct(scan), awarded: 0 },
+    dns: { weight: SCORE_WEIGHTS.dns, pct: calcDnsPct(dns), awarded: 0 },
+  };
+  const totalWeight = (Object.values(buckets) as Bucket[]).reduce(
+    (acc, b) => acc + (b.pct == null ? 0 : b.weight),
+    0
+  );
+  const scale = totalWeight > 0 ? 100 / totalWeight : 0;
+  let total = 0;
+  for (const b of Object.values(buckets) as Bucket[]) {
+    if (b.pct == null) continue;
+    b.awarded = Math.round(b.weight * scale * (b.pct / 100));
+    total += b.awarded;
+  }
+  total = Math.max(0, Math.min(100, total));
+  let grade: GlobalScore["grade"] = "F";
+  if (total >= 90) grade = "A+";
+  else if (total >= 80) grade = "A";
+  else if (total >= 70) grade = "B";
+  else if (total >= 55) grade = "C";
+  else if (total >= 40) grade = "D";
+  return { total, grade, buckets };
+}
 
 function gradeTone(grade: string): string {
   switch (grade) {
@@ -143,12 +323,23 @@ export function AuditPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [dns, setDns] = useState<DnsReport | null>(null);
+  const [dnsBusy, setDnsBusy] = useState(false);
+  const [dnsError, setDnsError] = useState<string | null>(null);
+  const [psi, setPsi] = useState<PsiResult | null>(null);
+  const [psiBusy, setPsiBusy] = useState(false);
+  const [psiError, setPsiError] = useState<string | null>(null);
+  const [psiStrategy, setPsiStrategy] = useState<"mobile" | "desktop">("mobile");
 
   async function runScan() {
     if (!url.trim()) return;
     setBusy(true);
     setError(null);
     setResult(null);
+    setDns(null);
+    setDnsError(null);
+    setPsi(null);
+    setPsiError(null);
     try {
       const j = await apiJson<{ ok: boolean; result: ScanResult }>("/api/admin-console/audit/scan", {
         method: "POST",
@@ -162,8 +353,54 @@ export function AuditPanel() {
     }
   }
 
+  async function runDns(target: string) {
+    setDnsBusy(true);
+    setDnsError(null);
+    try {
+      const j = await apiJson<{ ok: boolean; report: DnsReport }>("/api/admin-console/audit/dns", {
+        method: "POST",
+        body: JSON.stringify({ url: target }),
+      });
+      setDns(j.report);
+    } catch (e) {
+      setDnsError(e instanceof Error ? e.message : "Falha no DNS/WHOIS.");
+    } finally {
+      setDnsBusy(false);
+    }
+  }
+
+  async function runPsi(strategy: "mobile" | "desktop" = psiStrategy) {
+    if (!result) return;
+    setPsiStrategy(strategy);
+    setPsiBusy(true);
+    setPsiError(null);
+    try {
+      const j = await apiJson<{ ok: boolean; result: PsiResult }>("/api/admin-console/audit/psi", {
+        method: "POST",
+        body: JSON.stringify({ url: result.finalUrl, strategy }),
+      });
+      setPsi(j.result);
+    } catch (e) {
+      setPsiError(e instanceof Error ? e.message : "Falha no PageSpeed Insights.");
+    } finally {
+      setPsiBusy(false);
+    }
+  }
+
+  // Dispara DNS automaticamente assim que o scan chega.
+  useEffect(() => {
+    if (result && !dns && !dnsBusy) {
+      void runDns(result.finalUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.finalUrl]);
+
   const og = result?.openGraph || {};
   const tw = result?.twitter || {};
+  const globalScore = useMemo(
+    () => (result ? computeGlobalScore(result, psi, dns) : null),
+    [result, psi, dns]
+  );
 
   return (
     <div className="space-y-4">
@@ -222,38 +459,250 @@ export function AuditPanel() {
 
       {result && (
         <>
-          {/* Resumo */}
-          <div className="grid gap-3 md:grid-cols-4">
-            <SummaryCard
-              icon={<Shield className="h-4 w-4 text-emerald-300" />}
-              label="Segurança"
-              big={result.security.grade}
-              hint={`${result.security.score}/${result.security.maxScore} pts`}
-              tone={gradeTone(result.security.grade)}
-            />
-            <SummaryCard
-              icon={<Cpu className="h-4 w-4 text-cyan-300" />}
-              label="Protocolo"
-              big={result.http.httpVersion || "?"}
-              hint={result.http.isHttp2 ? "HTTP/2 ✓" : result.http.alpnProtocol || "HTTP/1.1"}
-            />
-            <SummaryCard
-              icon={<Lock className="h-4 w-4 text-emerald-300" />}
-              label="SSL"
-              big={result.ssl?.protocol || (result.url.startsWith("https") ? "—" : "n/a")}
-              hint={
-                result.ssl?.daysUntilExpiry != null
-                  ? `expira em ${result.ssl.daysUntilExpiry}d`
-                  : "—"
-              }
-            />
-            <SummaryCard
-              icon={<ScrollText className="h-4 w-4 text-violet-300" />}
-              label="Diagnóstico"
-              big={String(result.issues.length)}
-              hint={`${result.issues.filter((i) => i.level === "error").length} erros · ${result.issues.filter((i) => i.level === "warn").length} avisos`}
-            />
-          </div>
+          {/* Score global ponderado + resumo */}
+          {globalScore && (
+            <div className="grid gap-3 md:grid-cols-5">
+              <div className={cn(
+                  "col-span-2 rounded-md border p-4 shadow-xl ring-1",
+                  globalScore.grade === "A+" || globalScore.grade === "A"
+                    ? "border-emerald-400/30 bg-emerald-500/[0.06] ring-emerald-400/20"
+                    : globalScore.grade === "B"
+                      ? "border-cyan-400/30 bg-cyan-500/[0.06] ring-cyan-400/20"
+                      : globalScore.grade === "C"
+                        ? "border-amber-400/30 bg-amber-500/[0.06] ring-amber-400/20"
+                        : "border-red-400/30 bg-red-500/[0.06] ring-red-400/20"
+                )}>
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <Award className="h-4 w-4" />
+                  Score global ponderado
+                </div>
+                <div className="mt-3 flex items-end gap-4">
+                  <div className={cn("text-5xl font-black tracking-tight", gradeTone(globalScore.grade).split(" ")[1])}>
+                    {globalScore.grade}
+                  </div>
+                  <div className="text-2xl font-mono-data text-slate-300">{globalScore.total}<span className="text-sm text-slate-500">/100</span></div>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {(Object.entries(globalScore.buckets) as [keyof typeof SCORE_WEIGHTS, Bucket][]).map(([k, b]) => (
+                    <div key={k} className="flex items-center gap-2 text-[11px]">
+                      <span className="w-24 shrink-0 capitalize text-slate-400">{k}</span>
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className={cn(
+                            "h-full transition-all",
+                            b.pct == null
+                              ? "bg-slate-700"
+                              : b.pct >= 80
+                                ? "bg-emerald-400"
+                                : b.pct >= 55
+                                  ? "bg-cyan-400"
+                                  : b.pct >= 40
+                                    ? "bg-amber-400"
+                                    : "bg-red-400"
+                          )}
+                          style={{ width: b.pct == null ? "0%" : `${b.pct}%` }}
+                        />
+                      </div>
+                      <span className="w-14 text-right font-mono-data text-slate-500">
+                        {b.pct == null ? "n/d" : `${b.pct}%`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <SummaryCard
+                icon={<Shield className="h-4 w-4 text-emerald-300" />}
+                label="Segurança"
+                big={result.security.grade}
+                hint={`${result.security.score}/${result.security.maxScore} pts`}
+                tone={gradeTone(result.security.grade)}
+              />
+              <SummaryCard
+                icon={<Cpu className="h-4 w-4 text-cyan-300" />}
+                label="Protocolo"
+                big={result.http.httpVersion || "?"}
+                hint={result.http.isHttp2 ? "HTTP/2 ✓" : result.http.alpnProtocol || "HTTP/1.1"}
+              />
+              <SummaryCard
+                icon={<Lock className="h-4 w-4 text-emerald-300" />}
+                label="SSL"
+                big={result.ssl?.protocol || (result.url.startsWith("https") ? "—" : "n/a")}
+                hint={
+                  result.ssl?.daysUntilExpiry != null
+                    ? `expira em ${result.ssl.daysUntilExpiry}d`
+                    : "—"
+                }
+              />
+            </div>
+          )}
+
+          {/* Performance / PageSpeed Insights */}
+          <Section
+            icon={<Gauge className="h-4 w-4 text-amber-300" />}
+            title={`Performance — Google PageSpeed Insights${psi ? ` (${psi.strategy})` : ""}`}
+          >
+            <div className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => void runPsi("mobile")}
+                  disabled={psiBusy}
+                  className="inline-flex items-center gap-2 rounded-md bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {psiBusy && psiStrategy === "mobile" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Gauge className="h-3.5 w-3.5" />
+                  )}
+                  Rodar PSI (mobile)
+                </button>
+                <button
+                  onClick={() => void runPsi("desktop")}
+                  disabled={psiBusy}
+                  className="inline-flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-100 ring-1 ring-amber-400/20 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {psiBusy && psiStrategy === "desktop" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Gauge className="h-3.5 w-3.5" />
+                  )}
+                  Desktop
+                </button>
+                <span className="text-[11px] text-slate-500">demora 15–30s</span>
+                {psiError && (
+                  <span className="text-[11px] text-red-300">{psiError}</span>
+                )}
+              </div>
+              {psi && (
+                <>
+                  <div className="grid gap-2 md:grid-cols-4">
+                    <PsiScoreCard label="Performance" value={psi.scores.performance} />
+                    <PsiScoreCard label="Acessibilidade" value={psi.scores.accessibility} />
+                    <PsiScoreCard label="Best Practices" value={psi.scores.bestPractices} />
+                    <PsiScoreCard label="SEO" value={psi.scores.seo} />
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
+                    <VitalChip vital={psi.metrics.lcp} label="LCP" />
+                    <VitalChip vital={psi.metrics.cls} label="CLS" />
+                    <VitalChip vital={psi.metrics.tbt} label="TBT" />
+                    <VitalChip vital={psi.metrics.fcp} label="FCP" />
+                    <VitalChip vital={psi.metrics.ttfb} label="TTFB" />
+                    <VitalChip vital={psi.metrics.si} label="SI" />
+                  </div>
+                  {psi.fieldData.overall && (
+                    <div className="rounded-md border border-cyan-400/20 bg-cyan-500/[0.05] px-3 py-2 text-[11px] text-cyan-100">
+                      <strong>Dados de campo (CrUX):</strong> {psi.fieldData.overall} ·{" "}
+                      LCP {psi.fieldData.lcpMs ? `${(psi.fieldData.lcpMs / 1000).toFixed(2)}s` : "n/d"} ·{" "}
+                      INP {psi.fieldData.inpMs != null ? `${psi.fieldData.inpMs}ms` : "n/d"} ·{" "}
+                      CLS {psi.fieldData.cls != null ? psi.fieldData.cls.toFixed(2) : "n/d"}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </Section>
+
+          {/* DNS / WHOIS / Email Auth */}
+          <Section
+            icon={<Network className="h-4 w-4 text-cyan-300" />}
+            title={`DNS & WHOIS${dns ? ` · ${dns.domain}` : ""}`}
+          >
+            <div className="p-4">
+              {dnsBusy && !dns && (
+                <p className="flex items-center gap-2 text-xs text-slate-400">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Consultando DNS, SPF/DMARC/DKIM e WHOIS…
+                </p>
+              )}
+              {dnsError && (
+                <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                  {dnsError}
+                </p>
+              )}
+              {dns && (
+                <div className="space-y-3">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <RecordList label="A (IPv4)" items={dns.records.a} />
+                    <RecordList label="AAAA (IPv6)" items={dns.records.aaaa} />
+                    <RecordList label="CNAME" items={dns.records.cname} />
+                    <RecordList label="NS" items={dns.records.ns} />
+                    <RecordList
+                      label="MX"
+                      items={dns.records.mx.map((m) => `${m.priority} ${m.exchange}`)}
+                    />
+                    <RecordList label="TXT" items={dns.records.txt.slice(0, 6)} truncate />
+                  </div>
+
+                  <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      <Mail className="h-3.5 w-3.5" /> Autenticação de email
+                    </div>
+                    <div className="mt-2 grid gap-2 md:grid-cols-3 text-xs">
+                      <EmailAuthChip
+                        label="SPF"
+                        ok={dns.email.spf.found}
+                        valid={dns.email.spf.valid}
+                        notes={dns.email.spf.notes}
+                        record={dns.email.spf.record}
+                      />
+                      <EmailAuthChip
+                        label="DMARC"
+                        ok={dns.email.dmarc.found}
+                        valid={dns.email.dmarc.policy === "reject" || dns.email.dmarc.policy === "quarantine"}
+                        notes={dns.email.dmarc.notes}
+                        record={dns.email.dmarc.record}
+                        extra={dns.email.dmarc.policy ? `policy=${dns.email.dmarc.policy}` : null}
+                      />
+                      <div className="rounded-md border border-white/10 bg-black/30 p-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          DKIM ({dns.email.dkim.length} selector{dns.email.dkim.length === 1 ? "" : "s"})
+                        </p>
+                        {dns.email.dkim.length === 0 ? (
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Nenhum dos selectors comuns encontrados.
+                          </p>
+                        ) : (
+                          <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+                            {dns.email.dkim.map((d) => (
+                              <li key={d.selector} className="font-mono-data">
+                                <span className="text-emerald-300">{d.selector}</span>
+                                <span className="text-slate-500"> → ok</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {dns.whois && (
+                    <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        <Globe className="h-3.5 w-3.5" /> WHOIS
+                      </div>
+                      <div className="mt-2 grid gap-1 md:grid-cols-2">
+                        <Kv k="Registrar" v={dns.whois.registrar} />
+                        <Kv k="Criado em" v={dns.whois.createdAt} />
+                        <Kv k="Atualizado em" v={dns.whois.updatedAt} />
+                        <Kv
+                          k="Expira em"
+                          v={
+                            dns.whois.expiresAt && dns.whois.daysUntilExpiry != null
+                              ? `${dns.whois.expiresAt.split("T")[0]} (${dns.whois.daysUntilExpiry} dias)`
+                              : dns.whois.expiresAt
+                          }
+                        />
+                        {dns.whois.nameservers && dns.whois.nameservers.length > 0 && (
+                          <Kv k="Nameservers" v={dns.whois.nameservers.join(", ")} mono />
+                        )}
+                        {dns.whois.status && dns.whois.status.length > 0 && (
+                          <Kv k="Status" v={dns.whois.status.slice(0, 3).join(" · ")} mono />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Section>
 
           {/* Issues */}
           {result.issues.length > 0 && (
@@ -558,6 +1007,115 @@ function FacebookPreview({
           <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-400">{desc}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PsiScoreCard({ label, value }: { label: string; value: number | null | undefined }) {
+  const v = value == null ? null : Math.max(0, Math.min(100, value));
+  const tone =
+    v == null
+      ? "text-slate-500 bg-white/[0.04]"
+      : v >= 90
+        ? "text-emerald-300 bg-emerald-500/15 ring-emerald-400/30"
+        : v >= 50
+          ? "text-amber-300 bg-amber-500/15 ring-amber-400/30"
+          : "text-red-300 bg-red-500/15 ring-red-400/30";
+  return (
+    <div className={cn("rounded-md p-3 ring-1 ring-white/10", tone)}>
+      <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
+      <p className="mt-1 font-mono-data text-3xl font-black">{v == null ? "—" : v}</p>
+    </div>
+  );
+}
+
+function VitalChip({ vital, label }: { vital: WebVital | null; label: string }) {
+  const tone =
+    vital?.score == null
+      ? "text-slate-500"
+      : vital.score >= 0.9
+        ? "text-emerald-300"
+        : vital.score >= 0.5
+          ? "text-amber-300"
+          : "text-red-300";
+  return (
+    <div className="rounded-md border border-white/10 bg-black/30 px-3 py-2">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
+      <p className={cn("mt-0.5 font-mono-data text-sm font-bold", tone)}>
+        {vital?.displayValue || "—"}
+      </p>
+    </div>
+  );
+}
+
+function RecordList({ label, items, truncate }: { label: string; items: string[]; truncate?: boolean }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/30 p-2">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+        {label} ({items.length})
+      </p>
+      {items.length === 0 ? (
+        <p className="mt-1 text-[11px] text-slate-500">—</p>
+      ) : (
+        <ul className="mt-1 space-y-0.5 font-mono-data text-[11px] text-slate-300">
+          {items.map((it, i) => (
+            <li key={i} className={truncate ? "truncate" : "break-all"}>
+              {it}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function EmailAuthChip({
+  label,
+  ok,
+  valid,
+  notes,
+  record,
+  extra,
+}: {
+  label: string;
+  ok: boolean;
+  valid: boolean;
+  notes: string[];
+  record: string | null;
+  extra?: string | null;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-md border p-2",
+        ok && valid
+          ? "border-emerald-400/30 bg-emerald-500/[0.06]"
+          : ok
+            ? "border-amber-400/30 bg-amber-500/[0.06]"
+            : "border-red-400/30 bg-red-500/[0.06]"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">{label}</p>
+        {ok ? (
+          valid ? (
+            <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-200">OK</span>
+          ) : (
+            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-200">avisos</span>
+          )
+        ) : (
+          <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-200">ausente</span>
+        )}
+        {extra && <span className="ml-auto text-[10px] text-slate-400 font-mono-data">{extra}</span>}
+      </div>
+      {record && <p className="mt-1 break-all font-mono-data text-[10px] text-slate-400">{record.slice(0, 200)}</p>}
+      {notes.length > 0 && (
+        <ul className="mt-1 list-disc pl-4 text-[10px] text-slate-400">
+          {notes.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
