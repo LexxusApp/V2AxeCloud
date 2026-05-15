@@ -206,7 +206,7 @@ export default async function handler(req: { method?: string; query?: Record<str
 
     let profileRes: any = await sb
       .from("perfil_lider")
-      .select("nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url")
+      .select("nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version")
       .eq("id", userId)
       .maybeSingle();
     if (profileRes.error) throw profileRes.error;
@@ -334,6 +334,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       status: isSuperAdmin ? "active" : subRes.data?.status || null,
       expires_at: expiresOut,
       foto_url: profileRes.data?.foto_url || null,
+      terms_accepted_version: profileRes.data?.terms_accepted_version || null,
     });
   } catch (error: any) {
     console.error("[SERVER] Erro ao buscar tenant info:", error);

@@ -2679,6 +2679,56 @@ async function startServer() {
     }
   });
 
+  const LEGAL_TERMS_VERSION_ACCEPT = "2026-05-15";
+
+  app.post("/api/v1/legal/accept-terms", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+
+      const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
+      const now = new Date().toISOString();
+
+      const { error: updateError } = await supabaseAdmin
+        .from("perfil_lider")
+        .update({
+          terms_accepted_version: version,
+          terms_accepted_at: now,
+          updated_at: now,
+        })
+        .eq("id", user.id);
+
+      if (updateError) {
+        const { error: upsertError } = await supabaseAdmin.from("perfil_lider").upsert(
+          {
+            id: user.id,
+            email: user.email,
+            nome_terreiro: "Meu Terreiro",
+            role: "admin",
+            terms_accepted_version: version,
+            terms_accepted_at: now,
+            updated_at: now,
+          },
+          { onConflict: "id" }
+        );
+        if (upsertError) {
+          console.error("[SERVER] accept-terms:", upsertError);
+          return res.status(500).json({ error: upsertError.message || "Erro ao registrar aceite" });
+        }
+      }
+
+      return res.json({ success: true, version });
+    } catch (error: any) {
+      console.error("[SERVER] accept-terms:", error);
+      return res.status(500).json({ error: error?.message || "Erro interno" });
+    }
+  });
+
   /** Exclusão total da conta do zelador, dados do terreiro no Postgres, storage, R2 (galeria) e auth (incl. filhos com login). */
   app.post("/api/v1/account/permanent-delete", async (req, res) => {
     const authHeader = req.headers.authorization;
@@ -2748,7 +2798,7 @@ async function startServer() {
           // Busca perfil e assinatura em paralelo (DB)
           // Tentamos buscar por ID primeiro (caso padrão para zeladores)
           const dbPromises = [
-            supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url').eq('id', leaderId).maybeSingle(),
+            supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version').eq('id', leaderId).maybeSingle(),
             supabaseAdmin.from('subscriptions').select('plan, status, expires_at').eq('id', leaderId).maybeSingle()
           ];
 
@@ -2760,7 +2810,7 @@ async function startServer() {
           if (!leaderProfileData) {
             const { data: altProfile } = await supabaseAdmin
               .from('perfil_lider')
-              .select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url')
+              .select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version')
               .eq('tenant_id', leaderId)
               .maybeSingle();
             if (altProfile) leaderProfileData = altProfile;
@@ -2801,7 +2851,7 @@ async function startServer() {
       }
 
       // 2. Se não for filho, busca Perfil de Líder
-      let profileRes: any = await supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url').eq('id', userId).maybeSingle();
+      let profileRes: any = await supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version').eq('id', userId).maybeSingle();
       
       const emailNorm = String(email || "").trim().toLowerCase();
       const isSuperAdmin =
@@ -2861,7 +2911,8 @@ async function startServer() {
         plan: plan,
         status: isSuperAdmin ? 'active' : (subRes.data?.status || 'active'),
         expires_at: expiresOut,
-        foto_url: profileRes.data?.foto_url || null
+        foto_url: profileRes.data?.foto_url || null,
+        terms_accepted_version: profileRes.data?.terms_accepted_version || null
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar tenant info:", error);

@@ -2737,6 +2737,56 @@ async function startServer() {
     }
   });
 
+  const LEGAL_TERMS_VERSION_ACCEPT = "2026-05-15";
+
+  app.post("/api/v1/legal/accept-terms", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+
+      const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
+      const now = new Date().toISOString();
+
+      const { error: updateError } = await supabaseAdmin
+        .from("perfil_lider")
+        .update({
+          terms_accepted_version: version,
+          terms_accepted_at: now,
+          updated_at: now,
+        })
+        .eq("id", user.id);
+
+      if (updateError) {
+        const { error: upsertError } = await supabaseAdmin.from("perfil_lider").upsert(
+          {
+            id: user.id,
+            email: user.email,
+            nome_terreiro: "Meu Terreiro",
+            role: "admin",
+            terms_accepted_version: version,
+            terms_accepted_at: now,
+            updated_at: now,
+          },
+          { onConflict: "id" }
+        );
+        if (upsertError) {
+          console.error("[SERVER] accept-terms:", upsertError);
+          return res.status(500).json({ error: upsertError.message || "Erro ao registrar aceite" });
+        }
+      }
+
+      return res.json({ success: true, version });
+    } catch (error: any) {
+      console.error("[SERVER] accept-terms:", error);
+      return res.status(500).json({ error: error?.message || "Erro interno" });
+    }
+  });
+
   /** Exclusão total da conta do zelador, dados do terreiro no Postgres, storage, R2 (galeria) e auth (incl. filhos com login). */
   app.post("/api/v1/account/permanent-delete", async (req, res) => {
     const authHeader = req.headers.authorization;

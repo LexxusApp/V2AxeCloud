@@ -39,6 +39,12 @@ import {
 } from './lib/tenantCache';
 import { resolveTenantFromSupabase } from './lib/resolveTenantFromSupabase';
 import { PwaInstallTopbarButton } from './components/PwaInstallTopbarButton';
+import LegalTermsModal from './components/LegalTermsModal';
+import { CURRENT_LEGAL_TERMS_VERSION } from './config/legal';
+import {
+  hasAcceptedLegalTerms,
+  writeLocalLegalAcceptance,
+} from './lib/legalTerms';
 import {
   performFastLogout,
   performVersionBumpLogout,
@@ -178,6 +184,8 @@ export default function App() {
     earlyRoleAnchor === 'filho' || earlyRoleAnchor === 'admin' ? earlyRoleAnchor : null
   );
   const [isSessionReady, setIsSessionReady] = useState(false);
+  const [legalTermsAccepted, setLegalTermsAccepted] = useState<boolean | null>(null);
+  const [legalTermsAccepting, setLegalTermsAccepting] = useState(false);
   const lastAuthUserIdRef = useRef<string | null>(null);
 
   const isFilhoForPush = userRole === 'filho';
@@ -414,6 +422,9 @@ export default function App() {
         });
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
+        setLegalTermsAccepted(
+          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null)
+        );
         if (isFilhoAuth) {
           setActiveTab((prev) => normalizeFilhoTab(prev));
         }
@@ -434,6 +445,7 @@ export default function App() {
         });
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
+        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null));
         return true;
       }
 
@@ -520,6 +532,11 @@ export default function App() {
         writeUserRoleAnchor(role);
         setRoleAnchor(role);
         persistFilhoFlag(role === 'filho', userId);
+        setLegalTermsAccepted(
+          role === 'filho'
+            ? true
+            : hasAcceptedLegalTerms(userId, data.terms_accepted_version as string | undefined)
+        );
         
         // 2. Tenant Info
         const plan = (data.plan || 'premium').toLowerCase().trim();
@@ -843,6 +860,7 @@ export default function App() {
           lastAuthUserIdRef.current = null;
           roleRecoveryOnceForUserRef.current = null;
           setUserRole(null);
+          setLegalTermsAccepted(null);
           setIsAdminGlobal(false);
           setSubscriptionActive(true);
           setTenantData(null);
@@ -1283,6 +1301,40 @@ export default function App() {
     }
   };
 
+  const handleAcceptLegalTerms = async () => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    setLegalTermsAccepting(true);
+    try {
+      const {
+        data: { session: authSession },
+      } = await supabase.auth.getSession();
+      if (!authSession?.access_token) {
+        throw new Error('Sessão expirada');
+      }
+      const response = await fetch('/api/v1/legal/accept-terms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession.access_token}`,
+        },
+        body: JSON.stringify({ version: CURRENT_LEGAL_TERMS_VERSION }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Não foi possível registrar o aceite');
+      }
+    } catch (err) {
+      console.warn('[legal] Falha ao persistir aceite no servidor — cache local aplicado:', err);
+    } finally {
+      writeLocalLegalAcceptance(userId);
+      setLegalTermsAccepted(true);
+      setLegalTermsAccepting(false);
+    }
+  };
+
+  const showLegalTermsModal = userRole === 'admin' && legalTermsAccepted !== true;
+
   const getPlanColor = (plan: string) => {
     switch (plan.toLowerCase()) {
       case 'premium': return 'text-[#FBBC00]';
@@ -1293,6 +1345,7 @@ export default function App() {
   };
 
   return (
+    <>
     <div className="h-[100dvh] w-full bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
       {userRole === 'filho' ? (
         <FilhoSidebar 
@@ -1466,5 +1519,11 @@ export default function App() {
         </footer>
       </div>
     </div>
+    <LegalTermsModal
+      open={showLegalTermsModal}
+      onAccept={handleAcceptLegalTerms}
+      accepting={legalTermsAccepting}
+    />
+    </>
   );
 }
