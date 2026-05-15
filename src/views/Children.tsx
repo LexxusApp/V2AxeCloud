@@ -58,12 +58,14 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function fetchChildren() {
     setLoading(true);
+    let finished = false;
     const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('[DEBUG] fetchChildren safety timeout reached');
-        setLoading(false);
-      }
-    }, 5000);
+      if (finished) return;
+      console.warn(
+        '[DEBUG] fetchChildren safety timeout (12s) — liberando spinner; fetch pode ainda concluir em background.'
+      );
+      setLoading(false);
+    }, 12000);
 
     try {
       if (!user) throw new Error("Usuário não autenticado");
@@ -79,6 +81,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     } catch (error) {
       console.error('Error fetching children:', error);
     } finally {
+      finished = true;
       clearTimeout(timeoutId);
       setLoading(false);
     }

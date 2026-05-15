@@ -342,6 +342,19 @@ export default function App() {
     return () => window.removeEventListener('axecloud:session-expired', onExpired as EventListener);
   }, []);
 
+  /** Ao voltar para a aba: re-hidrata sessão se o estado React perdeu o user mas o storage ainda tem sessão. */
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      void supabase.auth.getSession().then(({ data: { session: s } }) => {
+        if (!s?.user) return;
+        setSession((prev) => (prev?.user?.id ? prev : s));
+      });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       try {
@@ -667,21 +680,20 @@ export default function App() {
         void performVersionBumpLogout(SYSTEM_VERSION);
       }
 
-      // getSession() pode travar em ~30s em locks órfãs do GoTrue entre abas.
-      // O lock resiliente em src/lib/supabase.ts já corta em ~3.5s, mas mantemos
-      // um teto extra aqui para nunca prender o boot. Se exceder, prosseguimos
-      // como "sem sessão" — o auth listener corrige depois quando a lock liberar.
-      const SESSION_BOOT_TIMEOUT_MS = 4500;
+      // getSession() pode demorar com aba em segundo plano (throttling de timer/rede)
+      // ou fila de lock entre abas. O lock resiliente em src/lib/supabase.ts evita espera infinita.
+      // Importante: NUNCA retornar "sessão null" por timeout — isso apagava o estado React e
+      // parecia logout espúrio mesmo com tokens válidos no localStorage (Promise.race antigo).
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => {
-        window.setTimeout(() => {
-          console.warn('[SYSTEM] getSession inicial > 4.5s — liberando boot sem sessão.');
-          resolve({ data: { session: null } });
-        }, SESSION_BOOT_TIMEOUT_MS);
-      });
+      const slowLog = window.setTimeout(() => {
+        console.warn(
+          '[SYSTEM] getSession inicial > 5.5s — possível aba em background ou rede lenta; aguardando resultado real (sem deslogar).'
+        );
+      }, 5500);
       const {
         data: { session: initialSession },
-      } = (await Promise.race([sessionPromise, timeoutPromise])) as { data: { session: Session | null } };
+      } = await sessionPromise;
+      window.clearTimeout(slowLog);
       if (initialSession?.user) {
         setSession(initialSession);
         lastAuthUserIdRef.current = initialSession.user.id;
@@ -711,9 +723,7 @@ export default function App() {
         }
       } else {
         setSession(null);
-        // Libera o spinner inicial mesmo se o listener ainda não disparou —
-        // o Login será exibido e, se a sessão chegar via listener depois, o
-        // app re-hidrata normalmente sem flicker.
+        // Só mostra Login depois que getSession() de fato respondeu sem usuário.
         if (!authFirstEventHandledRef.current) {
           authFirstEventHandledRef.current = true;
           setIsInitializing(false);
