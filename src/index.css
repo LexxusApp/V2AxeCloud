@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -75,6 +75,23 @@
 
 .card-luxury {
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
+}
+
+.login-radius {
+  border-radius: 10px;
+}
+
+.login-footer-rule::before,
+.login-footer-rule::after {
+  content: '';
+  display: block;
+  width: min(34px, 5vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(242, 185, 15, 0.58));
+}
+
+.login-footer-rule::after {
+  transform: scaleX(-1);
 }
 
 /* Fundo padrão das telas de bloqueio / sessão / loading (substitui style inline para CSP sem unsafe-inline). */

@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Mail, ArrowRight, Loader2, UserCircle2, KeyRound, AlertCircle, X, Eye, EyeOff } from 'lucide-react';
+import {
+  Lock,
+  User,
+  Loader2,
+  KeyRound,
+  AlertCircle,
+  X,
+  Eye,
+  EyeOff,
+  ChevronRight,
+  Users,
+  ShieldCheck,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
@@ -8,11 +20,77 @@ import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 
-/**
- * Converte erros tecnicos do auth/fetch em mensagens amigaveis ao usuario.
- * Cobre os casos mais comuns: rede indisponivel, credenciais erradas, JWT expirado
- * e tabelas/colunas faltando (deploy em andamento).
- */
+/** Tokens — ouro principal do mockup anotado. */
+const GOLD = '#f2b90f';
+const GOLD_DARK = '#c88900';
+const R_CARD = 'login-radius';
+const fontLogin = "[font-family:Montserrat,system-ui,sans-serif]";
+
+const fieldShell = cn(
+  'w-full h-[44px] pl-[50px] pr-3 text-[14px] leading-none text-white placeholder:text-[#8f939c]',
+  'bg-[#0a0b0d]/95 border border-white/[0.22]',
+  R_CARD,
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.45)]',
+  'outline-none transition-[border-color,box-shadow] duration-200',
+  'focus:border-[#f2b90f]/70 focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_0_1px_rgba(242,185,15,0.28),0_8px_24px_rgba(0,0,0,0.45)]'
+);
+
+const loginPanel = cn(
+  R_CARD,
+  'border border-white/[0.16]',
+  'bg-[#060708]/76 backdrop-blur-xl',
+  'shadow-[0_20px_56px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]',
+  'px-[clamp(18px,4vw,26px)] py-[clamp(20px,3.2vh,28px)]'
+);
+
+const labelClass =
+  'block text-[10px] font-bold text-[#c4c7d0] uppercase tracking-[0.16em]';
+
+function LogoEmblem({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 88 88" className={className} aria-hidden fill="none">
+      <circle cx="44" cy="44" r="30" stroke="currentColor" strokeWidth="2" />
+      <circle cx="44" cy="44" r="7" fill="currentColor" />
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i * Math.PI) / 4 - Math.PI / 2;
+        const x1 = 44 + Math.cos(a) * 16;
+        const y1 = 44 + Math.sin(a) * 16;
+        const x2 = 44 + Math.cos(a) * 28.5;
+        const y2 = 44 + Math.sin(a) * 28.5;
+        return (
+          <g key={i}>
+            <line
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="currentColor"
+              strokeWidth="1.35"
+              strokeLinecap="round"
+            />
+            <circle cx={x2} cy={y2} r="3" fill="currentColor" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** Ícone inferior: três silhuetas dentro de círculo com aro dourado (mockup). */
+function UsersCircleBadge({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-[#f2b90f]/75 bg-black/35 shadow-[0_0_20px_rgba(242,185,15,0.16)]',
+        className
+      )}
+      aria-hidden
+    >
+      <Users className="h-6 w-6 text-[#f2b90f]" strokeWidth={1.45} />
+    </div>
+  );
+}
+
 function humanizeAuthError(err: unknown): string {
   const msg = String((err as { message?: string })?.message || err || '').trim();
   const lower = msg.toLowerCase();
@@ -57,15 +135,17 @@ function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
 }
 
 export default function Login() {
-  const [loginType, setLoginType] = useState<'zelador' | 'filho'>('zelador');
+  const [filhoSurface, setFilhoSurface] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [childId, setChildId] = useState('');
   const [cpfPrefix, setCpfPrefix] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  // true = exibir o aviso amarelo (somente se a URL tiver vindo de atualização; não usar useState(true) fixo)
   const [showAlert, setShowAlert] = useState(() => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('updated') === 'true';
@@ -99,38 +179,68 @@ export default function Login() {
     setShowAlert(false);
   };
 
+  const handleForgotPassword = async () => {
+    setError(null);
+    setInfo(null);
+    const raw = email.trim();
+    if (!raw) {
+      setError('Preencha seu e-mail acima para receber o link de recuperação.');
+      return;
+    }
+    if (!raw.includes('@')) {
+      setError('A recuperação de senha é enviada por e-mail. Informe o endereço cadastrado.');
+      return;
+    }
+    const targetEmail = raw;
+    setForgotLoading(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      if (resetErr) throw resetErr;
+      setInfo('Enviamos um link de recuperação para o seu e-mail.');
+    } catch (err: unknown) {
+      setError(humanizeAuthError(err));
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setInfo(null);
 
     try {
-      if (loginType === 'zelador') {
+      if (!filhoSurface) {
         persistFilhoFlag(false);
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
+        const loginEmail = email.trim();
+        if (!loginEmail.includes('@')) {
+          throw new Error('Informe o e-mail cadastrado pelo zelador para entrar.');
+        }
+        const { error: signErr } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
           password,
         });
-        if (error) throw error;
+        if (signErr) throw signErr;
       } else {
-        // Filho de Santo Login
         if (cpfPrefix.length < 4) {
-          throw new Error("Digite pelo menos os 4 primeiros dígitos do CPF.");
+          throw new Error('Digite pelo menos os 4 primeiros dígitos do CPF.');
         }
 
         const response = await fetch('/api/auth/filho-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ childId, cpfPrefix })
+          body: JSON.stringify({ childId, cpfPrefix }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Erro ao fazer login.");
+          throw new Error(data.error || 'Erro ao fazer login.');
         }
 
-        // Login with generated credentials
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
@@ -144,7 +254,7 @@ export default function Login() {
         data: { session: postSession },
       } = await supabase.auth.getSession();
       if (postSession?.user) {
-        persistFilhoFlag(loginType === 'filho', postSession.user.id);
+        persistFilhoFlag(filhoSurface, postSession.user.id);
         try {
           const r = await fetch(
             `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`
@@ -160,8 +270,7 @@ export default function Login() {
           writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
         }
       }
-      // Pós-login: rota inicial é controlada pelo App (aba dashboard / ajuste para filho em loadAllTenantData).
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(humanizeAuthError(err));
     } finally {
       setLoading(false);
@@ -169,190 +278,242 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Image Optimizado */}
-      <img 
-        src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80" 
-        alt="Floresta Background" 
-        loading="lazy" 
-        crossOrigin="anonymous"
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none -z-20 opacity-70"
+    <div
+      className={cn(
+        'relative h-screen h-[100dvh] min-h-[520px] flex flex-col items-center justify-center overflow-hidden isolate antialiased text-white px-[clamp(14px,4vw,40px)] py-[14px]',
+        fontLogin
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[#050505]" aria-hidden />
+      <img
+        src={`${import.meta.env.BASE_URL}login-bg-premium.png`}
+        alt=""
+        fetchPriority="high"
+        decoding="async"
+        className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none brightness-[0.92]"
       />
-      <div className="fixed inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/80 pointer-events-none -z-10" />
-      
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[80px] rounded-full -z-10" />
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+      <div className="pointer-events-none absolute inset-0 z-[2] bg-black/28" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-0 z-[3]"
+        style={{
+          background: `
+            radial-gradient(ellipse 115% 95% at 50% 42%, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.48) 100%),
+            linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.1) 38%, rgba(0,0,0,0.45) 100%)
+          `,
+        }}
+        aria-hidden
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="z-10 w-full max-w-[380px] space-y-6"
+        className="relative z-10 w-full max-w-[392px]"
       >
+        <div className={cn(loginPanel, 'space-y-[12px]')}>
         {showAlert && (
-          <div className="flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/15 px-4 py-3 text-primary shadow-[0_0_30px_rgba(251,188,0,0.12)]">
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <p className="text-sm font-black leading-snug flex-1 pr-1">
-              Sistema Atualizado. Faça o Login Novamente.
+          <div
+            className={cn(
+              'flex items-start gap-3 border border-[#f2b90f]/45 bg-[#f2b90f]/10 px-4 py-3 text-[#f2b90f]',
+              R_CARD,
+              'shadow-[0_0_32px_rgba(212,158,36,0.14)]'
+            )}
+          >
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2} />
+            <p className="text-[0.8125rem] font-bold leading-snug flex-1 pr-1">
+              Sistema atualizado. Faça o login novamente.
             </p>
             <button
               type="button"
               onClick={closeUpdateAlert}
               aria-label="Fechar aviso de atualização"
-              className="shrink-0 rounded-md p-1 text-primary/80 hover:bg-primary/20 hover:text-primary transition-colors -mr-1 -mt-0.5"
+              className="shrink-0 rounded-md p-1 text-[#f2b90f]/85 hover:bg-[#f2b90f]/12 hover:text-[#f2b90f] transition-colors -mr-1 -mt-0.5"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={2} />
             </button>
           </div>
         )}
 
-        {/* Logo & Title */}
-        <div className="text-center space-y-4">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center"
-          >
-            <div className="flex flex-col items-center">
-              <h1 className="sr-only">Plataforma de gestão para zeladores, terreiros e casas de axé</h1>
-              <div className="flex items-baseline gap-3" aria-hidden="true">
-                <div className="text-6xl font-black tracking-tighter flex items-baseline">
-                  <span className="text-white">AX</span>
-                  <span className="text-primary ml-1">É</span>
-                </div>
-              </div>
-              <div className="text-3xl font-black text-white/60 tracking-[0.3em] -mt-2 ml-2" aria-hidden="true">
-                CLOUD
-              </div>
-              <div className="flex items-center gap-4 mt-6 w-full max-w-[300px]">
-                <div className="h-[1px] w-10 bg-white/20" />
-                <p className="text-white/40 font-bold tracking-[0.5em] uppercase text-[9px] whitespace-nowrap">
-                  GESTÃO SAGRADA
-                </p>
-                <div className="h-[1px] w-10 bg-white/20" />
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Login Card - Glassmorphism */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden">
-          
-          {/* Login Type Toggle */}
-          <div className="flex p-1 bg-black/40 rounded-lg border border-white/5 backdrop-blur-sm">
-            <button
-              onClick={() => setLoginType('zelador')}
-              aria-label="Acesso Zelador"
-              className={cn(
-                "flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-md transition-all flex items-center justify-center gap-2",
-                loginType === 'zelador' 
-                  ? "bg-primary text-black shadow-lg" 
-                  : "text-gray-500 hover:text-white"
-              )}
-            >
-              <UserCircle2 className="w-4 h-4" />
-              Zelador
-            </button>
-            <button
-              onClick={() => setLoginType('filho')}
-              aria-label="Acesso Filho de Santo"
-              className={cn(
-                "flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-md transition-all flex items-center justify-center gap-2",
-                loginType === 'filho' 
-                  ? "bg-primary text-black shadow-lg" 
-                  : "text-gray-500 hover:text-white"
-              )}
-            >
-              <KeyRound className="w-4 h-4" />
-              Filho de Santo
-            </button>
+        <header className="text-center space-y-[8px] [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+          <div className="flex justify-center text-[#f2b90f] drop-shadow-[0_0_16px_rgba(242,185,15,0.35)]">
+            <LogoEmblem className="h-[62px] w-[62px]" />
           </div>
+          <div className="space-y-[5px]">
+            <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
+            <p
+              className="text-[clamp(24px,3.2vw,34px)] leading-[0.95] flex flex-wrap items-baseline justify-center drop-shadow-[0_4px_9px_rgba(0,0,0,0.75)]"
+              aria-hidden
+            >
+              <span className="font-black text-white tracking-[0.12em]">AXÉ</span>
+              <span className="font-light text-[#e8ebf0] tracking-[0.18em] pl-[8px]">CLOUD</span>
+            </p>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#f2b90f]"
+              aria-hidden
+            >
+              GESTÃO SAGRADA
+            </p>
+          </div>
+          <div className="space-y-[2px] pt-[2px] text-[14px] leading-[1.32]">
+            <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
+            <p className="mx-auto max-w-[290px] text-[12px] text-[#c8cad2]">
+              Organize, comunique e fortaleça sua casa com tecnologia e Axé.
+            </p>
+          </div>
+        </header>
 
-          <form onSubmit={handleAuth} className="space-y-5">
+        <div className="space-y-[11px]">
+          <form onSubmit={handleAuth} className="space-y-[9px]">
             <AnimatePresence mode="wait">
-              {loginType === 'zelador' ? (
-                <motion.div 
+              {!filhoSurface ? (
+                <motion.div
                   key="zelador"
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="space-y-4"
+                  exit={{ opacity: 0, x: 12 }}
+                  className="space-y-[9px]"
                 >
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">E-mail</label>
+                  <div className="space-y-[5px]">
+                    <label className={labelClass}>E-mail</label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input 
-                        type="email"
+                      <User
+                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                        strokeWidth={1.5}
+                      />
+                      <input
+                        type="text"
+                        inputMode="email"
+                        autoComplete="username"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="seu@email.com"
-                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                        placeholder="Digite seu e-mail"
+                        className={fieldShell}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Senha</label>
+                  <div className="space-y-[5px]">
+                    <div className="flex items-end justify-between gap-4">
+                      <label className={labelClass}>Senha</label>
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        disabled={forgotLoading}
+                        className="pb-[1px] text-[11px] font-medium text-[#f2b90f] hover:text-[#ffd85a] disabled:opacity-50 transition-colors"
+                      >
+                        {forgotLoading ? 'Enviando...' : 'Esqueceu sua senha?'}
+                      </button>
+                    </div>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input 
+                      <Lock
+                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-[#f2b90f]"
+                        strokeWidth={1.5}
+                      />
+                      <input
                         type={showPassword ? 'text' : 'password'}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder="Digite sua senha"
                         autoComplete="current-password"
-                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-12 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                        className={cn(fieldShell, 'pr-[42px]')}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
                         aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-primary hover:bg-white/5 transition-colors"
+                        className="absolute right-[8px] top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#9ca0aa] transition-colors hover:text-zinc-200"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" strokeWidth={1.65} />
+                        ) : (
+                          <Eye className="h-5 w-5" strokeWidth={1.65} />
+                        )}
                       </button>
                     </div>
                   </div>
+
+                  <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
+                    <span
+                      className={cn(
+                        'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
+                        rememberMe ? 'border-[#f2b90f] bg-[#f2b90f]/10' : 'border-[#f2b90f] bg-transparent'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="sr-only"
+                      />
+                      {rememberMe && (
+                        <svg className="h-3.5 w-3.5 text-[#f2b90f]" viewBox="0 0 12 10" fill="none" aria-hidden>
+                          <path
+                            d="M1 5l3.5 3.5L11 1"
+                            stroke="currentColor"
+                            strokeWidth="1.85"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="text-[12px] font-medium text-white">Lembrar de mim</span>
+                  </label>
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   key="filho"
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  exit={{ opacity: 0, x: -12 }}
+                  className="space-y-[9px]"
                 >
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">ID (4 Dígitos)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilhoSurface(false);
+                      setError(null);
+                      setInfo(null);
+                    }}
+                    className="-mt-1 mb-0 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-[#f2b90f]"
+                  >
+                    ← Voltar ao login do zelador
+                  </button>
+                  <div className="space-y-[5px]">
+                    <label className={labelClass}>ID (4 dígitos)</label>
                     <div className="relative">
-                      <UserCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input 
+                      <User
+                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                        strokeWidth={1.5}
+                      />
+                      <input
                         type="text"
                         required
                         maxLength={4}
                         value={childId}
                         onChange={(e) => setChildId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
-                        placeholder="Ex: 2E6B"
-                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                        placeholder="Ex.: 2E6B"
+                        className={fieldShell}
                       />
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">4 Primeiros Dígitos do CPF</label>
+                  <div className="space-y-[5px]">
+                    <label className={labelClass}>4 primeiros dígitos do CPF</label>
                     <div className="relative">
-                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input 
+                      <KeyRound
+                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-[#f2b90f]"
+                        strokeWidth={1.5}
+                      />
+                      <input
                         type="text"
                         required
                         maxLength={4}
+                        inputMode="numeric"
                         value={cpfPrefix}
                         onChange={(e) => setCpfPrefix(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Ex: 1234"
-                        className="w-full bg-black border border-white/10 rounded-md py-3.5 pl-12 pr-4 text-white placeholder:text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                        placeholder="Ex.: 1234"
+                        className={fieldShell}
                       />
                     </div>
                   </div>
@@ -361,49 +522,119 @@ export default function Login() {
             </AnimatePresence>
 
             {error && (
-              <p className="text-red-500 text-xs font-bold text-center bg-red-500/10 py-3 rounded-md border border-red-500/20">
+              <p
+                className={cn(
+                  'text-center text-[11px] font-semibold text-red-400 bg-red-950/35 py-2 border border-red-900/45',
+                  R_CARD
+                )}
+              >
                 {error}
               </p>
             )}
+            {info && (
+              <p
+                className={cn(
+                  'text-center text-[11px] font-semibold text-[#f2b90f] bg-[#f2b90f]/8 py-2 border border-[#f2b90f]/28',
+                  R_CARD
+                )}
+              >
+                {info}
+              </p>
+            )}
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-black font-black py-3.5 rounded-md flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(251,188,0,0.2)] group disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  Entrar no Sistema
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </>
+              style={{
+                background: 'linear-gradient(180deg, #ffd33d 0%, #efb611 44%, #c48602 100%)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.38), 0 8px 28px rgba(242,185,15,0.34), 0 0 0 1px rgba(242,185,15,0.36)',
+              }}
+              className={cn(
+                R_CARD,
+                'flex h-[44px] w-full items-center justify-center gap-2 text-[14px] font-black uppercase tracking-[0.12em] text-black',
+                'hover:brightness-[1.03] active:brightness-[0.97] transition-[filter,transform] duration-150',
+                'active:scale-[0.99] disabled:opacity-50 disabled:active:scale-100'
               )}
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin text-black" strokeWidth={2.5} /> : 'Entrar'}
             </button>
           </form>
 
-          <div className="text-center">
-            <div className="pt-5 border-t border-white/10">
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-                Deseja levar o AxéCloud para o seu terreiro?
-              </p>
-              <a 
-                href="https://wa.me/5511912276156" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs font-black text-primary hover:text-primary/80 transition-colors"
+          {!filhoSurface && (
+            <div className="space-y-[8px]">
+              <div className="flex items-center gap-[10px] px-0.5">
+                <div className="h-px flex-1 bg-white/[0.2]" />
+                <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-[#b8bbc4]">
+                  Acesso do filho
+                </span>
+                <div className="h-px flex-1 bg-white/[0.2]" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilhoSurface(true);
+                  setError(null);
+                  setInfo(null);
+                }}
+                className={cn(
+                  'relative flex h-[44px] w-full items-center justify-center text-[14px] font-medium text-white',
+                  R_CARD,
+                  'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+                  'hover:border-white/[0.22] hover:bg-[#1f1f1f] transition-colors duration-200'
+                )}
               >
-                Entre em contato com o nosso comercial
-              </a>
+                <KeyRound
+                  className="pointer-events-none absolute left-[15px] top-1/2 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                  strokeWidth={1.5}
+                />
+                <span className="w-full text-center">Login filho</span>
+              </button>
             </div>
-          </div>
+          )}
+
+          <a
+            href="https://wa.me/5511912276156"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'group flex w-full items-center gap-[10px] px-[12px] py-[9px]',
+              R_CARD,
+              'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+              'hover:border-white/[0.18] transition-colors duration-200'
+            )}
+          >
+            <UsersCircleBadge />
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-[13px] font-medium leading-snug text-white">Ainda não tem uma conta?</p>
+              <p className="mt-[2px] text-[10px] font-medium leading-[1.3] text-[#c8cad2]">
+                Fale com o zelador do seu terreiro para ter acesso ao AxéCloud.
+              </p>
+            </div>
+            <ChevronRight
+              className="h-[20px] w-[20px] shrink-0 text-[#f2b90f] transition-transform duration-200 group-hover:translate-x-0.5"
+              strokeWidth={1.85}
+            />
+          </a>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-white/30 text-[10px] font-black uppercase tracking-[0.2em]">
-          © 2026 AxéCloud - CNPJ: 66.335.964/0001-07
+        <p className="login-footer-rule flex items-center justify-center gap-[8px] whitespace-nowrap px-2 pt-[1px] text-center text-[9px] font-bold uppercase tracking-[0.16em] text-[#c8cad2]">
+          <ShieldCheck className="h-[16px] w-[16px] shrink-0 text-[#f2b90f]" strokeWidth={1.55} />
+          Seguro, confiável e feito para terreiros
         </p>
+        </div>
       </motion.div>
+
+      {/* Detalhe do mockup (marcações vermelhas): filete dourado horizontal no rodapé da tela. */}
+      <div
+        className="pointer-events-none fixed bottom-0 left-0 right-0 z-[25] h-[1px]"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, ${GOLD} 12%, ${GOLD} 88%, transparent 100%)`,
+          boxShadow: `0 0 10px ${GOLD_DARK}, 0 0 1px rgba(242,185,15,0.9)`,
+          opacity: 0.95,
+        }}
+        aria-hidden
+      />
     </div>
   );
 }

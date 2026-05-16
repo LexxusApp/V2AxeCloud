@@ -8,7 +8,8 @@
     "dev:admin": "concurrently -k -n api,admin -c cyan,magenta \"npm run dev\" \"npm run dev --prefix axecloud-admin\"",
     "dev:admin-vite": "npm run dev --prefix axecloud-admin",
     "dev:with-admin": "npm run dev:admin",
-    "build": "vite build",
+    "generate:sitemap": "node scripts/generate-sitemap.mjs",
+    "build": "npm run generate:sitemap && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
