@@ -27,7 +27,7 @@ const R_CARD = 'login-radius';
 const fontLogin = "[font-family:Montserrat,system-ui,sans-serif]";
 
 const fieldShell = cn(
-  'w-full h-[44px] pl-[50px] pr-3 text-[14px] leading-none text-white placeholder:text-[#8f939c]',
+  'w-full h-[42px] pl-[46px] pr-3 text-[14px] leading-none text-white placeholder:text-[#8f939c]',
   'bg-[#0a0b0d]/95 border border-white/[0.22]',
   R_CARD,
   'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.45)]',
@@ -40,7 +40,7 @@ const loginPanel = cn(
   'border border-white/[0.16]',
   'bg-[#060708]/76 backdrop-blur-xl',
   'shadow-[0_20px_56px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]',
-  'px-[clamp(18px,4vw,26px)] py-[clamp(20px,3.2vh,28px)]'
+  'px-[16px] py-[17px] sm:px-[18px] sm:py-[19px]'
 );
 
 const labelClass =
@@ -81,12 +81,12 @@ function UsersCircleBadge({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-[#f2b90f]/75 bg-black/35 shadow-[0_0_20px_rgba(242,185,15,0.16)]',
+        'flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full border border-[#f2b90f]/75 bg-black/35 shadow-[0_0_18px_rgba(242,185,15,0.15)]',
         className
       )}
       aria-hidden
     >
-      <Users className="h-6 w-6 text-[#f2b90f]" strokeWidth={1.45} />
+      <Users className="h-5 w-5 text-[#f2b90f]" strokeWidth={1.45} />
     </div>
   );
 }
@@ -307,9 +307,9 @@ export default function Login() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-[392px]"
+        className="relative z-10 w-full max-w-[360px]"
       >
-        <div className={cn(loginPanel, 'space-y-[12px]')}>
+        <div className={cn(loginPanel, 'space-y-[10px]')}>
         {showAlert && (
           <div
             className={cn(
@@ -333,36 +333,36 @@ export default function Login() {
           </div>
         )}
 
-        <header className="text-center space-y-[8px] [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+        <header className="text-center space-y-[6px] [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
           <div className="flex justify-center text-[#f2b90f] drop-shadow-[0_0_16px_rgba(242,185,15,0.35)]">
-            <LogoEmblem className="h-[62px] w-[62px]" />
+            <LogoEmblem className="h-[54px] w-[54px]" />
           </div>
-          <div className="space-y-[5px]">
+          <div className="space-y-[4px]">
             <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
             <p
-              className="text-[clamp(24px,3.2vw,34px)] leading-[0.95] flex flex-wrap items-baseline justify-center drop-shadow-[0_4px_9px_rgba(0,0,0,0.75)]"
+              className="text-[clamp(22px,2.9vw,30px)] leading-[0.95] flex flex-wrap items-baseline justify-center drop-shadow-[0_4px_9px_rgba(0,0,0,0.75)]"
               aria-hidden
             >
               <span className="font-black text-white tracking-[0.12em]">AXÉ</span>
               <span className="font-light text-[#e8ebf0] tracking-[0.18em] pl-[8px]">CLOUD</span>
             </p>
             <p
-              className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#f2b90f]"
+              className="text-[10px] font-semibold uppercase tracking-[0.38em] text-[#f2b90f]"
               aria-hidden
             >
               GESTÃO SAGRADA
             </p>
           </div>
-          <div className="space-y-[2px] pt-[2px] text-[14px] leading-[1.32]">
+          <div className="space-y-[2px] pt-[1px] text-[13px] leading-[1.32]">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
-            <p className="mx-auto max-w-[290px] text-[12px] text-[#c8cad2]">
+            <p className="mx-auto max-w-[280px] text-[12px] text-[#c8cad2]">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
             </p>
           </div>
         </header>
 
-        <div className="space-y-[11px]">
-          <form onSubmit={handleAuth} className="space-y-[9px]">
+        <div className="space-y-[10px]">
+          <form onSubmit={handleAuth} className="space-y-[8px]">
             <AnimatePresence mode="wait">
               {!filhoSurface ? (
                 <motion.div
@@ -370,13 +370,13 @@ export default function Login() {
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 12 }}
-                  className="space-y-[9px]"
+                  className="space-y-[8px]"
                 >
                   <div className="space-y-[5px]">
                     <label className={labelClass}>E-mail</label>
                     <div className="relative">
                       <User
-                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                         strokeWidth={1.5}
                       />
                       <input
@@ -406,7 +406,7 @@ export default function Login() {
                     </div>
                     <div className="relative">
                       <Lock
-                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                         strokeWidth={1.5}
                       />
                       <input
@@ -416,7 +416,7 @@ export default function Login() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Digite sua senha"
                         autoComplete="current-password"
-                        className={cn(fieldShell, 'pr-[42px]')}
+                        className={cn(fieldShell, 'pr-[40px]')}
                       />
                       <button
                         type="button"
@@ -436,7 +436,7 @@ export default function Login() {
                   <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
                     <span
                       className={cn(
-                        'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
+                        'flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
                         rememberMe ? 'border-[#f2b90f] bg-[#f2b90f]/10' : 'border-[#f2b90f] bg-transparent'
                       )}
                     >
@@ -467,7 +467,7 @@ export default function Login() {
                   initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -12 }}
-                  className="space-y-[9px]"
+                  className="space-y-[8px]"
                 >
                   <button
                     type="button"
@@ -484,7 +484,7 @@ export default function Login() {
                     <label className={labelClass}>ID (4 dígitos)</label>
                     <div className="relative">
                       <User
-                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                         strokeWidth={1.5}
                       />
                       <input
@@ -502,7 +502,7 @@ export default function Login() {
                     <label className={labelClass}>4 primeiros dígitos do CPF</label>
                     <div className="relative">
                       <KeyRound
-                        className="pointer-events-none absolute left-[15px] top-1/2 z-10 h-[19px] w-[19px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                         strokeWidth={1.5}
                       />
                       <input
@@ -552,18 +552,18 @@ export default function Login() {
               }}
               className={cn(
                 R_CARD,
-                'flex h-[44px] w-full items-center justify-center gap-2 text-[14px] font-black uppercase tracking-[0.12em] text-black',
+                'flex h-[42px] w-full items-center justify-center gap-2 text-[14px] font-black uppercase tracking-[0.11em] text-black',
                 'hover:brightness-[1.03] active:brightness-[0.97] transition-[filter,transform] duration-150',
                 'active:scale-[0.99] disabled:opacity-50 disabled:active:scale-100'
               )}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin text-black" strokeWidth={2.5} /> : 'Entrar'}
+              {loading ? <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} /> : 'Entrar'}
             </button>
           </form>
 
           {!filhoSurface && (
-            <div className="space-y-[8px]">
-              <div className="flex items-center gap-[10px] px-0.5">
+            <div className="space-y-[6px]">
+              <div className="flex items-center gap-[8px] px-0.5">
                 <div className="h-px flex-1 bg-white/[0.2]" />
                 <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-[#b8bbc4]">
                   Acesso do filho
@@ -578,14 +578,14 @@ export default function Login() {
                   setInfo(null);
                 }}
                 className={cn(
-                  'relative flex h-[44px] w-full items-center justify-center text-[14px] font-medium text-white',
+                  'relative flex h-[42px] w-full items-center justify-center text-[14px] font-medium text-white',
                   R_CARD,
                   'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
                   'hover:border-white/[0.22] hover:bg-[#1f1f1f] transition-colors duration-200'
                 )}
               >
                 <KeyRound
-                  className="pointer-events-none absolute left-[15px] top-1/2 h-[20px] w-[20px] -translate-y-1/2 text-[#f2b90f]"
+                  className="pointer-events-none absolute left-[14px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                   strokeWidth={1.5}
                 />
                 <span className="w-full text-center">Login filho</span>
@@ -598,7 +598,7 @@ export default function Login() {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'group flex w-full items-center gap-[10px] px-[12px] py-[9px]',
+              'group flex w-full items-center gap-[9px] px-[11px] py-[8px]',
               R_CARD,
               'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
               'hover:border-white/[0.18] transition-colors duration-200'
@@ -606,20 +606,20 @@ export default function Login() {
           >
             <UsersCircleBadge />
             <div className="flex-1 text-left min-w-0">
-              <p className="text-[13px] font-medium leading-snug text-white">Ainda não tem uma conta?</p>
-              <p className="mt-[2px] text-[10px] font-medium leading-[1.3] text-[#c8cad2]">
+              <p className="text-[12.5px] font-medium leading-snug text-white">Ainda não tem uma conta?</p>
+              <p className="mt-[1px] text-[10px] font-medium leading-[1.3] text-[#c8cad2]">
                 Fale com o zelador do seu terreiro para ter acesso ao AxéCloud.
               </p>
             </div>
             <ChevronRight
-              className="h-[20px] w-[20px] shrink-0 text-[#f2b90f] transition-transform duration-200 group-hover:translate-x-0.5"
+              className="h-[18px] w-[18px] shrink-0 text-[#f2b90f] transition-transform duration-200 group-hover:translate-x-0.5"
               strokeWidth={1.85}
             />
           </a>
         </div>
 
         <p className="login-footer-rule flex items-center justify-center gap-[8px] whitespace-nowrap px-2 pt-[1px] text-center text-[9px] font-bold uppercase tracking-[0.16em] text-[#c8cad2]">
-          <ShieldCheck className="h-[16px] w-[16px] shrink-0 text-[#f2b90f]" strokeWidth={1.55} />
+          <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-[#f2b90f]" strokeWidth={1.55} />
           Seguro, confiável e feito para terreiros
         </p>
         </div>
