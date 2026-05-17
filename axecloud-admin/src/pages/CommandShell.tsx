@@ -913,7 +913,7 @@ type CatalogEntry = { name: string; price: number; description: string };
 
 const CATALOG_DEFAULT_PREMIUM: CatalogEntry = {
   name: "Premium",
-  price: 149.9,
+  price: 89.9,
   description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
 };
 const CATALOG_DEFAULT_VITA: CatalogEntry = {
@@ -1024,7 +1024,8 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-500">Catálogo</p>
             <h3 className="mt-1 text-lg font-semibold text-white">Premium e Plano Vita</h3>
             <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-400">
-              Estes dois planos são os únicos comerciais do AxéCloud. Os textos abaixo alimentam a app (tabela{" "}
+              Estes dois planos são os únicos comerciais do AxéCloud. O preço do Premium alimenta checkout, Pix e
+              cartão EFI na hora (tabela{" "}
               <code className="font-mono-data text-slate-200/90">global_settings</code>, id{" "}
               <code className="font-mono-data text-slate-200/90">plans</code>). Entradas antigas como Axé/Orô são
               ignoradas ao guardar.

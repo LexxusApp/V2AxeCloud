@@ -47,7 +47,7 @@ import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
 import { handleAuditTick } from "./api/lib/audit/cronTick.js";
-import { normalizePlansCatalog } from "./api/lib/plansCatalog.js";
+import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./api/lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
@@ -3013,14 +3013,7 @@ async function startServer() {
         childrenList.map((c) => String(c.user_id || "")).filter(Boolean)
       );
 
-      // 4. Fetch Global Settings
-      const { data: settings } = await supabaseAdmin
-        .from('global_settings')
-        .select('data')
-        .eq('id', 'plans')
-        .single();
-
-      const plans = normalizePlansCatalog(settings?.data);
+      const plans = await loadPlansCatalog(supabaseAdmin);
 
       const isShadowFilhoEmail = (email?: string | null) =>
         typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
@@ -3053,13 +3046,7 @@ async function startServer() {
   // API Route: Get Global Plans Config
   app.get("/api/plans", async (req, res) => {
     try {
-      const { data: settings } = await supabaseAdmin
-        .from('global_settings')
-        .select('data')
-        .eq('id', 'plans')
-        .single();
-        
-      const plans = normalizePlansCatalog(settings?.data);
+      const plans = await loadPlansCatalog(supabaseAdmin);
       res.setHeader(
         "Cache-Control",
         "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"
@@ -3138,16 +3125,7 @@ async function startServer() {
       }
 
       const plans = normalizePlansCatalog(incoming);
-
-      const { error: saveError } = await supabaseAdmin
-        .from('global_settings')
-        .upsert({
-          id: 'plans',
-          data: plans,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-
-      if (saveError) throw saveError;
+      await savePlansCatalog(supabaseAdmin, plans);
 
       void logEvent(supabaseAdmin, {
         eventType: "plans.updated",
@@ -3155,12 +3133,12 @@ async function startServer() {
         userEmail: user?.email,
         targetType: "global_settings",
         targetId: "plans",
-        description: `Admin actualizou o catálogo global de planos (${plans.length} planos).`,
-        metadata: { count: plans.length, slugs: plans.map((p: any) => p.slug || p.id).slice(0, 20) },
+        description: "Admin atualizou o catálogo global de planos.",
+        metadata: { slugs: Object.keys(plans), premiumPrice: plans.premium.price },
         req,
       });
 
-      res.json({ success: true });
+      res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar planos:", error);
       res.status(500).json({ error: error.message });

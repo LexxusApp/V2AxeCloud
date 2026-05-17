@@ -80,16 +80,9 @@ export async function loadWelcomeMessageConfig(
   supabaseAdmin: { from: (t: string) => any }
 ): Promise<WelcomeMessageConfig> {
   try {
-    const { data, error } = await supabaseAdmin
-      .from("global_settings")
-      .select("value")
-      .eq("id", "welcome_message")
-      .maybeSingle();
-    if (error) {
-      console.warn("[welcomeMessage] load:", error.message);
-      return { ...WELCOME_MESSAGE_DEFAULT };
-    }
-    return coerceConfig(data?.value);
+    const { loadGlobalSettingPayload } = await import("./globalSettings.js");
+    const raw = await loadGlobalSettingPayload(supabaseAdmin as any, "welcome_message");
+    return coerceConfig(raw);
   } catch (e: any) {
     console.warn("[welcomeMessage] load exception:", e?.message || e);
     return { ...WELCOME_MESSAGE_DEFAULT };
@@ -111,13 +104,8 @@ export async function saveWelcomeMessageConfig(
   next.template = String(next.template || WELCOME_MESSAGE_DEFAULT.template);
   next.loginUrl = String(next.loginUrl || WELCOME_MESSAGE_DEFAULT.loginUrl).trim();
   next.signature = String(next.signature || WELCOME_MESSAGE_DEFAULT.signature).trim();
-  const { error } = await supabaseAdmin
-    .from("global_settings")
-    .upsert({ id: "welcome_message", value: next }, { onConflict: "id" });
-  if (error) {
-    console.error("[welcomeMessage] save:", error.message);
-    throw new Error(error.message);
-  }
+  const { saveGlobalSettingPayload } = await import("./globalSettings.js");
+  await saveGlobalSettingPayload(supabaseAdmin as any, "welcome_message", next);
   return next;
 }
 

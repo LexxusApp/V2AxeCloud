@@ -248,7 +248,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
       <div className="w-full max-w-[22rem] sm:max-w-sm">
         <PlanCard
           name={plansConfig.premium?.name || "Plano Premium"}
-          price={formatPrice(plansConfig.premium?.price, "149,90")}
+          price={formatPrice(plansConfig.premium?.price, "89,90")}
           description={plansConfig.premium?.description || "Gestão espiritual e financeira completa para o seu terreiro."}
           icon={Crown}
           color="bg-[#FBBC00] shadow-[#FBBC00]/20"

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadPlansCatalog, normalizePlansCatalog } from "./plansCatalog.js";
+import { normalizePlansCatalog, resolvePremiumAmountCents } from "./plansCatalog.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   sendEvolutionTextByInstance,
@@ -51,23 +51,11 @@ export function efiNotificationUrl(): string {
   return `${resolvePublicAppUrl()}/api/webhooks/efi`;
 }
 
-export function premiumOnboardingAmountCents(): number {
-  const raw = Number(process.env.EFI_PREMIUM_AMOUNT_CENTS || "8990");
-  return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 8990;
-}
-
-/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) ou env EFI_PREMIUM_AMOUNT_CENTS. */
+/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) → env → default 89,90. */
 export async function resolvePremiumOnboardingAmountCents(
   supabaseAdmin: SupabaseClient
 ): Promise<number> {
-  try {
-    const plans = await loadPlansCatalog(supabaseAdmin);
-    const fromCatalog = Math.round(Number(plans.premium.price) * 100);
-    if (Number.isFinite(fromCatalog) && fromCatalog > 0) return fromCatalog;
-  } catch {
-    /* fallback env */
-  }
-  return premiumOnboardingAmountCents();
+  return resolvePremiumAmountCents(supabaseAdmin);
 }
 
 export async function registerNewTenant(
@@ -191,12 +179,9 @@ export async function sendPostPaymentWelcomeWhatsApp(
   let enabled = true;
 
   try {
-    const { data } = await supabaseAdmin
-      .from("global_settings")
-      .select("value")
-      .eq("id", "onboarding_paid_welcome")
-      .maybeSingle();
-    const v = data?.value as Record<string, unknown> | undefined;
+    const { loadGlobalSettingPayload } = await import("./globalSettings.js");
+    const raw = await loadGlobalSettingPayload(supabaseAdmin, "onboarding_paid_welcome");
+    const v = raw as Record<string, unknown> | undefined;
     if (v && typeof v === "object") {
       if (typeof v.enabled === "boolean") enabled = v.enabled;
       if (typeof v.template === "string" && v.template.trim()) template = v.template;

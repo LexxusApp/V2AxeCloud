@@ -2878,13 +2878,7 @@ async function startServer() {
       );
 
       // 3. Fetch Global Settings
-      const { data: settings } = await supabaseAdmin
-        .from('global_settings')
-        .select('data')
-        .eq('id', 'plans')
-        .single();
-
-      const plans = normalizePlansCatalog(settings?.data);
+      const plans = await loadPlansCatalog(supabaseAdmin);
 
       const isShadowFilhoEmail = (email?: string | null) =>
         typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
@@ -2952,13 +2946,7 @@ async function startServer() {
   // API Route: Get Global Plans Config
   app.get("/api/plans", async (req, res) => {
     try {
-      const { data: settings } = await supabaseAdmin
-        .from('global_settings')
-        .select('data')
-        .eq('id', 'plans')
-        .single();
-        
-      const plans = normalizePlansCatalog(settings?.data);
+      const plans = await loadPlansCatalog(supabaseAdmin);
       res.setHeader(
         "Cache-Control",
         "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"

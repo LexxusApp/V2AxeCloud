@@ -60,6 +60,12 @@ export const PLAN_NAMES: Record<string, string> = {
   vita: 'Plano Vita',
 };
 
+/** Preços padrão (reais) quando /api/plans não responde — espelha api/lib/plansCatalog.ts */
+export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
+  premium: 89.9,
+  vita: 49.9,
+};
+
 // import.meta.env só existe no contexto Vite (browser). No Node.js (servidor), é undefined.
 // Usamos optional chaining para não quebrar o servidor ao importar este arquivo.
 const _env = (import.meta as any).env ?? {};

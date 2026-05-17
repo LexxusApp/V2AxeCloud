@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { loadGlobalSettingPayload, saveGlobalSettingPayload } from "./globalSettings.js";
 
 /**
  * Catálogo global de planos (global_settings.id = "plans").
@@ -9,10 +10,11 @@ export type PlanCatalogEntry = { name: string; price: number; description: strin
 export const PLANS_CATALOG_KEYS = ["premium", "vita"] as const;
 export type PlanCatalogKey = (typeof PLANS_CATALOG_KEYS)[number];
 
+/** Fallback quando o banco não responde — alinhado ao preço comercial Premium (R$ 89,90). */
 export const PLANS_CATALOG_DEFAULT: Record<PlanCatalogKey, PlanCatalogEntry> = {
   premium: {
     name: "Premium",
-    price: 149.9,
+    price: 89.9,
     description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
   },
   vita: {
@@ -67,38 +69,36 @@ export function normalizePlansCatalog(raw: unknown): Record<PlanCatalogKey, Plan
   return out;
 }
 
-/** Lê catálogo de planos (coluna `data` ou legado `value`). */
+export function planPriceToCents(priceReais: number): number {
+  const n = Number(priceReais);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.round(n * 100);
+}
+
+/** Lê catálogo de planos em global_settings (id = plans). */
 export async function loadPlansCatalog(
   supabaseAdmin: SupabaseClient
 ): Promise<Record<PlanCatalogKey, PlanCatalogEntry>> {
-  const { data: row, error } = await supabaseAdmin
-    .from("global_settings")
-    .select("data, value")
-    .eq("id", "plans")
-    .maybeSingle();
-  if (error) {
-    console.warn("[plansCatalog] load:", error.message);
-    return normalizePlansCatalog(null);
-  }
-  const raw = (row as { data?: unknown; value?: unknown } | null)?.data ?? row?.value;
+  const raw = await loadGlobalSettingPayload(supabaseAdmin, "plans");
   return normalizePlansCatalog(raw);
 }
 
-/** Persiste catálogo (tenta coluna `data`, fallback `value`). */
+/** Persiste catálogo — alterações no painel admin refletem no checkout EFI. */
 export async function savePlansCatalog(
   supabaseAdmin: SupabaseClient,
   plans: Record<PlanCatalogKey, PlanCatalogEntry>
 ): Promise<void> {
-  const now = new Date().toISOString();
-  const rowWithData = { id: "plans", data: plans, updated_at: now };
-  let { error } = await supabaseAdmin.from("global_settings").upsert(rowWithData, { onConflict: "id" });
-  if (!error) return;
+  await saveGlobalSettingPayload(supabaseAdmin, "plans", plans);
+}
 
-  const msg = String(error.message || "");
-  if (/column ["']?data["']?/i.test(msg) || /Could not find the 'data' column/i.test(msg)) {
-    ({ error } = await supabaseAdmin
-      .from("global_settings")
-      .upsert({ id: "plans", value: plans, updated_at: now }, { onConflict: "id" }));
-  }
-  if (error) throw error;
+/** Valor em centavos para cobrança EFI (Pix/cartão) do plano Premium. */
+export async function resolvePremiumAmountCents(supabaseAdmin: SupabaseClient): Promise<number> {
+  const plans = await loadPlansCatalog(supabaseAdmin);
+  const fromCatalog = planPriceToCents(plans.premium.price);
+  if (fromCatalog > 0) return fromCatalog;
+
+  const fromEnv = Number(process.env.EFI_PREMIUM_AMOUNT_CENTS || "8990");
+  if (Number.isFinite(fromEnv) && fromEnv > 0) return Math.round(fromEnv);
+
+  return planPriceToCents(PLANS_CATALOG_DEFAULT.premium.price);
 }
