@@ -6,7 +6,7 @@
  * exclua a pasta api/_lib/ (prefix "_" não é deployado como função, e o import
  * pode falhar em runtime gerando 500).
  */
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -85,7 +85,7 @@ function isLifetimePlanSlug(slug: string): boolean {
 const PERFIL_LIDER_BASE_SELECT =
   "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url";
 
-async function fetchPerfilLiderByUserId(sb: ReturnType<typeof createClient>, userId: string) {
+async function fetchPerfilLiderByUserId(sb: SupabaseClient, userId: string) {
   const withTerms = `${PERFIL_LIDER_BASE_SELECT}, terms_accepted_version`;
   let res: any = await sb.from("perfil_lider").select(withTerms).eq("id", userId).maybeSingle();
   if (res.error && /terms_accepted/i.test(String(res.error.message || ""))) {

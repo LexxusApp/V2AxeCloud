@@ -8,7 +8,6 @@
  */
 
 import { promises as dns } from "node:dns";
-// @ts-expect-error sem typings
 import whoisJson from "whois-json";
 
 const DNS_TIMEOUT_MS = 5_000;
