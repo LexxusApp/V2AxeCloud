@@ -26,7 +26,7 @@ const highlights = [
 ] as const;
 
 const fieldShell = cn(
-  'w-full h-[42px] rounded-lg border border-zinc-300 bg-white px-3',
+  'w-full h-[46px] rounded-lg border border-zinc-300 bg-white px-3 sm:h-[42px]',
   'text-[14px] font-medium text-zinc-900 placeholder:text-zinc-500',
   'outline-none transition-[border-color,box-shadow] duration-200',
   'focus:border-amber-600 focus:ring-2 focus:ring-amber-500/20'
@@ -46,15 +46,18 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtml = html.style.overflow;
-    const prevBody = body.style.overflow;
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const syncOverflow = () => {
+      const lock = mq.matches;
+      document.documentElement.style.overflow = lock ? 'hidden' : '';
+      document.body.style.overflow = lock ? 'hidden' : '';
+    };
+    syncOverflow();
+    mq.addEventListener('change', syncOverflow);
     return () => {
-      html.style.overflow = prevHtml;
-      body.style.overflow = prevBody;
+      mq.removeEventListener('change', syncOverflow);
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     };
   }, []);
 
@@ -107,17 +110,22 @@ export default function Register() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={cn('fixed inset-0 z-[100] flex flex-col overflow-hidden antialiased lg:flex-row', fontLogin)}
+      className={cn(
+        'fixed inset-0 z-[100] antialiased',
+        'max-lg:overflow-y-auto max-lg:overflow-x-hidden',
+        'lg:flex lg:flex-row lg:overflow-hidden',
+        fontLogin
+      )}
     >
-      {/* Painel esquerdo — imagem + mensagem */}
+      {/* Painel esquerdo — imagem + mensagem (no mobile rola junto com o formulário) */}
       <aside
-        className="relative flex min-h-[220px] shrink-0 flex-col justify-between overflow-hidden bg-black lg:min-h-0 lg:w-[52%] xl:w-[55%]"
+        className="relative flex w-full shrink-0 flex-col justify-between overflow-hidden bg-black lg:h-screen lg:min-h-0 lg:w-[52%] xl:w-[55%]"
         aria-label="Sobre o AxéCloud"
       >
         <AuthScreenBackground className="absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/35 to-black/65" aria-hidden />
 
-        <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-8 lg:p-10">
+        <div className="relative z-10 flex flex-col p-6 sm:p-8 lg:flex-1 lg:p-10">
           <a
             href={ROUTES.home}
             className="inline-flex w-fit items-center gap-1.5 text-[12px] font-medium text-white/70 transition hover:text-white"
@@ -126,7 +134,7 @@ export default function Register() {
             Voltar ao site
           </a>
 
-          <div className="my-auto max-w-xl space-y-5 py-6 lg:py-10">
+          <div className="max-w-xl space-y-5 py-6 max-lg:py-4 lg:my-auto lg:py-10">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
               <h1 className="mt-3 text-[clamp(1.35rem,3vw,1.85rem)] font-extrabold leading-[1.15] tracking-tight text-white">
@@ -159,13 +167,13 @@ export default function Register() {
             </p>
           </div>
 
-          <p className="text-[11px] text-white/40">Gestão sagrada para zeladores e terreiros.</p>
+          <p className="pb-4 text-[11px] text-white/40 lg:pb-0">Gestão sagrada para zeladores e terreiros.</p>
         </div>
       </aside>
 
-      {/* Painel direito — formulário */}
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white text-zinc-900">
-        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center px-6 py-8 sm:px-10 sm:py-10">
+      {/* Painel direito — formulário (no mobile faz parte do scroll da página inteira) */}
+      <main className="flex w-full flex-col bg-white text-zinc-900 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+        <div className="mx-auto w-full max-w-[440px] px-5 py-8 pb-12 sm:px-10 sm:py-10 lg:flex lg:min-h-full lg:flex-col lg:justify-center">
           <header className="mb-6">
             <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
               Cadastre seu terreiro
@@ -183,7 +191,7 @@ export default function Register() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className={labelClass}>Nome do terreiro</label>
                 <input
