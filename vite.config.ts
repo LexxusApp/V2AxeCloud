@@ -54,64 +54,11 @@ export default defineConfig(({mode}) => {
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
           /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v102',
+          cacheId: 'axecloud-v103',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
-          // Evita que o fallback do SPA (index.html) intercepte navegação para /api/*
           navigateFallbackDenylist: [/^\/api\//],
-          runtimeCaching: [
-            {
-              // Fundos do login: rede direta (sem NetworkFirst) — evita no-response do Workbox se a rede falhar.
-              urlPattern: ({url, sameOrigin}) => {
-                if (!sameOrigin) return false;
-                try {
-                  return /^\/login-bg(-premium|-desktop)?\.png$/i.test(new URL(url).pathname);
-                } catch {
-                  return false;
-                }
-              },
-              handler: 'NetworkOnly',
-              method: 'GET',
-            },
-            {
-              // Navegação HTML: rede primeiro e sem persistir HTML no cache.
-              urlPattern: ({request, sameOrigin}) => sameOrigin && request.mode === 'navigate',
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'axecloud-html-network-first-v102',
-                networkTimeoutSeconds: 8,
-                // Mantém a estratégia NetworkFirst, mas bloqueia gravação de HTML em cache.
-                plugins: [{
-                  cacheWillUpdate: async () => null,
-                }],
-              },
-            },
-            {
-              // Assets estáticos same-origin (nunca cachear /api — checkout EFI, tenant-info, etc.).
-              urlPattern: ({request, sameOrigin, url}) => {
-                if (!sameOrigin || request.mode === 'navigate') return false;
-                try {
-                  return !new URL(url).pathname.startsWith('/api/');
-                } catch {
-                  return true;
-                }
-              },
-              handler: 'NetworkFirst',
-              method: 'GET',
-              options: {
-                cacheName: 'axecloud-runtime-network-first-v102',
-                networkTimeoutSeconds: 12,
-                expiration: {
-                  maxEntries: 120,
-                  maxAgeSeconds: 60 * 60 * 6,
-                  purgeOnQuotaError: true,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
+          // Sem runtimeCaching: evita no-response do Workbox em PNG/CSS; precache cobre o essencial.
         },
       }),
     ],

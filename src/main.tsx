@@ -52,7 +52,35 @@ function activateWaitingSwIfSafe() {
   }
 }
 
+const SW_RESET_KEY = 'axecloud-sw-reset-v103';
+
+/** Uma vez: remove SW/cache antigos (v101) que serviam bundle sem landing e quebravam login-bg. */
+async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false;
+  try {
+    if (localStorage.getItem(SW_RESET_KEY)) return false;
+    const regs = await navigator.serviceWorker.getRegistrations();
+    if (regs.length === 0) {
+      localStorage.setItem(SW_RESET_KEY, '1');
+      return false;
+    }
+    await Promise.all(regs.map((r) => r.unregister()));
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    localStorage.setItem(SW_RESET_KEY, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 if (import.meta.env.PROD) {
+  void resetLegacyServiceWorkerOnce().then((didReset) => {
+    if (didReset) window.location.reload();
+  });
+
   registerSW({
     immediate: true,
     onNeedRefresh() {

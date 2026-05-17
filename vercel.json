@@ -61,12 +61,8 @@
           "value": "same-origin"
         },
         {
-          "key": "Cross-Origin-Embedder-Policy",
-          "value": "credentialless"
-        },
-        {
           "key": "Cross-Origin-Resource-Policy",
-          "value": "same-origin"
+          "value": "cross-origin"
         },
         {
           "key": "X-Permitted-Cross-Domain-Policies",
@@ -203,19 +199,6 @@
           "value": "public, max-age=604800, immutable"
         }
       ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "axecloud.com.br"
-        }
-      ],
-      "destination": "https://www.axecloud.com.br/:path*",
-      "permanent": true
     }
   ]
 }

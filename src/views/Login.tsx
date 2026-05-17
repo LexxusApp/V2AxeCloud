@@ -146,7 +146,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginBgFailed, setLoginBgFailed] = useState(false);
   const [showAlert, setShowAlert] = useState(() => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('updated') === 'true';
@@ -286,18 +285,7 @@ export default function Login() {
       )}
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-[#050505]" aria-hidden />
-      {!loginBgFailed ? (
-        <img
-          src={`${import.meta.env.BASE_URL}login-bg-desktop.png`}
-          srcSet={`${import.meta.env.BASE_URL}login-bg-desktop.png 1280w, ${import.meta.env.BASE_URL}login-bg-premium.png 1920w`}
-          sizes="100vw"
-          alt=""
-          fetchPriority="high"
-          decoding="async"
-          onError={() => setLoginBgFailed(true)}
-          className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none brightness-[0.92]"
-        />
-      ) : null}
+      <div className="pointer-events-none absolute inset-0 z-[1] login-bg-screen" aria-hidden />
       <div className="pointer-events-none absolute inset-0 z-[2] bg-black/28" aria-hidden />
       <div
         className="pointer-events-none absolute inset-0 z-[3]"
