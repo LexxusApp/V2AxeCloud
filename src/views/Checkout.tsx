@@ -36,6 +36,14 @@ type EfiConfig = {
   amountCents: number;
   amountLabel: string;
   pixAvailable: boolean;
+  pixSetup?: {
+    hasClientCredentials: boolean;
+    hasPixKey: boolean;
+    certEnvKeysPresent: string[];
+    certResolved: boolean;
+    certSource: string | null;
+    issues: string[];
+  };
   cardAvailable: boolean;
 };
 
@@ -94,8 +102,9 @@ export default function Checkout() {
     setError(null);
     try {
       const [cfgRes, ctxRes] = await Promise.all([
-        fetch('/api/v1/checkout/efi/config'),
+        fetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
         fetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(readTenantFromUrl())}`, {
+          cache: 'no-store',
           headers: await authHeaders(),
         }),
       ]);
@@ -378,10 +387,21 @@ export default function Checkout() {
               {method === 'pix' ? (
                 <motion.div className="space-y-4" layout>
                   {!config?.pixAvailable ? (
-                    <p className="text-sm text-[#b8bbc4]">
-                      PIX não configurado no servidor. Adicione EFI_PIX_KEY e o certificado .p12 em
-                      EFI_PIX_CERT_PATH.
-                    </p>
+                    <motion.div className="space-y-2 text-sm text-[#b8bbc4]">
+                      <p>PIX não disponível neste deploy. O servidor não conseguiu carregar chave + certificado .p12.</p>
+                      {config?.pixSetup?.issues?.length ? (
+                        <ul className="list-inside list-disc space-y-1 text-[#9a9ea8]">
+                          {config.pixSetup.issues.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>
+                          Confira na Vercel (mesmo ambiente Preview/Production da URL): EFI_PIX_KEY,
+                          EFI_PIX_CERT_BASE64 e EFI_CLIENT_ID / EFI_CLIENT_SECRET.
+                        </p>
+                      )}
+                    </motion.div>
                   ) : !pixQr ? (
                     <>
                       <p className="text-sm leading-relaxed text-[#b8bbc4]">

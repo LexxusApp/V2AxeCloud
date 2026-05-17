@@ -7,7 +7,12 @@ import {
   efiGetSubscription,
   resolveEfiEnv,
 } from "./efiPay.js";
-import { efiPixCreateImmediateCharge, efiPixGetCob, resolveEfiPixEnv } from "./efiPixApi.js";
+import {
+  efiPixCreateImmediateCharge,
+  efiPixGetCob,
+  getEfiPixSetupDiagnostics,
+  resolveEfiPixEnv,
+} from "./efiPixApi.js";
 import {
   activateTenantSubscription,
   efiNotificationUrl,
@@ -75,6 +80,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       return res.status(503).json({ error: "EFI Cobranças não configurado." });
     }
 
+    res.setHeader("Cache-Control", "private, no-store, must-revalidate");
+
+    const pixDiagnostics = pix ? undefined : getEfiPixSetupDiagnostics();
+
     res.json({
       sandbox: efi.sandbox,
       payeeCode: payeeCode || null,
@@ -82,6 +91,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       amountLabel: `R$ ${(premiumOnboardingAmountCents() / 100).toFixed(2).replace(".", ",")}`,
       pixAvailable: !!pix,
       cardAvailable: !!payeeCode,
+      ...(pixDiagnostics ? { pixSetup: pixDiagnostics } : {}),
     });
   });
 
@@ -119,7 +129,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       if (!pixEnv) {
         return res.status(503).json({
           error:
-            "PIX indisponível. Configure EFI_PIX_KEY e o certificado (.p12) em EFI_PIX_CERT_PATH.",
+            "PIX indisponível. Configure EFI_PIX_KEY e o certificado (.p12) em EFI_PIX_CERT_BASE64 ou EFI_PIX_CERT_PATH.",
         });
       }
 

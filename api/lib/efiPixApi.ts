@@ -7,27 +7,156 @@ import { resolveEfiEnv, type EfiEnv } from "./efiPay.js";
 export type EfiPixEnv = EfiEnv & {
   baseUrl: string;
   pixKey: string;
-  certPath: string;
+  certPfx: Buffer;
+  certCacheKey: string;
   certPassphrase: string;
 };
 
 let cachedPixToken: { token: string; expiresAt: number } | null = null;
 const httpsAgentByCert = new Map<string, https.Agent>();
 
-function resolveCertPath(): string | null {
-  const candidates = [
-    process.env.EFI_PIX_CERT_PATH,
-    process.env.EFI_CERTIFICATE_PATH,
-    process.env.EFI_PIX_CERT,
-  ]
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
+function stripEnvQuotes(value: string): string {
+  const t = value.trim();
+  if (t.length >= 2 && ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))) {
+    return t.slice(1, -1).trim();
+  }
+  return t;
+}
 
-  for (const raw of candidates) {
+/** Remove prefixo data-URI, "base64:" e espaços/quebras comuns em secrets da Vercel. */
+function normalizeBase64CertInput(raw: string): string {
+  let trimmed = stripEnvQuotes(raw);
+  const comma = trimmed.indexOf(",");
+  if (comma > 0 && /^data:[^;]+;base64,/i.test(trimmed.slice(0, comma + 1))) {
+    trimmed = trimmed.slice(comma + 1);
+  }
+  trimmed = trimmed.replace(/\s/g, "");
+  if (trimmed.toLowerCase().startsWith("base64:")) {
+    trimmed = trimmed.slice(7);
+  }
+  return trimmed;
+}
+
+function decodeP12FromBase64(raw: string): Buffer | null {
+  const trimmed = stripEnvQuotes(raw);
+  if (trimmed.includes("-----BEGIN")) return null;
+
+  const normalized = normalizeBase64CertInput(raw);
+  if (!normalized || normalized.length < 64) return null;
+  try {
+    const buf = Buffer.from(normalized, "base64");
+    // .p12 válido costuma ter pelo menos alguns KB; evita aceitar texto/path decodificado por engano.
+    if (buf.length < 256) return null;
+    return buf;
+  } catch {
+    return null;
+  }
+}
+
+const EFI_PIX_CERT_BASE64_ENV_KEYS = [
+  "EFI_PIX_CERT_BASE64",
+  "EFI_CERTIFICATE_BASE64",
+  "EFI_PIX_CERT",
+  "EFI_CERTIFICATE",
+  "EFI_PIX_CERT_PATH",
+  "EFI_CERTIFICATE_PATH",
+] as const;
+
+function resolveCertPfxFromEnv(): { pfx: Buffer; cacheKey: string } | null {
+  for (const key of EFI_PIX_CERT_BASE64_ENV_KEYS) {
+    const raw = String(process.env[key] || "").trim();
+    if (!raw) continue;
+
+    const asPath = path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+    if (
+      raw.length < 4096 &&
+      (raw.endsWith(".p12") || raw.endsWith(".pfx")) &&
+      fs.existsSync(asPath)
+    ) {
+      continue;
+    }
+
+    const pfx = decodeP12FromBase64(raw);
+    if (pfx) return { pfx, cacheKey: `env:${key}` };
+  }
+  return null;
+}
+
+function resolveCertPathFromDisk(): string | null {
+  for (const key of ["EFI_PIX_CERT_PATH", "EFI_CERTIFICATE_PATH"] as const) {
+    const raw = String(process.env[key] || "").trim();
+    if (!raw) continue;
     const resolved = path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
     if (fs.existsSync(resolved)) return resolved;
   }
   return null;
+}
+
+function resolvePixCertPfx(): { pfx: Buffer; cacheKey: string } | null {
+  const fromEnv = resolveCertPfxFromEnv();
+  if (fromEnv) return fromEnv;
+
+  const certPath = resolveCertPathFromDisk();
+  if (!certPath) return null;
+
+  return { pfx: fs.readFileSync(certPath), cacheKey: `file:${certPath}` };
+}
+
+export type EfiPixSetupDiagnostics = {
+  hasClientCredentials: boolean;
+  hasPixKey: boolean;
+  certEnvKeysPresent: string[];
+  certResolved: boolean;
+  certSource: string | null;
+  issues: string[];
+};
+
+/** Diagnóstico seguro (sem expor segredos) — use quando pixAvailable for false. */
+export function getEfiPixSetupDiagnostics(): EfiPixSetupDiagnostics {
+  const hasClientCredentials = !!resolveEfiEnv();
+  const hasPixKey = !!String(process.env.EFI_PIX_KEY || process.env.EFI_PIX_CHAVE || "").trim();
+  const certEnvKeysPresent = EFI_PIX_CERT_BASE64_ENV_KEYS.filter((k) =>
+    !!String(process.env[k] || "").trim()
+  );
+  const cert = resolvePixCertPfx();
+  const issues: string[] = [];
+
+  if (!hasClientCredentials) {
+    issues.push("Defina EFI_CLIENT_ID e EFI_CLIENT_SECRET (Cobranças Efí).");
+  }
+  if (!hasPixKey) {
+    issues.push("Defina EFI_PIX_KEY com a chave Pix da conta.");
+  }
+  if (!certEnvKeysPresent.length) {
+    issues.push(
+      "Defina EFI_PIX_CERT_BASE64 com o arquivo .p12 inteiro em Base64 (recomendado na Vercel)."
+    );
+  } else if (!cert) {
+    const key = certEnvKeysPresent[0]!;
+    const sample = stripEnvQuotes(String(process.env[key] || ""));
+    if (sample.includes("-----BEGIN")) {
+      issues.push(
+        `${key}: formato PEM detectado. A API Pix exige certificado .p12 (PKCS#12), não .pem/.crt.`
+      );
+    } else if (sample.length < 200) {
+      issues.push(
+        `${key}: valor muito curto — cole o Base64 completo do .p12 (não o caminho do arquivo).`
+      );
+    } else {
+      issues.push(
+        `${key}: não foi possível decodificar o .p12. Gere o Base64 a partir do arquivo binário .p12.`
+      );
+    }
+  }
+
+  return {
+    hasClientCredentials,
+    hasPixKey,
+    certEnvKeysPresent,
+    certResolved: !!cert,
+    certSource: cert?.cacheKey ?? null,
+    issues,
+  };
 }
 
 export function resolveEfiPixEnv(): EfiPixEnv | null {
@@ -35,8 +164,8 @@ export function resolveEfiPixEnv(): EfiPixEnv | null {
   if (!cob) return null;
 
   const pixKey = String(process.env.EFI_PIX_KEY || process.env.EFI_PIX_CHAVE || "").trim();
-  const certPath = resolveCertPath();
-  if (!pixKey || !certPath) return null;
+  const cert = resolvePixCertPfx();
+  if (!pixKey || !cert) return null;
 
   const baseUrl =
     String(process.env.EFI_PIX_API_BASE_URL || "").trim() ||
@@ -46,19 +175,19 @@ export function resolveEfiPixEnv(): EfiPixEnv | null {
     ...cob,
     baseUrl: baseUrl.replace(/\/$/, ""),
     pixKey,
-    certPath,
+    certPfx: cert.pfx,
+    certCacheKey: cert.cacheKey,
     certPassphrase: String(process.env.EFI_PIX_CERT_PASSPHRASE || process.env.EFI_CERT_PASSPHRASE || ""),
   };
 }
 
 function getHttpsAgent(env: EfiPixEnv): https.Agent {
-  const cacheKey = `${env.certPath}:${env.certPassphrase}`;
+  const cacheKey = `${env.certCacheKey}:${env.certPassphrase}`;
   const existing = httpsAgentByCert.get(cacheKey);
   if (existing) return existing;
 
-  const pfx = fs.readFileSync(env.certPath);
   const agent = new https.Agent({
-    pfx,
+    pfx: env.certPfx,
     passphrase: env.certPassphrase || undefined,
     rejectUnauthorized: true,
   });

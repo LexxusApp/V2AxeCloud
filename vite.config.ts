@@ -47,7 +47,7 @@ export default defineConfig(({mode}) => {
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
           /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v100',
+          cacheId: 'axecloud-v101',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           // Evita que o fallback do SPA (index.html) intercepte navegação para /api/*
@@ -58,7 +58,7 @@ export default defineConfig(({mode}) => {
               urlPattern: ({request, sameOrigin}) => sameOrigin && request.mode === 'navigate',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-html-network-first-v100',
+                cacheName: 'axecloud-html-network-first-v101',
                 networkTimeoutSeconds: 8,
                 // Mantém a estratégia NetworkFirst, mas bloqueia gravação de HTML em cache.
                 plugins: [{
@@ -67,12 +67,19 @@ export default defineConfig(({mode}) => {
               },
             },
             {
-              // Todas as rotas same-origin (exceto navegação HTML): rede primeiro.
-              urlPattern: ({request, sameOrigin}) => sameOrigin && request.mode !== 'navigate',
+              // Assets estáticos same-origin (nunca cachear /api — checkout EFI, tenant-info, etc.).
+              urlPattern: ({request, sameOrigin, url}) => {
+                if (!sameOrigin || request.mode === 'navigate') return false;
+                try {
+                  return !new URL(url).pathname.startsWith('/api/');
+                } catch {
+                  return true;
+                }
+              },
               handler: 'NetworkFirst',
               method: 'GET',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v100',
+                cacheName: 'axecloud-runtime-network-first-v101',
                 networkTimeoutSeconds: 12,
                 expiration: {
                   maxEntries: 120,
