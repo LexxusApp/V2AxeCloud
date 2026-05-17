@@ -1,10 +1,10 @@
+import { metadata as homeMetadata } from '../app/page';
 import { ROUTES, normalizePath } from './routes';
 
 const SITE_ORIGIN = 'https://axecloud.com.br';
 
-const DEFAULT_TITLE = 'AxéCloud | Gestão Mística de Alto Padrão';
-const DEFAULT_DESCRIPTION =
-  'AxéCloud — Plataforma completa de gestão mística para terreiros e casas de axé: filhos de santo, financeiro, almoxarifado, calendário e mural.';
+const DEFAULT_TITLE = homeMetadata.title;
+const DEFAULT_DESCRIPTION = homeMetadata.description;
 
 type RouteSeo = {
   title: string;

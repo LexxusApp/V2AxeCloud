@@ -144,7 +144,9 @@ function ScrollToTopButton() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const scrollTop = useCallback(() => {
+  const scrollTop = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
@@ -154,7 +156,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[70] grid h-12 w-12 place-items-center rounded-full border border-primary/50 bg-primary text-black shadow-[0_0_28px_rgba(251,188,0,0.4)] transition-all duration-300 hover:scale-105 active:scale-95 sm:bottom-8 sm:right-6',
+        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full border border-primary/50 bg-primary text-black shadow-[0_0_28px_rgba(251,188,0,0.4)] transition-all duration-300 hover:scale-105 active:scale-95 sm:bottom-8 sm:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
