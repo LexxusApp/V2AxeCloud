@@ -4,3 +4,4 @@
 - **Quando bumpar `SYSTEM_VERSION`**: somente em mudanças **incompatíveis** que exijam logout/limpeza geral — por exemplo: alteração no formato de cache em `localStorage`, troca de schema de auth, refactor que invalida tenant_anchor, etc. Nesses casos, além de bumpar, troque a chamada para `performFastLogout()` no fluxo necessário (o "version bump" sozinho não desloga mais ninguém).
 - **Reboot a pedido (logout/reload forçado)**: se o usuário pedir explicitamente "reboot do sistema", "atualização forçada", "derrubar todos os usuários", "forçar logout", aí sim bumpe `SYSTEM_VERSION` E adicione um `performFastLogout()` ou `performEmergencyClientReset()` no caminho adequado — porque o bump por si só virou soft.
 - **Language Preference**: All responses from the AI must be in Portuguese (PT-BR), as requested by the user.
+- **Git (branch padrão)**: commits e `git push` somente na branch **`main`**. Não enviar para `dev` salvo pedido explícito do usuário.
