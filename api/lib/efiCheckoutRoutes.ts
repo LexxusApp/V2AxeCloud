@@ -127,7 +127,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
 
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
-      if (!pending.ok) {
+      if (pending.ok === false) {
         if (pending.error === "already_active") {
           return res.json({ alreadyActive: true });
         }
@@ -219,7 +219,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
 
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
-      if (!pending.ok) {
+      if (pending.ok === false) {
         if (pending.error === "already_active") {
           return res.json({ alreadyActive: true });
         }
