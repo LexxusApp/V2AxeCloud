@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizePlansCatalog } from "./plansCatalog.js";
+import { loadPlansCatalog, normalizePlansCatalog } from "./plansCatalog.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   sendEvolutionTextByInstance,
@@ -61,12 +61,7 @@ export async function resolvePremiumOnboardingAmountCents(
   supabaseAdmin: SupabaseClient
 ): Promise<number> {
   try {
-    const { data: settings } = await supabaseAdmin
-      .from("global_settings")
-      .select("data")
-      .eq("id", "plans")
-      .maybeSingle();
-    const plans = normalizePlansCatalog(settings?.data);
+    const plans = await loadPlansCatalog(supabaseAdmin);
     const fromCatalog = Math.round(Number(plans.premium.price) * 100);
     if (Number.isFinite(fromCatalog) && fromCatalog > 0) return fromCatalog;
   } catch {

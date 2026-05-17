@@ -45,7 +45,7 @@ import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
-import { normalizePlansCatalog } from "./lib/plansCatalog.js";
+import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./lib/fetchFinanceiroRowsForFilho.js";
@@ -2944,17 +2944,7 @@ async function startServer() {
       }
 
       const plans = normalizePlansCatalog(incoming);
-
-      const { error: saveError } = await supabaseAdmin.from("global_settings").upsert(
-        {
-          id: "plans",
-          data: plans,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
-
-      if (saveError) throw saveError;
+      await savePlansCatalog(supabaseAdmin, plans);
 
       void logEvent(supabaseAdmin, {
         eventType: "plans.updated",

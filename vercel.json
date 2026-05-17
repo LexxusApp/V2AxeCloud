@@ -12,6 +12,10 @@
       "destination": "/api/tenant-info"
     },
     {
+      "source": "/api/admin/update-plans",
+      "destination": "/api/admin/update-plans"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index"
     },

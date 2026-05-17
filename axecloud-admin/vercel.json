@@ -5,7 +5,11 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://axecloud-app.vercel.app/api/$1" },
+    {
+      "source": "/api/admin/update-plans",
+      "destination": "https://v2-axe-cloud.vercel.app/api/admin/update-plans"
+    },
+    { "source": "/api/(.*)", "destination": "https://v2-axe-cloud.vercel.app/api/$1" },
     { "source": "/((?!api|.*\\..*).*)", "destination": "/index.html" }
   ],
   "headers": [

@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 /**
  * Catálogo global de planos (global_settings.id = "plans").
  * O produto comercial tem apenas Premium (renovável) e Vita (vitalício).
@@ -57,4 +59,40 @@ export function normalizePlansCatalog(raw: unknown): Record<PlanCatalogKey, Plan
     }
   }
   return out;
+}
+
+/** Lê catálogo de planos (coluna `data` ou legado `value`). */
+export async function loadPlansCatalog(
+  supabaseAdmin: SupabaseClient
+): Promise<Record<PlanCatalogKey, PlanCatalogEntry>> {
+  const { data: row, error } = await supabaseAdmin
+    .from("global_settings")
+    .select("data, value")
+    .eq("id", "plans")
+    .maybeSingle();
+  if (error) {
+    console.warn("[plansCatalog] load:", error.message);
+    return normalizePlansCatalog(null);
+  }
+  const raw = (row as { data?: unknown; value?: unknown } | null)?.data ?? row?.value;
+  return normalizePlansCatalog(raw);
+}
+
+/** Persiste catálogo (tenta coluna `data`, fallback `value`). */
+export async function savePlansCatalog(
+  supabaseAdmin: SupabaseClient,
+  plans: Record<PlanCatalogKey, PlanCatalogEntry>
+): Promise<void> {
+  const now = new Date().toISOString();
+  const rowWithData = { id: "plans", data: plans, updated_at: now };
+  let { error } = await supabaseAdmin.from("global_settings").upsert(rowWithData, { onConflict: "id" });
+  if (!error) return;
+
+  const msg = String(error.message || "");
+  if (/column ["']?data["']?/i.test(msg) || /Could not find the 'data' column/i.test(msg)) {
+    ({ error } = await supabaseAdmin
+      .from("global_settings")
+      .upsert({ id: "plans", value: plans, updated_at: now }, { onConflict: "id" }));
+  }
+  if (error) throw error;
 }
