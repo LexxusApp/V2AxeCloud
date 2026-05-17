@@ -14,6 +14,9 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         injectRegister: false,
         includeAssets: [
+          'favicon.ico',
+          'axecloud_48.png',
+          'axecloud_96.png',
           'axecloud_192.png',
           'axecloud_512.png',
           'login-bg.png',
@@ -37,6 +40,12 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           display_override: ['window-controls-overlay', 'standalone'],
           icons: [
+            {
+              src: '/axecloud_48.png',
+              sizes: '48x48',
+              type: 'image/png',
+              purpose: 'any',
+            },
             {
               src: '/axecloud_192.png',
               sizes: '192x192',
