@@ -13,7 +13,14 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
-        includeAssets: ['axecloud_192.png', 'axecloud_512.png', 'sw-push.js'],
+        includeAssets: [
+          'axecloud_192.png',
+          'axecloud_512.png',
+          'login-bg.png',
+          'login-bg-premium.png',
+          'login-bg-desktop.png',
+          'sw-push.js',
+        ],
         devOptions: {
           enabled: false,
         },
@@ -47,18 +54,31 @@ export default defineConfig(({mode}) => {
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
           /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v101',
+          cacheId: 'axecloud-v102',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           // Evita que o fallback do SPA (index.html) intercepte navegação para /api/*
           navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
             {
+              // Fundos do login: rede direta (sem NetworkFirst) — evita no-response do Workbox se a rede falhar.
+              urlPattern: ({url, sameOrigin}) => {
+                if (!sameOrigin) return false;
+                try {
+                  return /^\/login-bg(-premium|-desktop)?\.png$/i.test(new URL(url).pathname);
+                } catch {
+                  return false;
+                }
+              },
+              handler: 'NetworkOnly',
+              method: 'GET',
+            },
+            {
               // Navegação HTML: rede primeiro e sem persistir HTML no cache.
               urlPattern: ({request, sameOrigin}) => sameOrigin && request.mode === 'navigate',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-html-network-first-v101',
+                cacheName: 'axecloud-html-network-first-v102',
                 networkTimeoutSeconds: 8,
                 // Mantém a estratégia NetworkFirst, mas bloqueia gravação de HTML em cache.
                 plugins: [{
@@ -79,7 +99,7 @@ export default defineConfig(({mode}) => {
               handler: 'NetworkFirst',
               method: 'GET',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v101',
+                cacheName: 'axecloud-runtime-network-first-v102',
                 networkTimeoutSeconds: 12,
                 expiration: {
                   maxEntries: 120,

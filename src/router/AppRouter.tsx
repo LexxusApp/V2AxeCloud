@@ -3,13 +3,14 @@ import Register from '../views/Register';
 import Checkout from '../views/Checkout';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
-import { ROUTES, normalizePath } from '../lib/routes';
+import { usePathname } from '../hooks/usePathname';
+import { ROUTES } from '../lib/routes';
 
 /**
  * Roteador central (Vite SPA — equivalente a app/page, app/login, app/dashboard).
  */
 export default function AppRouter() {
-  const path = normalizePath(window.location.pathname);
+  const path = usePathname();
 
   switch (path) {
     case ROUTES.register:

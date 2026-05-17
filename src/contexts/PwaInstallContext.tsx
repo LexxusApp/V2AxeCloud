@@ -49,6 +49,8 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     if (readStandalone()) return;
 
     const onBeforeInstall = (e: Event) => {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      if (!path.startsWith('/dashboard')) return;
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };

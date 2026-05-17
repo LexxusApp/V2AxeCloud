@@ -1,10 +1,9 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
-import {Analytics} from '@vercel/analytics/react';
-import {SpeedInsights} from '@vercel/speed-insights/react';
 import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
+import {VercelInsights} from './components/VercelInsights';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
 
@@ -61,11 +60,9 @@ if (import.meta.env.PROD) {
       // Quem estiver em telas de uso continua trabalhando com a versao atual.
       // Em transicoes seguras (login screen, foreground após logout), ativamos.
       swWaiting = true;
-      console.info('[PWA] Nova versão disponível em waiting.');
     },
-    onRegisteredSW(swUrl, registration) {
+    onRegisteredSW(_swUrl, registration) {
       swRegistration = registration;
-      console.info('[PWA] Service Worker ativo:', swUrl, registration?.scope);
     },
     onRegisterError(error) {
       console.error('[PWA] Falha ao registrar o Service Worker:', error);
@@ -93,8 +90,7 @@ createRoot(document.getElementById('root')!).render(
     <PwaInstallProvider>
       <EmergencyReloadBeacon />
       <AppRouter />
-      <Analytics />
-      <SpeedInsights />
+      <VercelInsights />
     </PwaInstallProvider>
   </StrictMode>,
 );
