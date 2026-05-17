@@ -9,6 +9,16 @@ export type EfiEnv = {
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
+/** Identificador de conta (painel Efí → API → Introdução) — usado pelo SDK para tokenizar cartão no browser. */
+export function resolveEfiPayeeCode(): string {
+  return String(
+    process.env.EFI_PAYEE_CODE ||
+      process.env.EFI_ACCOUNT_ID ||
+      process.env.EFI_IDENTIFICADOR_CONTA ||
+      ""
+  ).trim();
+}
+
 export function resolveEfiEnv(): EfiEnv | null {
   const clientId = String(process.env.EFI_CLIENT_ID || "").trim();
   const clientSecret = String(process.env.EFI_CLIENT_SECRET || "").trim();
@@ -241,11 +251,12 @@ export async function efiCreateCardSubscriptionOneStep(
 
   const cpf = input.cpf.replace(/\D/g, "");
   const phone = input.phoneNumber.replace(/\D/g, "").slice(0, 11);
+  const priceLabel = (input.amountCents / 100).toFixed(2).replace(".", ",");
 
   const body = {
     items: [
       {
-        name: "AxéCloud Premium — R$ 89,90/mês",
+        name: `AxéCloud Premium — R$ ${priceLabel}/mês`,
         value: input.amountCents,
         amount: 1,
       },

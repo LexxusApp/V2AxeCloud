@@ -6,6 +6,7 @@ import {
   efiGetCharge,
   efiGetSubscription,
   resolveEfiEnv,
+  resolveEfiPayeeCode,
 } from "./efiPay.js";
 import {
   efiPixCreateImmediateCharge,
@@ -80,7 +81,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
   app.get("/api/v1/checkout/efi/config", async (_req: Request, res: Response) => {
     const efi = resolveEfiEnv();
     const pix = resolveEfiPixEnv();
-    const payeeCode = String(process.env.EFI_PAYEE_CODE || process.env.EFI_ACCOUNT_ID || "").trim();
+    const payeeCode = resolveEfiPayeeCode();
 
     if (!efi) {
       return res.status(503).json({ error: "EFI Cobranças não configurado." });
@@ -97,8 +98,19 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       amountCents,
       amountLabel: `R$ ${(amountCents / 100).toFixed(2).replace(".", ",")}`,
       pixAvailable: !!pix,
-      cardAvailable: !!payeeCode,
+      /** API de Cobranças (Client ID + Secret) — cartão recorrente */
+      cardAvailable: true,
+      cardTokenizationReady: !!payeeCode,
       ...(pixDiagnostics ? { pixSetup: pixDiagnostics } : {}),
+      ...(!payeeCode
+        ? {
+            cardSetup: {
+              issues: [
+                "Defina EFI_PAYEE_CODE na Vercel (painel Efí → API → Introdução → Identificador de conta).",
+              ],
+            },
+          }
+        : {}),
     });
   });
 

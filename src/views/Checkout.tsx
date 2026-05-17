@@ -13,7 +13,7 @@ import {
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { LANDING_PRICE } from '../constants/landingFeatures';
-import { createEfiPaymentToken, detectCardBrand } from '../lib/efiCardToken';
+import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
 
 const GOLD = '#f2b90f';
 const R_CARD = 'rounded-[14px]';
@@ -45,6 +45,8 @@ type EfiConfig = {
     issues: string[];
   };
   cardAvailable: boolean;
+  cardTokenizationReady?: boolean;
+  cardSetup?: { issues: string[] };
 };
 
 type CheckoutContext = {
@@ -114,8 +116,9 @@ export default function Checkout() {
       if (!cfgRes.ok) throw new Error(cfg.error || 'Checkout indisponível');
 
       setConfig(cfg as EfiConfig);
-      if (!cfg.pixAvailable && cfg.cardAvailable) setMethod('card');
-      if (cfg.pixAvailable && !cfg.cardAvailable) setMethod('pix');
+      if (cfg.pixAvailable && cfg.cardAvailable) setMethod('pix');
+      else if (!cfg.pixAvailable && cfg.cardAvailable) setMethod('card');
+      else if (cfg.pixAvailable) setMethod('pix');
 
       if (ctxRes.ok) {
         const context = (await ctxRes.json()) as CheckoutContext;
@@ -133,6 +136,23 @@ export default function Checkout() {
   useEffect(() => {
     void loadInitial();
   }, [loadInitial]);
+
+  useEffect(() => {
+    if (config?.cardAvailable) {
+      void loadEfiPaymentScript().catch(() => {
+        /* SDK carrega ao pagar */
+      });
+    }
+  }, [config?.cardAvailable]);
+
+  useEffect(() => {
+    if (method === 'card') {
+      setPixQr(null);
+      setPixTxid(null);
+      setPixCopy(null);
+      setCopied(false);
+    }
+  }, [method]);
 
   const pollActivation = useCallback(async () => {
     const tenantId = ctx?.tenantId || readTenantFromUrl();
@@ -216,8 +236,11 @@ export default function Checkout() {
 
   const handleCardPay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!config?.payeeCode) {
-      setError('Identificador de conta EFI (EFI_PAYEE_CODE) não configurado no servidor.');
+    if (!config?.payeeCode || config.cardTokenizationReady === false) {
+      setError(
+        config?.cardSetup?.issues?.[0] ||
+          'Configure EFI_PAYEE_CODE na Vercel (Efí → API → Introdução → Identificador de conta).'
+      );
       return;
     }
 
@@ -378,41 +401,55 @@ export default function Checkout() {
               </motion.div>
             )}
 
-            <motion.div
-              className={cn(R_CARD, 'mb-4 flex border border-white/15 bg-[#060708]/76 p-1')}
-              layout
-            >
-              {config?.pixAvailable && (
-                <button
-                  type="button"
-                  onClick={() => setMethod('pix')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-wider transition-all',
-                    method === 'pix'
-                      ? 'bg-[#f2b90f] text-black'
-                      : 'text-[#9a9da6] hover:text-white'
-                  )}
-                >
-                  <QrCode className="h-4 w-4" />
-                  PIX
-                </button>
-              )}
-              {config?.cardAvailable && (
-                <button
-                  type="button"
-                  onClick={() => setMethod('card')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-wider transition-all',
-                    method === 'card'
-                      ? 'bg-[#f2b90f] text-black'
-                      : 'text-[#9a9da6] hover:text-white'
-                  )}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Cartão
-                </button>
-              )}
-            </motion.div>
+            {(config?.pixAvailable || config?.cardAvailable) && (
+              <motion.div
+                className={cn(R_CARD, 'mb-4 flex border border-white/15 bg-[#060708]/76 p-1')}
+                layout
+                role="tablist"
+                aria-label="Forma de pagamento"
+              >
+                {config?.pixAvailable && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={method === 'pix'}
+                    onClick={() => setMethod('pix')}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs',
+                      method === 'pix'
+                        ? 'bg-[#f2b90f] text-black'
+                        : 'text-[#9a9da6] hover:text-white'
+                    )}
+                  >
+                    <QrCode className="h-4 w-4 shrink-0" />
+                    <span className="text-left leading-tight">
+                      <span className="block opacity-80">QR Code</span>
+                      <span>PIX</span>
+                    </span>
+                  </button>
+                )}
+                {config?.cardAvailable && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={method === 'card'}
+                    onClick={() => setMethod('card')}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs',
+                      method === 'card'
+                        ? 'bg-[#f2b90f] text-black'
+                        : 'text-[#9a9da6] hover:text-white'
+                    )}
+                  >
+                    <CreditCard className="h-4 w-4 shrink-0" />
+                    <span className="text-left leading-tight">
+                      <span className="block opacity-80">Cartão</span>
+                      <span>Crédito</span>
+                    </span>
+                  </button>
+                )}
+              </motion.div>
+            )}
 
             <motion.div
               key={method}
@@ -513,12 +550,25 @@ export default function Checkout() {
                     </motion.div>
                   )}
                 </motion.div>
+              ) : !config?.cardAvailable ? (
+                <p className="text-sm text-[#b8bbc4]">
+                  Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET na Vercel.
+                </p>
               ) : (
                 <form onSubmit={(e) => void handleCardPay(e)} className="space-y-3">
                   <p className="text-sm leading-relaxed text-[#b8bbc4]">
-                    Assinatura mensal recorrente. Os dados do cartão são tokenizados pela EFI — não
-                    passam pelo nosso servidor.
+                    Assinatura mensal recorrente ({config.amountLabel || LANDING_PRICE.label}
+                    {LANDING_PRICE.period}). Os dados do cartão são tokenizados pela Efí — não passam
+                    pelo nosso servidor.
                   </p>
+
+                  {config.cardTokenizationReady === false && config.cardSetup?.issues?.length ? (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2.5 text-[13px] text-amber-100">
+                      {config.cardSetup.issues.map((issue) => (
+                        <p key={issue}>{issue}</p>
+                      ))}
+                    </motion.div>
+                  ) : null}
 
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <label className={labelClass}>Nome no cartão</label>
@@ -567,7 +617,7 @@ export default function Checkout() {
 
                   <motion.div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className={labelClass}>Mês</label>
+                      <label className={labelClass}>Validade (mês)</label>
                       <input
                         className={fieldShell}
                         value={cardExpMonth}
@@ -579,7 +629,7 @@ export default function Checkout() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Ano</label>
+                      <label className={labelClass}>Validade (ano)</label>
                       <input
                         className={fieldShell}
                         value={cardExpYear}
@@ -603,8 +653,19 @@ export default function Checkout() {
                     </motion.div>
                   </motion.div>
 
+                  <motion.div>
+                    <label className={labelClass}>Parcelas</label>
+                    <input
+                      className={cn(fieldShell, 'text-[#9a9da6]')}
+                      value="1x (à vista)"
+                      readOnly
+                      disabled
+                      aria-readonly="true"
+                    />
+                  </motion.div>
+
                   <p className="pt-2 text-[10px] font-bold uppercase tracking-widest text-[#9a9da6]">
-                    Endereço de cobrança
+                    Endereço de cobrança (exigido pela Efí)
                   </p>
 
                   <motion.div>
@@ -662,7 +723,7 @@ export default function Checkout() {
 
                   <motion.button
                     type="submit"
-                    disabled={cardLoading}
+                    disabled={cardLoading || config.cardTokenizationReady === false}
                     whileTap={{ scale: 0.99 }}
                     style={{
                       background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)`,
@@ -677,7 +738,7 @@ export default function Checkout() {
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4" />
-                        Assinar com cartão
+                        Pagar com cartão
                       </>
                     )}
                   </motion.button>
