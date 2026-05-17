@@ -18,6 +18,10 @@ import {
   efiNotificationUrl,
   premiumOnboardingAmountCents,
 } from "./tenantOnboarding.js";
+import {
+  ensurePendingSubscriptionRow,
+  updateSubscriptionResilient,
+} from "./subscriptionDb.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -58,6 +62,8 @@ async function assertPendingSubscription(
   supabaseAdmin: SupabaseClient,
   tenantId: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  await ensurePendingSubscriptionRow(supabaseAdmin, tenantId);
+
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
     .select("status")
@@ -139,7 +145,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
-          return res.json({ alreadyActive: true });
+          return res.json({
+            alreadyActive: true,
+            message: "Assinatura já está ativa. Acesse o painel.",
+          });
         }
         return res.status(pending.status).json({ error: pending.error });
       }
@@ -167,16 +176,20 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         color: { dark: "#000000", light: "#ffffff" },
       });
 
-      await supabaseAdmin
-        .from("subscriptions")
-        .update({
-          efi_pix_txid: charge.txid,
-          efi_charge_id: `pix:${charge.txid}`,
-          payment_provider: "efi_pix",
-          status: "pending",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", tenant.tenantId);
+      const { error: subUpErr } = await updateSubscriptionResilient(supabaseAdmin, tenant.tenantId, {
+        efi_pix_txid: charge.txid,
+        efi_charge_id: `pix:${charge.txid}`,
+        payment_provider: "efi_pix",
+        status: "pending",
+        updated_at: new Date().toISOString(),
+      });
+      if (subUpErr) {
+        console.error("[checkout/pix] subscription update:", subUpErr.message);
+      }
+
+      if (!charge.copyPaste?.trim()) {
+        return res.status(502).json({ error: "EFI Pix: código copia e cola ausente na resposta." });
+      }
 
       res.json({
         txid: charge.txid,
@@ -231,7 +244,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
-          return res.json({ alreadyActive: true });
+          return res.json({
+            alreadyActive: true,
+            message: "Assinatura já está ativa. Acesse o painel.",
+          });
         }
         return res.status(pending.status).json({ error: pending.error });
       }

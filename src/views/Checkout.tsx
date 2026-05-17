@@ -74,7 +74,8 @@ export default function Checkout() {
   const [ctx, setCtx] = useState<CheckoutContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [alreadyActive, setAlreadyActive] = useState(false);
 
   const [pixLoading, setPixLoading] = useState(false);
   const [pixTxid, setPixTxid] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export default function Checkout() {
         const context = (await ctxRes.json()) as CheckoutContext;
         setCtx(context);
         setHolderName(context.nomeZelador || context.nomeTerreiro || '');
-        if (context.active) setSuccess(true);
+        if (context.active) setAlreadyActive(true);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar checkout.');
@@ -145,7 +146,7 @@ export default function Checkout() {
   }, [ctx?.tenantId]);
 
   useEffect(() => {
-    if (!pixTxid || success) return;
+    if (!pixTxid || paymentConfirmed) return;
 
     const interval = window.setInterval(async () => {
       try {
@@ -155,8 +156,8 @@ export default function Checkout() {
         );
         if (!res.ok) return;
         const data = await res.json();
-        if (data.paid || data.active) {
-          setSuccess(true);
+        if (data.paid) {
+          setPaymentConfirmed(true);
           window.clearInterval(interval);
           setTimeout(() => {
             window.location.href = '/dashboard';
@@ -168,7 +169,7 @@ export default function Checkout() {
     }, 4000);
 
     return () => window.clearInterval(interval);
-  }, [pixTxid, success, ctx?.tenantId]);
+  }, [pixTxid, paymentConfirmed, ctx?.tenantId]);
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
@@ -187,13 +188,18 @@ export default function Checkout() {
       if (!res.ok) throw new Error(data.error || 'Não foi possível gerar o PIX.');
 
       if (data.alreadyActive) {
-        setSuccess(true);
+        setAlreadyActive(true);
+        setError(data.message || 'Sua assinatura já está ativa.');
         return;
+      }
+
+      if (!data.txid || !data.copyPaste) {
+        throw new Error('Resposta incompleta ao gerar o PIX. Tente novamente.');
       }
 
       setPixTxid(data.txid);
       setPixCopy(data.copyPaste);
-      setPixQr(data.qrCodeDataUrl);
+      setPixQr(data.qrCodeDataUrl || null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao gerar PIX.');
     } finally {
@@ -258,8 +264,14 @@ export default function Checkout() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Pagamento recusado.');
 
-      if (data.active || data.alreadyActive) {
-        setSuccess(true);
+      if (data.alreadyActive) {
+        setAlreadyActive(true);
+        setError(data.message || 'Sua assinatura já está ativa.');
+        return;
+      }
+
+      if (data.active) {
+        setPaymentConfirmed(true);
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 2000);
@@ -268,7 +280,7 @@ export default function Checkout() {
 
       const active = await pollActivation();
       if (active) {
-        setSuccess(true);
+        setPaymentConfirmed(true);
         window.location.href = '/dashboard';
       } else {
         setError(
@@ -318,7 +330,7 @@ export default function Checkout() {
           </p>
         </header>
 
-        {success ? (
+        {paymentConfirmed ? (
           <motion.div
             initial={{ scale: 0.96 }}
             animate={{ scale: 1 }}
@@ -328,6 +340,30 @@ export default function Checkout() {
             <h2 className="text-xl font-black">Pagamento confirmado!</h2>
             <p className="mt-2 text-sm text-[#b8bbc4]">Redirecionando para o painel…</p>
             <Loader2 className="mx-auto mt-6 h-6 w-6 animate-spin text-[#f2b90f]" />
+          </motion.div>
+        ) : alreadyActive ? (
+          <motion.div
+            initial={{ scale: 0.96 }}
+            animate={{ scale: 1 }}
+            className={cn(R_CARD, 'border border-[#f2b90f]/30 bg-[#060708]/90 p-8 text-center')}
+          >
+            <Check className="mx-auto mb-4 h-10 w-10 text-[#f2b90f]" />
+            <h2 className="text-xl font-black">Assinatura já ativa</h2>
+            <p className="mt-2 text-sm text-[#b8bbc4]">
+              Este terreiro já possui acesso liberado. Não é necessário pagar novamente.
+            </p>
+            <motion.a
+              href="/dashboard"
+              style={{
+                background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)`,
+              }}
+              className={cn(
+                R_CARD,
+                'mt-6 inline-flex h-[44px] items-center justify-center px-8 text-[14px] font-black uppercase tracking-[0.1em] text-black'
+              )}
+            >
+              Ir para o painel
+            </motion.a>
           </motion.div>
         ) : (
           <>

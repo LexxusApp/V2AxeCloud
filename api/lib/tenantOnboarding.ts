@@ -14,6 +14,7 @@ import {
   resolveEfiEnv,
   type EfiEnv,
 } from "./efiPay.js";
+import { updateSubscriptionResilient, upsertSubscriptionResilient } from "./subscriptionDb.js";
 
 export type RegisterTenantInput = {
   email: string;
@@ -120,23 +121,26 @@ export async function registerNewTenant(
     throw profileError;
   }
 
-  const { error: subError } = await supabaseAdmin.from("subscriptions").upsert(
-    {
-      id: tenantId,
-      tenant_id: tenantId,
-      plan: "premium",
-      status: "pending",
-      expires_at: null,
-      efi_charge_id: null,
-      payment_provider: (efi ?? resolveEfiEnv()) ? "efi" : null,
-      pending_since: now,
-      updated_at: now,
-    },
-    { onConflict: "id" }
-  );
+  const { error: subError } = await upsertSubscriptionResilient(supabaseAdmin, {
+    id: tenantId,
+    tenant_id: tenantId,
+    plan: "premium",
+    status: "pending",
+    expires_at: null,
+    efi_charge_id: null,
+    payment_provider: (efi ?? resolveEfiEnv()) ? "efi" : null,
+    pending_since: now,
+    updated_at: now,
+  });
 
   if (subError) {
     console.error("[onboarding] subscription upsert:", subError.message);
+    throw Object.assign(
+      new Error(
+        "Cadastro criado, mas não foi possível registrar a assinatura pendente. Aplique as migrations Supabase (colunas EFI) e tente novamente."
+      ),
+      { status: 503 }
+    );
   }
 
   return {
@@ -240,7 +244,7 @@ export async function activateTenantSubscription(
   };
   if (opts?.chargeId) patch.efi_charge_id = String(opts.chargeId);
 
-  const { error: upErr } = await supabaseAdmin.from("subscriptions").update(patch).eq("id", tid);
+  const { error: upErr } = await updateSubscriptionResilient(supabaseAdmin, tid, patch);
 
   if (upErr) throw upErr;
 
