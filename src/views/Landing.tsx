@@ -18,6 +18,7 @@ import {
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
+import { AuthScreenBackground } from '../components/AuthScreenBackground';
 
 /** Mesmo contato comercial do Login (`Login.tsx`) */
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
@@ -132,18 +133,7 @@ const fade = {
 export default function Landing() {
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
-      <div className="pointer-events-none fixed inset-0 -z-20">
-        <img
-          src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80"
-          alt=""
-          className="h-full w-full object-cover opacity-55"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/80 to-background" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
-        <div className="absolute top-1/2 left-1/2 h-[min(100vw,720px)] w-[min(100vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-[100px]" />
-        <div className="landing-grid-faint absolute inset-0 opacity-60" />
-      </div>
+      <AuthScreenBackground fixed className="-z-20" />
 
       <header className="sticky top-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">

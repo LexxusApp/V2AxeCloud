@@ -1,34 +1,39 @@
-const base = import.meta.env.BASE_URL || '/';
-const BG_DESKTOP = `${base}login-bg-desktop.png`;
-const BG_PREMIUM = `${base}login-bg-premium.png`;
+import { cn } from '../lib/utils';
+import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
 
 type Props = {
-  /** Overlay mais escuro (sessão expirada, loading). */
+  /** Overlay extra para spinners / modais (legibilidade). */
   variant?: 'default' | 'dark';
+  /** `fixed` na landing; `absolute` nas telas internas. */
+  fixed?: boolean;
   className?: string;
 };
 
-/** Fundo fotográfico das telas de auth/checkout — `<img>` evita falha de CSS url() com CSP/PWA. */
-export function AuthScreenBackground({ variant = 'default', className = '' }: Props) {
+/**
+ * Fundo visual idêntico à landing — usado em login, checkout, cadastro e loading do app.
+ */
+export function AuthScreenBackground({ variant = 'default', fixed = false, className = '' }: Props) {
   return (
-    <div className={`pointer-events-none absolute inset-0 z-0 overflow-hidden ${className}`} aria-hidden>
-      <picture className="absolute inset-0 block h-full w-full">
-        <source media="(min-width: 1024px)" srcSet={BG_DESKTOP} />
-        <img
-          src={BG_PREMIUM}
-          alt=""
-          fetchPriority="high"
-          decoding="async"
-          className="h-full w-full object-cover object-center brightness-[0.92]"
-        />
-      </picture>
-      <div
-        className={
-          variant === 'dark'
-            ? 'absolute inset-0 bg-gradient-to-b from-black/75 via-black/65 to-black/85'
-            : 'absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55'
-        }
+    <div
+      className={cn(
+        'pointer-events-none inset-0 z-0 overflow-hidden',
+        fixed ? 'fixed' : 'absolute',
+        className
+      )}
+      aria-hidden
+    >
+      <img
+        src={LANDING_HERO_IMAGE}
+        alt=""
+        fetchPriority="high"
+        decoding="async"
+        className="h-full w-full object-cover opacity-55"
       />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/80 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
+      <div className="absolute top-1/2 left-1/2 h-[min(100vw,720px)] w-[min(100vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-[100px]" />
+      <div className="landing-grid-faint absolute inset-0 opacity-60" />
+      {variant === 'dark' ? <div className="absolute inset-0 bg-black/35" /> : null}
     </div>
   );
 }

@@ -14,10 +14,10 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
+import { AuthScreenBackground } from '../components/AuthScreenBackground';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:Montserrat,system-ui,sans-serif]';
-const bgImage = `${import.meta.env.BASE_URL}login-bg-premium.png`;
 
 const highlights = [
   'Filhos de santo, mural e calendário no mesmo fluxo',
@@ -114,21 +114,8 @@ export default function Register() {
         className="relative flex min-h-[220px] shrink-0 flex-col justify-between overflow-hidden bg-black lg:min-h-0 lg:w-[52%] xl:w-[55%]"
         aria-label="Sobre o AxéCloud"
       >
-        <img
-          src={bgImage}
-          alt=""
-          fetchPriority="high"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover object-center brightness-[0.75]"
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/70 to-black/90"
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30"
-          aria-hidden
-        />
+        <AuthScreenBackground className="absolute inset-0" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/35 to-black/65" aria-hidden />
 
         <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-8 lg:p-10">
           <a
