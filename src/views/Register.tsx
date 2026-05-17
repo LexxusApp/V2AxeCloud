@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  CreditCard,
   ArrowLeft,
   Check,
 } from 'lucide-react';
@@ -15,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { RegistrationProgress } from '../components/RegistrationProgress';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:Montserrat,system-ui,sans-serif]';
@@ -174,12 +174,14 @@ export default function Register() {
       {/* Painel direito — formulário (no mobile faz parte do scroll da página inteira) */}
       <main className="flex w-full flex-col bg-white text-zinc-900 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         <div className="mx-auto w-full max-w-[440px] px-5 py-8 pb-12 sm:px-10 sm:py-10 lg:flex lg:min-h-full lg:flex-col lg:justify-center">
+          <RegistrationProgress currentStep={1} />
+
           <header className="mb-6">
             <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
               Cadastre seu terreiro
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-              Preencha os dados abaixo. Em seguida você escolhe Pix ou cartão no checkout seguro.
+              Primeiro os dados da casa. Na próxima etapa você ativa o sistema com Pix ou cartão.
             </p>
           </header>
 
@@ -273,8 +275,7 @@ export default function Register() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <CreditCard className="h-4 w-4" />
-                  Criar terreiro e pagar
+                  Continuar para ativação
                 </>
               )}
             </motion.button>

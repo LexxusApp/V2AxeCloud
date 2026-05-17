@@ -1,25 +1,18 @@
-import { useEffect } from 'react';
-import Landing from '../views/Landing';
-import Register from '../views/Register';
-import Checkout from '../views/Checkout';
-import LoginPage from '../pages/LoginPage';
-import TermsPage from '../pages/TermsPage';
-import PrivacyPage from '../pages/PrivacyPage';
-import DashboardPage from '../pages/DashboardPage';
+import { Suspense, lazy, useEffect } from 'react';
 import { usePathname } from '../hooks/usePathname';
 import { ROUTES } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
+import Loading from '../app/loading';
 
-/**
- * Roteador central (Vite SPA — equivalente a app/page, app/login, app/dashboard).
- */
-export default function AppRouter() {
-  const path = usePathname();
+const Landing = lazy(() => import('../views/Landing'));
+const Register = lazy(() => import('../views/Register'));
+const Checkout = lazy(() => import('../views/Checkout'));
+const LoginPage = lazy(() => import('../pages/LoginPage'));
+const TermsPage = lazy(() => import('../pages/TermsPage'));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 
-  useEffect(() => {
-    applyRouteSeo(path);
-  }, [path]);
-
+function RoutedPage({ path }: { path: string }) {
   switch (path) {
     case ROUTES.register:
       return <Register />;
@@ -37,4 +30,22 @@ export default function AppRouter() {
     default:
       return <Landing />;
   }
+}
+
+/**
+ * Roteador central (Vite SPA — equivalente a app/page, app/login, app/dashboard).
+ * `Suspense` + `src/app/loading.tsx` evitam flash de HTML sem estilo entre rotas.
+ */
+export default function AppRouter() {
+  const path = usePathname();
+
+  useEffect(() => {
+    applyRouteSeo(path);
+  }, [path]);
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <RoutedPage path={path} />
+    </Suspense>
+  );
 }

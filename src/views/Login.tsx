@@ -10,13 +10,16 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
+  UserCircle,
   Users,
   ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { ROUTES } from '../lib/routes';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -32,8 +35,7 @@ const fieldShell = cn(
   'bg-[#0a0b0d]/95 border border-white/[0.22]',
   R_CARD,
   'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.45)]',
-  'outline-none transition-[border-color,box-shadow] duration-200',
-  'focus:border-[#f2b90f]/70 focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_0_1px_rgba(242,185,15,0.28),0_8px_24px_rgba(0,0,0,0.45)]'
+  'transition-all duration-200 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 focus:outline-none'
 );
 
 const loginPanel = cn(
@@ -287,6 +289,14 @@ export default function Login() {
     >
       <AuthScreenBackground />
 
+      <a
+        href={ROUTES.home}
+        className="absolute left-[clamp(14px,4vw,40px)] top-[14px] z-20 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#f2b90f]/90 transition-colors hover:text-[#f2b90f] [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
+      >
+        <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        Conhecer o AxéCloud
+      </a>
+
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -341,12 +351,6 @@ export default function Login() {
             <p className="mx-auto max-w-[280px] text-[12px] text-[#c8cad2]">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
             </p>
-            <a
-              href="/"
-              className="inline-block pt-1 text-[11px] font-semibold text-[#f2b90f]/90 hover:text-[#f2b90f] transition-colors"
-            >
-              ← Conhecer o AxéCloud
-            </a>
           </div>
         </header>
 
@@ -405,13 +409,13 @@ export default function Login() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Digite sua senha"
                         autoComplete="current-password"
-                        className={cn(fieldShell, 'pr-[40px]')}
+                        className={cn(fieldShell, 'pr-12')}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
                         aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        className="absolute right-[8px] top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#9ca0aa] transition-colors hover:text-zinc-200"
+                        className="absolute right-4 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#9ca0aa] transition-colors hover:text-zinc-200"
                       >
                         {showPassword ? (
                           <EyeOff className="h-5 w-5" strokeWidth={1.65} />
@@ -573,9 +577,10 @@ export default function Login() {
                   'hover:border-white/[0.22] hover:bg-[#1f1f1f] transition-colors duration-200'
                 )}
               >
-                <KeyRound
+                <UserCircle
                   className="pointer-events-none absolute left-[14px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
                   strokeWidth={1.5}
+                  aria-hidden
                 />
                 <span className="w-full text-center">Login filho</span>
               </button>
@@ -585,7 +590,7 @@ export default function Login() {
           <a
             href="/register"
             className={cn(
-              'group flex w-full items-center gap-[9px] px-[11px] py-[8px]',
+              'group mb-4 flex w-full items-center gap-[9px] px-[11px] py-[8px]',
               R_CARD,
               'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
               'hover:border-white/[0.18] transition-colors duration-200'

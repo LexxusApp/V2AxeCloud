@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import { LANDING_PRICE } from '../constants/landingFeatures';
 import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { RegistrationProgress } from '../components/RegistrationProgress';
 
 const GOLD = '#f2b90f';
 const R_CARD = 'rounded-[14px]';
@@ -341,6 +342,8 @@ export default function Checkout() {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10 mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-10 sm:px-6"
       >
+        <RegistrationProgress currentStep={2} variant="dark" />
+
         <header className="mb-6 text-center">
           <motion.div
             className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#f2b90f]/40 bg-black/40"
@@ -349,9 +352,9 @@ export default function Checkout() {
             <TreePine className="h-7 w-7 text-[#f2b90f]" />
           </motion.div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
-          <h1 className="mt-2 text-2xl font-black tracking-tight">Checkout seguro</h1>
+          <h1 className="mt-2 text-2xl font-black tracking-tight">Ativação do sistema</h1>
           <p className="mt-2 text-sm text-[#b8bbc4]">
-            Plano Premium {config?.amountLabel || LANDING_PRICE.label}
+            Passo 2 — escolha Pix ou cartão. Plano Premium {config?.amountLabel || LANDING_PRICE.label}
             {LANDING_PRICE.period}
           </p>
         </header>

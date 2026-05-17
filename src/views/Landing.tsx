@@ -1,36 +1,43 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  ArrowRight,
   ArrowUp,
   BookOpen,
   CalendarDays,
   Check,
-  Crown,
+  Coins,
   Facebook,
   Instagram,
   LogIn,
   MessageCircle,
   Menu,
   Image as ImageIcon,
-  Users,
+  ShieldCheck,
   Wallet,
+  Warehouse,
   Youtube,
-  TrendingUp,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
+import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { SystemTour } from '../components/landing/SystemTour';
+import { LandingAudience } from '../components/landing/LandingAudience';
+import { LandingSecurity } from '../components/landing/LandingSecurity';
+import { LandingFaq } from '../components/landing/LandingFaq';
 
 /** Mesmo contato comercial do Login (`Login.tsx`) */
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
 const CNPJ = '66.335.964/0001-07';
 
 const nav = [
-  { href: '#telas', label: 'Telas' },
+  { href: '#tour', label: 'Tour' },
   { href: '#funcionalidades', label: 'Módulos' },
   { href: '#para-quem', label: 'Para quem' },
   { href: '#mensalidade', label: 'Mensalidade' },
+  { href: '#faq', label: 'FAQ' },
 ] as const;
 
 const features = [
@@ -60,24 +67,6 @@ const features = [
   },
 ] as const;
 
-const audience = [
-  {
-    icon: Users,
-    title: 'Zeladores e quem cuida do chão',
-    text: 'Rotina, oferenda e pessoas no mesmo lugar. Menos corre-corre, mais clareza para cuidar da casa.',
-  },
-  {
-    icon: Crown,
-    title: 'Pais e mães de santo',
-    text: 'Comando com profissionalismo: números e processos alinhados ao axé, não ao improviso burocrático.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Terreiro em crescimento',
-    text: 'Do pequeno ao que já gira muito: escala a organização sem perder a sensibilidade com a comunidade.',
-  },
-] as const;
-
 const premiumFeatures = [
   'Painel completo para zelador e diretoria',
   'Filhos de santo, calendário, mural e biblioteca',
@@ -86,23 +75,6 @@ const premiumFeatures = [
   'Assinatura recorrente por cartão (EFI Bank)',
   'Liberação automática após o pagamento',
 ] as const;
-
-const appTelaAcessoPublica = {
-  src: '/screenshots/tela-acesso-axecloud.png',
-  label: 'Tela de acesso',
-  desc: 'Visual de identidade (AX, É, Cloud) e fundo — o mesmo que o app apresenta ao abrir o login.',
-} as const;
-
-const appScreensLogado: { src: string; label: string; desc: string }[] = [
-  { src: '/screenshots/painel-inicio.png', label: 'Início (painel)', desc: 'Resumo, números e o que a casa precisa enxergar de primeira.' },
-  { src: '/screenshots/filhos-de-santo.png', label: 'Filhos de Santo', desc: 'Pessoas do terreiro, cadastros e atalhos para a rotina.' },
-  { src: '/screenshots/calendario-eventos.png', label: 'Calendário e eventos', desc: 'Giras, compromissos e a agenda alinhada à casa.' },
-  { src: '/screenshots/mural.png', label: 'Mural', desc: 'Comunicados e avisos visíveis para a comunidade.' },
-  { src: '/screenshots/galeria.png', label: 'Galeria de fotos', desc: 'Álbuns com fotos e vídeos da casa para a comunidade rever e compartilhar.' },
-  { src: '/screenshots/financeiro.png', label: 'Financeiro', desc: 'Entradas, saídas, Pix e histórico com transparência.' },
-  { src: '/screenshots/biblioteca-estudo.png', label: 'Biblioteca de estudo', desc: 'Materiais e estudos acessíveis a quem precisa aprender.' },
-  { src: '/screenshots/loja-axe.png', label: 'Loja do Axé', desc: 'Ofertas e itens vinculados à casa, quando a loja estiver ativa no plano.' },
-];
 
 function LogoMark({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
@@ -241,169 +213,121 @@ export default function Landing() {
       </header>
 
       <main style={{ paddingTop: LANDING_HEADER_OFFSET }}>
-        <section className="relative px-4 pt-10 pb-16 sm:px-6 sm:pt-14 sm:pb-20 lg:px-8" aria-labelledby="hero-title">
-          <div className="mx-auto max-w-6xl">
-            <div className="max-w-3xl">
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sm:max-w-xl"
-              >
-                <LogoMark />
-              </motion.div>
-              <h1
-                id="hero-title"
-                className="mt-6 text-2xl font-extrabold leading-snug text-white sm:text-4xl sm:leading-tight md:text-5xl"
-              >
-                Tecnologia a serviço do sagrado.
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-                O AxéCloud é o braço direito do Zelador. Transforme a organização da sua casa com o primeiro sistema
-                inteligente feito para comunidades de axé.
-              </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <a
-                  href={ROUTES.register}
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-primary py-3.5 px-6 text-sm font-black text-black shadow-[0_0_32px_rgba(251,188,0,0.22)] transition hover:scale-[1.02] active:scale-[0.99]"
-                >
-                  Cadastrar meu terreiro
-                </a>
-                <a
-                  href={ROUTES.login}
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 py-3.5 px-6 text-sm font-bold text-zinc-200 transition hover:border-primary/30 hover:text-white"
-                >
-                  <LogIn className="h-5 w-5" />
-                  Já tenho conta
-                </a>
-                <a
-                  href="#funcionalidades"
-                  className="inline-flex items-center justify-center rounded-md border border-transparent py-3.5 px-2 text-sm font-bold text-zinc-500 transition hover:text-zinc-200 sm:px-4"
-                >
-                  Conhecer o sistema
-                </a>
-              </div>
-            </div>
+        <section
+          className="relative -mx-4 flex min-h-[min(90vh,52rem)] items-center justify-center overflow-hidden bg-gradient-to-b from-black/80 via-black/50 to-neutral-950 px-4 pb-16 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          aria-labelledby="hero-title"
+        >
+          <div
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-25 mix-blend-luminosity"
+            style={{ backgroundImage: `url('${LANDING_HERO_IMAGE}')` }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,10,10,0.9)_70%)]"
+            aria-hidden
+          />
 
-            <div className="mt-12 grid gap-3 sm:grid-cols-3 sm:mt-16">
+          <div className="container relative z-10 mx-auto max-w-5xl px-0 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium tracking-wide text-primary"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+              O primeiro software de gestão feito para Comunidades de Axé
+            </motion.div>
+
+            <h1
+              id="hero-title"
+              className="mx-auto mb-6 max-w-4xl text-4xl leading-tight font-extrabold tracking-tight text-white md:text-6xl"
+            >
+              Tecnologia a serviço do{' '}
+              <span className="bg-gradient-to-r from-primary via-yellow-300 to-amber-500 bg-clip-text text-transparent">
+                sagrado.
+              </span>
+            </h1>
+
+            <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-neutral-400 md:text-xl">
+              Transforme a organização do seu terreiro. Controle mensalidades, organize o almoxarifado de guias e
+              velas, e aproxime os filhos de santo com segurança e respeito à tradição.
+            </p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
+            >
+              <a
+                href={ROUTES.register}
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-yellow-400 px-8 py-4 text-base font-bold text-black shadow-lg shadow-primary/10 transition-all duration-200 hover:from-amber-500 hover:to-yellow-500 hover:shadow-primary/20 sm:w-auto"
+              >
+                Cadastrar meu terreiro
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+              </a>
+              <a
+                href="#funcionalidades"
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-900/80 px-8 py-4 text-center text-base font-medium text-white transition-all duration-200 hover:border-neutral-700 hover:bg-neutral-800 sm:w-auto"
+              >
+                Conhecer o sistema
+              </a>
+            </motion.div>
+
+            <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 text-left md:grid-cols-3">
               {[
-                { k: 'Galeria, mural e notificações' },
-                { k: 'Financeiro, Pix e histórico' },
-                { k: 'Filho de santo, agenda e estudos' },
-              ].map((s) => (
-                <div
-                  key={s.k}
-                  className="rounded-xl border border-white/8 bg-elevated/50 px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-zinc-500 sm:text-center"
+                {
+                  icon: Warehouse,
+                  title: 'Almoxarifado Inteligente',
+                  desc: 'Estoque de velas, ervas e saídas de materiais de chão sem planilhas.',
+                  delay: 0.12,
+                },
+                {
+                  icon: Coins,
+                  title: 'Financeiro Transparente',
+                  desc: 'Histórico claro de mensalidades de filhos de santo e arrecadações Pix.',
+                  delay: 0.16,
+                },
+                {
+                  icon: BookOpen,
+                  title: 'Portal do Filho de Santo',
+                  desc: 'Mural de avisos virtuais, chamadas de giras e biblioteca de estudos integrada.',
+                  delay: 0.2,
+                },
+              ].map((card) => (
+                <motion.div
+                  key={card.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: card.delay }}
+                  className="flex items-start gap-3 rounded-xl border border-neutral-900 bg-neutral-900/40 p-4 backdrop-blur-sm"
                 >
-                  {s.k}
-                </div>
+                  <div className="shrink-0 rounded-lg bg-primary/10 p-2 text-primary">
+                    <card.icon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
+                  </div>
+                  <div>
+                    <h3 className="mb-0.5 text-sm font-semibold text-white">{card.title}</h3>
+                    <p className="text-xs leading-relaxed text-neutral-500">{card.desc}</p>
+                  </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        <section
-          id="telas"
-          className="relative border-t border-white/5 py-16 sm:py-20"
-          aria-labelledby="telas-head"
-        >
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <motion.div {...fade} className="mx-auto max-w-2xl text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">Verdade do produto</p>
-              <h2 id="telas-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
-                Telas reais do AxéCloud
-              </h2>
-              <p className="mt-2 text-sm text-zinc-500 sm:text-base">
-                Primeiro a tela pública de acesso; abaixo, módulos reais do painel, capturados a partir de uma
-                sessão de zelador.
-              </p>
-            </motion.div>
-            <div className="mt-10 flex flex-col gap-8">
-              <motion.figure
-                {...fade}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-elevated/30 shadow-2xl shadow-black/50 ring-1 ring-primary/5"
-              >
-                <div className="flex items-center gap-2 border-b border-white/8 bg-background/60 px-3 py-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/90" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400/90" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
-                  <span className="ml-2 text-[10px] font-mono text-zinc-500">acesso.axecloud — janela ampla</span>
-                </div>
-                <div className="bg-[#0c0c0c] p-1 sm:p-1.5">
-                  <img
-                    src={appTelaAcessoPublica.src}
-                    alt="Captura da tela de acesso do AxéCloud no computador, com o logo AX, É, Cloud e a floresta de fundo."
-                    className="h-auto w-full rounded-lg object-cover object-top"
-                    width={1400}
-                    height={900}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <figcaption className="px-3 pb-3 pt-2 text-center sm:px-4 sm:text-left">
-                  <span className="text-xs font-black uppercase tracking-widest text-primary">
-                    {appTelaAcessoPublica.label}
-                  </span>
-                  <p className="mt-1 text-sm text-zinc-500">{appTelaAcessoPublica.desc}</p>
-                </figcaption>
-              </motion.figure>
-            </div>
-            <motion.div {...fade} className="mt-16">
-              <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">Painel logado</p>
-              <h3 className="mt-2 text-center text-xl font-extrabold text-white sm:text-2xl">Módulos do sistema</h3>
-              <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-zinc-500">
-                Cada tela abaixo corresponde a um item da barra lateral do zelador — mesma aparência que a sua equipe
-                vê após o login.
-              </p>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {appScreensLogado.map((shot, i) => (
-                  <motion.figure
-                    key={shot.src}
-                    initial={fade.initial}
-                    whileInView={fade.whileInView}
-                    viewport={fade.viewport}
-                    transition={{ ...fade.transition, delay: 0.03 * i }}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-elevated/25 shadow-lg"
-                  >
-                    <div className="border-b border-white/5 bg-background/50 px-2.5 py-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500">axecloud.com.br — {shot.label}</span>
-                    </div>
-                    <div className="bg-[#0a0a0a] p-1 sm:p-1.5">
-                      <img
-                        src={shot.src}
-                        alt={shot.label}
-                        className="h-auto w-full rounded-md object-top object-contain"
-                        width={1200}
-                        height={800}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                    <figcaption className="p-3 sm:p-3.5">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-primary">{shot.label}</span>
-                      <p className="mt-0.5 text-sm text-zinc-500">{shot.desc}</p>
-                    </figcaption>
-                  </motion.figure>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <SystemTour />
 
         <section
           id="funcionalidades"
-          className="relative border-t border-white/5 py-16 sm:py-20"
+          className="relative border-t border-white/5 py-16 sm:py-24"
           aria-labelledby="feat-head"
         >
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <motion.div {...fade} className="mx-auto max-w-2xl text-center">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">Dentro do app</p>
-              <h2
-                id="feat-head"
-                className="mt-2 text-2xl font-extrabold text-white sm:text-3xl"
-              >
+              <h2 id="feat-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
                 Tudo o que a casa gira, organizado
               </h2>
-              <p className="mt-2 text-sm text-zinc-500 sm:text-base">
+              <p className="mt-3 text-sm text-neutral-400 sm:text-base">
                 Mesma linguagem do app real: módulos que a diretoria já conhece ao abrir o painel.
               </p>
             </motion.div>
@@ -419,7 +343,7 @@ export default function Landing() {
                       <f.icon className="h-5 w-5" strokeWidth={1.5} />
                     </div>
                     <h3 className="text-lg font-bold text-white">{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{f.description}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-400">{f.description}</p>
                     {'extra' in f && f.extra}
                   </div>
                 </motion.li>
@@ -428,47 +352,9 @@ export default function Landing() {
           </div>
         </section>
 
-        <section
-          id="para-quem"
-          className="relative border-t border-white/5 bg-black/20 py-16 sm:py-20"
-          aria-labelledby="quem-head"
-        >
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 lg:items-start">
-              <motion.div {...fade}>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">Para quem</p>
-                <h2
-                  id="quem-head"
-                  className="mt-2 text-2xl font-extrabold text-white sm:text-3xl"
-                >
-                  Quem manda, quem cuida e quem cresce junto
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-500 sm:text-base">
-                  A landing segue a mesma promessa do sistema: profissionalismo com respeito. Feito para quem
-                  segura a casa—do zelador ao sacerdote—sem transformar a fé em burocracia.
-                </p>
-              </motion.div>
-              <ul className="space-y-3" role="list">
-                {audience.map((a, i) => (
-                  <motion.li
-                    key={a.title}
-                    {...fade}
-                    transition={{ ...fade.transition, delay: 0.05 * i }}
-                    className="flex gap-4 rounded-xl border border-white/6 bg-elevated/50 p-4 sm:p-5"
-                  >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/10 bg-background text-primary">
-                      <a.icon className="h-4 w-4" strokeWidth={1.5} />
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-bold text-white sm:text-base">{a.title}</h3>
-                      <p className="mt-0.5 text-sm text-zinc-500 leading-relaxed">{a.text}</p>
-                    </div>
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
+        <LandingAudience />
+
+        <LandingSecurity />
 
         <section
           id="mensalidade"
@@ -529,6 +415,8 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
+
+        <LandingFaq />
 
         <section
           className="relative border-t border-white/5 py-12 sm:py-14"
