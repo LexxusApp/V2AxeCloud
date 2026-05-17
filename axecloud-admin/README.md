@@ -47,7 +47,7 @@ Passos no painel Vercel:
 
 ### Domínio recomendado
 
-Em **Settings → Domains** atribui um subdomínio dedicado, ex.: `admin.axecloud.app` ou `axecloud-admin.vercel.app`.
+Em **Settings → Domains** atribui um subdomínio dedicado, ex.: `admin.axecloud.com.br` ou `axecloud-admin.vercel.app`.
 
 ### CORS
 

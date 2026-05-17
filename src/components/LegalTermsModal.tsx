@@ -7,6 +7,7 @@ import {
   LEGAL_TERMS_SUMMARY,
   LEGAL_TERMS_TITLE,
 } from '../content/legalTerms';
+import { ROUTES } from '../lib/routes';
 
 interface LegalTermsModalProps {
   open: boolean;
@@ -59,6 +60,16 @@ export default function LegalTermsModal({ open, onAccept, accepting = false }: L
               </div>
             ))}
           </div>
+
+          <p className="mt-3 text-center text-[10px] text-zinc-500">
+            <a href={ROUTES.terms} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+              Termos completos
+            </a>
+            {' · '}
+            <a href={ROUTES.privacy} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+              Privacidade
+            </a>
+          </p>
 
           <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2.5 transition-colors hover:border-primary/20">
             <input

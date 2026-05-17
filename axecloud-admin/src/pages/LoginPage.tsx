@@ -44,11 +44,11 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-black px-4 py-16">
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
         <div className="mb-10 text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-neutral-700 bg-neutral-950">
-            <span className="text-sm font-bold text-white">AC</span>
+          <div className="admin-brand-mark mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-lg">
+            <span className="text-sm font-bold">AC</span>
           </div>
           <h1 className="text-2xl font-semibold text-white">AxéCloud Admin</h1>
           <p className="mt-2 text-sm text-neutral-500">
@@ -71,7 +71,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
           </div>
         )}
 
-        <form onSubmit={submit} className={`${admin.card} space-y-4 p-6`}>
+        <form onSubmit={submit} className={`${admin.card} admin-focus-strip space-y-4 p-6`}>
           <div>
             <label className={admin.label}>E-mail</label>
             <input className={`${admin.input} mt-1`} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />

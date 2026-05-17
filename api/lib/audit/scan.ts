@@ -14,7 +14,7 @@ import { URL } from "node:url";
 import { gradeSecurityHeaders, type SecurityGrade } from "./securityHeaders.js";
 
 const UA =
-  "AxeCloudAudit/1.0 (+https://axecloud-app.vercel.app) Mozilla/5.0";
+  "AxeCloudAudit/1.0 (+https://axecloud.com.br) Mozilla/5.0";
 const REQUEST_TIMEOUT_MS = 8000;
 const HARD_TIMEOUT_MS = 25000;
 const MAX_HOPS = 8;

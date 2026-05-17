@@ -5,6 +5,8 @@ export const ROUTES = {
   register: '/register',
   checkout: '/checkout',
   dashboard: '/dashboard',
+  terms: '/termos',
+  privacy: '/privacidade',
 } as const;
 
 export function normalizePath(pathname: string): string {

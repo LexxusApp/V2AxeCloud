@@ -189,9 +189,9 @@ export function CommandShell({ session }: { session: Session }) {
   return (
     <div className={admin.shell}>
       <aside className={`${admin.sidebar} p-5`}>
-        <div className="mb-8 border-b border-neutral-800 pb-6">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md border border-neutral-700 bg-black">
-            <Activity className="h-4 w-4 text-white" strokeWidth={1.75} />
+        <div className="mb-7 border-b border-white/10 pb-6">
+          <div className="admin-brand-mark mb-4 flex h-11 w-11 items-center justify-center rounded-lg">
+            <Activity className="h-5 w-5" strokeWidth={1.9} />
           </div>
           <p className={admin.kicker}>Administração</p>
           <h1 className="mt-1 text-lg font-semibold text-white">AxéCloud</h1>
@@ -216,9 +216,9 @@ export function CommandShell({ session }: { session: Session }) {
             );
           })}
         </nav>
-        <div className="mt-auto space-y-3 border-t border-neutral-800 pt-5">
-          <div className="truncate rounded-md bg-neutral-900 px-2.5 py-2 text-[11px] text-neutral-400 ring-1 ring-neutral-800">
-            <Users className="mb-1 inline h-3 w-3 text-neutral-500" />
+        <div className="mt-auto space-y-3 border-t border-white/10 pt-5">
+          <div className="truncate rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[11px] text-neutral-400">
+            <Users className="mb-1 inline h-3.5 w-3.5 text-[var(--admin-accent)]" />
             <span className="block truncate font-medium text-neutral-300">{email}</span>
           </div>
           <button
@@ -235,7 +235,10 @@ export function CommandShell({ session }: { session: Session }) {
         <header className={admin.mainHeader}>
           <div>
             <p className={admin.kicker}>Secção</p>
-            <h2 className="mt-0.5 text-xl font-semibold text-white">{NAV.find((x) => x.id === tab)?.label}</h2>
+            <h2 className="mt-1 text-2xl font-semibold text-white">{NAV.find((x) => x.id === tab)?.label}</h2>
+            <p className="mt-1 hidden text-sm text-neutral-400 sm:block">
+              Controle operacional com leitura rápida e ações diretas.
+            </p>
           </div>
           <div className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:hidden">
             {NAV.map((n) => (
@@ -247,8 +250,10 @@ export function CommandShell({ session }: { session: Session }) {
                   setTab(n.id);
                 }}
                 className={cn(
-                  "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  tab === n.id ? "bg-white text-black" : "border border-neutral-700 text-neutral-400 hover:text-white"
+                  "shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+                  tab === n.id
+                    ? "border border-[var(--admin-accent)]/40 bg-[var(--admin-accent)]/15 text-white"
+                    : "border border-white/10 bg-white/[0.03] text-neutral-400 hover:text-white"
                 )}
               >
                 {n.label}
@@ -609,11 +614,11 @@ function StatCard({
           <p className={admin.kicker}>{label}</p>
           <p className="mt-1 text-sm text-neutral-500">{hint}</p>
         </div>
-        <div className="rounded-md border border-neutral-700 p-2">
-          <Icon className="h-4 w-4 text-neutral-300" strokeWidth={1.75} />
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-[var(--admin-accent)]">
+          <Icon className="h-4 w-4" strokeWidth={1.9} />
         </div>
       </div>
-      <p className="mt-4 text-3xl font-semibold tabular-nums text-white">{value}</p>
+      <p className="mt-5 text-4xl font-semibold tabular-nums text-white">{value}</p>
     </div>
   );
 }

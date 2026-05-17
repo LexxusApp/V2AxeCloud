@@ -18,4 +18,16 @@ export const SITEMAP_ROUTES = [
     priority: 0.9,
     comment: 'Entrada direta para login',
   },
+  {
+    path: '/termos',
+    changeFrequency: 'yearly',
+    priority: 0.5,
+    comment: 'Termos de Uso públicos',
+  },
+  {
+    path: '/privacidade',
+    changeFrequency: 'yearly',
+    priority: 0.5,
+    comment: 'Política de Privacidade pública',
+  },
 ];

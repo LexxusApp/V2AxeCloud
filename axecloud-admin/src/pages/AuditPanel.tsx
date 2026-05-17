@@ -210,9 +210,10 @@ type HreflangReport = {
 };
 
 const PRESETS = [
+  { label: "produção", url: "https://axecloud.com.br" },
+  { label: "www", url: "https://www.axecloud.com.br" },
   { label: "axecloud-app", url: "https://axecloud-app.vercel.app" },
   { label: "axecloud-admin", url: "https://axecloud-admin.vercel.app" },
-  { label: "landing", url: "https://axecloud.com.br" },
 ];
 
 // ------- Score global ponderado (mesma lógica do backend) -------
@@ -360,7 +361,7 @@ function fmtBytes(b: number | null | undefined): string {
 }
 
 export function AuditPanel() {
-  const [url, setUrl] = useState("https://axecloud-app.vercel.app");
+  const [url, setUrl] = useState("https://axecloud.com.br");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);

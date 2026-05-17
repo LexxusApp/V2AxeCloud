@@ -6,10 +6,10 @@
  *
  * Uso:
  *   node scripts/generate-sitemap.mjs
- *   SITE_URL=https://axecloud.app node scripts/generate-sitemap.mjs
+ *   SITE_URL=https://axecloud.com.br node scripts/generate-sitemap.mjs
  *
  * Variáveis:
- *   SITE_URL — origem canônica (padrão: https://axecloud.app)
+ *   SITE_URL — origem canônica (padrão: https://axecloud.com.br)
  */
 
 import fs from 'node:fs';
@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
-const DEFAULT_SITE_URL = 'https://axecloud.app';
+const DEFAULT_SITE_URL = 'https://axecloud.com.br';
 
 /** @typedef {'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never'} ChangeFrequency */
 
@@ -111,6 +111,9 @@ export function buildRobotsTxt(siteUrl) {
     'User-agent: *',
     'Allow: /',
     'Disallow: /api/',
+    'Disallow: /dashboard',
+    'Disallow: /checkout',
+    'Disallow: /register',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',

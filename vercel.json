@@ -2,6 +2,14 @@
   "env": {
     "NODE_OPTIONS": "--disable-warning=DEP0169"
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.axecloud.com.br" }],
+      "destination": "https://axecloud.com.br/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/auth/filho-login",

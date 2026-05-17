@@ -15,7 +15,7 @@ export type WelcomeMessageConfig = {
 
 export const WELCOME_MESSAGE_DEFAULT: WelcomeMessageConfig = {
   enabled: true,
-  loginUrl: "https://axecloud-app.vercel.app",
+  loginUrl: "https://axecloud.com.br",
   signature: "Equipe AxéCloud",
   template:
     "Axé, {{nome_zelador}}! 🌿\n" +

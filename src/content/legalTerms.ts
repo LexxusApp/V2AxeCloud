@@ -1,9 +1,23 @@
+export type LegalSection = { title: string; body: string };
+
+export const LEGAL_CONTROLLER = 'AxéCloud — CNPJ 66.335.964/0001-07';
+
 export const LEGAL_TERMS_TITLE = 'Termos de Uso e Política de Privacidade';
 
 export const LEGAL_TERMS_SUMMARY =
   'O AxéCloud é uma plataforma SaaS para gestão de terreiros de Umbanda e Candomblé. Ao continuar, você declara ter lido e concordado com os termos abaixo.';
 
-export const LEGAL_TERMS_SECTIONS = [
+export const TERMS_OF_USE_TITLE = 'Termos de Uso';
+
+export const TERMS_OF_USE_SUMMARY =
+  'Regras de utilização da plataforma AxéCloud para zeladores e integrantes de terreiros de Umbanda e Candomblé.';
+
+export const PRIVACY_POLICY_TITLE = 'Política de Privacidade';
+
+export const PRIVACY_POLICY_SUMMARY =
+  'Como o AxéCloud coleta, usa, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a LGPD.';
+
+export const LEGAL_TERMS_SECTIONS: LegalSection[] = [
   {
     title: '1. Objeto do serviço',
     body:
@@ -37,6 +51,37 @@ export const LEGAL_TERMS_SECTIONS = [
   {
     title: '7. Contato',
     body:
-      'Dúvidas sobre privacidade ou estes termos: entre em contato pelo canal de suporte informado no aplicativo. Controlador: AxéCloud — CNPJ 66.335.964/0001-07.',
+      `Dúvidas sobre privacidade ou estes termos: entre em contato pelo canal de suporte informado no aplicativo. Controlador: ${LEGAL_CONTROLLER}.`,
   },
-] as const;
+];
+
+/** Páginas públicas /termos — texto alinhado ao aceite no painel. */
+export const TERMS_OF_USE_SECTIONS: LegalSection[] = [
+  LEGAL_TERMS_SECTIONS[0],
+  LEGAL_TERMS_SECTIONS[5],
+  {
+    title: '3. Alterações e vigência',
+    body:
+      'Podemos atualizar estes Termos de Uso para refletir mudanças legais ou no serviço. A versão vigente é indicada no rodapé desta página. O uso continuado após alterações constitui aceite, salvo quando a lei exigir novo consentimento.',
+  },
+  {
+    title: '4. Lei aplicável',
+    body:
+      'Estes termos são regidos pelas leis da República Federativa do Brasil. Foro: comarca do domicílio do consumidor, quando aplicável o Código de Defesa do Consumidor.',
+  },
+  LEGAL_TERMS_SECTIONS[6],
+];
+
+/** Páginas públicas /privacidade — texto alinhado ao aceite no painel. */
+export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
+  LEGAL_TERMS_SECTIONS[1],
+  LEGAL_TERMS_SECTIONS[2],
+  LEGAL_TERMS_SECTIONS[3],
+  LEGAL_TERMS_SECTIONS[4],
+  {
+    title: '5. Base legal e direitos (LGPD)',
+    body:
+      'Tratamos dados com base em execução de contrato, legítimo interesse (segurança e melhoria do serviço) e consentimento quando necessário. Você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade ou eliminação pelos canais de suporte, observadas obrigações legais de retenção.',
+  },
+  LEGAL_TERMS_SECTIONS[6],
+];

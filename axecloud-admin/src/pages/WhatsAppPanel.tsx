@@ -218,7 +218,7 @@ export function WhatsAppPanel() {
               type="button"
               onClick={() => void connect()}
               disabled={connected || busy === "connect"}
-              className="rounded-md bg-white text-black.5 text-sm font-bold text-white shadow-lg  transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="admin-btn-primary disabled:cursor-not-allowed"
             >
               {busy === "connect" ? "A gerar…" : "Gerar código"}
             </button>
@@ -475,7 +475,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           <input
             value={cfg.loginUrl}
             onChange={(e) => setCfg({ ...cfg, loginUrl: e.target.value })}
-            placeholder="https://axecloud-app.vercel.app"
+            placeholder="https://axecloud.com.br"
             className="mt-1 w-full rounded-md border border-neutral-800 bg-black px-3 py-2 admin-mono text-sm text-white outline-none ring-neutral-400/20 focus:ring-2"
           />
         </div>
@@ -529,7 +529,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           type="button"
           onClick={() => void save()}
           disabled={busy === "save"}
-          className="inline-flex items-center gap-2 rounded-md bg-white text-black.5 text-sm font-bold text-white shadow-lg  transition hover:opacity-95 disabled:opacity-60"
+          className="admin-btn-primary disabled:opacity-60"
         >
           <Save className="h-4 w-4" /> {busy === "save" ? "A guardar…" : "Guardar"}
         </button>

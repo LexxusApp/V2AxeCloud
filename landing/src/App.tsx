@@ -331,7 +331,7 @@ export function App() {
                     className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-elevated/25 shadow-lg"
                   >
                     <div className="border-b border-white/5 bg-background/50 px-2.5 py-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500">axecloud.app — {shot.label}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">axecloud.com.br — {shot.label}</span>
                     </div>
                     <div className="bg-[#0a0a0a] p-1 sm:p-1.5">
                       <img

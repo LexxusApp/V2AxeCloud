@@ -1,5 +1,7 @@
-﻿import { motion } from 'framer-motion';
+﻿import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
+  ArrowUp,
   BookOpen,
   CalendarDays,
   Check,
@@ -130,14 +132,46 @@ const fade = {
   transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
 } as const;
 
+const LANDING_HEADER_OFFSET = '4.25rem';
+
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 360);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const scrollTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={scrollTop}
+      aria-label="Voltar ao topo"
+      className={cn(
+        'fixed bottom-6 right-4 z-[70] grid h-12 w-12 place-items-center rounded-full border border-primary/50 bg-primary text-black shadow-[0_0_28px_rgba(251,188,0,0.4)] transition-all duration-300 hover:scale-105 active:scale-95 sm:bottom-8 sm:right-6',
+        visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
+      )}
+    >
+      <ArrowUp className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+    </button>
+  );
+}
+
 export default function Landing() {
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
+      <span id="top" className="sr-only" aria-hidden />
       <AuthScreenBackground fixed className="-z-20" />
 
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/90 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <a href="#top" className="shrink-0" id="top" aria-label="AxéCloud — início">
+            <a href="#top" className="shrink-0" aria-label="AxéCloud — início">
               <LogoMark compact />
             </a>
             <nav
@@ -204,7 +238,7 @@ export default function Landing() {
         </div>
       </header>
 
-      <main>
+      <main style={{ paddingTop: LANDING_HEADER_OFFSET }}>
         <section className="relative px-4 pt-10 pb-16 sm:px-6 sm:pt-14 sm:pb-20 lg:px-8" aria-labelledby="hero-title">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-3xl">
@@ -329,7 +363,7 @@ export default function Landing() {
                     className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-elevated/25 shadow-lg"
                   >
                     <div className="border-b border-white/5 bg-background/50 px-2.5 py-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500">axecloud.app — {shot.label}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">axecloud.com.br — {shot.label}</span>
                     </div>
                     <div className="bg-[#0a0a0a] p-1 sm:p-1.5">
                       <img
@@ -539,6 +573,14 @@ export default function Landing() {
               <a href={ROUTES.register} className="transition hover:text-primary">
                 Cadastrar
               </a>
+              <span aria-hidden>·</span>
+              <a href={ROUTES.terms} className="transition hover:text-primary">
+                Termos
+              </a>
+              <span aria-hidden>·</span>
+              <a href={ROUTES.privacy} className="transition hover:text-primary">
+                Privacidade
+              </a>
             </p>
             <p className="mt-0.5 text-[10px] text-zinc-500">
               © {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}
@@ -565,6 +607,8 @@ export default function Landing() {
           </ul>
         </div>
       </footer>
+
+      <ScrollToTopButton />
     </div>
   );
 }
