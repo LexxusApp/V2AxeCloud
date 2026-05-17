@@ -2929,6 +2929,51 @@ async function startServer() {
     }
   });
 
+  // API Route: Update Global Plans Config (Admin only)
+  app.post("/api/admin/update-plans", async (req, res) => {
+    const { plans: incoming } = req.body || {};
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+
+      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
+        return res.status(403).json({ error: "Acesso restrito a administradores globais" });
+      }
+
+      const plans = normalizePlansCatalog(incoming);
+
+      const { error: saveError } = await supabaseAdmin.from("global_settings").upsert(
+        {
+          id: "plans",
+          data: plans,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+
+      if (saveError) throw saveError;
+
+      void logEvent(supabaseAdmin, {
+        eventType: "plans.updated",
+        userId: user.id,
+        userEmail: user.email,
+        targetType: "global_settings",
+        targetId: "plans",
+        description: "Admin atualizou o catálogo global de planos.",
+        metadata: { slugs: Object.keys(plans), premiumPrice: plans.premium.price },
+        req,
+      });
+
+      res.json({ success: true, plans });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao salvar planos:", error);
+      res.status(500).json({ error: error.message || "Erro ao salvar planos" });
+    }
+  });
+
   // API Route: Get Global Plans Config
   app.get("/api/plans", async (req, res) => {
     try {

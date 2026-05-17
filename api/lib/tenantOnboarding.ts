@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizePlansCatalog } from "./plansCatalog.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   sendEvolutionTextByInstance,
@@ -53,6 +54,25 @@ export function efiNotificationUrl(): string {
 export function premiumOnboardingAmountCents(): number {
   const raw = Number(process.env.EFI_PREMIUM_AMOUNT_CENTS || "8990");
   return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 8990;
+}
+
+/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) ou env EFI_PREMIUM_AMOUNT_CENTS. */
+export async function resolvePremiumOnboardingAmountCents(
+  supabaseAdmin: SupabaseClient
+): Promise<number> {
+  try {
+    const { data: settings } = await supabaseAdmin
+      .from("global_settings")
+      .select("data")
+      .eq("id", "plans")
+      .maybeSingle();
+    const plans = normalizePlansCatalog(settings?.data);
+    const fromCatalog = Math.round(Number(plans.premium.price) * 100);
+    if (Number.isFinite(fromCatalog) && fromCatalog > 0) return fromCatalog;
+  } catch {
+    /* fallback env */
+  }
+  return premiumOnboardingAmountCents();
 }
 
 export async function registerNewTenant(

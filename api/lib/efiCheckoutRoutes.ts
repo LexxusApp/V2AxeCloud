@@ -16,7 +16,7 @@ import {
 import {
   activateTenantSubscription,
   efiNotificationUrl,
-  premiumOnboardingAmountCents,
+  resolvePremiumOnboardingAmountCents,
 } from "./tenantOnboarding.js";
 import {
   ensurePendingSubscriptionRow,
@@ -89,12 +89,13 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
 
     const pixDiagnostics = pix ? undefined : getEfiPixSetupDiagnostics();
+    const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
 
     res.json({
       sandbox: efi.sandbox,
       payeeCode: payeeCode || null,
-      amountCents: premiumOnboardingAmountCents(),
-      amountLabel: `R$ ${(premiumOnboardingAmountCents() / 100).toFixed(2).replace(".", ",")}`,
+      amountCents,
+      amountLabel: `R$ ${(amountCents / 100).toFixed(2).replace(".", ",")}`,
       pixAvailable: !!pix,
       cardAvailable: !!payeeCode,
       ...(pixDiagnostics ? { pixSetup: pixDiagnostics } : {}),
@@ -162,9 +163,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const payerName = String(req.body?.payerName || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const payerCpf = String(req.body?.cpf || "").trim();
 
+      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
       const charge = await efiPixCreateImmediateCharge(pixEnv, {
         tenantId: tenant.tenantId,
-        amountCents: premiumOnboardingAmountCents(),
+        amountCents,
         payerName,
         payerCpf: payerCpf || undefined,
         description: `AxéCloud Premium — ${profile?.nome_terreiro || "Terreiro"}`,
@@ -279,6 +281,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const nome = String(customer.name || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const email = String(customer.email || profile?.email || tenant.email).trim();
 
+      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
       const result = await efiCreateCardSubscriptionOneStep(efi, {
         tenantId: tenant.tenantId,
         email,
@@ -286,7 +289,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         cpf,
         phoneNumber: String(customer.phone_number || customer.phone || ""),
         paymentToken,
-        amountCents: premiumOnboardingAmountCents(),
+        amountCents,
         notificationUrl: efiNotificationUrl(),
         billingAddress: {
           street: String(billing.street || "").trim(),
