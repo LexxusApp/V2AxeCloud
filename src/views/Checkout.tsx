@@ -567,7 +567,7 @@ export default function Checkout() {
                       {config.cardSetup.issues.map((issue) => (
                         <p key={issue}>{issue}</p>
                       ))}
-                    </motion.div>
+                    </div>
                   ) : null}
 
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
