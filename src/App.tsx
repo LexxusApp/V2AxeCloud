@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import Sidebar from './components/Sidebar';
-import Login from './views/Login';
 import FilhoSidebar from './components/FilhoSidebar';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
@@ -51,6 +50,7 @@ import {
   emergencyAuthCircuitBreaker,
   performEmergencyClientReset,
 } from './lib/logout';
+import { goToLogin } from './lib/navigation';
 
 const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'financial', 'calendar', 'library', 'store', 'mural']);
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
@@ -146,7 +146,9 @@ function isFilhoIdentity(user?: { email?: string | null; user_metadata?: any } |
   return role === 'filho' || (email.startsWith('f_') && email.endsWith('@axecloud.internal'));
 }
 
-export default function App() {
+export type AppSurface = 'login' | 'dashboard';
+
+export default function App({ surface = 'dashboard' }: { surface?: AppSurface }) {
   // Prioridade máxima: lê âncora de tenant no topo do ciclo de render, antes de effects.
   const earlyTenantAnchor = readTenantAnchorFromStorage();
   const earlyRoleAnchor = readUserRoleAnchor();
@@ -423,7 +425,7 @@ export default function App() {
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
         setLegalTermsAccepted(
-          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null)
+          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null) ? true : false
         );
         if (isFilhoAuth) {
           setActiveTab((prev) => normalizeFilhoTab(prev));
@@ -445,7 +447,7 @@ export default function App() {
         });
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
-        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null));
+        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null) ? true : false);
         return true;
       }
 
@@ -465,6 +467,10 @@ export default function App() {
     let retries = 2;
     const isFilhoAuth = readPersistedFilhoFlag(userId) || isFilhoIdentity(null, userEmail, authRole);
     persistFilhoFlag(isFilhoAuth, userId);
+
+    if (!isFilhoAuth && hasAcceptedLegalTerms(userId, null)) {
+      setLegalTermsAccepted(true);
+    }
 
     const cachedSnap = peekCachedTenantId(userId);
     if (cachedSnap) {
@@ -532,11 +538,10 @@ export default function App() {
         writeUserRoleAnchor(role);
         setRoleAnchor(role);
         persistFilhoFlag(role === 'filho', userId);
-        setLegalTermsAccepted(
-          role === 'filho'
-            ? true
-            : hasAcceptedLegalTerms(userId, data.terms_accepted_version as string | undefined)
-        );
+        const termsOk =
+          role === 'filho' ||
+          hasAcceptedLegalTerms(userId, data.terms_accepted_version as string | undefined);
+        setLegalTermsAccepted(role === 'filho' ? true : termsOk);
         
         // 2. Tenant Info
         const plan = (data.plan || 'premium').toLowerCase().trim();
@@ -629,7 +634,7 @@ export default function App() {
           } else if (isLifetimePlan(plan)) {
             // Planos vitalícios (vita/cortesia): ativo se status for 'active' ou se não houver registro de assinatura
             setSubscriptionActive(!data.status || data.status === 'active');
-          } else if (!data.status) {
+          } else if (!data.status || data.status === 'pending') {
             setSubscriptionActive(false);
           } else if (!data.expires_at) {
             setSubscriptionActive(false);
@@ -918,6 +923,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (surface !== 'dashboard') return;
+    if (loading || isInitializing || isSessionHydrating) return;
+    if (!session) goToLogin();
+  }, [surface, session, loading, isInitializing, isSessionHydrating]);
+
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid || userRole !== 'admin') return;
+    if (hasAcceptedLegalTerms(uid, null)) {
+      setLegalTermsAccepted(true);
+    }
+  }, [session?.user?.id, userRole]);
+
+  useEffect(() => {
     if (loading || !session?.user || userRole) return;
     if (roleRecoveryOnceForUserRef.current === session.user.id) return;
     roleRecoveryOnceForUserRef.current = session.user.id;
@@ -1091,7 +1110,12 @@ export default function App() {
   }
 
   if (!session) {
-    return <Login />;
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="login-bg-screen fixed inset-0 pointer-events-none opacity-30" />
+        <Loader2 className="relative z-10 h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (isDeleted) {
@@ -1133,7 +1157,7 @@ export default function App() {
   // Show lock screen if subscription is not active AND user is not admin
   // Admins and Children should always have access to the system
   if (!subscriptionActive && !isAdminGlobal && userRole !== 'filho') {
-    return <SubscriptionLock plan={tenantData?.plan} />;
+    return <SubscriptionLock plan={tenantData?.plan} subscriptionStatus={tenantData?.status} />;
   }
 
   if (loading || isSessionHydrating || !userRole || pendingFilhoHydration) {
@@ -1324,16 +1348,19 @@ export default function App() {
       if (!response.ok) {
         throw new Error(payload?.error || 'Não foi possível registrar o aceite');
       }
-    } catch (err) {
-      console.warn('[legal] Falha ao persistir aceite no servidor — cache local aplicado:', err);
-    } finally {
       writeLocalLegalAcceptance(userId);
       setLegalTermsAccepted(true);
+    } catch (err) {
+      console.warn('[legal] Falha ao persistir aceite no servidor:', err);
+      // Cache local + preservação no logout evitam reexibir o modal na mesma conta/dispositivo.
+      writeLocalLegalAcceptance(userId);
+      setLegalTermsAccepted(true);
+    } finally {
       setLegalTermsAccepting(false);
     }
   };
 
-  const showLegalTermsModal = userRole === 'admin' && legalTermsAccepted !== true;
+  const showLegalTermsModal = userRole === 'admin' && legalTermsAccepted === false;
 
   const getPlanColor = (plan: string) => {
     switch (plan.toLowerCase()) {

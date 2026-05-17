@@ -5,8 +5,19 @@ import {Analytics} from '@vercel/analytics/react';
 import {SpeedInsights} from '@vercel/speed-insights/react';
 import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
-import App from './App.tsx';
+import AppRouter from './router/AppRouter.tsx';
 import './index.css';
+
+function userHasSupabaseSession(): boolean {
+  try {
+    const raw = localStorage.getItem('axecloud-auth-token');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return !!parsed?.access_token || !!parsed?.currentSession?.access_token;
+  } catch {
+    return false;
+  }
+}
 
 let swRegistration: ServiceWorkerRegistration | undefined;
 let swWaiting = false;
@@ -29,17 +40,6 @@ function checkServiceWorkerUpdate() {
   void swRegistration?.update().catch(() => {
     /* offline ou SW indisponível */
   });
-}
-
-function userHasSupabaseSession(): boolean {
-  try {
-    const raw = localStorage.getItem('axecloud-auth-token');
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    return !!parsed?.access_token || !!parsed?.currentSession?.access_token;
-  } catch {
-    return false;
-  }
 }
 
 function activateWaitingSwIfSafe() {
@@ -92,7 +92,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PwaInstallProvider>
       <EmergencyReloadBeacon />
-      <App />
+      <AppRouter />
       <Analytics />
       <SpeedInsights />
     </PwaInstallProvider>

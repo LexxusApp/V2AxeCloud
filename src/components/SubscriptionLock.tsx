@@ -1,95 +1,172 @@
-import React from 'react';
-import { Lock, CreditCard, ShieldAlert, Sparkles, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, CreditCard, ShieldAlert, Sparkles, MessageCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CHECKOUT_URLS } from '../constants/plans';
+import { supabase } from '../lib/supabase';
 
 interface SubscriptionLockProps {
   plan?: string;
+  subscriptionStatus?: string;
 }
 
-export default function SubscriptionLock({ plan }: SubscriptionLockProps) {
-  const handleCheckout = () => {
-    if (plan && CHECKOUT_URLS[plan.toLowerCase()]) {
-       // Abre o link de pagamento do plano específico dele usando window.open em nova aba igual Kiwify pop up original
-       const url = CHECKOUT_URLS[plan.toLowerCase()];
-       const width = 500;
-       const height = 750;
-       const left = (window.screen.width / 2) - (width / 2);
-       const top = (window.screen.height / 2) - (height / 2);
-       window.open(
-        url, 
-        'KiwifyCheckout', 
-        `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+export default function SubscriptionLock({ plan, subscriptionStatus }: SubscriptionLockProps) {
+  const [loading, setLoading] = useState(false);
+  const isPending = subscriptionStatus === 'pending';
+
+  useEffect(() => {
+    if (!isPending) return;
+    const tick = async () => {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (!uid) return;
+      const res = await fetch(
+        `/api/v1/onboarding/status?tenantId=${encodeURIComponent(uid)}`
       );
-    } else {
-       // Fallback de segurança se não tiver o plano
-       window.open('https://kiwify.com.br/', '_blank');
+      if (!res.ok) return;
+      const body = await res.json();
+      if (body.active) window.location.reload();
+    };
+    const id = window.setInterval(tick, 5000);
+    void tick();
+    return () => window.clearInterval(id);
+  }, [isPending]);
+
+  const openCheckoutWindow = (url: string) => {
+    const width = 500;
+    const height = 750;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    window.open(
+      url,
+      'EfiCheckout',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+    );
+  };
+
+  const handleCheckout = async () => {
+    setLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData.session?.user?.id;
+      if (uid && isPending) {
+        window.location.href = `/checkout?tenant=${encodeURIComponent(uid)}`;
+        return;
+      }
+      if (uid) {
+        const res = await fetch('/api/v1/checkout/efi/resume', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${sessionData.session!.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && (data.checkoutPath || data.checkoutUrl)) {
+          window.location.href = data.checkoutPath || data.checkoutUrl;
+          return;
+        }
+        if (data.alreadyActive) {
+          window.location.reload();
+          return;
+        }
+      }
+
+      const slug = plan?.toLowerCase() || 'premium';
+      if (CHECKOUT_URLS[slug]) {
+        openCheckoutWindow(CHECKOUT_URLS[slug]);
+      } else {
+        window.location.href = '/register';
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSupport = () => {
-    window.open('https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Ax%C3%A9Cloud', '_blank');
+    window.open(
+      'https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Ax%C3%A9Cloud',
+      '_blank'
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 overflow-hidden">
-      {/* Background Image - Árvore */}
-      <div className="fixed inset-0 pointer-events-none login-bg-screen" />
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse delay-700" />
-      </div>
-
-      <motion.div 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/95 p-6 backdrop-blur-2xl"
+    >
+      <div className="login-bg-screen pointer-events-none fixed inset-0" />
+      <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-md w-full bg-card border border-primary/20 p-12 rounded-[2rem] text-center relative shadow-[0_0_50px_rgba(212,175,55,0.1)]"
+        transition={{ duration: 0.5 }}
+        className="relative max-w-md w-full rounded-[2rem] border border-primary/20 bg-card p-12 text-center shadow-[0_0_50px_rgba(212,175,55,0.1)]"
       >
-        {/* Luxury Icon Container */}
-        <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/40 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-[0_10px_30px_rgba(212,175,55,0.3)] relative group">
-          <Lock className="w-10 h-10 text-black" />
-          <div className="absolute -top-2 -right-2 w-8 h-8 bg-black border border-primary/30 rounded-full flex items-center justify-center">
-            <ShieldAlert className="w-4 h-4 text-primary" />
-          </div>
-        </div>
+        <motion.div
+          animate={{ scale: [1, 1.03, 1] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="relative mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_10px_30px_rgba(212,175,55,0.3)]"
+        >
+          <Lock className="h-10 w-10 text-black" />
+        </motion.div>
 
-        <h2 className="text-3xl font-black tracking-tight text-white mb-4 leading-tight">
-          Seu acesso ao <span className="text-primary">AxéCloud</span> está suspenso
+        <h2 className="mb-4 text-3xl font-black leading-tight tracking-tight text-white">
+          {isPending ? (
+            <>
+              Aguardando <span className="text-primary">pagamento</span>
+            </>
+          ) : (
+            <>
+              Seu acesso ao <span className="text-primary">AxéCloud</span> está suspenso
+            </>
+          )}
         </h2>
-        
-        <p className="text-gray-400 text-sm mb-10 leading-relaxed font-medium">
-          Identificamos que sua assinatura expirou. Para continuar desfrutando da gestão mística de alto padrão, regularize seu plano agora.
+
+        <p className="mb-10 text-sm font-medium leading-relaxed text-gray-400">
+          {isPending
+            ? 'Conclua o pagamento na EFI (Pix é instantâneo). Assim que confirmado, o painel libera automaticamente.'
+            : 'Sua assinatura expirou ou está inativa. Regularize para voltar a gerenciar seu terreiro.'}
         </p>
 
         <div className="space-y-4">
-          <button 
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={handleCheckout}
-            className="w-full bg-primary hover:bg-primary/90 text-black font-black py-4 rounded-2xl transition-all duration-500 flex items-center justify-center gap-3 group shadow-[0_10px_20px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_30px_rgba(212,175,55,0.4)] hover:-translate-y-1"
+            disabled={loading}
+            className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 font-black text-black shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:-translate-y-1 hover:bg-primary/90 hover:shadow-[0_15px_30px_rgba(212,175,55,0.4)] disabled:opacity-60"
           >
-            <CreditCard className="w-5 h-5" />
-            REGULARIZAR ASSINATURA ({plan ? plan.toUpperCase() : 'AGORA'})
-          </button>
-          
-          <button 
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <CreditCard className="h-5 w-5" />
+                {isPending ? 'IR PARA CHECKOUT' : `REGULARIZAR (${plan?.toUpperCase() || 'PREMIUM'})`}
+              </>
+            )}
+          </motion.button>
+
+          <button
             onClick={handleSupport}
-            className="w-full bg-transparent hover:bg-white/5 text-gray-500 hover:text-white font-bold py-4 rounded-2xl transition-all duration-300 text-xs tracking-widest uppercase flex flex-col items-center gap-1"
+            className="flex w-full flex-col items-center gap-1 rounded-2xl py-4 text-xs font-bold uppercase tracking-widest text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
           >
             <span className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" /> Falar com Suporte VIP
+              <MessageCircle className="h-4 w-4" /> Falar com Suporte
             </span>
           </button>
         </div>
 
-        {/* Luxury Badge */}
-        <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary/40" />
-          <span className="text-[10px] font-black text-gray-600 tracking-[0.3em] uppercase">
-            SaaS Multitenant • Enterprise Edition
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-12 flex items-center justify-center gap-2 border-t border-white/5 pt-8"
+        >
+          <Sparkles className="h-4 w-4 text-primary/40" />
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
+            Pagamento EFI · Liberação automática
           </span>
-        </div>
+        </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

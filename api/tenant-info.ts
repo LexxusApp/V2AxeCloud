@@ -82,6 +82,21 @@ function isLifetimePlanSlug(slug: string): boolean {
   return slug === "vita" || slug === "cortesia";
 }
 
+const PERFIL_LIDER_BASE_SELECT =
+  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url";
+
+async function fetchPerfilLiderByUserId(sb: ReturnType<typeof createClient>, userId: string) {
+  const withTerms = `${PERFIL_LIDER_BASE_SELECT}, terms_accepted_version`;
+  let res: any = await sb.from("perfil_lider").select(withTerms).eq("id", userId).maybeSingle();
+  if (res.error && /terms_accepted/i.test(String(res.error.message || ""))) {
+    res = await sb.from("perfil_lider").select(PERFIL_LIDER_BASE_SELECT).eq("id", userId).maybeSingle();
+    if (res.data) {
+      res.data = { ...res.data, terms_accepted_version: null };
+    }
+  }
+  return res;
+}
+
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL ||
   process.env.SUPABASE_URL ||
@@ -204,11 +219,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       });
     }
 
-    let profileRes: any = await sb
-      .from("perfil_lider")
-      .select("nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version")
-      .eq("id", userId)
-      .maybeSingle();
+    let profileRes: any = await fetchPerfilLiderByUserId(sb, userId);
     if (profileRes.error) throw profileRes.error;
 
     if (profileRes.data?.deleted_at) {

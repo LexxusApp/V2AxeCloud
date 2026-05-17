@@ -50,6 +50,8 @@ import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./lib/fetchFinanceiroRowsForFilho.js";
 import { logEvent } from "./lib/auditLog.js";
+import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
+import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2752,32 +2754,38 @@ async function startServer() {
       const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
       const now = new Date().toISOString();
 
-      const { error: updateError } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin
         .from("perfil_lider")
-        .update({
-          terms_accepted_version: version,
-          terms_accepted_at: now,
-          updated_at: now,
-        })
-        .eq("id", user.id);
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (updateError) {
-        const { error: upsertError } = await supabaseAdmin.from("perfil_lider").upsert(
-          {
-            id: user.id,
-            email: user.email,
-            nome_terreiro: "Meu Terreiro",
-            role: "admin",
-            terms_accepted_version: version,
-            terms_accepted_at: now,
-            updated_at: now,
-          },
-          { onConflict: "id" }
-        );
-        if (upsertError) {
-          console.error("[SERVER] accept-terms:", upsertError);
-          return res.status(500).json({ error: upsertError.message || "Erro ao registrar aceite" });
-        }
+      const termsPayload: Record<string, unknown> = {
+        id: user.id,
+        terms_accepted_version: version,
+        terms_accepted_at: now,
+        updated_at: now,
+      };
+      if (!existing) {
+        termsPayload.email = user.email;
+        termsPayload.nome_terreiro = "Meu Terreiro";
+        termsPayload.role = "admin";
+      }
+
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from("perfil_lider")
+        .upsert(termsPayload, { onConflict: "id" })
+        .select("terms_accepted_version")
+        .single();
+
+      if (saveError) {
+        console.error("[SERVER] accept-terms:", saveError);
+        return res.status(500).json({ error: saveError.message || "Erro ao registrar aceite" });
+      }
+      if (saved?.terms_accepted_version !== version) {
+        return res.status(500).json({
+          error: "Aceite não foi gravado. Execute a migration de termos em perfil_lider no Supabase.",
+        });
       }
 
       return res.json({ success: true, version });
@@ -3066,6 +3074,9 @@ async function startServer() {
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
   });
+
+  registerOnboardingRoutes(app, { supabaseAdmin });
+  registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
   // Cron Vercel (Fase 4): roda monitoramento contínuo dos audit_targets.
   // Configure o schedule em vercel.json e o secret em CRON_SECRET.

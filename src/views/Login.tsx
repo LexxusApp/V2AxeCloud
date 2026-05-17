@@ -156,7 +156,7 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('updated') !== 'true') return;
 
-    window.history.replaceState({}, document.title, '/');
+    window.history.replaceState({}, document.title, '/login');
 
     alertHideTimerRef.current = window.setTimeout(() => {
       setShowAlert(false);
@@ -195,7 +195,7 @@ export default function Login() {
     setForgotLoading(true);
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/login`,
       });
       if (resetErr) throw resetErr;
       setInfo('Enviamos um link de recuperação para o seu e-mail.');
@@ -358,6 +358,12 @@ export default function Login() {
             <p className="mx-auto max-w-[280px] text-[12px] text-[#c8cad2]">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
             </p>
+            <a
+              href="/"
+              className="inline-block pt-1 text-[11px] font-semibold text-[#f2b90f]/90 hover:text-[#f2b90f] transition-colors"
+            >
+              ← Conhecer o AxéCloud
+            </a>
           </div>
         </header>
 
@@ -594,9 +600,7 @@ export default function Login() {
           )}
 
           <a
-            href="https://wa.me/5511912276156"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/register"
             className={cn(
               'group flex w-full items-center gap-[9px] px-[11px] py-[8px]',
               R_CARD,
@@ -606,9 +610,9 @@ export default function Login() {
           >
             <UsersCircleBadge />
             <div className="flex-1 text-left min-w-0">
-              <p className="text-[12.5px] font-medium leading-snug text-white">Ainda não tem uma conta?</p>
+              <p className="text-[12.5px] font-medium leading-snug text-white">Cadastre seu terreiro</p>
               <p className="mt-[1px] text-[10px] font-medium leading-[1.3] text-[#c8cad2]">
-                Fale com o zelador do seu terreiro para ter acesso ao AxéCloud.
+                Crie sua conta, pague com Pix e libere o painel na hora.
               </p>
             </div>
             <ChevronRight

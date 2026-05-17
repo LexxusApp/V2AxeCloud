@@ -1,6 +1,8 @@
 import { CURRENT_LEGAL_TERMS_VERSION } from '../config/legal';
 
-const STORAGE_PREFIX = 'axecloud_legal_accepted_';
+export const LEGAL_ACCEPTANCE_STORAGE_PREFIX = 'axecloud_legal_accepted_';
+
+const STORAGE_PREFIX = LEGAL_ACCEPTANCE_STORAGE_PREFIX;
 
 function storageKey(userId: string) {
   return `${STORAGE_PREFIX}${userId}`;
@@ -32,4 +34,32 @@ export function hasAcceptedLegalTerms(
   const v = String(serverVersion || '').trim();
   if (v === CURRENT_LEGAL_TERMS_VERSION) return true;
   return readLocalLegalAcceptance(userId) === CURRENT_LEGAL_TERMS_VERSION;
+}
+
+/** Preserva aceites de termos ao limpar storage no logout (performFastLogout). */
+export function collectLegalAcceptanceFromStorage(): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (typeof window === 'undefined') return out;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(LEGAL_ACCEPTANCE_STORAGE_PREFIX)) continue;
+      const value = localStorage.getItem(key);
+      if (value) out[key] = value;
+    }
+  } catch {
+    // no-op
+  }
+  return out;
+}
+
+export function restoreLegalAcceptanceToStorage(saved: Record<string, string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const [key, value] of Object.entries(saved)) {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    // no-op
+  }
 }

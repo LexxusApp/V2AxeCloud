@@ -51,6 +51,8 @@ import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
 import { logEvent } from "./api/lib/auditLog.js";
+import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
+import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
@@ -1072,6 +1074,21 @@ async function verifyUser(token: string) {
     console.error("[SERVER] verifyUser exceção:", err);
     return { user: null, error: err };
   }
+}
+
+const PERFIL_LIDER_BASE_SELECT =
+  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url";
+
+async function fetchPerfilLiderByUserId(userId: string) {
+  const withTerms = `${PERFIL_LIDER_BASE_SELECT}, terms_accepted_version`;
+  let res: any = await supabaseAdmin.from("perfil_lider").select(withTerms).eq("id", userId).maybeSingle();
+  if (res.error && /terms_accepted/i.test(String(res.error.message || ""))) {
+    res = await supabaseAdmin.from("perfil_lider").select(PERFIL_LIDER_BASE_SELECT).eq("id", userId).maybeSingle();
+    if (res.data) {
+      res.data = { ...res.data, terms_accepted_version: null };
+    }
+  }
+  return res;
 }
 
 async function startServer() {
@@ -2694,32 +2711,38 @@ async function startServer() {
       const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
       const now = new Date().toISOString();
 
-      const { error: updateError } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin
         .from("perfil_lider")
-        .update({
-          terms_accepted_version: version,
-          terms_accepted_at: now,
-          updated_at: now,
-        })
-        .eq("id", user.id);
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (updateError) {
-        const { error: upsertError } = await supabaseAdmin.from("perfil_lider").upsert(
-          {
-            id: user.id,
-            email: user.email,
-            nome_terreiro: "Meu Terreiro",
-            role: "admin",
-            terms_accepted_version: version,
-            terms_accepted_at: now,
-            updated_at: now,
-          },
-          { onConflict: "id" }
-        );
-        if (upsertError) {
-          console.error("[SERVER] accept-terms:", upsertError);
-          return res.status(500).json({ error: upsertError.message || "Erro ao registrar aceite" });
-        }
+      const termsPayload: Record<string, unknown> = {
+        id: user.id,
+        terms_accepted_version: version,
+        terms_accepted_at: now,
+        updated_at: now,
+      };
+      if (!existing) {
+        termsPayload.email = user.email;
+        termsPayload.nome_terreiro = "Meu Terreiro";
+        termsPayload.role = "admin";
+      }
+
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from("perfil_lider")
+        .upsert(termsPayload, { onConflict: "id" })
+        .select("terms_accepted_version")
+        .single();
+
+      if (saveError) {
+        console.error("[SERVER] accept-terms:", saveError);
+        return res.status(500).json({ error: saveError.message || "Erro ao registrar aceite" });
+      }
+      if (saved?.terms_accepted_version !== version) {
+        return res.status(500).json({
+          error: "Aceite não foi gravado. Execute a migration de termos em perfil_lider no Supabase.",
+        });
       }
 
       return res.json({ success: true, version });
@@ -2851,7 +2874,7 @@ async function startServer() {
       }
 
       // 2. Se não for filho, busca Perfil de Líder
-      let profileRes: any = await supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version').eq('id', userId).maybeSingle();
+      let profileRes: any = await fetchPerfilLiderByUserId(userId);
       
       const emailNorm = String(email || "").trim().toLowerCase();
       const isSuperAdmin =
@@ -3252,6 +3275,9 @@ async function startServer() {
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
   });
+
+  registerOnboardingRoutes(app, { supabaseAdmin });
+  registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);

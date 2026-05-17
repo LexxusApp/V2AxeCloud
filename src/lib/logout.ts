@@ -1,5 +1,9 @@
 import { supabase } from './supabase';
 import { APP_VERSION, SYSTEM_VERSION } from '../config/version';
+import {
+  collectLegalAcceptanceFromStorage,
+  restoreLegalAcceptanceToStorage,
+} from './legalTerms';
 
 /**
  * Remove todos os caches do Cache Storage (PWA / Workbox).
@@ -41,6 +45,8 @@ export async function performFastLogout(): Promise<void> {
     /* rede / timeout — emergência no finally */
   }
 
+  const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
+
   try {
     await deleteAllCacheStorage();
     await unregisterAllServiceWorkers();
@@ -48,6 +54,7 @@ export async function performFastLogout(): Promise<void> {
     window.sessionStorage.clear();
     try {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
+      restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
     } catch {
       /* ignorar */
     }
@@ -91,12 +98,15 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
   } catch {
     /* ignorar */
   }
+  const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
+
   try {
     await deleteAllCacheStorage();
     window.localStorage.clear();
     window.sessionStorage.clear();
     try {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
+      restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
     } catch {
       /* ignorar */
     }
