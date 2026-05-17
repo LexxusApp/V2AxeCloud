@@ -52,6 +52,7 @@ import { fetchFinanceiroRowsForFilho } from "./lib/fetchFinanceiroRowsForFilho.j
 import { logEvent } from "./lib/auditLog.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
+import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1208,26 +1209,10 @@ async function startServer() {
   }));
 
   // CORS endurecido — origens explícitas, sem "*" quando credentials=true.
-  // Espelha o helper api/_lib/cors.ts usado pelos handlers discretos.
-  const STATIC_ALLOWED_ORIGINS = [
-    "https://axecloud.app",
-    "https://www.axecloud.app",
-    "https://axecloud-app.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:4173",
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-  ];
-  const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
   app.use(
     cors({
       origin: (origin, callback) => {
-        // sem Origin (ex.: server-to-server, curl, webhooks) — permitir
-        if (!origin) return callback(null, true);
-        if (STATIC_ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-        if (VERCEL_PREVIEW_REGEX.test(origin)) return callback(null, true);
+        if (isAllowedCorsOrigin(origin)) return callback(null, true);
         return callback(new Error(`CORS bloqueado para origem: ${origin}`));
       },
       credentials: true,

@@ -7,6 +7,7 @@ import { constants as zlibConstants } from "node:zlib";
 import axios from "axios";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import { isAllowedCorsOrigin, STATIC_ALLOWED_ORIGINS } from "./api/lib/corsOrigins.js";
 import compression from "compression";
 import geoip from "geoip-lite";
 import webpush from "web-push";
@@ -1148,19 +1149,35 @@ async function startServer() {
     },
   }));
 
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
+  const envExtra = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+    : [];
+  const allowedOrigins = [...new Set([...STATIC_ALLOWED_ORIGINS, ...envExtra])];
 
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Permite requisições sem origin (ex.: curl, Postman em dev, webhooks)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origem não autorizada — ${origin}`));
-    },
-    credentials: true,
-  }));
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || isAllowedCorsOrigin(origin)) {
+          return callback(null, true);
+        }
+        callback(new Error(`CORS: origem não autorizada — ${origin}`));
+      },
+      credentials: true,
+      methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "apikey",
+        "X-Client-Info",
+        "X-Requested-With",
+        "X-Supabase-Api-Version",
+        "Range",
+      ],
+      optionsSuccessStatus: 204,
+    })
+  );
 
   // Limite conservador para rotas comuns; uploads maiores usam limite próprio
   app.use(express.json({ limit: '2mb' }));
