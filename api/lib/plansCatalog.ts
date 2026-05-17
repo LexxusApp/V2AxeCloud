@@ -25,7 +25,13 @@ export const PLANS_CATALOG_DEFAULT: Record<PlanCatalogKey, PlanCatalogEntry> = {
 function mergeEntry(base: PlanCatalogEntry, src: Record<string, unknown> | null | undefined): PlanCatalogEntry {
   if (!src || typeof src !== "object") return base;
   const name = typeof src.name === "string" && src.name.trim() ? src.name.trim() : base.name;
-  const price = typeof src.price === "number" && Number.isFinite(src.price) ? src.price : base.price;
+  let price = base.price;
+  if (typeof src.price === "number" && Number.isFinite(src.price)) {
+    price = src.price;
+  } else if (typeof src.price === "string" && src.price.trim()) {
+    const parsed = Number(src.price.trim().replace(",", "."));
+    if (Number.isFinite(parsed)) price = parsed;
+  }
   const description =
     typeof src.description === "string" && src.description.trim() ? src.description.trim() : base.description;
   return { name, price, description };
