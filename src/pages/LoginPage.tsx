@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import Login from '../views/Login';
+import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { supabase } from '../lib/supabase';
 import { goToDashboard } from '../lib/navigation';
 
@@ -29,8 +30,8 @@ export default function LoginPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="landing-bg-screen fixed inset-0 pointer-events-none" />
+      <div className="relative min-h-screen flex items-center justify-center">
+        <AuthScreenBackground variant="dark" className="fixed inset-0" />
         <Loader2 className="relative z-10 h-10 w-10 animate-spin text-primary" />
       </div>
     );

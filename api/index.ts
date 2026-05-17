@@ -53,6 +53,7 @@ import { logEvent } from "./lib/auditLog.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
+import { resolvePerfilLiderEmail } from "./lib/perfilLiderEmail.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2741,27 +2742,52 @@ async function startServer() {
 
       const { data: existing } = await supabaseAdmin
         .from("perfil_lider")
-        .select("id")
+        .select("id, email")
         .eq("id", user.id)
         .maybeSingle();
 
-      const termsPayload: Record<string, unknown> = {
-        id: user.id,
-        terms_accepted_version: version,
-        terms_accepted_at: now,
-        updated_at: now,
-      };
-      if (!existing) {
-        termsPayload.email = user.email;
-        termsPayload.nome_terreiro = "Meu Terreiro";
-        termsPayload.role = "admin";
-      }
+      let saved: { terms_accepted_version?: string | null } | null = null;
+      let saveError: { message?: string } | null = null;
 
-      const { data: saved, error: saveError } = await supabaseAdmin
-        .from("perfil_lider")
-        .upsert(termsPayload, { onConflict: "id" })
-        .select("terms_accepted_version")
-        .single();
+      if (existing?.id) {
+        const patch: Record<string, unknown> = {
+          terms_accepted_version: version,
+          terms_accepted_at: now,
+          updated_at: now,
+        };
+        if (!existing.email) {
+          patch.email = await resolvePerfilLiderEmail(supabaseAdmin, user);
+        }
+        const result = await supabaseAdmin
+          .from("perfil_lider")
+          .update(patch)
+          .eq("id", user.id)
+          .select("terms_accepted_version")
+          .single();
+        saved = result.data;
+        saveError = result.error;
+      } else {
+        const email = await resolvePerfilLiderEmail(supabaseAdmin, user);
+        const result = await supabaseAdmin
+          .from("perfil_lider")
+          .upsert(
+            {
+              id: user.id,
+              email,
+              nome_terreiro: "Meu Terreiro",
+              role: "admin",
+              tenant_id: user.id,
+              terms_accepted_version: version,
+              terms_accepted_at: now,
+              updated_at: now,
+            },
+            { onConflict: "id" }
+          )
+          .select("terms_accepted_version")
+          .single();
+        saved = result.data;
+        saveError = result.error;
+      }
 
       if (saveError) {
         console.error("[SERVER] accept-terms:", saveError);

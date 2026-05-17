@@ -101,7 +101,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 /* Landing (pasta landing/ integrada) */
@@ -157,7 +156,6 @@
   background-size: cover;
   background-position: center 30%;
   background-repeat: no-repeat;
-  background-attachment: fixed;
   filter: saturate(0.35) brightness(0.45);
 }
 
@@ -167,7 +165,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 /* Cover de PDF (Library) — alturas fixas via classe ao invés de style inline. */

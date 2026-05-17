@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, CreditCard, ShieldAlert, Sparkles, MessageCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { AuthScreenBackground } from './AuthScreenBackground';
 import { CHECKOUT_URLS } from '../constants/plans';
 import { supabase } from '../lib/supabase';
 
@@ -93,9 +94,9 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/95 p-6 backdrop-blur-2xl"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-6 backdrop-blur-2xl"
     >
-      <div className="login-bg-screen pointer-events-none fixed inset-0" />
+      <AuthScreenBackground variant="dark" className="fixed inset-0" />
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

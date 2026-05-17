@@ -16,6 +16,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
+import { AuthScreenBackground } from '../components/AuthScreenBackground';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -284,19 +285,7 @@ export default function Login() {
         fontLogin
       )}
     >
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[#050505]" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 z-[1] login-bg-screen" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 z-[2] bg-black/28" aria-hidden />
-      <div
-        className="pointer-events-none absolute inset-0 z-[3]"
-        style={{
-          background: `
-            radial-gradient(ellipse 115% 95% at 50% 42%, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.48) 100%),
-            linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.1) 38%, rgba(0,0,0,0.45) 100%)
-          `,
-        }}
-        aria-hidden
-      />
+      <AuthScreenBackground />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}

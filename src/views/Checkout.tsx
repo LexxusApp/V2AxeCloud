@@ -14,6 +14,7 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { LANDING_PRICE } from '../constants/landingFeatures';
 import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
+import { AuthScreenBackground } from '../components/AuthScreenBackground';
 
 const GOLD = '#f2b90f';
 const R_CARD = 'rounded-[14px]';
@@ -320,9 +321,10 @@ export default function Checkout() {
   if (loading) {
     return (
       <motion.div
-        className={cn('flex min-h-screen items-center justify-center login-bg-screen', fontLogin)}
+        className={cn('relative flex min-h-screen items-center justify-center', fontLogin)}
       >
-        <Loader2 className="h-8 w-8 animate-spin text-[#f2b90f]" />
+        <AuthScreenBackground variant="dark" />
+        <Loader2 className="relative z-10 h-8 w-8 animate-spin text-[#f2b90f]" />
       </motion.div>
     );
   }
@@ -331,8 +333,9 @@ export default function Checkout() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={cn('min-h-screen text-white login-bg-screen', fontLogin)}
+      className={cn('relative min-h-screen text-white', fontLogin)}
     >
+      <AuthScreenBackground />
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
