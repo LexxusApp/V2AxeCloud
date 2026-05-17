@@ -163,19 +163,19 @@ export function WhatsAppPanel() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <header className="overflow-hidden rounded-md border border-emerald-400/20 bg-gradient-to-br from-emerald-950/60 via-[#0a1d18]/80 to-[#080c14]/90 p-6 shadow-xl ring-1 ring-emerald-400/10">
+      <header className="admin-card-padded">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-300/80">
+            <p className="text-[10px] font-semibold uppercase  text-white/80">
               Console · Mensageria
             </p>
             <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold text-white">
-              <MessageCircle className="h-6 w-6 text-emerald-300" />
+              <MessageCircle className="h-6 w-6 text-white" />
               WhatsApp do administrador
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300/85">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-300/85">
               Conecte um número exclusivo do console para envios globais. A vinculação é feita por{" "}
-              <span className="font-semibold text-emerald-200">código de pareamento</span> — não há QR code.
+              <span className="font-semibold text-white">código de pareamento</span> — não há QR code.
             </p>
           </div>
           <StatusBadge status={status?.status} number={status?.number || null} />
@@ -187,8 +187,8 @@ export function WhatsAppPanel() {
           className={cn(
             "rounded-md border px-4 py-3 text-sm shadow",
             feedback.kind === "ok"
-              ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
-              : "border-rose-500/35 bg-rose-950/35 text-rose-100"
+              ? "border-neutral-500 bg-neutral-900 text-white"
+              : "border-neutral-400 bg-black text-white"
           )}
         >
           {feedback.msg}
@@ -196,12 +196,12 @@ export function WhatsAppPanel() {
       )}
 
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-4 rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+        <div className="space-y-4 rounded-md border border-neutral-800 bg-neutral-950 p-6 shadow-xl ring-1 ring-neutral-800">
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-            <PhoneCall className="h-4 w-4 text-emerald-300" />
+            <PhoneCall className="h-4 w-4 text-white" />
             Número do aparelho
           </h3>
-          <p className="text-xs leading-relaxed text-slate-400">
+          <p className="text-xs leading-relaxed text-neutral-400">
             Digite o telefone que vai escanear o código. Use somente números (DDI + DDD + linha).
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -212,30 +212,30 @@ export function WhatsAppPanel() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="(11) 91234-5678"
               disabled={connected || busy === "connect"}
-              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-4 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/30 placeholder:text-slate-600 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex-1 rounded-md border border-neutral-800 bg-black px-4 py-2.5 admin-mono text-sm text-white outline-none ring-neutral-600 placeholder:text-neutral-600 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => void connect()}
               disabled={connected || busy === "connect"}
-              className="rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md bg-white text-black.5 text-sm font-bold text-white shadow-lg  transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {busy === "connect" ? "A gerar…" : "Gerar código"}
             </button>
           </div>
           {phone && (
-            <p className="text-[11px] text-slate-500">
-              Será enviado: <span className="font-mono-data text-emerald-200">{maskPhone(phone) || phone}</span>
+            <p className="text-[11px] text-neutral-500">
+              Será enviado: <span className="admin-mono text-white">{maskPhone(phone) || phone}</span>
             </p>
           )}
 
-          <hr className="border-white/[0.06]" />
+          <hr className="border-neutral-800" />
 
-          <h4 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Como usar o código</h4>
-          <ol className="space-y-2 text-xs leading-relaxed text-slate-300">
+          <h4 className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Como usar o código</h4>
+          <ol className="space-y-2 text-xs leading-relaxed text-neutral-300">
             {steps.map((s, i) => (
               <li key={s} className="flex gap-3">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 font-mono-data text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/30">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 admin-mono text-[10px] font-bold text-white ring-1 ring-neutral-600">
                   {i + 1}
                 </span>
                 <span>{s}</span>
@@ -248,7 +248,7 @@ export function WhatsAppPanel() {
               type="button"
               onClick={() => void refreshStatus()}
               disabled={busy === "status"}
-              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-neutral-900 px-3 py-1.5 text-[11px] font-bold text-neutral-200 hover:bg-neutral-900 disabled:opacity-60"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", busy === "status" && "animate-spin")} />
               Atualizar estado
@@ -258,7 +258,7 @@ export function WhatsAppPanel() {
                 type="button"
                 onClick={() => void logout()}
                 disabled={busy === "logout"}
-                className="inline-flex items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md border border-neutral-400 bg-black px-3 py-1.5 text-[11px] font-bold text-white hover:bg-black disabled:opacity-60"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Desconectar
@@ -276,12 +276,12 @@ export function WhatsAppPanel() {
       </section>
 
       {connected && (
-        <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+        <section className="rounded-md border border-neutral-800 bg-neutral-950 p-6 shadow-xl ring-1 ring-neutral-800">
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-            <Send className="h-4 w-4 text-slate-300" />
+            <Send className="h-4 w-4 text-neutral-300" />
             Enviar mensagem de teste
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-neutral-400">
             Envia uma frase curta para confirmar que o número está operacional.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -291,13 +291,13 @@ export function WhatsAppPanel() {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="(11) 99999-9999"
-              className="flex-1 rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 font-mono-data text-sm text-white outline-none ring-slate-400/25 focus:ring-2"
+              className="flex-1 rounded-md border border-neutral-800 bg-black px-3 py-2 admin-mono text-sm text-white outline-none ring-neutral-400/25 focus:ring-2"
             />
             <button
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="rounded-md bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
+              className="rounded-md bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-white disabled:opacity-60"
             >
               {busy === "test" ? "A enviar…" : "Enviar"}
             </button>
@@ -417,32 +417,32 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
 
   if (!cfg) {
     return (
-      <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 text-sm text-slate-400 shadow-xl ring-1 ring-white/[0.04]">
+      <section className="rounded-md border border-neutral-800 bg-neutral-950 p-6 text-sm text-neutral-400 shadow-xl ring-1 ring-neutral-800">
         A carregar configuração da mensagem de boas-vindas…
       </section>
     );
   }
 
   return (
-    <section className="rounded-md border border-white/[0.08] bg-[#0c121f]/85 p-6 shadow-xl ring-1 ring-white/[0.04]">
+    <section className="rounded-md border border-neutral-800 bg-neutral-950 p-6 shadow-xl ring-1 ring-neutral-800">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-            <MailPlus className="h-4 w-4 text-emerald-300" />
+            <MailPlus className="h-4 w-4 text-white" />
             Boas-vindas automáticas
           </h3>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
             Quando um novo terreiro é criado no console, esta mensagem é enviada pelo WhatsApp do administrador para o número do zelador, com login, senha e URL de acesso.
           </p>
         </div>
-        <label className="inline-flex shrink-0 items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-200">
-          <span className="uppercase tracking-widest text-[10px] text-slate-400">Disparo</span>
+        <label className="inline-flex shrink-0 items-center gap-3 rounded-md border border-white/10 bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-200">
+          <span className="uppercase tracking-widest text-[10px] text-neutral-400">Disparo</span>
           <button
             type="button"
             onClick={() => setCfg({ ...cfg, enabled: !cfg.enabled })}
             className={cn(
               "relative h-5 w-9 rounded-full transition-colors",
-              cfg.enabled ? "bg-emerald-500/80" : "bg-slate-700"
+              cfg.enabled ? "bg-neutral-900" : "bg-neutral-700"
             )}
             aria-pressed={cfg.enabled}
           >
@@ -461,8 +461,8 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           className={cn(
             "mt-4 rounded-md border px-3 py-2 text-xs",
             feedback.kind === "ok"
-              ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-100"
-              : "border-rose-500/35 bg-rose-950/35 text-rose-100"
+              ? "border-neutral-500 bg-neutral-900 text-white"
+              : "border-neutral-400 bg-black text-white"
           )}
         >
           {feedback.msg}
@@ -471,28 +471,28 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">URL de acesso</label>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">URL de acesso</label>
           <input
             value={cfg.loginUrl}
             onChange={(e) => setCfg({ ...cfg, loginUrl: e.target.value })}
             placeholder="https://axecloud-app.vercel.app"
-            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 font-mono-data text-sm text-white outline-none ring-slate-400/20 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-neutral-800 bg-black px-3 py-2 admin-mono text-sm text-white outline-none ring-neutral-400/20 focus:ring-2"
           />
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Assinatura</label>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Assinatura</label>
           <input
             value={cfg.signature}
             onChange={(e) => setCfg({ ...cfg, signature: e.target.value })}
             placeholder="Equipe AxéCloud"
-            className="mt-1 w-full rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-2 text-sm text-white outline-none ring-slate-400/20 focus:ring-2"
+            className="mt-1 w-full rounded-md border border-neutral-800 bg-black px-3 py-2 text-sm text-white outline-none ring-neutral-400/20 focus:ring-2"
           />
         </div>
       </div>
 
       <div className="mt-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mensagem (suporta WhatsApp markdown)</label>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Mensagem (suporta WhatsApp markdown)</label>
           <div className="flex flex-wrap gap-1.5">
             {WELCOME_VARS.map((v) => (
               <button
@@ -500,7 +500,7 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
                 type="button"
                 onClick={() => insertVar(v.token)}
                 title={v.label}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 font-mono-data text-[10px] font-bold text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-200"
+                className="rounded-lg border border-white/10 bg-neutral-900 px-2 py-1 admin-mono text-[10px] font-bold text-neutral-200 hover:bg-neutral-900 hover:text-white"
               >
                 {v.token}
               </button>
@@ -512,15 +512,15 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           rows={9}
           value={cfg.template}
           onChange={(e) => setCfg({ ...cfg, template: e.target.value })}
-          className="mt-2 w-full resize-y rounded-md border border-white/[0.1] bg-[#080c14] px-3 py-3 font-mono-data text-xs leading-relaxed text-white outline-none ring-emerald-400/25 focus:ring-2"
+          className="mt-2 w-full resize-y rounded-md border border-neutral-800 bg-black px-3 py-3 admin-mono text-xs leading-relaxed text-white outline-none ring-neutral-600 focus:ring-2"
         />
-        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-          Variáveis disponíveis: <code className="font-mono-data text-emerald-200">{`{{nome_terreiro}}`}</code>,{" "}
-          <code className="font-mono-data text-emerald-200">{`{{nome_zelador}}`}</code>,{" "}
-          <code className="font-mono-data text-emerald-200">{`{{email}}`}</code>,{" "}
-          <code className="font-mono-data text-emerald-200">{`{{senha}}`}</code>,{" "}
-          <code className="font-mono-data text-emerald-200">{`{{site}}`}</code>,{" "}
-          <code className="font-mono-data text-emerald-200">{`{{assinatura}}`}</code>.
+        <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
+          Variáveis disponíveis: <code className="admin-mono text-white">{`{{nome_terreiro}}`}</code>,{" "}
+          <code className="admin-mono text-white">{`{{nome_zelador}}`}</code>,{" "}
+          <code className="admin-mono text-white">{`{{email}}`}</code>,{" "}
+          <code className="admin-mono text-white">{`{{senha}}`}</code>,{" "}
+          <code className="admin-mono text-white">{`{{site}}`}</code>,{" "}
+          <code className="admin-mono text-white">{`{{assinatura}}`}</code>.
         </p>
       </div>
 
@@ -529,25 +529,25 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
           type="button"
           onClick={() => void save()}
           disabled={busy === "save"}
-          className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:opacity-95 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md bg-white text-black.5 text-sm font-bold text-white shadow-lg  transition hover:opacity-95 disabled:opacity-60"
         >
           <Save className="h-4 w-4" /> {busy === "save" ? "A guardar…" : "Guardar"}
         </button>
         <button
           type="button"
           onClick={resetToDefault}
-          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/[0.07]"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-neutral-900 px-3 py-2.5 text-xs font-bold text-neutral-200 hover:bg-neutral-900"
         >
           <RotateCcw className="h-3.5 w-3.5" /> Restaurar padrão
         </button>
       </div>
 
-      <div className="mt-6 rounded-md border border-white/[0.06] bg-[#080c14]/70 p-4">
-        <h4 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+      <div className="mt-6 rounded-md border border-neutral-800 bg-black/70 p-4">
+        <h4 className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
           Enviar pré-visualização (teste)
         </h4>
         {!connected ? (
-          <p className="mt-2 text-xs text-amber-200/85">
+          <p className="mt-2 text-xs text-neutral-300/85">
             Conecte o WhatsApp do administrador acima antes de enviar testes.
           </p>
         ) : (
@@ -558,20 +558,20 @@ function WelcomeMessageEditor({ connected }: { connected: boolean }) {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="(11) 91234-5678"
-              className="flex-1 rounded-md border border-white/[0.1] bg-[#06090f] px-3 py-2.5 font-mono-data text-sm text-white outline-none ring-emerald-400/25 focus:ring-2"
+              className="flex-1 rounded-md border border-neutral-800 bg-black px-3 py-2.5 admin-mono text-sm text-white outline-none ring-neutral-600 focus:ring-2"
             />
             <button
               type="button"
               onClick={() => void sendTest()}
               disabled={busy === "test"}
-              className="inline-flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-white disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
               {busy === "test" ? "A enviar…" : "Enviar teste"}
             </button>
           </div>
         )}
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-[10px] text-neutral-500">
           O teste preenche as variáveis com valores de exemplo (terreiro/zelador/senha demonstrativos).
         </p>
       </div>
@@ -592,14 +592,14 @@ function StatusBadge({
       className={cn(
         "flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest ring-1",
         isOk
-          ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
-          : "bg-slate-700/30 text-slate-300 ring-white/10"
+          ? "bg-neutral-900 text-white ring-neutral-600"
+          : "bg-neutral-700/30 text-neutral-300 ring-white/10"
       )}
     >
       {isOk ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ShieldAlert className="h-3.5 w-3.5" />}
       <span>{isOk ? "Conectado" : status === "QRCODE" ? "Pendente" : "Desligado"}</span>
       {isOk && number && (
-        <span className="ml-1 font-mono-data text-[10px] font-bold tracking-normal text-emerald-100/80">
+        <span className="ml-1 admin-mono text-[10px] font-bold tracking-normal text-white/80">
           · {maskPhone(number) || `+${number}`}
         </span>
       )}
@@ -620,46 +620,46 @@ function PairingCard({
 }) {
   const grouped = code?.split("-") || [];
   return (
-    <div className="relative flex flex-col gap-4 overflow-hidden rounded-md border border-emerald-400/15 bg-[#06120f]/95 p-6 shadow-xl ring-1 ring-emerald-400/10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500/40 opacity-90" />
+    <div className="relative flex flex-col gap-4 overflow-hidden rounded-md border border-neutral-500 bg-neutral-950/95 p-6 shadow-xl ring-1 ring-neutral-600">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-neutral-800" />
       <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-        <Smartphone className="h-4 w-4 text-emerald-300" />
+        <Smartphone className="h-4 w-4 text-white" />
         Código de pareamento
       </h3>
 
       {connected ? (
-        <div className="flex flex-col items-center gap-3 rounded-md bg-emerald-500/10 px-6 py-10 text-center ring-1 ring-emerald-400/25">
-          <CheckCircle2 className="h-10 w-10 text-emerald-300" />
-          <p className="text-sm font-semibold text-emerald-100">WhatsApp do console conectado.</p>
-          {phone && <p className="font-mono-data text-xs text-emerald-200/80">{maskPhone(phone) || `+${phone}`}</p>}
+        <div className="flex flex-col items-center gap-3 rounded-md bg-neutral-900 px-6 py-10 text-center ring-1 ring-neutral-600">
+          <CheckCircle2 className="h-10 w-10 text-white" />
+          <p className="text-sm font-semibold text-white">WhatsApp do console conectado.</p>
+          {phone && <p className="admin-mono text-xs text-white/80">{maskPhone(phone) || `+${phone}`}</p>}
         </div>
       ) : code ? (
-        <div className="flex flex-col items-center gap-4 rounded-md bg-emerald-500/[0.04] px-4 py-8 ring-1 ring-emerald-400/15">
+        <div className="flex flex-col items-center gap-4 rounded-md bg-neutral-900 px-4 py-8 ring-1 ring-neutral-600">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {(grouped.length ? grouped : [code]).map((seg, idx, arr) => (
               <span key={`${seg}-${idx}`} className="flex items-center gap-2">
-                <span className="rounded-md border border-emerald-400/30 bg-[#03100c] px-4 py-3 font-mono-data text-2xl font-semibold tracking-[0.4em] text-emerald-100 shadow-inner shadow-black/40">
+                <span className="rounded-md border border-neutral-500 bg-[#03100c] px-4 py-3 admin-mono text-2xl font-semibold  text-white shadow-inner shadow-black/40">
                   {seg}
                 </span>
-                {idx < arr.length - 1 && <span className="text-emerald-300/60">—</span>}
+                {idx < arr.length - 1 && <span className="text-white/60">—</span>}
               </span>
             ))}
           </div>
-          <p className="text-[11px] text-emerald-200/70">Válido por aproximadamente 60 segundos.</p>
+          <p className="text-[11px] text-white/70">Válido por aproximadamente 60 segundos.</p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => {
                 void navigator.clipboard?.writeText(code.replace(/-/g, ""));
               }}
-              className="inline-flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-100 hover:bg-emerald-500/25"
+              className="inline-flex items-center gap-2 rounded-md border border-neutral-500 bg-neutral-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-neutral-900"
             >
               <Copy className="h-3.5 w-3.5" /> Copiar
             </button>
             <button
               type="button"
               onClick={onRefresh}
-              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/[0.07]"
+              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-neutral-900 px-3 py-1.5 text-[11px] font-bold text-neutral-200 hover:bg-neutral-900"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Verificar conexão
             </button>
@@ -667,10 +667,10 @@ function PairingCard({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-white/10 px-6 py-10 text-center">
-          <Smartphone className="h-9 w-9 text-slate-600" />
-          <p className="text-sm font-medium text-slate-300">Nenhum código gerado.</p>
-          <p className="max-w-xs text-xs text-slate-500">
-            Informe o número à esquerda e clique em <span className="font-semibold text-slate-300">Gerar código</span>{" "}
+          <Smartphone className="h-9 w-9 text-neutral-600" />
+          <p className="text-sm font-medium text-neutral-300">Nenhum código gerado.</p>
+          <p className="max-w-xs text-xs text-neutral-500">
+            Informe o número à esquerda e clique em <span className="font-semibold text-neutral-300">Gerar código</span>{" "}
             para iniciar o pareamento.
           </p>
         </div>

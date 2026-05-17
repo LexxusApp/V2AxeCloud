@@ -55,11 +55,11 @@ type AuditRunRow = {
 };
 
 function gradeBadge(grade: string | null) {
-  if (!grade) return "bg-white/[0.06] text-slate-400 ring-white/10";
-  if (grade === "A+" || grade === "A") return "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30";
-  if (grade === "B") return "bg-cyan-500/15 text-cyan-200 ring-cyan-400/30";
-  if (grade === "C") return "bg-amber-500/15 text-amber-200 ring-amber-400/30";
-  return "bg-red-500/15 text-red-200 ring-red-400/30";
+  if (!grade) return "bg-neutral-900 text-neutral-400 ring-white/10";
+  if (grade === "A+" || grade === "A") return "bg-neutral-900 text-white ring-neutral-600";
+  if (grade === "B") return "bg-neutral-900 text-neutral-200 ring-cyan-400/30";
+  if (grade === "C") return "bg-neutral-900 text-neutral-300 ring-neutral-600";
+  return "bg-neutral-900 text-red-200 ring-red-400/30";
 }
 
 function fmtDate(s: string | null) {
@@ -244,14 +244,14 @@ export function AuditMonitor() {
   return (
     <div className="space-y-4">
       {/* Header / KPIs */}
-      <div className="rounded-md border border-white/[0.08] bg-white/[0.02] p-4 shadow-md ring-1 ring-white/[0.04]">
+      <div className="rounded-md border border-neutral-800 bg-neutral-900 p-4 shadow-md ring-1 ring-neutral-800">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-              <Activity className="h-5 w-5 text-violet-300" />
+              <Activity className="h-5 w-5 text-neutral-200" />
               Monitor contínuo
             </h2>
-            <p className="mt-0.5 text-xs text-slate-400">
+            <p className="mt-0.5 text-xs text-neutral-400">
               Auditoria automática dos alvos cadastrados via Vercel Cron, com alertas de queda de score.
             </p>
           </div>
@@ -259,14 +259,14 @@ export function AuditMonitor() {
             <button
               onClick={() => void refresh()}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/[0.1] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-xs text-neutral-200 ring-1 ring-white/10 hover:bg-neutral-900 disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Atualizar
             </button>
             <button
               onClick={() => setShowForm((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-200 ring-1 ring-violet-400/30 hover:bg-violet-500/30"
+              className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 ring-1 ring-neutral-600 hover:bg-neutral-900"
             >
               <Plus className="h-3.5 w-3.5" />
               Novo alvo
@@ -275,27 +275,27 @@ export function AuditMonitor() {
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-4">
-          <Kpi label="Alvos" value={summary.total} icon={<Activity className="h-4 w-4 text-violet-300" />} />
-          <Kpi label="Ativos" value={summary.enabled} icon={<Play className="h-4 w-4 text-emerald-300" />} />
+          <Kpi label="Alvos" value={summary.total} icon={<Activity className="h-4 w-4 text-neutral-200" />} />
+          <Kpi label="Ativos" value={summary.enabled} icon={<Play className="h-4 w-4 text-white" />} />
           <Kpi
             label="Alertando"
             value={summary.alerting}
-            tone={summary.alerting > 0 ? "text-red-200 bg-red-500/10 ring-red-400/30" : undefined}
+            tone={summary.alerting > 0 ? "text-red-200 bg-neutral-900 ring-red-400/30" : undefined}
             icon={<Bell className="h-4 w-4 text-red-300" />}
           />
-          <Kpi label="Score médio" value={summary.avg ?? "—"} icon={<TrendingUp className="h-4 w-4 text-slate-300" />} />
+          <Kpi label="Score médio" value={summary.avg ?? "—"} icon={<TrendingUp className="h-4 w-4 text-neutral-300" />} />
         </div>
       </div>
 
       {notice && (
-        <div className="rounded-md border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+        <div className="rounded-md border border-neutral-600 bg-neutral-900 px-3 py-2 text-xs text-neutral-300">
           {notice}
         </div>
       )}
 
       {/* Form novo alvo */}
       {showForm && (
-        <div className="rounded-md border border-white/10 bg-black/30 p-4 ring-1 ring-violet-400/10">
+        <div className="rounded-md border border-white/10 bg-black/30 p-4 ring-1 ring-neutral-600">
           <h3 className="mb-3 text-sm font-bold text-white">Novo alvo de monitoramento</h3>
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="URL">
@@ -303,7 +303,7 @@ export function AuditMonitor() {
                 value={formUrl}
                 onChange={(e) => setFormUrl(e.target.value)}
                 placeholder="https://exemplo.com.br"
-                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-neutral-600"
               />
             </Field>
             <Field label="Rótulo (opcional)">
@@ -311,7 +311,7 @@ export function AuditMonitor() {
                 value={formLabel}
                 onChange={(e) => setFormLabel(e.target.value)}
                 placeholder="Landing institucional"
-                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-neutral-600"
               />
             </Field>
             <Field label="Webhook (Discord/Slack)">
@@ -319,7 +319,7 @@ export function AuditMonitor() {
                 value={formWebhook}
                 onChange={(e) => setFormWebhook(e.target.value)}
                 placeholder="https://discord.com/api/webhooks/..."
-                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-neutral-600"
               />
             </Field>
             <Field label={`Limite de alerta (${formAlertThreshold})`}>
@@ -333,7 +333,7 @@ export function AuditMonitor() {
                 className="w-full"
               />
             </Field>
-            <label className="flex items-center gap-2 text-xs text-slate-300">
+            <label className="flex items-center gap-2 text-xs text-neutral-300">
               <input
                 type="checkbox"
                 checked={formRunPsi}
@@ -348,14 +348,14 @@ export function AuditMonitor() {
             <button
               onClick={() => void createTarget()}
               disabled={formBusy || !formUrl.trim()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-100 ring-1 ring-violet-400/40 hover:bg-violet-500/40 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 ring-1 ring-neutral-600 hover:bg-neutral-900 disabled:opacity-50"
             >
               {formBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
               Criar alvo
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="rounded-md bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 ring-1 ring-white/10 hover:bg-white/[0.08]"
+              className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 ring-1 ring-white/10 hover:bg-neutral-900"
             >
               Cancelar
             </button>
@@ -366,13 +366,13 @@ export function AuditMonitor() {
       {/* Lista de alvos */}
       <div className="space-y-2">
         {loading && targets.length === 0 && (
-          <p className="flex items-center gap-2 px-3 text-xs text-slate-400">
+          <p className="flex items-center gap-2 px-3 text-xs text-neutral-400">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando alvos…
           </p>
         )}
         {!loading && targets.length === 0 && (
-          <p className="rounded-md border border-white/10 bg-black/30 px-3 py-4 text-center text-xs text-slate-400">
-            Nenhum alvo cadastrado ainda. Clique em <span className="text-violet-300">Novo alvo</span> para começar.
+          <p className="rounded-md border border-white/10 bg-black/30 px-3 py-4 text-center text-xs text-neutral-400">
+            Nenhum alvo cadastrado ainda. Clique em <span className="text-neutral-200">Novo alvo</span> para começar.
           </p>
         )}
         {targets.map((t) => {
@@ -388,7 +388,7 @@ export function AuditMonitor() {
                 >
                   <span
                     className={cn(
-                      "inline-flex h-9 w-12 items-center justify-center rounded-md font-mono-data text-xs font-semibold ring-1",
+                      "inline-flex h-9 w-12 items-center justify-center rounded-md admin-mono text-xs font-semibold ring-1",
                       gradeBadge(t.last_grade)
                     )}
                   >
@@ -398,18 +398,18 @@ export function AuditMonitor() {
                     <div className="flex items-center gap-1.5 text-sm font-semibold text-white">
                       <span className="truncate">{t.label || t.url.replace(/^https?:\/\//, "")}</span>
                       {!t.enabled && (
-                        <span className="rounded bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-slate-400">
+                        <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-400">
                           pausado
                         </span>
                       )}
                       {t.run_psi && (
-                        <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-200">
+                        <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-300">
                           PSI
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500">
-                      <span className="truncate font-mono-data">{t.url}</span>
+                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-neutral-500">
+                      <span className="truncate admin-mono">{t.url}</span>
                       <span>·</span>
                       <span>último: {relTime(t.last_run_at)}</span>
                       {typeof t.last_score === "number" && (
@@ -418,7 +418,7 @@ export function AuditMonitor() {
                           <span
                             className={cn(
                               "inline-flex items-center gap-0.5",
-                              t.last_score < t.alert_threshold ? "text-red-300" : "text-slate-400"
+                              t.last_score < t.alert_threshold ? "text-red-300" : "text-neutral-400"
                             )}
                           >
                             score {t.last_score}
@@ -465,10 +465,10 @@ export function AuditMonitor() {
                 <div className="border-t border-white/10 bg-black/20 px-3 py-3">
                   <div className="grid gap-3 md:grid-cols-3">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Configuração</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Configuração</p>
                       <ul className="mt-1 space-y-1 text-[11px]">
                         <li className="flex items-center gap-2">
-                          <span className="text-slate-400">DNS/WHOIS:</span>
+                          <span className="text-neutral-400">DNS/WHOIS:</span>
                           <ToggleSwitch
                             on={t.run_dns}
                             onChange={(v) => void patchTarget(t.id, { run_dns: v })}
@@ -476,14 +476,14 @@ export function AuditMonitor() {
                           />
                         </li>
                         <li className="flex items-center gap-2">
-                          <span className="text-slate-400">PageSpeed:</span>
+                          <span className="text-neutral-400">PageSpeed:</span>
                           <ToggleSwitch
                             on={t.run_psi}
                             onChange={(v) => void patchTarget(t.id, { run_psi: v })}
                             disabled={busy === "patch"}
                           />
                         </li>
-                        <li className="text-slate-400">
+                        <li className="text-neutral-400">
                           Limite alerta:{" "}
                           <input
                             type="number"
@@ -497,7 +497,7 @@ export function AuditMonitor() {
                       </ul>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Webhook</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Webhook</p>
                       <input
                         type="url"
                         defaultValue={t.alert_webhook || ""}
@@ -508,14 +508,14 @@ export function AuditMonitor() {
                         placeholder="Discord ou Slack webhook…"
                         className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white"
                       />
-                      <p className="mt-1 text-[10px] text-slate-500 flex items-center gap-1">
+                      <p className="mt-1 text-[10px] text-neutral-500 flex items-center gap-1">
                         <Webhook className="h-3 w-3" /> auto-detecta Discord/Slack
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Última execução</p>
-                      <p className="mt-1 text-[11px] text-slate-300">{fmtDate(t.last_run_at)}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-500">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Última execução</p>
+                      <p className="mt-1 text-[11px] text-neutral-300">{fmtDate(t.last_run_at)}</p>
+                      <p className="mt-0.5 text-[10px] text-neutral-500">
                         Schedule: {t.schedule} · Vercel Cron decide o intervalo real
                       </p>
                     </div>
@@ -524,12 +524,12 @@ export function AuditMonitor() {
                   {/* sparkline + tabela de history */}
                   <div className="mt-3 rounded-md border border-white/10 bg-black/30 p-2">
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                         Histórico ({history.length})
                       </p>
                       <button
                         onClick={() => void loadHistory(t.id)}
-                        className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200"
+                        className="inline-flex items-center gap-1 text-[10px] text-neutral-400 hover:text-neutral-200"
                       >
                         <RefreshCw className="h-3 w-3" /> atualizar
                       </button>
@@ -537,7 +537,7 @@ export function AuditMonitor() {
                     <Sparkline runs={history} />
                     <div className="mt-2 max-h-64 overflow-y-auto">
                       <table className="w-full text-[10px]">
-                        <thead className="sticky top-0 bg-black/60 text-slate-500">
+                        <thead className="sticky top-0 bg-black/60 text-neutral-500">
                           <tr>
                             <th className="px-2 py-1 text-left">Quando</th>
                             <th className="px-2 py-1 text-left">Origem</th>
@@ -552,16 +552,16 @@ export function AuditMonitor() {
                         <tbody>
                           {history.map((r) => (
                             <tr key={r.id} className="border-t border-white/5">
-                              <td className="px-2 py-1 text-slate-300">{fmtDate(r.created_at)}</td>
-                              <td className="px-2 py-1 text-slate-400">{r.source}</td>
+                              <td className="px-2 py-1 text-neutral-300">{fmtDate(r.created_at)}</td>
+                              <td className="px-2 py-1 text-neutral-400">{r.source}</td>
                               <td className="px-2 py-1">
                                 {r.status === "ok" ? (
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-300" />
+                                  <CheckCircle2 className="h-3 w-3 text-white" />
                                 ) : (
                                   <XCircle className="h-3 w-3 text-red-300" />
                                 )}
                               </td>
-                              <td className="px-2 py-1 text-right font-mono-data">
+                              <td className="px-2 py-1 text-right admin-mono">
                                 <span
                                   className={cn(
                                     "rounded px-1 py-0.5",
@@ -571,11 +571,11 @@ export function AuditMonitor() {
                                   {r.score_total ?? "—"}
                                 </span>
                               </td>
-                              <td className="px-2 py-1 text-right font-mono-data">
+                              <td className="px-2 py-1 text-right admin-mono">
                                 {r.delta_total == null ? (
-                                  <span className="text-slate-500">—</span>
+                                  <span className="text-neutral-500">—</span>
                                 ) : r.delta_total > 0 ? (
-                                  <span className="inline-flex items-center gap-0.5 text-emerald-300">
+                                  <span className="inline-flex items-center gap-0.5 text-white">
                                     <TrendingUp className="h-3 w-3" />+{r.delta_total}
                                   </span>
                                 ) : r.delta_total < 0 ? (
@@ -584,13 +584,13 @@ export function AuditMonitor() {
                                     {r.delta_total}
                                   </span>
                                 ) : (
-                                  <span className="text-slate-500">0</span>
+                                  <span className="text-neutral-500">0</span>
                                 )}
                               </td>
-                              <td className="px-2 py-1 text-right font-mono-data text-slate-400">
+                              <td className="px-2 py-1 text-right admin-mono text-neutral-400">
                                 {r.performance_score ?? "—"}
                               </td>
-                              <td className="px-2 py-1 text-right font-mono-data text-slate-400">
+                              <td className="px-2 py-1 text-right admin-mono text-neutral-400">
                                 {r.issues_count ?? "—"}
                               </td>
                               <td className="px-2 py-1">
@@ -600,7 +600,7 @@ export function AuditMonitor() {
                           ))}
                           {history.length === 0 && (
                             <tr>
-                              <td colSpan={8} className="px-2 py-3 text-center text-slate-500">
+                              <td colSpan={8} className="px-2 py-3 text-center text-neutral-500">
                                 Nenhuma execução ainda. Clique em "Executar agora".
                               </td>
                             </tr>
@@ -637,11 +637,11 @@ function Kpi({
         tone
       )}
     >
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-neutral-400">
         {icon}
         {label}
       </div>
-      <p className="mt-0.5 font-mono-data text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-0.5 admin-mono text-2xl font-semibold text-white">{value}</p>
     </div>
   );
 }
@@ -649,7 +649,7 @@ function Kpi({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="space-y-1 text-xs">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</span>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">{label}</span>
       {children}
     </label>
   );
@@ -676,8 +676,8 @@ function ActionBtn({
       className={cn(
         "inline-flex h-7 w-7 items-center justify-center rounded-md ring-1 transition-colors",
         danger
-          ? "bg-red-500/10 text-red-300 ring-red-400/20 hover:bg-red-500/20"
-          : "bg-white/[0.06] text-slate-300 ring-white/10 hover:bg-white/[0.1]",
+          ? "bg-neutral-900 text-red-300 ring-red-400/20 hover:bg-neutral-900"
+          : "bg-neutral-900 text-neutral-300 ring-white/10 hover:bg-neutral-900",
         busy && "opacity-50"
       )}
     >
@@ -702,7 +702,7 @@ function ToggleSwitch({
       onClick={() => onChange(!on)}
       className={cn(
         "relative inline-flex h-4 w-7 items-center rounded-full transition-colors",
-        on ? "bg-emerald-400/70" : "bg-white/10",
+        on ? "bg-neutral-900" : "bg-white/10",
         disabled && "opacity-50"
       )}
     >
@@ -724,7 +724,7 @@ function Sparkline({ runs }: { runs: AuditRunRow[] }) {
     .map((r) => r.score_total as number);
   if (points.length < 2) {
     return (
-      <p className="text-[10px] text-slate-500">
+      <p className="text-[10px] text-neutral-500">
         Necessário ao menos 2 execuções para desenhar o gráfico.
       </p>
     );

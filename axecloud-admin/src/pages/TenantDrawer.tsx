@@ -180,22 +180,22 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
         className="flex-1 bg-black/60 backdrop-blur-sm"
       />
       {/* Drawer */}
-      <aside className="relative flex h-full w-full max-w-[480px] flex-col border-l border-white/[0.06] bg-[#0a101c] shadow-2xl">
-        <header className="flex items-start justify-between gap-4 border-b border-white/[0.06] bg-[#0c121f] px-5 py-4">
+      <aside className="admin-drawer">
+        <header className="flex items-start justify-between gap-4 border-b border-neutral-800 bg-black px-5 py-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-slate-500">Terreiro</p>
+            <p className="text-[10px] font-bold uppercase  text-neutral-500">Terreiro</p>
             <h3 className="mt-0.5 truncate text-lg font-bold text-white">
               {data?.profile?.nome_terreiro || (loading ? "A carregar…" : "Sem nome")}
             </h3>
             {data?.profile?.email && (
-              <p className="truncate font-mono-data text-[11px] text-slate-400">{data.profile.email}</p>
+              <p className="truncate admin-mono text-[11px] text-neutral-400">{data.profile.email}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="shrink-0 rounded-lg border border-white/10 bg-white/[0.03] p-1.5 text-slate-300 hover:bg-white/[0.08]"
+            className="shrink-0 rounded-lg border border-white/10 bg-neutral-900 p-1.5 text-neutral-300 hover:bg-neutral-900"
           >
             <X className="h-4 w-4" />
           </button>
@@ -203,13 +203,13 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           {loading && (
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
-              <Loader2 className="h-4 w-4 animate-spin text-slate-300" /> A carregar dados…
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-neutral-300">
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-300" /> A carregar dados…
             </div>
           )}
 
           {error && (
-            <div className="rounded-lg border border-rose-500/30 bg-rose-950/30 px-3 py-2 text-sm text-rose-100">
+            <div className="rounded-lg border border-neutral-400 bg-black px-3 py-2 text-sm text-white">
               {error}
             </div>
           )}
@@ -254,20 +254,20 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                   label="Criado em"
                   value={data.auth?.created_at ? format(new Date(data.auth.created_at), "dd/MM/yyyy") : "—"}
                 />
-                <div className="mt-3 space-y-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
-                  <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    <KeyRound className="h-3.5 w-3.5 text-amber-300" /> Senha
+                <div className="mt-3 space-y-2 rounded-md border border-white/10 bg-neutral-900 p-3">
+                  <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                    <KeyRound className="h-3.5 w-3.5 text-neutral-300" /> Senha
                   </p>
                   {newPassword ? (
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-2 py-1.5 font-mono-data text-base tracking-[0.35em] text-emerald-100">
+                      <code className="flex-1 rounded-md border border-neutral-500 bg-neutral-900 px-2 py-1.5 admin-mono text-base  text-white">
                         {pwdVisible ? newPassword : "•".repeat(newPassword.length)}
                       </code>
                       <button
                         type="button"
                         onClick={() => setPwdVisible((v) => !v)}
                         title={pwdVisible ? "Ocultar" : "Mostrar"}
-                        className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] p-1.5 text-slate-200 hover:bg-white/[0.08]"
+                        className="shrink-0 rounded-md border border-white/10 bg-neutral-900 p-1.5 text-neutral-200 hover:bg-neutral-900"
                       >
                         {pwdVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -278,15 +278,15 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                         className={cn(
                           "shrink-0 rounded-md border p-1.5 transition",
                           copied === "pwd"
-                            ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-                            : "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]"
+                            ? "border-neutral-500 bg-neutral-900 text-white"
+                            : "border-white/10 bg-neutral-900 text-neutral-200 hover:bg-neutral-900"
                         )}
                       >
                         <Copy className="h-4 w-4" />
                       </button>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-neutral-400">
                       A senha original do Supabase Auth é armazenada como hash e não pode ser recuperada. Gere uma
                       nova senha numérica de 8 dígitos para reenviar ao zelador.
                     </p>
@@ -295,7 +295,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                     type="button"
                     onClick={() => void resetPassword()}
                     disabled={resetting}
-                    className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-100 hover:bg-amber-500/25 disabled:opacity-60"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-neutral-600 bg-neutral-900 px-3 py-1.5 text-xs font-bold text-neutral-300 hover:bg-neutral-900 disabled:opacity-60"
                   >
                     {resetting ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -322,11 +322,11 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                   label="Bloqueio"
                   value={
                     data.profile?.is_blocked ? (
-                      <span className="inline-flex items-center gap-1 text-rose-300">
+                      <span className="inline-flex items-center gap-1 text-white">
                         <ShieldAlert className="h-3.5 w-3.5" /> Bloqueado
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-emerald-300">
+                      <span className="inline-flex items-center gap-1 text-white">
                         <ShieldCheck className="h-3.5 w-3.5" /> Activo
                       </span>
                     )
@@ -337,14 +337,14 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
               <Section title="Filhos de santo" icon={Users}>
                 <Row label="Total" value={String(data.childrenCount ?? 0)} />
                 {data.childrenCount > 0 && (
-                  <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-white/[0.06] bg-black/20 p-2">
+                  <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 bg-black/20 p-2">
                     {(data as any).children?.map((c: any) => (
                       <li
                         key={c.id}
-                        className="flex items-center justify-between gap-2 rounded-sm bg-white/[0.02] px-2 py-1 text-xs text-slate-300"
+                        className="flex items-center justify-between gap-2 rounded-sm bg-neutral-900 px-2 py-1 text-xs text-neutral-300"
                       >
                         <span className="truncate font-medium text-white">{c.nome}</span>
-                        <span className="font-mono-data text-[10px] uppercase text-slate-500">
+                        <span className="admin-mono text-[10px] uppercase text-neutral-500">
                           {c.cargo || c.status || ""}
                         </span>
                       </li>
@@ -355,7 +355,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
 
               <Section title="Armazenamento (R2)" icon={HardDrive}>
                 {!data.storage.configured ? (
-                  <p className="text-xs text-slate-400">R2 não configurado no servidor.</p>
+                  <p className="text-xs text-neutral-400">R2 não configurado no servidor.</p>
                 ) : (
                   <>
                     <Row label="Objectos" value={String(data.storage.objects ?? 0)} />
@@ -364,7 +364,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                       value={`${bytesToHuman(data.storage.bytes)} (${data.storage.mb ?? 0} MB)`}
                     />
                     {data.storage.truncated && (
-                      <p className="text-[11px] text-amber-300/80">
+                      <p className="text-[11px] text-neutral-300/80">
                         Listagem truncada — o total real pode ser maior que o exibido.
                       </p>
                     )}
@@ -374,7 +374,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
 
               {data.auth?.user_metadata && Object.keys(data.auth.user_metadata).length > 0 && (
                 <Section title="Metadados Auth" icon={Database}>
-                  <pre className="max-h-48 overflow-auto rounded-md border border-white/[0.06] bg-black/30 p-2 font-mono-data text-[10px] text-slate-300">
+                  <pre className="max-h-48 overflow-auto rounded-md border border-neutral-800 bg-black/30 p-2 admin-mono text-[10px] text-neutral-300">
 {JSON.stringify(data.auth.user_metadata, null, 2)}
                   </pre>
                 </Section>
@@ -412,13 +412,13 @@ function RoleRow({
   const isAdmin = normalized === "admin";
   const isInconsistent = !!normalized && !isFilho && !isAdmin;
   const tone = isFilho
-    ? "bg-violet-500/15 text-violet-200 ring-violet-400/30"
+    ? "bg-neutral-900 text-neutral-200 ring-neutral-600"
     : isAdmin
-      ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30"
-      : "bg-amber-500/15 text-amber-200 ring-amber-400/30";
+      ? "bg-neutral-900 text-white ring-neutral-600"
+      : "bg-neutral-900 text-neutral-300 ring-neutral-600";
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Papel</span>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Papel</span>
       <div className="flex items-center gap-2">
         <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-bold ring-1", tone)}>
           {role || "—"}
@@ -429,7 +429,7 @@ function RoleRow({
             onClick={() => onSet("admin")}
             disabled={busy}
             title="Normalizar papel para 'admin' (zelador)."
-            className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+            className="rounded-md border border-neutral-500 bg-neutral-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-neutral-900 disabled:opacity-50"
           >
             {busy ? "..." : "definir admin"}
           </button>
@@ -440,7 +440,7 @@ function RoleRow({
             onClick={() => onSet(isFilho ? "admin" : "filho")}
             disabled={busy}
             title={isFilho ? "Marcar como Admin (zelador)" : "Marcar como Filho"}
-            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300 hover:bg-white/[0.08] disabled:opacity-50"
+            className="rounded-md border border-white/10 bg-neutral-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
           >
             {busy ? "..." : isFilho ? "→ admin" : "→ filho"}
           </button>
@@ -460,9 +460,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-white/[0.06] bg-[#0c121f]/70 p-3 ring-1 ring-white/[0.04]">
-      <h4 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-        <Icon className="h-3.5 w-3.5 text-slate-300" /> {title}
+    <section className="rounded-md border border-neutral-800 bg-neutral-950 p-3 ring-1 ring-neutral-800">
+      <h4 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+        <Icon className="h-3.5 w-3.5 text-neutral-300" /> {title}
       </h4>
       <div className="space-y-1">{children}</div>
     </section>
@@ -489,9 +489,9 @@ function Row({
   const isString = typeof value === "string";
   return (
     <div className="flex items-start justify-between gap-3 py-1 text-xs">
-      <span className="shrink-0 font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="shrink-0 font-medium uppercase tracking-wide text-neutral-500">{label}</span>
       <div className="flex min-w-0 items-center gap-1">
-        <span className={cn("min-w-0 truncate text-right text-slate-200", mono && "font-mono-data")}>
+        <span className={cn("min-w-0 truncate text-right text-neutral-200", mono && "admin-mono")}>
           {value || "—"}
         </span>
         {copyable && isString && onCopy && tag && (
@@ -502,8 +502,8 @@ function Row({
             className={cn(
               "shrink-0 rounded-md border p-1 text-[10px] transition",
               copied === tag
-                ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
-                : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
+                ? "border-neutral-500 bg-neutral-900 text-white"
+                : "border-white/10 bg-neutral-900 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
             )}
           >
             <Copy className="h-3 w-3" />

@@ -334,22 +334,22 @@ function gradeTone(grade: string): string {
   switch (grade) {
     case "A+":
     case "A":
-      return "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40";
+      return "bg-neutral-900 text-white ring-1 ring-neutral-600";
     case "B":
-      return "bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-400/40";
+      return "bg-neutral-900 text-neutral-200 ring-1 ring-cyan-400/40";
     case "C":
-      return "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/40";
+      return "bg-neutral-900 text-neutral-300 ring-1 ring-neutral-600";
     case "D":
       return "bg-orange-500/20 text-orange-300 ring-1 ring-orange-400/40";
     default:
-      return "bg-red-500/20 text-red-300 ring-1 ring-red-400/40";
+      return "bg-neutral-900 text-red-300 ring-1 ring-red-400/40";
   }
 }
 
 function issueIcon(level: string) {
   if (level === "error") return <XCircle className="h-4 w-4 text-red-400" />;
-  if (level === "warn") return <AlertTriangle className="h-4 w-4 text-amber-400" />;
-  return <Info className="h-4 w-4 text-cyan-400" />;
+  if (level === "warn") return <AlertTriangle className="h-4 w-4 text-neutral-300" />;
+  return <Info className="h-4 w-4 text-neutral-200" />;
 }
 
 function fmtBytes(b: number | null | undefined): string {
@@ -479,10 +479,10 @@ export function AuditPanel() {
   return (
     <div className="space-y-4">
       {/* Header com input */}
-      <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/60 p-4 shadow-xl ring-1 ring-white/[0.04]">
+      <div className="rounded-md border border-neutral-800 bg-neutral-950 p-4 shadow-xl ring-1 ring-neutral-800">
         <div className="flex flex-wrap items-center gap-2">
-          <Globe className="h-4 w-4 text-cyan-300" />
-          <span className="text-xs font-medium uppercase tracking-widest text-slate-400">
+          <Globe className="h-4 w-4 text-neutral-200" />
+          <span className="text-xs font-medium uppercase tracking-widest text-neutral-400">
             Auditoria de URL
           </span>
           <div className="ml-auto flex flex-wrap gap-1">
@@ -490,7 +490,7 @@ export function AuditPanel() {
               <button
                 key={p.url}
                 onClick={() => setUrl(p.url)}
-                className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-slate-300 hover:bg-white/[0.08]"
+                className="rounded-md border border-white/10 bg-neutral-900 px-2 py-0.5 text-[10px] font-medium text-neutral-300 hover:bg-neutral-900"
               >
                 {p.label}
               </button>
@@ -503,29 +503,29 @@ export function AuditPanel() {
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void runScan()}
             placeholder="https://exemplo.com"
-            className="flex-1 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-400/40"
+            className="flex-1 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-cyan-400/40"
           />
           <button
             onClick={() => void runScan()}
             disabled={busy || !url.trim()}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {busy ? "Analisando…" : "Inspecionar"}
           </button>
         </div>
         {error && (
-          <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          <p className="mt-3 rounded-md border border-red-500/30 bg-neutral-900 px-3 py-2 text-xs text-red-300">
             {error}
           </p>
         )}
       </div>
 
       {!result && !busy && (
-        <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/60 px-6 py-16 text-center shadow-xl ring-1 ring-white/[0.04]">
-          <Sparkles className="mx-auto h-10 w-10 text-cyan-400/40" />
-          <p className="mt-3 text-sm font-medium text-slate-300">Audite qualquer URL pública</p>
-          <p className="mt-1 text-xs text-slate-500">
+        <div className="rounded-md border border-neutral-800 bg-neutral-950 px-6 py-16 text-center shadow-xl ring-1 ring-neutral-800">
+          <Sparkles className="mx-auto h-10 w-10 text-neutral-200/40" />
+          <p className="mt-3 text-sm font-medium text-neutral-300">Audite qualquer URL pública</p>
+          <p className="mt-1 text-xs text-neutral-500">
             Veja meta tags, Open Graph, headers de segurança, SSL e mais — em segundos.
           </p>
         </div>
@@ -539,14 +539,14 @@ export function AuditPanel() {
               <div className={cn(
                   "col-span-2 rounded-md border p-4 shadow-xl ring-1",
                   globalScore.grade === "A+" || globalScore.grade === "A"
-                    ? "border-emerald-400/30 bg-emerald-500/[0.06] ring-emerald-400/20"
+                    ? "border-neutral-500 bg-neutral-900 ring-neutral-600"
                     : globalScore.grade === "B"
-                      ? "border-cyan-400/30 bg-cyan-500/[0.06] ring-cyan-400/20"
+                      ? "border-cyan-400/30 bg-neutral-900 ring-cyan-400/20"
                       : globalScore.grade === "C"
-                        ? "border-amber-400/30 bg-amber-500/[0.06] ring-amber-400/20"
-                        : "border-red-400/30 bg-red-500/[0.06] ring-red-400/20"
+                        ? "border-neutral-600 bg-neutral-900 ring-neutral-600"
+                        : "border-red-400/30 bg-neutral-900 ring-red-400/20"
                 )}>
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                   <Award className="h-4 w-4" />
                   Score global ponderado
                 </div>
@@ -554,30 +554,30 @@ export function AuditPanel() {
                   <div className={cn("text-5xl font-semibold tracking-tight", gradeTone(globalScore.grade).split(" ")[1])}>
                     {globalScore.grade}
                   </div>
-                  <div className="text-2xl font-mono-data text-slate-300">{globalScore.total}<span className="text-sm text-slate-500">/100</span></div>
+                  <div className="text-2xl admin-mono text-neutral-300">{globalScore.total}<span className="text-sm text-neutral-500">/100</span></div>
                 </div>
                 <div className="mt-3 space-y-1.5">
                   {(Object.entries(globalScore.buckets) as [keyof typeof SCORE_WEIGHTS, Bucket][]).map(([k, b]) => (
                     <div key={k} className="flex items-center gap-2 text-[11px]">
-                      <span className="w-24 shrink-0 capitalize text-slate-400">{k}</span>
+                      <span className="w-24 shrink-0 capitalize text-neutral-400">{k}</span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                         <div
                           className={cn(
                             "h-full transition-all",
                             b.pct == null
-                              ? "bg-slate-700"
+                              ? "bg-neutral-700"
                               : b.pct >= 80
-                                ? "bg-emerald-400"
+                                ? "bg-neutral-900"
                                 : b.pct >= 55
-                                  ? "bg-cyan-400"
+                                  ? "bg-neutral-900"
                                   : b.pct >= 40
-                                    ? "bg-amber-400"
-                                    : "bg-red-400"
+                                    ? "bg-neutral-900"
+                                    : "bg-neutral-900"
                           )}
                           style={{ width: b.pct == null ? "0%" : `${b.pct}%` }}
                         />
                       </div>
-                      <span className="w-14 text-right font-mono-data text-slate-500">
+                      <span className="w-14 text-right admin-mono text-neutral-500">
                         {b.pct == null ? "n/d" : `${b.pct}%`}
                       </span>
                     </div>
@@ -585,20 +585,20 @@ export function AuditPanel() {
                 </div>
               </div>
               <SummaryCard
-                icon={<Shield className="h-4 w-4 text-emerald-300" />}
+                icon={<Shield className="h-4 w-4 text-white" />}
                 label="Segurança"
                 big={result.security.grade}
                 hint={`${result.security.score}/${result.security.maxScore} pts`}
                 tone={gradeTone(result.security.grade)}
               />
               <SummaryCard
-                icon={<Cpu className="h-4 w-4 text-cyan-300" />}
+                icon={<Cpu className="h-4 w-4 text-neutral-200" />}
                 label="Protocolo"
                 big={result.http.httpVersion || "?"}
                 hint={result.http.isHttp2 ? "HTTP/2 ✓" : result.http.alpnProtocol || "HTTP/1.1"}
               />
               <SummaryCard
-                icon={<Lock className="h-4 w-4 text-emerald-300" />}
+                icon={<Lock className="h-4 w-4 text-white" />}
                 label="SSL"
                 big={result.ssl?.protocol || (result.url.startsWith("https") ? "—" : "n/a")}
                 hint={
@@ -612,7 +612,7 @@ export function AuditPanel() {
 
           {/* Performance / PageSpeed Insights */}
           <Section
-            icon={<Gauge className="h-4 w-4 text-amber-300" />}
+            icon={<Gauge className="h-4 w-4 text-neutral-300" />}
             title={`Performance — Google PageSpeed Insights${psi ? ` (${psi.strategy})` : ""}`}
           >
             <div className="space-y-3 p-4">
@@ -620,7 +620,7 @@ export function AuditPanel() {
                 <button
                   onClick={() => void runPsi("mobile")}
                   disabled={psiBusy}
-                  className="inline-flex items-center gap-2 rounded-md bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 ring-1 ring-neutral-600 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {psiBusy && psiStrategy === "mobile" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -632,7 +632,7 @@ export function AuditPanel() {
                 <button
                   onClick={() => void runPsi("desktop")}
                   disabled={psiBusy}
-                  className="inline-flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-100 ring-1 ring-amber-400/20 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-300 ring-1 ring-neutral-600 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {psiBusy && psiStrategy === "desktop" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -641,7 +641,7 @@ export function AuditPanel() {
                   )}
                   Desktop
                 </button>
-                <span className="text-[11px] text-slate-500">demora 15–30s</span>
+                <span className="text-[11px] text-neutral-500">demora 15–30s</span>
                 {psiError && (
                   <span className="text-[11px] text-red-300">{psiError}</span>
                 )}
@@ -663,7 +663,7 @@ export function AuditPanel() {
                     <VitalChip vital={psi.metrics.si} label="SI" />
                   </div>
                   {psi.fieldData.overall && (
-                    <div className="rounded-md border border-cyan-400/20 bg-cyan-500/[0.05] px-3 py-2 text-[11px] text-cyan-100">
+                    <div className="rounded-md border border-cyan-400/20 bg-neutral-900 px-3 py-2 text-[11px] text-neutral-200">
                       <strong>Dados de campo (CrUX):</strong> {psi.fieldData.overall} ·{" "}
                       LCP {psi.fieldData.lcpMs ? `${(psi.fieldData.lcpMs / 1000).toFixed(2)}s` : "n/d"} ·{" "}
                       INP {psi.fieldData.inpMs != null ? `${psi.fieldData.inpMs}ms` : "n/d"} ·{" "}
@@ -677,17 +677,17 @@ export function AuditPanel() {
 
           {/* DNS / WHOIS / Email Auth */}
           <Section
-            icon={<Network className="h-4 w-4 text-cyan-300" />}
+            icon={<Network className="h-4 w-4 text-neutral-200" />}
             title={`DNS & WHOIS${dns ? ` · ${dns.domain}` : ""}`}
           >
             <div className="p-4">
               {dnsBusy && !dns && (
-                <p className="flex items-center gap-2 text-xs text-slate-400">
+                <p className="flex items-center gap-2 text-xs text-neutral-400">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Consultando DNS, SPF/DMARC/DKIM e WHOIS…
                 </p>
               )}
               {dnsError && (
-                <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                <p className="rounded-md border border-red-500/30 bg-neutral-900 px-3 py-2 text-xs text-red-300">
                   {dnsError}
                 </p>
               )}
@@ -706,7 +706,7 @@ export function AuditPanel() {
                   </div>
 
                   <div className="rounded-md border border-white/10 bg-black/30 p-3">
-                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                       <Mail className="h-3.5 w-3.5" /> Autenticação de email
                     </div>
                     <div className="mt-2 grid gap-2 md:grid-cols-3 text-xs">
@@ -726,19 +726,19 @@ export function AuditPanel() {
                         extra={dns.email.dmarc.policy ? `policy=${dns.email.dmarc.policy}` : null}
                       />
                       <div className="rounded-md border border-white/10 bg-black/30 p-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                           DKIM ({dns.email.dkim.length} selector{dns.email.dkim.length === 1 ? "" : "s"})
                         </p>
                         {dns.email.dkim.length === 0 ? (
-                          <p className="mt-1 text-[11px] text-slate-500">
+                          <p className="mt-1 text-[11px] text-neutral-500">
                             Nenhum dos selectors comuns encontrados.
                           </p>
                         ) : (
-                          <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+                          <ul className="mt-1 space-y-0.5 text-[11px] text-neutral-300">
                             {dns.email.dkim.map((d) => (
-                              <li key={d.selector} className="font-mono-data">
-                                <span className="text-emerald-300">{d.selector}</span>
-                                <span className="text-slate-500"> → ok</span>
+                              <li key={d.selector} className="admin-mono">
+                                <span className="text-white">{d.selector}</span>
+                                <span className="text-neutral-500"> → ok</span>
                               </li>
                             ))}
                           </ul>
@@ -749,7 +749,7 @@ export function AuditPanel() {
 
                   {dns.whois && (
                     <div className="rounded-md border border-white/10 bg-black/30 p-3">
-                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                         <Globe className="h-3.5 w-3.5" /> WHOIS
                       </div>
                       <div className="mt-2 grid gap-1 md:grid-cols-2">
@@ -780,7 +780,7 @@ export function AuditPanel() {
 
           {/* Links & hreflang (Fase 3) */}
           <Section
-            icon={<Link2 className="h-4 w-4 text-violet-300" />}
+            icon={<Link2 className="h-4 w-4 text-neutral-200" />}
             title={`Links & hreflang${links ? ` · ${links.checked}/${links.totalAnchors} verificados` : ""}`}
           >
             <div className="space-y-3 p-4">
@@ -788,18 +788,18 @@ export function AuditPanel() {
                 <button
                   onClick={() => void runLinks(linkLimit)}
                   disabled={linksBusy}
-                  className="inline-flex items-center gap-2 rounded-md bg-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-200 ring-1 ring-violet-400/30 hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 ring-1 ring-neutral-600 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {linksBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
                   Verificar links
                 </button>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <label className="flex items-center gap-1.5 text-[11px] text-neutral-400">
                   Limite:
                   <select
                     value={linkLimit}
                     onChange={(e) => setLinkLimit(Number(e.target.value))}
                     disabled={linksBusy}
-                    className="rounded-md border border-white/10 bg-black/40 px-2 py-0.5 text-[11px] text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                    className="rounded-md border border-white/10 bg-black/40 px-2 py-0.5 text-[11px] text-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-600"
                   >
                     {[15, 30, 45, 60].map((n) => (
                       <option key={n} value={n}>
@@ -808,24 +808,24 @@ export function AuditPanel() {
                     ))}
                   </select>
                 </label>
-                <span className="text-[11px] text-slate-500">~ {Math.max(2, Math.round(linkLimit / 8) * 2)}s</span>
+                <span className="text-[11px] text-neutral-500">~ {Math.max(2, Math.round(linkLimit / 8) * 2)}s</span>
                 {linksError && <span className="text-[11px] text-red-300">{linksError}</span>}
               </div>
 
               {links && (
                 <>
                   <div className="grid gap-2 md:grid-cols-5">
-                    <LinkStatChip label="OK" value={links.summary.ok} tone="text-emerald-300 bg-emerald-500/15 ring-emerald-400/30" />
-                    <LinkStatChip label="Redirect" value={links.summary.redirect} tone="text-cyan-300 bg-cyan-500/15 ring-cyan-400/30" />
-                    <LinkStatChip label="Quebrados" value={links.summary.broken} tone="text-red-300 bg-red-500/15 ring-red-400/30" />
-                    <LinkStatChip label="Timeout" value={links.summary.timeout} tone="text-amber-300 bg-amber-500/15 ring-amber-400/30" />
-                    <LinkStatChip label="Erro de rede" value={links.summary.network} tone="text-slate-300 bg-white/[0.06] ring-white/10" />
+                    <LinkStatChip label="OK" value={links.summary.ok} tone="text-white bg-neutral-900 ring-neutral-600" />
+                    <LinkStatChip label="Redirect" value={links.summary.redirect} tone="text-neutral-200 bg-neutral-900 ring-cyan-400/30" />
+                    <LinkStatChip label="Quebrados" value={links.summary.broken} tone="text-red-300 bg-neutral-900 ring-red-400/30" />
+                    <LinkStatChip label="Timeout" value={links.summary.timeout} tone="text-neutral-300 bg-neutral-900 ring-neutral-600" />
+                    <LinkStatChip label="Erro de rede" value={links.summary.network} tone="text-neutral-300 bg-neutral-900 ring-white/10" />
                   </div>
 
                   {/* Lista priorizando problemas */}
                   <div className="overflow-hidden rounded-md border border-white/10">
                     <table className="w-full text-[11px]">
-                      <thead className="bg-white/[0.04] text-slate-400">
+                      <thead className="bg-neutral-900 text-neutral-400">
                         <tr>
                           <th className="px-2 py-1.5 text-left">Status</th>
                           <th className="px-2 py-1.5 text-left">URL</th>
@@ -838,7 +838,7 @@ export function AuditPanel() {
                           .sort((a, b) => statusRank(a.status) - statusRank(b.status))
                           .slice(0, 60)
                           .map((it, i) => (
-                            <tr key={i} className="border-t border-white/5 hover:bg-white/[0.02]">
+                            <tr key={i} className="border-t border-white/5 hover:bg-neutral-900">
                               <td className="px-2 py-1.5">
                                 <LinkStatusPill check={it} />
                               </td>
@@ -847,22 +847,22 @@ export function AuditPanel() {
                                   href={it.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex max-w-[420px] items-center gap-1 truncate font-mono-data text-slate-300 hover:text-cyan-300"
+                                  className="inline-flex max-w-[420px] items-center gap-1 truncate admin-mono text-neutral-300 hover:text-neutral-200"
                                 >
                                   <span className="truncate">{it.url}</span>
                                   <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
                                 </a>
                                 {it.internal && (
-                                  <span className="ml-1 rounded bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-200">interno</span>
+                                  <span className="ml-1 rounded bg-neutral-900 px-1 py-0.5 text-[9px] text-neutral-200">interno</span>
                                 )}
                                 {it.rel?.includes("nofollow") && (
-                                  <span className="ml-1 rounded bg-white/[0.06] px-1 py-0.5 text-[9px] text-slate-400">nofollow</span>
+                                  <span className="ml-1 rounded bg-neutral-900 px-1 py-0.5 text-[9px] text-neutral-400">nofollow</span>
                                 )}
                               </td>
-                              <td className="px-2 py-1.5 max-w-[260px] truncate text-slate-400">
+                              <td className="px-2 py-1.5 max-w-[260px] truncate text-neutral-400">
                                 {it.anchorText || <span className="italic opacity-50">sem texto</span>}
                               </td>
-                              <td className="px-2 py-1.5 text-right font-mono-data text-slate-500">
+                              <td className="px-2 py-1.5 text-right admin-mono text-neutral-500">
                                 {it.durationMs}ms
                               </td>
                             </tr>
@@ -872,7 +872,7 @@ export function AuditPanel() {
                   </div>
 
                   {links.skippedSamples.length > 0 && (
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[10px] text-neutral-500">
                       + {links.totalAnchors - links.checked} link(s) acima do limite. Aumente o limite para verificar mais.
                     </p>
                   )}
@@ -882,17 +882,17 @@ export function AuditPanel() {
               {/* hreflang */}
               {(hreflang || (result?.hreflang?.length || 0) > 0) && (
                 <div className="mt-2 rounded-md border border-white/10 bg-black/30 p-3">
-                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                     <Languages className="h-3.5 w-3.5" /> hreflang ({hreflang?.count ?? result?.hreflang?.length ?? 0})
                     {hreflang?.hasXDefault && (
-                      <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] text-emerald-200">
+                      <span className="ml-1 rounded bg-neutral-900 px-1.5 py-0.5 text-[9px] text-white">
                         x-default ✓
                       </span>
                     )}
                   </div>
 
                   {!hreflang && (
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-neutral-500">
                       Clique em "Verificar links" para validar reciprocidade dos hreflangs.
                     </p>
                   )}
@@ -902,10 +902,10 @@ export function AuditPanel() {
                       {hreflang.entries.map((e, i) => (
                         <li
                           key={i}
-                          className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 font-mono-data text-[10px] text-slate-300 ring-1 ring-white/10"
+                          className="inline-flex items-center gap-1 rounded-md bg-neutral-900 px-2 py-0.5 admin-mono text-[10px] text-neutral-300 ring-1 ring-white/10"
                           title={e.href}
                         >
-                          <span className="text-violet-300">{e.lang}</span>
+                          <span className="text-neutral-200">{e.lang}</span>
                           <span className="opacity-50 truncate max-w-[160px]">{e.href.replace(/^https?:\/\//, "")}</span>
                         </li>
                       ))}
@@ -917,10 +917,10 @@ export function AuditPanel() {
                       {hreflang.issues.map((iss, i) => (
                         <li key={i} className="flex items-start gap-1.5">
                           {issueIcon(iss.level)}
-                          <span className={iss.level === "error" ? "text-red-200" : iss.level === "warn" ? "text-amber-200" : "text-slate-300"}>
+                          <span className={iss.level === "error" ? "text-red-200" : iss.level === "warn" ? "text-neutral-300" : "text-neutral-300"}>
                             {iss.message}
                             {iss.details && (
-                              <span className="ml-1 opacity-60 font-mono-data">{iss.details}</span>
+                              <span className="ml-1 opacity-60 admin-mono">{iss.details}</span>
                             )}
                           </span>
                         </li>
@@ -930,19 +930,19 @@ export function AuditPanel() {
 
                   {hreflang && hreflang.reciprocity.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Reciprocidade</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Reciprocidade</p>
                       <ul className="mt-1 space-y-0.5 text-[11px]">
                         {hreflang.reciprocity.map((r, i) => (
                           <li key={i} className="flex items-center gap-2">
                             {r.reciprocates ? (
-                              <CheckCircle2 className="h-3 w-3 text-emerald-300" />
+                              <CheckCircle2 className="h-3 w-3 text-white" />
                             ) : r.reciprocates === false ? (
                               <Link2Off className="h-3 w-3 text-red-300" />
                             ) : (
-                              <Info className="h-3 w-3 text-slate-400" />
+                              <Info className="h-3 w-3 text-neutral-400" />
                             )}
-                            <span className="text-slate-400 font-mono-data">{r.lang}</span>
-                            <span className="truncate text-slate-300">{r.url}</span>
+                            <span className="text-neutral-400 admin-mono">{r.lang}</span>
+                            <span className="truncate text-neutral-300">{r.url}</span>
                           </li>
                         ))}
                       </ul>
@@ -950,7 +950,7 @@ export function AuditPanel() {
                   )}
 
                   {hreflang && hreflang.issues.length === 0 && hreflang.reciprocity.every((r) => r.reciprocates) && (
-                    <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-300">
+                    <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-white">
                       <CheckCircle2 className="h-3 w-3" /> Sem problemas detectados.
                     </p>
                   )}
@@ -962,15 +962,15 @@ export function AuditPanel() {
           {/* Issues */}
           {result.issues.length > 0 && (
             <Section
-              icon={<ShieldAlert className="h-4 w-4 text-amber-300" />}
+              icon={<ShieldAlert className="h-4 w-4 text-neutral-300" />}
               title={`Diagnóstico (${result.issues.length})`}
             >
-              <ul className="divide-y divide-white/[0.05]">
+              <ul className="divide-y divide-neutral-900">
                 {result.issues.map((it, i) => (
                   <li key={i} className="flex items-start gap-3 px-4 py-2.5 text-sm">
                     {issueIcon(it.level)}
-                    <span className="text-slate-200">{it.message}</span>
-                    <span className="ml-auto text-[10px] uppercase tracking-widest text-slate-500">
+                    <span className="text-neutral-200">{it.message}</span>
+                    <span className="ml-auto text-[10px] uppercase tracking-widest text-neutral-500">
                       {it.key}
                     </span>
                   </li>
@@ -980,7 +980,7 @@ export function AuditPanel() {
           )}
 
           {/* Meta tags / SEO */}
-          <Section icon={<ScrollText className="h-4 w-4 text-cyan-300" />} title="SEO básico">
+          <Section icon={<ScrollText className="h-4 w-4 text-neutral-200" />} title="SEO básico">
             <Kv k="Title" v={result.meta.title} mono />
             <Kv k="Description" v={result.meta.description} />
             <Kv k="Canonical" v={result.meta.canonical} mono />
@@ -992,7 +992,7 @@ export function AuditPanel() {
           </Section>
 
           {/* Previews */}
-          <Section icon={<ImageIcon className="h-4 w-4 text-violet-300" />} title="Como aparece nas redes">
+          <Section icon={<ImageIcon className="h-4 w-4 text-neutral-200" />} title="Como aparece nas redes">
             <div className="grid gap-3 p-4 lg:grid-cols-3">
               <WhatsAppPreview og={og} fallbackTitle={result.meta.title} fallbackDesc={result.meta.description} hostname={new URL(result.finalUrl).hostname} />
               <FacebookPreview og={og} fallbackTitle={result.meta.title} fallbackDesc={result.meta.description} hostname={new URL(result.finalUrl).hostname} />
@@ -1001,9 +1001,9 @@ export function AuditPanel() {
           </Section>
 
           {/* Headers de segurança */}
-          <Section icon={<Shield className="h-4 w-4 text-emerald-300" />} title="Headers de segurança">
+          <Section icon={<Shield className="h-4 w-4 text-white" />} title="Headers de segurança">
             <table className="min-w-full text-left text-xs">
-              <thead className="border-b border-white/[0.06] bg-black/25 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              <thead className="border-b border-neutral-800 bg-black/25 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
                 <tr>
                   <th className="px-4 py-2">Header</th>
                   <th className="px-4 py-2">Pontos</th>
@@ -1011,16 +1011,16 @@ export function AuditPanel() {
                   <th className="px-4 py-2">Observação</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.05]">
+              <tbody className="divide-y divide-neutral-900">
                 {result.security.checks.map((c) => (
-                  <tr key={c.key} className="text-slate-300 hover:bg-white/[0.02]">
-                    <td className="px-4 py-2 font-mono-data">{c.key}</td>
-                    <td className="px-4 py-2 font-mono-data text-slate-400">
+                  <tr key={c.key} className="text-neutral-300 hover:bg-neutral-900">
+                    <td className="px-4 py-2 admin-mono">{c.key}</td>
+                    <td className="px-4 py-2 admin-mono text-neutral-400">
                       {c.awarded}/{c.weight}
                     </td>
                     <td className="px-4 py-2">
                       {c.present ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-300">
+                        <span className="inline-flex items-center gap-1 text-white">
                           <CheckCircle2 className="h-3 w-3" /> presente
                         </span>
                       ) : (
@@ -1029,7 +1029,7 @@ export function AuditPanel() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-slate-400">{c.note}</td>
+                    <td className="px-4 py-2 text-neutral-400">{c.note}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1038,7 +1038,7 @@ export function AuditPanel() {
 
           {/* SSL */}
           {result.ssl && (
-            <Section icon={<Lock className="h-4 w-4 text-emerald-300" />} title="SSL / TLS">
+            <Section icon={<Lock className="h-4 w-4 text-white" />} title="SSL / TLS">
               <Kv k="Protocolo" v={result.ssl.protocol} mono />
               <Kv k="Cifra" v={result.ssl.cipher} mono />
               <Kv k="ALPN" v={result.ssl.alpnProtocol} mono />
@@ -1051,31 +1051,31 @@ export function AuditPanel() {
           )}
 
           {/* Redirects */}
-          <Section icon={<ArrowRight className="h-4 w-4 text-amber-300" />} title={`Redirects (${result.redirects.length} hop${result.redirects.length === 1 ? "" : "s"})`}>
+          <Section icon={<ArrowRight className="h-4 w-4 text-neutral-300" />} title={`Redirects (${result.redirects.length} hop${result.redirects.length === 1 ? "" : "s"})`}>
             <ol className="space-y-1 p-4 text-xs">
               {result.redirects.map((r, i) => (
                 <li key={i} className="flex items-center gap-3 rounded-md bg-black/30 px-3 py-2 ring-1 ring-white/5">
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 font-mono-data text-[10px]",
+                      "rounded px-1.5 py-0.5 admin-mono text-[10px]",
                       r.status >= 300 && r.status < 400
-                        ? "bg-amber-500/20 text-amber-300"
+                        ? "bg-neutral-900 text-neutral-300"
                         : r.status >= 200 && r.status < 300
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : "bg-red-500/20 text-red-300"
+                          ? "bg-neutral-900 text-white"
+                          : "bg-neutral-900 text-red-300"
                     )}
                   >
                     {r.status || "ERR"}
                   </span>
-                  <span className="truncate font-mono-data text-slate-300">{r.url}</span>
-                  <span className="ml-auto text-[10px] text-slate-500">{r.duration}ms</span>
+                  <span className="truncate admin-mono text-neutral-300">{r.url}</span>
+                  <span className="ml-auto text-[10px] text-neutral-500">{r.duration}ms</span>
                 </li>
               ))}
             </ol>
           </Section>
 
           {/* PWA / Icons */}
-          <Section icon={<Smartphone className="h-4 w-4 text-cyan-300" />} title="PWA & ícones">
+          <Section icon={<Smartphone className="h-4 w-4 text-neutral-200" />} title="PWA & ícones">
             <Kv k="Manifest URL" v={result.pwa.manifestUrl} mono />
             <Kv k="Manifest erro" v={result.pwa.manifestError} />
             <Kv k="Favicons" v={String(result.icons.favicons.length)} mono />
@@ -1093,10 +1093,10 @@ export function AuditPanel() {
           </Section>
 
           {/* Robots / Sitemap */}
-          <Section icon={<Search className="h-4 w-4 text-violet-300" />} title="robots.txt & sitemap">
+          <Section icon={<Search className="h-4 w-4 text-neutral-200" />} title="robots.txt & sitemap">
             <Kv k="robots.txt" v={result.robotsTxt.exists ? result.robotsTxt.url : "ausente"} mono />
             {result.robotsTxt.exists && result.robotsTxt.sample && (
-              <pre className="mx-4 mb-3 overflow-x-auto rounded-md bg-black/40 p-3 text-[11px] text-slate-300 ring-1 ring-white/5">
+              <pre className="mx-4 mb-3 overflow-x-auto rounded-md bg-black/40 p-3 text-[11px] text-neutral-300 ring-1 ring-white/5">
                 {result.robotsTxt.sample}
               </pre>
             )}
@@ -1107,7 +1107,7 @@ export function AuditPanel() {
           </Section>
 
           {/* HTTP / Tech */}
-          <Section icon={<Cpu className="h-4 w-4 text-slate-300" />} title="Servidor & stack">
+          <Section icon={<Cpu className="h-4 w-4 text-neutral-300" />} title="Servidor & stack">
             <Kv k="Server" v={result.http.server} mono />
             <Kv k="X-Powered-By" v={result.http.poweredBy} mono />
             <Kv k="Content-Type" v={result.http.contentType} mono />
@@ -1117,8 +1117,8 @@ export function AuditPanel() {
 
           {/* Schema.org */}
           {result.schemaOrg.length > 0 && (
-            <Section icon={<ScrollText className="h-4 w-4 text-cyan-300" />} title={`Schema.org (${result.schemaOrg.length})`}>
-              <pre className="overflow-x-auto p-4 text-[11px] text-slate-300">
+            <Section icon={<ScrollText className="h-4 w-4 text-neutral-200" />} title={`Schema.org (${result.schemaOrg.length})`}>
+              <pre className="overflow-x-auto p-4 text-[11px] text-neutral-300">
                 {JSON.stringify(result.schemaOrg, null, 2)}
               </pre>
             </Section>
@@ -1143,8 +1143,8 @@ function SummaryCard({
   tone?: string;
 }) {
   return (
-    <div className="rounded-md border border-white/[0.08] bg-[#0c121f]/60 p-4 shadow-xl ring-1 ring-white/[0.04]">
-      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+    <div className="rounded-md border border-neutral-800 bg-neutral-950 p-4 shadow-xl ring-1 ring-neutral-800">
+      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
         {icon}
         {label}
       </div>
@@ -1152,13 +1152,13 @@ function SummaryCard({
         <span
           className={cn(
             "rounded-md px-2 py-0.5 text-lg font-bold",
-            tone || "text-slate-200"
+            tone || "text-neutral-200"
           )}
         >
           {big}
         </span>
       </div>
-      {hint && <p className="mt-1 text-[11px] text-slate-500">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-neutral-500">{hint}</p>}
     </div>
   );
 }
@@ -1173,8 +1173,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-white/[0.08] bg-[#0c121f]/60 shadow-xl ring-1 ring-white/[0.04]">
-      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-black/25 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-300">
+    <div className="overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 shadow-xl ring-1 ring-neutral-800">
+      <div className="flex items-center gap-2 border-b border-neutral-800 bg-black/25 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-neutral-300">
         {icon}
         {title}
       </div>
@@ -1185,10 +1185,10 @@ function Section({
 
 function Kv({ k, v, mono }: { k: string; v: string | null | undefined; mono?: boolean }) {
   return (
-    <div className="flex items-baseline gap-3 border-b border-white/[0.04] px-4 py-2 text-xs last:border-0">
-      <span className="w-40 shrink-0 text-[10px] uppercase tracking-widest text-slate-500">{k}</span>
-      <span className={cn("min-w-0 flex-1 break-words text-slate-200", mono && "font-mono-data text-slate-300")}>
-        {v || <span className="text-slate-600">—</span>}
+    <div className="flex items-baseline gap-3 border-b border-neutral-800 px-4 py-2 text-xs last:border-0">
+      <span className="w-40 shrink-0 text-[10px] uppercase tracking-widest text-neutral-500">{k}</span>
+      <span className={cn("min-w-0 flex-1 break-words text-neutral-200", mono && "admin-mono text-neutral-300")}>
+        {v || <span className="text-neutral-600">—</span>}
       </span>
     </div>
   );
@@ -1212,19 +1212,19 @@ function WhatsAppPreview({
   const img = og["og:image"];
   return (
     <div>
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400">WhatsApp</p>
-      <div className="overflow-hidden rounded-lg bg-[#202c33] ring-1 ring-emerald-500/20">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-white">WhatsApp</p>
+      <div className="overflow-hidden rounded-lg bg-neutral-900 ring-1 ring-neutral-600">
         {img ? (
           <img src={img} alt="" className="h-32 w-full object-cover" referrerPolicy="no-referrer" />
         ) : (
-          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-slate-500">
+          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-neutral-500">
             sem og:image
           </div>
         )}
         <div className="p-2.5">
-          <p className="line-clamp-2 text-xs font-semibold text-slate-100">{title}</p>
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-400">{desc || hostname}</p>
-          <p className="mt-1 text-[10px] uppercase text-slate-500">{hostname}</p>
+          <p className="line-clamp-2 text-xs font-semibold text-neutral-100">{title}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-400">{desc || hostname}</p>
+          <p className="mt-1 text-[10px] uppercase text-neutral-500">{hostname}</p>
         </div>
       </div>
     </div>
@@ -1252,14 +1252,14 @@ function FacebookPreview({
         {img ? (
           <img src={img} alt="" className="h-32 w-full object-cover" referrerPolicy="no-referrer" />
         ) : (
-          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-slate-500">
+          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-neutral-500">
             sem og:image
           </div>
         )}
         <div className="border-t border-white/5 bg-[#3a3b3c] p-2.5">
-          <p className="text-[9px] uppercase text-slate-400">{hostname}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-slate-100">{title}</p>
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-400">{desc}</p>
+          <p className="text-[9px] uppercase text-neutral-400">{hostname}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-neutral-100">{title}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-400">{desc}</p>
         </div>
       </div>
     </div>
@@ -1287,7 +1287,7 @@ function LinkStatChip({ label, value, tone }: { label: string; value: number; to
   return (
     <div className={cn("rounded-md p-2 ring-1", tone)}>
       <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-0.5 font-mono-data text-2xl font-semibold">{value}</p>
+      <p className="mt-0.5 admin-mono text-2xl font-semibold">{value}</p>
     </div>
   );
 }
@@ -1296,16 +1296,16 @@ function LinkStatusPill({ check }: { check: LinkCheck }) {
   const httpLabel = check.httpStatus ? `${check.httpStatus}` : check.status;
   const tone =
     check.status === "ok"
-      ? "bg-emerald-500/20 text-emerald-200 ring-emerald-400/30"
+      ? "bg-neutral-900 text-white ring-neutral-600"
       : check.status === "redirect"
-        ? "bg-cyan-500/20 text-cyan-200 ring-cyan-400/30"
+        ? "bg-neutral-900 text-neutral-200 ring-cyan-400/30"
         : check.status === "broken"
-          ? "bg-red-500/20 text-red-200 ring-red-400/30"
+          ? "bg-neutral-900 text-red-200 ring-red-400/30"
           : check.status === "timeout"
-            ? "bg-amber-500/20 text-amber-200 ring-amber-400/30"
-            : "bg-white/[0.06] text-slate-300 ring-white/10";
+            ? "bg-neutral-900 text-neutral-300 ring-neutral-600"
+            : "bg-neutral-900 text-neutral-300 ring-white/10";
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono-data text-[10px] font-bold ring-1", tone)}>
+    <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 admin-mono text-[10px] font-bold ring-1", tone)}>
       {check.status === "broken" && <XCircle className="h-3 w-3" />}
       {check.status === "ok" && <CheckCircle2 className="h-3 w-3" />}
       {check.status === "redirect" && <ArrowRight className="h-3 w-3" />}
@@ -1320,16 +1320,16 @@ function PsiScoreCard({ label, value }: { label: string; value: number | null | 
   const v = value == null ? null : Math.max(0, Math.min(100, value));
   const tone =
     v == null
-      ? "text-slate-500 bg-white/[0.04]"
+      ? "text-neutral-500 bg-neutral-900"
       : v >= 90
-        ? "text-emerald-300 bg-emerald-500/15 ring-emerald-400/30"
+        ? "text-white bg-neutral-900 ring-neutral-600"
         : v >= 50
-          ? "text-amber-300 bg-amber-500/15 ring-amber-400/30"
-          : "text-red-300 bg-red-500/15 ring-red-400/30";
+          ? "text-neutral-300 bg-neutral-900 ring-neutral-600"
+          : "text-red-300 bg-neutral-900 ring-red-400/30";
   return (
     <div className={cn("rounded-md p-3 ring-1 ring-white/10", tone)}>
       <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-1 font-mono-data text-3xl font-semibold">{v == null ? "—" : v}</p>
+      <p className="mt-1 admin-mono text-3xl font-semibold">{v == null ? "—" : v}</p>
     </div>
   );
 }
@@ -1337,16 +1337,16 @@ function PsiScoreCard({ label, value }: { label: string; value: number | null | 
 function VitalChip({ vital, label }: { vital: WebVital | null; label: string }) {
   const tone =
     vital?.score == null
-      ? "text-slate-500"
+      ? "text-neutral-500"
       : vital.score >= 0.9
-        ? "text-emerald-300"
+        ? "text-white"
         : vital.score >= 0.5
-          ? "text-amber-300"
+          ? "text-neutral-300"
           : "text-red-300";
   return (
     <div className="rounded-md border border-white/10 bg-black/30 px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
-      <p className={cn("mt-0.5 font-mono-data text-sm font-bold", tone)}>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{label}</p>
+      <p className={cn("mt-0.5 admin-mono text-sm font-bold", tone)}>
         {vital?.displayValue || "—"}
       </p>
     </div>
@@ -1356,13 +1356,13 @@ function VitalChip({ vital, label }: { vital: WebVital | null; label: string }) 
 function RecordList({ label, items, truncate }: { label: string; items: string[]; truncate?: boolean }) {
   return (
     <div className="rounded-md border border-white/10 bg-black/30 p-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
         {label} ({items.length})
       </p>
       {items.length === 0 ? (
-        <p className="mt-1 text-[11px] text-slate-500">—</p>
+        <p className="mt-1 text-[11px] text-neutral-500">—</p>
       ) : (
-        <ul className="mt-1 space-y-0.5 font-mono-data text-[11px] text-slate-300">
+        <ul className="mt-1 space-y-0.5 admin-mono text-[11px] text-neutral-300">
           {items.map((it, i) => (
             <li key={i} className={truncate ? "truncate" : "break-all"}>
               {it}
@@ -1394,28 +1394,28 @@ function EmailAuthChip({
       className={cn(
         "rounded-md border p-2",
         ok && valid
-          ? "border-emerald-400/30 bg-emerald-500/[0.06]"
+          ? "border-neutral-500 bg-neutral-900"
           : ok
-            ? "border-amber-400/30 bg-amber-500/[0.06]"
-            : "border-red-400/30 bg-red-500/[0.06]"
+            ? "border-neutral-600 bg-neutral-900"
+            : "border-red-400/30 bg-neutral-900"
       )}
     >
       <div className="flex items-center gap-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">{label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-300">{label}</p>
         {ok ? (
           valid ? (
-            <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-200">OK</span>
+            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] text-white">OK</span>
           ) : (
-            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-200">avisos</span>
+            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-300">avisos</span>
           )
         ) : (
-          <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-200">ausente</span>
+          <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] text-red-200">ausente</span>
         )}
-        {extra && <span className="ml-auto text-[10px] text-slate-400 font-mono-data">{extra}</span>}
+        {extra && <span className="ml-auto text-[10px] text-neutral-400 admin-mono">{extra}</span>}
       </div>
-      {record && <p className="mt-1 break-all font-mono-data text-[10px] text-slate-400">{record.slice(0, 200)}</p>}
+      {record && <p className="mt-1 break-all admin-mono text-[10px] text-neutral-400">{record.slice(0, 200)}</p>}
       {notes.length > 0 && (
-        <ul className="mt-1 list-disc pl-4 text-[10px] text-slate-400">
+        <ul className="mt-1 list-disc pl-4 text-[10px] text-neutral-400">
           {notes.map((n, i) => (
             <li key={i}>{n}</li>
           ))}
@@ -1444,19 +1444,19 @@ function TwitterPreview({
   const card = tw["twitter:card"] || "summary_large_image";
   return (
     <div>
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-violet-400">X / Twitter ({card})</p>
-      <div className="overflow-hidden rounded-2xl bg-[#000] ring-1 ring-violet-500/20">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-neutral-200">X / Twitter ({card})</p>
+      <div className="overflow-hidden rounded-2xl bg-[#000] ring-1 ring-neutral-600">
         {img ? (
           <img src={img} alt="" className="h-32 w-full object-cover" referrerPolicy="no-referrer" />
         ) : (
-          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-slate-500">
+          <div className="flex h-20 items-center justify-center bg-black/30 text-[10px] text-neutral-500">
             sem twitter:image
           </div>
         )}
         <div className="p-2.5">
-          <p className="text-[9px] uppercase text-slate-500">{hostname}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-slate-100">{title}</p>
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-400">{desc}</p>
+          <p className="text-[9px] uppercase text-neutral-500">{hostname}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-neutral-100">{title}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-400">{desc}</p>
         </div>
       </div>
     </div>
