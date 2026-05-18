@@ -1,8 +1,20 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import type {Plugin} from 'vite';
 import {defineConfig, loadEnv} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
+
+/** Vite injeta crossorigin nos bundles; com CORP global isso quebrava script/style no Brave/Chrome. */
+function stripCrossoriginFromBuiltHtml(): Plugin {
+  return {
+    name: 'strip-crossorigin-built-html',
+    apply: 'build',
+    transformIndexHtml(html) {
+      return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+    },
+  };
+}
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
@@ -10,6 +22,7 @@ export default defineConfig(({mode}) => {
     plugins: [
       react(),
       tailwindcss(),
+      stripCrossoriginFromBuiltHtml(),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
@@ -63,7 +76,7 @@ export default defineConfig(({mode}) => {
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
           /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v103',
+          cacheId: 'axecloud-v104',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [/^\/api\//],

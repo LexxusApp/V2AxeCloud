@@ -52,7 +52,7 @@ function activateWaitingSwIfSafe() {
   }
 }
 
-const SW_RESET_KEY = 'axecloud-sw-reset-v103';
+const SW_RESET_KEY = 'axecloud-sw-reset-v104';
 
 /** Uma vez: remove SW/cache antigos (v101) que serviam bundle sem landing e quebravam login-bg. */
 async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
