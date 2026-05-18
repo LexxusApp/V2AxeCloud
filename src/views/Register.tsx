@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Loader2,
   AlertCircle,
@@ -15,6 +15,7 @@ import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { RegistrationProgress } from '../components/RegistrationProgress';
+import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:Montserrat,system-ui,sans-serif]';
@@ -42,6 +43,8 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,13 +95,15 @@ export default function Register() {
         console.warn('[register] auto-login:', signInErr.message);
       }
 
-      const checkoutPath =
-        data.checkoutPath || (data.tenantId ? `/checkout?tenant=${data.tenantId}` : null);
-      if (checkoutPath) {
-        window.location.href = checkoutPath;
-      } else {
+      const newTenantId = data.tenantId as string | undefined;
+      if (!newTenantId) {
         setError('Cadastro criado, mas o pagamento não pôde ser iniciado. Entre em contato com o suporte.');
+        return;
       }
+
+      setTenantId(newTenantId);
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {
@@ -117,15 +122,14 @@ export default function Register() {
         fontLogin
       )}
     >
-      {/* Painel esquerdo — imagem + mensagem (no mobile rola junto com o formulário) */}
       <aside
         className="relative flex w-full shrink-0 flex-col justify-between overflow-hidden bg-black lg:h-screen lg:min-h-0 lg:w-[52%] xl:w-[55%]"
         aria-label="Sobre o AxéCloud"
       >
         <AuthScreenBackground className="absolute inset-0" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/35 to-black/65" aria-hidden />
+        <motion.div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/35 to-black/65" aria-hidden />
 
-        <div className="relative z-10 flex flex-col p-6 sm:p-8 lg:flex-1 lg:p-10">
+        <motion.div className="relative z-10 flex flex-col p-6 sm:p-8 lg:flex-1 lg:p-10">
           <a
             href={ROUTES.home}
             className="inline-flex w-fit items-center gap-1.5 text-[12px] font-medium text-white/70 transition hover:text-white"
@@ -134,8 +138,8 @@ export default function Register() {
             Voltar ao site
           </a>
 
-          <div className="max-w-xl space-y-5 py-6 max-lg:py-4 lg:my-auto lg:py-10">
-            <div>
+          <motion.div className="max-w-xl space-y-5 py-6 max-lg:py-4 lg:my-auto lg:py-10">
+            <motion.div>
               <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
               <h1 className="mt-3 text-[clamp(1.35rem,3vw,1.85rem)] font-extrabold leading-[1.15] tracking-tight text-white">
                 A casa organizada.
@@ -145,7 +149,7 @@ export default function Register() {
                 Você cuida do terreiro com respeito — nós cuidamos da parte que cansa: cadastros,
                 mensalidades, comunicados e memória da sua casa, num só lugar.
               </p>
-            </div>
+            </motion.div>
 
             <ul className="space-y-2.5" role="list">
               {highlights.map((line) => (
@@ -165,126 +169,167 @@ export default function Register() {
               </span>
               {' · '}Pix ou cartão · painel liberado na hora após o pagamento.
             </p>
-          </div>
+          </motion.div>
 
           <p className="pb-4 text-[11px] text-white/40 lg:pb-0">Gestão sagrada para zeladores e terreiros.</p>
-        </div>
+        </motion.div>
       </aside>
 
-      {/* Painel direito — formulário (no mobile faz parte do scroll da página inteira) */}
       <main className="flex w-full flex-col bg-white text-zinc-900 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-        <div className="mx-auto w-full max-w-[440px] px-5 py-8 pb-12 sm:px-10 sm:py-10 lg:flex lg:min-h-full lg:flex-col lg:justify-center">
-          <RegistrationProgress currentStep={1} />
+        <motion.div
+          className={cn(
+            'mx-auto w-full px-5 py-8 pb-12 sm:px-10 sm:py-10 lg:flex lg:min-h-full lg:flex-col lg:justify-center',
+            step === 1 ? 'max-w-[440px]' : 'max-w-[480px]'
+          )}
+        >
+          <RegistrationProgress currentStep={step} />
 
-          <header className="mb-6">
-            <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
-              Cadastre seu terreiro
-            </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-              Primeiro os dados da casa. Na próxima etapa você ativa o sistema com Pix ou cartão.
-            </p>
-          </header>
+          <AnimatePresence mode="wait">
+            {step === 1 ? (
+              <motion.div
+                key="step-1"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.25 }}
+              >
+                <header className="mb-6">
+                  <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
+                    Cadastre seu terreiro
+                  </h2>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
+                    Primeiro os dados da casa. Na próxima etapa você ativa o sistema com Pix ou cartão.
+                  </p>
+                </header>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-800">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <motion.div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-800">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </motion.div>
+                  )}
 
-            <div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Nome do terreiro</label>
-                <input
-                  className={fieldShell}
-                  value={nomeTerreiro}
-                  onChange={(e) => setNomeTerreiro(e.target.value)}
-                  placeholder="Ilê Axé Exemplo"
-                  required
-                  autoComplete="organization"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Seu nome (zelador)</label>
-                <input
-                  className={fieldShell}
-                  value={nomeZelador}
-                  onChange={(e) => setNomeZelador(e.target.value)}
-                  placeholder="Como é conhecido na casa"
-                  required
-                  autoComplete="name"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>WhatsApp</label>
-                <input
-                  className={fieldShell}
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  inputMode="tel"
-                  autoComplete="tel"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>E-mail</label>
-                <input
-                  type="email"
-                  className={fieldShell}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="zelador@terreiro.com"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Senha</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className={cn(fieldShell, 'pr-11')}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800"
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  <motion.div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
+                    <motion.div className="sm:col-span-2">
+                      <label className={labelClass}>Nome do terreiro</label>
+                      <input
+                        className={fieldShell}
+                        value={nomeTerreiro}
+                        onChange={(e) => setNomeTerreiro(e.target.value)}
+                        placeholder="Ilê Axé Exemplo"
+                        required
+                        autoComplete="organization"
+                      />
+                    </motion.div>
+                    <motion.div>
+                      <label className={labelClass}>Seu nome (zelador)</label>
+                      <input
+                        className={fieldShell}
+                        value={nomeZelador}
+                        onChange={(e) => setNomeZelador(e.target.value)}
+                        placeholder="Como é conhecido na casa"
+                        required
+                        autoComplete="name"
+                      />
+                    </motion.div>
+                    <motion.div>
+                      <label className={labelClass}>WhatsApp</label>
+                      <input
+                        className={fieldShell}
+                        value={whatsapp}
+                        onChange={(e) => setWhatsapp(e.target.value)}
+                        placeholder="(11) 99999-9999"
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                    </motion.div>
+                    <motion.div className="sm:col-span-2">
+                      <label className={labelClass}>E-mail</label>
+                      <input
+                        type="email"
+                        className={fieldShell}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="zelador@terreiro.com"
+                        required
+                        autoComplete="email"
+                      />
+                    </motion.div>
+                    <motion.div className="sm:col-span-2">
+                      <label className={labelClass}>Senha</label>
+                      <motion.div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          className={cn(fieldShell, 'pr-11')}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800"
+                          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.button
+                    type="submit"
+                    disabled={loading}
+                    whileTap={{ scale: 0.99 }}
+                    style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
+                    className="flex h-[44px] w-full items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.06em] text-black shadow-sm disabled:opacity-50"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Continuar para ativação'
+                    )}
+                  </motion.button>
 
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileTap={{ scale: 0.99 }}
-              style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-              className="flex h-[44px] w-full items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.06em] text-black shadow-sm disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Continuar para ativação
-                </>
-              )}
-            </motion.button>
+                  <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
+                    <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
+                    Checkout EFI Bank · {LANDING_PRICE.label}/mês
+                  </p>
+                </form>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step-2"
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                transition={{ duration: 0.25 }}
+              >
+                <header className="mb-6">
+                  <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
+                    Ativação do sistema
+                  </h2>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
+                    Escolha Pix ou cartão. Plano Premium {LANDING_PRICE.label}
+                    {LANDING_PRICE.period} — painel liberado na hora após o pagamento.
+                  </p>
+                </header>
 
-            <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
-              <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
-              Checkout EFI Bank · {LANDING_PRICE.label}/mês
-            </p>
-          </form>
+                {tenantId ? (
+                  <RegistrationCheckoutPanel
+                    tenantId={tenantId}
+                    variant="light"
+                    defaultHolderName={nomeZelador}
+                    defaultPhone={whatsapp}
+                  />
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <p className="mt-6 text-center text-[13px] text-zinc-700">
             Já tem conta?{' '}
@@ -292,7 +337,7 @@ export default function Register() {
               Fazer login
             </a>
           </p>
-        </div>
+        </motion.div>
       </main>
     </motion.div>
   );
