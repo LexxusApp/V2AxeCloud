@@ -24,6 +24,8 @@ import { LANDING_PRICE } from '../constants/landingFeatures';
 import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SystemTour } from '../components/landing/SystemTour';
+import { ConnectedAccess } from '../components/landing/ConnectedAccess';
+import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
 import { LandingAudience } from '../components/landing/LandingAudience';
 import { LandingSecurity } from '../components/landing/LandingSecurity';
 import { LandingFaq } from '../components/landing/LandingFaq';
@@ -34,6 +36,8 @@ const CNPJ = '66.335.964/0001-07';
 
 const nav = [
   { href: '#tour', label: 'Tour' },
+  { href: '#acessos', label: 'Acessos' },
+  { href: '#whatsapp', label: 'WhatsApp' },
   { href: '#funcionalidades', label: 'Módulos' },
   { href: '#para-quem', label: 'Para quem' },
   { href: '#mensalidade', label: 'Mensalidade' },
@@ -315,6 +319,10 @@ export default function Landing() {
         </section>
 
         <SystemTour />
+
+        <ConnectedAccess />
+
+        <WhatsAppAutomation />
 
         <section
           id="funcionalidades"
