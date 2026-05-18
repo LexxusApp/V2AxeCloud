@@ -44,6 +44,67 @@ function efiClient(env: EfiEnv): AxiosInstance {
   });
 }
 
+/** Mensagem legível a partir do corpo de erro da API Efí (validation_error, etc.). */
+export function formatEfiApiError(err: unknown): string {
+  const axiosErr = err as {
+    response?: { data?: Record<string, unknown> };
+    message?: string;
+  };
+  const data = axiosErr?.response?.data;
+  if (!data) return axiosErr?.message || "Erro na API Efí";
+
+  const prefix = data.code != null ? `Efí [${data.code}]: ` : "";
+  const desc = data.error_description;
+
+  if (typeof desc === "string" && desc.trim()) return prefix + desc.trim();
+
+  if (Array.isArray(desc)) {
+    const parts = desc
+      .map((item) => {
+        if (item && typeof item === "object") {
+          const row = item as { property?: string; message?: string };
+          return [row.property, row.message].filter(Boolean).join(" — ");
+        }
+        return String(item);
+      })
+      .filter(Boolean);
+    if (parts.length) return prefix + parts.join(" · ");
+  }
+
+  if (desc && typeof desc === "object" && !Array.isArray(desc)) {
+    const row = desc as { property?: string; message?: string };
+    if (row.message) {
+      return prefix + [row.property, row.message].filter(Boolean).join(" — ");
+    }
+  }
+
+  if (typeof data.error === "string" && data.error.trim()) {
+    return prefix + data.error.trim();
+  }
+
+  return axiosErr?.message || "Erro na API Efí";
+}
+
+function isEfiValidationError(err: unknown): boolean {
+  const data = (err as { response?: { data?: { error?: string; code?: number } } })?.response
+    ?.data;
+  return data?.error === "validation_error" || data?.code === 3500034;
+}
+
+function normalizeEfiPhone(raw: string): string {
+  let digits = String(raw || "").replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+  if (digits.length >= 10 && digits.length <= 11) return digits;
+  return "11999999999";
+}
+
+function sanitizeEfiCustomerName(name: string): string {
+  return String(name || "Cliente")
+    .trim()
+    .slice(0, 100)
+    .replace(/\s+/g, " ");
+}
+
 export async function efiGetAccessToken(env: EfiEnv): Promise<string> {
   const now = Date.now();
   if (cachedToken && cachedToken.expiresAt > now + 60_000) {
@@ -241,6 +302,123 @@ export type EfiCardSubscriptionResult = {
   raw: unknown;
 };
 
+function buildEfiSubscriptionItems(amountCents: number) {
+  const value = Math.max(100, Math.round(amountCents));
+  return [
+    {
+      name: "AxeCloud Premium mensalidade",
+      value,
+      amount: 1,
+    },
+  ];
+}
+
+function buildEfiCreditCardPayment(input: EfiCardSubscriptionInput) {
+  const cpf = input.cpf.replace(/\D/g, "");
+  const complement = (input.billingAddress.complement || "").trim();
+
+  return {
+    payment_token: input.paymentToken,
+    billing_address: {
+      street: input.billingAddress.street.trim(),
+      number: String(input.billingAddress.number || "S/N").trim(),
+      neighborhood: input.billingAddress.neighborhood.trim(),
+      zipcode: input.billingAddress.zipcode.replace(/\D/g, "").slice(0, 8),
+      city: input.billingAddress.city.trim(),
+      state: input.billingAddress.state.slice(0, 2).toUpperCase(),
+      ...(complement ? { complement } : {}),
+    },
+    customer: {
+      name: sanitizeEfiCustomerName(input.nome),
+      cpf,
+      email: input.email.trim(),
+      phone_number: normalizeEfiPhone(input.phoneNumber),
+    },
+  };
+}
+
+function parseEfiSubscriptionResult(data: unknown): EfiCardSubscriptionResult {
+  const root = data as Record<string, unknown>;
+  const payload = (root?.data ?? root) as Record<string, unknown>;
+
+  const subscriptionId = Number(payload?.subscription_id ?? 0);
+  const chargeFromCharge = payload?.charge as Record<string, unknown> | undefined;
+  const charges = payload?.charges as Array<{ charge_id?: number }> | undefined;
+
+  let chargeId =
+    Number(chargeFromCharge?.id ?? payload?.charge_id ?? charges?.[0]?.charge_id ?? 0) ||
+    undefined;
+
+  const status = String(payload?.status ?? "new");
+
+  if (!subscriptionId) {
+    throw new Error("EFI: resposta de assinatura incompleta");
+  }
+
+  return { subscriptionId, chargeId, status, raw: data };
+}
+
+/** Cria assinatura Premium e cobra no cartão (two-step — schema atual da Efí). */
+async function efiCreateCardSubscriptionTwoStep(
+  env: EfiEnv,
+  planId: number,
+  token: string,
+  input: EfiCardSubscriptionInput
+): Promise<EfiCardSubscriptionResult> {
+  const client = efiClient(env);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const subscriptionBody = {
+    items: buildEfiSubscriptionItems(input.amountCents),
+    metadata: {
+      custom_id: String(input.tenantId).slice(0, 64),
+      notification_url: input.notificationUrl.trim(),
+    },
+  };
+
+  const { data: subData } = await client.post(
+    `/v1/plan/${planId}/subscription`,
+    subscriptionBody,
+    { headers }
+  );
+
+  const subscriptionId = Number(subData?.data?.subscription_id ?? 0);
+  if (!subscriptionId) throw new Error("EFI: resposta de assinatura incompleta");
+
+  let chargeId =
+    Number(
+      subData?.data?.charges?.[0]?.charge_id ?? subData?.data?.charge_id ?? 0
+    ) || undefined;
+
+  const { data: payData } = await client.post(
+    `/v1/subscription/${subscriptionId}/pay`,
+    {
+      payment: {
+        credit_card: buildEfiCreditCardPayment(input),
+      },
+    },
+    { headers }
+  );
+
+  const payPayload = payData?.data ?? payData;
+  if (payPayload?.charge_id) {
+    chargeId = Number(payPayload.charge_id) || chargeId;
+  }
+
+  const status = String(payPayload?.status ?? subData?.data?.status ?? "new");
+
+  return {
+    subscriptionId,
+    chargeId,
+    status,
+    raw: { subscription: subData, pay: payData },
+  };
+}
+
+/**
+ * Assinatura recorrente com cartão.
+ * Tenta one-step sem `installments` (schema novo); se falhar validação, usa two-step oficial.
+ */
 export async function efiCreateCardSubscriptionOneStep(
   env: EfiEnv,
   input: EfiCardSubscriptionInput
@@ -248,60 +426,34 @@ export async function efiCreateCardSubscriptionOneStep(
   const planId = await efiEnsurePremiumPlan(env);
   const token = await efiGetAccessToken(env);
   const client = efiClient(env);
+  const headers = { Authorization: `Bearer ${token}` };
 
-  const cpf = input.cpf.replace(/\D/g, "");
-  const phone = input.phoneNumber.replace(/\D/g, "").slice(0, 11);
-  const priceLabel = (input.amountCents / 100).toFixed(2).replace(".", ",");
-
-  const body = {
-    items: [
-      {
-        name: `AxéCloud Premium — R$ ${priceLabel}/mês`,
-        value: input.amountCents,
-        amount: 1,
-      },
-    ],
+  const subscriptionBase = {
+    items: buildEfiSubscriptionItems(input.amountCents),
     metadata: {
-      custom_id: input.tenantId,
-      notification_url: input.notificationUrl,
-    },
-    payment: {
-      credit_card: {
-        customer: {
-          name: input.nome,
-          cpf,
-          email: input.email,
-          phone_number: phone || "11999999999",
-        },
-        billing_address: {
-          street: input.billingAddress.street,
-          number: input.billingAddress.number,
-          neighborhood: input.billingAddress.neighborhood,
-          zipcode: input.billingAddress.zipcode.replace(/\D/g, ""),
-          city: input.billingAddress.city,
-          state: input.billingAddress.state.slice(0, 2).toUpperCase(),
-          complement: input.billingAddress.complement || "",
-        },
-        payment_token: input.paymentToken,
-      },
+      custom_id: String(input.tenantId).slice(0, 64),
+      notification_url: input.notificationUrl.trim(),
     },
   };
 
-  const { data } = await client.post(`/v1/plan/${planId}/subscription/one-step`, body, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const oneStepBody = {
+    ...subscriptionBase,
+    payment: {
+      credit_card: buildEfiCreditCardPayment(input),
+    },
+  };
 
-  const subscriptionId = Number(
-    data?.data?.subscription_id ?? data?.subscription_id ?? 0
-  );
-  const chargeId = Number(data?.data?.charge?.id ?? data?.data?.charge_id ?? 0) || undefined;
-  const status = String(data?.data?.status ?? data?.status ?? "new");
-
-  if (!subscriptionId) {
-    throw new Error("EFI: resposta de assinatura incompleta");
+  try {
+    const { data } = await client.post(
+      `/v1/plan/${planId}/subscription/one-step`,
+      oneStepBody,
+      { headers }
+    );
+    return parseEfiSubscriptionResult(data);
+  } catch (err) {
+    if (!isEfiValidationError(err)) throw err;
+    return efiCreateCardSubscriptionTwoStep(env, planId, token, input);
   }
-
-  return { subscriptionId, chargeId, status, raw: data };
 }
 
 export async function efiGetCharge(

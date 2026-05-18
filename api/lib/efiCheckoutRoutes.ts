@@ -5,6 +5,7 @@ import {
   efiCreateCardSubscriptionOneStep,
   efiGetCharge,
   efiGetSubscription,
+  formatEfiApiError,
   resolveEfiEnv,
   resolveEfiPayeeCode,
 } from "./efiPay.js";
@@ -350,14 +351,13 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         status: result.status,
         active,
       });
-    } catch (err: any) {
-      console.error("[checkout/card]", err?.response?.data || err?.message || err);
-      const efiMsg =
-        err?.response?.data?.error_description ||
-        err?.response?.data?.message ||
-        err?.response?.data?.error;
-      res.status(500).json({
-        error: efiMsg || err?.message || "Erro ao processar cartão.",
+    } catch (err: unknown) {
+      console.error("[checkout/card]", (err as { response?: { data?: unknown } })?.response?.data || err);
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status;
+      const status =
+        httpStatus === 400 || httpStatus === 422 || httpStatus === 412 ? 400 : 500;
+      res.status(status).json({
+        error: formatEfiApiError(err),
       });
     }
   });

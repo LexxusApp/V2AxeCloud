@@ -34,12 +34,14 @@ export type RegisterTenantResult = {
 };
 
 export function resolvePublicAppUrl(): string {
-  const explicit =
-    process.env.APP_PUBLIC_URL ||
-    process.env.VITE_APP_URL ||
-    process.env.PUBLIC_APP_URL ||
-    "";
-  if (explicit.trim()) return explicit.trim().replace(/\/$/, "");
+  const fromEnv = [process.env.APP_PUBLIC_URL, process.env.VITE_APP_URL, process.env.PUBLIC_APP_URL]
+    .map((v) => String(v || "").trim().replace(/\/$/, ""))
+    .find((v) => v.startsWith("http"));
+  if (fromEnv) return fromEnv;
+
+  if (process.env.VERCEL_ENV === "production") {
+    return "https://axecloud.com.br";
+  }
 
   const vercel = process.env.VERCEL_URL;
   if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
