@@ -152,10 +152,11 @@ export async function efiCreatePaymentLink(
   const expireAt = new Date();
   expireAt.setDate(expireAt.getDate() + (input.expireDays ?? 3));
 
+  const amountLabel = `R$ ${(input.amountCents / 100).toFixed(2).replace(".", ",")}`;
   const body = {
     items: [
       {
-        name: "AxéCloud Premium — R$ 89,90/mês",
+        name: `AxéCloud Premium — ${amountLabel}/mês`,
         value: input.amountCents,
         amount: 1,
       },

@@ -53,7 +53,7 @@ export function efiNotificationUrl(): string {
   return `${resolvePublicAppUrl()}/api/webhooks/efi`;
 }
 
-/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) → env → default 89,90. */
+/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) → env → fallback R$ 5,00. */
 export async function resolvePremiumOnboardingAmountCents(
   supabaseAdmin: SupabaseClient
 ): Promise<number> {

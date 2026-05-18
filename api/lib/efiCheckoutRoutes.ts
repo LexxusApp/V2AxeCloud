@@ -15,6 +15,7 @@ import {
   getEfiPixSetupDiagnostics,
   resolveEfiPixEnv,
 } from "./efiPixApi.js";
+import { formatAmountLabelFromCents } from "./plansCatalog.js";
 import {
   activateTenantSubscription,
   efiNotificationUrl,
@@ -97,7 +98,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       sandbox: efi.sandbox,
       payeeCode: payeeCode || null,
       amountCents,
-      amountLabel: `R$ ${(amountCents / 100).toFixed(2).replace(".", ",")}`,
+      amountLabel: formatAmountLabelFromCents(amountCents),
       pixAvailable: !!pix,
       /** API de Cobranças (Client ID + Secret) — cartão recorrente */
       cardAvailable: true,

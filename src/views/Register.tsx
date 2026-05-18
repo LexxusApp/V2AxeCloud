@@ -13,6 +13,8 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
 import { LANDING_PRICE } from '../constants/landingFeatures';
+
+type CheckoutPriceConfig = { amountLabel?: string };
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { RegistrationProgress } from '../components/RegistrationProgress';
 import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
@@ -47,6 +49,20 @@ export default function Register() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutPriceLabel, setCheckoutPriceLabel] = useState(LANDING_PRICE.label);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch('/api/v1/checkout/efi/config', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((cfg: CheckoutPriceConfig | null) => {
+        if (!cancelled && cfg?.amountLabel) setCheckoutPriceLabel(cfg.amountLabel);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -171,7 +187,7 @@ export default function Register() {
 
             <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-white/85 backdrop-blur-sm">
               <span className="font-bold text-[#f2b90f]">
-                {LANDING_PRICE.label}
+                {checkoutPriceLabel}
                 {LANDING_PRICE.period}
               </span>
               {' · '}Pix ou cartão · painel liberado na hora após o pagamento.
@@ -309,7 +325,7 @@ export default function Register() {
 
                   <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
                     <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
-                    Checkout EFI Bank · {LANDING_PRICE.label}/mês
+                    Checkout EFI Bank · {checkoutPriceLabel}/mês
                   </p>
                 </form>
               </motion.div>
@@ -326,7 +342,7 @@ export default function Register() {
                     Ativação do sistema
                   </h2>
                   <p className="mt-1 text-[12px] leading-snug text-zinc-600 sm:text-[13px]">
-                    Pix ou cartão · {LANDING_PRICE.label}
+                    Pix ou cartão · {checkoutPriceLabel}
                     {LANDING_PRICE.period} · liberação automática
                   </p>
                 </header>

@@ -824,7 +824,7 @@ export function RegistrationCheckoutPanel({
           )}
         >
           <ShieldCheck className={cn('h-3.5 w-3.5', t.footerIcon)} />
-          Checkout EFI Bank · {LANDING_PRICE.label}/mês · Liberação automática
+          Checkout EFI Bank · {config?.amountLabel || LANDING_PRICE.label}/mês · Liberação automática
         </p>
       )}
     </div>

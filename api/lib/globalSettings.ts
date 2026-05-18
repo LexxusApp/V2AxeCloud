@@ -9,13 +9,16 @@ export async function loadGlobalSettingPayload(
 ): Promise<unknown | null> {
   const { data: row, error } = await supabaseAdmin
     .from("global_settings")
-    .select("data")
+    .select("data, value")
     .eq("id", id)
     .maybeSingle();
 
   if (!error) {
-    const payload = (row as SettingsRow | null)?.data;
-    if (payload !== undefined && payload !== null) return payload;
+    const typed = row as SettingsRow | null;
+    const fromData = typed?.data;
+    if (fromData !== undefined && fromData !== null) return fromData;
+    const fromValue = typed?.value;
+    if (fromValue !== undefined && fromValue !== null) return fromValue;
     return null;
   }
 
