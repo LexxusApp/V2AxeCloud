@@ -41,12 +41,12 @@ export default defineConfig(({mode}) => {
           enabled: false,
         },
         manifest: {
-          id: '/',
+          id: 'https://axecloud.com.br/',
           name: 'AxéCloud',
           short_name: 'AxéCloud',
           description: 'Gestão Inteligente para sua Comunidade',
-          start_url: '/',
-          scope: '/',
+          start_url: 'https://axecloud.com.br/',
+          scope: 'https://axecloud.com.br/',
           lang: 'pt-BR',
           theme_color: '#000000',
           background_color: '#000000',
@@ -76,7 +76,7 @@ export default defineConfig(({mode}) => {
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
           /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v104',
+          cacheId: 'axecloud-v105',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [/^\/api\//],
@@ -91,7 +91,7 @@ export default defineConfig(({mode}) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'framer-motion'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

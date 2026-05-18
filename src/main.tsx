@@ -4,6 +4,7 @@ import {registerSW} from 'virtual:pwa-register';
 import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import {VercelInsights} from './components/VercelInsights';
+import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
 
@@ -52,7 +53,7 @@ function activateWaitingSwIfSafe() {
   }
 }
 
-const SW_RESET_KEY = 'axecloud-sw-reset-v104';
+const SW_RESET_KEY = 'axecloud-sw-reset-v105';
 
 /** Uma vez: remove SW/cache antigos (v101) que serviam bundle sem landing e quebravam login-bg. */
 async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
@@ -76,49 +77,57 @@ async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
   }
 }
 
-if (import.meta.env.PROD) {
-  void resetLegacyServiceWorkerOnce().then((didReset) => {
-    if (didReset) window.location.reload();
-  });
+function bootstrapApp() {
+  if (import.meta.env.PROD && isCanonicalAppOrigin()) {
+    void resetLegacyServiceWorkerOnce().then((didReset) => {
+      if (didReset) window.location.reload();
+    });
 
-  registerSW({
-    immediate: true,
-    onNeedRefresh() {
-      // Nova versao em waiting — NAO recarregamos automaticamente.
-      // Quem estiver em telas de uso continua trabalhando com a versao atual.
-      // Em transicoes seguras (login screen, foreground após logout), ativamos.
-      swWaiting = true;
-    },
-    onRegisteredSW(_swUrl, registration) {
-      swRegistration = registration;
-    },
-    onRegisterError(error) {
-      console.error('[PWA] Falha ao registrar o Service Worker:', error);
-    },
-  });
+    registerSW({
+      immediate: true,
+      onNeedRefresh() {
+        swWaiting = true;
+      },
+      onRegisteredSW(_swUrl, registration) {
+        swRegistration = registration;
+      },
+      onRegisterError(error) {
+        console.error('[PWA] Falha ao registrar o Service Worker:', error);
+      },
+    });
 
-  // Checagem espacada (uma vez a cada 30 min, no maximo).
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      checkServiceWorkerUpdate();
-      activateWaitingSwIfSafe();
-    }
-  });
-} else if ('serviceWorker' in navigator) {
-  // Em desenvolvimento, removemos SW antigos para evitar tela em branco/caches presos.
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const registration of registrations) {
-      void registration.unregister();
-    }
-  });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkServiceWorkerUpdate();
+        activateWaitingSwIfSafe();
+      }
+    });
+  } else if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        void registration.unregister();
+      }
+    });
+  }
+
+  const rootEl = document.getElementById('root');
+  if (!rootEl) {
+    throw new Error('#root não encontrado');
+  }
+
+  document.getElementById('axecloud-boot')?.remove();
+
+  createRoot(rootEl).render(
+    <StrictMode>
+      <PwaInstallProvider>
+        <EmergencyReloadBeacon />
+        <AppRouter />
+        <VercelInsights />
+      </PwaInstallProvider>
+    </StrictMode>,
+  );
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <PwaInstallProvider>
-      <EmergencyReloadBeacon />
-      <AppRouter />
-      <VercelInsights />
-    </PwaInstallProvider>
-  </StrictMode>,
-);
+if (!redirectToCanonicalOriginIfNeeded()) {
+  bootstrapApp();
+}

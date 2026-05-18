@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VAPID_PUBLIC_KEY } from '../config/vapidPublic';
+import { isCanonicalAppOrigin } from '../lib/canonicalOrigin';
 
 export function useWebPush(
   userId: string | null,
@@ -38,6 +39,10 @@ export function useWebPush(
       hasFailed.current = true;
       return;
     }
+    if (!isCanonicalAppOrigin()) {
+      hasFailed.current = true;
+      return;
+    }
 
     setLoading(true);
     try {
@@ -49,8 +54,10 @@ export function useWebPush(
         return;
       }
 
-      // 2. Registrar Service Worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // 2. Service Worker (vite-plugin-pwa) — reutiliza registro existente quando possível
+      const registration =
+        (await navigator.serviceWorker.getRegistration('/')) ??
+        (await navigator.serviceWorker.register('/sw.js'));
       await navigator.serviceWorker.ready;
 
       // 3. Verificar se já existe inscrição

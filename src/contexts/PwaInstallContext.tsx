@@ -24,16 +24,12 @@ export type PwaInstallContextValue = {
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
 
 export function PwaInstallProvider({ children }: { children: React.ReactNode }) {
-  // Hotfix DEV: alguns ambientes locais podem falhar com Invalid Hook Call
-  // antes da árvore React estabilizar. Em dev, o PWA install é opcional.
-  if (import.meta.env.DEV) {
-    return <>{children}</>;
-  }
-
+  const isDev = import.meta.env.DEV;
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(readStandalone);
 
   useEffect(() => {
+    if (isDev) return;
     const mqStandalone = window.matchMedia('(display-mode: standalone)');
     const mqFs = window.matchMedia('(display-mode: fullscreen)');
     const sync = () => setIsStandalone(readStandalone());
@@ -43,10 +39,10 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
       mqStandalone.removeEventListener('change', sync);
       mqFs.removeEventListener('change', sync);
     };
-  }, []);
+  }, [isDev]);
 
   useEffect(() => {
-    if (readStandalone()) return;
+    if (isDev || readStandalone()) return;
 
     const onBeforeInstall = (e: Event) => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -66,10 +62,10 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
     };
-  }, []);
+  }, [isDev]);
 
   const promptInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
+    if (isDev || !deferredPrompt) return;
     const evt = deferredPrompt;
     await evt.prompt();
     try {
@@ -82,10 +78,14 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
 
   const value = useMemo<PwaInstallContextValue>(
     () => ({
-      canPromptInstall: !isStandalone && deferredPrompt !== null,
-      promptInstall,
+      canPromptInstall: !isDev && !isStandalone && deferredPrompt !== null,
+      promptInstall: isDev
+        ? async () => {
+            /* noop em dev */
+          }
+        : promptInstall,
     }),
-    [isStandalone, deferredPrompt, promptInstall]
+    [isDev, isStandalone, deferredPrompt, promptInstall]
   );
 
   return <PwaInstallContext.Provider value={value}>{children}</PwaInstallContext.Provider>;

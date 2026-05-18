@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="pt-BR" class="bg-neutral-950">
   <head>
+    <script>
+      (function () {
+        if (location.hostname === 'www.axecloud.com.br') {
+          location.replace(
+            'https://axecloud.com.br' + location.pathname + location.search + location.hash
+          );
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
