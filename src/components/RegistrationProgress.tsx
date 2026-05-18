@@ -10,15 +10,25 @@ type Props = {
   currentStep: 1 | 2;
   /** `light` no formulário de registro; `dark` no checkout EFI. */
   variant?: 'light' | 'dark';
+  /** Menos altura no passo de pagamento do /register. */
+  compact?: boolean;
   className?: string;
 };
 
-export function RegistrationProgress({ currentStep, variant = 'light', className }: Props) {
+export function RegistrationProgress({
+  currentStep,
+  variant = 'light',
+  compact = false,
+  className,
+}: Props) {
   const isDark = variant === 'dark';
   const progressPct = currentStep === 1 ? 50 : 100;
 
   return (
-    <nav aria-label="Progresso do cadastro" className={cn('mb-6', className)}>
+    <nav
+      aria-label="Progresso do cadastro"
+      className={cn(compact ? 'mb-3' : 'mb-6', className)}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
         <p
           className={cn(
@@ -50,7 +60,7 @@ export function RegistrationProgress({ currentStep, variant = 'light', className
         />
       </div>
 
-      <ol className="mt-4 flex items-start justify-between gap-2">
+      <ol className={cn('flex items-start justify-between gap-2', compact ? 'mt-2.5' : 'mt-4')}>
         {STEPS.map((step) => {
           const done = currentStep > step.id;
           const active = currentStep === step.id;
@@ -63,7 +73,8 @@ export function RegistrationProgress({ currentStep, variant = 'light', className
             >
               <span
                 className={cn(
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black transition-colors',
+                  'flex shrink-0 items-center justify-center rounded-full font-black transition-colors',
+                  compact ? 'h-6 w-6 text-[10px]' : 'h-7 w-7 text-[11px]',
                   done && (isDark ? 'bg-[#f2b90f] text-black' : 'bg-amber-500 text-black'),
                   active &&
                     !done &&

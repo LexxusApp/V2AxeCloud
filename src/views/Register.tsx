@@ -64,6 +64,13 @@ export default function Register() {
     };
   }, []);
 
+  useEffect(() => {
+    if (step !== 2) return;
+    const main = document.querySelector<HTMLElement>('[data-register-main]');
+    main?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [step]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -175,14 +182,19 @@ export default function Register() {
         </motion.div>
       </aside>
 
-      <main className="flex w-full flex-col bg-white text-zinc-900 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <main
+        data-register-main
+        className="flex w-full flex-col bg-white text-zinc-900 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+      >
         <motion.div
           className={cn(
-            'mx-auto w-full px-5 py-8 pb-12 sm:px-10 sm:py-10 lg:flex lg:min-h-full lg:flex-col lg:justify-center',
-            step === 1 ? 'max-w-[440px]' : 'max-w-[480px]'
+            'mx-auto w-full px-5 pb-10 sm:px-8 lg:flex lg:flex-col',
+            step === 1
+              ? 'max-w-[440px] py-8 sm:py-10 lg:min-h-full lg:justify-center'
+              : 'max-w-[460px] py-4 sm:py-5 lg:justify-start lg:pt-5 lg:pb-8'
           )}
         >
-          <RegistrationProgress currentStep={step} />
+          <RegistrationProgress currentStep={step} compact={step === 2} />
 
           <AnimatePresence mode="wait">
             {step === 1 ? (
@@ -309,13 +321,13 @@ export default function Register() {
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.25 }}
               >
-                <header className="mb-6">
-                  <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
+                <header className="mb-3">
+                  <h2 className="text-[18px] font-extrabold tracking-tight text-zinc-900 sm:text-[20px]">
                     Ativação do sistema
                   </h2>
-                  <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-                    Escolha Pix ou cartão. Plano Premium {LANDING_PRICE.label}
-                    {LANDING_PRICE.period} — painel liberado na hora após o pagamento.
+                  <p className="mt-1 text-[12px] leading-snug text-zinc-600 sm:text-[13px]">
+                    Pix ou cartão · {LANDING_PRICE.label}
+                    {LANDING_PRICE.period} · liberação automática
                   </p>
                 </header>
 
@@ -323,6 +335,7 @@ export default function Register() {
                   <RegistrationCheckoutPanel
                     tenantId={tenantId}
                     variant="light"
+                    compact
                     defaultHolderName={nomeZelador}
                     defaultPhone={whatsapp}
                   />
@@ -331,12 +344,20 @@ export default function Register() {
             )}
           </AnimatePresence>
 
-          <p className="mt-6 text-center text-[13px] text-zinc-700">
-            Já tem conta?{' '}
-            <a href={ROUTES.login} className="font-bold text-amber-800 hover:text-amber-900 hover:underline">
-              Fazer login
-            </a>
-          </p>
+          {step === 1 ? (
+            <p className="mt-6 text-center text-[13px] text-zinc-700">
+              Já tem conta?{' '}
+              <a href={ROUTES.login} className="font-bold text-amber-800 hover:text-amber-900 hover:underline">
+                Fazer login
+              </a>
+            </p>
+          ) : (
+            <p className="mt-4 text-center text-[12px] text-zinc-600">
+              <a href={ROUTES.login} className="font-semibold text-amber-800 hover:underline">
+                Já tem conta? Fazer login
+              </a>
+            </p>
+          )}
         </motion.div>
       </main>
     </motion.div>

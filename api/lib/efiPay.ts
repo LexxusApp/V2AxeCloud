@@ -283,7 +283,6 @@ export async function efiCreateCardSubscriptionOneStep(
           complement: input.billingAddress.complement || "",
         },
         payment_token: input.paymentToken,
-        installments: 1,
       },
     },
   };

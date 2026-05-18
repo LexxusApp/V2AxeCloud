@@ -45,18 +45,41 @@ type CheckoutContext = {
   active: boolean;
 };
 
+const lightTheme = {
+  radius: 'rounded-lg',
+  fieldShell: cn(
+    'w-full h-[46px] rounded-lg border border-zinc-300 bg-white px-3 sm:h-[42px]',
+    'text-[14px] font-medium text-zinc-900 placeholder:text-zinc-500',
+    'outline-none transition-[border-color,box-shadow] duration-200',
+    'focus:border-amber-600 focus:ring-2 focus:ring-amber-500/20'
+  ),
+  fieldShellCompact: cn(
+    'w-full h-9 rounded-md border border-zinc-300 bg-white px-2.5',
+    'text-[13px] font-medium text-zinc-900 placeholder:text-zinc-500',
+    'outline-none transition-[border-color,box-shadow] duration-200',
+    'focus:border-amber-600 focus:ring-2 focus:ring-amber-500/20'
+  ),
+  labelClass: 'mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-800',
+  labelClassCompact: 'mb-0.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-800',
+  panel: 'rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 sm:p-6',
+  panelCompact: 'rounded-lg border border-zinc-200 bg-zinc-50/80 p-3.5 sm:p-4',
+  tabContainer: 'mb-4 flex rounded-lg border border-zinc-200 bg-zinc-100 p-1',
+  tabContainerCompact: 'mb-2 flex rounded-lg border border-zinc-200 bg-zinc-100 p-0.5',
+  tabBtn: 'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs',
+  tabBtnCompact: 'flex flex-1 items-center justify-center gap-1 rounded-md py-2 text-[10px] font-black uppercase tracking-wide transition-all',
+  formGap: 'space-y-3',
+  formGapCompact: 'space-y-2',
+  introText: 'text-sm leading-relaxed',
+  introTextCompact: 'text-[12px] leading-snug',
+  ctaH: 'h-[44px]',
+  ctaHCompact: 'h-[38px]',
+  ctaText: 'text-[13px]',
+  ctaTextCompact: 'text-[12px]',
+};
+
 const themes = {
   light: {
-    radius: 'rounded-lg',
-    fieldShell: cn(
-      'w-full h-[46px] rounded-lg border border-zinc-300 bg-white px-3 sm:h-[42px]',
-      'text-[14px] font-medium text-zinc-900 placeholder:text-zinc-500',
-      'outline-none transition-[border-color,box-shadow] duration-200',
-      'focus:border-amber-600 focus:ring-2 focus:ring-amber-500/20'
-    ),
-    labelClass: 'mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-800',
-    panel: 'rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 sm:p-6',
-    tabContainer: 'mb-4 flex rounded-lg border border-zinc-200 bg-zinc-100 p-1',
+    ...lightTheme,
     tabActive: 'bg-amber-500 text-black shadow-sm',
     tabInactive: 'text-zinc-500 hover:text-zinc-800',
     textMuted: 'text-zinc-600',
@@ -103,6 +126,8 @@ async function authHeaders(): Promise<Record<string, string>> {
 export type RegistrationCheckoutPanelProps = {
   tenantId: string;
   variant?: keyof typeof themes;
+  /** Layout mais baixo para caber no painel do /register sem cortar o topo. */
+  compact?: boolean;
   defaultHolderName?: string;
   defaultPhone?: string;
   className?: string;
@@ -112,12 +137,37 @@ export type RegistrationCheckoutPanelProps = {
 export function RegistrationCheckoutPanel({
   tenantId,
   variant = 'light',
+  compact = false,
   defaultHolderName = '',
   defaultPhone = '',
   className,
   showFooter = true,
 }: RegistrationCheckoutPanelProps) {
-  const t = themes[variant];
+  const base = themes[variant];
+  const isCompactLight = compact && variant === 'light';
+  const t = {
+    ...base,
+    fieldShell: isCompactLight ? lightTheme.fieldShellCompact : base.fieldShell,
+    labelClass: isCompactLight ? lightTheme.labelClassCompact : base.labelClass,
+    panel: isCompactLight ? lightTheme.panelCompact : base.panel,
+    tabContainer: isCompactLight ? lightTheme.tabContainerCompact : base.tabContainer,
+  };
+  const tabBtnClass = isCompactLight
+    ? lightTheme.tabBtnCompact
+    : variant === 'light'
+      ? lightTheme.tabBtn
+      : 'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs';
+  const formGap = isCompactLight ? lightTheme.formGapCompact : lightTheme.formGap;
+  const introClass = cn(
+    isCompactLight ? lightTheme.introTextCompact : lightTheme.introText,
+    t.textMuted
+  );
+  const payCtaClass = cn(
+    t.radius,
+    isCompactLight ? lightTheme.ctaHCompact : lightTheme.ctaH,
+    isCompactLight ? lightTheme.ctaTextCompact : lightTheme.ctaText,
+    'flex w-full items-center justify-center gap-2 font-black uppercase tracking-[0.06em] text-black disabled:opacity-50'
+  );
 
   const [method, setMethod] = useState<PayMethod>('pix');
   const [config, setConfig] = useState<EfiConfig | null>(null);
@@ -371,7 +421,11 @@ export function RegistrationCheckoutPanel({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={cn('flex min-h-[220px] items-center justify-center py-8', className)}
+        className={cn(
+          'flex items-center justify-center',
+          compact ? 'min-h-[120px] py-4' : 'min-h-[220px] py-8',
+          className
+        )}
       >
         <Loader2
           className={cn('h-8 w-8 animate-spin', variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]')}
@@ -379,11 +433,6 @@ export function RegistrationCheckoutPanel({
       </motion.div>
     );
   }
-
-  const ctaClass = cn(
-    t.radius,
-    'flex h-[44px] w-full items-center justify-center gap-2 text-[13px] font-black uppercase tracking-[0.06em] text-black disabled:opacity-50'
-  );
 
   return (
     <div className={className}>
@@ -413,7 +462,7 @@ export function RegistrationCheckoutPanel({
           <motion.a
             href="/dashboard"
             style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-            className={cn(ctaClass, 'mt-6 inline-flex px-8')}
+            className={cn(payCtaClass, 'mt-6 inline-flex px-8')}
           >
             Ir para o painel
           </motion.a>
@@ -424,7 +473,11 @@ export function RegistrationCheckoutPanel({
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn('mb-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[13px]', t.errorBox)}
+              className={cn(
+                'flex items-start gap-2 rounded-lg border px-3 py-2 text-[13px]',
+                isCompactLight ? 'mb-2' : 'mb-4 py-2.5',
+                t.errorBox
+              )}
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
@@ -439,12 +492,9 @@ export function RegistrationCheckoutPanel({
                   role="tab"
                   aria-selected={method === 'pix'}
                   onClick={() => setMethod('pix')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs',
-                    method === 'pix' ? t.tabActive : t.tabInactive
-                  )}
+                  className={cn(tabBtnClass, method === 'pix' ? t.tabActive : t.tabInactive)}
                 >
-                  <QrCode className="h-4 w-4 shrink-0" />
+                  <QrCode className={cn('shrink-0', isCompactLight ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
                   <span className="text-left leading-tight">
                     <span className="block opacity-80">QR Code</span>
                     <span>PIX</span>
@@ -457,12 +507,9 @@ export function RegistrationCheckoutPanel({
                   role="tab"
                   aria-selected={method === 'card'}
                   onClick={() => setMethod('card')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-black uppercase tracking-wider transition-all sm:text-xs',
-                    method === 'card' ? t.tabActive : t.tabInactive
-                  )}
+                  className={cn(tabBtnClass, method === 'card' ? t.tabActive : t.tabInactive)}
                 >
-                  <CreditCard className="h-4 w-4 shrink-0" />
+                  <CreditCard className={cn('shrink-0', isCompactLight ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
                   <span className="text-left leading-tight">
                     <span className="block opacity-80">Cartão</span>
                     <span>Crédito</span>
@@ -493,7 +540,7 @@ export function RegistrationCheckoutPanel({
                   </div>
                 ) : !pixQr ? (
                   <>
-                    <p className={cn('text-sm leading-relaxed', t.textMuted)}>
+                    <p className={introClass}>
                       Gere o QR Code na hora. O Pix confirma em segundos e liberamos seu acesso automaticamente.
                     </p>
                     <motion.div>
@@ -521,10 +568,10 @@ export function RegistrationCheckoutPanel({
                       onClick={() => void handleGeneratePix()}
                       whileTap={{ scale: 0.99 }}
                       style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-                      className={ctaClass}
+                      className={payCtaClass}
                     >
                       {pixLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className={cn('animate-spin', isCompactLight ? 'h-4 w-4' : 'h-5 w-5')} />
                       ) : (
                         <>
                           <QrCode className="h-4 w-4" />
@@ -575,11 +622,10 @@ export function RegistrationCheckoutPanel({
                 Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET na Vercel.
               </p>
             ) : (
-              <form onSubmit={(e) => void handleCardPay(e)} className="space-y-3">
-                <p className={cn('text-sm leading-relaxed', t.textMuted)}>
-                  Assinatura mensal recorrente ({config.amountLabel || LANDING_PRICE.label}
-                  {LANDING_PRICE.period}). Os dados do cartão são tokenizados pela Efí — não passam pelo nosso
-                  servidor.
+              <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>
+                <p className={introClass}>
+                  Assinatura mensal ({config.amountLabel || LANDING_PRICE.label}
+                  {LANDING_PRICE.period}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
                 </p>
 
                 {config.cardTokenizationReady === false && config.cardSetup?.issues?.length ? (
@@ -684,8 +730,14 @@ export function RegistrationCheckoutPanel({
                   />
                 </motion.div>
 
-                <p className={cn('pt-2 text-[10px] font-bold uppercase tracking-widest', t.textSubtle)}>
-                  Endereço de cobrança (exigido pela Efí)
+                <p
+                  className={cn(
+                    'font-bold uppercase tracking-widest',
+                    isCompactLight ? 'pt-1 text-[9px]' : 'pt-2 text-[10px]',
+                    t.textSubtle
+                  )}
+                >
+                  Endereço de cobrança (Efí)
                 </p>
 
                 <motion.div>
@@ -746,10 +798,10 @@ export function RegistrationCheckoutPanel({
                   disabled={cardLoading || config.cardTokenizationReady === false}
                   whileTap={{ scale: 0.99 }}
                   style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-                  className={cn(ctaClass, 'mt-2')}
+                  className={cn(payCtaClass, isCompactLight ? 'mt-1' : 'mt-2')}
                 >
                   {cardLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className={cn('animate-spin', isCompactLight ? 'h-4 w-4' : 'h-5 w-5')} />
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4" />
@@ -766,7 +818,8 @@ export function RegistrationCheckoutPanel({
       {showFooter && (
         <p
           className={cn(
-            'mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] font-medium',
+            'flex items-center justify-center gap-1.5 text-center font-medium',
+            isCompactLight ? 'mt-3 text-[10px]' : 'mt-5 text-[11px]',
             t.footerText
           )}
         >
