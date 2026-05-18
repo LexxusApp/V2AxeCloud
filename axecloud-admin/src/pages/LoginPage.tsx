@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { KeyRound, LogOut, ServerCrash } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, isApiUnreachable, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -124,21 +124,6 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
               <LogOut className="h-3.5 w-3.5" />
               Terminar sessão e usar outra conta
             </button>
-          </Notice>
-        )}
-
-        {!session && (
-          <Notice tone="info" title="Desenvolvimento local">
-            <p className="flex items-start gap-2">
-              <ServerCrash className="h-4 w-4 shrink-0 mt-0.5 text-yellow-500" />
-              <span>
-                Só o Vite do admin não basta — a API Express precisa estar activa na porta{" "}
-                <strong className="text-white">3000</strong>.
-              </span>
-            </p>
-            <code className="block rounded-xl bg-black/50 border border-zinc-800 px-3 py-2 text-yellow-400">
-              cd .. && npm run dev:with-admin
-            </code>
           </Notice>
         )}
 
