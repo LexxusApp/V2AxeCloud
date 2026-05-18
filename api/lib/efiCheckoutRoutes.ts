@@ -10,6 +10,10 @@ import {
   resolveEfiPayeeCode,
 } from "./efiPay.js";
 import {
+  EFI_CARD_PIX_FALLBACK_MESSAGE,
+  isEfiCardProcessingFailure,
+} from "../../lib/efiCardCheckoutError.js";
+import {
   efiPixCreateImmediateCharge,
   efiPixGetCob,
   getEfiPixSetupDiagnostics,
@@ -357,8 +361,11 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
       const status =
         httpStatus === 400 || httpStatus === 422 || httpStatus === 412 ? 400 : 500;
+      const suggestPix = isEfiCardProcessingFailure(err, { httpStatus });
       res.status(status).json({
-        error: formatEfiApiError(err),
+        error: suggestPix ? EFI_CARD_PIX_FALLBACK_MESSAGE : formatEfiApiError(err),
+        suggestPix,
+        efiCode: (err as { response?: { data?: { code?: number } } })?.response?.data?.code ?? null,
       });
     }
   });

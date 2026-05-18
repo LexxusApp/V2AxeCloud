@@ -1,3 +1,5 @@
+import { extractEfiErrorText } from '../../lib/efiCardCheckoutError';
+
 type EfiCreditCardApi = {
   setAccount: (id: string) => EfiCreditCardApi;
   setEnvironment: (env: 'production' | 'sandbox') => EfiCreditCardApi;
@@ -69,19 +71,25 @@ export async function createEfiPaymentToken(
   const year =
     input.expirationYear.length === 2 ? `20${input.expirationYear}` : input.expirationYear;
 
-  return card.setAccount(input.payeeCode)
-    .setEnvironment(env)
-    .setCreditCardData({
-      brand: input.brand,
-      number: input.number.replace(/\D/g, ''),
-      cvv: input.cvv.replace(/\D/g, ''),
-      expirationMonth: input.expirationMonth.padStart(2, '0'),
-      expirationYear: year,
-      holderName: input.holderName,
-      holderDocument: input.holderDocument.replace(/\D/g, ''),
-      reuse: true,
-    })
-    .getPaymentToken();
+  try {
+    return await card
+      .setAccount(input.payeeCode)
+      .setEnvironment(env)
+      .setCreditCardData({
+        brand: input.brand,
+        number: input.number.replace(/\D/g, ''),
+        cvv: input.cvv.replace(/\D/g, ''),
+        expirationMonth: input.expirationMonth.padStart(2, '0'),
+        expirationYear: year,
+        holderName: input.holderName,
+        holderDocument: input.holderDocument.replace(/\D/g, ''),
+        reuse: true,
+      })
+      .getPaymentToken();
+  } catch (err: unknown) {
+    const detail = extractEfiErrorText(err);
+    throw new Error(detail || 'Não foi possível validar os dados do cartão com a Efí.');
+  }
 }
 
 export async function detectCardBrand(cardNumber: string): Promise<string> {

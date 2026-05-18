@@ -3,32 +3,12 @@ import {
   useEffect,
   useMemo,
   useState,
-  type ComponentType,
   type FormEvent,
   type ReactNode,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { format } from "date-fns";
-import {
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  Building2,
-  Cloud,
-  Copy,
-  FileJson2,
-  Info,
-  LayoutDashboard,
-  LogOut,
-  MessageCircle,
-  PlusCircle,
-  RefreshCw,
-  ScrollText,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  X,
-} from "lucide-react";
+import { Copy, FileJson2, Info, RefreshCw, ScrollText, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -37,8 +17,16 @@ import { WhatsAppPanel } from "./WhatsAppPanel";
 import { TenantDrawer } from "./TenantDrawer";
 import { AuditPanel } from "./AuditPanel";
 import { AuditMonitor } from "./AuditMonitor";
+import {
+  AdminDashboardLayout,
+  AdminStatCard,
+  AdminPanel,
+  AdminQuickActions,
+  type AdminNavTab,
+} from "./AdminDashboardLayout";
+import { TenantsTable } from "./TenantsTable";
 
-type Tab = "overview" | "tenants" | "logs" | "storage" | "create" | "demo" | "plans" | "whatsapp" | "audit" | "monitor";
+type Tab = AdminNavTab;
 
 type Overview = {
   leadersCount: number;
@@ -61,18 +49,30 @@ type TenantRow = {
 };
 
 
-const NAV: { id: Tab; label: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "tenants", label: "Terreiros", icon: Building2 },
-  { id: "logs", label: "Entradas / logs", icon: ScrollText },
-  { id: "storage", label: "Armazenamento R2", icon: Cloud },
-  { id: "create", label: "Novo terreiro", icon: PlusCircle },
-  { id: "demo", label: "Conta demo", icon: Sparkles },
-  { id: "plans", label: "Planos globais", icon: FileJson2 },
-  { id: "whatsapp", label: "WhatsApp admin", icon: MessageCircle },
-  { id: "audit", label: "Auditoria", icon: ShieldCheck },
-  { id: "monitor", label: "Monitor contínuo", icon: Activity },
-];
+function formatStatNumber(n: number | undefined | null): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  return new Intl.NumberFormat("pt-BR").format(n);
+}
+
+function formatCurrencyBRL(n: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n);
+}
+
+function userDisplayName(session: Session): string {
+  const meta = session.user.user_metadata as Record<string, unknown> | undefined;
+  const full = typeof meta?.full_name === "string" ? meta.full_name.trim() : "";
+  if (full) return full;
+  const email = session.user.email || "";
+  const local = email.split("@")[0] || "Admin";
+  return local.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function userInitials(session: Session): string {
+  const name = userDisplayName(session);
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export function CommandShell({ session }: { session: Session }) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -90,8 +90,11 @@ export function CommandShell({ session }: { session: Session }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [drawerTenantId, setDrawerTenantId] = useState<string | null>(null);
+  const [tenantSearch, setTenantSearch] = useState("");
 
   const email = session.user.email || "";
+  const displayName = userDisplayName(session);
+  const initials = userInitials(session);
 
   const refreshOverview = useCallback(async () => {
     const o = await apiJson<Overview>("/api/admin-console/overview");
@@ -186,324 +189,222 @@ export function CommandShell({ session }: { session: Session }) {
 
   const maxDaily = useMemo(() => Math.max(1, ...dailySeries.map(([, c]) => c)), [dailySeries]);
 
+  const estimatedRevenue = useMemo(() => {
+    return tenants.reduce((acc, t) => {
+      const key = (t.plan || "premium").toLowerCase();
+      const raw = plansCatalog[key];
+      const price =
+        raw && typeof raw === "object" && typeof (raw as { price?: unknown }).price === "number"
+          ? (raw as { price: number }).price
+          : key === "vita"
+            ? 49.9
+            : 5;
+      return acc + (t.is_blocked ? 0 : price);
+    }, 0);
+  }, [tenants, plansCatalog]);
+
+  const filteredTenants = useMemo(() => {
+    const q = tenantSearch.trim().toLowerCase();
+    if (!q) return tenants;
+    return tenants.filter(
+      (t) =>
+        (t.nome_terreiro || "").toLowerCase().includes(q) ||
+        (t.email || "").toLowerCase().includes(q) ||
+        (t.plan || "").toLowerCase().includes(q)
+    );
+  }, [tenants, tenantSearch]);
+
+  const chartHeights = useMemo(() => {
+    if (!dailySeries.length) return [30, 55, 40, 75, 90, 60, 120, 80, 140, 100, 160, 190];
+    return dailySeries.map(([, count]) => 24 + Math.round((count / maxDaily) * 166));
+  }, [dailySeries, maxDaily]);
+
+  const overviewTenants = useMemo(() => filteredTenants.slice(0, 12), [filteredTenants]);
+
+  function goTab(next: Tab) {
+    setMsg(null);
+    setTab(next);
+  }
+
+  const quickActions = [
+    {
+      label: "Liberar acesso vitalício",
+      onClick: () => {
+        goTab("tenants");
+        setMsg("Seleccione um terreiro e use «Vitalício» ou «Gerenciar».");
+      },
+    },
+    { label: "Criar comunicado global", onClick: () => goTab("whatsapp") },
+    { label: "Adicionar novo terreiro", onClick: () => goTab("create") },
+    { label: "Enviar notificações", onClick: () => goTab("whatsapp") },
+    { label: "Gerar relatório financeiro", onClick: () => goTab("audit") },
+  ];
+
+  const statUsers =
+    busy && !overview ? "…" : formatStatNumber((overview?.filhosCount ?? 0) + (overview?.leadersCount ?? 0));
+  const statTerreiros = busy && !overview ? "…" : formatStatNumber(overview?.leadersCount);
+  const statEventos =
+    busy && !overview
+      ? "…"
+      : overview?.accessLogsAvailable === false
+        ? "—"
+        : formatStatNumber(overview?.accessEventsLast7Days);
+  const statReceita = busy && !tenants.length ? "…" : formatCurrencyBRL(estimatedRevenue);
+
   return (
-    <div className={admin.shell}>
-      <aside className={`${admin.sidebar} p-5`}>
-        <div className="mb-7 border-b border-white/10 pb-6">
-          <div className="admin-brand-mark mb-4 flex h-11 w-11 items-center justify-center rounded-lg">
-            <Activity className="h-5 w-5" strokeWidth={1.9} />
-          </div>
-          <p className={admin.kicker}>Administração</p>
-          <h1 className="mt-1 text-lg font-semibold text-white">AxéCloud</h1>
-          <p className="mt-1 text-sm text-neutral-500">Console global de operação.</p>
-        </div>
-        <nav className="flex flex-1 flex-col gap-0.5">
-          {NAV.map((n) => {
-            const Icon = n.icon;
-            const active = tab === n.id;
-            return (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => {
-                  setMsg(null);
-                  setTab(n.id);
-                }}
-                className={cn("admin-nav-item", active ? "admin-nav-item-active" : "admin-nav-item-idle")}>
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                {n.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="mt-auto space-y-3 border-t border-white/10 pt-5">
-          <div className="truncate rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[11px] text-neutral-400">
-            <Users className="mb-1 inline h-3.5 w-3.5 text-[var(--admin-accent)]" />
-            <span className="block truncate font-medium text-neutral-300">{email}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className={`${admin.btnSecondary} w-full`}
-          >
-            <LogOut className="h-3 w-3" /> Terminar sessão
-          </button>
-        </div>
-      </aside>
+    <>
+      <AdminDashboardLayout
+        session={session}
+        tab={tab}
+        onTab={goTab}
+        onLogout={() => void logout()}
+        displayName={displayName}
+        initials={initials}
+        msg={msg}
+        onDismissMsg={() => setMsg(null)}
+      >
+        {tab === "overview" && (
+          <>
+            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              <AdminStatCard title="Usuários" value={statUsers} icon="👥" />
+              <AdminStatCard title="Terreiros" value={statTerreiros} icon="🛕" />
+              <AdminStatCard title="Eventos (7d)" value={statEventos} icon="📅" />
+              <AdminStatCard title="Receita ref." value={statReceita} icon="💰" />
+            </section>
 
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className={admin.mainHeader}>
-          <div>
-            <p className={admin.kicker}>Secção</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">{NAV.find((x) => x.id === tab)?.label}</h2>
-            <p className="mt-1 hidden text-sm text-neutral-400 sm:block">
-              Controle operacional com leitura rápida e ações diretas.
-            </p>
-          </div>
-          <div className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:hidden">
-            {NAV.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => {
-                  setMsg(null);
-                  setTab(n.id);
-                }}
-                className={cn(
-                  "shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
-                  tab === n.id
-                    ? "border border-[var(--admin-accent)]/40 bg-[var(--admin-accent)]/15 text-white"
-                    : "border border-white/10 bg-white/[0.03] text-neutral-400 hover:text-white"
-                )}
-              >
-                {n.label}
-              </button>
-            ))}
-          </div>
-        </header>
+            {overview?.accessLogsAvailable === false && (
+              <div className="flex items-start gap-3 rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-zinc-300">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  A tabela <code className="text-yellow-400/90">access_logs</code> não existe — métricas de eventos
+                  ficam desactivadas. O resto do painel funciona normalmente.
+                </p>
+              </div>
+            )}
 
-        <main className={admin.main}>
-          {msg && (
-            <div
-              className={cn(admin.alertInfo, /concluída|guardados|criado|criada|demo criada/i.test(msg) ? admin.alertSuccess : admin.alertError)}
-            >
-              {/concluída|guardados|criado|criada|demo criada/i.test(msg) ? null : (
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-white" />
-              )}
-              <p className="min-w-0 flex-1 leading-relaxed">{msg}</p>
-              <button
-                type="button"
-                onClick={() => setMsg(null)}
-                className="shrink-0 rounded-lg p-1 text-neutral-400 hover:bg-white/10 hover:text-white"
-                aria-label="Fechar"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {tab === "overview" && (
-            <div className="space-y-8">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <StatCard
-                  label="Terreiros"
-                  hint="terreiros activos"
-                  value={busy && !overview ? "…" : (overview?.leadersCount ?? "—")}
-                  icon={Building2}
-                  />
-                <StatCard
-                  label="Filhos de santo"
-                  hint="registos"
-                  value={busy && !overview ? "…" : (overview?.filhosCount ?? "—")}
-                  icon={Users}
-                  />
-                <StatCard
-                  label="Acessos (7d)"
-                  hint={overview?.accessLogsAvailable === false ? "tabela opcional" : "eventos registados"}
-                  value={
-                    busy && !overview
-                      ? "…"
-                      : overview?.accessLogsAvailable === false
-                        ? "—"
-                        : String(overview?.accessEventsLast7Days ?? "—")
+            <section className="grid xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2">
+                <AdminPanel
+                  kicker="Estatísticas"
+                  title="Crescimento do sistema"
+                  action={
+                    <span className="px-5 py-3 rounded-xl border border-zinc-700 text-zinc-300 text-sm">
+                      Últimos {dailySeries.length || 12} dias
+                    </span>
                   }
-                  icon={Activity}
-                  />
-              </div>
-
-              {overview?.accessLogsAvailable === false && (
-                <div className="flex items-start gap-3 rounded-md border border-neutral-600 bg-neutral-900 px-4 py-3 text-sm text-neutral-300/95">
-                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
-                  <p>
-                    A tabela <code className="admin-mono text-neutral-300">access_logs</code> não existe neste
-                    projecto Supabase — métricas de acesso ficam desactivadas. O resto do painel funciona normalmente.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid gap-6 lg:grid-cols-2">
-                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-5 shadow-md shadow-black/20 ring-1 ring-neutral-800 backdrop-blur-md">
-                  <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
-                    <BarChart3 className="h-4 w-4 text-neutral-400" /> Distribuição de planos
-                  </h3>
-                  <ul className="space-y-2">
-                    {Object.entries(overview?.planHistogram || {}).map(([k, v]) => (
-                      <li
-                        key={k}
-                        className="flex items-center justify-between gap-3 rounded-md bg-neutral-900 px-3 py-2 ring-1 ring-neutral-800"
-                      >
-                        <span className="admin-mono text-[13px] text-neutral-300">{k}</span>
-                        <span className="rounded-md bg-neutral-900 px-2 py-0.5 admin-mono text-[13px] font-semibold text-neutral-100 ring-1 ring-neutral-800">
-                          {v}
-                        </span>
-                      </li>
+                >
+                  <div className="h-[280px] sm:h-[320px] flex items-end gap-2 sm:gap-4">
+                    {chartHeights.map((height, index) => (
+                      <div
+                        key={index}
+                        className="flex-1 bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t-3xl shadow-lg shadow-yellow-500/20 min-w-0"
+                        style={{ height: `${height}px` }}
+                        title={dailySeries[index] ? `${dailySeries[index][0]}: ${dailySeries[index][1]}` : undefined}
+                      />
                     ))}
-                    {!Object.keys(overview?.planHistogram || {}).length && (
-                      <li className="rounded-md border border-dashed border-white/10 py-8 text-center text-[13px] text-neutral-500">
-                        Sem dados de planos para mostrar.
-                      </li>
-                    )}
-                  </ul>
-                </div>
-                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-5 shadow-md shadow-black/20 ring-1 ring-neutral-800 backdrop-blur-md">
-                  <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
-                    <Activity className="h-4 w-4 text-white/80" /> Ritmo de acessos
-                  </h3>
-                  <p className="mb-4 text-[11px] text-neutral-500">Últimos dias com dados em access_logs (quando existir).</p>
-                  <div className="flex h-44 items-end gap-1.5 rounded-md bg-black/20 px-2 pb-2 pt-4 ring-1 ring-neutral-800">
-                    {dailySeries.map(([day, count]) => {
-                      const hPct = Math.round((count / maxDaily) * 100);
-                      const hPx = 12 + Math.round((hPct / 100) * 120);
-                      return (
-                        <div key={day} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                          <div
-                            className="w-full max-w-[22px] rounded-t-sm bg-neutral-500"
-                            style={{ height: `${hPx}px` }}
-                            title={`${day}: ${count}`}
-                          />
-                          <span className="text-[10px] font-medium text-neutral-500">{day.slice(8)}</span>
-                        </div>
-                      );
-                    })}
-                    {!dailySeries.length && (
-                      <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
-                        <p className="text-sm text-neutral-400">Sem série temporal.</p>
-                        <p className="max-w-xs text-xs text-neutral-600">
-                          Cria a tabela de logs no Supabase ou ignora este gráfico — não afecta terreiros nem
-                          subscrições.
-                        </p>
-                      </div>
-                    )}
                   </div>
-                </div>
+                </AdminPanel>
               </div>
+              <AdminQuickActions items={quickActions} />
+            </section>
+
+            <TenantsTable
+              rows={overviewTenants}
+              search={tenantSearch}
+              onSearchChange={setTenantSearch}
+              compact
+              busy={busy}
+              onManage={setDrawerTenantId}
+              onBlock={(id, shouldBlock) => void manageTenant(id, shouldBlock ? "block" : "unblock")}
+              onRenewMonth={(id) => void manageTenant(id, "renew", { amount: "1", unit: "months" })}
+              onLifetime={(id) => void manageTenant(id, "set-lifetime")}
+            />
+
+            <AdminPanel kicker="Planos" title="Distribuição">
+              <ul className="space-y-2">
+                {Object.entries(overview?.planHistogram || {}).map(([k, v]) => (
+                  <li
+                    key={k}
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-900 border border-zinc-800 px-4 py-3"
+                  >
+                    <span className="text-zinc-300 font-medium">{k}</span>
+                    <span className="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-sm font-semibold">
+                      {v}
+                    </span>
+                  </li>
+                ))}
+                {!Object.keys(overview?.planHistogram || {}).length && (
+                  <li className="text-center text-zinc-500 py-6">Sem dados de planos.</li>
+                )}
+              </ul>
+            </AdminPanel>
+          </>
+        )}
+
+        {tab === "tenants" && (
+          <TenantsTable
+            rows={filteredTenants}
+            search={tenantSearch}
+            onSearchChange={setTenantSearch}
+            busy={busy}
+            onManage={setDrawerTenantId}
+            onBlock={(id, shouldBlock) => void manageTenant(id, shouldBlock ? "block" : "unblock")}
+            onRenewMonth={(id) => void manageTenant(id, "renew", { amount: "1", unit: "months" })}
+            onLifetime={(id) => void manageTenant(id, "set-lifetime")}
+          />
+        )}
+
+        {tab === "logs" && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3">
+              <span className="text-xs uppercase tracking-widest text-zinc-500">Tipo</span>
+              <select
+                value={logFilterType}
+                onChange={(e) => setLogFilterType(e.target.value)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-yellow-500"
+              >
+                <option value="">Todos os eventos</option>
+                {logEventTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void refreshLogs()}
+                className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm hover:border-yellow-500/40"
+              >
+                Actualizar
+              </button>
+              <span className="ml-auto text-xs text-zinc-500">
+                {logs.length} {logs.length === 1 ? "linha" : "linhas"}
+              </span>
             </div>
-          )}
-
-          {tab === "tenants" && (
-            <div className="overflow-x-auto rounded-md border border-neutral-800 bg-neutral-950 shadow-md ring-1 ring-neutral-800">
-              <table className="min-w-full text-left text-[13px]">
-                <thead className="border-b border-neutral-800 bg-black/25 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
-                  <tr>
-                    <th className="px-4 py-3">Terreiro</th>
-                    <th className="px-4 py-3">E-mail</th>
-                    <th className="px-4 py-3">Plano</th>
-                    <th className="px-4 py-3">Expira</th>
-                    <th className="px-4 py-3">Filhos</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3 text-right">Acções</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-900">
-                  {tenants.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() => setDrawerTenantId(row.id)}
-                      className="cursor-pointer transition-colors hover:bg-neutral-900"
-                      title="Ver detalhes do terreiro"
-                    >
-                      <td className="px-4 py-3 font-medium text-white">{row.nome_terreiro || "—"}</td>
-                      <td className="px-4 py-3 admin-mono text-[11px] text-neutral-400">{row.email}</td>
-                      <td className="px-4 py-3 text-neutral-200">{row.plan || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-neutral-400">
-                        {row.expires_at ? format(new Date(row.expires_at), "dd/MM/yyyy") : "—"}
-                      </td>
-                      <td className="px-4 py-3">{row.totalChildren ?? 0}</td>
-                      <td className="px-4 py-3">
-                        {row.is_blocked ? (
-                          <span className="admin-badge-muted">Bloqueado</span>
-                        ) : (
-                          <span className="admin-badge-strong">Activo</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex flex-wrap justify-end gap-1">
-                          <MiniBtn onClick={() => void manageTenant(row.id, "renew", { amount: "1", unit: "months" })}>
-                            +1 mês
-                          </MiniBtn>
-                          <MiniBtn onClick={() => void manageTenant(row.id, "set-lifetime")}>Vita</MiniBtn>
-                          <MiniBtn onClick={() => void manageTenant(row.id, "block")}>Bloq.</MiniBtn>
-                          <MiniBtn onClick={() => void manageTenant(row.id, "unblock")}>Desbloq.</MiniBtn>
-                          <MiniBtn
-                            onClick={() => {
-                              if (confirm("Marcar terreiro como eliminado (soft delete)?")) {
-                                void manageTenant(row.id, "delete");
-                              }
-                            }}
-                          >
-                            Soft del
-                          </MiniBtn>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {busy && <p className="p-4 text-xs text-neutral-500">A processar…</p>}
-            </div>
-          )}
-
-          {tab === "logs" && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 shadow-xl ring-1 ring-neutral-800">
-                <span className="text-xs uppercase tracking-widest text-neutral-500">Tipo</span>
-                <select
-                  value={logFilterType}
-                  onChange={(e) => setLogFilterType(e.target.value)}
-                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-neutral-200 outline-none focus:border-neutral-300/40"
-                >
-                  <option value="">Todos os eventos</option>
-                  {logEventTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => void refreshLogs()}
-                  className="rounded-md border border-white/10 bg-neutral-900 px-3 py-1 text-xs text-neutral-200 transition hover:bg-neutral-900"
-                >
-                  Actualizar
-                </button>
-                <span className="ml-auto text-[11px] text-neutral-500">
-                  {logs.length} {logs.length === 1 ? "linha" : "linhas"}
-                </span>
-              </div>
-
-              <div className="rounded-md border border-neutral-800 bg-neutral-950 shadow-xl ring-1 ring-neutral-800">
-                {!logsAvailable ? (
-                  <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                    <ScrollText className="h-10 w-10 text-neutral-300/70" />
-                    <p className="text-sm font-medium text-neutral-200">Tabela <code className="admin-mono text-neutral-300">access_logs</code> ainda não existe</p>
-                    <p className="max-w-md text-xs leading-relaxed text-neutral-400">
-                      {logsNotice || "Crie a tabela no Supabase para começar a registar eventos."}
-                    </p>
-                    <p className="max-w-lg text-[11px] leading-relaxed text-neutral-500">
-                      Aplique o ficheiro{" "}
-                      <code className="admin-mono text-neutral-200/90">supabase/migrations/20260513192500_access_logs.sql</code>{" "}
-                      no SQL Editor do Supabase. Depois reinicie o backend e os eventos passarão a aparecer aqui em tempo real.
-                    </p>
-                  </div>
-                ) : !logs.length ? (
-                  <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                    <ScrollText className="h-10 w-10 text-neutral-600" />
-                    <p className="text-sm font-medium text-neutral-300">Sem eventos registados ainda</p>
-                    <p className="max-w-md text-xs leading-relaxed text-neutral-500">
-                      Faça uma ação no sistema (login de filho, criar terreiro, mudar plano, etc.) para gerar o primeiro evento.
-                    </p>
-                  </div>
-                ) : (
+            <div className="rounded-[32px] border border-zinc-800 bg-zinc-950 overflow-hidden">
+              {!logsAvailable ? (
+                <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                  <ScrollText className="h-10 w-10 text-zinc-500" />
+                  <p className="text-sm font-medium text-zinc-200">
+                    Tabela <code className="text-yellow-400/90">access_logs</code> ainda não existe
+                  </p>
+                  <p className="max-w-md text-xs text-zinc-400">{logsNotice || "Crie a tabela no Supabase."}</p>
+                </div>
+              ) : !logs.length ? (
+                <div className="py-16 text-center text-zinc-500 text-sm">Sem eventos registados ainda.</div>
+              ) : (
+                <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="border-b border-neutral-800 bg-black/25 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
-                      <tr>
-                        <th className="px-4 py-3">Quando</th>
-                        <th className="px-4 py-3">Tipo</th>
-                        <th className="px-4 py-3">Descrição</th>
-                        <th className="px-4 py-3">Utilizador</th>
-                        <th className="px-4 py-3">IP</th>
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-zinc-400 text-xs uppercase">
+                        <th className="px-6 py-4">Quando</th>
+                        <th className="px-6 py-4">Tipo</th>
+                        <th className="px-6 py-4">Descrição</th>
+                        <th className="px-6 py-4">Utilizador</th>
+                        <th className="px-6 py-4">IP</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-900">
+                    <tbody>
                       {logs.map((r) => {
                         const type = String(r.event_type || "");
                         const tone = eventTypeBadgeClass(type);
@@ -512,78 +413,84 @@ export function CommandShell({ session }: { session: Session }) {
                           logEmails[r.user_id] ||
                           (r.user_id ? String(r.user_id).slice(0, 8) : "—");
                         return (
-                          <tr key={r.id} className="text-xs text-neutral-300 hover:bg-neutral-900">
-                            <td className="px-4 py-3 whitespace-nowrap admin-mono text-neutral-400">
+                          <tr key={r.id} className="border-b border-zinc-900 hover:bg-zinc-900/50 text-zinc-300">
+                            <td className="px-6 py-3 whitespace-nowrap text-zinc-400">
                               {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="px-6 py-3">
                               {type ? (
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}
+                                >
                                   {type}
                                 </span>
                               ) : (
-                                <span className="text-neutral-500">—</span>
+                                "—"
                               )}
                             </td>
-                            <td className="px-4 py-3 text-neutral-200">
-                              {r.description || (
-                                <span className="text-neutral-500">{r.target_type ? `${r.target_type}: ${r.target_id || ""}` : "—"}</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 admin-mono text-neutral-400">{userLabel}</td>
-                            <td className="px-4 py-3 admin-mono text-neutral-500">{r.ip || "—"}</td>
+                            <td className="px-6 py-3 text-zinc-200">{r.description || "—"}</td>
+                            <td className="px-6 py-3 text-zinc-400">{userLabel}</td>
+                            <td className="px-6 py-3 text-zinc-500">{r.ip || "—"}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {tab === "storage" && (
-            <div className="rounded-md border border-neutral-800 bg-neutral-950 p-6 shadow-xl ring-1 ring-neutral-800">
-              {!r2?.configured ? (
-                <p className="text-sm text-neutral-400">{r2?.message || "A carregar…"}</p>
-              ) : (
-                <>
-                  <p className="mb-4 text-xs text-neutral-500">
-                    Amostra de até {r2.keysScanned} chaves no bucket R2 (prefixo = pasta / tenant).{" "}
-                    {r2.truncated ? "Resultado truncado." : ""}
-                  </p>
+        {tab === "storage" && (
+          <AdminPanel kicker="Infra" title="Armazenamento R2">
+            {!r2?.configured ? (
+              <p className="text-sm text-zinc-400">{r2?.message || "A carregar…"}</p>
+            ) : (
+              <>
+                <p className="mb-4 text-xs text-zinc-500">
+                  Amostra de até {r2.keysScanned} chaves. {r2.truncated ? "Truncado." : ""}
+                </p>
+                <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="text-left text-[10px] font-semibold uppercase text-neutral-500">
-                      <tr>
-                        <th className="py-2">Prefixo</th>
-                        <th className="py-2">Objectos</th>
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-zinc-500">
+                        <th className="py-2 pr-4">Prefixo</th>
+                        <th className="py-2 pr-4">Objectos</th>
                         <th className="py-2">MB</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(r2.tenants || []).map((t: any) => (
-                        <tr key={t.tenantPrefix} className="border-t border-white/5 admin-mono text-xs">
-                          <td className="py-2 text-neutral-200">{t.tenantPrefix}</td>
-                          <td className="py-2">{t.objects}</td>
+                      {(r2.tenants || []).map((t: { tenantPrefix: string; objects: number; mb: number }) => (
+                        <tr key={t.tenantPrefix} className="border-t border-zinc-800 text-xs text-zinc-300">
+                          <td className="py-2 pr-4">{t.tenantPrefix}</td>
+                          <td className="py-2 pr-4">{t.objects}</td>
                           <td className="py-2">{t.mb}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </>
-              )}
-            </div>
-          )}
+                </div>
+              </>
+            )}
+          </AdminPanel>
+        )}
 
-          {tab === "create" && <CreateTenantForm onDone={() => void refreshTenants()} />}
-          {tab === "demo" && <DemoForm />}
-          {tab === "plans" && <PlansEditor initial={plansCatalog} />}
-          {tab === "whatsapp" && <WhatsAppPanel />}
-          {tab === "audit" && <AuditPanel />}
-
-          {tab === "monitor" && <AuditMonitor />}
-        </main>
-      </div>
+        {tab === "create" && (
+          <AdminPanel kicker="Operação" title="Novo terreiro">
+            <CreateTenantForm onDone={() => void refreshTenants()} />
+          </AdminPanel>
+        )}
+        {tab === "demo" && (
+          <AdminPanel kicker="Operação" title="Conta demonstração">
+            <DemoForm />
+          </AdminPanel>
+        )}
+        {tab === "plans" && <PlansEditor initial={plansCatalog} />}
+        {tab === "whatsapp" && <WhatsAppPanel />}
+        {tab === "audit" && <AuditPanel />}
+        {tab === "monitor" && <AuditMonitor />}
+      </AdminDashboardLayout>
 
       <TenantDrawer
         tenantId={drawerTenantId}
@@ -592,48 +499,10 @@ export function CommandShell({ session }: { session: Session }) {
           void refreshTenants();
         }}
       />
-    </div>
+    </>
   );
 }
 
-function StatCard({
-  label,
-  hint,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  hint: string;
-  value: string | number;
-  icon: ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className={admin.statCard}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={admin.kicker}>{label}</p>
-          <p className="mt-1 text-sm text-neutral-500">{hint}</p>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-[var(--admin-accent)]">
-          <Icon className="h-4 w-4" strokeWidth={1.9} />
-        </div>
-      </div>
-      <p className="mt-5 text-4xl font-semibold tabular-nums text-white">{value}</p>
-    </div>
-  );
-}
-
-function MiniBtn({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={admin.btnGhost}
-    >
-      {children}
-    </button>
-  );
-}
 
 /** Gera senha numérica aleatória de 8 dígitos via Web Crypto (sem viés). */
 function generateNumericPassword(length = 8): string {
@@ -860,7 +729,7 @@ type CatalogEntry = { name: string; price: number; description: string };
 
 const CATALOG_DEFAULT_PREMIUM: CatalogEntry = {
   name: "Premium",
-  price: 89.9,
+  price: 5,
   description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
 };
 const CATALOG_DEFAULT_VITA: CatalogEntry = {

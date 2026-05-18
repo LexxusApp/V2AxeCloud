@@ -13,6 +13,11 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { LANDING_PRICE } from '../constants/landingFeatures';
 import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
+import {
+  EFI_CARD_PIX_FALLBACK_MESSAGE,
+  isEfiCardProcessingFailure,
+  resolveCardPaymentUserMessage,
+} from '../../lib/efiCardCheckoutError';
 
 const GOLD = '#f2b90f';
 
@@ -184,6 +189,7 @@ export function RegistrationCheckoutPanel({
   const [copied, setCopied] = useState(false);
 
   const [cardLoading, setCardLoading] = useState(false);
+  const [cardPaymentError, setCardPaymentError] = useState<string | null>(null);
   const [holderName, setHolderName] = useState(defaultHolderName);
   const [holderCpf, setHolderCpf] = useState('');
   const [holderPhone, setHolderPhone] = useState(defaultPhone);
@@ -253,6 +259,8 @@ export function RegistrationCheckoutPanel({
       setPixTxid(null);
       setPixCopy(null);
       setCopied(false);
+    } else {
+      setCardPaymentError(null);
     }
   }, [method]);
 
@@ -345,6 +353,7 @@ export function RegistrationCheckoutPanel({
 
     setCardLoading(true);
     setError(null);
+    setCardPaymentError(null);
 
     try {
       const brand = await detectCardBrand(cardNumber);
@@ -384,7 +393,20 @@ export function RegistrationCheckoutPanel({
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Pagamento recusado.');
+      if (!res.ok) {
+        if (
+          data.suggestPix === true ||
+          isEfiCardProcessingFailure(null, {
+            httpStatus: res.status,
+            suggestPix: data.suggestPix,
+            message: typeof data.error === 'string' ? data.error : undefined,
+          })
+        ) {
+          setCardPaymentError(data.error || EFI_CARD_PIX_FALLBACK_MESSAGE);
+          return;
+        }
+        throw new Error(data.error || 'Pagamento recusado.');
+      }
 
       if (data.alreadyActive) {
         setAlreadyActive(true);
@@ -410,7 +432,7 @@ export function RegistrationCheckoutPanel({
         );
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro no pagamento com cartão.');
+      setCardPaymentError(resolveCardPaymentUserMessage(err));
     } finally {
       setCardLoading(false);
     }
@@ -809,6 +831,23 @@ export function RegistrationCheckoutPanel({
                     </>
                   )}
                 </motion.button>
+
+                {cardPaymentError ? (
+                  <motion.div
+                    role="alert"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      'flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[13px] leading-snug',
+                      variant === 'light'
+                        ? 'border-red-300 bg-red-50 text-red-800'
+                        : 'border-red-500/40 bg-red-950/50 text-red-200'
+                    )}
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p className="font-medium">{cardPaymentError}</p>
+                  </motion.div>
+                ) : null}
               </form>
             )}
           </motion.div>

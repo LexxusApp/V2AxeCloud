@@ -43,10 +43,21 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
     data = { raw: text };
   }
   if (!res.ok) {
-    if (res.status === 502 || res.status === 503 || res.status === 504) {
+    const body = data as { error?: string; debug?: { hint?: string } } | null;
+    const rawLower = text.toLowerCase();
+    const proxyDown =
+      res.status === 502 ||
+      res.status === 503 ||
+      res.status === 504 ||
+      (res.status === 500 &&
+        (!text ||
+          rawLower.includes("econnrefused") ||
+          rawLower.includes("proxy error") ||
+          rawLower.includes("internal server error")));
+    if (proxyDown) {
       throw new Error(API_UNAVAILABLE);
     }
-    const err = (data as { error?: string })?.error || res.statusText;
+    const err = body?.debug?.hint || body?.error || res.statusText || "Erro na API";
     throw new Error(err);
   }
   return data as T;
