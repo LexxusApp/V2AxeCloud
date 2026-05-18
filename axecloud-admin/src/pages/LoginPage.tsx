@@ -104,17 +104,13 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
         {session && consoleGate === "forbidden" && (
           <Notice tone="warn" title="Sem permissão neste painel">
             <p>
-              A conta <strong className="text-white">{session.user.email}</strong> tem sessão no Supabase, mas não é
-              admin global.
+              A conta <strong className="text-white">{session.user.email}</strong> entrou com sucesso, mas não está
+              autorizada como administrador global do AxéCloud.
             </p>
-            <p>No <code className="text-yellow-400/90">.env</code> da raiz do AxéCloud, adicione o e-mail:</p>
-            <code className="block rounded-xl bg-black/50 border border-zinc-800 px-3 py-2 text-yellow-400 break-all">
-              ADMIN_CONSOLE_EMAILS={session.user.email}
-            </code>
             <p className="text-zinc-400">
-              Reinicie o servidor (<code className="text-zinc-300">npm run dev:with-admin</code>) ou defina{" "}
-              <code className="text-zinc-300">is_admin_global = true</code> em{" "}
-              <code className="text-zinc-300">perfil_lider</code>.
+              Peça a um responsável técnico para incluir o seu e-mail em{" "}
+              <code className="text-yellow-400/90">ADMIN_CONSOLE_EMAILS</code> no projeto da API (Vercel) ou marcar{" "}
+              <code className="text-zinc-300">is_admin_global = true</code> no Supabase.
             </p>
             <button
               type="button"
