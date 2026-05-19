@@ -55,11 +55,11 @@ export function TenantsTable({
   compact,
 }: TenantsTableProps) {
   return (
-    <section className="bg-zinc-950 border border-zinc-800 rounded-[32px] overflow-hidden">
-      <div className="p-6 sm:p-8 border-b border-zinc-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <section className="admin-panel !p-0 overflow-hidden">
+      <div className="flex flex-col gap-6 border-b border-[var(--ac-paper-border)] p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-yellow-500 uppercase tracking-[0.3em] text-xs">Sistema</p>
-          <h3 className="text-2xl sm:text-3xl font-black mt-2">
+          <p className="admin-kicker">Sistema</p>
+          <h3 className="admin-section-title mt-1">
             {compact ? "Últimos terreiros cadastrados" : "Terreiros cadastrados"}
           </h3>
         </div>
@@ -68,7 +68,7 @@ export function TenantsTable({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar usuário ou terreiro..."
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4 w-full lg:w-96 outline-none focus:border-yellow-500 text-white placeholder:text-zinc-500"
+          className="admin-input w-full lg:max-w-md"
         />
       </div>
       <div className="overflow-x-auto">

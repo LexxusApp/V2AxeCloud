@@ -30,6 +30,9 @@ export const admin = {
   mono: "admin-mono",
 } as const;
 
-export function eventTypeBadgeClass(_type: string): string {
-  return "admin-badge";
+export function eventTypeBadgeClass(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes("error") || t.includes("fail")) return "admin-badge-muted";
+  if (t.includes("login") || t.includes("auth")) return "admin-badge";
+  return "admin-badge-strong";
 }

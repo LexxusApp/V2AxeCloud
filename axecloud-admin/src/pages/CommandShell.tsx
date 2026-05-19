@@ -8,7 +8,18 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { format } from "date-fns";
-import { Copy, FileJson2, Info, RefreshCw, ScrollText, X } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  Copy,
+  FileJson2,
+  Info,
+  RefreshCw,
+  ScrollText,
+  Users,
+  Wallet,
+  X,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -266,10 +277,10 @@ export function CommandShell({ session }: { session: Session }) {
         {tab === "overview" && (
           <>
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-              <AdminStatCard title="Usuários" value={statUsers} icon="👥" />
-              <AdminStatCard title="Terreiros" value={statTerreiros} icon="🛕" />
-              <AdminStatCard title="Eventos (7d)" value={statEventos} icon="📅" />
-              <AdminStatCard title="Receita ref." value={statReceita} icon="💰" />
+              <AdminStatCard title="Usuários" value={statUsers} icon={Users} />
+              <AdminStatCard title="Terreiros" value={statTerreiros} icon={Building2} />
+              <AdminStatCard title="Eventos (7d)" value={statEventos} icon={CalendarDays} />
+              <AdminStatCard title="Receita ref." value={statReceita} icon={Wallet} />
             </section>
 
             {overview?.accessLogsAvailable === false && (
@@ -297,7 +308,7 @@ export function CommandShell({ session }: { session: Session }) {
                     {chartHeights.map((height, index) => (
                       <div
                         key={index}
-                        className="flex-1 bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t-3xl shadow-lg shadow-yellow-500/20 min-w-0"
+                        className="admin-chart-bar min-w-0"
                         style={{ height: `${height}px` }}
                         title={dailySeries[index] ? `${dailySeries[index][0]}: ${dailySeries[index][1]}` : undefined}
                       />

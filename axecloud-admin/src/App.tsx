@@ -57,10 +57,10 @@ export default function App() {
 
   if (!supabase) {
     return (
-      <div className="flex min-h-full items-center justify-center p-8 text-center text-neutral-400">
-        Defina <span className="admin-mono text-neutral-200">VITE_SUPABASE_URL</span> e{" "}
-        <span className="admin-mono text-neutral-200">VITE_SUPABASE_ANON_KEY</span> no{" "}
-        <span className="admin-mono">axecloud-admin/.env</span>.
+      <div className="flex min-h-full items-center justify-center p-8 text-center text-[var(--ac-text-muted)] bg-[var(--ac-paper)]">
+        Defina <span className="font-semibold text-[var(--ac-text)]">VITE_SUPABASE_URL</span> e{" "}
+        <span className="font-semibold text-[var(--ac-text)]">VITE_SUPABASE_ANON_KEY</span> no{" "}
+        <span className="font-mono text-sm">axecloud-admin/.env</span>.
       </div>
     );
   }
