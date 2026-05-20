@@ -84,15 +84,18 @@ export function AdminDashboardLayout({
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar" aria-label="Menu principal">
-        <div className="admin-sidebar-brand border-b border-white/5 px-5 py-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ac-accent)] text-white shadow-lg shadow-[var(--ac-accent-glow)]">
-            <Shield className="h-5 w-5" strokeWidth={2} />
+        <div className="admin-sidebar-brand border-b border-white/5 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--ac-accent)] text-white shadow-lg shadow-[var(--ac-accent-glow)]">
+              <Shield className="h-4 w-4" strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9aa3ad]">AxéCloud</p>
+              <h1 className="text-base font-semibold tracking-tight text-white leading-tight">Console</h1>
+            </div>
           </div>
-          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9aa3ad]">AxéCloud</p>
-          <h1 className="mt-1 text-lg font-semibold tracking-tight text-white">Console</h1>
-          <p className="mt-2 text-xs leading-relaxed text-[#b8c0c8]">Gestão global da plataforma</p>
         </div>
-        <nav className="admin-sidebar-nav px-3 py-4 space-y-0.5">
+        <nav className="admin-sidebar-nav px-2.5 py-2 space-y-0.5">
           {MAIN_NAV.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
@@ -108,7 +111,7 @@ export function AdminDashboardLayout({
               </button>
             );
           })}
-          <p className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-[#9aa3ad]">Operações</p>
+          <p className="px-2.5 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#9aa3ad]">Operações</p>
           {EXTRA_NAV.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
@@ -128,8 +131,8 @@ export function AdminDashboardLayout({
             );
           })}
         </nav>
-        <div className="admin-sidebar-session border-t border-white/5 p-4">
-          <div className="rounded-xl bg-white/[0.04] p-3">
+        <div className="admin-sidebar-session border-t border-white/5 p-3">
+          <div className="rounded-xl bg-white/[0.04] p-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9aa3ad]">Sessão</p>
             <p className="mt-1 truncate text-sm font-medium text-white">{displayName}</p>
             <p className="truncate text-[11px] text-[#b8c0c8]">{email}</p>
