@@ -32,7 +32,13 @@ export const admin = {
 
 export function eventTypeBadgeClass(type: string): string {
   const t = type.toLowerCase();
-  if (t.includes("error") || t.includes("fail")) return "admin-badge-muted";
+  if (t.includes("unauthorized") || t.includes("failed") || t.includes("fail") || t.includes("error")) {
+    return "admin-badge-muted";
+  }
   if (t.includes("login") || t.includes("auth")) return "admin-badge";
   return "admin-badge-strong";
+}
+
+export function auditStatusBadgeClass(status: string): string {
+  return status === "success" ? "admin-badge-strong" : "admin-badge-muted";
 }

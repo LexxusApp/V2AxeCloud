@@ -23,7 +23,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { admin, eventTypeBadgeClass } from "@/lib/adminTheme";
+import { admin, auditStatusBadgeClass, eventTypeBadgeClass } from "@/lib/adminTheme";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { TenantDrawer } from "./TenantDrawer";
 import { AuditPanel } from "./AuditPanel";
@@ -91,7 +91,6 @@ export function CommandShell({ session }: { session: Session }) {
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [plansCatalog, setPlansCatalog] = useState<Record<string, unknown>>({});
   const [logs, setLogs] = useState<any[]>([]);
-  const [logEmails, setLogEmails] = useState<Record<string, string>>({});
   const [logEventTypes, setLogEventTypes] = useState<string[]>([]);
   const [logFilterType, setLogFilterType] = useState<string>("");
   const [logsAvailable, setLogsAvailable] = useState<boolean>(true);
@@ -120,19 +119,17 @@ export function CommandShell({ session }: { session: Session }) {
 
   const refreshLogs = useCallback(async () => {
     const qs = new URLSearchParams({ limit: "200" });
-    if (logFilterType) qs.set("eventType", logFilterType);
+    if (logFilterType) qs.set("action", logFilterType);
     const j = await apiJson<{
       rows: any[];
-      emailByUser: Record<string, string>;
-      accessLogsAvailable?: boolean;
+      auditLogsAvailable?: boolean;
       notice?: string;
-      eventTypes?: string[];
-    }>(`/api/admin-console/access-logs?${qs.toString()}`);
+      actions?: string[];
+    }>(`/api/admin-console/audit-logs?${qs.toString()}`);
     setLogs(j.rows || []);
-    setLogEmails(j.emailByUser || {});
-    setLogsAvailable(j.accessLogsAvailable !== false);
+    setLogsAvailable(j.auditLogsAvailable !== false);
     setLogsNotice(j.notice || "");
-    if (Array.isArray(j.eventTypes) && j.eventTypes.length) setLogEventTypes(j.eventTypes);
+    if (Array.isArray(j.actions) && j.actions.length) setLogEventTypes(j.actions);
   }, [logFilterType]);
 
   const refreshR2 = useCallback(async () => {
@@ -367,81 +364,106 @@ export function CommandShell({ session }: { session: Session }) {
 
         {tab === "logs" && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3">
-              <span className="text-xs uppercase tracking-widest text-zinc-500">Tipo</span>
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--ac-paper-border)] bg-white px-4 py-3">
+              <span className="text-xs uppercase tracking-widest text-[var(--ac-text-muted)]">Ação</span>
               <select
                 value={logFilterType}
                 onChange={(e) => setLogFilterType(e.target.value)}
-                className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-yellow-500"
+                className="admin-input !w-auto min-w-[12rem]"
               >
-                <option value="">Todos os eventos</option>
+                <option value="">Todas as ações</option>
                 {logEventTypes.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={() => void refreshLogs()}
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm hover:border-yellow-500/40"
-              >
+              <button type="button" onClick={() => void refreshLogs()} className="admin-btn-secondary">
                 Actualizar
               </button>
-              <span className="ml-auto text-xs text-zinc-500">
+              <span className="ml-auto text-xs text-[var(--ac-text-muted)]">
                 {logs.length} {logs.length === 1 ? "linha" : "linhas"}
               </span>
             </div>
-            <div className="rounded-[32px] border border-zinc-800 bg-zinc-950 overflow-hidden">
+            <div className={admin.tableWrap}>
               {!logsAvailable ? (
                 <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                  <ScrollText className="h-10 w-10 text-zinc-500" />
-                  <p className="text-sm font-medium text-zinc-200">
-                    Tabela <code className="text-yellow-400/90">access_logs</code> ainda não existe
+                  <ScrollText className="h-10 w-10 text-[var(--ac-text-faint)]" />
+                  <p className="text-sm font-medium text-[var(--ac-text)]">
+                    Tabela <code className="admin-mono text-[var(--ac-accent)]">audit_logs</code> ainda não existe
                   </p>
-                  <p className="max-w-md text-xs text-zinc-400">{logsNotice || "Crie a tabela no Supabase."}</p>
+                  <p className="max-w-md text-xs text-[var(--ac-text-muted)]">
+                    {logsNotice || "Aplique supabase/migrations/20260520120000_audit_logs.sql no Supabase."}
+                  </p>
                 </div>
               ) : !logs.length ? (
-                <div className="py-16 text-center text-zinc-500 text-sm">Sem eventos registados ainda.</div>
+                <div className="py-16 text-center text-[var(--ac-text-muted)] text-sm">
+                  Sem eventos de auditoria registados ainda.
+                </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
+                  <table className={admin.table}>
                     <thead>
-                      <tr className="border-b border-zinc-800 text-zinc-400 text-xs uppercase">
-                        <th className="px-6 py-4">Quando</th>
-                        <th className="px-6 py-4">Tipo</th>
-                        <th className="px-6 py-4">Descrição</th>
-                        <th className="px-6 py-4">Utilizador</th>
-                        <th className="px-6 py-4">IP</th>
+                      <tr className={admin.thead}>
+                        <th className={admin.th}>Quando</th>
+                        <th className={admin.th}>Ação</th>
+                        <th className={admin.th}>Estado</th>
+                        <th className={admin.th}>Detalhes</th>
+                        <th className={admin.th}>Utilizador</th>
+                        <th className={admin.th}>IP</th>
                       </tr>
                     </thead>
                     <tbody>
                       {logs.map((r) => {
-                        const type = String(r.event_type || "");
-                        const tone = eventTypeBadgeClass(type);
+                        const action = String(r.action || "");
+                        const status = String(r.status || "");
+                        const detailsObj = r.details && typeof r.details === "object" ? r.details : null;
+                        const detailsText = detailsObj
+                          ? [
+                              detailsObj.email && `email: ${detailsObj.email}`,
+                              detailsObj.reason && `motivo: ${detailsObj.reason}`,
+                              detailsObj.path && `rota: ${detailsObj.path}`,
+                              detailsObj.surface && `origem: ${detailsObj.surface}`,
+                              detailsObj.message && String(detailsObj.message).slice(0, 120),
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || JSON.stringify(detailsObj).slice(0, 160)
+                          : "—";
                         const userLabel =
                           r.user_email ||
-                          logEmails[r.user_id] ||
                           (r.user_id ? String(r.user_id).slice(0, 8) : "—");
                         return (
-                          <tr key={r.id} className="border-b border-zinc-900 hover:bg-zinc-900/50 text-zinc-300">
-                            <td className="px-6 py-3 whitespace-nowrap text-zinc-400">
-                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
+                          <tr key={r.id} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)]")}>
+                            <td className="px-6 py-3 whitespace-nowrap text-[var(--ac-text-muted)] text-xs">
+                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm:ss") : "—"}
                             </td>
                             <td className="px-6 py-3">
-                              {type ? (
+                              {action ? (
                                 <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${eventTypeBadgeClass(action)}`}
                                 >
-                                  {type}
+                                  {action}
                                 </span>
                               ) : (
                                 "—"
                               )}
                             </td>
-                            <td className="px-6 py-3 text-zinc-200">{r.description || "—"}</td>
-                            <td className="px-6 py-3 text-zinc-400">{userLabel}</td>
-                            <td className="px-6 py-3 text-zinc-500">{r.ip || "—"}</td>
+                            <td className="px-6 py-3">
+                              {status ? (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${auditStatusBadgeClass(status)}`}
+                                >
+                                  {status}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="px-6 py-3 max-w-xs text-xs text-[var(--ac-text)] truncate" title={detailsText}>
+                              {detailsText}
+                            </td>
+                            <td className="px-6 py-3 text-[var(--ac-text-muted)] text-xs">{userLabel}</td>
+                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]">{r.ip || "—"}</td>
                           </tr>
                         );
                       })}

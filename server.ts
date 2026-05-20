@@ -53,6 +53,8 @@ import { countFilhosForPerfilLider } from "./api/lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./api/lib/resolveFilhoRowIdForFinance.js";
 import { fetchFinanceiroRowsForFilho } from "./api/lib/fetchFinanceiroRowsForFilho.js";
 import { logEvent } from "./api/lib/auditLog.js";
+import { createAuditLog } from "./api/lib/createAuditLog.js";
+import { registerAuthAuditRoutes } from "./api/lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
@@ -1555,7 +1557,7 @@ async function startServer() {
       // 1. Localiza o filho na tabela
       const { data: allChildren, error: listError } = await supabaseAdmin
         .from('filhos_de_santo')
-        .select('id, cpf, user_id, nome');
+        .select('id, cpf, user_id, nome, tenant_id, lider_id');
         
       if (listError) throw listError;
       
@@ -1571,10 +1573,17 @@ async function startServer() {
           description: "Tentativa de login: filho de santo não encontrado com este ID.",
           req,
         });
+        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", null, {
+          surface: "app",
+          mode: "filho",
+          childId,
+          reason: "child_not_found",
+        });
         return res.status(404).json({ error: "Filho de santo não encontrado com este ID." });
       }
 
       if (!child.cpf) {
+        const tidNoCpf = (child as any).tenant_id || (child as any).lider_id || null;
         void logEvent(supabaseAdmin, {
           eventType: "filho.login-failed",
           targetType: "filho",
@@ -1582,12 +1591,19 @@ async function startServer() {
           description: `Login negado: filho ${child.nome} sem CPF cadastrado.`,
           req,
         });
+        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", tidNoCpf, {
+          surface: "app",
+          mode: "filho",
+          childId: child.id,
+          reason: "missing_cpf",
+        });
         return res.status(400).json({ error: "Este filho de santo não possui CPF cadastrado." });
       }
 
       // 2. Valida o prefixo do CPF
       const cleanCpf = child.cpf.replace(/\D/g, '');
       if (!cleanCpf.startsWith(cpfPrefix)) {
+        const tidBadCpf = (child as any).tenant_id || (child as any).lider_id || null;
         void logEvent(supabaseAdmin, {
           eventType: "filho.login-failed",
           targetType: "filho",
@@ -1595,6 +1611,12 @@ async function startServer() {
           description: `Login do filho "${child.nome}" recusado: CPF incorreto.`,
           metadata: { cpfPrefix },
           req,
+        });
+        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", tidBadCpf, {
+          surface: "app",
+          mode: "filho",
+          childId: child.id,
+          reason: "wrong_cpf_prefix",
         });
         return res.status(401).json({ error: "CPF incorreto." });
       }
@@ -1642,6 +1664,7 @@ async function startServer() {
           await supabaseAdmin.from('filhos_de_santo').update({ user_id: authUser.id }).eq('id', child.id);
         }
 
+        const tidOk = (child as any).tenant_id || (child as any).lider_id || null;
         void logEvent(supabaseAdmin, {
           eventType: "filho.login",
           userId: authUser.id,
@@ -1650,6 +1673,13 @@ async function startServer() {
           targetId: String(child.id),
           description: `Filho "${child.nome}" entrou no sistema.`,
           req,
+        });
+        void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidOk, {
+          surface: "app",
+          mode: "filho",
+          userId: authUser.id,
+          email: fakeEmail,
+          childId: child.id,
         });
         return res.json({ email: fakeEmail, password: generatedPassword });
       } else {
@@ -1670,6 +1700,7 @@ async function startServer() {
              if (found) {
                 await supabaseAdmin.auth.admin.updateUserById(found.id, { password: generatedPassword });
                 await supabaseAdmin.from('filhos_de_santo').update({ user_id: found.id }).eq('id', child.id);
+                const tidFound = (child as any).tenant_id || (child as any).lider_id || null;
                 void logEvent(supabaseAdmin, {
                   eventType: "filho.login",
                   userId: found.id,
@@ -1679,6 +1710,13 @@ async function startServer() {
                   description: `Filho "${child.nome}" entrou no sistema (recuperação de vínculo).`,
                   req,
                 });
+                void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidFound, {
+                  surface: "app",
+                  mode: "filho",
+                  userId: found.id,
+                  email: fakeEmail,
+                  childId: child.id,
+                });
                 return res.json({ email: fakeEmail, password: generatedPassword });
              }
           }
@@ -1686,6 +1724,7 @@ async function startServer() {
         }
 
         await supabaseAdmin.from('filhos_de_santo').update({ user_id: newUser.user.id }).eq('id', child.id);
+        const tidNew = (child as any).tenant_id || (child as any).lider_id || null;
         void logEvent(supabaseAdmin, {
           eventType: "filho.login",
           userId: newUser.user.id,
@@ -1695,11 +1734,26 @@ async function startServer() {
           description: `Filho "${child.nome}" entrou no sistema (primeira vez, shadow user criado).`,
           req,
         });
+        void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidNew, {
+          surface: "app",
+          mode: "filho",
+          userId: newUser.user.id,
+          email: fakeEmail,
+          childId: child.id,
+          firstLogin: true,
+        });
         return res.json({ email: fakeEmail, password: generatedPassword });
       }
 
     } catch (error: any) {
       console.error("[AUTH] Erro no Login do Filho:", error);
+      void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", null, {
+        surface: "app",
+        mode: "filho",
+        childId,
+        reason: "server_error",
+        message: String(error?.message || error).slice(0, 200),
+      });
       res.status(500).json({ error: error.message || "Erro ao processar login." });
     }
   });
@@ -3289,6 +3343,8 @@ async function startServer() {
       res.status(500).json({ error: error.message });
     }
   });
+
+  registerAuthAuditRoutes(app, { supabaseAdmin, verifyUser });
 
   registerAdminConsoleRoutes(app, {
     verifyUser,

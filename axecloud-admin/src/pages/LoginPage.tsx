@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { ArrowRight, KeyRound, LogOut, Shield } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { apiJson, isApiUnreachable, setAccessToken } from "@/lib/api";
+import { apiJson, isApiUnreachable, postAuthAuditLog, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -59,13 +59,36 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
       if (!data.session) throw new Error("Sem sessão após login.");
       setAccessToken(data.session.access_token);
       await apiJson("/api/admin-console/session");
+      void postAuthAuditLog(
+        {
+          action: "auth.login_success",
+          status: "success",
+          details: {
+            surface: "admin-console",
+            email: data.session.user.email,
+            userId: data.session.user.id,
+          },
+        },
+        data.session.access_token
+      );
       await onAuthed(data.session);
     } catch (e: unknown) {
-      if (isApiUnreachable(e)) {
-        setErr("Não foi possível contactar a API. Verifique se o backend está online.");
-      } else {
-        setErr(e instanceof Error ? e.message : "Falha no login");
-      }
+      const errMsg = isApiUnreachable(e)
+        ? "Não foi possível contactar a API. Verifique se o backend está online."
+        : e instanceof Error
+          ? e.message
+          : "Falha no login";
+      void postAuthAuditLog({
+        action: "auth.login_failed",
+        status: "failed",
+        terreiroId: null,
+        details: {
+          surface: "admin-console",
+          email: email.trim().toLowerCase(),
+          message: errMsg.slice(0, 300),
+        },
+      });
+      setErr(errMsg);
       setAccessToken(null);
     } finally {
       setLoading(false);

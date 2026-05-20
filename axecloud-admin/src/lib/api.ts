@@ -27,6 +27,30 @@ export function setAccessToken(token: string | null) {
   }
 }
 
+/** Regista login no audit_logs (best-effort; não bloqueia o fluxo). */
+export async function postAuthAuditLog(
+  payload: {
+    action: "auth.login_success" | "auth.login_failed";
+    status: "success" | "failed";
+    terreiroId?: string | null;
+    details?: Record<string, unknown>;
+  },
+  accessToken?: string | null
+): Promise<void> {
+  try {
+    const headers = new Headers({ "Content-Type": "application/json" });
+    const t = accessToken ?? getAccessToken();
+    if (t) headers.set("Authorization", `Bearer ${t}`);
+    await fetch("/api/auth/audit-log", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    /* auditoria não deve impedir login */
+  }
+}
+
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const t = getAccessToken();

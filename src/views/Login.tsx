@@ -24,6 +24,28 @@ import { ROUTES } from '../lib/routes';
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 
+async function postAuthAuditLog(
+  payload: {
+    action: 'auth.login_success' | 'auth.login_failed';
+    status: 'success' | 'failed';
+    terreiroId?: string | null;
+    details?: Record<string, unknown>;
+  },
+  accessToken?: string | null
+) {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    await fetch('/api/auth/audit-log', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    /* auditoria best-effort */
+  }
+}
+
 /** Tokens — ouro principal do mockup anotado. */
 const GOLD = '#f2b90f';
 const GOLD_DARK = '#c88900';
@@ -258,23 +280,50 @@ export default function Login() {
       } = await supabase.auth.getSession();
       if (postSession?.user) {
         persistFilhoFlag(filhoSurface, postSession.user.id);
+        let tenantId = postSession.user.id;
         try {
           const r = await fetch(
             `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`
           );
           if (r.ok) {
             const j = await r.json();
-            const tid = String(j.tenant_id || '').trim() || postSession.user.id;
-            writeCachedTenantIdForUser(postSession.user.id, tid);
+            tenantId = String(j.tenant_id || '').trim() || postSession.user.id;
+            writeCachedTenantIdForUser(postSession.user.id, tenantId);
           } else {
             writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
           }
         } catch {
           writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
         }
+        void postAuthAuditLog(
+          {
+            action: 'auth.login_success',
+            status: 'success',
+            terreiroId: tenantId,
+            details: {
+              surface: 'app',
+              mode: filhoSurface ? 'filho' : 'zelador',
+              email: postSession.user.email,
+              userId: postSession.user.id,
+            },
+          },
+          postSession.access_token
+        );
       }
     } catch (err: unknown) {
-      setError(humanizeAuthError(err));
+      const msg = humanizeAuthError(err);
+      void postAuthAuditLog({
+        action: 'auth.login_failed',
+        status: 'failed',
+        terreiroId: null,
+        details: {
+          surface: 'app',
+          mode: filhoSurface ? 'filho' : 'zelador',
+          ...(filhoSurface ? { childId } : { email: email.trim().toLowerCase() }),
+          message: msg.slice(0, 300),
+        },
+      });
+      setError(msg);
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,7 @@ import {
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
 import { logEvent } from "./lib/auditLog.js";
+import { createAuditLog } from "./lib/createAuditLog.js";
 import { scanUrl } from "./lib/audit/scan.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
@@ -44,6 +45,21 @@ export type AdminConsoleRouteDeps = {
   r2Bucket: string | undefined;
 };
 
+function logConsoleUnauthorized(
+  deps: AdminConsoleRouteDeps,
+  req: Request,
+  reason: string,
+  extra?: Record<string, unknown>
+) {
+  void createAuditLog(deps.supabaseAdmin, req, "auth.unauthorized_attempt", "failed", null, {
+    scope: "admin-console",
+    path: req.path,
+    method: req.method,
+    reason,
+    ...extra,
+  });
+}
+
 async function requireConsoleAdmin(
   deps: AdminConsoleRouteDeps,
   req: Request,
@@ -51,16 +67,21 @@ async function requireConsoleAdmin(
 ): Promise<{ user: any } | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
+    logConsoleUnauthorized(deps, req, "missing_authorization");
     res.status(401).json({ error: "Não autorizado" });
     return null;
   }
   const token = authHeader.replace("Bearer ", "");
   if (!token || token === "undefined" || token === "null") {
+    logConsoleUnauthorized(deps, req, "invalid_token_literal");
     res.status(401).json({ error: "Token inválido" });
     return null;
   }
   const { user, error: authError } = await deps.verifyUser(token);
   if (authError || !user) {
+    logConsoleUnauthorized(deps, req, "invalid_session", {
+      authError: authError?.message ? String(authError.message).slice(0, 200) : undefined,
+    });
     res.status(401).json({ error: "Sessão inválida" });
     return null;
   }
@@ -71,6 +92,10 @@ async function requireConsoleAdmin(
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
     const userEmail = String(user.email || "").trim().toLowerCase();
+    logConsoleUnauthorized(deps, req, "forbidden_not_global_admin", {
+      userId: user.id,
+      userEmail,
+    });
     console.warn(
       `[admin-console] ACESSO NEGADO | userId=${user.id} | userEmail="${userEmail}" | allowlist=[${allow.join(", ")}] | path=${req.path}`
     );
@@ -475,6 +500,62 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/tenant reset-password]", e);
       res.status(500).json({ error: e?.message || "Erro ao redefinir senha" });
+    }
+  });
+
+  app.get("/api/admin-console/audit-logs", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+    const offset = Math.max(0, Number(req.query.offset || 0));
+    const filterAction = String(req.query.action || "").trim();
+    const filterStatus = String(req.query.status || "").trim();
+    const filterTerreiro = String(req.query.terreiroId || "").trim();
+
+    try {
+      let q = deps.supabaseAdmin
+        .from("audit_logs")
+        .select(
+          "id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email"
+        );
+      if (filterAction) q = q.eq("action", filterAction);
+      if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
+      if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
+      const { data: rows, error } = await q
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error && isMissingOrUnknownTable(error, "audit_logs")) {
+        return res.json({
+          rows: [],
+          auditLogsAvailable: false,
+          notice:
+            "A tabela audit_logs não existe neste projecto Supabase. Aplique supabase/migrations/20260520120000_audit_logs.sql.",
+        });
+      }
+      if (error) throw error;
+
+      let actions: string[] = [];
+      try {
+        const { data: distinct } = await deps.supabaseAdmin
+          .from("audit_logs")
+          .select("action")
+          .not("action", "is", null)
+          .limit(500);
+        const set = new Set<string>();
+        for (const r of distinct || []) set.add(String((r as { action?: string }).action || ""));
+        actions = [...set].filter(Boolean).sort();
+      } catch {
+        actions = [];
+      }
+
+      res.json({
+        rows: rows || [],
+        auditLogsAvailable: true,
+        actions,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Erro ao ler audit_logs." });
     }
   });
 
