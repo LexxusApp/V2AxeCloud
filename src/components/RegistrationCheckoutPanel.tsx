@@ -221,9 +221,8 @@ export function RegistrationCheckoutPanel({
       if (!cfgRes.ok) throw new Error(cfg.error || 'Checkout indisponível');
 
       setConfig(cfg as EfiConfig);
-      if (cfg.pixAvailable && cfg.cardAvailable) setMethod('pix');
-      else if (!cfg.pixAvailable && cfg.cardAvailable) setMethod('card');
-      else if (cfg.pixAvailable) setMethod('pix');
+      if (cfg.pixAvailable) setMethod('pix');
+      else if (cfg.cardAvailable) setMethod('card');
 
       if (ctxRes.ok) {
         const context = (await ctxRes.json()) as CheckoutContext;
@@ -506,7 +505,7 @@ export function RegistrationCheckoutPanel({
             </motion.div>
           )}
 
-          {(config?.pixAvailable || config?.cardAvailable) && (
+          {config?.pixAvailable && config?.cardAvailable && (
             <motion.div className={t.tabContainer} layout role="tablist" aria-label="Forma de pagamento">
               {config?.pixAvailable && (
                 <button

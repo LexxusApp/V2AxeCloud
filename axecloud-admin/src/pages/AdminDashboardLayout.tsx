@@ -84,7 +84,7 @@ export function AdminDashboardLayout({
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar" aria-label="Menu principal">
-        <div className="border-b border-white/5 px-5 py-6">
+        <div className="admin-sidebar-brand border-b border-white/5 px-5 py-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ac-accent)] text-white shadow-lg shadow-[var(--ac-accent-glow)]">
             <Shield className="h-5 w-5" strokeWidth={2} />
           </div>
@@ -92,7 +92,7 @@ export function AdminDashboardLayout({
           <h1 className="mt-1 text-lg font-semibold tracking-tight text-white">Console</h1>
           <p className="mt-2 text-xs leading-relaxed text-[#b8c0c8]">Gestão global da plataforma</p>
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <nav className="admin-sidebar-nav px-3 py-4 space-y-0.5">
           {MAIN_NAV.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
@@ -128,7 +128,7 @@ export function AdminDashboardLayout({
             );
           })}
         </nav>
-        <div className="border-t border-white/5 p-4">
+        <div className="admin-sidebar-session border-t border-white/5 p-4">
           <div className="rounded-xl bg-white/[0.04] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9aa3ad]">Sessão</p>
             <p className="mt-1 truncate text-sm font-medium text-white">{displayName}</p>

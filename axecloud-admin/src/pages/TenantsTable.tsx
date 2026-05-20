@@ -40,6 +40,7 @@ type TenantsTableProps = {
   onBlock: (id: string, blocked: boolean) => void;
   onRenewMonth: (id: string) => void;
   onLifetime: (id: string) => void;
+  onDelete?: (id: string) => void;
   busy?: boolean;
   compact?: boolean;
 };
@@ -52,15 +53,19 @@ export function TenantsTable({
   onBlock,
   onRenewMonth,
   onLifetime,
+  onDelete,
   busy,
   compact,
 }: TenantsTableProps) {
+  const cell = "px-4 py-2.5";
+  const head = cn(cell, "text-[10px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]");
+
   return (
     <section className="admin-panel !p-0 overflow-hidden">
-      <div className="flex flex-col gap-6 border-b border-[var(--ac-paper-border)] p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-[var(--ac-paper-border)] p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="admin-kicker">Sistema</p>
-          <h3 className="admin-section-title mt-1">
+          <p className="admin-kicker !text-[10px]">Sistema</p>
+          <h3 className="text-base font-semibold text-[var(--ac-text)] mt-0.5">
             {compact ? "Últimos terreiros cadastrados" : "Terreiros cadastrados"}
           </h3>
         </div>
@@ -69,25 +74,25 @@ export function TenantsTable({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar usuário ou terreiro..."
-          className="admin-input w-full lg:max-w-md"
+          className="admin-input !py-2 !text-sm w-full lg:max-w-sm"
         />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px]">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className={cn(admin.thead, "text-left text-sm uppercase tracking-wider")}>
-              <th className="px-6 sm:px-8 py-5">Terreiro</th>
-              <th className="px-6 sm:px-8 py-5">Plano</th>
-              {!compact && <th className="px-6 sm:px-8 py-5">E-mail</th>}
-              <th className="px-6 sm:px-8 py-5">Cadastro</th>
-              <th className="px-6 sm:px-8 py-5">Status</th>
-              <th className="px-6 sm:px-8 py-5">Ações</th>
+            <tr className={cn(admin.thead, "text-left")}>
+              <th className={head}>Terreiro</th>
+              <th className={head}>Plano</th>
+              {!compact && <th className={head}>E-mail</th>}
+              <th className={head}>Cadastro</th>
+              <th className={head}>Status</th>
+              <th className={head}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={compact ? 5 : 6} className="px-8 py-12 text-center text-[var(--ac-text-muted)]">
+                <td colSpan={compact ? 5 : 6} className="px-4 py-8 text-center text-xs text-[var(--ac-text-muted)]">
                   {busy ? "A carregar…" : "Nenhum terreiro encontrado."}
                 </td>
               </tr>
@@ -97,35 +102,37 @@ export function TenantsTable({
                   key={row.id}
                   className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)] transition-all")}
                 >
-                  <td className="px-6 sm:px-8 py-6 font-semibold text-[var(--ac-text)]">{row.nome_terreiro || "—"}</td>
-                  <td className="px-6 sm:px-8 py-6">
-                    <span className={admin.badgeStrong + " px-4 py-2 rounded-full text-sm"}>
+                  <td className={cn(cell, "font-medium text-[var(--ac-text)] max-w-[180px] truncate")}>
+                    {row.nome_terreiro || "—"}
+                  </td>
+                  <td className={cell}>
+                    <span className={cn(admin.badgeStrong, "px-2 py-0.5 rounded-full text-[11px] font-medium")}>
                       {planLabel(row.plan)}
                     </span>
                   </td>
                   {!compact && (
-                    <td className="px-6 sm:px-8 py-6 text-[var(--ac-text-muted)] text-sm max-w-[200px] truncate">
+                    <td className={cn(cell, "text-[var(--ac-text-muted)] text-xs max-w-[160px] truncate")}>
                       {row.email || "—"}
                     </td>
                   )}
-                  <td className="px-6 sm:px-8 py-6 text-[var(--ac-text-muted)] text-sm">
+                  <td className={cn(cell, "text-[var(--ac-text-muted)] text-xs whitespace-nowrap")}>
                     {row.expires_at
                       ? format(new Date(row.expires_at), "dd/MM/yyyy", { locale: ptBR })
                       : cadastroLabel(row.expires_at, row.created_at)}
                   </td>
-                  <td className="px-6 sm:px-8 py-6">
+                  <td className={cn(cell, "text-xs whitespace-nowrap")}>
                     {row.is_blocked ? (
                       <span className="text-[var(--ac-danger)]">● Bloqueado</span>
                     ) : (
                       <span className="text-[var(--ac-success)]">● Ativo</span>
                     )}
                   </td>
-                  <td className="px-6 sm:px-8 py-6">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <td className={cell}>
+                    <div className="flex items-center gap-1 flex-wrap">
                       <button
                         type="button"
                         onClick={() => onManage(row.id)}
-                        className="admin-btn-primary !rounded-xl text-sm hover:scale-[1.02]"
+                        className="admin-btn-primary !rounded-lg !px-2.5 !py-1 text-xs"
                       >
                         Gerenciar
                       </button>
@@ -133,7 +140,7 @@ export function TenantsTable({
                         type="button"
                         onClick={() => onBlock(row.id, !row.is_blocked)}
                         className={cn(
-                          "admin-btn-secondary !rounded-xl text-sm",
+                          "admin-btn-secondary !rounded-lg !px-2.5 !py-1 text-xs",
                           row.is_blocked
                             ? "!border-[rgba(13,122,78,0.35)] !text-[var(--ac-success)]"
                             : "!border-[var(--ac-paper-border)] hover:!border-[var(--ac-danger)] hover:!text-[var(--ac-danger)]"
@@ -146,17 +153,27 @@ export function TenantsTable({
                           <button
                             type="button"
                             onClick={() => onRenewMonth(row.id)}
-                            className="admin-btn-ghost !rounded-xl border border-[var(--ac-paper-border)] !px-3 !py-2"
+                            className="admin-btn-ghost !rounded-lg border border-[var(--ac-paper-border)] !px-2 !py-1 text-[11px]"
                           >
                             +1 mês
                           </button>
                           <button
                             type="button"
                             onClick={() => onLifetime(row.id)}
-                            className="admin-btn-ghost !rounded-xl border border-[var(--ac-paper-border)] !px-3 !py-2"
+                            className="admin-btn-ghost !rounded-lg border border-[var(--ac-paper-border)] !px-2 !py-1 text-[11px]"
                           >
                             Vitalício
                           </button>
+                          {onDelete && (
+                            <button
+                              type="button"
+                              onClick={() => onDelete(row.id)}
+                              disabled={busy}
+                              className="admin-btn-ghost !rounded-lg border border-[rgba(180,40,40,0.35)] !px-2 !py-1 text-[11px] text-[var(--ac-danger)] hover:!bg-[rgba(180,40,40,0.06)] disabled:opacity-50"
+                            >
+                              Excluir
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

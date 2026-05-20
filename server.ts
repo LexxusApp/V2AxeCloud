@@ -3263,6 +3263,28 @@ async function startServer() {
           await supabaseAdmin.from('perfil_lider').update({ deleted_at: new Date().toISOString() }).eq('id', targetUserId);
           logDescription = `Terreiro ${targetUserId} marcado como excluído (soft delete).`;
           break;
+        case 'permanent-delete': {
+          const result = await permanentDeleteZeladorAccount(
+            {
+              supabaseAdmin,
+              r2:
+                r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
+              beforeDbPurge: async (lid) => {
+                try {
+                  await logoutEvolutionInstance(lid);
+                } catch (e) {
+                  console.warn("[permanent-delete] Evolution:", e);
+                }
+              },
+            },
+            targetUserId
+          );
+          if (result.ok === false) {
+            return res.status(result.status).json({ error: result.message });
+          }
+          logDescription = `Terreiro ${targetUserId} excluído permanentemente (Postgres, storage, auth).`;
+          break;
+        }
         case 'renew': {
           const { amount, unit } = req.body;
           if (!amount || !unit) return res.status(400).json({ error: "Quantidade e unidade são obrigatórios para renovação" });

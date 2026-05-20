@@ -333,11 +333,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
             <p className="text-gray-400 text-sm">Seus dados são protegidos com criptografia de ponta a ponta. Cancele quando quiser.</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 grayscale opacity-50">
-          <img src="https://kiwify.com.br/wp-content/uploads/2021/08/logo-kiwify.png" alt="Kiwify" className="h-6" referrerPolicy="no-referrer" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-4" referrerPolicy="no-referrer" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6" referrerPolicy="no-referrer" />
-        </div>
+        <p className="text-[11px] font-black uppercase tracking-widest text-gray-500">Pagamento via PIX · EFI Bank</p>
       </div>
     </div>
   );

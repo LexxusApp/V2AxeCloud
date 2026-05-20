@@ -75,12 +75,36 @@ textarea {
   flex-direction: column;
   background: var(--ac-ink-soft);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  /* Altura fixa à viewport — sessão não “sobe/desce” com o conteúdo da página */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (min-width: 1024px) {
   .admin-sidebar {
     display: flex;
   }
+}
+
+.admin-sidebar-brand {
+  flex-shrink: 0;
+}
+
+.admin-sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.admin-sidebar-session {
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .admin-workspace {

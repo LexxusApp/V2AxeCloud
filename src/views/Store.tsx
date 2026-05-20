@@ -755,7 +755,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                       disabled={isCheckoutLoading}
                       className="w-full py-4 bg-white/5 text-white rounded-xl font-black text-sm hover:bg-white/10 transition-colors disabled:opacity-50 border border-white/10"
                     >
-                      {isCheckoutLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Pagar com PIX / Cartão'}
+                      {isCheckoutLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Pagamento via PIX'}
                     </button>
                   )}
                 </div>

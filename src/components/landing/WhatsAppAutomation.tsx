@@ -15,7 +15,7 @@ const benefits = [
   },
   {
     title: 'Lembrete amigável de Mensalidades',
-    desc: 'O sistema notifica automaticamente quando uma contribuição via Pix ou Cartão estiver próxima do vencimento.',
+    desc: 'O sistema notifica automaticamente quando uma contribuição via PIX estiver próxima do vencimento.',
   },
   {
     title: 'Confirmações de Recibo em Tempo Real',

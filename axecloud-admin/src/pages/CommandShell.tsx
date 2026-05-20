@@ -36,6 +36,7 @@ import {
   type AdminNavTab,
 } from "./AdminDashboardLayout";
 import { TenantsTable } from "./TenantsTable";
+import { QuickActionDialogs, type QuickActionKind } from "./QuickActionDialogs";
 
 type Tab = AdminNavTab;
 
@@ -101,6 +102,7 @@ export function CommandShell({ session }: { session: Session }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [drawerTenantId, setDrawerTenantId] = useState<string | null>(null);
   const [tenantSearch, setTenantSearch] = useState("");
+  const [quickAction, setQuickAction] = useState<QuickActionKind>(null);
 
   const email = session.user.email || "";
   const displayName = userDisplayName(session);
@@ -187,6 +189,34 @@ export function CommandShell({ session }: { session: Session }) {
     }
   }
 
+  async function deleteTenant(targetUserId: string) {
+    const row = tenants.find((t) => t.id === targetUserId);
+    const label = row?.nome_terreiro || row?.email || targetUserId;
+    if (
+      !window.confirm(
+        `Excluir permanentemente «${label}»?\n\nRemove dados do terreiro no banco, storage e contas de acesso. Não pode ser desfeito.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      await apiJson("/api/admin/manage-tenant", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId, action: "permanent-delete" }),
+      });
+      if (drawerTenantId === targetUserId) setDrawerTenantId(null);
+      await refreshTenants();
+      await refreshOverview();
+      setMsg("Terreiro excluído permanentemente.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Erro ao excluir");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const dailySeries = useMemo(() => {
     const d = activity?.dailyAccess as Record<string, number> | undefined;
     if (!d) return [];
@@ -238,14 +268,17 @@ export function CommandShell({ session }: { session: Session }) {
     {
       label: "Liberar acesso vitalício",
       onClick: () => {
-        goTab("tenants");
-        setMsg("Seleccione um terreiro e use «Vitalício» ou «Gerenciar».");
+        if (!tenants.length) {
+          setMsg("Nenhum terreiro carregado. Actualize a página.");
+          return;
+        }
+        setQuickAction("lifetime");
       },
     },
-    { label: "Criar comunicado global", onClick: () => goTab("whatsapp") },
+    { label: "Criar comunicado global", onClick: () => setQuickAction("notice") },
     { label: "Adicionar novo terreiro", onClick: () => goTab("create") },
-    { label: "Enviar notificações", onClick: () => goTab("whatsapp") },
-    { label: "Gerar relatório financeiro", onClick: () => goTab("audit") },
+    { label: "Enviar notificações", onClick: () => setQuickAction("notify") },
+    { label: "Gerar relatório financeiro", onClick: () => setQuickAction("report") },
   ];
 
   const statUsers =
@@ -359,6 +392,7 @@ export function CommandShell({ session }: { session: Session }) {
             onBlock={(id, shouldBlock) => void manageTenant(id, shouldBlock ? "block" : "unblock")}
             onRenewMonth={(id) => void manageTenant(id, "renew", { amount: "1", unit: "months" })}
             onLifetime={(id) => void manageTenant(id, "set-lifetime")}
+            onDelete={(id) => void deleteTenant(id)}
           />
         )}
 
@@ -531,6 +565,18 @@ export function CommandShell({ session }: { session: Session }) {
           setDrawerTenantId(null);
           void refreshTenants();
         }}
+      />
+
+      <QuickActionDialogs
+        kind={quickAction}
+        onClose={() => setQuickAction(null)}
+        tenants={tenants}
+        busy={busy}
+        onLifetime={async (tenantId) => {
+          await manageTenant(tenantId, "set-lifetime");
+        }}
+        onSuccess={(m) => setMsg(m)}
+        onError={(m) => setMsg(m)}
       />
     </>
   );

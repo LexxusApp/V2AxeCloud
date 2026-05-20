@@ -76,7 +76,7 @@ const premiumFeatures = [
   'Filhos de santo, calendário, mural e biblioteca',
   'Galeria de fotos, financeiro e loja do axé',
   'Mensalidade com Pix e histórico transparente',
-  'Assinatura recorrente por cartão (EFI Bank)',
+  'Ativação do plano via PIX (EFI Bank)',
   'Liberação automática após o pagamento',
 ] as const;
 
@@ -388,7 +388,7 @@ export default function Landing() {
                 </span>
                 <h3 className="text-lg font-bold text-white">Mensalidade do terreiro</h3>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Cadastro online · Pix na hora ou cartão recorrente
+                  Cadastro online · PIX na hora
                 </p>
                 <div className="mt-6 flex items-baseline gap-2 text-white">
                   <span className="text-4xl font-black tracking-tight sm:text-5xl">{LANDING_PRICE.label}</span>

@@ -190,7 +190,7 @@ export default function Register() {
                 {checkoutPriceLabel}
                 {LANDING_PRICE.period}
               </span>
-              {' · '}Pix ou cartão · painel liberado na hora após o pagamento.
+              {' · '}Pagamento via PIX · painel liberado na hora após o pagamento.
             </p>
           </motion.div>
 
@@ -226,7 +226,7 @@ export default function Register() {
                     Cadastre seu terreiro
                   </h2>
                   <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-                    Primeiro os dados da casa. Na próxima etapa você ativa o sistema com Pix ou cartão.
+                    Primeiro os dados da casa. Na próxima etapa você ativa o sistema com PIX.
                   </p>
                 </header>
 
@@ -342,7 +342,7 @@ export default function Register() {
                     Ativação do sistema
                   </h2>
                   <p className="mt-1 text-[12px] leading-snug text-zinc-600 sm:text-[13px]">
-                    Pix ou cartão · {checkoutPriceLabel}
+                    Pagamento via PIX · {checkoutPriceLabel}
                     {LANDING_PRICE.period} · liberação automática
                   </p>
                 </header>

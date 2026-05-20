@@ -24,6 +24,12 @@ import { checkLinks } from "./lib/audit/links.js";
 import { validateHreflang } from "./lib/audit/hreflang.js";
 import { runFullAudit, type AuditTargetRow } from "./lib/audit/runFull.js";
 import { sendAuditWebhook } from "./lib/audit/webhook.js";
+import {
+  broadcastPlatformPush,
+  broadcastWhatsAppToLeaders,
+  buildFinancialReport,
+  publishGlobalNotice,
+} from "./lib/adminQuickActions.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -1379,6 +1385,103 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/activity]", e);
       res.status(500).json({ error: e?.message || "Erro interno" });
+    }
+  });
+
+  // -------------- Ações rápidas (overview) ------------------------------------
+  app.post("/api/admin-console/quick-actions/global-notice", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const result = await publishGlobalNotice(deps.supabaseAdmin, {
+        titulo: String(body.titulo || ""),
+        conteudo: String(body.conteudo || ""),
+        categoria: typeof body.categoria === "string" ? body.categoria : undefined,
+        sendPush: body.sendPush === true,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "quick-action.global-notice",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global",
+        description: `Comunicado global publicado em ${result.noticesCreated}/${result.tenantsTotal} terreiros.`,
+        metadata: result,
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[admin-console/quick-actions/global-notice]", e);
+      res.status(500).json({ error: e?.message || "Erro ao publicar comunicado" });
+    }
+  });
+
+  app.post("/api/admin-console/quick-actions/broadcast-push", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const result = await broadcastPlatformPush(deps.supabaseAdmin, {
+        title: String(body.title || ""),
+        body: String(body.body || ""),
+        url: typeof body.url === "string" ? body.url : undefined,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "quick-action.broadcast-push",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global",
+        description: `Push enviado para ${result.sent}/${result.targets} inscrições.`,
+        metadata: result,
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[admin-console/quick-actions/broadcast-push]", e);
+      res.status(500).json({ error: e?.message || "Erro ao enviar notificações" });
+    }
+  });
+
+  app.post("/api/admin-console/quick-actions/broadcast-whatsapp", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const result = await broadcastWhatsAppToLeaders(deps.supabaseAdmin, String(body.message || ""));
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "quick-action.broadcast-whatsapp",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global",
+        description: `WhatsApp: ${result.sent} enviados, ${result.skipped} sem número, ${result.failed} falhas.`,
+        metadata: result,
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[admin-console/quick-actions/broadcast-whatsapp]", e);
+      res.status(500).json({ error: e?.message || "Erro ao enviar WhatsApp" });
+    }
+  });
+
+  app.get("/api/admin-console/quick-actions/financial-report", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const report = await buildFinancialReport(deps.supabaseAdmin);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "quick-action.financial-report",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global",
+        description: `Relatório financeiro gerado (${report.summary.lancamentos} lançamentos).`,
+        metadata: report.summary,
+        req,
+      });
+      res.json({ success: true, ...report });
+    } catch (e: any) {
+      console.error("[admin-console/quick-actions/financial-report]", e);
+      res.status(500).json({ error: e?.message || "Erro ao gerar relatório" });
     }
   });
 }

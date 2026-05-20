@@ -13,6 +13,7 @@ import {
   EFI_CARD_PIX_FALLBACK_MESSAGE,
   isEfiCardProcessingFailure,
 } from "../../lib/efiCardCheckoutError.js";
+import { EFI_CARD_CHECKOUT_ENABLED } from "../../lib/checkoutPaymentMethods.js";
 import {
   efiPixCreateImmediateCharge,
   efiPixGetCob,
@@ -29,6 +30,7 @@ import {
   ensurePendingSubscriptionRow,
   updateSubscriptionResilient,
 } from "./subscriptionDb.js";
+import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -104,11 +106,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       amountCents,
       amountLabel: formatAmountLabelFromCents(amountCents),
       pixAvailable: !!pix,
-      /** API de Cobranças (Client ID + Secret) — cartão recorrente */
-      cardAvailable: true,
-      cardTokenizationReady: !!payeeCode,
+      cardAvailable: EFI_CARD_CHECKOUT_ENABLED,
+      cardTokenizationReady: EFI_CARD_CHECKOUT_ENABLED && !!payeeCode,
       ...(pixDiagnostics ? { pixSetup: pixDiagnostics } : {}),
-      ...(!payeeCode
+      ...(EFI_CARD_CHECKOUT_ENABLED && !payeeCode
         ? {
             cardSetup: {
               issues: [
@@ -254,6 +255,12 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
   });
 
   app.post("/api/v1/checkout/efi/card", async (req: Request, res: Response) => {
+    if (!EFI_CARD_CHECKOUT_ENABLED) {
+      return res.status(403).json({
+        error: "Pagamento com cartão está desativado. Utilize PIX para ativar sua assinatura.",
+        suggestPix: true,
+      });
+    }
     try {
       const efi = resolveEfiEnv();
       if (!efi) return res.status(503).json({ error: "EFI não configurado." });
