@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveEfiEnv } from "./efiPay.js";
+import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 import {
   activateTenantSubscription,
   processEfiNotificationToken,
@@ -118,7 +119,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       status: sub?.status || "unknown",
       plan: sub?.plan || "premium",
       expires_at: sub?.expires_at,
-      active: sub?.status === "active",
+      active: isSubscriptionAccessActive(sub),
     });
   });
 

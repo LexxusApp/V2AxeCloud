@@ -75,11 +75,11 @@ async function assertPendingSubscription(
 
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
-    .select("status")
+    .select("status, expires_at")
     .eq("id", tenantId)
     .maybeSingle();
 
-  if (sub?.status === "active") {
+  if (isSubscriptionAccessActive(sub)) {
     return { ok: false, status: 200, error: "already_active" };
   }
   return { ok: true };

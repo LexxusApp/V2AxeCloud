@@ -16,6 +16,7 @@ import {
   type EfiEnv,
 } from "./efiPay.js";
 import { updateSubscriptionResilient, upsertSubscriptionResilient } from "./subscriptionDb.js";
+import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 
 export type RegisterTenantInput = {
   email: string;
@@ -224,15 +225,16 @@ export async function activateTenantSubscription(
 
   const { data: sub, error: subErr } = await supabaseAdmin
     .from("subscriptions")
-    .select("id, status, plan")
+    .select("id, status, plan, expires_at")
     .eq("id", tid)
     .maybeSingle();
   if (subErr) throw subErr;
 
-  if (sub?.status === "active") {
+  if (isSubscriptionAccessActive(sub)) {
     return { alreadyActive: true };
   }
 
+  const hadAccessBefore = String(sub?.status || "").toLowerCase() === "active";
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const now = new Date().toISOString();
 
@@ -261,12 +263,14 @@ export async function activateTenantSubscription(
     .then((r) => String(r.data.user?.user_metadata?.whatsapp || ""))
     .catch(() => "");
 
-  await sendPostPaymentWelcomeWhatsApp(supabaseAdmin, {
-    whatsapp: metaWhatsapp,
-    nome_terreiro: profile?.nome_terreiro || "Seu terreiro",
-    nome_zelador: profile?.cargo,
-    email: profile?.email || "",
-  });
+  if (!hadAccessBefore) {
+    await sendPostPaymentWelcomeWhatsApp(supabaseAdmin, {
+      whatsapp: metaWhatsapp,
+      nome_terreiro: profile?.nome_terreiro || "Seu terreiro",
+      nome_zelador: profile?.cargo,
+      email: profile?.email || "",
+    });
+  }
 
   return { alreadyActive: false };
 }
