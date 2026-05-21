@@ -436,16 +436,25 @@ export function CommandShell({ session }: { session: Session }) {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className={admin.table}>
+                  <table className={cn(admin.table, "table-fixed")}>
+                    <colgroup>
+                      <col className="w-[5.75rem]" />
+                      <col className="w-[6.5rem]" />
+                      <col className="w-[4.25rem]" />
+                      <col />
+                      <col className="w-[5.5rem]" />
+                      <col className="w-[4.25rem]" />
+                      <col className="w-[5.75rem]" />
+                    </colgroup>
                     <thead>
                       <tr className={admin.thead}>
-                        <th className={admin.th}>Quando</th>
-                        <th className={admin.th}>Ação</th>
-                        <th className={admin.th}>Estado</th>
-                        <th className={admin.th}>Detalhes</th>
-                        <th className={admin.th}>Utilizador</th>
-                        <th className={admin.th}>Terreiro</th>
-                        <th className={admin.th}>IP</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Quando</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Ação</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Estado</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Detalhes</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Utilizador</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>Terreiro</th>
+                        <th className={cn(admin.th, "!px-2 !py-2")}>IP</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -460,53 +469,80 @@ export function CommandShell({ session }: { session: Session }) {
                               detailsObj.surface && `origem: ${detailsObj.surface}`,
                               detailsObj.reason && `motivo: ${detailsObj.reason}`,
                               detailsObj.path && `rota: ${detailsObj.path}`,
-                              detailsObj.description && String(detailsObj.description).slice(0, 100),
-                              detailsObj.message && String(detailsObj.message).slice(0, 120),
+                              detailsObj.description && String(detailsObj.description).slice(0, 80),
+                              detailsObj.message && String(detailsObj.message).slice(0, 80),
                               detailsObj.targetType && `alvo: ${detailsObj.targetType}`,
-                              detailsObj.targetId && `id: ${String(detailsObj.targetId).slice(0, 12)}`,
+                              detailsObj.targetId && `id: ${String(detailsObj.targetId).slice(0, 8)}`,
                             ]
                               .filter(Boolean)
-                              .join(" · ") || JSON.stringify(detailsObj).slice(0, 160)
+                              .join(" · ") || JSON.stringify(detailsObj).slice(0, 100)
                           : "—";
-                        const userLabel =
+                        const detailsDisplay =
+                          detailsText.length > 72 ? `${detailsText.slice(0, 69)}…` : detailsText;
+                        const userFull =
                           r.user_email ||
-                          (r.user_id ? String(r.user_id).slice(0, 8) : "—");
+                          (r.user_id ? String(r.user_id) : "");
+                        const userLabel = userFull
+                          ? userFull.includes("@")
+                            ? userFull.replace(/@.+$/, "")
+                            : userFull.slice(0, 8)
+                          : "—";
                         const terreiroLabel = r.terreiro_id ? String(r.terreiro_id).slice(0, 8) : "—";
+                        const actionShort =
+                          action.length > 22 ? `…${action.slice(-21)}` : action;
                         return (
                           <tr key={r.id} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)]")}>
-                            <td className="px-6 py-3 whitespace-nowrap text-[var(--ac-text-muted)] text-xs">
-                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm:ss") : "—"}
+                            <td className="px-2 py-2 whitespace-nowrap text-[var(--ac-text-muted)] text-[11px]">
+                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
                             </td>
-                            <td className="px-6 py-3">
+                            <td className="px-2 py-2 max-w-0">
                               {action ? (
                                 <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${eventTypeBadgeClass(action)}`}
+                                  className={cn(
+                                    "block truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                    eventTypeBadgeClass(action)
+                                  )}
+                                  title={action}
                                 >
-                                  {action}
+                                  {actionShort}
                                 </span>
                               ) : (
                                 "—"
                               )}
                             </td>
-                            <td className="px-6 py-3">
+                            <td className="px-2 py-2">
                               {status ? (
                                 <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${auditStatusBadgeClass(status)}`}
+                                  className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${auditStatusBadgeClass(status)}`}
                                 >
-                                  {status}
+                                  {status === "success" ? "OK" : status.slice(0, 6)}
                                 </span>
                               ) : (
                                 "—"
                               )}
                             </td>
-                            <td className="px-6 py-3 max-w-xs text-xs text-[var(--ac-text)] truncate" title={detailsText}>
-                              {detailsText}
+                            <td
+                              className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text)]"
+                              title={detailsText}
+                            >
+                              {detailsDisplay}
                             </td>
-                            <td className="px-6 py-3 text-[var(--ac-text-muted)] text-xs">{userLabel}</td>
-                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]" title={r.terreiro_id || ""}>
+                            <td
+                              className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text-muted)]"
+                              title={userFull || undefined}
+                            >
+                              {userLabel}
+                            </td>
+                            <td
+                              className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
+                              title={r.terreiro_id || ""}
+                            >
                               {terreiroLabel}
                             </td>
-                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]" title={r.user_agent || ""}>
+                            <td
+                              className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
+                              title={r.user_agent ? `${r.ip || ""} · ${r.user_agent}` : r.ip || ""}
+                            >
                               {r.ip || "—"}
                             </td>
                           </tr>
