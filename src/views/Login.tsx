@@ -68,36 +68,6 @@ const fieldShell = cn(
 const labelClass =
   'block text-[10px] font-black uppercase tracking-widest text-gray-500';
 
-function LogoEmblem({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 88 88" className={className} aria-hidden fill="none">
-      <circle cx="44" cy="44" r="30" stroke="currentColor" strokeWidth="2" />
-      <circle cx="44" cy="44" r="7" fill="currentColor" />
-      {Array.from({ length: 8 }, (_, i) => {
-        const a = (i * Math.PI) / 4 - Math.PI / 2;
-        const x1 = 44 + Math.cos(a) * 16;
-        const y1 = 44 + Math.sin(a) * 16;
-        const x2 = 44 + Math.cos(a) * 28.5;
-        const y2 = 44 + Math.sin(a) * 28.5;
-        return (
-          <g key={i}>
-            <line
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="currentColor"
-              strokeWidth="1.35"
-              strokeLinecap="round"
-            />
-            <circle cx={x2} cy={y2} r="3" fill="currentColor" />
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 /** Ícone inferior: três silhuetas dentro de círculo com aro dourado (mockup). */
 function UsersCircleBadge({ className }: { className?: string }) {
   return (
@@ -372,27 +342,15 @@ export default function Login() {
           </div>
         )}
 
-        <header className="space-y-2.5 text-center">
-          <motion.div
+        <header className="space-y-3 text-center">
+          <motion.img
+            src="/axecloud_512.png"
+            alt="AxéCloud — Gestão Sagrada"
             animate={{ scale: [1, 1.03, 1] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_8px_24px_rgba(212,175,55,0.28)]"
-          >
-            <LogoEmblem className="h-7 w-7 text-black" />
-          </motion.div>
-          <div className="space-y-1">
-            <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
-            <p
-              className="flex flex-wrap items-baseline justify-center text-[clamp(20px,2.5vw,26px)] leading-tight tracking-tight"
-              aria-hidden
-            >
-              <span className="font-black text-white">AXÉ</span>
-              <span className="pl-2 font-light text-gray-300">CLOUD</span>
-            </p>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary" aria-hidden>
-              GESTÃO SAGRADA
-            </p>
-          </div>
+            className="mx-auto h-24 w-24 rounded-2xl object-contain shadow-[0_10px_32px_rgba(212,175,55,0.22)]"
+          />
+          <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
             <p className="mx-auto max-w-[260px] text-gray-400">
