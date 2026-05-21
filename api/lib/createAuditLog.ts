@@ -6,6 +6,9 @@ export type CreateAuditLogDetails = Record<string, unknown> | null | undefined;
 
 let disabled = false;
 let lastDisabledReason = "";
+let disabledRetryAt = 0;
+
+const MISSING_TABLE_RETRY_MS = 60_000;
 
 export function getAuditLogsDisabled(): { disabled: boolean; reason: string } {
   return { disabled, reason: lastDisabledReason };
@@ -14,6 +17,7 @@ export function getAuditLogsDisabled(): { disabled: boolean; reason: string } {
 export function resetAuditLogsState() {
   disabled = false;
   lastDisabledReason = "";
+  disabledRetryAt = 0;
 }
 
 /** IP real em produção (Vercel/proxy): x-forwarded-for → x-real-ip → req.ip */
@@ -116,7 +120,12 @@ export async function createAuditLog(
   terreiroId?: string | null,
   details?: CreateAuditLogDetails
 ): Promise<void> {
-  if (disabled) return;
+  if (disabled) {
+    if (Date.now() < disabledRetryAt) return;
+    disabled = false;
+    lastDisabledReason = "";
+    disabledRetryAt = 0;
+  }
   const act = String(action || "").trim().slice(0, 120);
   if (!act) return;
   const st = status === "success" ? "success" : "failed";
@@ -159,8 +168,9 @@ export async function createAuditLog(
       if (looksLikeMissingTable(error)) {
         disabled = true;
         lastDisabledReason = error.message || "tabela audit_logs ausente";
+        disabledRetryAt = Date.now() + MISSING_TABLE_RETRY_MS;
         console.warn(
-          "[createAuditLog] Tabela 'audit_logs' ainda não existe — aplique supabase/migrations/20260520120000_audit_logs.sql e reinicie o backend."
+          "[createAuditLog] Tabela 'audit_logs' ainda não existe — aplique supabase/migrations/20260520120000_audit_logs.sql. Nova tentativa em breve."
         );
         return;
       }

@@ -16,7 +16,7 @@ import {
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
 import { logEvent } from "./lib/auditLog.js";
-import { createAuditLog } from "./lib/createAuditLog.js";
+import { createAuditLog, getAuditLogsDisabled } from "./lib/createAuditLog.js";
 import { scanUrl } from "./lib/audit/scan.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
@@ -555,9 +555,14 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         actions = [];
       }
 
+      const auditLogState = getAuditLogsDisabled();
+
       res.json({
         rows: rows || [],
         auditLogsAvailable: true,
+        notice: auditLogState.disabled
+          ? `Gravação de audit_logs temporariamente pausada: ${auditLogState.reason || "erro anterior ao gravar"}.`
+          : undefined,
         actions,
       });
     } catch (e: any) {
