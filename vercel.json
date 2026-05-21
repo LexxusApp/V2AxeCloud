@@ -2,12 +2,6 @@
   "env": {
     "NODE_OPTIONS": "--disable-warning=DEP0169"
   },
-  "crons": [
-    {
-      "path": "/api/v1/cron/ping-evolution",
-      "schedule": "*/10 * * * *"
-    }
-  ],
   "redirects": [
     {
       "source": "/:path*",
