@@ -343,9 +343,9 @@ export default function Login() {
           </div>
         )}
 
-        <header className="space-y-3 text-center">
-          <div className="flex justify-center">
-            <AxeCloudLogoMark compact />
+        <header className="space-y-4 text-center">
+          <div className="flex justify-center py-1">
+            <AxeCloudLogoMark size="large" />
           </div>
           <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">
