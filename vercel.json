@@ -24,6 +24,30 @@
       "destination": "/api/admin-console/session"
     },
     {
+      "source": "/api/admin-console/overview",
+      "destination": "/api/admin-console-gateway?route=overview"
+    },
+    {
+      "source": "/api/admin-console/activity",
+      "destination": "/api/admin-console-gateway?route=activity"
+    },
+    {
+      "source": "/api/admin-console/audit-logs",
+      "destination": "/api/admin-console-gateway?route=audit-logs"
+    },
+    {
+      "source": "/api/admin-console/r2-usage",
+      "destination": "/api/admin-console-gateway?route=r2-usage"
+    },
+    {
+      "source": "/api/admin/tenants",
+      "destination": "/api/admin-tenants"
+    },
+    {
+      "source": "/api/auth/audit-log",
+      "destination": "/api/auth/audit-log"
+    },
+    {
       "source": "/api/admin/update-plans",
       "destination": "/api/admin/update-plans"
     },

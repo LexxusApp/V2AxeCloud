@@ -2,16 +2,11 @@ const TOKEN_KEY = "axecloud_admin_access_token";
 
 export const API_UNAVAILABLE = "API_UNAVAILABLE";
 
-/** Em previews Vercel do admin, a API vive em axecloud.com.br (evita api/index pesado no mesmo deploy). */
+/** API de produção: sempre axecloud.com.br (evita api/index pesado em *.vercel.app). */
 export function resolveApiBaseUrl(): string {
   const fromEnv = String(import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/$/, "");
   if (fromEnv) return fromEnv;
-  if (import.meta.env.PROD && typeof window !== "undefined") {
-    const host = window.location.hostname.toLowerCase();
-    if (host.endsWith(".vercel.app") && !host.includes("axecloud.com.br")) {
-      return "https://axecloud.com.br";
-    }
-  }
+  if (import.meta.env.PROD) return "https://axecloud.com.br";
   return "";
 }
 
