@@ -8,6 +8,8 @@ import {
   handleAdminAuditLogs,
   handleAdminOverview,
 } from "./lib/adminConsoleHandlers.js";
+import { handleAdminR2Usage } from "./lib/adminConsoleR2.js";
+import { getDiscreteR2Client } from "./lib/r2ClientDiscrete.js";
 import { getDiscreteSupabaseAdmin, parseQuery, sendJson } from "./lib/discreteSupabase.js";
 
 export default async function handler(req: any, res: any) {
@@ -49,8 +51,18 @@ export default async function handler(req: any, res: any) {
         return sendJson(res, 200, await handleAdminActivity(sb));
       case "audit-logs":
         return sendJson(res, 200, await handleAdminAuditLogs(sb, parseQuery(req)));
-      case "r2-usage":
-        return sendJson(res, 200, { configured: false, prefixes: {}, keysScanned: 0, truncated: false });
+      case "r2-usage": {
+        const r2 = getDiscreteR2Client();
+        if (!r2) {
+          return sendJson(res, 200, {
+            configured: false,
+            message:
+              "R2 não configurado (R2_S3_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME).",
+          });
+        }
+        const cap = Math.min(50000, Math.max(500, Number(parseQuery(req).get("maxKeys") || 8000)));
+        return sendJson(res, 200, await handleAdminR2Usage(r2.client, r2.bucket, cap));
+      }
       default:
         return sendJson(res, 404, { error: "Rota admin-console não encontrada", route: sub });
     }

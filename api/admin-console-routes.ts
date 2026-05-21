@@ -15,8 +15,10 @@ import {
   saveWelcomeMessageConfig,
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
+import { handleAdminAuditLogs } from "./lib/adminConsoleHandlers.js";
+import { handleAdminR2Usage } from "./lib/adminConsoleR2.js";
 import { logEvent } from "./lib/auditLog.js";
-import { createAuditLog, getAuditLogsDisabled } from "./lib/createAuditLog.js";
+import { createAuditLog } from "./lib/createAuditLog.js";
 import { scanUrl } from "./lib/audit/scan.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
@@ -119,41 +121,6 @@ async function requireConsoleAdmin(
     return null;
   }
   return { user };
-}
-
-async function summarizeR2ByPrefix(
-  client: S3Client,
-  bucket: string,
-  maxKeys: number
-): Promise<{ prefixes: Record<string, { bytes: number; objects: number }>; keysScanned: number; truncated: boolean }> {
-  const prefixes: Record<string, { bytes: number; objects: number }> = {};
-  let keysScanned = 0;
-  let truncated = false;
-  let token: string | undefined;
-  do {
-    const out = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        ContinuationToken: token,
-        MaxKeys: 1000,
-      })
-    );
-    for (const o of out.Contents || []) {
-      if (!o.Key) continue;
-      keysScanned += 1;
-      const seg = o.Key.split("/")[0] || "_root";
-      if (!prefixes[seg]) prefixes[seg] = { bytes: 0, objects: 0 };
-      prefixes[seg].bytes += o.Size || 0;
-      prefixes[seg].objects += 1;
-      if (keysScanned >= maxKeys) {
-        truncated = !!out.IsTruncated;
-        return { prefixes, keysScanned, truncated };
-      }
-    }
-    token = out.IsTruncated ? out.NextContinuationToken : undefined;
-    if (!token) break;
-  } while (true);
-  return { prefixes, keysScanned, truncated };
 }
 
 export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRouteDeps) {
@@ -509,59 +476,12 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
   app.get("/api/admin-console/audit-logs", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
-    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
-    const offset = Math.max(0, Number(req.query.offset || 0));
-    const filterAction = String(req.query.action || "").trim();
-    const filterStatus = String(req.query.status || "").trim();
-    const filterTerreiro = String(req.query.terreiroId || "").trim();
-
     try {
-      let q = deps.supabaseAdmin
-        .from("audit_logs")
-        .select(
-          "id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email"
-        );
-      if (filterAction) q = q.eq("action", filterAction);
-      if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
-      if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
-      const { data: rows, error } = await q
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (error && isMissingOrUnknownTable(error, "audit_logs")) {
-        return res.json({
-          rows: [],
-          auditLogsAvailable: false,
-          notice:
-            "A tabela audit_logs não existe neste projecto Supabase. Aplique supabase/migrations/20260520120000_audit_logs.sql.",
-        });
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(req.query || {})) {
+        if (v != null) qs.set(k, String(Array.isArray(v) ? v[0] : v));
       }
-      if (error) throw error;
-
-      let actions: string[] = [];
-      try {
-        const { data: distinct } = await deps.supabaseAdmin
-          .from("audit_logs")
-          .select("action")
-          .not("action", "is", null)
-          .limit(500);
-        const set = new Set<string>();
-        for (const r of distinct || []) set.add(String((r as { action?: string }).action || ""));
-        actions = [...set].filter(Boolean).sort();
-      } catch {
-        actions = [];
-      }
-
-      const auditLogState = getAuditLogsDisabled();
-
-      res.json({
-        rows: rows || [],
-        auditLogsAvailable: true,
-        notice: auditLogState.disabled
-          ? `Gravação de audit_logs temporariamente pausada: ${auditLogState.reason || "erro anterior ao gravar"}.`
-          : undefined,
-        actions,
-      });
+      res.json(await handleAdminAuditLogs(deps.supabaseAdmin, qs));
     } catch (e: any) {
       res.status(500).json({ error: e?.message || "Erro ao ler audit_logs." });
     }
@@ -690,16 +610,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
     const cap = Math.min(50000, Math.max(500, Number(req.query.maxKeys || 8000)));
     try {
-      const { prefixes, keysScanned, truncated } = await summarizeR2ByPrefix(deps.r2Client, deps.r2Bucket, cap);
-      const list = Object.entries(prefixes)
-        .map(([tenantPrefix, v]) => ({
-          tenantPrefix,
-          bytes: v.bytes,
-          objects: v.objects,
-          mb: Math.round((v.bytes / (1024 * 1024)) * 100) / 100,
-        }))
-        .sort((a, b) => b.bytes - a.bytes);
-      res.json({ configured: true, keysScanned, truncated, tenants: list });
+      res.json(await handleAdminR2Usage(deps.r2Client, deps.r2Bucket, cap));
     } catch (e: any) {
       console.error("[admin-console/r2-usage]", e);
       res.status(500).json({ error: e?.message || "Erro ao listar R2" });

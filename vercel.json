@@ -52,6 +52,18 @@
       "destination": "/api/admin-tenants"
     },
     {
+      "source": "/api/admin/manage-tenant",
+      "destination": "/api/admin/manage-tenant"
+    },
+    {
+      "source": "/api/admin/create-tenant",
+      "destination": "/api/admin/create-tenant"
+    },
+    {
+      "source": "/api/admin-console/:path*",
+      "destination": "/api/admin-console-dispatch?target=:path*"
+    },
+    {
       "source": "/api/auth/audit-log",
       "destination": "/api/auth/audit-log"
     },

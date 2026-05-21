@@ -7,17 +7,18 @@ export async function loadGlobalSettingPayload(
   supabaseAdmin: SupabaseClient,
   id: string
 ): Promise<unknown | null> {
-  const { data: row, error } = await supabaseAdmin
-    .from("global_settings")
-    .select("data, value")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!error) {
-    return pickSettingsPayload(row as SettingsRow | null);
+  const modern = await supabaseAdmin.from("global_settings").select("data").eq("id", id).maybeSingle();
+  if (!modern.error) {
+    const payload = pickSettingsPayload(modern.data as SettingsRow | null);
+    if (payload != null) return payload;
   }
 
-  const msg = String(error.message || "");
+  const legacyDual = await supabaseAdmin.from("global_settings").select("data, value").eq("id", id).maybeSingle();
+  if (!legacyDual.error) {
+    return pickSettingsPayload(legacyDual.data as SettingsRow | null);
+  }
+
+  const msg = String(legacyDual.error?.message || modern.error?.message || "");
   if (/column ["']?data["']?/i.test(msg) || /Could not find the 'data' column/i.test(msg)) {
     const legacy = await supabaseAdmin.from("global_settings").select("value").eq("id", id).maybeSingle();
     if (legacy.error) {
@@ -25,15 +26,6 @@ export async function loadGlobalSettingPayload(
       return null;
     }
     return (legacy.data as SettingsRow | null)?.value ?? null;
-  }
-
-  if (/column ["']?value["']?/i.test(msg) || /Could not find the 'value' column/i.test(msg)) {
-    const modern = await supabaseAdmin.from("global_settings").select("data").eq("id", id).maybeSingle();
-    if (modern.error) {
-      console.warn(`[global_settings] load ${id}:`, modern.error.message);
-      return null;
-    }
-    return pickSettingsPayload(modern.data as SettingsRow | null);
   }
 
   console.warn(`[global_settings] load ${id}:`, msg);

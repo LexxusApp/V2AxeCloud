@@ -148,50 +148,152 @@ export async function handleAdminActivity(sb: SupabaseClient) {
   };
 }
 
+type UnifiedAuditRow = {
+  id: string;
+  created_at: string;
+  action: string;
+  status: string;
+  terreiro_id: string | null;
+  details: Record<string, unknown> | null;
+  ip: string | null;
+  user_agent: string | null;
+  user_id: string | null;
+  user_email: string | null;
+  source: "audit_logs" | "access_logs";
+};
+
+function mapAccessLogRow(r: Record<string, unknown>): UnifiedAuditRow {
+  const eventType = String(r.event_type || "event");
+  const meta =
+    r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : null;
+  return {
+    id: `access:${String(r.id || "")}`,
+    created_at: String(r.created_at || ""),
+    action: eventType.startsWith("access.") ? eventType : `access.${eventType}`,
+    status: "success",
+    terreiro_id: r.tenant_id ? String(r.tenant_id) : null,
+    details: {
+      description: r.description ?? null,
+      targetType: r.target_type ?? null,
+      targetId: r.target_id ?? null,
+      ...(meta || {}),
+    },
+    ip: r.ip ? String(r.ip) : null,
+    user_agent: r.user_agent ? String(r.user_agent) : null,
+    user_id: r.user_id ? String(r.user_id) : null,
+    user_email: r.user_email ? String(r.user_email) : null,
+    source: "access_logs",
+  };
+}
+
 export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchParams) {
   const limit = Math.min(500, Math.max(1, Number(query.get("limit") || 100)));
   const offset = Math.max(0, Number(query.get("offset") || 0));
   const filterAction = String(query.get("action") || "").trim();
   const filterStatus = String(query.get("status") || "").trim();
   const filterTerreiro = String(query.get("terreiroId") || "").trim();
+  const filterUser = String(query.get("userId") || "").trim();
+  const fetchCap = Math.min(500, offset + limit + 100);
 
-  let q = sb
-    .from("audit_logs")
-    .select("id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email");
-  if (filterAction) q = q.eq("action", filterAction);
-  if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
-  if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
-  const { data: rows, error } = await q.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+  let auditRows: UnifiedAuditRow[] = [];
+  let auditTableMissing = false;
 
-  if (error && isMissingOrUnknownTable(error, "audit_logs")) {
-    return {
-      rows: [],
-      auditLogsAvailable: false,
-      notice:
-        "A tabela audit_logs não existe neste projecto Supabase. Aplique supabase/migrations/20260520120000_audit_logs.sql.",
-      actions: [] as string[],
-    };
-  }
-  if (error) throw error;
-
-  let actions: string[] = [];
   try {
-    const { data: distinct } = await sb.from("audit_logs").select("action").not("action", "is", null).limit(500);
-    const set = new Set<string>();
-    for (const r of distinct || []) set.add(String((r as { action?: string }).action || ""));
-    actions = [...set].filter(Boolean).sort();
-  } catch {
-    actions = [];
+    let q = sb
+      .from("audit_logs")
+      .select("id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email");
+    if (filterAction && !filterAction.startsWith("access.")) q = q.eq("action", filterAction);
+    if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
+    if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
+    const { data: rows, error } = await q
+      .order("created_at", { ascending: false })
+      .range(0, fetchCap - 1);
+
+    if (error && isMissingOrUnknownTable(error, "audit_logs")) {
+      auditTableMissing = true;
+    } else if (error) {
+      throw error;
+    } else {
+      auditRows = (rows || []).map((r) => ({
+        ...(r as UnifiedAuditRow),
+        source: "audit_logs" as const,
+      }));
+    }
+  } catch (e: unknown) {
+    if (!isMissingOrUnknownTable(e as { message?: string }, "audit_logs")) throw e;
+    auditTableMissing = true;
   }
+
+  let accessRows: UnifiedAuditRow[] = [];
+  let accessTableMissing = false;
+  const accessAction = filterAction.startsWith("access.")
+    ? filterAction.slice("access.".length)
+    : filterAction;
+
+  try {
+    const cols =
+      "id, created_at, event_type, user_id, user_email, target_type, target_id, description, ip, user_agent, metadata, tenant_id";
+    let q = sb.from("access_logs").select(cols);
+    if (accessAction) q = q.eq("event_type", accessAction);
+    if (filterTerreiro) q = q.eq("tenant_id", filterTerreiro);
+    if (filterUser) q = q.eq("user_id", filterUser);
+    const { data, error } = await q.order("created_at", { ascending: false }).range(0, fetchCap - 1);
+    if (error && isMissingOrUnknownTable(error, "access_logs")) {
+      accessTableMissing = true;
+    } else if (error) {
+      const msg = String(error.message || "").toLowerCase();
+      if (/column .* does not exist|could not find the .* column/.test(msg)) {
+        accessTableMissing = true;
+      } else {
+        throw error;
+      }
+    } else {
+      accessRows = (data || []).map((r) => mapAccessLogRow(r as Record<string, unknown>));
+    }
+  } catch (e: unknown) {
+    if (isMissingOrUnknownTable(e as { message?: string }, "access_logs")) {
+      accessTableMissing = true;
+    } else {
+      const msg = String((e as { message?: string })?.message || "").toLowerCase();
+      if (!/column .* does not exist|could not find the .* column/.test(msg)) throw e;
+      accessTableMissing = true;
+    }
+  }
+
+  let merged = [...auditRows, ...accessRows];
+  if (filterAction.startsWith("access.")) {
+    merged = merged.filter((r) => r.action === filterAction);
+  }
+  if (filterStatus === "success" || filterStatus === "failed") {
+    merged = merged.filter((r) => r.status === filterStatus);
+  }
+  merged.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  const page = merged.slice(offset, offset + limit);
+
+  const actionSet = new Set<string>();
+  for (const r of merged) actionSet.add(r.action);
+  const actions = [...actionSet].filter(Boolean).sort();
 
   const auditLogState = getAuditLogsDisabled();
+  let notice: string | undefined;
+  if (auditTableMissing && accessTableMissing) {
+    notice =
+      "Tabelas audit_logs e access_logs ausentes. Aplique as migrations em supabase/migrations/.";
+  } else if (auditTableMissing) {
+    notice = "audit_logs ausente — a mostrar apenas access_logs.";
+  } else if (auditLogState.disabled) {
+    notice = `Gravação em audit_logs pausada: ${auditLogState.reason || "erro anterior"}. Eventos antigos e access_logs continuam visíveis.`;
+  }
+
   return {
-    rows: rows || [],
-    auditLogsAvailable: true,
-    notice: auditLogState.disabled
-      ? `Gravação de audit_logs temporariamente pausada: ${auditLogState.reason || "erro anterior ao gravar"}.`
-      : undefined,
+    rows: page,
+    auditLogsAvailable: !auditTableMissing || !accessTableMissing,
+    notice,
     actions,
+    sources: {
+      audit_logs: !auditTableMissing,
+      access_logs: !accessTableMissing,
+    },
   };
 }
 

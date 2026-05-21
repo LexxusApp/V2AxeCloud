@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import { verifyUser } from "./verifyUser.js";
 
 export type AuditLogStatus = "success" | "failed";
 
@@ -132,13 +133,13 @@ export async function createAuditLog(
 
   try {
     const meta = sanitizeDetails(details);
-    const userId =
+    let userId =
       meta && typeof meta.userId === "string"
         ? meta.userId
         : meta && typeof meta.user_id === "string"
           ? meta.user_id
           : null;
-    const userEmail =
+    let userEmail =
       meta && typeof meta.email === "string"
         ? String(meta.email).toLowerCase().slice(0, 200)
         : meta && typeof meta.userEmail === "string"
@@ -146,6 +147,22 @@ export async function createAuditLog(
           : meta && typeof meta.user_email === "string"
             ? String(meta.user_email).toLowerCase().slice(0, 200)
             : null;
+
+    if ((!userId || !userEmail) && req) {
+      const authHeader = req.headers?.authorization || req.headers?.Authorization;
+      const token = authHeader ? String(authHeader).replace(/^Bearer\s+/i, "").trim() : "";
+      if (token && token !== "undefined" && token !== "null") {
+        try {
+          const { user, error: authError } = await verifyUser(supabaseAdmin as any, token);
+          if (!authError && user?.id) {
+            userId = userId || user.id;
+            userEmail = userEmail || (user.email ? String(user.email).toLowerCase().slice(0, 200) : null);
+          }
+        } catch {
+          /* best-effort */
+        }
+      }
+    }
 
     let tid: string | null = terreiroId != null && String(terreiroId).trim() ? String(terreiroId).trim() : null;
     if (!tid && userId) {

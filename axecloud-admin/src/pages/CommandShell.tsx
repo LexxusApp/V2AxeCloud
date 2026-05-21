@@ -444,6 +444,7 @@ export function CommandShell({ session }: { session: Session }) {
                         <th className={admin.th}>Estado</th>
                         <th className={admin.th}>Detalhes</th>
                         <th className={admin.th}>Utilizador</th>
+                        <th className={admin.th}>Terreiro</th>
                         <th className={admin.th}>IP</th>
                       </tr>
                     </thead>
@@ -455,10 +456,14 @@ export function CommandShell({ session }: { session: Session }) {
                         const detailsText = detailsObj
                           ? [
                               detailsObj.email && `email: ${detailsObj.email}`,
+                              detailsObj.mode && `modo: ${detailsObj.mode}`,
+                              detailsObj.surface && `origem: ${detailsObj.surface}`,
                               detailsObj.reason && `motivo: ${detailsObj.reason}`,
                               detailsObj.path && `rota: ${detailsObj.path}`,
-                              detailsObj.surface && `origem: ${detailsObj.surface}`,
+                              detailsObj.description && String(detailsObj.description).slice(0, 100),
                               detailsObj.message && String(detailsObj.message).slice(0, 120),
+                              detailsObj.targetType && `alvo: ${detailsObj.targetType}`,
+                              detailsObj.targetId && `id: ${String(detailsObj.targetId).slice(0, 12)}`,
                             ]
                               .filter(Boolean)
                               .join(" · ") || JSON.stringify(detailsObj).slice(0, 160)
@@ -466,6 +471,7 @@ export function CommandShell({ session }: { session: Session }) {
                         const userLabel =
                           r.user_email ||
                           (r.user_id ? String(r.user_id).slice(0, 8) : "—");
+                        const terreiroLabel = r.terreiro_id ? String(r.terreiro_id).slice(0, 8) : "—";
                         return (
                           <tr key={r.id} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)]")}>
                             <td className="px-6 py-3 whitespace-nowrap text-[var(--ac-text-muted)] text-xs">
@@ -497,7 +503,12 @@ export function CommandShell({ session }: { session: Session }) {
                               {detailsText}
                             </td>
                             <td className="px-6 py-3 text-[var(--ac-text-muted)] text-xs">{userLabel}</td>
-                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]">{r.ip || "—"}</td>
+                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]" title={r.terreiro_id || ""}>
+                              {terreiroLabel}
+                            </td>
+                            <td className="px-6 py-3 admin-mono text-xs text-[var(--ac-text-faint)]" title={r.user_agent || ""}>
+                              {r.ip || "—"}
+                            </td>
                           </tr>
                         );
                       })}
