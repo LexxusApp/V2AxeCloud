@@ -5,6 +5,7 @@ import {
   Copy,
   Lock,
   Loader2,
+  LogOut,
   MessageCircle,
   QrCode,
   ShieldAlert,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AuthScreenBackground } from './AuthScreenBackground';
+import { performFastLogout } from '../lib/logout';
 import { supabase } from '../lib/supabase';
 
 interface SubscriptionLockProps {
@@ -44,6 +46,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const pollAccessActive = useCallback(async () => {
     if (!tenantId) return false;
@@ -186,6 +189,12 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
       'https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Ax%C3%A9Cloud',
       '_blank'
     );
+  };
+
+  const handleLogout = () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    void performFastLogout();
   };
 
   return (
@@ -343,6 +352,20 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               <span className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" /> Falar com Suporte
               </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-3.5 text-xs font-bold uppercase tracking-widest text-gray-400 transition-all hover:bg-white/10 hover:text-white disabled:opacity-60"
+            >
+              {loggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              {isPending ? 'Sair e entrar com outra conta' : 'Voltar ao login'}
             </button>
 
             <motion.div

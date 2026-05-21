@@ -120,37 +120,37 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
   return (
     <div
       className={cn(
-        'flex items-center gap-2.5 rounded-sm bg-[#050505]/95 px-2.5 py-1.5 shadow-[inset_0_0_24px_rgba(255,255,255,0.03),0_0_28px_rgba(0,0,0,0.45)]',
-        compact ? 'min-w-[154px]' : 'min-w-[190px] px-3 py-2',
+        'flex items-center gap-3 bg-transparent',
+        compact ? 'min-w-[176px]' : 'min-w-[214px]',
         className,
       )}
     >
       <div
         className={cn(
-          'relative grid shrink-0 place-items-center rounded-full border border-[#c78b00] text-[#d9a11a]',
-          compact ? 'h-8 w-8' : 'h-10 w-10',
+          'relative grid shrink-0 place-items-center rounded-full border border-[#c78b00] text-[#d9a11a] shadow-[0_0_18px_rgba(242,185,15,0.16)]',
+          compact ? 'h-10 w-10' : 'h-12 w-12',
         )}
       >
-        <span className="absolute inset-[5px] rounded-full border border-[#6c4a00]" />
+        <span className="absolute inset-[6px] rounded-full border border-[#6c4a00]" />
         <span className="absolute h-px w-[82%] bg-[#9d6f05]" />
         <span className="absolute h-[82%] w-px bg-[#9d6f05]" />
-        <span className="relative h-1.5 w-1.5 rounded-full bg-[#f2b90f] shadow-[0_0_12px_rgba(242,185,15,0.8)]" />
+        <span className="relative h-2 w-2 rounded-full bg-[#f2b90f] shadow-[0_0_12px_rgba(242,185,15,0.8)]" />
       </div>
       <div className="min-w-0 leading-none">
         <div className="flex items-center gap-[3px]">
           <span
             className={cn(
               'font-black uppercase tracking-[0.22em] text-white',
-              compact ? 'text-[15px]' : 'text-xl',
+              compact ? 'text-[18px]' : 'text-2xl',
             )}
           >
             AX
           </span>
-          <span className={cn('font-black text-[#f2b90f]', compact ? 'text-[15px]' : 'text-xl')}>É</span>
+          <span className={cn('font-black text-[#f2b90f]', compact ? 'text-[18px]' : 'text-2xl')}>É</span>
           <span
             className={cn(
               'font-black uppercase tracking-[0.22em] text-white',
-              compact ? 'text-[15px]' : 'text-xl',
+              compact ? 'text-[18px]' : 'text-2xl',
             )}
           >
             CLOUD
@@ -159,7 +159,7 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
         <p
           className={cn(
             'mt-1 text-center font-black uppercase tracking-[0.28em] text-[#d99c0a]',
-            compact ? 'text-[6px]' : 'text-[8px]',
+            compact ? 'text-[7px]' : 'text-[9px]',
           )}
         >
           Gestão Sagrada
