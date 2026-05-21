@@ -46,30 +46,26 @@ async function postAuthAuditLog(
   }
 }
 
-/** Tokens — ouro principal do mockup anotado. */
-const GOLD = '#f2b90f';
-const GOLD_DARK = '#c88900';
-const R_CARD = 'login-radius';
 const fontLogin = "[font-family:Montserrat,system-ui,sans-serif]";
 
-const fieldShell = cn(
-  'w-full h-[42px] pl-[46px] pr-3 text-[14px] leading-none text-white placeholder:text-[#8f939c]',
-  'bg-[#0a0b0d]/95 border border-white/[0.22]',
-  R_CARD,
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.45)]',
-  'transition-all duration-200 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 focus:outline-none'
+/** Mesmo card do SubscriptionLock, com cantos menos arredondados */
+const AUTH_MODAL_CARD = cn(
+  'relative w-full overflow-hidden rounded-xl border border-primary/20 bg-card',
+  'shadow-[0_0_50px_rgba(212,175,55,0.1)]',
+  'p-8 sm:p-10'
 );
 
-const loginPanel = cn(
-  R_CARD,
-  'border border-white/[0.16]',
-  'bg-[#060708]/76 backdrop-blur-xl',
-  'shadow-[0_20px_56px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]',
-  'px-[16px] py-[17px] sm:px-[18px] sm:py-[19px]'
+const AUTH_MODAL_RADIUS = 'rounded-lg';
+
+const fieldShell = cn(
+  'w-full h-[42px] pl-[46px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
+  'border border-white/10 bg-background',
+  AUTH_MODAL_RADIUS,
+  'outline-none transition-all focus:border-primary/50'
 );
 
 const labelClass =
-  'block text-[10px] font-bold text-[#c4c7d0] uppercase tracking-[0.16em]';
+  'block text-[10px] font-black uppercase tracking-widest text-gray-500';
 
 function LogoEmblem({ className }: { className?: string }) {
   return (
@@ -106,12 +102,12 @@ function UsersCircleBadge({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full border border-[#f2b90f]/75 bg-black/35 shadow-[0_0_18px_rgba(242,185,15,0.15)]',
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 shadow-[0_0_18px_rgba(212,175,55,0.12)]',
         className
       )}
       aria-hidden
     >
-      <Users className="h-5 w-5 text-[#f2b90f]" strokeWidth={1.45} />
+      <Users className="h-5 w-5 text-primary" strokeWidth={1.45} />
     </div>
   );
 }
@@ -332,32 +328,32 @@ export default function Login() {
   return (
     <div
       className={cn(
-        'relative h-screen h-[100dvh] min-h-[520px] flex flex-col items-center justify-center overflow-hidden isolate antialiased text-white px-[clamp(14px,4vw,40px)] py-[14px]',
+        'relative isolate flex h-screen h-[100dvh] min-h-[520px] flex-col items-center justify-center overflow-hidden px-6 py-6 antialiased text-white backdrop-blur-2xl',
         fontLogin
       )}
     >
-      <AuthScreenBackground />
+      <AuthScreenBackground variant="dark" className="fixed inset-0" />
 
       <a
         href={ROUTES.home}
-        className="absolute left-[clamp(14px,4vw,40px)] top-[14px] z-20 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#f2b90f]/90 transition-colors hover:text-[#f2b90f] [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
+        className="absolute left-6 top-6 z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Conhecer o AxéCloud
       </a>
 
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-[360px]"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 my-auto w-full max-w-md"
       >
-        <div className={cn(loginPanel, 'space-y-[10px]')}>
+        <div className={cn(AUTH_MODAL_CARD, 'space-y-6')}>
         {showAlert && (
           <div
             className={cn(
-              'flex items-start gap-3 border border-[#f2b90f]/45 bg-[#f2b90f]/10 px-4 py-3 text-[#f2b90f]',
-              R_CARD,
-              'shadow-[0_0_32px_rgba(212,158,36,0.14)]'
+              'flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-primary',
+              'shadow-[0_0_24px_rgba(212,175,55,0.08)]'
             )}
           >
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2} />
@@ -368,42 +364,43 @@ export default function Login() {
               type="button"
               onClick={closeUpdateAlert}
               aria-label="Fechar aviso de atualização"
-              className="shrink-0 rounded-md p-1 text-[#f2b90f]/85 hover:bg-[#f2b90f]/12 hover:text-[#f2b90f] transition-colors -mr-1 -mt-0.5"
+              className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-primary/85 transition-colors hover:bg-primary/12 hover:text-primary"
             >
               <X className="h-4 w-4" strokeWidth={2} />
             </button>
           </div>
         )}
 
-        <header className="text-center space-y-[6px] [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
-          <div className="flex justify-center text-[#f2b90f] drop-shadow-[0_0_16px_rgba(242,185,15,0.35)]">
-            <LogoEmblem className="h-[54px] w-[54px]" />
-          </div>
-          <div className="space-y-[4px]">
+        <header className="space-y-4 text-center">
+          <motion.div
+            animate={{ scale: [1, 1.03, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_10px_30px_rgba(212,175,55,0.3)]"
+          >
+            <LogoEmblem className="h-10 w-10 text-black" />
+          </motion.div>
+          <div className="space-y-1">
             <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
             <p
-              className="text-[clamp(22px,2.9vw,30px)] leading-[0.95] flex flex-wrap items-baseline justify-center drop-shadow-[0_4px_9px_rgba(0,0,0,0.75)]"
+              className="flex flex-wrap items-baseline justify-center text-[clamp(22px,2.9vw,28px)] leading-tight tracking-tight"
               aria-hidden
             >
-              <span className="font-black text-white tracking-[0.12em]">AXÉ</span>
-              <span className="font-light text-[#e8ebf0] tracking-[0.18em] pl-[8px]">CLOUD</span>
+              <span className="font-black text-white">AXÉ</span>
+              <span className="pl-2 font-light text-gray-300">CLOUD</span>
             </p>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.38em] text-[#f2b90f]"
-              aria-hidden
-            >
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary" aria-hidden>
               GESTÃO SAGRADA
             </p>
           </div>
-          <div className="space-y-[2px] pt-[1px] text-[13px] leading-[1.32]">
+          <div className="space-y-1 text-sm leading-relaxed">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
-            <p className="mx-auto max-w-[280px] text-[12px] text-[#c8cad2]">
+            <p className="mx-auto max-w-[280px] text-gray-400">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
             </p>
           </div>
         </header>
 
-        <div className="space-y-[10px]">
+        <div className="space-y-4">
           <form onSubmit={handleAuth} className="space-y-[8px]">
             <AnimatePresence mode="wait">
               {!filhoSurface ? (
@@ -418,7 +415,7 @@ export default function Login() {
                     <label className={labelClass}>E-mail</label>
                     <div className="relative">
                       <User
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
                         strokeWidth={1.5}
                       />
                       <input
@@ -441,14 +438,14 @@ export default function Login() {
                         type="button"
                         onClick={handleForgotPassword}
                         disabled={forgotLoading}
-                        className="pb-[1px] text-[11px] font-medium text-[#f2b90f] hover:text-[#ffd85a] disabled:opacity-50 transition-colors"
+                        className="pb-[1px] text-[11px] font-medium text-primary hover:text-primary/80 disabled:opacity-50 transition-colors"
                       >
                         {forgotLoading ? 'Enviando...' : 'Esqueceu sua senha?'}
                       </button>
                     </div>
                     <div className="relative">
                       <Lock
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
                         strokeWidth={1.5}
                       />
                       <input
@@ -479,7 +476,7 @@ export default function Login() {
                     <span
                       className={cn(
                         'flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
-                        rememberMe ? 'border-[#f2b90f] bg-[#f2b90f]/10' : 'border-[#f2b90f] bg-transparent'
+                        rememberMe ? 'border-primary bg-primary/10' : 'border-primary bg-transparent'
                       )}
                     >
                       <input
@@ -489,7 +486,7 @@ export default function Login() {
                         className="sr-only"
                       />
                       {rememberMe && (
-                        <svg className="h-3.5 w-3.5 text-[#f2b90f]" viewBox="0 0 12 10" fill="none" aria-hidden>
+                        <svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 12 10" fill="none" aria-hidden>
                           <path
                             d="M1 5l3.5 3.5L11 1"
                             stroke="currentColor"
@@ -518,7 +515,7 @@ export default function Login() {
                       setError(null);
                       setInfo(null);
                     }}
-                    className="-mt-1 mb-0 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-[#f2b90f]"
+                    className="-mt-1 mb-0 text-[11px] font-semibold text-gray-500 transition-colors hover:text-primary"
                   >
                     ← Voltar ao login do zelador
                   </button>
@@ -526,7 +523,7 @@ export default function Login() {
                     <label className={labelClass}>ID (4 dígitos)</label>
                     <div className="relative">
                       <User
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
                         strokeWidth={1.5}
                       />
                       <input
@@ -544,7 +541,7 @@ export default function Login() {
                     <label className={labelClass}>4 primeiros dígitos do CPF</label>
                     <div className="relative">
                       <KeyRound
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
+                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
                         strokeWidth={1.5}
                       />
                       <input
@@ -566,8 +563,7 @@ export default function Login() {
             {error && (
               <p
                 className={cn(
-                  'text-center text-[11px] font-semibold text-red-400 bg-red-950/35 py-2 border border-red-900/45',
-                  R_CARD
+                  'rounded-lg border border-red-500/30 bg-red-950/40 py-2 text-center text-[11px] font-semibold text-red-200'
                 )}
               >
                 {error}
@@ -576,41 +572,35 @@ export default function Login() {
             {info && (
               <p
                 className={cn(
-                  'text-center text-[11px] font-semibold text-[#f2b90f] bg-[#f2b90f]/8 py-2 border border-[#f2b90f]/28',
-                  R_CARD
+                  'rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-[11px] font-semibold text-primary'
                 )}
               >
                 {info}
               </p>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
-              style={{
-                background: 'linear-gradient(180deg, #ffd33d 0%, #efb611 44%, #c48602 100%)',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.38), 0 8px 28px rgba(242,185,15,0.34), 0 0 0 1px rgba(242,185,15,0.36)',
-              }}
+              whileTap={{ scale: 0.98 }}
               className={cn(
-                R_CARD,
-                'flex h-[42px] w-full items-center justify-center gap-2 text-[14px] font-black uppercase tracking-[0.11em] text-black',
-                'hover:brightness-[1.03] active:brightness-[0.97] transition-[filter,transform] duration-150',
-                'active:scale-[0.99] disabled:opacity-50 disabled:active:scale-100'
+                AUTH_MODAL_RADIUS,
+                'flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
+                'shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90 disabled:opacity-60'
               )}
             >
               {loading ? <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} /> : 'Entrar'}
-            </button>
+            </motion.button>
           </form>
 
           {!filhoSurface && (
-            <div className="space-y-[6px]">
-              <div className="flex items-center gap-[8px] px-0.5">
-                <div className="h-px flex-1 bg-white/[0.2]" />
-                <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-[#b8bbc4]">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-0.5">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Acesso do filho
                 </span>
-                <div className="h-px flex-1 bg-white/[0.2]" />
+                <div className="h-px flex-1 bg-white/10" />
               </div>
               <button
                 type="button"
@@ -620,14 +610,13 @@ export default function Login() {
                   setInfo(null);
                 }}
                 className={cn(
-                  'relative flex h-[42px] w-full items-center justify-center text-[14px] font-medium text-white',
-                  R_CARD,
-                  'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-                  'hover:border-white/[0.22] hover:bg-[#1f1f1f] transition-colors duration-200'
+                  'relative flex h-11 w-full items-center justify-center text-sm font-bold text-white',
+                  AUTH_MODAL_RADIUS,
+                  'border border-white/10 bg-background transition-colors hover:border-primary/30 hover:bg-background/80'
                 )}
               >
                 <UserCircle
-                  className="pointer-events-none absolute left-[14px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#f2b90f]"
+                  className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-primary"
                   strokeWidth={1.5}
                   aria-hidden
                 />
@@ -639,43 +628,30 @@ export default function Login() {
           <a
             href="/register"
             className={cn(
-              'group mb-4 flex w-full items-center gap-[9px] px-[11px] py-[8px]',
-              R_CARD,
-              'border border-white/[0.2] bg-[#0a0b0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
-              'hover:border-white/[0.18] transition-colors duration-200'
+              'group flex w-full items-center gap-3 rounded-lg border border-white/10 bg-background px-3 py-3',
+              'transition-colors hover:border-primary/20'
             )}
           >
             <UsersCircleBadge />
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-[12.5px] font-medium leading-snug text-white">Cadastre seu terreiro</p>
-              <p className="mt-[1px] text-[10px] font-medium leading-[1.3] text-[#c8cad2]">
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-bold leading-snug text-white">Cadastre seu terreiro</p>
+              <p className="mt-0.5 text-[10px] font-medium leading-snug text-gray-400">
                 Crie sua conta, pague com Pix e libere o painel na hora.
               </p>
             </div>
             <ChevronRight
-              className="h-[18px] w-[18px] shrink-0 text-[#f2b90f] transition-transform duration-200 group-hover:translate-x-0.5"
+              className="h-[18px] w-[18px] shrink-0 text-primary transition-transform duration-200 group-hover:translate-x-0.5"
               strokeWidth={1.85}
             />
           </a>
         </div>
 
-        <p className="login-footer-rule flex items-center justify-center gap-[8px] whitespace-nowrap px-2 pt-[1px] text-center text-[9px] font-bold uppercase tracking-[0.16em] text-[#c8cad2]">
-          <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-[#f2b90f]" strokeWidth={1.55} />
+        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-6 text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-primary/40" strokeWidth={1.55} />
           Seguro, confiável e feito para terreiros
         </p>
         </div>
       </motion.div>
-
-      {/* Detalhe do mockup (marcações vermelhas): filete dourado horizontal no rodapé da tela. */}
-      <div
-        className="pointer-events-none fixed bottom-0 left-0 right-0 z-[25] h-[1px]"
-        style={{
-          background: `linear-gradient(90deg, transparent 0%, ${GOLD} 12%, ${GOLD} 88%, transparent 100%)`,
-          boxShadow: `0 0 10px ${GOLD_DARK}, 0 0 1px rgba(242,185,15,0.9)`,
-          opacity: 0.95,
-        }}
-        aria-hidden
-      />
     </div>
   );
 }
