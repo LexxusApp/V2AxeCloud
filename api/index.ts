@@ -2895,7 +2895,7 @@ async function startServer() {
     }
   });
 
-  // GET /api/tenant-info: implementado em /api/tenant-info.ts (função serverless isolada; sem /src no bundle da Vercel)
+  // GET /api/tenant-info: em produção via api/public.ts (rewrite); localmente também neste Express.
 
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {

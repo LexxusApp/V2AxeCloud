@@ -181,25 +181,29 @@ export default function Landing() {
       <AuthScreenBackground fixed className="-z-20" />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <a href="#top" className="shrink-0" aria-label="AxéCloud — início">
+        <div className="mx-auto flex max-w-7xl items-center px-4 py-3 sm:px-6 lg:px-8">
+            <a
+              href="#top"
+              className="shrink-0 pr-5 sm:pr-8 lg:pr-12"
+              aria-label="AxéCloud — início"
+            >
               <LogoMark compact />
             </a>
             <nav
-              className="hidden items-center gap-7 text-[11px] font-black uppercase tracking-widest text-zinc-500 md:flex"
+              className="hidden min-w-0 flex-1 items-center justify-center gap-5 px-4 text-[11px] font-black uppercase tracking-widest text-zinc-500 md:flex lg:gap-6 lg:px-8 xl:px-12"
               aria-label="Seções"
             >
               {nav.map((l) => (
                 <a
                   key={l.href}
                   href={l.href}
-                  className="transition hover:text-primary"
+                  className="whitespace-nowrap transition hover:text-primary"
                 >
                   {l.label}
                 </a>
               ))}
             </nav>
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-2 pl-5 sm:pl-8 lg:pl-12">
               <details className="relative z-[60] md:hidden" id="landing-nav">
                 <summary
                   className="list-none cursor-pointer rounded-lg border border-white/10 p-2.5 text-zinc-300 transition hover:border-white/20 hover:text-white [&::-webkit-details-marker]:hidden"

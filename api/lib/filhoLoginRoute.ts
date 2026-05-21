@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
-import { applyDiscreteRouteCors } from "../lib/corsOrigins.js";
+import { applyDiscreteRouteCors } from "./corsOrigins.js";
 
 dotenv.config();
 
@@ -37,7 +37,7 @@ function sendJson(res: any, status: number, body: Record<string, unknown>) {
   return res.end(JSON.stringify(body));
 }
 
-export default async function handler(req: any, res: any) {
+export async function handleFilhoLoginRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
 
   if (req.method !== "POST") {

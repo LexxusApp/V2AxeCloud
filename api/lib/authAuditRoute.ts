@@ -1,11 +1,11 @@
-import { applyDiscreteRouteCors } from "../lib/corsOrigins.js";
-import { createAuditLog, resolveTerreiroIdForUser } from "../lib/createAuditLog.js";
-import { getDiscreteSupabaseAdmin, sendJson } from "../lib/discreteSupabase.js";
-import { verifyUser } from "../lib/verifyUser.js";
+import { applyDiscreteRouteCors } from "./corsOrigins.js";
+import { createAuditLog, resolveTerreiroIdForUser } from "./createAuditLog.js";
+import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
+import { verifyUser } from "./verifyUser.js";
 
 const CLIENT_ALLOWED_ACTIONS = new Set(["auth.login_success", "auth.login_failed"]);
 
-export default async function handler(req: any, res: any) {
+export async function handleAuthAuditRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
 
   if (String(req.method || "POST").toUpperCase() !== "POST") {

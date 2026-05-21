@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/admin/update-plans",
-      "destination": "https://axecloud.com.br/api/admin/update-plans"
+      "destination": "https://axecloud.com.br/api/admin?action=update-plans"
     },
     { "source": "/api/(.*)", "destination": "https://axecloud.com.br/api/$1" },
     { "source": "/((?!api|.*\\..*).*)", "destination": "/index.html" }

@@ -1,12 +1,12 @@
 /**
- * GET /api/plans — catálogo em global_settings (id = plans), sem carregar api/index.ts.
+ * GET /api/plans — catálogo em global_settings (id = plans).
  */
-import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
-import { getDiscreteSupabaseAdmin, sendJson } from "./lib/discreteSupabase.js";
-import { loadPlansCatalogWithMeta, PLANS_CATALOG_DEFAULT } from "./lib/plansCatalog.js";
-import { getSupabaseProjectRef, getSupabaseServerUrl } from "./lib/supabaseServerEnv.js";
+import { applyDiscreteRouteCors } from "./corsOrigins.js";
+import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
+import { loadPlansCatalogWithMeta, PLANS_CATALOG_DEFAULT } from "./plansCatalog.js";
+import { getSupabaseProjectRef, getSupabaseServerUrl } from "./supabaseServerEnv.js";
 
-export default async function handler(req: any, res: any) {
+export async function handlePlansRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
 
   if (String(req.method || "GET").toUpperCase() !== "GET") {

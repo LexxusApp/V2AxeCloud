@@ -8,8 +8,8 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
-import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
-import { getConsoleAdminEmailAllowlist } from "./lib/consoleAdmin.js";
+import { applyDiscreteRouteCors } from "./corsOrigins.js";
+import { getConsoleAdminEmailAllowlist } from "./consoleAdmin.js";
 
 dotenv.config();
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
@@ -71,7 +71,7 @@ const supabaseAdmin =
       })
     : null;
 
-export default async function handler(req: { method?: string; query?: Record<string, string | string[] | undefined>; headers?: any }, res: any) {
+export async function handleTenantInfoRoute(req: { method?: string; query?: Record<string, string | string[] | undefined>; headers?: any }, res: any) {
   if (applyDiscreteRouteCors(req as any, res)) return;
   // Fase 3: padrão sem cache; respostas 200 de perfil sobrescrevem com TTL curto.
   res.setHeader("Cache-Control", "private, no-store, must-revalidate");
