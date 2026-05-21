@@ -1,26 +1,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { getSupabaseServerServiceKey, getSupabaseServerUrl } from "./supabaseServerEnv.js";
 
 dotenv.config();
 
-const viteEnv = (import.meta as any).env || {};
-
-function getServerEnv(...keys: string[]) {
-  for (const key of keys) {
-    const value = process.env[key] || viteEnv[key];
-    if (value) return value;
-  }
-  return undefined;
-}
-
 export function getDiscreteSupabaseAdmin(): SupabaseClient | null {
-  const url = getServerEnv("VITE_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
-  const key = getServerEnv(
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SUPABASE_SERVICE_KEY",
-    "VITE_SUPABASE_SERVICE_ROLE_KEY",
-    "VITE_SUPABASE_SERVICE_KEY"
-  );
+  const url = getSupabaseServerUrl();
+  const key = getSupabaseServerServiceKey();
   if (!url || !key) return null;
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },

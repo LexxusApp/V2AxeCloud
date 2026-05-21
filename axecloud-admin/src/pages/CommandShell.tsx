@@ -808,7 +808,7 @@ type CatalogEntry = { name: string; price: number; description: string };
 
 const CATALOG_DEFAULT_PREMIUM: CatalogEntry = {
   name: "Premium",
-  price: 5,
+  price: 89.9,
   description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
 };
 const CATALOG_DEFAULT_VITA: CatalogEntry = {

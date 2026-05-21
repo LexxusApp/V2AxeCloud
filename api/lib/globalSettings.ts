@@ -14,12 +14,7 @@ export async function loadGlobalSettingPayload(
     .maybeSingle();
 
   if (!error) {
-    const typed = row as SettingsRow | null;
-    const fromData = typed?.data;
-    if (fromData !== undefined && fromData !== null) return fromData;
-    const fromValue = typed?.value;
-    if (fromValue !== undefined && fromValue !== null) return fromValue;
-    return null;
+    return pickSettingsPayload(row as SettingsRow | null);
   }
 
   const msg = String(error.message || "");
@@ -32,7 +27,32 @@ export async function loadGlobalSettingPayload(
     return (legacy.data as SettingsRow | null)?.value ?? null;
   }
 
+  if (/column ["']?value["']?/i.test(msg) || /Could not find the 'value' column/i.test(msg)) {
+    const modern = await supabaseAdmin.from("global_settings").select("data").eq("id", id).maybeSingle();
+    if (modern.error) {
+      console.warn(`[global_settings] load ${id}:`, modern.error.message);
+      return null;
+    }
+    return pickSettingsPayload(modern.data as SettingsRow | null);
+  }
+
   console.warn(`[global_settings] load ${id}:`, msg);
+  return null;
+}
+
+function pickSettingsPayload(row: SettingsRow | null): unknown | null {
+  if (!row) return null;
+  const fromData = row.data;
+  const fromValue = row.value;
+  const hasData =
+    fromData !== undefined && fromData !== null && typeof fromData === "object" && Object.keys(fromData as object).length > 0;
+  const hasValue =
+    fromValue !== undefined && fromValue !== null && typeof fromValue === "object" && Object.keys(fromValue as object).length > 0;
+  if (hasData && hasValue) {
+    return { ...(fromValue as Record<string, unknown>), ...(fromData as Record<string, unknown>) };
+  }
+  if (fromData !== undefined && fromData !== null) return fromData;
+  if (fromValue !== undefined && fromValue !== null) return fromValue;
   return null;
 }
 

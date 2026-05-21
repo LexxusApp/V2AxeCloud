@@ -864,7 +864,7 @@ try {
 }
 
 // Supabase: na Vercel use process.env (SUPABASE_URL, SUPABASE_ANON_KEY, etc.); getServerEnv cobre VITE_* no dev
-const supabaseUrl = getServerEnv("VITE_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+const supabaseUrl = getServerEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
 const supabaseAnonKey = getServerEnv("VITE_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY");
 const SUPABASE_URL = supabaseUrl;
 const SUPABASE_SERVICE_ROLE_KEY = getServerEnv(

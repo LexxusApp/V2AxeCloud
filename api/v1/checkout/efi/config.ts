@@ -3,6 +3,7 @@
  */
 import { applyDiscreteRouteCors } from "../../../lib/corsOrigins.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "../../../lib/discreteSupabase.js";
+import { getSupabaseProjectRef, getSupabaseServerUrl } from "../../../lib/supabaseServerEnv.js";
 import { formatAmountLabelFromCents } from "../../../lib/plansCatalog.js";
 import { resolveEfiEnv, resolveEfiPayeeCode } from "../../../lib/efiPay.js";
 import { getEfiPixSetupDiagnostics, resolveEfiPixEnv } from "../../../lib/efiPixApi.js";
@@ -39,6 +40,7 @@ export default async function handler(req: any, res: any) {
       payeeCode: payeeCode || null,
       amountCents,
       amountLabel: formatAmountLabelFromCents(amountCents),
+      projectRef: getSupabaseProjectRef(getSupabaseServerUrl()),
       pixAvailable: !!pix,
       cardAvailable: EFI_CARD_CHECKOUT_ENABLED,
       cardTokenizationReady: EFI_CARD_CHECKOUT_ENABLED && !!payeeCode,

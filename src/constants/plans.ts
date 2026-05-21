@@ -62,7 +62,7 @@ export const PLAN_NAMES: Record<string, string> = {
 
 /** Preços padrão (reais) quando /api/plans não responde — espelha api/lib/plansCatalog.ts */
 export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
-  premium: 5,
+  premium: 89.9,
   vita: 49.9,
 };
 

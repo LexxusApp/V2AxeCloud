@@ -50,7 +50,7 @@ export function premiumDisplayFromCatalog(
 }
 
 export async function fetchPlansCatalog(): Promise<PlansCatalogClient> {
-  const res = await fetch('/api/plans', { cache: 'no-store' });
+  const res = await fetch(`/api/plans?_=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Não foi possível carregar os planos.');
   const data = (await res.json()) as { plans?: PlansCatalogClient };
   return data.plans || {};

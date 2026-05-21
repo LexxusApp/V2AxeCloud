@@ -17,14 +17,14 @@ export type PlanCatalogEntry = {
 export const PLANS_CATALOG_KEYS = ["premium", "vita"] as const;
 export type PlanCatalogKey = (typeof PLANS_CATALOG_KEYS)[number];
 
-/** Fallback de cobrança EFI quando o catálogo no banco não define preço (R$ 5,00 teste). */
-export const PREMIUM_CHECKOUT_FALLBACK_CENTS = 500;
+/** Fallback de cobrança EFI quando o catálogo no banco não define preço. */
+export const PREMIUM_CHECKOUT_FALLBACK_CENTS = 8990;
 
 /** Fallback de exibição no catálogo (UI) quando o banco não responde. */
 export const PLANS_CATALOG_DEFAULT: Record<PlanCatalogKey, PlanCatalogEntry> = {
   premium: {
     name: "Premium",
-    price: 5,
+    price: 89.9,
     description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
   },
   vita: {
@@ -138,12 +138,36 @@ export function premiumEntryToAmountCents(entry: PlanCatalogEntry): number {
   return planPriceToCents(entry.price);
 }
 
+export type PlansCatalogLoadResult = {
+  plans: Record<PlanCatalogKey, PlanCatalogEntry>;
+  fromDatabase: boolean;
+  updatedAt: string | null;
+};
+
 /** Lê catálogo de planos em global_settings (id = plans). */
 export async function loadPlansCatalog(
   supabaseAdmin: SupabaseClient
 ): Promise<Record<PlanCatalogKey, PlanCatalogEntry>> {
+  const loaded = await loadPlansCatalogWithMeta(supabaseAdmin);
+  return loaded.plans;
+}
+
+export async function loadPlansCatalogWithMeta(
+  supabaseAdmin: SupabaseClient
+): Promise<PlansCatalogLoadResult> {
   const raw = await loadGlobalSettingPayload(supabaseAdmin, "plans");
-  return normalizePlansCatalog(raw);
+  const { data: metaRow } = await supabaseAdmin
+    .from("global_settings")
+    .select("updated_at")
+    .eq("id", "plans")
+    .maybeSingle();
+
+  const fromDatabase = raw != null;
+  return {
+    plans: normalizePlansCatalog(raw),
+    fromDatabase,
+    updatedAt: (metaRow as { updated_at?: string } | null)?.updated_at ?? null,
+  };
 }
 
 /** Persiste catálogo — alterações no painel admin refletem no checkout EFI. */
