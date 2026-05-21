@@ -11,8 +11,8 @@ export function getConsoleAdminEmailAllowlist(): string[] {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  if (fromEnv.length) return fromEnv;
-  return DEFAULT_CONSOLE_ADMINS.map((e) => e.toLowerCase());
+  // Sempre inclui fundadores — mesmo com ADMIN_CONSOLE_EMAILS preenchido no .env/Vercel
+  return [...new Set([...DEFAULT_CONSOLE_ADMINS.map((e) => e.toLowerCase()), ...fromEnv])];
 }
 
 function normalizeEmail(email: string | null | undefined): string {

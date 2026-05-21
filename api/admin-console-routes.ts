@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
-import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   createInstanceWithPairingCode,
@@ -93,10 +93,7 @@ async function requireConsoleAdmin(
   }
   const ok = await isConsoleGlobalAdmin(deps.supabaseAdmin, user);
   if (!ok) {
-    const allow = (process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
+    const allow = getConsoleAdminEmailAllowlist();
     const userEmail = String(user.email || "").trim().toLowerCase();
     logConsoleUnauthorized(deps, req, "forbidden_not_global_admin", {
       userId: user.id,

@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { AxeCloudLogoMark } from '../components/AxeCloudLogoMark';
 import { ROUTES } from '../lib/routes';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
@@ -343,13 +344,9 @@ export default function Login() {
         )}
 
         <header className="space-y-3 text-center">
-          <motion.img
-            src="/axecloud_512.png"
-            alt="AxéCloud — Gestão Sagrada"
-            animate={{ scale: [1, 1.03, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="mx-auto h-24 w-24 rounded-2xl object-contain shadow-[0_10px_32px_rgba(212,175,55,0.22)]"
-          />
+          <div className="flex justify-center">
+            <AxeCloudLogoMark compact />
+          </div>
           <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>

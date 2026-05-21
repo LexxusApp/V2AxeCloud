@@ -9,17 +9,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
+import { getConsoleAdminEmailAllowlist } from "./lib/consoleAdmin.js";
 
 dotenv.config();
-
-// --- Valores alinhados ao app (não importar de src) ---
-function consoleAdminEmailAllowlist(): string[] {
-  const raw = process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "";
-  return raw
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
 // Slugs de plano alinhados ao app: premium, vita, cortesia (sem import de src)
 
@@ -192,7 +184,7 @@ export default async function handler(req: { method?: string; query?: Record<str
     let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at").eq("id", userId).maybeSingle();
     if (subRes.error) throw subRes.error;
 
-    const isSuperAdmin = profileRes.data?.is_admin_global === true || consoleAdminEmailAllowlist().includes(email);
+    const isSuperAdmin = profileRes.data?.is_admin_global === true || getConsoleAdminEmailAllowlist().includes(email);
 
     if (isSuperAdmin && !profileRes.data) {
       console.log(`[tenant-info] Auto-criando perfil Super Admin: ${email}`);
