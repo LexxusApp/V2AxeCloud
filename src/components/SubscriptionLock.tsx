@@ -201,19 +201,19 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto p-6 backdrop-blur-2xl"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 py-6 backdrop-blur-2xl no-scrollbar sm:p-6"
     >
       <AuthScreenBackground variant="dark" className="fixed inset-0" />
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="relative my-auto max-h-[min(92dvh,900px)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-primary/20 bg-card p-8 text-center shadow-[0_0_50px_rgba(212,175,55,0.1)] sm:p-10"
+        className="relative my-auto w-full max-w-md shrink-0 overflow-hidden rounded-[2rem] border border-primary/20 bg-card p-6 text-center shadow-[0_0_50px_rgba(212,175,55,0.1)] sm:p-8"
       >
         <motion.div
           animate={{ scale: [1, 1.03, 1] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_10px_30px_rgba(212,175,55,0.3)]"
+          className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_10px_30px_rgba(212,175,55,0.3)] sm:h-20 sm:w-20"
         >
           <Lock className="h-9 w-9 text-black" />
         </motion.div>
@@ -227,7 +227,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
           </>
         ) : (
           <>
-            <h2 className="mb-3 text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl">
+            <h2 className="mb-2 text-xl font-black leading-tight tracking-tight text-white sm:mb-3 sm:text-2xl">
               {isPending ? (
                 <>
                   Aguardando <span className="text-primary">pagamento</span>
@@ -239,7 +239,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               )}
             </h2>
 
-            <p className="mb-6 text-sm font-medium leading-relaxed text-gray-400">
+            <p className="mb-5 text-sm font-medium leading-relaxed text-gray-400">
               {isPending
                 ? 'Gere o QR Code Pix abaixo. Assim que o pagamento for confirmado, o painel libera automaticamente.'
                 : 'Sua assinatura expirou ou está inativa. Pague via Pix para voltar a gerenciar seu terreiro.'}
@@ -265,7 +265,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
             ) : !pixAvailable ? (
               <p className="mb-6 text-sm text-gray-500">PIX indisponível no momento. Fale com o suporte.</p>
             ) : !pixQr ? (
-              <div className="mb-6 space-y-3 text-left">
+              <div className="mb-5 space-y-3 text-left">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-gray-500">
                     Nome do pagador
@@ -307,7 +307,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
                 </motion.button>
               </div>
             ) : (
-              <div className="mb-6 space-y-4">
+              <div className="mb-5 space-y-4">
                 <p className="text-sm text-gray-400">
                   Escaneie o QR Code ou copie o Pix. Validade: 1 hora.
                 </p>
@@ -372,7 +372,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="mt-8 flex items-center justify-center gap-2 border-t border-white/5 pt-6"
+              className="mt-5 flex items-center justify-center gap-2 border-t border-white/5 pt-4 sm:mt-6 sm:pt-5"
             >
               <Sparkles className="h-4 w-4 text-primary/40" />
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">

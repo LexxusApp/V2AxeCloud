@@ -52,13 +52,13 @@ const fontLogin = "[font-family:Montserrat,system-ui,sans-serif]";
 const AUTH_MODAL_CARD = cn(
   'relative w-full overflow-hidden rounded-xl border border-primary/20 bg-card',
   'shadow-[0_0_50px_rgba(212,175,55,0.1)]',
-  'p-8 sm:p-10'
+  'p-5 sm:p-6'
 );
 
 const AUTH_MODAL_RADIUS = 'rounded-lg';
 
 const fieldShell = cn(
-  'w-full h-[42px] pl-[46px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
+  'w-full h-[38px] pl-[42px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
   'border border-white/10 bg-background',
   AUTH_MODAL_RADIUS,
   'outline-none transition-all focus:border-primary/50'
@@ -102,7 +102,7 @@ function UsersCircleBadge({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 shadow-[0_0_18px_rgba(212,175,55,0.12)]',
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 shadow-[0_0_18px_rgba(212,175,55,0.12)]',
         className
       )}
       aria-hidden
@@ -328,7 +328,7 @@ export default function Login() {
   return (
     <div
       className={cn(
-        'relative isolate flex h-screen h-[100dvh] min-h-[520px] flex-col items-center justify-center overflow-hidden px-6 py-6 antialiased text-white backdrop-blur-2xl',
+        'relative isolate flex min-h-screen min-h-[100dvh] flex-col items-center justify-center overflow-y-auto px-4 py-4 antialiased text-white backdrop-blur-2xl sm:px-6 sm:py-5',
         fontLogin
       )}
     >
@@ -346,9 +346,9 @@ export default function Login() {
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 my-auto w-full max-w-md"
+        className="relative z-10 my-auto w-full max-w-[22rem] sm:max-w-md"
       >
-        <div className={cn(AUTH_MODAL_CARD, 'space-y-6')}>
+        <div className={cn(AUTH_MODAL_CARD, 'space-y-4')}>
         {showAlert && (
           <div
             className={cn(
@@ -371,18 +371,18 @@ export default function Login() {
           </div>
         )}
 
-        <header className="space-y-4 text-center">
+        <header className="space-y-2.5 text-center">
           <motion.div
             animate={{ scale: [1, 1.03, 1] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_10px_30px_rgba(212,175,55,0.3)]"
+            className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/40 shadow-[0_8px_24px_rgba(212,175,55,0.28)]"
           >
-            <LogoEmblem className="h-10 w-10 text-black" />
+            <LogoEmblem className="h-7 w-7 text-black" />
           </motion.div>
           <div className="space-y-1">
             <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
             <p
-              className="flex flex-wrap items-baseline justify-center text-[clamp(22px,2.9vw,28px)] leading-tight tracking-tight"
+              className="flex flex-wrap items-baseline justify-center text-[clamp(20px,2.5vw,26px)] leading-tight tracking-tight"
               aria-hidden
             >
               <span className="font-black text-white">AXÉ</span>
@@ -392,15 +392,15 @@ export default function Login() {
               GESTÃO SAGRADA
             </p>
           </div>
-          <div className="space-y-1 text-sm leading-relaxed">
+          <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
-            <p className="mx-auto max-w-[280px] text-gray-400">
+            <p className="mx-auto max-w-[260px] text-gray-400">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
             </p>
           </div>
         </header>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <form onSubmit={handleAuth} className="space-y-[8px]">
             <AnimatePresence mode="wait">
               {!filhoSurface ? (
@@ -585,7 +585,7 @@ export default function Login() {
               whileTap={{ scale: 0.98 }}
               className={cn(
                 AUTH_MODAL_RADIUS,
-                'flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
+                'flex h-10 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
                 'shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90 disabled:opacity-60'
               )}
             >
@@ -610,7 +610,7 @@ export default function Login() {
                   setInfo(null);
                 }}
                 className={cn(
-                  'relative flex h-11 w-full items-center justify-center text-sm font-bold text-white',
+                  'relative flex h-10 w-full items-center justify-center text-sm font-bold text-white',
                   AUTH_MODAL_RADIUS,
                   'border border-white/10 bg-background transition-colors hover:border-primary/30 hover:bg-background/80'
                 )}
@@ -628,7 +628,7 @@ export default function Login() {
           <a
             href="/register"
             className={cn(
-              'group flex w-full items-center gap-3 rounded-lg border border-white/10 bg-background px-3 py-3',
+              'group flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-background px-3 py-2.5',
               'transition-colors hover:border-primary/20'
             )}
           >
@@ -646,7 +646,7 @@ export default function Login() {
           </a>
         </div>
 
-        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-6 text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
+        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-4 text-[9px] font-black uppercase tracking-[0.28em] text-gray-600">
           <ShieldCheck className="h-4 w-4 shrink-0 text-primary/40" strokeWidth={1.55} />
           Seguro, confiável e feito para terreiros
         </p>
