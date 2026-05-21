@@ -4803,7 +4803,7 @@ async function startServer() {
   }
 
   if (process.env.VERCEL !== '1') {
-    app.listen(PORT, "0.0.0.0", () => {
+    app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       
       // Garantir buckets e esquema após o início para não bloquear o boot

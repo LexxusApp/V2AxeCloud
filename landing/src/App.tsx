@@ -118,21 +118,53 @@ const appScreensLogado: { src: string; label: string; desc: string }[] = [
 
 function LogoMark({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <div className={cn('flex flex-col', className)}>
-      <div className="flex items-baseline gap-0.5">
-        <span className={cn('font-black tracking-tighter text-white', compact ? 'text-2xl' : 'text-3xl sm:text-4xl')}>
-          AX
-        </span>
-        <span className={cn('text-primary font-black', compact ? 'text-2xl' : 'text-3xl sm:text-4xl')}>É</span>
-      </div>
-      <span
+    <div
+      className={cn(
+        'flex items-center gap-2.5 rounded-sm bg-[#050505]/95 px-2.5 py-1.5 shadow-[inset_0_0_24px_rgba(255,255,255,0.03),0_0_28px_rgba(0,0,0,0.45)]',
+        compact ? 'min-w-[154px]' : 'min-w-[190px] px-3 py-2',
+        className,
+      )}
+    >
+      <div
         className={cn(
-          'font-black text-white/55 tracking-[0.28em] -mt-0.5',
-          compact ? 'text-base ml-0.5' : 'text-lg sm:text-xl ml-1',
+          'relative grid shrink-0 place-items-center rounded-full border border-[#c78b00] text-[#d9a11a]',
+          compact ? 'h-8 w-8' : 'h-10 w-10',
         )}
       >
-        CLOUD
-      </span>
+        <span className="absolute inset-[5px] rounded-full border border-[#6c4a00]" />
+        <span className="absolute h-px w-[82%] bg-[#9d6f05]" />
+        <span className="absolute h-[82%] w-px bg-[#9d6f05]" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-[#f2b90f] shadow-[0_0_12px_rgba(242,185,15,0.8)]" />
+      </div>
+      <div className="min-w-0 leading-none">
+        <div className="flex items-center gap-[3px]">
+          <span
+            className={cn(
+              'font-black uppercase tracking-[0.22em] text-white',
+              compact ? 'text-[15px]' : 'text-xl',
+            )}
+          >
+            AX
+          </span>
+          <span className={cn('font-black text-[#f2b90f]', compact ? 'text-[15px]' : 'text-xl')}>É</span>
+          <span
+            className={cn(
+              'font-black uppercase tracking-[0.22em] text-white',
+              compact ? 'text-[15px]' : 'text-xl',
+            )}
+          >
+            CLOUD
+          </span>
+        </div>
+        <p
+          className={cn(
+            'mt-1 text-center font-black uppercase tracking-[0.28em] text-[#d99c0a]',
+            compact ? 'text-[6px]' : 'text-[8px]',
+          )}
+        >
+          Gestão Sagrada
+        </p>
+      </div>
     </div>
   );
 }
@@ -160,7 +192,7 @@ export function App() {
         <div className="grid-faint absolute inset-0 opacity-60" />
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <a href="#top" className="shrink-0" id="top" aria-label="AxéCloud — início">
               <LogoMark compact />

@@ -12,6 +12,9 @@ export const BASE_URL = "https://evolution-api-production-xxx.up.railway.app";
 
 export const API_KEY = "AxeCloud_2026";
 
+const EVOLUTION_API_TIMEOUT_MS = 29000;
+const EVOLUTION_COLD_START_RETRY_DELAY_MS = 2000;
+
 function resolvedBaseUrl(): string {
   const raw = String(process.env.EVOLUTION_API_BASE_URL || BASE_URL).trim().replace(/\/$/, "");
   if (!raw) return BASE_URL;
@@ -35,6 +38,28 @@ function logEvolution(tag: string, status: number, detail: string) {
   console.log(`[Evolution API] ${tag} | HTTP ${status} | ${detail}`);
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isEvolutionRequestTimeout(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; code?: string; message?: string };
+  const message = String(err.message || "").toLowerCase();
+  return (
+    err.name === "AbortError" ||
+    err.name === "TimeoutError" ||
+    err.code === "ETIMEDOUT" ||
+    err.code === "ECONNABORTED" ||
+    message.includes("timeout") ||
+    message.includes("aborted")
+  );
+}
+
+function isEvolutionColdStartStatus(status: number): boolean {
+  return status === 502 || status === 504;
+}
+
 async function evolutionRequest(path: string, init: RequestInit = {}): Promise<Response> {
   const root = resolvedBaseUrl();
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -46,7 +71,24 @@ async function evolutionRequest(path: string, init: RequestInit = {}): Promise<R
   if (method !== "GET" && method !== "HEAD") {
     headers["Content-Type"] = "application/json";
   }
-  return fetch(`${root}${p}`, { ...init, headers });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), EVOLUTION_API_TIMEOUT_MS);
+  const externalSignal = init.signal;
+  const abortFromExternalSignal = () => controller.abort();
+
+  if (externalSignal?.aborted) {
+    controller.abort();
+  } else {
+    externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
+  }
+
+  try {
+    return await fetch(`${root}${p}`, { ...init, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+  }
 }
 
 function summarizeBody(data: unknown): string {
@@ -478,12 +520,38 @@ export async function createInstanceWithPairingCode(
     `[Evolution API] pairing | POST ${createPath} | instance=${cleanInstance} | number=${number} (len=${number.length})`
   );
 
-  const res = await evolutionRequest(createPath, {
-    method: "POST",
-    body: JSON.stringify(createBody),
-  });
-  const data: unknown = await res.json().catch(() => ({}));
-  logEvolution(`POST ${createPath}`, res.status, summarizeBody(data));
+  let res: Response | null = null;
+  let data: unknown = {};
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      res = await evolutionRequest(createPath, {
+        method: "POST",
+        body: JSON.stringify(createBody),
+      });
+      data = await res.json().catch(() => ({}));
+      logEvolution(`POST ${createPath}`, res.status, summarizeBody(data));
+
+      if (attempt === 0 && isEvolutionColdStartStatus(res.status)) {
+        console.warn("Evolution API em Cold Start, tentando novamente em 2 segundos...");
+        await delay(EVOLUTION_COLD_START_RETRY_DELAY_MS);
+        continue;
+      }
+
+      break;
+    } catch (error) {
+      if (attempt === 0 && isEvolutionRequestTimeout(error)) {
+        console.warn("Evolution API em Cold Start, tentando novamente em 2 segundos...");
+        await delay(EVOLUTION_COLD_START_RETRY_DELAY_MS);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (!res) {
+    throw new Error("Evolution API não respondeu ao criar instância.");
+  }
 
   if (res.status === 401) {
     throw new Error("Evolution API retornou 401 (apikey inválida).");
