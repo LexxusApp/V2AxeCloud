@@ -16,8 +16,59 @@ import { getDiscreteSupabaseAdmin, parseQuery, sendJson } from "./lib/discreteSu
 import { restoreReqUrl } from "./lib/restoreReqUrl.js";
 import { verifyUser } from "./lib/verifyUser.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import {
+  runTenantDetail,
+  runTenantResetPassword,
+  runTenantSetRole,
+} from "./lib/adminTenantHandlers.js";
 
 type ExpressApp = import("express").Express;
+
+const TENANT_PATH_RE = /^tenant\/([^/]+)(?:\/(set-role|reset-password))?$/;
+
+function parseBody(req: any): Record<string, unknown> {
+  return typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {}) || {};
+}
+
+async function handleTenantRoutes(target: string, method: string, req: any, res: any): Promise<boolean> {
+  const m = target.match(TENANT_PATH_RE);
+  if (!m) return false;
+
+  const sb = getDiscreteSupabaseAdmin();
+  if (!sb) {
+    sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    return true;
+  }
+
+  const ctx = await requireConsoleAdminDiscrete(sb, req, res);
+  if (!ctx) return true;
+
+  const tenantId = m[1];
+  const sub = m[2];
+  const r2 = getDiscreteR2Client();
+
+  try {
+    if (!sub && method === "GET") {
+      sendJson(res, 200, await runTenantDetail(sb, r2, tenantId));
+      return true;
+    }
+    if (sub === "set-role" && method === "POST") {
+      sendJson(res, 200, await runTenantSetRole(sb, ctx.user, req, tenantId, parseBody(req) as { role?: string }));
+      return true;
+    }
+    if (sub === "reset-password" && method === "POST") {
+      sendJson(res, 200, await runTenantResetPassword(sb, ctx.user, req, tenantId));
+      return true;
+    }
+    sendJson(res, 405, { error: "Método não permitido para este terreiro" });
+    return true;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Erro ao processar terreiro";
+    console.error("[admin-console/tenant]", sub || "detail", msg);
+    sendJson(res, 500, { error: msg });
+    return true;
+  }
+}
 
 let dispatchAppPromise: Promise<ExpressApp> | null = null;
 
@@ -143,6 +194,8 @@ export default async function handler(req: any, res: any) {
       await handleGatewayGet(target, req, res);
       return;
     }
+
+    if (await handleTenantRoutes(target, method, req, res)) return;
 
     restoreReqUrl(req, "/api/admin-console");
     const app = await getDispatchApp();
