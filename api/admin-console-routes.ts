@@ -32,6 +32,7 @@ import {
   buildFinancialReport,
   publishGlobalNotice,
 } from "./lib/adminQuickActions.js";
+import type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -46,12 +47,7 @@ function isMissingOrUnknownTable(err: { message?: string; details?: string; code
   );
 }
 
-export type AdminConsoleRouteDeps = {
-  verifyUser: VerifyUser;
-  supabaseAdmin: any;
-  r2Client: S3Client | null;
-  r2Bucket: string | undefined;
-};
+export type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
 
 function logConsoleUnauthorized(
   deps: AdminConsoleRouteDeps,

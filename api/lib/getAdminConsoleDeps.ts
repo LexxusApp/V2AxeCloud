@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { getDiscreteR2Client } from "./r2ClientDiscrete.js";
 import { getSupabaseServerServiceKey, getSupabaseServerUrl } from "./supabaseServerEnv.js";
 import { verifyUser } from "./verifyUser.js";
-import type { AdminConsoleRouteDeps } from "../admin-console-routes.js";
+import type { AdminConsoleRouteDeps } from "./adminConsoleDeps.js";
 
 dotenv.config();
 
