@@ -189,7 +189,7 @@ export default function WhatsAppConfig() {
     };
 
     checkStatus();
-    intervalId = setInterval(checkStatus, 5000);
+    intervalId = setInterval(checkStatus, 15000);
 
     return () => clearInterval(intervalId);
   }, []);

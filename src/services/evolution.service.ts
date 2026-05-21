@@ -8,11 +8,13 @@ export const WHATSAPP_INITIALIZING_MESSAGE_PT =
   "O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.";
 
 /** URL pública da Evolution no Railway (placeholder; substitua xxx ou use env). */
-export const BASE_URL = "https://evolution-api-production-xxx.up.railway.app";
+export const BASE_URL = "https://evolution-api-production-fb8d.up.railway.app";
 
 export const API_KEY = "AxeCloud_2026";
 
 const EVOLUTION_API_TIMEOUT_MS = 29000;
+/** Timeout menor em checagens de status (polling) para não segurar workers. */
+const EVOLUTION_STATUS_TIMEOUT_MS = 15000;
 const EVOLUTION_COLD_START_RETRY_DELAY_MS = 2000;
 
 function resolvedBaseUrl(): string {
@@ -60,7 +62,11 @@ function isEvolutionColdStartStatus(status: number): boolean {
   return status === 502 || status === 504;
 }
 
-async function evolutionRequest(path: string, init: RequestInit = {}): Promise<Response> {
+async function evolutionRequest(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs: number = EVOLUTION_API_TIMEOUT_MS,
+): Promise<Response> {
   const root = resolvedBaseUrl();
   const p = path.startsWith("/") ? path : `/${path}`;
   const headers: Record<string, string> = {
@@ -73,7 +79,7 @@ async function evolutionRequest(path: string, init: RequestInit = {}): Promise<R
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EVOLUTION_API_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const externalSignal = init.signal;
   const abortFromExternalSignal = () => controller.abort();
 
@@ -261,24 +267,6 @@ function isConnectedStateValue(value: string): boolean {
   return v === "open" || v === "connected" || v === "online";
 }
 
-function firstInstanceRecord(raw: unknown): Record<string, unknown> | null {
-  if (!raw) return null;
-  if (Array.isArray(raw)) {
-    const row = raw[0] as unknown;
-    if (row && typeof row === "object" && "instance" in (row as object)) {
-      const inner = (row as { instance: unknown }).instance;
-      return inner && typeof inner === "object" ? (inner as Record<string, unknown>) : null;
-    }
-    if (row && typeof row === "object") return row as Record<string, unknown>;
-    return null;
-  }
-  if (typeof raw === "object" && "instance" in (raw as object)) {
-    const inner = (raw as { instance: unknown }).instance;
-    return inner && typeof inner === "object" ? (inner as Record<string, unknown>) : null;
-  }
-  return null;
-}
-
 function pickConnectionStateValue(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "";
   const p = payload as Record<string, unknown>;
@@ -298,25 +286,93 @@ function pickConnectionStateValue(payload: unknown): string {
   return "";
 }
 
-async function isConnectedByConnectionState(instanceName: string): Promise<boolean | null> {
-  const path = `/instance/connectionState/${encodeURIComponent(instanceName)}`;
+function pickPhoneFromConnectionPayload(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as Record<string, unknown>;
+  const instance = p.instance && typeof p.instance === "object" ? (p.instance as Record<string, unknown>) : null;
+  const candidates = [p.ownerJid, p.number, p.phone, instance?.ownerJid, instance?.number, instance?.phone];
+  for (const c of candidates) {
+    if (typeof c !== "string" || !c.trim()) continue;
+    const digits = c.split("@")[0].replace(/\D/g, "");
+    if (digits.length >= 10) return digits;
+  }
+  return null;
+}
+
+type ConnectionStateSnapshot = {
+  httpOk: boolean;
+  connected: boolean | null;
+  state: string;
+  number: string | null;
+};
+
+/** GET /instance/connectionState/{instanceName} — única fonte para polling de status. */
+async function fetchInstanceConnectionState(instanceName: string): Promise<ConnectionStateSnapshot> {
+  const clean = evolutionInstanceName(instanceName);
+  const path = `/instance/connectionState/${encodeURIComponent(clean)}`;
+  let res: Response;
   try {
-    const res = await evolutionRequest(path, { method: "GET" });
-    const data: unknown = await res.json().catch(() => ({}));
-    logEvolution(`GET ${path}`, res.status, summarizeBody(data));
-    if (!res.ok) return null;
-
-    if (data && typeof data === "object" && "connected" in (data as object)) {
-      const connected = (data as { connected?: unknown }).connected;
-      if (typeof connected === "boolean") return connected;
-    }
-
-    const state = pickConnectionStateValue(data);
-    if (!state) return null;
-    return isConnectedStateValue(state);
+    res = await evolutionRequest(path, { method: "GET" }, EVOLUTION_STATUS_TIMEOUT_MS);
   } catch (e) {
-    console.error("[Evolution API] connectionState falhou:", e);
-    return null;
+    console.error("[Evolution API] connectionState rede/timeout:", e);
+    return { httpOk: false, connected: null, state: "", number: null };
+  }
+
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`GET ${path}`, res.status, summarizeBody(data));
+
+  if (res.status === 401) {
+    console.error("[Evolution API] Erro 401 em connectionState.");
+    return { httpOk: false, connected: null, state: "", number: null };
+  }
+  if (res.status === 404) {
+    console.error("[Evolution API] Erro 404 em connectionState.");
+    return { httpOk: false, connected: false, state: "", number: null };
+  }
+  if (!res.ok) {
+    return { httpOk: false, connected: null, state: "", number: null };
+  }
+
+  let connected: boolean | null = null;
+  if (data && typeof data === "object" && "connected" in (data as object)) {
+    const flag = (data as { connected?: unknown }).connected;
+    if (typeof flag === "boolean") connected = flag;
+  }
+
+  const state = pickConnectionStateValue(data);
+  if (connected === null && state) {
+    connected = isConnectedStateValue(state);
+  }
+
+  return {
+    httpOk: true,
+    connected,
+    state,
+    number: pickPhoneFromConnectionPayload(data),
+  };
+}
+
+async function isConnectedByConnectionState(instanceName: string): Promise<boolean | null> {
+  const snap = await fetchInstanceConnectionState(instanceName);
+  if (!snap.httpOk) return null;
+  if (snap.connected === true) return true;
+  if (snap.connected === false) return false;
+  return null;
+}
+
+/** Mantém a Evolution acordada (cron). Usa env + header apikey. */
+export async function pingEvolutionApi(): Promise<void> {
+  const root = resolvedBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), EVOLUTION_STATUS_TIMEOUT_MS);
+  try {
+    await fetch(root, {
+      method: "GET",
+      headers: { apikey: resolvedApiKey() },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -325,61 +381,14 @@ export async function getAxeEvolutionStatusAndQr(tenantId: string): Promise<{
   qrcode: string | null;
 }> {
   const instanceName = evolutionInstanceName(tenantId);
-  const path = `/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`;
-  let res: Response;
-  try {
-    res = await evolutionRequest(path, { method: "GET" });
-  } catch (e) {
-    console.error("[Evolution API] fetchInstances rede/timeout:", e);
-    return { status: "DISCONNECTED", qrcode: null };
-  }
-
-  const raw = await res.json().catch(() => null);
-  logEvolution(`GET ${path}`, res.status, summarizeBody(raw));
-
-  if (res.status === 401) {
-    console.error("[Evolution API] Erro 401 em fetchInstances.");
-    return { status: "DISCONNECTED", qrcode: null };
-  }
-  if (res.status === 404) {
-    console.error("[Evolution API] Erro 404 em fetchInstances.");
-    return { status: "DISCONNECTED", qrcode: null };
-  }
-  if (!res.ok) {
-    return { status: "DISCONNECTED", qrcode: null };
-  }
-
-  const inst = firstInstanceRecord(raw);
-  if (!inst) {
-    console.log(`[Evolution API] Nenhuma instância encontrada para instanceName=${instanceName}`);
-    return { status: "DISCONNECTED", qrcode: null };
-  }
-
-  const st = String(inst.status || inst.state || inst.connectionStatus || "").toLowerCase();
-  if (isConnectedStateValue(st)) {
-    console.log(`[Evolution API] Instância ${instanceName} conectada (open).`);
-    return { status: "CONNECTED", qrcode: null };
-  }
-
-  const connectedFromState = await isConnectedByConnectionState(instanceName);
-  if (connectedFromState === true) {
+  // Polling leve: uma instância via connectionState (evita fetchInstances que lista todas).
+  const connected = await isConnectedByConnectionState(instanceName);
+  if (connected === true) {
     console.log(`[Evolution API] Instância ${instanceName} conectada (connectionState).`);
     return { status: "CONNECTED", qrcode: null };
   }
 
-  // Evita auto-conexão involuntária: polling de status não deve chamar /instance/connect.
-  // A geração de QR fica exclusiva no clique do botão "Conectar agora" (fluxo /api/whatsapp/start).
-  const qrFromInstance = pickQrOrLinkFromPayload(inst);
-  if (qrFromInstance) {
-    try {
-      const qr = await resolveDisplayString(inst);
-      return { status: "QRCODE", qrcode: qr };
-    } catch (e) {
-      console.error("[Evolution API] Não foi possível normalizar QR do fetchInstances:", e);
-    }
-  }
-
-  // Instância existe, mas sem sessão aberta e sem QR disponível no snapshot.
+  // QR/pairing só no fluxo /api/whatsapp/start — polling não chama /instance/connect nem fetchInstances.
   return { status: "DISCONNECTED", qrcode: null };
 }
 
@@ -582,34 +591,16 @@ export async function createInstanceWithPairingCode(
   throw new Error(msg);
 }
 
-/** Status simples da instância do console (sem QR). */
+/** Status simples da instância do console (sem QR) — via connectionState. */
 export async function getConsoleInstanceStatus(instanceName: string): Promise<{
   status: UiStatus;
   number: string | null;
 }> {
-  const cleanInstance = evolutionInstanceName(instanceName);
-  const path = `/instance/fetchInstances?instanceName=${encodeURIComponent(cleanInstance)}`;
-  let res: Response;
-  try {
-    res = await evolutionRequest(path, { method: "GET" });
-  } catch (e) {
-    console.error("[Evolution API] console fetchInstances rede/timeout:", e);
-    return { status: "DISCONNECTED", number: null };
+  const snap = await fetchInstanceConnectionState(instanceName);
+  if (snap.connected === true) {
+    return { status: "CONNECTED", number: snap.number };
   }
-  const raw = await res.json().catch(() => null);
-  logEvolution(`GET ${path}`, res.status, summarizeBody(raw));
-  if (!res.ok) return { status: "DISCONNECTED", number: null };
-
-  const inst = firstInstanceRecord(raw);
-  if (!inst) return { status: "DISCONNECTED", number: null };
-  const st = String(inst.status || inst.state || inst.connectionStatus || "").toLowerCase();
-  const number =
-    (typeof inst.ownerJid === "string" && (inst.ownerJid as string).split("@")[0]) ||
-    (typeof inst.number === "string" ? (inst.number as string) : null);
-  if (isConnectedStateValue(st)) return { status: "CONNECTED", number };
-  const fromState = await isConnectedByConnectionState(cleanInstance);
-  if (fromState === true) return { status: "CONNECTED", number };
-  return { status: "DISCONNECTED", number };
+  return { status: "DISCONNECTED", number: null };
 }
 
 /** Envia mensagem usando a instância dada (sem mapear por user.id como em sendEvolutionTextMessage). */

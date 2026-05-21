@@ -1,4 +1,4 @@
-const EVOLUTION_API_STATUS_URL = "https://evolution-api-production-fb8d.up.railway.app/";
+import { pingEvolutionApi } from "../../../src/services/evolution.service.js";
 
 function sendJson(res: any, status: number, body: Record<string, unknown>) {
   res.status(status).setHeader("Content-Type", "application/json");
@@ -12,7 +12,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    await fetch(EVOLUTION_API_STATUS_URL, { method: "GET" });
+    await pingEvolutionApi();
   } catch (error) {
     console.error("[CRON] Erro ao pingar Evolution API:", error);
   }

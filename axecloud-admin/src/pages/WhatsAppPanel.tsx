@@ -77,7 +77,7 @@ export function WhatsAppPanel() {
     void refreshStatus();
     const id = window.setInterval(() => {
       void refreshStatus();
-    }, 8000);
+    }, 15000);
     return () => window.clearInterval(id);
   }, [refreshStatus]);
 

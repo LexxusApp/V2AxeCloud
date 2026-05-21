@@ -46,7 +46,8 @@ async function postAuthAuditLog(
   }
 }
 
-const fontLogin = "[font-family:Montserrat,system-ui,sans-serif]";
+const fontLogin =
+  "[font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]";
 
 /** Mesmo card do SubscriptionLock, com cantos menos arredondados */
 const AUTH_MODAL_CARD = cn(
