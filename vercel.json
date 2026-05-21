@@ -20,6 +20,10 @@
       "destination": "/api/tenant-info"
     },
     {
+      "source": "/api/admin-console/session",
+      "destination": "/api/admin-console/session"
+    },
+    {
       "source": "/api/admin/update-plans",
       "destination": "/api/admin/update-plans"
     },
