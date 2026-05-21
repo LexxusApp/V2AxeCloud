@@ -20,6 +20,14 @@
       "destination": "/api/tenant-info"
     },
     {
+      "source": "/api/plans",
+      "destination": "/api/plans"
+    },
+    {
+      "source": "/api/v1/checkout/efi/config",
+      "destination": "/api/v1/checkout/efi/config"
+    },
+    {
       "source": "/api/admin-console/session",
       "destination": "/api/admin-console/session"
     },

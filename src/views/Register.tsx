@@ -12,7 +12,7 @@ import {
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
-import { LANDING_PRICE } from '../constants/landingFeatures';
+import { usePlansCatalog } from '../hooks/usePlansCatalog';
 
 type CheckoutPriceConfig = { amountLabel?: string };
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
@@ -39,6 +39,7 @@ const labelClass =
   'mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-800';
 
 export default function Register() {
+  const { premium: catalogPrice } = usePlansCatalog();
   const [nomeTerreiro, setNomeTerreiro] = useState('');
   const [nomeZelador, setNomeZelador] = useState('');
   const [email, setEmail] = useState('');
@@ -49,7 +50,11 @@ export default function Register() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutPriceLabel, setCheckoutPriceLabel] = useState(LANDING_PRICE.label);
+  const [checkoutPriceLabel, setCheckoutPriceLabel] = useState(catalogPrice.label);
+
+  useEffect(() => {
+    setCheckoutPriceLabel(catalogPrice.label);
+  }, [catalogPrice.label]);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,7 +193,7 @@ export default function Register() {
             <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-white/85 backdrop-blur-sm">
               <span className="font-bold text-[#f2b90f]">
                 {checkoutPriceLabel}
-                {LANDING_PRICE.period}
+                {catalogPrice.period}
               </span>
               {' · '}Pagamento via PIX · painel liberado na hora após o pagamento.
             </p>
@@ -343,7 +348,7 @@ export default function Register() {
                   </h2>
                   <p className="mt-1 text-[12px] leading-snug text-zinc-600 sm:text-[13px]">
                     Pagamento via PIX · {checkoutPriceLabel}
-                    {LANDING_PRICE.period} · liberação automática
+                    {catalogPrice.period} · liberação automática
                   </p>
                 </header>
 

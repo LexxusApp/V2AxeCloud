@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
-import { LANDING_PRICE } from '../constants/landingFeatures';
+import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
 import {
   EFI_CARD_PIX_FALLBACK_MESSAGE,
@@ -148,6 +148,7 @@ export function RegistrationCheckoutPanel({
   className,
   showFooter = true,
 }: RegistrationCheckoutPanelProps) {
+  const { premium: catalogPrice } = usePlansCatalog();
   const base = themes[variant];
   const isCompactLight = compact && variant === 'light';
   const t = {
@@ -645,8 +646,8 @@ export function RegistrationCheckoutPanel({
             ) : (
               <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>
                 <p className={introClass}>
-                  Assinatura mensal ({config.amountLabel || LANDING_PRICE.label}
-                  {LANDING_PRICE.period}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
+                  Assinatura mensal ({config.amountLabel || catalogPrice.label}
+                  {catalogPrice.period}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
                 </p>
 
                 {config.cardTokenizationReady === false && config.cardSetup?.issues?.length ? (
@@ -862,7 +863,7 @@ export function RegistrationCheckoutPanel({
           )}
         >
           <ShieldCheck className={cn('h-3.5 w-3.5', t.footerIcon)} />
-          Checkout EFI Bank · {config?.amountLabel || LANDING_PRICE.label}/mês · Liberação automática
+          Checkout EFI Bank · {config?.amountLabel || catalogPrice.label}/mês · Liberação automática
         </p>
       )}
     </div>

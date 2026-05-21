@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck, TreePine } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { LANDING_PRICE } from '../constants/landingFeatures';
+import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { RegistrationProgress } from '../components/RegistrationProgress';
 import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
@@ -14,6 +14,7 @@ function readTenantFromUrl(): string {
 }
 
 export default function Checkout() {
+  const { premium: landingPrice } = usePlansCatalog();
   const tenantId = readTenantFromUrl();
 
   if (!tenantId) {
@@ -51,8 +52,8 @@ export default function Checkout() {
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
           <h1 className="mt-2 text-2xl font-black tracking-tight">Ativação do sistema</h1>
           <p className="mt-2 text-sm text-[#b8bbc4]">
-            Passo 2 — pagamento via PIX. Plano Premium {LANDING_PRICE.label}
-            {LANDING_PRICE.period}
+            Passo 2 — pagamento via PIX. Plano Premium {landingPrice.label}
+            {landingPrice.period}
           </p>
         </header>
 

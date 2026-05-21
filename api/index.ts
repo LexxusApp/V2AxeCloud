@@ -3019,10 +3019,7 @@ async function startServer() {
   app.get("/api/plans", async (req, res) => {
     try {
       const plans = await loadPlansCatalog(supabaseAdmin);
-      res.setHeader(
-        "Cache-Control",
-        "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"
-      );
+      res.setHeader("Cache-Control", "public, max-age=0, s-maxage=30, must-revalidate");
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);

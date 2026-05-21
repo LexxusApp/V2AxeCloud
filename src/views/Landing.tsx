@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
-import { LANDING_PRICE } from '../constants/landingFeatures';
+import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SystemTour } from '../components/landing/SystemTour';
@@ -174,6 +174,7 @@ function ScrollToTopButton() {
 }
 
 export default function Landing() {
+  const { premium: landingPrice } = usePlansCatalog();
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
       <span id="top" className="sr-only" aria-hidden />
@@ -407,7 +408,7 @@ export default function Landing() {
               <h2 id="mensalidade-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
                 Um valor. Todo o AxéCloud.
               </h2>
-              <p className="mt-2 text-sm text-zinc-500 sm:text-base">{LANDING_PRICE.description}</p>
+              <p className="mt-2 text-sm text-zinc-500 sm:text-base">{landingPrice.description}</p>
             </motion.div>
             <motion.div
               {...fade}
@@ -423,8 +424,8 @@ export default function Landing() {
                   Cadastro online · PIX na hora
                 </p>
                 <div className="mt-6 flex items-baseline gap-2 text-white">
-                  <span className="text-4xl font-black tracking-tight sm:text-5xl">{LANDING_PRICE.label}</span>
-                  <span className="text-lg text-zinc-500">{LANDING_PRICE.period}</span>
+                  <span className="text-4xl font-black tracking-tight sm:text-5xl">{landingPrice.label}</span>
+                  <span className="text-lg text-zinc-500">{landingPrice.period}</span>
                 </div>
                 <ul className="mt-6 space-y-2.5 text-left text-sm text-zinc-400" role="list">
                   {premiumFeatures.map((line) => (
