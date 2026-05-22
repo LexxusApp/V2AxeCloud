@@ -1276,6 +1276,88 @@ async function startServer() {
     }
   });
 
+  app.post("/api/push-broadcast", async (req, res) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    try {
+      const { tenantId, title, body, url } = req.body || {};
+      if (!tenantId) return res.status(400).json({ error: "tenantId é obrigatório" });
+      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
+      const result = await sendPushNotification(String(tenantId), {
+        title: String(title || "AxéCloud"),
+        body: String(body || ""),
+        url: String(url || "/calendar"),
+      });
+      res.json({ success: true, sentCount: result.sent });
+    } catch (error: any) {
+      console.error("[PUSH] push-broadcast:", error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar notificações") });
+    }
+  });
+
+  app.post("/api/push-direct", async (req, res) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    try {
+      const { childId, title, body, url } = req.body || {};
+      if (!childId) return res.status(400).json({ error: "childId é obrigatório" });
+
+      const { data: filho, error: filhoErr } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .select("id, user_id, tenant_id, lider_id")
+        .eq("id", childId)
+        .maybeSingle();
+      if (filhoErr || !filho) return res.status(404).json({ error: "Filho não encontrado" });
+
+      const houseRef = String(filho.tenant_id || filho.lider_id || "");
+      const okHouse = await assertZeladorTenantAccess(
+        supabaseAdmin,
+        resolveLeaderId,
+        user.id,
+        houseRef
+      );
+      if (!okHouse) return res.status(403).json({ error: "Acesso negado" });
+
+      if (!filho.user_id) {
+        return res.json({ success: false, message: "Filho sem conta de login vinculada." });
+      }
+
+      const { data: subs, error: subErr } = await supabaseAdmin
+        .from("push_subscriptions")
+        .select("subscription_object")
+        .eq("user_id", filho.user_id);
+      if (subErr) throw subErr;
+
+      const payload = JSON.stringify({
+        title: String(title || "AxéCloud"),
+        body: String(body || ""),
+        url: String(url || "/"),
+      });
+      let sentCount = 0;
+      for (const row of subs || []) {
+        try {
+          await webpush.sendNotification(row.subscription_object, payload);
+          sentCount++;
+        } catch (e: any) {
+          if (e?.statusCode === 410 || e?.statusCode === 404) {
+            const endpoint = row.subscription_object?.endpoint;
+            if (endpoint) {
+              await supabaseAdmin
+                .from("push_subscriptions")
+                .delete()
+                .eq("subscription_object->>endpoint", endpoint);
+            }
+          }
+        }
+      }
+      res.json({ success: true, sentCount });
+    } catch (error: any) {
+      console.error("[PUSH] push-direct:", error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar notificação") });
+    }
+  });
+
   // Helper: enviar push apenas para filhos de santo (tabela push_subscriptions por user_id)
   async function sendPushNotification(
     tenantId: string,
@@ -3613,82 +3695,114 @@ async function startServer() {
     }
   });
 
-  // API Route: Get Library Materials (Bypasses RLS)
+  // API Route: Get Library Materials (legado — protegido; preferir /api/v1/library/materials)
   app.get("/api/library", async (req, res) => {
-    const { tenantId } = req.query;
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
+    if (!access) return;
     try {
-      let query = supabaseAdmin.from('biblioteca').select('*').order('created_at', { ascending: false });
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await supabaseAdmin
+        .from("biblioteca")
+        .select("*")
+        .eq("tenant_id", access.tenantId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      res.json({ data });
+      res.json({ data: data || [] });
     } catch (error: any) {
       console.error("[SERVER] Error fetching library:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar biblioteca") });
     }
   });
 
-  // API Route: Get Notifications (Bypasses RLS)
+  // API Route: Get Notifications (protegido)
   app.get("/api/notifications", async (req, res) => {
-    const { tenantId, tipo, lida, limit } = req.query;
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
+    if (!access) return;
+    const { tipo, lida, limit } = req.query;
     try {
-      let query = supabaseAdmin.from('notificacoes').select('*').order('created_at', { ascending: false });
-      
-      if (tenantId) query = query.eq('tenant_id', tenantId);
-      if (tipo) query = query.eq('tipo', tipo);
-      if (lida !== undefined) query = query.eq('lida', lida === 'true');
+      let query = supabaseAdmin
+        .from("notificacoes")
+        .select("*")
+        .eq("tenant_id", access.tenantId)
+        .order("created_at", { ascending: false });
+      if (tipo) query = query.eq("tipo", tipo as string);
+      if (lida !== undefined) query = query.eq("lida", lida === "true");
       if (limit) query = query.limit(Number(limit));
-      
       const { data, error } = await query;
       if (error) throw error;
-      res.json({ data });
+      res.json({ data: data || [] });
     } catch (error: any) {
       console.error("[SERVER] Error fetching notifications:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar notificações") });
     }
   });
 
-  // API Route: Get Event Guests (Bypasses RLS)
+  async function userCanAccessCalendarEvent(
+    user: { id: string; email?: string | null },
+    eventId: string
+  ): Promise<boolean> {
+    const { data: ev } = await supabaseAdmin
+      .from("calendario_axe")
+      .select("tenant_id, lider_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!ev) return false;
+    const ref = String(ev.tenant_id || ev.lider_id || "").trim();
+    if (!ref) return false;
+    return assertUserCanAccessTenant(supabaseAdmin, user, ref);
+  }
+
+  // API Route: Get Event Guests (protegido)
   app.get("/api/event-guests", async (req, res) => {
-    const { eventId } = req.query;
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    const eventId = String(req.query.eventId || "").trim();
     try {
       if (!eventId) return res.status(400).json({ error: "Missing eventId" });
-      
+      if (!(await userCanAccessCalendarEvent(user, eventId))) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
       const { data, error } = await supabaseAdmin
-        .from('convidados_eventos')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('nome');
-        
+        .from("convidados_eventos")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("nome");
       if (error) throw error;
-      res.json({ data });
+      res.json({ data: data || [] });
     } catch (error: any) {
       console.error("[SERVER] Error fetching event guests:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar convidados") });
     }
   });
 
-  // API Route: Update Event Guest Status (Bypasses RLS)
+  // API Route: Update Event Guest Status (protegido + validação de tenant)
   app.post("/api/event-guests/update-status", async (req, res) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
-    const { guestId, status } = req.body;
+    const { guestId, status } = req.body || {};
     try {
       if (!guestId || !status) return res.status(400).json({ error: "Missing guestId or status" });
-      
-      const { data, error } = await supabaseAdmin
-        .from('convidados_eventos')
+
+      const { data: guest, error: guestErr } = await supabaseAdmin
+        .from("convidados_eventos")
+        .select("id, event_id")
+        .eq("id", guestId)
+        .maybeSingle();
+      if (guestErr || !guest?.event_id) {
+        return res.status(404).json({ error: "Convidado não encontrado" });
+      }
+      if (!(await userCanAccessCalendarEvent(user, String(guest.event_id)))) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("convidados_eventos")
         .update({ status })
-        .eq('id', guestId);
-        
+        .eq("id", guestId);
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Error updating event guest status:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar convidado") });
     }
   });
 

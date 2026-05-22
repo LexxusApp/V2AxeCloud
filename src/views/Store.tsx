@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { ShoppingBag, Plus, Minus, Trash2, X, AlertCircle, CheckCircle2, Image as ImageIcon, ClipboardList } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -333,17 +334,13 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
     let imagemUrl: string | null = null;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const imgRes = await fetch(
-          `/api/store/product-image-suggestion?q=${encodeURIComponent(nomeDoEstado)}`,
-          { headers: { Authorization: `Bearer ${session.access_token}` } }
-        );
-        if (imgRes.ok) {
-          const j = (await imgRes.json()) as { url?: string | null };
-          const u = typeof j.url === 'string' ? j.url.trim() : '';
-          if (u) imagemUrl = u;
-        }
+      const imgRes = await authFetch(
+        `/api/store/product-image-suggestion?q=${encodeURIComponent(nomeDoEstado)}`
+      );
+      if (imgRes.ok) {
+        const j = (await imgRes.json()) as { url?: string | null };
+        const u = typeof j.url === 'string' ? j.url.trim() : '';
+        if (u) imagemUrl = u;
       }
     } catch (e) {
       console.warn('[Store] sugestão de imagem (Pexels):', e);

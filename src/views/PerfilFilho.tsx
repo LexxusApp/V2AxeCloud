@@ -346,7 +346,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     if (!tenantId) return;
     setLoadingPix(true);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`
       );
       if (!res.ok) {
@@ -401,7 +401,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         const hoje = startOfDay(new Date());
         const fim = endOfMonth(addMonths(hoje, 5));
         const url = `/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${format(hoje, 'yyyy-MM-dd')}&end=${format(fim, 'yyyy-MM-dd')}`;
-        const res = await fetch(url);
+        const res = await authFetch(url);
         if (!res.ok) throw new Error('Falha ao carregar eventos');
         const { data } = await res.json();
         if (!cancelled) setCalEvents((data as CalEvent[]) || []);

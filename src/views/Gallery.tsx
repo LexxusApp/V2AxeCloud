@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 
 interface GalleryProps {
   tenantData?: any;
@@ -55,13 +56,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
     if (!tenantId) return;
     try {
       setLoading(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Sessão expirada');
-
-      const response = await fetch(`/api/v1/gallery/albums?tenantId=${tenantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await authFetch(`/api/v1/gallery/albums?tenantId=${tenantId}`);
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Erro ao carregar galeria');
       setAlbums(payload.albums || []);
@@ -89,16 +84,9 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
     const name = albumName.trim();
     if (!name || !tenantId) return;
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Sessão expirada');
-
-      const response = await fetch('/api/v1/gallery/albums', {
+      const response = await authFetch('/api/v1/gallery/albums', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId,
           name,
@@ -121,19 +109,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
     if (!selectedAlbum || files.length === 0 || !tenantId) return;
     try {
       setUploading(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Sessão expirada');
-
       const uploadedItems: MediaItem[] = [];
 
       for (const file of files) {
-        const uploadPrep = await fetch('/api/v1/gallery/upload-url', {
+        const uploadPrep = await authFetch('/api/v1/gallery/upload-url', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantId,
             albumId: selectedAlbum.id,
@@ -152,12 +133,9 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
         });
         if (!uploadToR2.ok) throw new Error(`Falha ao enviar arquivo ${file.name}`);
 
-        const completeResponse = await fetch('/api/v1/gallery/complete-upload', {
+        const completeResponse = await authFetch('/api/v1/gallery/complete-upload', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantId,
             albumId: selectedAlbum.id,

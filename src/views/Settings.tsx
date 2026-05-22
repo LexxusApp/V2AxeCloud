@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
 import WhatsAppConfig from './WhatsAppConfig';
@@ -113,17 +114,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         const fileExt = file.name.split('.').pop();
         const fileName = `${user.id}-${Math.random()}.${fileExt}`;
 
-        // 1. Pegar sessão
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Sessão expirada');
-
-        // 2. Upload via Servidor (Bypassa RLS)
-        const uploadRes = await fetch('/api/v1/profile/upload-photo', {
+        const uploadRes = await authFetch('/api/v1/profile/upload-photo', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             fileData: base64Data,
             fileName: fileName,
@@ -207,17 +200,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
       console.log('[DEBUG] Usando dados do usuário logado...');
       console.log('[DEBUG] Enviando dados para o servidor via fetch...');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão expirada. Por favor, faça login novamente.');
-      }
-
-      const response = await fetch('/api/v1/settings/save', {
+      const response = await authFetch('/api/v1/settings/save', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
           tenantId: tenantId,
@@ -289,15 +274,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
     setIsDeletingAccount(true);
     try {
-      const { data: { session: s } } = await supabase.auth.getSession();
-      if (!s?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
-
-      const res = await fetch('/api/v1/account/permanent-delete', {
+      const res = await authFetch('/api/v1/account/permanent-delete', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${s.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmEmail: typed }),
       });
       const body = await res.json().catch(() => ({}));

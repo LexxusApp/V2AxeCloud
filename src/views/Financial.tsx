@@ -320,28 +320,18 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     if (!tenantId) return;
     setMensalidadesLoading(true);
     try {
-      let { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        session = refreshed.session ?? session;
-      }
-      if (!session?.access_token) return;
       const skipSync = opts?.skipSync === true;
       if (!skipSync) {
         await authFetch('/api/v1/financial/mensalidades/sync-pendentes', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tenant_id: tenantId }),
         });
       }
-      const headers = { Authorization: `Bearer ${session.access_token}` };
       const base = `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId)}`;
       const [rPen, rPag] = await Promise.all([
-        fetch(`${base}&view=pendentes`, { headers }),
-        fetch(`${base}&view=pagas`, { headers }),
+        authFetch(`${base}&view=pendentes`),
+        authFetch(`${base}&view=pagas`),
       ]);
       const jPen = await rPen.json().catch(() => ({}));
       const jPag = await rPag.json().catch(() => ({}));

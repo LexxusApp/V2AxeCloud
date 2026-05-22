@@ -92,13 +92,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const handleNotifyAll = async (event: Event) => {
     try {
       setIsNotifying(event.id);
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/push-broadcast', {
+      const response = await authFetch('/api/push-broadcast', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId: effectiveTenantId,
           title: `🗓️ Novo Evento: ${event.titulo}`,
@@ -418,16 +414,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       let banner_url: string | undefined;
       if (bannerFile && effectiveTenantId) {
         const fileData = await fileToBase64(bannerFile);
-        const uploadRes = await fetch('/api/v1/event-banner', {
+        const uploadRes = await authFetch('/api/v1/event-banner', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             fileData,
             fileName: bannerFile.name,
@@ -449,12 +441,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         tenant_id: effectiveTenantId || user?.id
       };
 
-      const response = await fetch('/api/events', {
+      const response = await authFetch('/api/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(eventData)
       });
 
@@ -1696,10 +1685,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     setIsDeleting(true);
                     try {
                       if (itemToDelete.type === 'event') {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        const response = await fetch(`/api/events/${itemToDelete.id}`, {
+                        const response = await authFetch(`/api/events/${itemToDelete.id}`, {
                           method: 'DELETE',
-                          headers: { 'Authorization': `Bearer ${session?.access_token}` }
                         });
                         if (response.ok) fetchEvents();
                       } else if (itemToDelete.type === 'guest') {

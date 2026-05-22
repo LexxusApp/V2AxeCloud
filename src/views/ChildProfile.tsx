@@ -385,13 +385,9 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       // Envia notificação push direta para o filho se selecionado e se não for visão própria
       if (obligationData.notifyChild && !isSelfView) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
           await authFetch('/api/push-direct', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               childId: child.id,
               title: '🌿 Obrigação de Axé',
