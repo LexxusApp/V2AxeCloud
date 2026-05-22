@@ -43,7 +43,8 @@ function generateFilhoPassword(): string {
 
 async function findChildByIdPrefix(
   sb: SupabaseClient,
-  childIdInput: string
+  childIdInput: string,
+  cpfPrefix?: string
 ): Promise<{ child: any | null; ambiguous: boolean }> {
   const childId = String(childIdInput || "").trim();
   if (isValidUuid(childId)) {
@@ -57,17 +58,30 @@ async function findChildByIdPrefix(
   }
 
   const prefix = childId.toLowerCase().replace(/-/g, "");
-  if (prefix.length < 8) return { child: null, ambiguous: false };
+  // UI exibe AXC-AAAA-XXXX (4 chars do UUID) — mínimo 4, não 8.
+  if (prefix.length < 4) return { child: null, ambiguous: false };
 
   const { data, error } = await sb
     .from("filhos_de_santo")
     .select("id, cpf, user_id, nome")
-    .ilike("id", `${prefix.slice(0, 8)}%`)
-    .limit(5);
+    .ilike("id", `${prefix}%`)
+    .limit(20);
   if (error) throw error;
 
   const rows = data || [];
-  const matches = rows.filter((c) => String(c.id || "").toLowerCase().startsWith(prefix));
+  let matches = rows.filter((c) => String(c.id || "").toLowerCase().startsWith(prefix));
+
+  const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
+  if (matches.length > 1 && cpfDigits.length === 4) {
+    const byCpf = matches.filter((c) =>
+      String(c.cpf || "")
+        .replace(/\D/g, "")
+        .startsWith(cpfDigits)
+    );
+    if (byCpf.length === 1) return { child: byCpf[0], ambiguous: false };
+    if (byCpf.length > 1) matches = byCpf;
+  }
+
   if (matches.length === 1) return { child: matches[0], ambiguous: false };
   if (matches.length > 1) return { child: null, ambiguous: true };
   return { child: null, ambiguous: false };
@@ -106,7 +120,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       childId = parts[parts.length - 1];
     }
 
-    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childId);
+    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childId, cpfPrefix);
     if (ambiguous) {
       return sendJson(res, 409, { error: "ID ambíguo. Informe o UUID completo do filho." });
     }
