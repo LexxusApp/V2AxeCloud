@@ -110,6 +110,20 @@ async function resolveFilhoAuthUser(
   return (usersData?.users || []).find((u: any) => wanted.has(String(u.email || "").toLowerCase())) || null;
 }
 
+/** perfil_lider fantasma ("Meu Terreiro") quebra ACL de filho — remove no login. */
+async function cleanupShadowFilhoPerfilLider(sb: SupabaseClient, userId: string): Promise<void> {
+  if (!userId) return;
+  try {
+    await sb
+      .from("perfil_lider")
+      .delete()
+      .eq("id", userId)
+      .eq("nome_terreiro", "Meu Terreiro");
+  } catch {
+    /* best-effort */
+  }
+}
+
 export async function handleFilhoLoginRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
 
@@ -182,6 +196,8 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
         await supabaseAdmin.from("filhos_de_santo").update({ user_id: authUser.id }).eq("id", child.id);
       }
 
+      await cleanupShadowFilhoPerfilLider(supabaseAdmin, authUser.id);
+
       return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
     }
 
@@ -205,6 +221,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
           });
           if (retryUpdateError) throw retryUpdateError;
           await supabaseAdmin.from("filhos_de_santo").update({ user_id: recovered.id }).eq("id", child.id);
+          await cleanupShadowFilhoPerfilLider(supabaseAdmin, recovered.id);
           return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
         }
       }
@@ -212,6 +229,8 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     }
 
     await supabaseAdmin.from("filhos_de_santo").update({ user_id: newUser.user.id }).eq("id", child.id);
+
+    await cleanupShadowFilhoPerfilLider(supabaseAdmin, newUser.user.id);
 
     return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
   } catch (error: any) {

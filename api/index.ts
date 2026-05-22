@@ -1045,6 +1045,14 @@ async function resolveLeaderId(idOrTenantId: string): Promise<string> {
 
 async function ensurePerfilLiderForMural(user: { id: string; email?: string | null }) {
   if (!user?.id) return;
+  const email = (user.email || '').toLowerCase().trim();
+  if (email.endsWith('@axecloud.internal')) return;
+  const { data: filhoRow } = await supabaseAdmin
+    .from('filhos_de_santo')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (filhoRow) return;
   const { data: row } = await supabaseAdmin.from('perfil_lider').select('id').eq('id', user.id).maybeSingle();
   if (row) return;
   const email = (user.email || '').toLowerCase().trim() || `u_${user.id.replace(/-/g, '')}@placeholder.axecloud.local`;

@@ -30,10 +30,57 @@ export async function resolveLeaderId(
   return data?.id || id;
 }
 
+/** Filho shadow (f_*@axecloud.internal) ou vínculo em filhos_de_santo. */
+export function isShadowFilhoAuthEmail(email?: string | null): boolean {
+  const e = String(email || "").toLowerCase().trim();
+  return e.startsWith("f_") && e.endsWith("@axecloud.internal");
+}
+
+async function loadFilhoHouseRefs(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null }
+): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+  const { data: child } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("lider_id, tenant_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (child) return child;
+  if (!isShadowFilhoAuthEmail(user.email)) return null;
+  return null;
+}
+
+async function filhoCanAccessTenant(
+  supabaseAdmin: SupabaseClient,
+  child: { lider_id?: string | null; tenant_id?: string | null },
+  tid: string
+): Promise<boolean> {
+  const houseRefs = new Set<string>();
+  for (const raw of [child.lider_id, child.tenant_id]) {
+    if (!raw) continue;
+    const s = String(raw).trim();
+    if (!s) continue;
+    houseRefs.add(s);
+    houseRefs.add(await resolveLeaderId(supabaseAdmin, s));
+  }
+  const requestedLeader = await resolveLeaderId(supabaseAdmin, tid);
+  return houseRefs.has(tid) || houseRefs.has(requestedLeader);
+}
+
 export async function resolveTenantAccessForUser(
   supabaseAdmin: SupabaseClient,
   userId: string
 ): Promise<{ tenantId: string; isGlobalAdmin: boolean; role: "admin" | "filho" }> {
+  const { data: child } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("tenant_id, lider_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (child) {
+    const childTenant = String(child.tenant_id || child.lider_id || "").trim();
+    return { tenantId: childTenant, isGlobalAdmin: false, role: "filho" };
+  }
+
   const { data: profile } = await supabaseAdmin
     .from("perfil_lider")
     .select("id, tenant_id, is_admin_global")
@@ -49,13 +96,7 @@ export async function resolveTenantAccessForUser(
     };
   }
 
-  const { data: child } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("tenant_id, lider_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  const childTenant = String(child?.tenant_id || child?.lider_id || "").trim();
-  return { tenantId: childTenant, isGlobalAdmin: false, role: "filho" };
+  return { tenantId: "", isGlobalAdmin: false, role: "filho" };
 }
 
 export async function assertZeladorTenantAccess(
@@ -84,6 +125,12 @@ export async function assertUserCanAccessTenant(
 
   if (await isConsoleGlobalAdmin(supabaseAdmin, user)) return true;
 
+  // Filho tem prioridade — shadow users podem ter perfil_lider fantasma ("Meu Terreiro").
+  const child = await loadFilhoHouseRefs(supabaseAdmin, user);
+  if (child) {
+    return filhoCanAccessTenant(supabaseAdmin, child, tid);
+  }
+
   const { data: profile } = await supabaseAdmin
     .from("perfil_lider")
     .select("id, tenant_id, is_admin_global")
@@ -95,25 +142,6 @@ export async function assertUserCanAccessTenant(
     const owned = await resolveLeaderId(supabaseAdmin, String(profile.tenant_id || profile.id));
     return requested === owned;
   }
-
-  const { data: child } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("lider_id, tenant_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!child) return false;
-
-  const houseRefs = new Set<string>();
-  for (const raw of [child.lider_id, child.tenant_id]) {
-    if (!raw) continue;
-    const s = String(raw).trim();
-    if (!s) continue;
-    houseRefs.add(s);
-    houseRefs.add(await resolveLeaderId(supabaseAdmin, s));
-  }
-
-  const requestedLeader = await resolveLeaderId(supabaseAdmin, tid);
-  if (houseRefs.has(tid) || houseRefs.has(requestedLeader)) return true;
 
   return false;
 }
@@ -131,24 +159,15 @@ export async function resolveFinanceiroTenantScope(
   const q = normalizeQueryTenantId(tenantFromQuery);
   const role = String(userRole || "").toLowerCase();
 
-  const { data: profile } = await supabaseAdmin
-    .from("perfil_lider")
-    .select("tenant_id, id")
-    .eq("id", authenticatedUserId)
+  let ownTenant = "";
+
+  const { data: child } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("lider_id, tenant_id")
+    .eq("user_id", authenticatedUserId)
     .maybeSingle();
 
-  let ownTenant = "";
-  const fromProfile = String(profile?.tenant_id || "").trim();
-  if (fromProfile) {
-    ownTenant = fromProfile;
-  } else if (role !== "filho" && profile?.id) {
-    ownTenant = String(profile.id).trim();
-  } else if (role === "filho" || !profile) {
-    const { data: child } = await supabaseAdmin
-      .from("filhos_de_santo")
-      .select("lider_id, tenant_id")
-      .eq("user_id", authenticatedUserId)
-      .maybeSingle();
+  if (child || role === "filho") {
     const ref = String(child?.lider_id || child?.tenant_id || "").trim();
     if (ref) {
       const { data: leader } = await supabaseAdmin
@@ -160,6 +179,19 @@ export async function resolveFinanceiroTenantScope(
         String(leader?.tenant_id || "").trim() ||
         String(leader?.id || "").trim() ||
         String(child?.tenant_id || "").trim();
+    }
+  } else {
+    const { data: profile } = await supabaseAdmin
+      .from("perfil_lider")
+      .select("tenant_id, id")
+      .eq("id", authenticatedUserId)
+      .maybeSingle();
+
+    const fromProfile = String(profile?.tenant_id || "").trim();
+    if (fromProfile) {
+      ownTenant = fromProfile;
+    } else if (profile?.id) {
+      ownTenant = String(profile.id).trim();
     }
   }
 
