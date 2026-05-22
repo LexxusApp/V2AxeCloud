@@ -55,6 +55,12 @@ import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
+import {
+  getSupabaseServerAnonKey,
+  getSupabaseServerServiceKey,
+  getSupabaseServerUrl,
+  isValidSupabaseHttpUrl,
+} from "./lib/supabaseServerEnv.js";
 import { resolvePerfilLiderEmail } from "./lib/perfilLiderEmail.js";
 import { verifyUser as verifyUserLib } from "./lib/verifyUser.js";
 import {
@@ -87,8 +93,13 @@ const viteEnv = (import.meta as any).env || {};
 
 function getServerEnv(...keys: string[]) {
   for (const key of keys) {
-    const value = process.env[key] || viteEnv[key];
-    if (value) return value;
+    const fromProcess = process.env[key];
+    if (fromProcess) return fromProcess;
+    // Na Vercel, só process.env — import.meta.env do build pode ter placeholders inválidos.
+    if (process.env.VERCEL !== "1") {
+      const fromVite = viteEnv[key];
+      if (fromVite) return fromVite;
+    }
   }
   return undefined;
 }
@@ -833,15 +844,10 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   console.warn("[webpush] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY não configurados — push desativado.");
 }
 
-// Supabase: na Vercel use process.env (SUPABASE_URL, SUPABASE_ANON_KEY, etc.); getServerEnv cobre VITE_* no dev
-const supabaseUrl = getServerEnv("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
-const supabaseAnonKey = getServerEnv("VITE_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY");
-const SUPABASE_URL = supabaseUrl;
-const SUPABASE_SERVICE_ROLE_KEY = getServerEnv(
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "SUPABASE_SERVICE_KEY"
-);
-const SUPABASE_ANON_KEY = supabaseAnonKey;
+// Supabase: mesma ordem de env que rotas públicas (tenant-info) — evita URL inválida no boot.
+const SUPABASE_URL = getSupabaseServerUrl();
+const SUPABASE_SERVICE_ROLE_KEY = getSupabaseServerServiceKey();
+const SUPABASE_ANON_KEY = getSupabaseServerAnonKey();
 const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 let supabaseAdmin: any;
@@ -900,9 +906,9 @@ async function resolveTenantAccessForUser(userId: string) {
   return resolveTenantAccessForUserLib(supabaseAdmin, userId);
 }
 
-if (!SUPABASE_URL || !SUPABASE_SERVER_KEY) {
-  console.error("CRITICAL: Missing Supabase environment variables. Server will start but database features will fail.");
-  console.error("VITE_SUPABASE_URL:", SUPABASE_URL ? "SET" : "MISSING");
+if (!isValidSupabaseHttpUrl(SUPABASE_URL) || !SUPABASE_SERVER_KEY) {
+  console.error("CRITICAL: Missing or invalid Supabase environment variables. Server will start but database features will fail.");
+  console.error("SUPABASE_URL:", SUPABASE_URL ? "INVALID_OR_SET" : "MISSING");
   console.error("SUPABASE_SERVICE_ROLE_KEY:", SUPABASE_SERVICE_ROLE_KEY ? "SET" : "MISSING");
   // Create a mock or null client to avoid immediate crashes
   supabaseAdmin = {
@@ -925,19 +931,51 @@ if (!SUPABASE_URL || !SUPABASE_SERVER_KEY) {
         getBucket: async () => ({ data: null, error: { message: 'not found' } }),
         createBucket: async () => ({ error: new Error("Supabase not configured") })
       }
-    })
+    }),
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: new Error("Supabase not configured") }),
+    },
   };
 } else {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("SUPABASE_SERVICE_ROLE_KEY is missing; using anon key fallback. Some server routes may fail due to RLS.");
   }
 
-  supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVER_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
+  try {
+    supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVER_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  } catch (err) {
+    console.error("[SERVER] Falha ao criar cliente Supabase — usando mock:", (err as Error)?.message || err);
+    supabaseAdmin = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: new Error("Supabase not configured") }),
+            single: async () => ({ data: null, error: new Error("Supabase not configured") }),
+            limit: () => ({
+              maybeSingle: async () => ({ data: null, error: new Error("Supabase not configured") }),
+              single: async () => ({ data: null, error: new Error("Supabase not configured") }),
+            })
+          }),
+          limit: () => ({
+            maybeSingle: async () => ({ data: null, error: new Error("Supabase not configured") }),
+            single: async () => ({ data: null, error: new Error("Supabase not configured") }),
+          })
+        }),
+        storage: {
+          getBucket: async () => ({ data: null, error: { message: 'not found' } }),
+          createBucket: async () => ({ error: new Error("Supabase not configured") })
+        }
+      }),
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: new Error("Supabase not configured") }),
+      },
+    };
+  }
 }
 
 // Função para garantir que os buckets de storage existam

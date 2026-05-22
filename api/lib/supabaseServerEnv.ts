@@ -1,12 +1,20 @@
 /**
  * Variáveis Supabase no servidor (Vercel/Node).
- * Preferir SUPABASE_* — VITE_* é para o bundle do browser e pode apontar para outro projeto.
+ * Ordem alinhada a api/public (tenant-info): VITE_* costuma ser a fonte correta no deploy.
  */
 export function getSupabaseServerUrl(): string | undefined {
   return (
+    process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.VITE_SUPABASE_URL
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  );
+}
+
+export function getSupabaseServerAnonKey(): string | undefined {
+  return (
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 }
 
@@ -17,6 +25,16 @@ export function getSupabaseServerServiceKey(): string | undefined {
     process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.VITE_SUPABASE_SERVICE_KEY
   );
+}
+
+export function isValidSupabaseHttpUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function getSupabaseProjectRef(url?: string): string | null {
