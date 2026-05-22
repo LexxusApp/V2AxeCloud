@@ -3093,13 +3093,13 @@ async function startServer() {
 
   // API Route: Get Children (Bypasses RLS)
   app.get("/api/children", async (req, res) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-    const userId = user.id;
-    const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
-    const userRoleQ = String(req.query.userRole || "");
-
     try {
+      const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+      if (!user) return;
+      const userId = user.id;
+      const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+      const userRoleQ = String(req.query.userRole || "");
+
       const tenantId = await resolveFinanceiroTenantScope(
         supabaseAdmin,
         userId,
@@ -3369,11 +3369,11 @@ async function startServer() {
 
   // API Route: Get Transactions (Bypasses RLS)
   app.get("/api/transactions", async (req, res) => {
-    const authUser = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!authUser) return;
-    const { tenantId, userRole, limit, userEmail: userEmailQ } = req.query;
-    const userId = authUser.id;
     try {
+      const authUser = await requireAuthOrRespond(supabaseAdmin, req, res);
+      if (!authUser) return;
+      const { tenantId, userRole, limit, userEmail: userEmailQ } = req.query;
+      const userId = authUser.id;
       const userRoleStr = String(userRole || "").toLowerCase();
       const tenantIdRaw = normalizeQueryTenantId(tenantId);
       const limNum = limit ? Number(limit) : 150;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Plus, MoreVertical, User, Calendar, MapPin, Phone, Loader2, X, Upload, CheckCircle2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { authFetch } from '../lib/authenticatedFetch';
+import { authFetch, getAccessToken } from '../lib/authenticatedFetch';
 import { supabase } from '../lib/supabase';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
@@ -97,13 +97,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         throw new Error("Usuário não autenticado");
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch('/api/children', {
+      const response = await authFetch('/api/children', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           userId: user.id,
@@ -121,8 +118,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       // Trigger WhatsApp Welcome Message
       if (formData.whatsapp_phone) {
         try {
-          const token = session?.access_token;
-          const uid = session?.user?.id ?? user.id;
+          const token = await getAccessToken();
+          const uid = user.id;
           if (!token || !uid) return;
           await fetch(whatsappApiUrl('/whatsapp/send'), {
             method: 'POST',

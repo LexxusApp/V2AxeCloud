@@ -40,6 +40,7 @@ import {
   parseFinanceiroDataRef,
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import { authFetch } from '../lib/authenticatedFetch';
 
 type DashboardBundle = {
   transactions: any[];
@@ -72,12 +73,15 @@ async function fetchDashboardFinanceBundle(
     )}&limit=400`;
 
     const [childrenRes, txRes, lojaRes] = await Promise.all([
-      fetch(
+      authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
         )}&userRole=${encodeURIComponent(userRole || '')}`
-      ).then((r) => r.json()),
-      fetch(txUrl).then(async (r) => {
+      ).then(async (r) => {
+        if (!r.ok) return { data: [] as any[] };
+        return r.json() as Promise<{ data?: any[] }>;
+      }),
+      authFetch(txUrl).then(async (r) => {
         if (!r.ok) {
           const errText = await r.text().catch(() => '');
           console.error('[Dashboard] /api/transactions', r.status, errText);
@@ -86,7 +90,7 @@ async function fetchDashboardFinanceBundle(
         return r.json() as Promise<{ data?: any[] }>;
       }),
       userRole !== 'filho' && lojaTenantPk
-        ? fetch(
+        ? authFetch(
             `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
               userRole || ''
             )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`

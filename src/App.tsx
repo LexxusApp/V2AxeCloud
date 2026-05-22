@@ -462,7 +462,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     }
   };
 
-  const loadAllTenantData = async (userId: string, userEmail?: string, authRole?: string) => {
+  const loadAllTenantData = async (
+    userId: string,
+    userEmail?: string,
+    authRole?: string,
+    accessToken?: string | null
+  ) => {
     // Timeouts curtos: melhor cair pro cache+recovery do que travar a UI.
     // Quem ja tem cache hidratado nao ve o spinner — esse fetch e essencialmente
     // "background refresh" da maioria das vezes.
@@ -516,7 +521,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           const signal = AbortSignal.any
             ? AbortSignal.any([perAttempt, safetyAbort.signal])
             : perAttempt;
-          const response = await authFetch(url, { signal });
+          const response = await authFetch(url, { signal }, accessToken ?? undefined);
           
           if (response.status === 403) {
             const errorData = await response.json();
@@ -858,7 +863,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               setIsAdminGlobal(false);
               setSubscriptionActive(true);
             }
-            await loadAllTenantData(session.user.id, session.user.email, session.user.user_metadata?.role);
+            await loadAllTenantData(
+              session.user.id,
+              session.user.email,
+              session.user.user_metadata?.role,
+              session.access_token
+            );
             initializedRef.current = true;
           }
         } else {
@@ -1061,7 +1071,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           cargo: newData.cargo !== undefined ? newData.cargo : prev.cargo
         }) : null);
       } else {
-        await loadAllTenantData(session.user.id, session.user.email, session.user.user_metadata?.role);
+        await loadAllTenantData(
+          session.user.id,
+          session.user.email,
+          session.user.user_metadata?.role,
+          session.access_token
+        );
       }
     }
   };
@@ -1195,7 +1210,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
                   void loadAllTenantData(
                     session.user.id,
                     session.user.email,
-                    session.user.user_metadata?.role
+                    session.user.user_metadata?.role,
+                    session.access_token
                   );
                 }}
                 className="w-full py-4 bg-primary text-black font-black rounded-2xl hover:opacity-95 transition-opacity"
