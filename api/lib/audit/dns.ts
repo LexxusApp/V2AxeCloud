@@ -8,7 +8,6 @@
  */
 
 import { promises as dns } from "node:dns";
-import whoisJson from "whois-json";
 
 const DNS_TIMEOUT_MS = 5_000;
 
@@ -164,6 +163,7 @@ function parseDate(s: any): string | null {
 
 async function lookupWhois(rootDomainName: string): Promise<WhoisInfo | null> {
   try {
+    const { default: whoisJson } = await import("whois-json");
     const raw = (await withTimeout(whoisJson(rootDomainName, { follow: 2, timeout: 6000 }), 8000)) as Record<
       string,
       unknown
