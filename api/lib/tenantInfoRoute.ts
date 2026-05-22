@@ -164,14 +164,19 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
 
       const filhoPlanSlug = canonicalPlanSlug(leaderSub.data?.plan);
       const leaderActive = leaderSub.data?.status === "active";
+      const resolvedTenantId =
+        leaderProfile.data?.tenant_id ||
+        leaderProfile.data?.id ||
+        (leaderRef ? String(leaderRef) : "") ||
+        linkedChild.tenant_id ||
+        userId;
       res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
         cargo: null,
         role: "filho",
         is_admin_global: false,
-        tenant_id:
-          leaderProfile.data?.tenant_id || linkedChild.tenant_id || leaderProfile.data?.id || leaderRef || userId,
+        tenant_id: resolvedTenantId,
         plan: filhoPlanSlug,
         status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
         expires_at: leaderSub.data?.expires_at || null,

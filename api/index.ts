@@ -2029,10 +2029,11 @@ async function startServer() {
     if (!access) return;
 
     try {
+      const resolvedId = await resolveLeaderId(access.tenantId);
       const { data, error } = await supabaseAdmin
         .from('biblioteca')
         .select('*')
-        .eq('tenant_id', access.tenantId)
+        .or(`tenant_id.eq.${resolvedId},tenant_id.eq.${access.tenantId}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

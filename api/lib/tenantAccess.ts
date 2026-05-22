@@ -103,12 +103,19 @@ export async function assertUserCanAccessTenant(
     .maybeSingle();
   if (!child) return false;
 
-  const childHouse = await resolveLeaderId(
-    supabaseAdmin,
-    String(child.lider_id || child.tenant_id || "")
-  );
-  const requested = await resolveLeaderId(supabaseAdmin, tid);
-  return childHouse === requested;
+  const houseRefs = new Set<string>();
+  for (const raw of [child.lider_id, child.tenant_id]) {
+    if (!raw) continue;
+    const s = String(raw).trim();
+    if (!s) continue;
+    houseRefs.add(s);
+    houseRefs.add(await resolveLeaderId(supabaseAdmin, s));
+  }
+
+  const requestedLeader = await resolveLeaderId(supabaseAdmin, tid);
+  if (houseRefs.has(tid) || houseRefs.has(requestedLeader)) return true;
+
+  return false;
 }
 
 /**
