@@ -69,8 +69,7 @@ import {
 import { requireAuthOrRespond } from "./lib/requireAuth.js";
 import { safeErrorMessage } from "./lib/safeError.js";
 import { requireTenantReadAccess, isAllowedPdfProxyUrl, verifyKiwifyWebhook, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
-import { authRateLimit, filhoLoginRateLimit, checkoutRateLimit, webhookRateLimit } from "./lib/rateLimit.js";
-import { handleFilhoLoginRoute } from "./lib/filhoLoginRoute.js";
+import { webhookRateLimit } from "./lib/rateLimit.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2480,11 +2479,6 @@ async function startServer() {
       console.error("Admin Create Tenant Error:", error);
       res.status(500).json({ error: error.message || "Internal Server Error" });
     }
-  });
-
-  // API Route: Filho de Santo Login (handler seguro compartilhado)
-  app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {
-    void handleFilhoLoginRoute(req, res);
   });
 
   // API Route: Save User Settings (Bypasses RLS)

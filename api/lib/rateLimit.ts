@@ -1,5 +1,8 @@
-import rateLimit from "express-rate-limit";
-import type { Request } from "express";
+import type { NextFunction, Request, Response } from "express";
+
+type Bucket = { count: number; resetAt: number };
+
+const buckets = new Map<string, Bucket>();
 
 function clientIp(req: Request): string {
   const xf = req.headers["x-forwarded-for"];
@@ -7,49 +10,66 @@ function clientIp(req: Request): string {
   return String(raw || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
 }
 
-/** Opções compatíveis com Vercel/serverless (evita ValidationError de IP). */
-const serverlessRateLimit = {
-  standardHeaders: true as const,
-  legacyHeaders: false,
-  validate: { ip: false, xForwardedForHeader: false },
-};
+function createRateLimit(opts: {
+  windowMs: number;
+  max: number;
+  keyPrefix: string;
+  message: Record<string, string>;
+}) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const key = `${opts.keyPrefix}:${clientIp(req)}`;
+      const now = Date.now();
+      let bucket = buckets.get(key);
+      if (!bucket || bucket.resetAt <= now) {
+        bucket = { count: 0, resetAt: now + opts.windowMs };
+        buckets.set(key, bucket);
+      }
+      bucket.count += 1;
+      res.setHeader("RateLimit-Limit", String(opts.max));
+      res.setHeader("RateLimit-Remaining", String(Math.max(0, opts.max - bucket.count)));
+      res.setHeader("RateLimit-Reset", String(Math.ceil(bucket.resetAt / 1000)));
+      if (bucket.count > opts.max) {
+        return res.status(429).json(opts.message);
+      }
+      next();
+    } catch {
+      next();
+    }
+  };
+}
 
-export const authRateLimit = rateLimit({
-  ...serverlessRateLimit,
+export const authRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  keyGenerator: (req) => `auth:${clientIp(req)}`,
+  keyPrefix: "auth",
   message: { error: "Muitas tentativas. Aguarde alguns minutos." },
 });
 
-export const filhoLoginRateLimit = rateLimit({
-  ...serverlessRateLimit,
+export const filhoLoginRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  keyGenerator: (req) => `filho:${clientIp(req)}`,
+  keyPrefix: "filho",
   message: { error: "Muitas tentativas de login. Aguarde alguns minutos." },
 });
 
-export const checkoutRateLimit = rateLimit({
-  ...serverlessRateLimit,
+export const checkoutRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 40,
-  keyGenerator: (req) => `checkout:${clientIp(req)}`,
+  keyPrefix: "checkout",
   message: { error: "Limite de requisições de checkout excedido." },
 });
 
-export const webhookRateLimit = rateLimit({
-  ...serverlessRateLimit,
+export const webhookRateLimit = createRateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  keyGenerator: (req) => `webhook:${clientIp(req)}`,
+  keyPrefix: "webhook",
   message: { error: "Rate limit exceeded" },
 });
 
-export const apiReadRateLimit = rateLimit({
-  ...serverlessRateLimit,
+export const apiReadRateLimit = createRateLimit({
   windowMs: 60 * 1000,
   max: 300,
-  keyGenerator: (req) => `read:${clientIp(req)}`,
+  keyPrefix: "read",
   message: { error: "Limite de requisições excedido." },
 });
