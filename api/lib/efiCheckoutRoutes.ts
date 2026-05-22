@@ -30,7 +30,12 @@ import {
   ensurePendingSubscriptionRow,
   updateSubscriptionResilient,
 } from "./subscriptionDb.js";
+import { checkoutRateLimit } from "./rateLimit.js";
 import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
+import { verifyUser } from "./verifyUser.js";
+import { getBearerToken } from "./requireAuth.js";
+import { assertUserCanAccessTenant } from "./tenantAccess.js";
+import { safeErrorMessage } from "./safeError.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -41,30 +46,17 @@ async function resolveTenantFromAuth(
   req: Request,
   bodyTenantId?: string
 ): Promise<{ tenantId: string; email: string } | null> {
-  const authHeader = req.headers.authorization;
-  const queryTenant = String(req.query.tenantId || bodyTenantId || "").trim();
+  const token = getBearerToken(req);
+  if (!token) return null;
 
-  if (authHeader) {
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const { data: userData, error } = await supabaseAdmin.auth.getUser(token);
-    if (!error && userData?.user?.id) {
-      return {
-        tenantId: userData.user.id,
-        email: userData.user.email || "",
-      };
-    }
-  }
+  const { user, error } = await verifyUser(supabaseAdmin, token);
+  if (error || !user) return null;
 
-  if (queryTenant) {
-    const { data: profile } = await supabaseAdmin
-      .from("perfil_lider")
-      .select("email")
-      .eq("id", queryTenant)
-      .maybeSingle();
-    return { tenantId: queryTenant, email: profile?.email || "" };
-  }
+  const requested = String(req.query.tenantId || bodyTenantId || user.id).trim();
+  const ok = await assertUserCanAccessTenant(supabaseAdmin, user, requested);
+  if (!ok) return null;
 
-  return null;
+  return { tenantId: requested, email: user.email || "" };
 }
 
 async function assertPendingSubscription(
@@ -149,7 +141,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     });
   });
 
-  app.post("/api/v1/checkout/efi/pix", async (req: Request, res: Response) => {
+  app.post("/api/v1/checkout/efi/pix", checkoutRateLimit, async (req: Request, res: Response) => {
     try {
       const pixEnv = resolveEfiPixEnv();
       if (!pixEnv) {
@@ -238,6 +230,16 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const txid = String(req.params.txid || "").trim();
       if (!txid) return res.status(400).json({ error: "txid obrigatório" });
 
+      const { data: subRow } = await supabaseAdmin
+        .from("subscriptions")
+        .select("efi_pix_txid")
+        .eq("id", tenant.tenantId)
+        .maybeSingle();
+
+      if (!subRow?.efi_pix_txid || String(subRow.efi_pix_txid) !== txid) {
+        return res.status(403).json({ error: "Cobrança não pertence a esta conta." });
+      }
+
       const cob = await efiPixGetCob(pixEnv, txid);
 
       if (cob.paid) {
@@ -254,7 +256,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     }
   });
 
-  app.post("/api/v1/checkout/efi/card", async (req: Request, res: Response) => {
+  app.post("/api/v1/checkout/efi/card", checkoutRateLimit, async (req: Request, res: Response) => {
     if (!EFI_CARD_CHECKOUT_ENABLED) {
       return res.status(403).json({
         error: "Pagamento com cartão está desativado. Utilize PIX para ativar sua assinatura.",

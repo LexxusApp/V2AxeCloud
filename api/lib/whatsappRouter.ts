@@ -14,6 +14,8 @@ import {
 } from "../../src/constants/whatsappTemplates.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { verifyUser } from "./verifyUser.js";
+import { verifyWhatsAppWebhook } from "./secureRoutes.js";
+import { assertZeladorTenantAccess } from "./tenantAccess.js";
 
 function whatsappInitializingResponse(res: any, err?: unknown) {
   const msg =
@@ -54,6 +56,9 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
 
   try {
     if (act === "webhook" && method === "POST") {
+      if (!verifyWhatsAppWebhook(req)) {
+        return sendJson(res, 401, { error: "Webhook não autorizado" });
+      }
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { data } = body;
       const externalId = data?.key?.id;
@@ -96,7 +101,8 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const config = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(config?.templates);
       const { error } = await sb.from("whatsapp_config").upsert({
-        ...config,
+        instance_name: config?.instance_name,
+        evolution_api_url: config?.evolution_api_url,
         templates: safeTemplates,
         id: user.id,
         tenant_id: user.id,
@@ -108,15 +114,17 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
 
     if (act === "send" && method === "POST") {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const { tipo, filhoId, variables, forcePhone } = body;
+      const { tipo, filhoId, variables } = body;
       const { data: config } = await sb.from("whatsapp_config").select("*").eq("tenant_id", user.id).single();
-      let phone = forcePhone;
-      if (!phone && filhoId) {
+      let phone: string | undefined;
+      if (filhoId) {
         const { data: filho } = await sb
           .from("filhos_de_santo")
-          .select("whatsapp_phone")
+          .select("whatsapp_phone, tenant_id, lider_id")
           .eq("id", filhoId)
           .single();
+        const ok = filho && (await assertZeladorTenantAccess(sb, user.id, String(filho.tenant_id || filho.lider_id || user.id)));
+        if (!ok) return sendJson(res, 403, { error: "Filho não pertence ao seu terreiro" });
         phone = filho?.whatsapp_phone;
       }
       if (!phone) return sendJson(res, 400, { error: "Telefone não encontrado" });

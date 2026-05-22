@@ -3,16 +3,12 @@
  * 1) E-mails em ADMIN_CONSOLE_EMAILS (ou ADMIN_EMAILS), separados por vírgula.
  * 2) OU perfil_lider.is_admin_global = true (por id do JWT ou pelo e-mail do perfil).
  */
-const DEFAULT_CONSOLE_ADMINS = ["lucasilvasiqueira@outlook.com.br"];
-
 export function getConsoleAdminEmailAllowlist(): string[] {
   const raw = process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "";
-  const fromEnv = raw
+  return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  // Sempre inclui fundadores — mesmo com ADMIN_CONSOLE_EMAILS preenchido no .env/Vercel
-  return [...new Set([...DEFAULT_CONSOLE_ADMINS.map((e) => e.toLowerCase()), ...fromEnv])];
 }
 
 function normalizeEmail(email: string | null | undefined): string {

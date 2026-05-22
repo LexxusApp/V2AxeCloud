@@ -1,7 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
 
 import { applyDiscreteRouteCors } from "./corsOrigins.js";
+import { filhoLoginRateLimit } from "./rateLimit.js";
+import { isValidUuid } from "./tenantAccess.js";
+import { safeErrorMessage } from "./safeError.js";
 
 dotenv.config();
 
@@ -18,23 +22,55 @@ function getServerEnv(...keys: string[]) {
 const SUPABASE_URL = getServerEnv("VITE_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = getServerEnv(
   "SUPABASE_SERVICE_ROLE_KEY",
-  "SUPABASE_SERVICE_KEY",
-  "VITE_SUPABASE_SERVICE_ROLE_KEY",
-  "VITE_SUPABASE_SERVICE_KEY"
+  "SUPABASE_SERVICE_KEY"
 );
 
-const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
+const supabaseAdmin: SupabaseClient | null =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : null;
 
 function sendJson(res: any, status: number, body: Record<string, unknown>) {
   res.status(status).setHeader("Content-Type", "application/json");
   return res.end(JSON.stringify(body));
+}
+
+function generateFilhoPassword(): string {
+  return `Axe-${randomBytes(12).toString("base64url")}`;
+}
+
+async function findChildByIdPrefix(
+  sb: SupabaseClient,
+  childIdInput: string
+): Promise<{ child: any | null; ambiguous: boolean }> {
+  const childId = String(childIdInput || "").trim();
+  if (isValidUuid(childId)) {
+    const { data, error } = await sb
+      .from("filhos_de_santo")
+      .select("id, cpf, user_id, nome")
+      .eq("id", childId)
+      .maybeSingle();
+    if (error) throw error;
+    return { child: data, ambiguous: false };
+  }
+
+  const prefix = childId.toLowerCase().replace(/-/g, "");
+  if (prefix.length < 8) return { child: null, ambiguous: false };
+
+  const { data, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, cpf, user_id, nome")
+    .ilike("id", `${prefix.slice(0, 8)}%`)
+    .limit(5);
+  if (error) throw error;
+
+  const rows = data || [];
+  const matches = rows.filter((c) => String(c.id || "").toLowerCase().startsWith(prefix));
+  if (matches.length === 1) return { child: matches[0], ambiguous: false };
+  if (matches.length > 1) return { child: null, ambiguous: true };
+  return { child: null, ambiguous: false };
 }
 
 export async function handleFilhoLoginRoute(req: any, res: any) {
@@ -44,6 +80,11 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     res.setHeader("Allow", "POST, OPTIONS");
     return sendJson(res, 405, { error: "Method not allowed" });
   }
+
+  await new Promise<void>((resolve, reject) => {
+    filhoLoginRateLimit(req, res, (err?: unknown) => (err ? reject(err) : resolve()));
+  }).catch(() => undefined);
+  if (res.headersSent) return;
 
   if (!supabaseAdmin) {
     return sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
@@ -56,7 +97,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     childId = String(childId || "").trim();
     cpfPrefix = String(cpfPrefix || "").replace(/\D/g, "");
 
-    if (!childId || cpfPrefix.length < 4) {
+    if (!childId || cpfPrefix.length !== 4) {
       return sendJson(res, 400, { error: "ID e os 4 primeiros dígitos do CPF são obrigatórios." });
     }
 
@@ -65,17 +106,10 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       childId = parts[parts.length - 1];
     }
 
-    const cleanChildId = childId.toLowerCase();
-    const { data: allChildren, error: listError } = await supabaseAdmin
-      .from("filhos_de_santo")
-      .select("id, cpf, user_id, nome");
-
-    if (listError) throw listError;
-
-    const child = (allChildren || []).find((c: any) =>
-      String(c.id || "").toLowerCase().startsWith(cleanChildId)
-    );
-
+    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childId);
+    if (ambiguous) {
+      return sendJson(res, 409, { error: "ID ambíguo. Informe o UUID completo do filho." });
+    }
     if (!child) {
       return sendJson(res, 404, { error: "Filho de santo não encontrado com este ID." });
     }
@@ -90,7 +124,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     }
 
     const fakeEmail = `f_${child.id}@axecloud.internal`;
-    const generatedPassword = `Axe-Cloud-${cpfPrefix}-2024`;
+    const generatedPassword = generateFilhoPassword();
     let authUser: any = null;
 
     if (child.user_id) {
@@ -100,11 +134,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
 
     if (!authUser) {
       const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-      authUser = (usersData?.users || []).find((u: any) =>
-        u.email === fakeEmail ||
-        u.email === `filho_${childId}@axecloud.com` ||
-        u.email === `filho_${String(child.id).substring(0, 4)}@axecloud.com`
-      );
+      authUser = (usersData?.users || []).find((u: any) => u.email === fakeEmail);
     }
 
     if (authUser) {
@@ -122,11 +152,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       if (updateError) throw updateError;
 
       if (child.user_id !== authUser.id) {
-        const { error: linkError } = await supabaseAdmin
-          .from("filhos_de_santo")
-          .update({ user_id: authUser.id })
-          .eq("id", child.id);
-        if (linkError) throw linkError;
+        await supabaseAdmin.from("filhos_de_santo").update({ user_id: authUser.id }).eq("id", child.id);
       }
 
       return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
@@ -139,35 +165,13 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       user_metadata: { nome: child.nome, role: "filho" },
     });
 
-    if (createError) {
-      if (createError.message.includes("already")) {
-        const { data: finalSearch } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-        const found = finalSearch.users.find((u: any) => u.email === fakeEmail);
-        if (found) {
-          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(found.id, { password: generatedPassword });
-          if (updateError) throw updateError;
+    if (createError) throw createError;
 
-          const { error: linkError } = await supabaseAdmin
-            .from("filhos_de_santo")
-            .update({ user_id: found.id })
-            .eq("id", child.id);
-          if (linkError) throw linkError;
-
-          return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
-        }
-      }
-      throw createError;
-    }
-
-    const { error: linkError } = await supabaseAdmin
-      .from("filhos_de_santo")
-      .update({ user_id: newUser.user.id })
-      .eq("id", child.id);
-    if (linkError) throw linkError;
+    await supabaseAdmin.from("filhos_de_santo").update({ user_id: newUser.user.id }).eq("id", child.id);
 
     return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
   } catch (error: any) {
     console.error("[AUTH] Erro no Login do Filho:", error);
-    return sendJson(res, 500, { error: error.message || "Erro ao processar login." });
+    return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao processar login.") });
   }
 }

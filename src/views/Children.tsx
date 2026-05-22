@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Plus, MoreVertical, User, Calendar, MapPin, Phone, Loader2, X, Upload, CheckCircle2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { authFetch } from '../lib/authenticatedFetch';
 import { supabase } from '../lib/supabase';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
@@ -70,7 +71,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     try {
       if (!user) throw new Error("Usuário não autenticado");
       
-      const response = await fetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
+      const response = await authFetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
       const result = await response.json();
 
       if (!response.ok) {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
@@ -179,7 +180,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     }
 
     try {
-      const res = await fetch(`/api/v1/library/materials?tenantId=${encodeURIComponent(effectiveTenantId)}`);
+      const res = await authFetch(`/api/v1/library/materials?tenantId=${encodeURIComponent(effectiveTenantId)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { data } = await res.json();
       const list = data || [];
@@ -239,7 +240,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão expirada. Faça login novamente.');
 
-      const uploadUrlResponse = await fetch('/api/v1/library/upload-url', {
+      const uploadUrlResponse = await authFetch('/api/v1/library/upload-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +268,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
       if (uploadError) throw uploadError;
 
-      const completeResponse = await fetch('/api/v1/library/complete-upload', {
+      const completeResponse = await authFetch('/api/v1/library/complete-upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,18 +7,17 @@
 import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./lib/discreteSupabase.js";
 
-const EVOLUTION_PING_DEFAULT_URL = "https://evolution-api-production-fb8d.up.railway.app/";
 const EVOLUTION_PING_TIMEOUT_MS = 15_000;
 
 function evolutionPingUrl(): string {
-  const raw = String(process.env.EVOLUTION_API_BASE_URL || EVOLUTION_PING_DEFAULT_URL).trim();
-  if (!raw) return EVOLUTION_PING_DEFAULT_URL;
+  const raw = String(process.env.EVOLUTION_API_BASE_URL || "").trim();
+  if (!raw) return "";
   const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   return withProtocol.endsWith("/") ? withProtocol : `${withProtocol}/`;
 }
 
 function evolutionPingApiKey(): string {
-  return String(process.env.EVOLUTION_API_KEY || "AxeCloud_2026").trim();
+  return String(process.env.EVOLUTION_API_KEY || "").trim();
 }
 
 async function pingEvolutionCron(): Promise<{ ok: boolean; status?: number; error?: string }> {
@@ -49,6 +48,11 @@ export default async function handler(req: any, res: any) {
   const method = String(req.method || "GET").toUpperCase();
 
   if (job === "ping-evolution" && method === "GET") {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!cronSecret || authHeader !== cronSecret) {
+      return sendJson(res, 401, { error: "Não autorizado" });
+    }
     try {
       const evolution = await pingEvolutionCron();
       return sendJson(res, 200, { pinged: true, evolution });

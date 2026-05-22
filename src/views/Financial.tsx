@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import LuxuryLoading from '../components/LuxuryLoading';
 import FinanceiroBasico from '../components/FinanceiroBasico';
@@ -285,7 +286,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     let dia = parseInt(pixConfig.dia_vencimento, 10) || 10;
     let valorPadrao = pixConfig.valor_mensalidade || '89.90';
     try {
-      const res = await fetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId || '')}`);
+      const res = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId || '')}`);
       if (res.ok) {
         const { data } = await res.json();
         if (data) {
@@ -327,7 +328,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       if (!session?.access_token) return;
       const skipSync = opts?.skipSync === true;
       if (!skipSync) {
-        await fetch('/api/v1/financial/mensalidades/sync-pendentes', {
+        await authFetch('/api/v1/financial/mensalidades/sync-pendentes', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -429,7 +430,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     setIsSavingPix(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/v1/financial/pix-config', {
+      const res = await authFetch('/api/v1/financial/pix-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -621,7 +622,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sessão inválida');
-      const res = await fetch('/api/v1/financial/mensalidades/liquidar', {
+      const res = await authFetch('/api/v1/financial/mensalidades/liquidar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -659,7 +660,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sessão inválida');
-      const res = await fetch('/api/v1/financial/mensalidades/estornar', {
+      const res = await authFetch('/api/v1/financial/mensalidades/estornar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -782,7 +783,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       if (!session?.access_token) {
         throw new Error('Sessão expirada. Faça login novamente.');
       }
-      const res = await fetch(`/api/transactions/${encodeURIComponent(id)}`, {
+      const res = await authFetch(`/api/transactions/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${session.access_token}` },
       });

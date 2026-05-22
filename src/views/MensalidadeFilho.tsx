@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig } from '../components/PixPaymentModal';
 import PageHeader from '../components/PageHeader';
@@ -112,7 +113,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
       // Buscar Configurações de Pix e Valor do Zelador via API (bypass RLS)
       try {
-        const pixRes = await fetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
+        const pixRes = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
         if (!pixRes.ok) {
           const body = await pixRes.text().catch(() => '');
           throw new Error(`Pix config HTTP ${pixRes.status}: ${body}`);
@@ -172,7 +173,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           if (em) txParams.set("userEmail", em);
           const txHeaders: Record<string, string> = {};
           if (token) txHeaders.Authorization = `Bearer ${token}`;
-          const txRes = await fetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
+          const txRes = await authFetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
           if (txRes.ok) {
             const { data: txRaw } = await txRes.json();
             const txs = (txRaw || []) as any[];
@@ -232,7 +233,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     if (pixFetched || !tenantId) return;
     setLoadingPix(true);
     try {
-      const res = await fetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
+      const res = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new Error(`Pix config HTTP ${res.status}: ${body}`);

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import LuxuryLoading from '../components/LuxuryLoading';
 import PageHeader from '../components/PageHeader';
@@ -65,7 +66,7 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
   async function fetchInventory() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/inventory?tenantId=${tenantId || ''}`);
+      const response = await authFetch(`/api/inventory?tenantId=${tenantId || ''}`);
       if (!response.ok) throw new Error('Failed to fetch inventory');
       const { data } = await response.json();
       setProducts((data || []).map((p: any) => ({
@@ -87,7 +88,7 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Usuário não autenticado');
 
-      const response = await fetch('/api/inventory', {
+      const response = await authFetch('/api/inventory', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

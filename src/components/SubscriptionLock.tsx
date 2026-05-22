@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authenticatedFetch';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -50,7 +51,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
 
   const pollAccessActive = useCallback(async () => {
     if (!tenantId) return false;
-    const res = await fetch(`/api/v1/onboarding/status?tenantId=${encodeURIComponent(tenantId)}`);
+    const res = await authFetch(`/api/v1/onboarding/status?tenantId=${encodeURIComponent(tenantId)}`);
     if (!res.ok) return false;
     const body = await res.json();
     return !!body.active;
@@ -72,8 +73,8 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         setTenantId(uid);
 
         const [cfgRes, ctxRes] = await Promise.all([
-          fetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
-          fetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(uid)}`, {
+          authFetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
+          authFetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(uid)}`, {
             cache: 'no-store',
             headers: await authHeaders(),
           }),
@@ -146,7 +147,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     setPixLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/v1/checkout/efi/pix', {
+      const res = await authFetch('/api/v1/checkout/efi/pix', {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({

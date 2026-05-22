@@ -19,12 +19,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import PageHeader from '../components/PageHeader';
 
 interface Notice {
@@ -124,7 +126,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   async function fetchNotices() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/notices?tenantId=${tenantId || ''}`);
+      const response = await authFetch(`/api/notices?tenantId=${tenantId || ''}`);
       if (!response.ok) throw new Error('Failed to fetch notices');
       const { data } = await response.json();
       setNotices(data || []);
@@ -154,7 +156,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch('/api/notices', {
+      const response = await authFetch('/api/notices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +210,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const childrenRes = await fetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
+      const childrenRes = await authFetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
       if (!childrenRes.ok) throw new Error('Não foi possível buscar a lista de filhos');
       
       const { data: childrenData } = await childrenRes.json();
@@ -262,7 +264,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         alert('Sessão expirada. Faça login novamente.');
         return;
       }
-      const response = await fetch(`/api/notices/${encodeURIComponent(id)}`, {
+      const response = await authFetch(`/api/notices/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -397,7 +399,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                     {notice.titulo}
                   </h3>
                   <div className="text-gray-400 text-xs sm:text-sm leading-relaxed line-clamp-4 prose prose-invert prose-sm max-w-none [&_p]:my-1">
-                    <ReactMarkdown>{notice.conteudo}</ReactMarkdown>
+                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
                   </div>
                 </div>
 

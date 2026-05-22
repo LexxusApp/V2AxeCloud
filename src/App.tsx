@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import FilhoSidebar from './components/FilhoSidebar';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
+import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
 import { Loader2, Menu, ShieldAlert, Bell } from 'lucide-react';
 import NotificationPanel from './components/NotificationPanel';
@@ -515,7 +516,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           const signal = AbortSignal.any
             ? AbortSignal.any([perAttempt, safetyAbort.signal])
             : perAttempt;
-          const response = await fetch(url, { signal });
+          const response = await authFetch(url, { signal });
           
           if (response.status === 403) {
             const errorData = await response.json();
@@ -1337,7 +1338,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       if (!authSession?.access_token) {
         throw new Error('Sessão expirada');
       }
-      const response = await fetch('/api/v1/legal/accept-terms', {
+      const response = await authFetch('/api/v1/legal/accept-terms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

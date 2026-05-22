@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authenticatedFetch';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VAPID_PUBLIC_KEY } from '../config/vapidPublic';
 import { isCanonicalAppOrigin } from '../lib/canonicalOrigin';
@@ -71,7 +72,7 @@ export function useWebPush(
       }
 
       // 4. Enviar para o Backend
-      const response = await fetch('/api/push-subscribe', {
+      const response = await authFetch('/api/push-subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription, userId, tenantId })

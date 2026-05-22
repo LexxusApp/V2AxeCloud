@@ -29,18 +29,31 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
 
-  const urlToOpen = event.notification.data.url;
+  const rawUrl = String(event.notification.data?.url || '/');
+  let urlToOpen = '/';
+  try {
+    const parsed = new URL(rawUrl, self.location.origin);
+    const allowed = [
+      'https://axecloud.com.br',
+      'https://www.axecloud.com.br',
+      'https://axecloud.app',
+      'https://www.axecloud.app',
+    ];
+    if (parsed.origin === self.location.origin || allowed.some((o) => parsed.origin === o)) {
+      urlToOpen = parsed.href;
+    }
+  } catch (_e) {
+    urlToOpen = '/';
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      // Se já houver uma aba aberta, foca nela e navega.
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      // Se não houver, abre uma nova.
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }

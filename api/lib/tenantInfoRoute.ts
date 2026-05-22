@@ -10,6 +10,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { getConsoleAdminEmailAllowlist } from "./consoleAdmin.js";
+import { verifyUser } from "./verifyUser.js";
+import { safeErrorMessage } from "./safeError.js";
+import { getBearerToken } from "./requireAuth.js";
 
 dotenv.config();
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
@@ -55,9 +58,7 @@ const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.VITE_SUPABASE_SERVICE_KEY;
+  process.env.SUPABASE_SERVICE_KEY;
 const SUPABASE_ANON_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   process.env.SUPABASE_ANON_KEY ||
@@ -91,11 +92,17 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
   if (!SUPABASE_URL || !SUPABASE_SERVER_KEY || !supabaseAdmin) {
     return res.status(503).json({
       error: "Supabase não configurado na função da Vercel",
-      missing: {
-        supabaseUrl: !SUPABASE_URL,
-        supabaseKey: !SUPABASE_SERVER_KEY,
-      },
     });
+  }
+
+  const token = getBearerToken(req as any);
+  if (!token) {
+    return res.status(401).json({ error: "Não autorizado" });
+  }
+
+  const { user: authUser, error: authErr } = await verifyUser(supabaseAdmin, token);
+  if (authErr || !authUser || authUser.id !== userId) {
+    return res.status(401).json({ error: "Sessão inválida" });
   }
 
   const sb = supabaseAdmin;
@@ -156,6 +163,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       if (leaderSub.error) throw leaderSub.error;
 
       const filhoPlanSlug = canonicalPlanSlug(leaderSub.data?.plan);
+      const leaderActive = leaderSub.data?.status === "active";
       res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
@@ -165,8 +173,8 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         tenant_id:
           leaderProfile.data?.tenant_id || linkedChild.tenant_id || leaderProfile.data?.id || leaderRef || userId,
         plan: filhoPlanSlug,
-        status: "active",
-        expires_at: "2099-12-31T23:59:59Z",
+        status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
+        expires_at: leaderSub.data?.expires_at || null,
         foto_url: leaderProfile.data?.foto_url || null,
       });
     }
@@ -184,31 +192,11 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
     let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at").eq("id", userId).maybeSingle();
     if (subRes.error) throw subRes.error;
 
-    const isSuperAdmin = profileRes.data?.is_admin_global === true || getConsoleAdminEmailAllowlist().includes(email);
+    const isSuperAdmin =
+      profileRes.data?.is_admin_global === true ||
+      (email && getConsoleAdminEmailAllowlist().includes(email));
 
-    if (isSuperAdmin && !profileRes.data) {
-      console.log(`[tenant-info] Auto-criando perfil Super Admin: ${email}`);
-      const { data: newProfile, error: createError } = await sb
-        .from("perfil_lider")
-        .upsert(
-          {
-            id: userId,
-            email: email,
-            nome_terreiro: "Meu Terreiro",
-            role: "admin",
-            is_admin_global: true,
-            tenant_id: SHARED_TENANT_ID_SUPER,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        )
-        .select()
-        .single();
-
-      if (!createError && newProfile) {
-        profileRes.data = newProfile;
-      }
-    }
+    // Não auto-cria perfil admin global via endpoint público — perfil deve existir ou ser criado no onboarding.
 
     if (!profileRes.data) {
       const { data: cRows, error: childError } = await sb
@@ -301,6 +289,6 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
     });
   } catch (error: any) {
     console.error("[SERVER] Erro ao buscar tenant info:", error);
-    return res.status(500).json({ error: "Erro ao buscar dados do tenant", details: error?.message || String(error) });
+    return res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar dados do tenant") });
   }
 }

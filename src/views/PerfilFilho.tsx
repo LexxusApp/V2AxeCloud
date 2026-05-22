@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { addMonths, endOfMonth, format, parseISO, startOfDay } from 'date-fns';
 import { computeProximaDataMensalidadePrevisao } from '../lib/mensalidadeDueDate';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
@@ -22,6 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPaymentModal';
@@ -253,7 +255,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         if (em) txParams.set('userEmail', em);
         const txHeaders: Record<string, string> = {};
         if (token) txHeaders.Authorization = `Bearer ${token}`;
-        const res = await fetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
+        const res = await authFetch(`/api/transactions?${txParams.toString()}`, { headers: txHeaders });
         if (!res.ok) throw new Error('tx');
         const { data } = await res.json();
         const txs = (data || []) as any[];
@@ -285,7 +287,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     (async () => {
       setLoadingNotices(true);
       try {
-        const res = await fetch(`/api/notices?tenantId=${tenantId || ''}`);
+        const res = await authFetch(`/api/notices?tenantId=${tenantId || ''}`);
         if (!res.ok) throw new Error('Falha ao carregar avisos');
         const { data } = await res.json();
         if (!cancelled) setNotices((data as Notice[]) || []);
@@ -836,7 +838,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                       {notice.titulo}
                     </h3>
                     <div className="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed [&>*:first-child]:mt-0">
-                      <ReactMarkdown>{notice.conteudo}</ReactMarkdown>
+                      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
                     </div>
                   </div>
                 </motion.article>

@@ -17,8 +17,11 @@ export const STATIC_ALLOWED_ORIGINS: readonly string[] = [
 
 export const STATIC_ALLOWED_ORIGIN_SET = new Set<string>(STATIC_ALLOWED_ORIGINS);
 
-/** Previews e deploys na Vercel (*.vercel.app). */
-export const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+/** Previews Vercel — somente se VERCEL_PREVIEW_CORS=1 (evita CSRF cross-projeto). */
+export const VERCEL_PREVIEW_REGEX =
+  process.env.VERCEL_PREVIEW_CORS === "1"
+    ? /^https:\/\/[a-z0-9-]+\.vercel\.app$/i
+    : null;
 
 export const CORS_ALLOWED_METHODS =
   "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS";
@@ -29,9 +32,20 @@ export const CORS_ALLOWED_HEADERS =
 export const CORS_EXPOSE_HEADERS =
   "Content-Length, Content-Type, Content-Range, X-Request-Id";
 
+function extraAllowedOrigins(): string[] {
+  const raw = process.env.ALLOWED_ORIGINS || "";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function isAllowedCorsOrigin(origin: string | undefined | null): boolean {
   if (!origin) return true;
-  return STATIC_ALLOWED_ORIGIN_SET.has(origin) || VERCEL_PREVIEW_REGEX.test(origin);
+  if (STATIC_ALLOWED_ORIGIN_SET.has(origin)) return true;
+  if (extraAllowedOrigins().includes(origin)) return true;
+  if (VERCEL_PREVIEW_REGEX && VERCEL_PREVIEW_REGEX.test(origin)) return true;
+  return false;
 }
 
 /** CORS para rotas serverless isoladas (tenant-info, filho-login, etc.). */

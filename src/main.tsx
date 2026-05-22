@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
 import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
+import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import AppRouter from './router/AppRouter.tsx';
@@ -120,9 +121,11 @@ function bootstrapApp() {
   createRoot(rootEl).render(
     <StrictMode>
       <PwaInstallProvider>
-        <EmergencyReloadBeacon />
-        <AppRouter />
-        <VercelInsights />
+        <AppErrorBoundary>
+          <EmergencyReloadBeacon />
+          <AppRouter />
+          <VercelInsights />
+        </AppErrorBoundary>
       </PwaInstallProvider>
     </StrictMode>,
   );

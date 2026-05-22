@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar, User, Phone, MapPin, Activity, AlertTriangle, Edit
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import PageHeader from '../components/PageHeader';
 import Avatar from '../components/Avatar';
@@ -147,7 +148,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     let cancelled = false;
     (async () => {
       try {
-        const pixRes = await fetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
+        const pixRes = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
         const { data: pixData } = pixRes.ok ? await pixRes.json() : { data: null };
         if (!cancelled && pixData?.valor_mensalidade != null) {
           setValorMensalidadeConfig(Number(pixData.valor_mensalidade));
@@ -196,7 +197,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           data = selfData;
         } else {
           const { data: { session } } = await supabase.auth.getSession();
-          const response = await fetch(`/api/children/${childId}?userId=${user?.id}&tenantId=${tenantId || ''}&userRole=${tenantData?.role || ''}`, {
+          const response = await authFetch(`/api/children/${childId}?userId=${user?.id}&tenantId=${tenantId || ''}&userRole=${tenantData?.role || ''}`, {
             headers: {
               'Authorization': `Bearer ${session?.access_token}`
             }
@@ -304,7 +305,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       delete updatePayload.created_at;
 
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`/api/children/${child.id}?userId=${user?.id}&tenantId=${tenantData?.tenant_id || ''}&userRole=${tenantData?.role || ''}`, {
+      const response = await authFetch(`/api/children/${child.id}?userId=${user?.id}&tenantId=${tenantData?.tenant_id || ''}&userRole=${tenantData?.role || ''}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -385,7 +386,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       if (obligationData.notifyChild && !isSelfView) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          await fetch('/api/push-direct', {
+          await authFetch('/api/push-direct', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -525,7 +526,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         try {
           const base64Data = (reader.result as string).split(',')[1];
           
-          const response = await fetch('/api/v1/profile/upload-photo', {
+          const response = await authFetch('/api/v1/profile/upload-photo', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

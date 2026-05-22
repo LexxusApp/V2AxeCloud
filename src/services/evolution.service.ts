@@ -7,27 +7,20 @@ import QRCode from "qrcode";
 export const WHATSAPP_INITIALIZING_MESSAGE_PT =
   "O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.";
 
-/** URL pública da Evolution no Railway (placeholder; substitua xxx ou use env). */
-export const BASE_URL = "https://evolution-api-production-fb8d.up.railway.app";
-
-export const API_KEY = "AxeCloud_2026";
-
-const EVOLUTION_API_TIMEOUT_MS = 29000;
-/** Timeout menor em checagens de status (polling) para não segurar workers. */
-const EVOLUTION_STATUS_TIMEOUT_MS = 15000;
-const EVOLUTION_COLD_START_RETRY_DELAY_MS = 2000;
-
 function resolvedBaseUrl(): string {
-  const raw = String(process.env.EVOLUTION_API_BASE_URL || BASE_URL).trim().replace(/\/$/, "");
-  if (!raw) return BASE_URL;
+  const raw = String(process.env.EVOLUTION_API_BASE_URL || "").trim().replace(/\/$/, "");
+  if (!raw) return "";
   if (/^https?:\/\//i.test(raw)) return raw;
-  // Alguns ambientes salvam apenas o host (sem protocolo); normalizamos para URL válida.
   return `https://${raw}`;
 }
 
 function resolvedApiKey(): string {
-  return String(process.env.EVOLUTION_API_KEY || API_KEY).trim();
+  return String(process.env.EVOLUTION_API_KEY || "").trim();
 }
+
+const EVOLUTION_API_TIMEOUT_MS = 29000;
+const EVOLUTION_STATUS_TIMEOUT_MS = 15000;
+const EVOLUTION_COLD_START_RETRY_DELAY_MS = 2000;
 
 /** instanceName na Evolution = tenantId normalizado (sem caracteres problemáticos). */
 export function evolutionInstanceName(tenantId: string): string {

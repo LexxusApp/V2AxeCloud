@@ -8,13 +8,16 @@ import {
   registerNewTenant,
   resolvePublicAppUrl,
 } from "./tenantOnboarding.js";
+import { requireAuthUser } from "./requireAuth.js";
+import { assertUserCanAccessTenant } from "./tenantAccess.js";
+import { authRateLimit, webhookRateLimit } from "./rateLimit.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
 };
 
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
-  app.post("/api/v1/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
       const { email, password, nome_terreiro, nome_zelador, whatsapp } = req.body || {};
       const result = await registerNewTenant(
@@ -79,7 +82,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
     }
   });
 
-  app.post("/api/webhooks/efi", async (req: Request, res: Response) => {
+  app.post("/api/webhooks/efi", webhookRateLimit, async (req: Request, res: Response) => {
     try {
       const token =
         (typeof req.body?.notification === "string" && req.body.notification) ||
@@ -106,8 +109,14 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
   });
 
   app.get("/api/v1/onboarding/status", async (req: Request, res: Response) => {
-    const tenantId = String(req.query.tenantId || "").trim();
+    const auth = await requireAuthUser(supabaseAdmin, req);
+    if ("error" in auth) return res.status(auth.status).json({ error: auth.error });
+
+    const tenantId = String(req.query.tenantId || auth.user.id).trim();
     if (!tenantId) return res.status(400).json({ error: "tenantId obrigatório" });
+
+    const ok = await assertUserCanAccessTenant(supabaseAdmin, auth.user, tenantId);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
     const { data: sub } = await supabaseAdmin
       .from("subscriptions")
@@ -125,7 +134,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/v1/onboarding/activate", async (req: Request, res: Response) => {
     const secret = process.env.ONBOARDING_ACTIVATE_SECRET;
-    if (secret && req.headers["x-onboarding-secret"] !== secret) {
+    if (!secret || req.headers["x-onboarding-secret"] !== secret) {
       return res.status(403).json({ error: "Forbidden" });
     }
     const tenantId = String(req.body?.tenantId || "").trim();

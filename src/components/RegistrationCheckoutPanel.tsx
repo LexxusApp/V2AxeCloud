@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authenticatedFetch';
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -211,8 +212,8 @@ export function RegistrationCheckoutPanel({
     setError(null);
     try {
       const [cfgRes, ctxRes] = await Promise.all([
-        fetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
-        fetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(tenantId)}`, {
+        authFetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
+        authFetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(tenantId)}`, {
           cache: 'no-store',
           headers: await authHeaders(),
         }),
@@ -266,7 +267,7 @@ export function RegistrationCheckoutPanel({
 
   const pollActivation = useCallback(async () => {
     if (!tenantId) return false;
-    const res = await fetch(`/api/v1/onboarding/status?tenantId=${encodeURIComponent(tenantId)}`);
+    const res = await authFetch(`/api/v1/onboarding/status?tenantId=${encodeURIComponent(tenantId)}`);
     if (!res.ok) return false;
     const data = await res.json();
     return !!data.active;
@@ -302,7 +303,7 @@ export function RegistrationCheckoutPanel({
     setPixLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/v1/checkout/efi/pix', {
+      const res = await authFetch('/api/v1/checkout/efi/pix', {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({
@@ -369,7 +370,7 @@ export function RegistrationCheckoutPanel({
         holderDocument: holderCpf,
       });
 
-      const res = await fetch('/api/v1/checkout/efi/card', {
+      const res = await authFetch('/api/v1/checkout/efi/card', {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({
