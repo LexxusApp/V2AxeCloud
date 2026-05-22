@@ -10,6 +10,7 @@ import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
+import { authFetch } from '../lib/authenticatedFetch';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
@@ -263,7 +264,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       }
       try {
         const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}`;
-        const response = await fetch(url);
+        const response = await authFetch(url);
         if (!response.ok) {
           const body = await response.text().catch(() => '');
           throw new Error(`Failed to fetch events (${response.status}): ${body}`);
@@ -296,7 +297,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
     try {
       const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(rangeEnd, 'yyyy-MM-dd')}`;
-      const response = await fetch(url);
+      const response = await authFetch(url);
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         throw new Error(`Failed to fetch events (${response.status}): ${body}`);

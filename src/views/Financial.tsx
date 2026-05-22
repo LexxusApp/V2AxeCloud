@@ -224,7 +224,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   const { data: txJson, isLoading: txLoading, mutate: mutateTransactions } = useSWR(
     financialTxKey,
     async ([, tid, uid, role]) => {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/transactions?tenantId=${encodeURIComponent(tid)}&userId=${encodeURIComponent(uid)}&userRole=${encodeURIComponent(String(role))}&limit=200`
       );
       if (!response.ok) throw new Error('Failed to fetch transactions');
