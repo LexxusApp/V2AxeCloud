@@ -75,8 +75,8 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
-          /** Bump para publicar nova regra NetworkOnly em /login (logout PWA). */
-          cacheId: 'axecloud-v105',
+          /** Bump após fix de logout (HTML stale → 404 em /assets). */
+          cacheId: 'axecloud-v106',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [/^\/api\//],

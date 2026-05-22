@@ -21,5 +21,8 @@ export function performEmergencyHardReload(): void {
     });
   }
 
-  window.location.reload();
+  const bust = '_reload=' + Date.now();
+  const path = window.location.pathname || '/';
+  const search = window.location.search ? window.location.search + '&' + bust : '?' + bust;
+  window.location.replace(path + search + window.location.hash);
 }

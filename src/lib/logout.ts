@@ -61,7 +61,8 @@ export async function performFastLogout(): Promise<void> {
   } catch {
     /* limpeza falhou — mesmo assim redireciona */
   } finally {
-    window.location.href = '/login';
+    // Cache-bust evita shell HTML antigo (hashes de bundle obsoletos → 404 em /assets).
+    window.location.replace(`/login?logout=${Date.now()}`);
   }
 }
 

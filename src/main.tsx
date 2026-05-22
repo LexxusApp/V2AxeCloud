@@ -54,7 +54,7 @@ function activateWaitingSwIfSafe() {
   }
 }
 
-const SW_RESET_KEY = 'axecloud-sw-reset-v105';
+const SW_RESET_KEY = 'axecloud-sw-reset-v106';
 
 /** Uma vez: remove SW/cache antigos (v101) que serviam bundle sem landing e quebravam login-bg. */
 async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
@@ -116,6 +116,11 @@ function bootstrapApp() {
     throw new Error('#root não encontrado');
   }
 
+  try {
+    sessionStorage.removeItem('axecloud_stale_boot_retries');
+  } catch {
+    /* */
+  }
   document.getElementById('axecloud-boot')?.remove();
 
   createRoot(rootEl).render(
