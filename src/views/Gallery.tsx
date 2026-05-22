@@ -5,7 +5,6 @@ import { cn } from '../lib/utils';
 import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
-import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 
 interface GalleryProps {

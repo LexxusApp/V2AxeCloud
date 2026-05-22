@@ -443,7 +443,7 @@ export default function Landing() {
                   href={ROUTES.register}
                   className="mt-8 inline-flex w-full items-center justify-center rounded-md bg-primary py-3.5 text-xs font-black uppercase tracking-widest text-black shadow-[0_0_24px_rgba(251,188,0,0.2)] transition hover:scale-[1.02]"
                 >
-                  Cadastrar e pagar
+                  Cadastrar
                 </a>
                 <p className="mt-4 text-center text-[11px] text-zinc-600">
                   Dúvidas?{' '}
