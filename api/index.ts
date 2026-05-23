@@ -1055,11 +1055,11 @@ async function ensurePerfilLiderForMural(user: { id: string; email?: string | nu
   if (filhoRow) return;
   const { data: row } = await supabaseAdmin.from('perfil_lider').select('id').eq('id', user.id).maybeSingle();
   if (row) return;
-  const email = (user.email || '').toLowerCase().trim() || `u_${user.id.replace(/-/g, '')}@placeholder.axecloud.local`;
+  const upsertEmail = email || `u_${user.id.replace(/-/g, '')}@placeholder.axecloud.local`;
   const { error } = await supabaseAdmin.from('perfil_lider').upsert(
     {
       id: user.id,
-      email,
+      email: upsertEmail,
       nome_terreiro: 'Meu Terreiro',
       role: 'admin',
       tenant_id: user.id,
