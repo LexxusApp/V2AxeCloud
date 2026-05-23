@@ -18,6 +18,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
+import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { AxeCloudLogoMark } from '../components/AxeCloudLogoMark';
 import { ROUTES } from '../lib/routes';
@@ -250,8 +251,10 @@ export default function Login() {
         persistFilhoFlag(filhoSurface, postSession.user.id);
         let tenantId = postSession.user.id;
         try {
-          const r = await fetch(
-            `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`
+          const r = await authFetch(
+            `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`,
+            {},
+            postSession.access_token
           );
           if (r.ok) {
             const j = await r.json();
