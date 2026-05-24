@@ -193,9 +193,8 @@ function ScrollToTopButton() {
 export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
   return (
-    <div className="relative min-h-dvh overflow-x-hidden">
+    <div className="relative min-h-dvh overflow-x-hidden bg-neutral-950">
       <span id="top" className="sr-only" aria-hidden />
-      <AuthScreenBackground fixed className="-z-20" />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
         <div className="mx-auto flex max-w-7xl items-center px-4 py-3 sm:px-6 lg:px-8">
@@ -272,11 +271,12 @@ export default function Landing() {
 
       <main style={{ paddingTop: LANDING_HEADER_OFFSET }}>
         <section
-          className="relative -mx-4 flex min-h-[min(90vh,52rem)] items-center justify-center overflow-hidden bg-gradient-to-b from-black/80 via-black/50 to-neutral-950 px-4 pb-16 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="relative -mx-4 flex min-h-[min(90vh,52rem)] items-center justify-center overflow-hidden px-4 pb-16 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
           aria-labelledby="hero-title"
         >
+          <AuthScreenBackground variant="dark" className="absolute inset-0" />
           <div
-            className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,10,10,0.9)_70%)]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-b from-transparent to-neutral-950"
             aria-hidden
           />
 
