@@ -22,6 +22,7 @@ import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
+import { HOME_SEO } from '../constants/seoHome';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SystemTour } from '../components/landing/SystemTour';
 import { ConnectedAccess } from '../components/landing/ConnectedAccess';
@@ -275,22 +276,23 @@ export default function Landing() {
               className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium tracking-wide text-primary"
             >
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-              O primeiro software de gestão feito para Comunidades de Axé
+              {HOME_SEO.heroBadge}
             </motion.div>
 
             <h1
               id="hero-title"
-              className="mx-auto mb-6 max-w-4xl text-4xl leading-tight font-extrabold tracking-tight text-white md:text-6xl"
+              className="mx-auto mb-4 max-w-4xl text-4xl leading-tight font-extrabold tracking-tight text-white md:text-6xl"
             >
-              Tecnologia a serviço do{' '}
-              <span className="bg-gradient-to-r from-primary via-yellow-300 to-amber-500 bg-clip-text text-transparent">
-                sagrado.
-              </span>
+              {HOME_SEO.h1}
             </h1>
 
-            <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-neutral-400 md:text-xl">
-              Transforme a organização do seu terreiro. Controle mensalidades, organize o almoxarifado de guias e
-              velas, e aproxime os filhos de santo com segurança e respeito à tradição.
+            <p className="mx-auto mb-6 max-w-2xl text-lg font-medium text-primary/90 md:text-xl">
+              {HOME_SEO.heroTagline}
+            </p>
+
+            <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-neutral-400 md:text-lg">
+              Transforme a organização do seu terreiro de axé. Controle mensalidades, organize o almoxarifado de guias e
+              velas, e aproxime os filhos de santo com segurança — feito para casas de Umbanda, Candomblé e Jurema.
             </p>
 
             <motion.div

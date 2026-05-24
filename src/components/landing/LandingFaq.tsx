@@ -1,22 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
+import { HOME_FAQ } from '../../constants/seoHome';
 import { cn } from '../../lib/utils';
-
-const FAQ_ITEMS = [
-  {
-    q: 'O sistema serve para qualquer vertente?',
-    a: 'Sim! O AxéCloud é totalmente flexível. Você pode personalizar termos, nomes de cargos e rotinas de acordo com as tradições de Umbanda, Candomblé ou Jurema da sua casa.',
-  },
-  {
-    q: 'Mais de uma pessoa pode administrar o painel?',
-    a: 'Com certeza. O Zelador principal pode criar acessos para ogãs, cambonos ou membros da diretoria ajudarem a cuidar do financeiro e do almoxarifado.',
-  },
-  {
-    q: 'Preciso instalar alguma coisa no meu computador?',
-    a: 'Não. O AxéCloud funciona 100% na nuvem. Você pode acessar pelo computador, tablet ou direto do celular sem precisar instalar nada.',
-  },
-] as const;
 
 const fade = {
   initial: { opacity: 0, y: 20 },
@@ -75,12 +61,15 @@ export function LandingFaq() {
             Dúvidas frequentes
           </p>
           <h2 id="faq-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
-            Perguntas frequentes
+            Perguntas sobre gestão de terreiros
           </h2>
+          <p className="mt-2 text-sm text-neutral-500">
+            Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud.
+          </p>
         </div>
 
         <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-900/40 px-4 backdrop-blur-sm sm:px-6">
-          {FAQ_ITEMS.map((item, i) => (
+          {HOME_FAQ.map((item, i) => (
             <FaqItem
               key={item.q}
               q={item.q}

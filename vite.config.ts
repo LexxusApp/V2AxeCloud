@@ -4,6 +4,8 @@ import path from 'path';
 import type {Plugin} from 'vite';
 import {defineConfig, loadEnv} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
+import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
+import {HOME_SEO} from './src/constants/seoHome';
 
 /** Vite injeta crossorigin nos bundles; com CORP global isso quebrava script/style no Brave/Chrome. */
 function stripCrossoriginFromBuiltHtml(): Plugin {
@@ -23,6 +25,7 @@ export default defineConfig(({mode}) => {
       react(),
       tailwindcss(),
       stripCrossoriginFromBuiltHtml(),
+      seoHomeInject(),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
@@ -44,7 +47,7 @@ export default defineConfig(({mode}) => {
           id: 'https://axecloud.com.br/',
           name: 'AxéCloud',
           short_name: 'AxéCloud',
-          description: 'Gestão Inteligente para sua Comunidade',
+          description: HOME_SEO.manifestDescription,
           start_url: 'https://axecloud.com.br/',
           scope: 'https://axecloud.com.br/',
           lang: 'pt-BR',

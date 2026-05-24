@@ -122,6 +122,7 @@ function bootstrapApp() {
     /* */
   }
   document.getElementById('axecloud-boot')?.remove();
+  document.getElementById('axecloud-seo-static')?.remove();
 
   createRoot(rootEl).render(
     <StrictMode>

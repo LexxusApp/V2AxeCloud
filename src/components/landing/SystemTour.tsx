@@ -147,7 +147,7 @@ export function SystemTour() {
                   >
                     <img
                       src={active.src}
-                      alt={active.label}
+                      alt={`${active.label} — gestão de terreiro AxéCloud`}
                       className="mx-auto h-auto w-full max-h-[min(70vh,520px)] rounded-lg object-contain object-top shadow-[inset_0_0_60px_rgba(0,0,0,0.4)]"
                       width={1400}
                       height={900}

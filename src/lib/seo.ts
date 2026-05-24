@@ -23,7 +23,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.login]: {
     title: 'Entrar | AxéCloud',
     description:
-      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiro, financeiro, almoxarifado e mural.',
+      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, almoxarifado e mural.',
     canonicalPath: '/login',
     robots: 'index, follow',
   },
@@ -43,7 +43,8 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   },
   [ROUTES.register]: {
     title: 'Cadastrar terreiro | AxéCloud',
-    description: 'Crie sua conta no AxéCloud e comece a organizar seu terreiro com gestão mística de alto padrão.',
+    description:
+      'Cadastre seu terreiro de Umbanda ou Candomblé no AxéCloud e organize financeiro, almoxarifado e portal do filho de santo.',
     canonicalPath: '/register',
     robots: 'noindex, follow',
   },
