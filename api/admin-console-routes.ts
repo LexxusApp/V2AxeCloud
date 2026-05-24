@@ -19,6 +19,7 @@ import { handleAdminAuditLogs } from "./lib/adminConsoleHandlers.js";
 import { handleAdminR2Usage } from "./lib/adminConsoleR2.js";
 import { logEvent } from "./lib/auditLog.js";
 import { createAuditLog } from "./lib/createAuditLog.js";
+import { getBearerToken } from "./lib/requireAuth.js";
 import { scanUrl } from "./lib/audit/scan.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
@@ -69,16 +70,10 @@ async function requireConsoleAdmin(
   req: Request,
   res: Response
 ): Promise<{ user: any } | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    logConsoleUnauthorized(deps, req, "missing_authorization");
-    res.status(401).json({ error: "Não autorizado" });
-    return null;
-  }
-  const token = authHeader.replace("Bearer ", "");
+  const token = getBearerToken(req);
   if (!token || token === "undefined" || token === "null") {
-    logConsoleUnauthorized(deps, req, "invalid_token_literal");
-    res.status(401).json({ error: "Token inválido" });
+    logConsoleUnauthorized(deps, req, token ? "invalid_token_literal" : "missing_authorization");
+    res.status(401).json({ error: token ? "Token inválido" : "Não autorizado" });
     return null;
   }
   const { user, error: authError } = await deps.verifyUser(token);
@@ -102,17 +97,6 @@ async function requireConsoleAdmin(
     );
     res.status(403).json({
       error: "Acesso negado ao console administrativo",
-      debug: {
-        userEmail,
-        allowlistCount: allow.length,
-        allowlistSample: allow.slice(0, 3),
-        hint:
-          allow.length === 0
-            ? "ADMIN_CONSOLE_EMAILS está vazio no .env do servidor. Pare o npm run dev e inicie de novo após ajustar o .env."
-            : !allow.includes(userEmail)
-              ? `O email "${userEmail}" não está em ADMIN_CONSOLE_EMAILS. Adicione-o e reinicie o backend.`
-              : "O email está na allowlist mas isConsoleGlobalAdmin retornou false (cheque perfil_lider).",
-      },
     });
     return null;
   }

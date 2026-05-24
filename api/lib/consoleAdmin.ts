@@ -48,18 +48,8 @@ async function promoteConsoleAdminProfile(
 
     if (byEmail?.id) {
       await supabaseAdmin.from("perfil_lider").update({ is_admin_global: true }).eq("id", byEmail.id);
-      return;
     }
   }
-
-  await supabaseAdmin.from("perfil_lider").upsert({
-    id: user.id,
-    tenant_id: user.id,
-    email: email || null,
-    nome_terreiro: "Console Admin",
-    role: "admin",
-    is_admin_global: true,
-  });
 }
 
 export async function isConsoleGlobalAdmin(

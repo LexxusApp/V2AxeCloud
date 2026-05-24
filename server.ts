@@ -9,7 +9,6 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import { isAllowedCorsOrigin, STATIC_ALLOWED_ORIGINS } from "./api/lib/corsOrigins.js";
 import compression from "compression";
-import geoip from "geoip-lite";
 import webpush from "web-push";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -56,7 +55,13 @@ import { logEvent } from "./api/lib/auditLog.js";
 import { createAuditLog } from "./api/lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./api/lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
+import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
+import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
+import { filhoLoginRateLimit } from "./api/lib/rateLimit.js";
+import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
+import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
+import { requireTenantReadAccess, verifyKiwifyWebhook, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
@@ -1215,148 +1220,7 @@ async function startServer() {
     res.json({ status: "pong", timestamp: new Date().toISOString() });
   });
 
-  // Rota para capturar atividade e geolocalização
-  app.post("/api/metrics/track-activity", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      // Captura de IP
-      // Em ambientes de proxy (como Cloud Run/Vercel), o IP real vem no x-forwarded-for
-      const forwarded = req.headers['x-forwarded-for'] as string;
-      const ip = forwarded ? forwarded.split(',')[0] : req.socket.remoteAddress;
-      
-      let geoData = null;
-      if (ip && ip !== '::1' && ip !== '127.0.0.1') {
-        geoData = geoip.lookup(ip);
-      }
-
-      // Salva a atividade no banco (usando tabela de logs existente ou criando uma específica)
-      await supabaseAdmin.from('access_logs').insert({
-        user_id: user.id,
-        ip: ip,
-        city: geoData?.city || null,
-        region: geoData?.region || null,
-        country: geoData?.country || null,
-        ll: geoData?.ll || null, // [lat, lon]
-        user_agent: req.headers['user-agent'],
-        created_at: new Date().toISOString()
-      });
-
-      res.json({ success: true, geo: geoData });
-    } catch (error) {
-      console.error("[METRICS] Error tracking activity:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
-
-  // Rota para estatísticas do Master Portal (Acessos e Filhos)
-  app.get("/api/admin/system-stats", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      
-      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Forbidden: Admin access required" });
-      }
-
-      // 1. Contagem de Filhos por Terreiro
-      const { data: childrenStats, error: childrenError } = await supabaseAdmin
-        .from('filhos_de_santo')
-        .select('tenant_id');
-
-      const childrenPerTenant: Record<string, number> = {};
-      childrenStats?.forEach((c: any) => {
-        const tid = c.tenant_id;
-        childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
-      });
-
-      // 2. Logs de Atividade (Acessos Diários nos últimos 30 dias)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { data: accessLogs, error: accessError } = await supabaseAdmin
-        .from('access_logs')
-        .select('created_at, city, ll')
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      // 3. Agrupamento por dia
-      const dailyAccess: Record<string, number> = {};
-      accessLogs?.forEach((log: any) => {
-        const date = log.created_at.split('T')[0];
-        dailyAccess[date] = (dailyAccess[date] || 0) + 1;
-      });
-
-      res.json({
-        childrenPerTenant,
-        dailyAccess,
-        geoActivity: accessLogs?.filter((l: any) => l.ll).map((l: any) => ({
-          city: l.city,
-          lat: l.ll[0],
-          lon: l.ll[1]
-        })) || []
-      });
-    } catch (error) {
-      console.error("[STATS] Error fetching system stats:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
-
-  // Rota para métricas específicas de um terreiro (Uso de Storage, Eventos, etc)
-  app.get("/api/admin/tenant-usage/:tenantId", async (req, res) => {
-    const { tenantId } = req.params;
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      
-      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-
-      // 1. Contagem de Eventos (últimos 30 dias)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { count: eventsCount } = await supabaseAdmin
-        .from('convidados_eventos') // Usando convidados_eventos como proxy já que eventos pode ser complexo
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      // 2. Contagem de Filhos
-      const { count: childrenCount } = await supabaseAdmin
-        .from('filhos_de_santo')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
-
-      // 3. Estimativa de Storage (simulada ou baseada em metadados se disponível)
-      // Como não temos acesso direto à tabela de sistema do storage via RPC fácil aqui, 
-      // vamos retornar uma estimativa baseada no plano ou dados randômicos realistas para a demonstração
-      // Em uma implementação real, faríamos um RPC para sum(size) de storage.objects
-      const storageEstimate = (Math.random() * 2 + (childrenCount || 0) * 0.1).toFixed(2);
-
-      res.json({
-        eventsCreated: eventsCount || 0,
-        totalChildren: childrenCount || 0,
-        storageUsed: parseFloat(storageEstimate), // em GB
-        storageLimit: 10, // limite fixo de 10GB para exemplo
-        lastActivity: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("[USAGE] Error fetching tenant usage:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
+  // B1: /api/metrics/* e /api/admin/system-stats|tenant-usage|generate-trial → registerAdminMetricsRoutes()
 
   // API Route: Create Tenant (Admin only)
   app.post("/api/admin/create-tenant", async (req, res) => {
@@ -1537,225 +1401,9 @@ async function startServer() {
     }
   });
 
-  // API Route: Filho de Santo Login
-  app.post("/api/auth/filho-login", async (req, res) => {
-    let { childId, cpfPrefix } = req.body;
-
-    if (!childId || !cpfPrefix || cpfPrefix.length < 4) {
-      return res.status(400).json({ error: "ID e os 4 primeiros dígitos do CPF são obrigatórios." });
-    }
-
-    // Limpa o ID caso o usuário tenha digitado o prefixo AXC-2026-
-    if (childId.includes('-')) {
-      const parts = childId.split('-');
-      childId = parts[parts.length - 1];
-    }
-
-    try {
-      console.log(`[AUTH] Tentativa de login para Filho ID Limpo: ${childId}`);
-      
-      // 1. Localiza o filho na tabela
-      const { data: allChildren, error: listError } = await supabaseAdmin
-        .from('filhos_de_santo')
-        .select('id, cpf, user_id, nome, tenant_id, lider_id');
-        
-      if (listError) throw listError;
-      
-      const child = allChildren.find(c => 
-        c.id.toLowerCase().startsWith(childId.toLowerCase())
-      );
-
-      if (!child) {
-        void logEvent(supabaseAdmin, {
-          eventType: "filho.login-failed",
-          targetType: "filho",
-          targetId: childId,
-          description: "Tentativa de login: filho de santo não encontrado com este ID.",
-          req,
-        });
-        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", null, {
-          surface: "app",
-          mode: "filho",
-          childId,
-          reason: "child_not_found",
-        });
-        return res.status(404).json({ error: "Filho de santo não encontrado com este ID." });
-      }
-
-      if (!child.cpf) {
-        const tidNoCpf = (child as any).tenant_id || (child as any).lider_id || null;
-        void logEvent(supabaseAdmin, {
-          eventType: "filho.login-failed",
-          targetType: "filho",
-          targetId: String(child.id),
-          description: `Login negado: filho ${child.nome} sem CPF cadastrado.`,
-          req,
-        });
-        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", tidNoCpf, {
-          surface: "app",
-          mode: "filho",
-          childId: child.id,
-          reason: "missing_cpf",
-        });
-        return res.status(400).json({ error: "Este filho de santo não possui CPF cadastrado." });
-      }
-
-      // 2. Valida o prefixo do CPF
-      const cleanCpf = child.cpf.replace(/\D/g, '');
-      if (!cleanCpf.startsWith(cpfPrefix)) {
-        const tidBadCpf = (child as any).tenant_id || (child as any).lider_id || null;
-        void logEvent(supabaseAdmin, {
-          eventType: "filho.login-failed",
-          targetType: "filho",
-          targetId: String(child.id),
-          description: `Login do filho "${child.nome}" recusado: CPF incorreto.`,
-          metadata: { cpfPrefix },
-          req,
-        });
-        void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", tidBadCpf, {
-          surface: "app",
-          mode: "filho",
-          childId: child.id,
-          reason: "wrong_cpf_prefix",
-        });
-        return res.status(401).json({ error: "CPF incorreto." });
-      }
-
-      // 3. Define as credenciais padrão atuais
-      const fakeEmail = `f_${child.id}@axecloud.internal`;
-      const generatedPassword = `Axe-Cloud-${cpfPrefix}-2024`; // Senha padronizada
-
-      // 4. Busca o usuário no Auth para sincronizar
-      let authUser = null;
-
-      // Busca por user_id vinculado
-      if (child.user_id) {
-        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(child.user_id);
-        if (userData?.user) authUser = userData.user;
-      }
-
-      // Busca por e-mail (caso o vínculo no DB esteja quebrado ou seja um usuário antigo)
-      if (!authUser) {
-        // Aumentamos o perPage para garantir que encontramos o usuário em terreiros grandes
-        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-        authUser = (usersData?.users || []).find(u => 
-          u.email === fakeEmail || u.email === `filho_${childId}@axecloud.com` || u.email === `filho_${child.id.substring(0, 4)}@axecloud.com`
-        );
-      }
-
-      if (authUser) {
-        console.log(`[AUTH] Sincronizando usuário existente: ${authUser.id}`);
-        
-        const updateFields: any = { 
-          password: generatedPassword,
-          email_confirm: true,
-          user_metadata: { nome: child.nome, role: 'filho' }
-        };
-
-        // Força a atualização do e-mail para o formato NOVO (.internal) se estiver no antigo
-        if (authUser.email !== fakeEmail) {
-          updateFields.email = fakeEmail;
-        }
-
-        await supabaseAdmin.auth.admin.updateUserById(authUser.id, updateFields);
-
-        // Garante o vínculo na tabela
-        if (child.user_id !== authUser.id) {
-          await supabaseAdmin.from('filhos_de_santo').update({ user_id: authUser.id }).eq('id', child.id);
-        }
-
-        const tidOk = (child as any).tenant_id || (child as any).lider_id || null;
-        void logEvent(supabaseAdmin, {
-          eventType: "filho.login",
-          userId: authUser.id,
-          userEmail: fakeEmail,
-          targetType: "filho",
-          targetId: String(child.id),
-          description: `Filho "${child.nome}" entrou no sistema.`,
-          req,
-        });
-        void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidOk, {
-          surface: "app",
-          mode: "filho",
-          userId: authUser.id,
-          email: fakeEmail,
-          childId: child.id,
-        });
-        return res.json({ email: fakeEmail, password: generatedPassword });
-      } else {
-        // 5. Cria novo usuário
-        console.log(`[AUTH] Criando novo acesso shadow: ${fakeEmail}`);
-        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email: fakeEmail,
-          password: generatedPassword,
-          email_confirm: true,
-          user_metadata: { nome: child.nome, role: 'filho' }
-        });
-
-        if (createError) {
-          // Fallback final para erro de duplicidade
-          if (createError.message.includes('already')) {
-             const { data: finalSearch } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-             const found = finalSearch.users.find(u => u.email === fakeEmail);
-             if (found) {
-                await supabaseAdmin.auth.admin.updateUserById(found.id, { password: generatedPassword });
-                await supabaseAdmin.from('filhos_de_santo').update({ user_id: found.id }).eq('id', child.id);
-                const tidFound = (child as any).tenant_id || (child as any).lider_id || null;
-                void logEvent(supabaseAdmin, {
-                  eventType: "filho.login",
-                  userId: found.id,
-                  userEmail: fakeEmail,
-                  targetType: "filho",
-                  targetId: String(child.id),
-                  description: `Filho "${child.nome}" entrou no sistema (recuperação de vínculo).`,
-                  req,
-                });
-                void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidFound, {
-                  surface: "app",
-                  mode: "filho",
-                  userId: found.id,
-                  email: fakeEmail,
-                  childId: child.id,
-                });
-                return res.json({ email: fakeEmail, password: generatedPassword });
-             }
-          }
-          throw createError;
-        }
-
-        await supabaseAdmin.from('filhos_de_santo').update({ user_id: newUser.user.id }).eq('id', child.id);
-        const tidNew = (child as any).tenant_id || (child as any).lider_id || null;
-        void logEvent(supabaseAdmin, {
-          eventType: "filho.login",
-          userId: newUser.user.id,
-          userEmail: fakeEmail,
-          targetType: "filho",
-          targetId: String(child.id),
-          description: `Filho "${child.nome}" entrou no sistema (primeira vez, shadow user criado).`,
-          req,
-        });
-        void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", tidNew, {
-          surface: "app",
-          mode: "filho",
-          userId: newUser.user.id,
-          email: fakeEmail,
-          childId: child.id,
-          firstLogin: true,
-        });
-        return res.json({ email: fakeEmail, password: generatedPassword });
-      }
-
-    } catch (error: any) {
-      console.error("[AUTH] Erro no Login do Filho:", error);
-      void createAuditLog(supabaseAdmin, req, "auth.login_failed", "failed", null, {
-        surface: "app",
-        mode: "filho",
-        childId,
-        reason: "server_error",
-        message: String(error?.message || error).slice(0, 200),
-      });
-      res.status(500).json({ error: error.message || "Erro ao processar login." });
-    }
+  // API Route: Filho de Santo Login (handler seguro compartilhado com produção)
+  app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {
+    void handleFilhoLoginRoute(req, res);
   });
 
   // API Route: Upload Profile Photo (Bypasses Storage RLS)
@@ -2892,152 +2540,9 @@ async function startServer() {
     }
   });
 
-  // API Route: Get Tenant Info (Bypasses RLS)
-  app.get("/api/tenant-info", async (req, res) => {
-    const userId = req.query.userId as string;
-    const email = (req.query.email as string || '').toLowerCase().trim();
-    if (!userId) return res.status(400).json({ error: "UserId is required" });
-
-    try {
-      // 1. Prioridade: Verifica se é um Filho de Santo vinculado
-      const { data: childData } = await supabaseAdmin
-        .from('filhos_de_santo')
-        .select('id, nome, lider_id, tenant_id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (childData) {
-        console.log(`[SERVER] Usuário identificado como FILHO: ${childData.nome}`);
-        // lider_id aponta para perfil_lider.id; tenant_id costuma ser o UUID lógico — não usar como .eq('id', …) primeiro.
-        const leaderId = childData.lider_id || childData.tenant_id;
-        
-        let leaderProfileData: any = null;
-        let leaderSubData: any = null;
-
-        if (leaderId) {
-          // Busca perfil e assinatura em paralelo (DB)
-          // Tentamos buscar por ID primeiro (caso padrão para zeladores)
-          const dbPromises = [
-            supabaseAdmin.from('perfil_lider').select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version').eq('id', leaderId).maybeSingle(),
-            supabaseAdmin.from('subscriptions').select('plan, status, expires_at').eq('id', leaderId).maybeSingle()
-          ];
-
-          const [leaderProfile, leaderSub] = await Promise.all(dbPromises);
-          leaderProfileData = leaderProfile.data;
-          leaderSubData = leaderSub.data;
-
-          // Se não encontrou por ID, tenta por tenant_id (caso o leaderId seja o ID de um tenant compartilhado)
-          if (!leaderProfileData) {
-            const { data: altProfile } = await supabaseAdmin
-              .from('perfil_lider')
-              .select('nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, terms_accepted_version')
-              .eq('tenant_id', leaderId)
-              .maybeSingle();
-            if (altProfile) leaderProfileData = altProfile;
-          }
-
-          // Busca Auth em separado para ser resiliente a falhas na API de Admin
-          try {
-            const { data: leaderAuth, error: authError } = await supabaseAdmin.auth.admin.getUserById(leaderId);
-            if (!authError && leaderAuth?.user) {
-              const authNomeTerreiro = leaderAuth.user.user_metadata?.nome_terreiro || leaderAuth.user.user_metadata?.nome || leaderAuth.user.user_metadata?.full_name;
-              
-              // Priorizamos o nome do terreiro vindo do perfil, mas usamos o Auth como fallback
-              if (!leaderProfileData?.nome_terreiro && authNomeTerreiro) {
-                if (!leaderProfileData) leaderProfileData = { nome_terreiro: authNomeTerreiro };
-                else leaderProfileData.nome_terreiro = authNomeTerreiro;
-              }
-            }
-          } catch (authErr) {
-            console.warn("[SERVER] leaderAuth fallback failed (non-critical):", authErr);
-          }
-        }
-
-        if (leaderProfileData?.deleted_at) return res.status(403).json({ error: "Conta excluída", status: "deleted" });
-        if (leaderProfileData?.is_blocked) return res.status(403).json({ error: "Acesso suspenso", status: "blocked" });
-
-        const filhoPlanSlug = canonicalPlanSlug(leaderSubData?.plan);
-        return res.json({
-          nome_terreiro: leaderProfileData?.nome_terreiro || 'Meu Terreiro',
-          cargo: null,
-          role: 'filho',
-          is_admin_global: false,
-          tenant_id: leaderId || userId,
-          plan: filhoPlanSlug,
-          status: 'active', // Filho sempre ativo
-          expires_at: '2099-12-31T23:59:59Z', // Filho não expira (Acesso Livre)
-          foto_url: leaderProfileData?.foto_url || null
-        });
-      }
-
-      // 2. Se não for filho, busca Perfil de Líder
-      let profileRes: any = await fetchPerfilLiderByUserId(userId);
-      
-      const emailNorm = String(email || "").trim().toLowerCase();
-      const isSuperAdmin =
-        profileRes.data?.is_admin_global === true || getConsoleAdminEmailAllowlist().includes(emailNorm);
-
-      // 2.5 Auto-create profile for Admins if missing
-      if (!profileRes.data) {
-        const SHARED_TENANT_ID = isSuperAdmin ? '6588b6c9-ce84-4140-a69a-f487a0c61dab' : userId; 
-        const { data: newProfile, error: createError } = await supabaseAdmin
-          .from('perfil_lider')
-          .upsert({
-            id: userId,
-            email: email,
-            nome_terreiro: 'Meu Terreiro',
-            role: 'admin',
-            is_admin_global: isSuperAdmin,
-            tenant_id: SHARED_TENANT_ID,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' })
-          .select()
-          .single();
-        
-        if (!createError && newProfile) {
-          profileRes.data = newProfile;
-        }
-      }
-
-      // Check if blocked or deleted after possible creation
-      if (profileRes.data?.deleted_at) {
-        return res.status(403).json({ error: "Conta excluída", status: "deleted" });
-      }
-      if (profileRes.data?.is_blocked) {
-        return res.status(403).json({ error: "Acesso suspenso", status: "blocked" });
-      }
-
-      let subRes: any = await supabaseAdmin.from('subscriptions').select('plan, status, expires_at').eq('id', userId).maybeSingle();
-
-      // 3. Determinação do Plano e Módulos
-      let plan = canonicalPlanSlug(subRes.data?.plan);
-      if (isSuperAdmin) plan = 'premium';
-
-      const lifetime = plan === 'vita' || plan === 'cortesia';
-
-      // Para vitalício/cortesia: expires_at=null (front trata como "sem expiração" via isLifetime).
-      const expiresOut = isSuperAdmin
-        ? '2099-12-31T23:59:59Z'
-        : lifetime
-        ? null
-        : (subRes.data?.expires_at || null);
-
-      return res.json({
-        nome_terreiro: profileRes.data?.nome_terreiro || 'Meu Terreiro',
-        cargo: profileRes.data?.cargo?.trim() || null,
-        role: isSuperAdmin ? 'admin' : (profileRes.data?.role || 'admin'),
-        is_admin_global: !!isSuperAdmin,
-        tenant_id: profileRes.data?.tenant_id || profileRes.data?.id || (isSuperAdmin ? userId : null),
-        plan: plan,
-        status: isSuperAdmin ? 'active' : (subRes.data?.status || 'active'),
-        expires_at: expiresOut,
-        foto_url: profileRes.data?.foto_url || null,
-        terms_accepted_version: profileRes.data?.terms_accepted_version || null
-      });
-    } catch (error: any) {
-      console.error("[SERVER] Erro ao buscar tenant info:", error);
-      return res.status(500).json({ error: "Erro ao buscar dados do tenant", details: error.message || String(error) });
-    }
+  // API Route: Get Tenant Info (JWT obrigatório — alinhado com produção)
+  app.get("/api/tenant-info", (req, res) => {
+    void handleTenantInfoRoute(req as Parameters<typeof handleTenantInfoRoute>[0], res);
   });
 
   // API Route: List Tenants (Admin only)
@@ -3138,57 +2643,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Generate Trial Account (Admin only)
-  app.post("/api/admin/generate-trial", async (req, res) => {
-    const { email, password, nome_terreiro, plan, days } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      
-      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-
-      // 1. Create User in Auth
-      const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { nome_terreiro, plan, is_trial: true }
-      });
-
-      if (createError) throw createError;
-
-      const targetUser = createdUser.user;
-      const expiresAt = new Date(Date.now() + parseInt(days) * 24 * 60 * 60 * 1000).toISOString();
-
-      // 2. Setup Subscription
-      await supabaseAdmin.from('subscriptions').upsert({
-        id: targetUser.id,
-        plan: plan.toLowerCase(),
-        status: 'active',
-        expires_at: expiresAt,
-      }, { onConflict: 'id' });
-
-      // 3. Setup Profile
-      await supabaseAdmin.from('perfil_lider').upsert({
-        id: targetUser.id,
-        email: email,
-        nome_terreiro,
-        tenant_id: targetUser.id,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
-
-      res.json({ success: true, email, password, expiresAt });
-    } catch (error: any) {
-      console.error("[SERVER] Erro ao gerar trial:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // B1: POST /api/admin/generate-trial → registerAdminMetricsRoutes()
 
   // API Route: Update Global Plans Config
   app.post("/api/admin/update-plans", async (req, res) => {
@@ -3376,47 +2831,18 @@ async function startServer() {
   });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
+  registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);
   });
 
-  // API Route: Update User Plan (Self-service / Payment Simulation)
-  app.post("/api/v1/subscription/update-plan", async (req, res) => {
-    const { plan } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-    if (!plan) return res.status(400).json({ error: "Plano é obrigatório" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-
-      if (authError || !user) {
-        console.error("[SERVER] Auth error in /api/subscriptions (POST):", authError?.message || "No user found");
-        return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
-      }
-
-      console.log(`[SUBSCRIPTION] Updating plan to ${plan} for user ${user.id}`);
-
-      // Atualiza o plano na tabela subscriptions
-      const { error: updateError } = await supabaseAdmin
-        .from('subscriptions')
-        .upsert({ 
-          id: user.id, 
-          plan: plan,
-          status: 'active'
-        }, { onConflict: 'id' });
-
-      if (updateError) throw updateError;
-
-      res.json({ success: true, plan });
-    } catch (error: any) {
-      console.error("[SUBSCRIPTION] Erro ao atualizar plano:", error);
-      res.status(500).json({ error: error.message });
-    }
+  // Desativado — upgrades via checkout/webhook (alinhado com api/index.ts)
+  app.post("/api/v1/subscription/update-plan", async (_req, res) => {
+    return res.status(403).json({
+      error: "Atualização de plano desativada nesta rota. Use o checkout ou contate o suporte.",
+    });
   });
 
   // API Route: Test Supabase Admin — desabilitado em produção
@@ -3436,17 +2862,23 @@ async function startServer() {
 
   // API Route: Get Single Child (Bypasses RLS)
   app.get("/api/children/:id", async (req, res) => {
-    const childId = req.params.id;
-    const userId = req.query.userId as string;
-    const tenantIdFromQuery = req.query.tenantId as string;
-    
-    console.log(`[SERVER] GET /api/children/${childId} request received. userId:`, userId, "tenantId:", tenantIdFromQuery);
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
+    const childId = req.params.id;
+    const tenantIdFromQuery = req.query.tenantId as string;
 
     try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+      const userId = user.id;
+      if (req.query.userId && String(req.query.userId) !== userId) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       let tenantId = tenantIdFromQuery;
 
       // 1. Get user's tenant_id if not provided
@@ -3492,18 +2924,24 @@ async function startServer() {
 
   // API Route: Update Single Child (Bypasses RLS)
   app.put("/api/children/:id", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+
     const childId = req.params.id;
-    const userId = req.query.userId as string;
     const tenantIdFromQuery = req.query.tenantId as string;
     const updateData = req.body;
-    
-    console.log(`[SERVER] PUT /api/children/${childId} request received. userId:`, userId, "tenantId:", tenantIdFromQuery);
-
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
 
     try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+      const userId = user.id;
+      if (req.query.userId && String(req.query.userId) !== userId) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       let tenantId = tenantIdFromQuery;
 
       // 1. Get user's tenant_id if not provided
@@ -3556,17 +2994,23 @@ async function startServer() {
 
   // API Route: Get Children (Bypasses RLS)
   app.get("/api/children", async (req, res) => {
-    console.log(`[SERVER] GET /api/children request received. Query:`, req.query);
-    const userId = req.query.userId as string;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+
     const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
     const userRoleQ = String(req.query.userRole || "");
 
-    if (!userId) {
-      console.log(`[SERVER] GET /api/children - Missing userId`);
-      return res.status(400).json({ error: "UserId is required" });
-    }
-
     try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+      const userId = user.id;
+      if (req.query.userId && String(req.query.userId) !== userId) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       const tenantId = await resolveFinanceiroTenantScope(
         supabaseAdmin,
         userId,
@@ -3799,6 +3243,14 @@ async function startServer() {
         });
       }
 
+      const access = await userCanModifyCalendarEvent(supabaseAdmin, user, req.params.id);
+      if (access.notFound) {
+        return res.status(404).json({ error: "Evento não encontrado." });
+      }
+      if (!access.allowed) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       const { error } = await supabaseAdmin
         .from('calendario_axe')
         .delete()
@@ -3814,13 +3266,10 @@ async function startServer() {
 
   // API Route: Get Notices (Bypasses RLS)
   app.get("/api/notices", async (req, res) => {
-    const { tenantId } = req.query;
-    // tenantId obrigatório para evitar vazamento de dados entre tenants
-    if (!tenantId || typeof tenantId !== 'string' || tenantId.trim() === '') {
-      return res.status(400).json({ error: "tenantId é obrigatório" });
-    }
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
+    if (!access) return;
+    const tenantId = access.tenantId;
     try {
-      // Resolve o id real do perfil_lider para garantir compatibilidade com a FK
       const resolvedId = await resolveLeaderId(tenantId);
       const { data, error } = await supabaseAdmin
         .from('mural_avisos')
@@ -4005,13 +3454,15 @@ async function startServer() {
 
   // API Route: Get Inventory (Bypasses RLS)
   app.get("/api/inventory", async (req, res) => {
-    const { tenantId } = req.query;
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
+    if (!access) return;
+    const tenantId = access.tenantId;
     try {
-      let query = supabaseAdmin.from('almoxarifado').select('*').order('item', { ascending: true });
-      if (tenantId) {
-        query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
-      }
-      
+      const query = supabaseAdmin
+        .from('almoxarifado')
+        .select('*')
+        .order('item', { ascending: true })
+        .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
       const { data, error } = await query;
       if (error) throw error;
       res.json({ data });
@@ -4110,9 +3561,20 @@ async function startServer() {
         }
       }
 
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+      const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+      if (userId && String(userId) !== user.id) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       const effectiveTenant = await resolveFinanceiroTenantScope(
         supabaseAdmin,
-        userId as string,
+        user.id,
         userRoleStr,
         tenantIdRaw
       );
@@ -4332,6 +3794,9 @@ async function startServer() {
       if (!tenantId) {
         return res.status(400).json({ error: "Missing tenantId" });
       }
+
+      const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenantId));
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const sentCount = await sendWebPushToFilhosDoTerreiro(tenantId, { title, body, url });
 
@@ -4576,6 +4041,9 @@ async function startServer() {
   });
 
   app.post("/api/whatsapp/webhook", async (req, res) => {
+    if (!verifyWhatsAppWebhook(req)) {
+      return res.status(401).json({ error: "Webhook não autorizado" });
+    }
     const { data } = req.body;
     const externalId = data?.key?.id;
     const status = data?.status;
@@ -4688,6 +4156,9 @@ async function startServer() {
 
   // API Route: Kiwify Webhook
   app.post("/api/webhooks/kiwify", express.json(), async (req, res) => {
+    if (!verifyKiwifyWebhook(req)) {
+      return res.status(401).json({ error: "Webhook não autorizado" });
+    }
     const payload = req.body;
     const { order_status, customer, product_id, subscription_id } = payload;
 

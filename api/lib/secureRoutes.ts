@@ -91,3 +91,13 @@ export function verifyWhatsAppWebhook(req: { headers?: Record<string, string | s
   const value = Array.isArray(header) ? header[0] : header;
   return String(value || "") === secret;
 }
+
+/** Opcional: se EFI_WEBHOOK_SECRET estiver definido, exige header antes de processar o token EFI. */
+export function verifyEfiWebhook(req: { headers?: Record<string, string | string[] | undefined> }): boolean {
+  const secret = process.env.EFI_WEBHOOK_SECRET || "";
+  if (!secret) return true;
+  const header = req.headers?.["x-efi-webhook-secret"] || req.headers?.["authorization"];
+  const value = Array.isArray(header) ? header[0] : header;
+  const token = String(value || "").replace(/^Bearer\s+/i, "");
+  return token === secret;
+}

@@ -13,9 +13,11 @@ import {
   resolveWhatsAppTemplate,
 } from "../../src/constants/whatsappTemplates.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
+import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 import { verifyWhatsAppWebhook } from "./secureRoutes.js";
 import { assertZeladorTenantAccess } from "./tenantAccess.js";
+import { consumeRateLimit } from "./rateLimit.js";
 
 function whatsappInitializingResponse(res: any, err?: unknown) {
   const msg =
@@ -30,12 +32,11 @@ async function requireAuthUser(
   req: any,
   res: any
 ): Promise<{ id: string; email?: string | null } | null> {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  if (!authHeader) {
+  const token = getBearerToken(req);
+  if (!token) {
     sendJson(res, 401, { error: "Unauthorized" });
     return null;
   }
-  const token = String(authHeader).replace(/^Bearer\s+/i, "").trim();
   const { user, error: authError } = await verifyUser(sb, token);
   if (authError || !user) {
     sendJson(res, 401, { error: "Unauthorized" });
@@ -113,6 +114,10 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "send" && method === "POST") {
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 40, keyPrefix: "wa-send" });
+      if (!rl.allowed) {
+        return sendJson(res, 429, { error: "Limite de envios WhatsApp excedido. Tente mais tarde." });
+      }
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { tipo, filhoId, variables } = body;
       const { data: config } = await sb.from("whatsapp_config").select("*").eq("tenant_id", user.id).single();

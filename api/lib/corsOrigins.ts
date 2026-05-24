@@ -41,7 +41,7 @@ function extraAllowedOrigins(): string[] {
 }
 
 export function isAllowedCorsOrigin(origin: string | undefined | null): boolean {
-  if (!origin) return true;
+  if (!origin) return false;
   if (STATIC_ALLOWED_ORIGIN_SET.has(origin)) return true;
   if (extraAllowedOrigins().includes(origin)) return true;
   if (VERCEL_PREVIEW_REGEX && VERCEL_PREVIEW_REGEX.test(origin)) return true;

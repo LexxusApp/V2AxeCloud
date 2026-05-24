@@ -11,6 +11,7 @@ import {
 import { requireAuthUser } from "./requireAuth.js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
 import { authRateLimit, webhookRateLimit } from "./rateLimit.js";
+import { verifyEfiWebhook } from "./secureRoutes.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -52,15 +53,11 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
   });
 
   app.post("/api/v1/checkout/efi/resume", async (req: Request, res: Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-      const { data: userData, error: authErr } = await supabaseAdmin.auth.getUser(token);
-      if (authErr || !userData?.user) return res.status(401).json({ error: "Sessão inválida" });
+      const auth = await requireAuthUser(supabaseAdmin, req);
+      if ("error" in auth) return res.status(auth.status).json({ error: auth.error });
 
-      const userId = userData.user.id;
+      const userId = auth.user.id;
       const { data: sub } = await supabaseAdmin
         .from("subscriptions")
         .select("status, efi_charge_id")
@@ -84,6 +81,11 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/webhooks/efi", webhookRateLimit, async (req: Request, res: Response) => {
     try {
+      if (!verifyEfiWebhook(req)) {
+        console.warn("[EFI WEBHOOK] secret inválido ou ausente");
+        return res.status(401).send("Unauthorized");
+      }
+
       const token =
         (typeof req.body?.notification === "string" && req.body.notification) ||
         (typeof req.query?.notification === "string" && req.query.notification) ||

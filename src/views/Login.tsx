@@ -219,8 +219,8 @@ export default function Login() {
         });
         if (signErr) throw signErr;
       } else {
-        if (cpfPrefix.length < 4) {
-          throw new Error('Digite pelo menos os 4 primeiros dígitos do CPF.');
+        if (cpfPrefix.length < 6) {
+          throw new Error('Digite os 6 primeiros dígitos do CPF.');
         }
 
         const response = await fetch('/api/auth/filho-login', {
@@ -497,7 +497,7 @@ export default function Login() {
                     </div>
                   </div>
                   <div className="space-y-[5px]">
-                    <label className={labelClass}>4 primeiros dígitos do CPF</label>
+                    <label className={labelClass}>6 primeiros dígitos do CPF</label>
                     <div className="relative">
                       <KeyRound
                         className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
@@ -506,11 +506,11 @@ export default function Login() {
                       <input
                         type="text"
                         required
-                        maxLength={4}
+                        maxLength={6}
                         inputMode="numeric"
                         value={cpfPrefix}
                         onChange={(e) => setCpfPrefix(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Ex.: 1234"
+                        placeholder="Ex.: 123456"
                         className={fieldShell}
                       />
                     </div>

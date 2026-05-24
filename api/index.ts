@@ -43,6 +43,7 @@ import {
 } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
@@ -54,6 +55,10 @@ import { createAuditLog } from "./lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
+import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
+import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
+import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
+import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 import {
   getSupabaseServerAnonKey,
@@ -72,10 +77,17 @@ import {
   assertUserCanAccessTenant,
   pickAllowedChildFields,
 } from "./lib/tenantAccess.js";
-import { requireAuthOrRespond } from "./lib/requireAuth.js";
+import { requireAuthOrRespond, getBearerToken } from "./lib/requireAuth.js";
+import { requireApiUser, requireApiTenantRead, requireApiGlobalAdmin } from "./lib/routeAuthHelpers.js";
 import { safeErrorMessage } from "./lib/safeError.js";
 import { requireTenantReadAccess, isAllowedPdfProxyUrl, verifyKiwifyWebhook, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
-import { webhookRateLimit } from "./lib/rateLimit.js";
+import {
+  webhookRateLimit,
+  sensitiveActionRateLimit,
+  whatsappSendRateLimit,
+  pushDirectRateLimit,
+} from "./lib/rateLimit.js";
+import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -848,7 +860,10 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 const SUPABASE_URL = getSupabaseServerUrl();
 const SUPABASE_SERVICE_ROLE_KEY = getSupabaseServerServiceKey();
 const SUPABASE_ANON_KEY = getSupabaseServerAnonKey();
-const SUPABASE_SERVER_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const IS_PRODUCTION_SERVER =
+  process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+const SUPABASE_SERVER_KEY =
+  SUPABASE_SERVICE_ROLE_KEY || (!IS_PRODUCTION_SERVER ? SUPABASE_ANON_KEY : undefined);
 
 let supabaseAdmin: any;
 let pixSupportsValorMensalidade = true;
@@ -938,7 +953,11 @@ if (!isValidSupabaseHttpUrl(SUPABASE_URL) || !SUPABASE_SERVER_KEY) {
   };
 } else {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn("SUPABASE_SERVICE_ROLE_KEY is missing; using anon key fallback. Some server routes may fail due to RLS.");
+    if (IS_PRODUCTION_SERVER) {
+      console.error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY é obrigatória em produção.");
+    } else {
+      console.warn("SUPABASE_SERVICE_ROLE_KEY is missing; using anon key fallback (somente dev).");
+    }
   }
 
   try {
@@ -990,13 +1009,17 @@ async function ensureBucketsExist() {
       if (error && error.message.includes('not found')) {
         console.log(`[SERVER] Criando bucket: ${bucketName}`);
         const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
-          public: true,
+          public: false,
           allowedMimeTypes: bucketName === 'biblioteca_estudos' ? ['application/pdf'] : ['image/*'],
           fileSizeLimit: 52428800 // 50MB
         });
         if (createError) console.error(`[SERVER] Erro ao criar bucket ${bucketName}:`, createError);
       } else if (error) {
         console.error(`[SERVER] Erro ao verificar bucket ${bucketName}:`, error);
+      } else if (bucket?.public) {
+        const { error: updateError } = await supabaseAdmin.storage.updateBucket(bucketName, { public: false });
+        if (updateError) console.error(`[SERVER] Erro ao tornar bucket ${bucketName} privado:`, updateError);
+        else console.log(`[SERVER] Bucket ${bucketName} atualizado para privado.`);
       } else {
         console.log(`[SERVER] Bucket OK: ${bucketName}`);
       }
@@ -1020,12 +1043,14 @@ async function initializeDatabase() {
       console.log("[SERVER] Esquema do banco OK (is_admin_global presente).");
       const allow = getConsoleAdminEmailAllowlist();
       if (allow.length) {
-        const { error: updateError } = await supabaseAdmin
-          .from('perfil_lider')
-          .update({ is_admin_global: true })
-          .in('email', allow);
-        if (updateError) console.error("[SERVER] Erro ao atualizar admins (ADMIN_CONSOLE_EMAILS):", updateError);
-        else console.log("[SERVER] perfil_lider.is_admin_global para:", allow.join(", "));
+        for (const adminEmail of allow) {
+          const { error: updateError } = await supabaseAdmin
+            .from('perfil_lider')
+            .update({ is_admin_global: true })
+            .ilike('email', adminEmail);
+          if (updateError) console.error("[SERVER] Erro ao atualizar admin:", adminEmail, updateError);
+        }
+        console.log("[SERVER] perfil_lider.is_admin_global para:", allow.join(", "));
       }
     }
   } catch (err) {
@@ -1178,6 +1203,7 @@ async function startServer() {
   app.use(
     cors({
       origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
         if (isAllowedCorsOrigin(origin)) return callback(null, true);
         return callback(new Error(`CORS bloqueado para origem: ${origin}`));
       },
@@ -1220,18 +1246,8 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Middleware de log para todas as requisições API
-  app.use("/api", (req, res, next) => {
+  app.use("/api", (req, _res, next) => {
     console.log(`[API LOG] ${req.method} ${req.url}`);
-    if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
-      try {
-        const safeHeaders = { ...req.headers };
-        delete safeHeaders.authorization;
-        delete safeHeaders.cookie;
-        console.log(`[API HEADERS]`, JSON.stringify(safeHeaders));
-      } catch {
-        /* ignore */
-      }
-    }
     next();
   });
 
@@ -1290,7 +1306,7 @@ async function startServer() {
     try {
       const { tenantId, title, body, url } = req.body || {};
       if (!tenantId) return res.status(400).json({ error: "tenantId é obrigatório" });
-      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
       const result = await sendPushNotification(String(tenantId), {
         title: String(title || "AxéCloud"),
@@ -1304,7 +1320,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/push-direct", async (req, res) => {
+  app.post("/api/push-direct", pushDirectRateLimit, async (req, res) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
     try {
@@ -1429,14 +1445,11 @@ async function startServer() {
   // API Route: Create Notice (Mural) and Trigger Push
   app.post("/api/notices", async (req, res) => {
     const { titulo, conteudo, categoria, tenantId: _bodyTenantIgnored, expiracao } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) throw new Error("Sessão inválida");
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const token = getBearerToken(req);
 
       if (!titulo || !conteudo) {
         return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
@@ -1557,14 +1570,12 @@ async function startServer() {
   }
 
   app.delete("/api/notices/:id", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "id obrigatório" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Sessão inválida" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const token = getBearerToken(req);
       const zeladorId = authUserIdFromToken(user, token);
       if (!zeladorId) return res.status(401).json({ error: "Sessão inválida (id do usuário ausente)." });
 
@@ -1591,14 +1602,10 @@ async function startServer() {
   // API Route: Create Inventory Item (Almoxarifado) and Trigger Push
   app.post("/api/inventory", async (req, res) => {
     const { item, quantidade_atual, quantidade_minima, categoria, tenantId, autorId } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) throw new Error("Sessão inválida");
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const effectiveTenant = String(tenantId || user.id);
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, effectiveTenant);
@@ -1648,15 +1655,9 @@ async function startServer() {
   app.get("/api/store/products", handleStoreProductsGet);
 
   const handleStoreProductsPost = async (req: express.Request, res: express.Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        return res.status(401).json({ error: "Sessão inválida" });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const {
         tenantId,
@@ -1717,13 +1718,75 @@ async function startServer() {
   app.post("/api/v1/store/products", handleStoreProductsPost);
   app.post("/api/store/products", handleStoreProductsPost);
 
-  const handleStoreProductImageSuggestion = async (req: express.Request, res: express.Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+  const handleStoreProductDelete = async (req: express.Request, res: express.Response) => {
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Sessão inválida" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const productId = String(req.params.id || "").trim();
+      const tenantId = normalizeQueryTenantId(req.query.tenantId);
+      if (!productId || !tenantId) {
+        return res.status(400).json({ error: "id e tenantId são obrigatórios" });
+      }
+
+      const { data: pl } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("role, tenant_id, is_admin_global")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (pl?.role === "filho") {
+        return res.status(403).json({ error: "Sem permissão para excluir produtos." });
+      }
+
+      const allowed =
+        !!pl?.is_admin_global ||
+        user.id === tenantId ||
+        (!!pl?.tenant_id && pl.tenant_id === tenantId);
+
+      if (!allowed) {
+        return res.status(403).json({ error: "Você não pode excluir produtos neste terreiro." });
+      }
+
+      const { data: row } = await supabaseAdmin
+        .from("produtos")
+        .select("id, tenant_id")
+        .eq("id", productId)
+        .maybeSingle();
+
+      if (!row) return res.status(404).json({ error: "Produto não encontrado" });
+      if (String(row.tenant_id) !== tenantId) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const { error: softErr } = await supabaseAdmin
+        .from("produtos")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", productId)
+        .eq("tenant_id", tenantId);
+
+      if (softErr) {
+        const { error: hardErr } = await supabaseAdmin
+          .from("produtos")
+          .delete()
+          .eq("id", productId)
+          .eq("tenant_id", tenantId);
+        if (hardErr) throw hardErr;
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[SERVER] Erro ao excluir produto:", err.message || err);
+      res.status(500).json({ error: err.message || "Erro ao excluir produto" });
+    }
+  };
+  app.delete("/api/v1/store/products/:id", handleStoreProductDelete);
+  app.delete("/api/store/products/:id", handleStoreProductDelete);
+
+  const handleStoreProductImageSuggestion = async (req: express.Request, res: express.Response) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const raw = typeof req.query.q === "string" ? req.query.q.trim() : "";
       if (raw.length < 2) return res.json({ url: null });
@@ -1816,13 +1879,9 @@ async function startServer() {
   });
 
   app.post("/api/v1/financial/pix-config", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { terreiro_id, chave_pix, tipo_chave, nome_beneficiario, valor_mensalidade, dia_vencimento } = req.body;
       if (!terreiro_id) return res.status(400).json({ error: "terreiro_id required" });
@@ -1858,12 +1917,9 @@ async function startServer() {
   });
 
   app.post("/api/v1/financial/confirm-mensalidade", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { filho_id, filho_nome, valor, competencia_date, tenant_id } = req.body || {};
       if (!filho_id || !tenant_id) {
@@ -1943,12 +1999,9 @@ async function startServer() {
   });
 
   app.post("/api/v1/financial/mensalidades/sync-pendentes", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
       const tenant_id = String((req.body || {}).tenant_id || "").trim();
       if (!tenant_id) return res.status(400).json({ error: "tenant_id obrigatório" });
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
@@ -1963,12 +2016,9 @@ async function startServer() {
   });
 
   app.get("/api/v1/financial/mensalidades", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
       const tenantId = String(req.query.tenantId || "").trim();
       const view = String(req.query.view || "pendentes").toLowerCase();
       if (!tenantId) return res.status(400).json({ error: "tenantId obrigatório" });
@@ -1986,12 +2036,9 @@ async function startServer() {
   });
 
   app.post("/api/v1/financial/mensalidades/liquidar", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
       const { id, tenant_id, valor } = req.body || {};
       if (!id || !tenant_id) return res.status(400).json({ error: "id e tenant_id obrigatórios" });
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenant_id));
@@ -2013,12 +2060,9 @@ async function startServer() {
   });
 
   app.post("/api/v1/financial/mensalidades/estornar", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Token inválido" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
       const { id, tenant_id } = req.body || {};
       if (!id || !tenant_id) return res.status(400).json({ error: "id e tenant_id obrigatórios" });
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenant_id));
@@ -2045,7 +2089,22 @@ async function startServer() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      res.json({ data: data || [] });
+
+      const enriched = await Promise.all(
+        (data || []).map(async (row: { storage_path?: string | null; arquivo_url?: string | null }) => {
+          const storagePath = String(row.storage_path || "").replace(/\\/g, "/");
+          if (!storagePath) return row;
+          const { data: signed } = await supabaseAdmin.storage
+            .from("biblioteca_estudos")
+            .createSignedUrl(storagePath, 3600);
+          return {
+            ...row,
+            arquivo_url: signed?.signedUrl || row.arquivo_url,
+          };
+        })
+      );
+
+      res.json({ data: enriched });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar materiais:", err.message || err);
       res.status(500).json({ error: err.message || "Erro ao buscar materiais" });
@@ -2053,16 +2112,14 @@ async function startServer() {
   });
 
   app.post("/api/v1/library/upload-url", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { fileName, contentType, categoria, tenantId } = req.body;
-    if (!authHeader || !fileName || !tenantId) {
+    if (!fileName || !tenantId) {
       return res.status(400).json({ error: "Unauthorized or missing data" });
     }
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
@@ -2088,16 +2145,14 @@ async function startServer() {
   });
 
   app.post("/api/v1/library/complete-upload", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { storagePath, titulo, categoria, tenantId } = req.body;
-    if (!authHeader || !storagePath || !titulo || !tenantId) {
+    if (!storagePath || !titulo || !tenantId) {
       return res.status(400).json({ error: "Unauthorized or missing data" });
     }
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
@@ -2107,42 +2162,116 @@ async function startServer() {
         return res.status(400).json({ error: "storagePath inválido para este tenant" });
       }
 
-      const { data: { publicUrl } } = supabaseAdmin.storage
+      const { data: signed, error: signErr } = await supabaseAdmin.storage
         .from('biblioteca_estudos')
-        .getPublicUrl(storagePath);
+        .createSignedUrl(normalizedPath, 3600 * 24 * 7);
+
+      if (signErr) throw signErr;
 
       const { error: dbError } = await supabaseAdmin
         .from('biblioteca')
         .insert([{
           titulo,
           categoria,
-          arquivo_url: publicUrl,
+          arquivo_url: signed?.signedUrl || null,
           tenant_id: tenantId,
-          storage_path: storagePath
+          storage_path: normalizedPath
         }]);
 
       if (dbError) throw dbError;
-      res.json({ success: true, publicUrl });
+      res.json({ success: true, publicUrl: signed?.signedUrl || null });
     } catch (error: any) {
       console.error("[SERVER] Erro ao finalizar upload:", error.message || error);
       res.status(500).json({ error: error.message || "Erro interno ao salvar material" });
     }
   });
 
-  app.get("/api/v1/gallery/albums", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const tenantId = String(req.query.tenantId || "").trim();
-    if (!authHeader || !tenantId) return res.status(400).json({ error: "Dados incompletos" });
+  app.delete("/api/v1/library/material/:id", async (req, res) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+
+    const materialId = String(req.params.id || "").trim();
+    const tenantId = normalizeQueryTenantId(req.query.tenantId);
+    if (!materialId || !tenantId) {
+      return res.status(400).json({ error: "id e tenantId são obrigatórios" });
+    }
+
+    const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenantId);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const resolvedId = await resolveLeaderId(tenantId);
+      const { data: row, error: fetchErr } = await supabaseAdmin
+        .from("biblioteca")
+        .select("id, tenant_id, storage_path")
+        .eq("id", materialId)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (!row) return res.status(404).json({ error: "Material não encontrado" });
 
-      const access = await resolveTenantAccessForUser(user.id);
-      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Sem permissão para este terreiro" });
+      const rowTenant = String(row.tenant_id || "");
+      if (rowTenant !== tenantId && rowTenant !== resolvedId) {
+        return res.status(403).json({ error: "Acesso negado" });
       }
+
+      const storagePath = String(row.storage_path || "").replace(/\\/g, "/");
+      if (storagePath) {
+        await supabaseAdmin.storage.from("biblioteca_estudos").remove([storagePath]);
+      }
+
+      const { error: delErr } = await supabaseAdmin.from("biblioteca").delete().eq("id", materialId);
+      if (delErr) throw delErr;
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao excluir material:", error.message || error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir material") });
+    }
+  });
+
+  app.post("/api/v1/library/comment-notify", async (req, res) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+
+    const role = String(user.user_metadata?.role || "").toLowerCase();
+    if (role !== "filho") {
+      return res.status(403).json({ error: "Apenas filhos podem enviar esta notificação" });
+    }
+
+    const { tenantId, mensagem, link } = req.body || {};
+    const tid = normalizeQueryTenantId(tenantId);
+    if (!tid || !mensagem) {
+      return res.status(400).json({ error: "tenantId e mensagem são obrigatórios" });
+    }
+
+    const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tid);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+    try {
+      const { error } = await supabaseAdmin.from("notificacoes").insert([
+        {
+          tenant_id: tid,
+          tipo: "biblioteca_duvida",
+          mensagem: String(mensagem).slice(0, 500),
+          link: String(link || "library"),
+          lida: false,
+        },
+      ]);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[SERVER] comment-notify:", error.message || error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao notificar zelador") });
+    }
+  });
+
+  app.get("/api/v1/gallery/albums", async (req, res) => {
+    const tenantId = String(req.query.tenantId || "").trim();
+    if (!tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
 
       const { data: albums, error: albumsError } = await supabaseAdmin
         .from("gallery_albums")
@@ -2177,19 +2306,13 @@ async function startServer() {
   });
 
   app.post("/api/v1/gallery/albums", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { tenantId, name, description } = req.body;
-    if (!authHeader || !tenantId || !name) return res.status(400).json({ error: "Dados incompletos" });
+    if (!tenantId || !name) return res.status(400).json({ error: "Dados incompletos" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const access = await resolveTenantAccessForUser(user.id);
-      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Sem permissão para este terreiro" });
-      }
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+      const { user } = access;
 
       const { data, error } = await supabaseAdmin
         .from("gallery_albums")
@@ -2212,9 +2335,8 @@ async function startServer() {
   });
 
   app.post("/api/v1/gallery/upload-url", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { tenantId, albumId, fileName, contentType, sizeBytes } = req.body;
-    if (!authHeader || !tenantId || !albumId || !fileName || !contentType || !sizeBytes) {
+    if (!tenantId || !albumId || !fileName || !contentType || !sizeBytes) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
     if (!r2Client || !R2_BUCKET_NAME) {
@@ -2222,14 +2344,8 @@ async function startServer() {
     }
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const access = await resolveTenantAccessForUser(user.id);
-      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Sem permissão para este terreiro" });
-      }
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
 
       const normalizedType = String(contentType).toLowerCase();
       if (!normalizedType.startsWith("image/") && !normalizedType.startsWith("video/")) {
@@ -2298,21 +2414,15 @@ async function startServer() {
   });
 
   app.post("/api/v1/gallery/complete-upload", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { tenantId, albumId, storageKey, publicUrl, fileName, contentType, sizeBytes } = req.body;
-    if (!authHeader || !tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
+    if (!tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const access = await resolveTenantAccessForUser(user.id);
-      if (!access.isGlobalAdmin && access.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Sem permissão para este terreiro" });
-      }
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+      const { user } = access;
 
       const numericSize = Number(sizeBytes);
       const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
@@ -2344,27 +2454,17 @@ async function startServer() {
 
   /** Banner de evento — upload para o mesmo bucket da biblioteca (pasta event_banners por tenant). */
   app.post("/api/v1/event-banner", async (req, res) => {
-    const authHeader = req.headers.authorization;
     const { fileData, fileName, contentType, tenantId } = req.body;
-    if (!authHeader || !fileData || !tenantId) {
+    if (!fileData || !tenantId) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
-      const { data: profile } = await supabaseAdmin
-        .from("perfil_lider")
-        .select("tenant_id")
-        .eq("id", user.id)
-        .single();
-
-      const allowedTenant = profile?.tenant_id || user.id;
-      if (tenantId !== allowedTenant) {
-        return res.status(403).json({ error: "Sem permissão para este terreiro" });
-      }
+      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      if (!ok) return res.status(403).json({ error: "Sem permissão para este terreiro" });
 
       const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
       const ct = String(contentType || "image/jpeg").toLowerCase();
@@ -2402,17 +2502,49 @@ async function startServer() {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
 
-    const { url } = req.query;
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: "url query param required" });
+    const pathRaw = typeof req.query.path === "string" ? req.query.path : "";
+    const tenantIdRaw = normalizeQueryTenantId(req.query.tenantId);
+    const urlRaw = typeof req.query.url === "string" ? req.query.url : "";
+
+    if (pathRaw && tenantIdRaw) {
+      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+      const normalizedPath = pathRaw.replace(/\\/g, "/");
+      if (!normalizedPath.startsWith(`${tenantIdRaw}/`)) {
+        return res.status(403).json({ error: "Caminho inválido" });
+      }
+
+      try {
+        const { data, error } = await supabaseAdmin.storage
+          .from("biblioteca_estudos")
+          .download(normalizedPath);
+        if (error || !data) {
+          return res.status(404).send("PDF não encontrado");
+        }
+        const buffer = Buffer.from(await data.arrayBuffer());
+        res.set({
+          "Content-Type": "application/pdf",
+          "Content-Length": String(buffer.length),
+          "Cache-Control": "private, max-age=300",
+        });
+        return res.send(buffer);
+      } catch (err: any) {
+        console.error("[PDF-PROXY] storage:", err.message || err);
+        return res.status(500).send("Erro interno");
+      }
     }
 
-    if (!isAllowedPdfProxyUrl(url)) {
+    if (!urlRaw) {
+      return res.status(400).json({ error: "url ou path+tenantId obrigatórios" });
+    }
+
+    if (!isAllowedPdfProxyUrl(urlRaw)) {
       return res.status(403).json({ error: "URL não permitida" });
     }
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(urlRaw);
       if (!response.ok) {
         return res.status(response.status).send("Erro ao buscar PDF");
       }
@@ -2431,27 +2563,14 @@ async function startServer() {
   });
 
   // API Route: Create Tenant (Admin only)
-  app.post("/api/admin/create-tenant", async (req, res) => {
+  app.post("/api/admin/create-tenant", sensitiveActionRateLimit, async (req, res) => {
     const { email, password, nome_terreiro, nome_zelador, whatsapp, plan, observacao } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
 
     try {
-      // 1. Verify if the requester is the Super Admin
-      const token = authHeader.replace("Bearer ", "");
-      if (!token || token === "undefined" || token === "null") {
-        console.error("[SERVER] Invalid token in /api/admin/create-tenant:", token);
-        return res.status(401).json({ error: "Token inválido ou ausente" });
-      }
-
-      const { user, error: authError } = await verifyUser(token);
-
-      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Forbidden: Admin access required" });
-      }
+      const user = await requireApiGlobalAdmin(supabaseAdmin, req, res, {
+        forbiddenMessage: "Forbidden: Admin access required",
+      });
+      if (!user) return;
 
       // 2. Create or Update User in Supabase Auth
       let targetUser;
@@ -2614,27 +2733,16 @@ async function startServer() {
   app.post("/api/v1/settings/save", async (req, res) => {
     console.log(`[SERVER] Recebida requisição em /api/v1/settings/save`);
     const { userId, tenantId, profile } = req.body;
-    
-    // Verificação de Identidade (MANDATÓRIO: O usuário só pode salvar suas próprias configs)
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
-    
+
     try {
-      const token = authHeader.replace("Bearer ", "");
-      let user;
-      let authError;
-      
-      const { user: verifiedUser, error: verifiedError } = await verifyUser(token);
-      user = verifiedUser;
-      authError = verifiedError;
-      
-      if (authError || !user || user.id !== userId) {
-        console.error(`[SECURITY ALERT] Tentativa de Mass Assignment ou Token Inválido.`);
-        console.error(`[DEBUG] AuthError:`, authError);
-        console.error(`[DEBUG] UserID do Token: ${user?.id}, UserID da Req: ${userId}`);
-        return res.status(403).json({ 
-          error: "Acesso negado", 
-          details: authError ? "Token inválido ou expirado" : "ID do usuário não coincide" 
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      if (user.id !== userId) {
+        console.error(`[SECURITY ALERT] Tentativa de Mass Assignment. Token: ${user.id}, Req: ${userId}`);
+        return res.status(403).json({
+          error: "Acesso negado",
+          details: "ID do usuário não coincide",
         });
       }
       console.log(`[SERVER] Tentando salvar configurações para: ${userId}, tenantId: ${tenantId}`);
@@ -2686,14 +2794,9 @@ async function startServer() {
   const LEGAL_TERMS_VERSION_ACCEPT = "2026-05-15";
 
   app.post("/api/v1/legal/accept-terms", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        return res.status(401).json({ error: "Sessão inválida" });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
       const now = new Date().toISOString();
@@ -2765,15 +2868,10 @@ async function startServer() {
   });
 
   /** Exclusão total da conta do zelador, dados do terreiro no Postgres, storage, R2 (galeria) e auth (incl. filhos com login). */
-  app.post("/api/v1/account/permanent-delete", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Sessão expirada" });
+  app.post("/api/v1/account/permanent-delete", sensitiveActionRateLimit, async (req, res) => {
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        return res.status(401).json({ error: "Sessão inválida" });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const confirmEmail = String((req.body || {}).confirmEmail || "").trim().toLowerCase();
       const email = String(user.email || "").trim().toLowerCase();
@@ -2811,26 +2909,9 @@ async function startServer() {
 
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      if (!token || token === "undefined" || token === "null") {
-        console.error("[SERVER] Invalid token in /api/admin/tenants:", token);
-        return res.status(401).json({ error: "Token inválido ou ausente" });
-      }
-
-      const { user, error: authError } = await verifyUser(token);
-      
-      if (authError || !user) {
-        console.error("[SERVER] Auth error in /api/admin/tenants:", authError?.message || "No user found", "Token length:", token.length);
-        return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
-      }
-
-      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Acesso restrito a administradores globais" });
-      }
+      const user = await requireApiGlobalAdmin(supabaseAdmin, req, res);
+      if (!user) return;
 
       // 1. Fetch Profiles
       const { data: profiles, error: pError } = await supabaseAdmin
@@ -2895,16 +2976,10 @@ async function startServer() {
   // API Route: Update Global Plans Config (Admin only)
   app.post("/api/admin/update-plans", async (req, res) => {
     const { plans: incoming } = req.body || {};
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-
-      if (authError || !user || !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Acesso restrito a administradores globais" });
-      }
+      const user = await requireApiGlobalAdmin(supabaseAdmin, req, res);
+      if (!user) return;
 
       const plans = normalizePlansCatalog(incoming);
       await savePlansCatalog(supabaseAdmin, plans);
@@ -2940,24 +3015,12 @@ async function startServer() {
   });
 
   // API Route: Manage Tenant (Admin only)
-  app.post("/api/admin/manage-tenant", async (req, res) => {
+  app.post("/api/admin/manage-tenant", sensitiveActionRateLimit, async (req, res) => {
     const { targetUserId, action, newPlan } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-
-      if (authError || !user) {
-        console.error("[SERVER] Auth error in /api/admin/manage-tenant:", authError?.message || "No user found");
-        return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
-      }
-
-      if (!(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
-        return res.status(403).json({ error: "Acesso restrito a administradores globais" });
-      }
+      const user = await requireApiGlobalAdmin(supabaseAdmin, req, res);
+      if (!user) return;
 
       console.log(`[ADMIN COMMAND] Action: ${action} on User: ${targetUserId}`);
 
@@ -3090,6 +3153,10 @@ async function startServer() {
 
   registerOnboardingRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
+  registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
+  registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
+  registerFilhoHomeRoutes(app, { supabaseAdmin });
+  registerAdminMetricsRoutes(app, { supabaseAdmin });
 
   // Cron Vercel (Fase 4): roda monitoramento contínuo dos audit_targets.
   // Configure o schedule em vercel.json e o secret em CRON_SECRET.
@@ -3260,16 +3327,11 @@ async function startServer() {
   // API Route: Add Child (Bypasses RLS)
   app.post("/api/children", async (req, res) => {
     const { userId, tenantId: tenantIdFromBody, childData } = req.body;
-    
-    // Verificação de Token (Isolamento de Tenant)
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
 
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      
-      if (authError || !user || user.id !== userId) {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      if (user.id !== userId) {
         return res.status(403).json({ error: "Operação proibida" });
       }
 
@@ -3342,34 +3404,37 @@ async function startServer() {
 
   // API Route: Create Event (Verifies Plan)
   app.post("/api/events", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        console.error("[SERVER] Auth error in /api/events (POST):", authError?.message || "No user found");
-        return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
-      // Verificar o plano do usuário
       const { data: sub } = await supabaseAdmin
         .from('subscriptions')
-        .select('plan')
+        .select('plan, status, expires_at')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
       const { data: profile } = await supabaseAdmin
         .from('perfil_lider')
         .select('is_admin_global, tenant_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      const plan = canonicalPlanSlug(sub?.plan);
-      const isGlobalAdmin = profile?.is_admin_global;
+      const isGlobalAdmin = !!profile?.is_admin_global;
+      const role = String(user.user_metadata?.role || "").toLowerCase();
+      if (role === "filho") {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
 
       const tenant_id = profile?.tenant_id || user.id;
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
+      if (!isGlobalAdmin && !zeladorOk) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
+        return res.status(403).json({ error: "Assinatura inativa" });
+      }
+
       const rawBanner = req.body?.banner_url;
       const banner_url =
         typeof rawBanner === "string" && rawBanner.trim().length > 0 ? rawBanner.trim() : null;
@@ -3410,32 +3475,38 @@ async function startServer() {
 
   // API Route: Delete Event (Verifies Plan)
   app.delete("/api/events/:id", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        console.error("[SERVER] Auth error in /api/events (DELETE):", authError?.message || "No user found");
-        return res.status(401).json({ error: "Sessão inválida: " + (authError?.message || "Usuário não encontrado") });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
-      // Verificar o plano do usuário
       const { data: sub } = await supabaseAdmin
         .from('subscriptions')
-        .select('plan')
+        .select('plan, status, expires_at')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
       const { data: profile } = await supabaseAdmin
         .from('perfil_lider')
         .select('is_admin_global, tenant_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      const plan = canonicalPlanSlug(sub?.plan);
-      const isGlobalAdmin = profile?.is_admin_global;
+      const isGlobalAdmin = !!profile?.is_admin_global;
+      const role = String(user.user_metadata?.role || "").toLowerCase();
+      if (role === "filho") {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
+        return res.status(403).json({ error: "Assinatura inativa" });
+      }
+
+      const access = await userCanModifyCalendarEvent(supabaseAdmin, user, req.params.id);
+      if (access.notFound) {
+        return res.status(404).json({ error: "Evento não encontrado." });
+      }
+      if (!access.allowed) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
 
       const { error } = await supabaseAdmin
         .from('calendario_axe')
@@ -3557,6 +3628,37 @@ async function startServer() {
     }
   });
 
+  app.post("/api/transactions", async (req, res) => {
+    const authUser = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!authUser) return;
+
+    const { tenantId, ...payload } = req.body || {};
+    const tid = normalizeQueryTenantId(tenantId);
+    if (!tid) return res.status(400).json({ error: "tenantId obrigatório" });
+
+    const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, authUser.id, tid);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+    try {
+      const insertData = {
+        ...payload,
+        valor: Number(payload.valor) || 0,
+        lider_id: authUser.id,
+        tenant_id: tid,
+      };
+      const { data, error } = await supabaseAdmin
+        .from("financeiro")
+        .insert([insertData])
+        .select("*")
+        .single();
+      if (error) throw error;
+      res.json({ data });
+    } catch (error: any) {
+      console.error("[SERVER] POST /api/transactions:", error.message || error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao registrar lançamento") });
+    }
+  });
+
   /**
    * Pedidos recentes da loja (dashboard). Via servidor para evitar 404 no browser
    * quando a tabela `loja_pedidos` ainda não existe no PostgREST (migração pendente).
@@ -3653,16 +3755,11 @@ async function startServer() {
 
   // API Route: Delete financeiro row (service role — o cliente não tem DELETE via RLS)
   app.delete("/api/transactions/:id", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "id obrigatório" });
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) {
-        return res.status(401).json({ error: "Sessão inválida" });
-      }
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
       const { data: row, error: fetchErr } = await supabaseAdmin
         .from("financeiro")
         .select("*")
@@ -3829,13 +3926,9 @@ async function startServer() {
 
   // --- WHATSAPP INTEGRATION ENDPOINTS (Evolution API) ---
   app.get("/api/whatsapp/config", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { data, error } = await supabaseAdmin
         .from("whatsapp_config")
@@ -3867,13 +3960,9 @@ async function startServer() {
   });
 
   app.post("/api/whatsapp/config", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { instance_name, evolution_api_url, templates } = req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(templates);
@@ -3895,14 +3984,10 @@ async function startServer() {
     }
   });
 
-  app.post("/api/whatsapp/send", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
+  app.post("/api/whatsapp/send", whatsappSendRateLimit, async (req, res) => {
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { tipo, filhoId, variables } = req.body;
 
@@ -3996,13 +4081,9 @@ async function startServer() {
   });
 
   app.post("/api/whatsapp/start", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const merged = await getAxeEvolutionStatusAndQr(user.id);
       if (merged.status === "CONNECTED") {
@@ -4029,13 +4110,9 @@ async function startServer() {
   });
 
   app.post("/api/whatsapp/test-message", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const { phone } = req.body;
       if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
@@ -4052,13 +4129,9 @@ async function startServer() {
   });
 
   app.get("/api/whatsapp/status", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       const merged = await getAxeEvolutionStatusAndQr(user.id);
       res.json({ status: merged.status, qrcode: merged.qrcode });
@@ -4070,13 +4143,9 @@ async function startServer() {
   });
 
   app.post("/api/whatsapp/logout", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
 
       await logoutEvolutionInstance(user.id);
 

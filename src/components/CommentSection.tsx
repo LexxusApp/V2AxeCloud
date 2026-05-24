@@ -9,6 +9,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -102,13 +103,15 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
 
       // Notify Zelador if it's a new comment from a Filho
       if (userRole === 'filho' && !parentId) {
-        await supabase.from('notificacoes').insert([{
-          tenant_id: tenantId,
-          tipo: 'biblioteca_duvida',
-          mensagem: `Nova dúvida na Biblioteca: ${text.substring(0, 50)}...`,
-          link: 'library',
-          lida: false
-        }]);
+        await authFetch('/api/v1/library/comment-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId,
+            mensagem: `Nova dúvida na Biblioteca: ${text.substring(0, 50)}...`,
+            link: 'library',
+          }),
+        });
       }
 
       setNewComment('');

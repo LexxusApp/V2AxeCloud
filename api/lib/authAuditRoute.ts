@@ -2,6 +2,7 @@ import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { createAuditLog, resolveTerreiroIdForUser } from "./createAuditLog.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { verifyUser } from "./verifyUser.js";
+import { consumeRateLimit } from "./rateLimit.js";
 
 const CLIENT_ALLOWED_ACTIONS = new Set(["auth.login_success", "auth.login_failed"]);
 
@@ -11,6 +12,11 @@ export async function handleAuthAuditRoute(req: any, res: any) {
   if (String(req.method || "POST").toUpperCase() !== "POST") {
     res.setHeader("Allow", "POST, OPTIONS");
     return sendJson(res, 405, { error: "Method not allowed" });
+  }
+
+  const rl = consumeRateLimit(req, { windowMs: 15 * 60 * 1000, max: 20, keyPrefix: "audit" });
+  if (!rl.allowed) {
+    return sendJson(res, 429, { error: "Muitas tentativas de registro. Aguarde alguns minutos." });
   }
 
   const sb = getDiscreteSupabaseAdmin();
@@ -33,20 +39,30 @@ export async function handleAuthAuditRoute(req: any, res: any) {
     };
 
     const authHeader = req.headers?.authorization || req.headers?.Authorization;
-    if (authHeader) {
-      const token = String(authHeader).replace(/^Bearer\s+/i, "").trim();
+    const token = authHeader ? String(authHeader).replace(/^Bearer\s+/i, "").trim() : "";
+
+    if (action === "auth.login_success") {
+      if (!token || token === "undefined" || token === "null") {
+        return sendJson(res, 401, { error: "Autenticação obrigatória para login bem-sucedido." });
+      }
+      const { user, error: authError } = await verifyUser(sb, token);
+      if (authError || !user?.id) {
+        return sendJson(res, 401, { error: "Sessão inválida." });
+      }
+      details.userId = user.id;
+      if (user.email) details.email = user.email;
+      if (!terreiroId) terreiroId = await resolveTerreiroIdForUser(sb, user.id);
+    } else {
+      delete details.userId;
+      if (details.email) {
+        details.email = String(details.email).toLowerCase().trim().slice(0, 200);
+      }
       if (token && token !== "undefined" && token !== "null") {
         const { user, error: authError } = await verifyUser(sb, token);
-        if (!authError && user?.id) {
-          details.userId = user.id;
-          if (user.email) details.email = user.email;
-          if (!terreiroId) terreiroId = await resolveTerreiroIdForUser(sb, user.id);
+        if (!authError && user?.id && !terreiroId) {
+          terreiroId = await resolveTerreiroIdForUser(sb, user.id);
         }
       }
-    }
-
-    if (action === "auth.login_failed" && details.email) {
-      details.email = String(details.email).toLowerCase().trim().slice(0, 200);
     }
 
     void createAuditLog(sb, req, action, status, terreiroId, details);

@@ -306,10 +306,18 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     }
 
     try {
-      let query = supabase.from('filhos_de_santo').select('id, nome, created_at, data_entrada');
-      if (tenantId) query = query.eq('tenant_id', tenantId);
-      const { data } = await query;
-      setChildren(data || []);
+      const res = await authFetch(
+        `/api/children?tenantId=${encodeURIComponent(tenantId || '')}&userRole=${encodeURIComponent(userRole || '')}`
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao carregar filhos');
+      const rows = (json.data || []) as Array<{ id: string; nome: string; created_at?: string; data_entrada?: string }>;
+      setChildren(rows.map((c) => ({
+        id: c.id,
+        nome: c.nome,
+        created_at: c.created_at,
+        data_entrada: c.data_entrada,
+      })));
     } catch (error) {
       console.error('Error fetching children for mensalidades:', error);
       setChildren([]);
@@ -451,21 +459,13 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
 
   async function fetchCaixinhaData() {
     try {
-      const { data: metasData } = await supabase
-        .from('caixinha_metas')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-      
-      setMetas(metasData || []);
-
-      const { data: donationsData } = await supabase
-        .from('caixinha_doacoes')
-        .select('*, filhos_de_santo(nome)')
-        .eq('status', 'pendente')
-        .order('created_at', { ascending: false });
-      
-      setPendingDonations(donationsData || []);
+      const res = await authFetch(
+        `/api/v1/financial/caixinha?tenantId=${encodeURIComponent(tenantId || '')}`
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao carregar caixinha');
+      setMetas(json.metas || []);
+      setPendingDonations(json.pendingDonations || []);
     } catch (error) {
       console.error('Error fetching caixinha data:', error);
     }
@@ -475,16 +475,19 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('caixinha_metas')
-        .insert([{
-          tenant_id: tenantId,
+      const res = await authFetch('/api/v1/financial/caixinha/meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
           titulo: metaFormData.titulo,
           valor_alvo: parseFloat(metaFormData.valor_alvo),
-          qr_code_url: qrCodeFile
-        }]);
+          qr_code_url: qrCodeFile,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao criar meta');
 
-      if (error) throw error;
       setIsMetaModalOpen(false);
       setMetaFormData({ titulo: '', valor_alvo: '' });
       fetchCaixinhaData();
@@ -498,36 +501,21 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
 
   async function handleValidateDonation(donationId: string, status: 'confirmado' | 'rejeitado', valor: number, metaId: string) {
     try {
-      const { error: updateError } = await supabase
-        .from('caixinha_doacoes')
-        .update({ status })
-        .eq('id', donationId);
-
-      if (updateError) throw updateError;
-
-      if (status === 'confirmado') {
-        // Update meta progress
-        const meta = metas.find(m => m.id === metaId);
-        if (meta) {
-          const { error: metaError } = await supabase
-            .from('caixinha_metas')
-            .update({ valor_atual: (Number(meta.valor_atual) || 0) + valor })
-            .eq('id', metaId);
-          
-          if (metaError) throw metaError;
-        }
-
-        // Also add to financial transactions
-        await supabase.from('financeiro').insert([{
-          tipo: 'entrada',
-          valor: valor,
-          categoria: 'Doação Caixinha',
-          data: new Date().toISOString().split('T')[0],
-          descricao: `Doação Caixinha - Meta: ${metas.find(m => m.id === metaId)?.titulo}`,
-          tenant_id: tenantId,
-          lider_id: userId
-        }]);
-      }
+      const meta = metas.find((m) => m.id === metaId);
+      const res = await authFetch('/api/v1/financial/caixinha/validate-donation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          donationId,
+          status,
+          valor,
+          metaId,
+          metaTitulo: meta?.titulo || '',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao processar doação');
 
       fetchCaixinhaData();
       fetchTransactions();
@@ -720,28 +708,24 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
       const { filho_id, ...otherFormData } = formData;
-      const insertData: any = {
+      const insertData: Record<string, unknown> = {
         ...otherFormData,
         valor: parseFloat(formData.valor) || 0,
-        lider_id: user.id,
-        tenant_id: tenantId
       };
 
-      // Salvamos o ID do filho na descrição como contingência se a coluna filho_id não existir
       if (filho_id) {
         const filhoNome = children.find(c => c.id === filho_id)?.nome || 'Filho';
         insertData.descricao = `${formData.descricao || 'Lançamento'} - ${filhoNome} (ID:${filho_id})`;
       }
 
-      const { error } = await supabase
-        .from('financeiro')
-        .insert([insertData]);
-
-      if (error) throw error;
+      const res = await authFetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...insertData, tenantId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao registrar lançamento');
       
       setIsModalOpen(false);
       setFormData({

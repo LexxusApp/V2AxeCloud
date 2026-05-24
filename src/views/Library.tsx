@@ -301,21 +301,19 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const handleDelete = async (id: string, storagePath: string) => {
     if (!confirm('Deseja realmente excluir este material?')) return;
 
+    const effectiveTenantId = tenantData?.tenant_id || user.id;
+    if (!effectiveTenantId) {
+      alert('Terreiro não identificado.');
+      return;
+    }
+
     try {
-      // 1. Delete from Storage
-      if (storagePath) {
-        await supabase.storage
-          .from('biblioteca_estudos')
-          .remove([storagePath]);
-      }
-
-      // 2. Delete from Database
-      const { error } = await supabase
-        .from('biblioteca')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const res = await authFetch(
+        `/api/v1/library/material/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(effectiveTenantId)}`,
+        { method: 'DELETE' }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Erro ao excluir material');
       fetchMaterials();
     } catch (error) {
       console.error('Error deleting material:', error);

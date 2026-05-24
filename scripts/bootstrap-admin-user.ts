@@ -51,7 +51,9 @@ async function main() {
       console.error("listUsers:", listErr.message);
       process.exit(1);
     }
-    const existing = list.users.find((u) => (u.email || "").toLowerCase() === email);
+    type AuthUserRow = { id: string; email?: string | null; user_metadata?: Record<string, unknown> };
+    const users = (list?.users ?? []) as AuthUserRow[];
+    const existing = users.find((u) => (u.email || "").toLowerCase() === email);
     if (!existing) {
       console.error("Utilizador existe mas não foi encontrado na listagem.");
       process.exit(1);

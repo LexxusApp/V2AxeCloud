@@ -30,7 +30,7 @@ import {
   ensurePendingSubscriptionRow,
   updateSubscriptionResilient,
 } from "./subscriptionDb.js";
-import { checkoutRateLimit } from "./rateLimit.js";
+import { checkoutRateLimit, apiReadRateLimit } from "./rateLimit.js";
 import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 import { verifyUser } from "./verifyUser.js";
 import { getBearerToken } from "./requireAuth.js";
@@ -78,7 +78,7 @@ async function assertPendingSubscription(
 }
 
 export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps) {
-  app.get("/api/v1/checkout/efi/config", async (_req: Request, res: Response) => {
+  app.get("/api/v1/checkout/efi/config", apiReadRateLimit, async (req: Request, res: Response) => {
     const efi = resolveEfiEnv();
     const pix = resolveEfiPixEnv();
     const payeeCode = resolveEfiPayeeCode();
@@ -89,17 +89,25 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
 
-    const pixDiagnostics = pix ? undefined : getEfiPixSetupDiagnostics();
     const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
-
-    res.json({
-      sandbox: efi.sandbox,
-      payeeCode: payeeCode || null,
+    const publicConfig = {
       amountCents,
       amountLabel: formatAmountLabelFromCents(amountCents),
       pixAvailable: !!pix,
       cardAvailable: EFI_CARD_CHECKOUT_ENABLED,
       cardTokenizationReady: EFI_CARD_CHECKOUT_ENABLED && !!payeeCode,
+    };
+
+    const tenant = await resolveTenantFromAuth(supabaseAdmin, req);
+    if (!tenant) {
+      return res.json(publicConfig);
+    }
+
+    const pixDiagnostics = pix ? undefined : getEfiPixSetupDiagnostics();
+    res.json({
+      ...publicConfig,
+      sandbox: efi.sandbox,
+      payeeCode: payeeCode || null,
       ...(pixDiagnostics ? { pixSetup: pixDiagnostics } : {}),
       ...(EFI_CARD_CHECKOUT_ENABLED && !payeeCode
         ? {

@@ -267,30 +267,24 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
     setIsCheckoutLoading(true);
     try {
-      const { data, error } = await supabase.rpc('processar_checkout', {
-        p_tenant_id: tenantPk,
-        p_filho_id: userRole === 'filho' ? filhoId : null,
-        p_metodo_pagamento: method === 'reserva' ? 'mensalidade' : method,
-        p_itens: cart.map((item) => ({ produto_id: item.id, quantidade: item.quantidade })),
+      const res = await authFetch('/api/v1/store/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: tenantPk,
+          filhoId: userRole === 'filho' ? filhoId : null,
+          method,
+          items: cart.map((item) => ({
+            produto_id: item.id,
+            id: item.id,
+            quantidade: item.quantidade,
+            nome: item.nome,
+            preco: item.preco,
+          })),
+        }),
       });
-
-      if (error) throw error;
-
-      if (userRole === 'filho' && filhoId) {
-        const tipoPedido = method === 'reserva' ? 'reserva' : 'compra';
-        const metodoGravar = method === 'reserva' ? 'reserva' : method;
-        const resumo = cart.map((i) => `${i.quantidade}× ${i.nome}`).join(', ');
-        const { error: pedidoErr } = await supabase.from('loja_pedidos').insert({
-          tenant_id: tenantPk,
-          filho_id: filhoId,
-          filho_nome: filhoNome.trim() || 'Filho de santo',
-          tipo: tipoPedido,
-          metodo_pagamento: metodoGravar,
-          resumo_itens: resumo,
-          valor_total: cartTotal,
-        });
-        if (pedidoErr) console.error('[loja_pedidos] insert', pedidoErr);
-      }
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro no checkout');
 
       showToast('Sucesso!', 'Pedido realizado com sucesso.', 'success');
       setCart([]);
@@ -346,31 +340,29 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       console.warn('[Store] sugestão de imagem (Pexels):', e);
     }
 
-    const { data: insertedRows, error } = await supabase
-      .from('produtos')
-      .insert([
-        {
-          nome: nomeDoEstado,
-          descricao: descricaoDoEstado,
-          preco: precoDoEstado,
-          categoria: categoriaDoEstado,
-          estoque_atual: estoqueAtual,
-          estoque_minimo: estoqueMinimo,
-          tenant_id: idDoTerreiroLogado,
-          imagem_url: imagemUrl,
-        },
-      ])
-      .select('*');
-
-    if (error) {
-      console.error('Erro do Supabase:', error);
-      showToast('Erro', 'Erro ao salvar: ' + error.message, 'error');
+    const resSave = await authFetch('/api/v1/store/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId: idDoTerreiroLogado,
+        nome: nomeDoEstado,
+        descricao: descricaoDoEstado,
+        preco: precoDoEstado,
+        categoria: categoriaDoEstado,
+        estoque_atual: estoqueAtual,
+        estoque_minimo: estoqueMinimo,
+        imagem_url: imagemUrl || '',
+      }),
+    });
+    const saveJson = await resSave.json().catch(() => ({}));
+    if (!resSave.ok) {
+      showToast('Erro', saveJson.error || 'Erro ao salvar produto', 'error');
       setIsSavingProduct(false);
       return;
     }
 
-    const inserted = insertedRows?.[0];
-    const novoProduto = inserted ? rowToProduct(inserted as Record<string, unknown>) : null;
+    const inserted = saveJson.data as Record<string, unknown> | undefined;
+    const novoProduto = inserted ? rowToProduct(inserted) : null;
 
     showToast('Sucesso', 'Produto salvo com sucesso!', 'success');
     setIsAddProductOpen(false);
@@ -401,22 +393,14 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
         return;
       }
 
-      const { error: softErr } = await supabase
-        .from('produtos')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', product.id)
-        .eq('tenant_id', tenantPk);
-
-      if (softErr) {
-        const { error: hardErr } = await supabase
-          .from('produtos')
-          .delete()
-          .eq('id', product.id)
-          .eq('tenant_id', tenantPk);
-        if (hardErr) {
-          showToast('Erro', hardErr.message || softErr.message, 'error');
-          return;
-        }
+      const delRes = await authFetch(
+        `/api/v1/store/products/${encodeURIComponent(product.id)}?tenantId=${encodeURIComponent(tenantPk)}`,
+        { method: 'DELETE' }
+      );
+      const delJson = await delRes.json().catch(() => ({}));
+      if (!delRes.ok) {
+        showToast('Erro', delJson.error || 'Falha ao excluir produto', 'error');
+        return;
       }
 
       setProducts((prev) => prev.filter((p) => p.id !== product.id));

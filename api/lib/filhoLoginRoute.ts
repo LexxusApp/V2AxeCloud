@@ -3,6 +3,11 @@ import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
 
 import { applyDiscreteRouteCors } from "./corsOrigins.js";
+import {
+  clearFilhoLoginFailures,
+  filhoLoginIsLocked,
+  recordFilhoLoginFailure,
+} from "./filhoLoginGuard.js";
 import { filhoLoginRateLimit } from "./rateLimit.js";
 import { isValidUuid } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
@@ -32,6 +37,9 @@ const supabaseAdmin: SupabaseClient | null =
       })
     : null;
 
+const FILHO_LOGIN_DENIED = "ID ou CPF incorretos.";
+const CPF_PREFIX_LEN = 6;
+
 function sendJson(res: any, status: number, body: Record<string, unknown>) {
   res.status(status).setHeader("Content-Type", "application/json");
   return res.end(JSON.stringify(body));
@@ -41,12 +49,23 @@ function generateFilhoPassword(): string {
   return `Axe-${randomBytes(12).toString("base64url")}`;
 }
 
+function normalizeChildIdInput(childIdInput: string): string {
+  let childId = String(childIdInput || "").trim();
+  if (childId.includes("-")) {
+    const parts = childId.split("-");
+    childId = parts[parts.length - 1];
+  }
+  return childId;
+}
+
 async function findChildByIdPrefix(
   sb: SupabaseClient,
   childIdInput: string,
-  cpfPrefix?: string
+  cpfPrefix: string
 ): Promise<{ child: any | null; ambiguous: boolean }> {
-  const childId = String(childIdInput || "").trim();
+  const childId = normalizeChildIdInput(childIdInput);
+  const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
+
   if (isValidUuid(childId)) {
     const { data, error } = await sb
       .from("filhos_de_santo")
@@ -54,30 +73,22 @@ async function findChildByIdPrefix(
       .eq("id", childId)
       .maybeSingle();
     if (error) throw error;
+    if (!data) return { child: null, ambiguous: false };
+    const cleanCpf = String(data.cpf || "").replace(/\D/g, "");
+    if (!cleanCpf.startsWith(cpfDigits)) return { child: null, ambiguous: false };
     return { child: data, ambiguous: false };
   }
 
   const prefix = childId.toLowerCase().replace(/-/g, "");
-  // UI exibe AXC-AAAA-XXXX (4 chars do UUID) — mínimo 4, não 8.
   if (prefix.length < 4) return { child: null, ambiguous: false };
 
-  // UUID não suporta ilike no Postgres — filtra em memória (mesmo padrão do server.ts).
-  const { data, error } = await sb.from("filhos_de_santo").select("id, cpf, user_id, nome");
+  const { data, error } = await sb.rpc("find_filhos_for_login", {
+    p_id_prefix: prefix,
+    p_cpf_prefix: cpfDigits,
+  });
   if (error) throw error;
 
-  let matches = (data || []).filter((c) => String(c.id || "").toLowerCase().startsWith(prefix));
-
-  const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
-  if (matches.length > 1 && cpfDigits.length === 4) {
-    const byCpf = matches.filter((c) =>
-      String(c.cpf || "")
-        .replace(/\D/g, "")
-        .startsWith(cpfDigits)
-    );
-    if (byCpf.length === 1) return { child: byCpf[0], ambiguous: false };
-    if (byCpf.length > 1) matches = byCpf;
-  }
-
+  const matches = data || [];
   if (matches.length === 1) return { child: matches[0], ambiguous: false };
   if (matches.length > 1) return { child: null, ambiguous: true };
   return { child: null, ambiguous: false };
@@ -93,6 +104,20 @@ function legacyFilhoEmails(child: { id: string }, childIdShort: string): string[
   ];
 }
 
+async function findAuthUserByEmail(sb: SupabaseClient, email: string): Promise<any | null> {
+  const target = email.toLowerCase();
+  let page = 1;
+  for (;;) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const found = (data?.users ?? []).find((u) => (u.email || "").toLowerCase() === target);
+    if (found) return found;
+    if (!data?.users?.length || data.users.length < 200) break;
+    page += 1;
+  }
+  return null;
+}
+
 async function resolveFilhoAuthUser(
   sb: SupabaseClient,
   child: { id: string; user_id?: string | null; nome?: string | null },
@@ -105,9 +130,11 @@ async function resolveFilhoAuthUser(
     if (userData?.user) return userData.user;
   }
 
-  const { data: usersData } = await sb.auth.admin.listUsers({ perPage: 1000 });
-  const wanted = new Set(emails.map((e) => e.toLowerCase()));
-  return (usersData?.users || []).find((u: any) => wanted.has(String(u.email || "").toLowerCase())) || null;
+  for (const email of emails) {
+    const byEmail = await findAuthUserByEmail(sb, email);
+    if (byEmail) return byEmail;
+  }
+  return null;
 }
 
 /** perfil_lider fantasma ("Meu Terreiro") quebra ACL de filho — remove no login. */
@@ -141,28 +168,33 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     return sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
   }
 
+  let childIdRaw = "";
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     let { childId, cpfPrefix } = body as { childId?: string; cpfPrefix?: string };
 
-    childId = String(childId || "").trim();
+    childIdRaw = normalizeChildIdInput(String(childId || ""));
     cpfPrefix = String(cpfPrefix || "").replace(/\D/g, "");
 
-    if (!childId || cpfPrefix.length !== 4) {
-      return sendJson(res, 400, { error: "ID e os 4 primeiros dígitos do CPF são obrigatórios." });
+    if (!childIdRaw || cpfPrefix.length !== CPF_PREFIX_LEN) {
+      return sendJson(res, 400, {
+        error: `ID e os ${CPF_PREFIX_LEN} primeiros dígitos do CPF são obrigatórios.`,
+      });
     }
 
-    if (childId.includes("-")) {
-      const parts = childId.split("-");
-      childId = parts[parts.length - 1];
+    if (filhoLoginIsLocked(childIdRaw, req)) {
+      return sendJson(res, 429, {
+        error: "Muitas tentativas incorretas para este ID. Aguarde 30 minutos.",
+      });
     }
 
-    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childId, cpfPrefix);
+    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childIdRaw, cpfPrefix);
     if (ambiguous) {
       return sendJson(res, 409, { error: "ID ambíguo. Informe o UUID completo do filho." });
     }
     if (!child) {
-      return sendJson(res, 404, { error: "Filho de santo não encontrado com este ID." });
+      recordFilhoLoginFailure(childIdRaw, req);
+      return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });
     }
 
     if (!child.cpf) {
@@ -171,12 +203,15 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
 
     const cleanCpf = String(child.cpf).replace(/\D/g, "");
     if (!cleanCpf.startsWith(cpfPrefix)) {
-      return sendJson(res, 401, { error: "CPF incorreto." });
+      recordFilhoLoginFailure(childIdRaw, req);
+      return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });
     }
+
+    clearFilhoLoginFailures(childIdRaw, req);
 
     const fakeEmail = `f_${child.id}@axecloud.internal`;
     const generatedPassword = generateFilhoPassword();
-    const authUser = await resolveFilhoAuthUser(supabaseAdmin, child, childId);
+    const authUser = await resolveFilhoAuthUser(supabaseAdmin, child, childIdRaw);
 
     if (authUser) {
       const updateFields: any = {
@@ -211,7 +246,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     if (createError) {
       const msg = String(createError.message || "").toLowerCase();
       if (msg.includes("already")) {
-        const recovered = await resolveFilhoAuthUser(supabaseAdmin, child, childId);
+        const recovered = await resolveFilhoAuthUser(supabaseAdmin, child, childIdRaw);
         if (recovered) {
           const { error: retryUpdateError } = await supabaseAdmin.auth.admin.updateUserById(recovered.id, {
             password: generatedPassword,

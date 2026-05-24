@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { FilhoHomeSkeleton } from '../components/Skeleton';
 import { format } from 'date-fns';
@@ -56,67 +56,25 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
       try {
         if (!user?.id) return;
 
-        let { data: childData, error: childError } = await supabase
-          .from('filhos_de_santo')
-          .select('id, nome, foto_url, tenant_id, user_id, email')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (!childData && user.email) {
-          const { data: emailChild } = await supabase
-            .from('filhos_de_santo')
-            .select('id, nome, foto_url, tenant_id, user_id, email')
-            .eq('email', user.email)
-            .maybeSingle();
-          childData = emailChild;
-          
-          if (emailChild && !emailChild.user_id) {
-             await supabase.from('filhos_de_santo').update({ user_id: user.id }).eq('id', emailChild.id);
-          }
-        }
+        const res = await authFetch(
+          `/api/v1/filho/home?tenantId=${encodeURIComponent(tenantId || '')}`
+        );
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Erro ao carregar início');
 
-        if (childError) throw childError;
+        const childData = json.child;
+        const finStatus = (json.financialStatus || 'pago') as 'pago' | 'pendente' | 'vencido' | 'loading';
+        const n = json.notices || [];
+
         setChild(childData);
+        setFinancialStatus(finStatus);
+        setNotices(n);
 
-        let finStatus: 'pago' | 'pendente' | 'vencido' | 'loading' = 'loading';
-
-        if (childData) {
-          const { data: finData } = await supabase
-            .from('financeiro')
-            .select('id, status, data_vencimento, filho_id')
-            .eq('filho_id', childData.id)
-            .order('data_vencimento', { ascending: false })
-            .limit(1);
-          
-          if (finData && finData.length > 0) {
-            finStatus = finData[0].status as any;
-            setFinancialStatus(finStatus);
-          } else {
-            finStatus = 'pago';
-            setFinancialStatus('pago');
-          }
-
-          const { data: noticesData } = await supabase
-            .from('mural_avisos')
-            .select('id, titulo, data_publicacao, tenant_id')
-            .eq('tenant_id', tenantId || childData.tenant_id)
-            .order('data_publicacao', { ascending: false })
-            .limit(2);
-          
-          const n = noticesData || [];
-          setNotices(n);
-          writeStaleCache(cacheKey, {
-            child: childData,
-            financialStatus: finStatus,
-            notices: n,
-          });
-        } else {
-          writeStaleCache(cacheKey, {
-            child: null,
-            financialStatus: 'pago',
-            notices: [],
-          });
-        }
+        writeStaleCache(cacheKey, {
+          child: childData,
+          financialStatus: finStatus,
+          notices: n,
+        });
       } catch (err) {
         console.error("Error fetching home data:", err);
       } finally {

@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { sendJson } from "./discreteSupabase.js";
+import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 
 export async function requireConsoleAdminDiscrete(
@@ -8,12 +9,11 @@ export async function requireConsoleAdminDiscrete(
   req: any,
   res: any
 ): Promise<{ user: User } | null> {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  if (!authHeader) {
+  const token = getBearerToken(req);
+  if (!token) {
     sendJson(res, 401, { error: "Não autorizado" });
     return null;
   }
-  const token = String(authHeader).replace(/^Bearer\s+/i, "").trim();
   const { user, error: authError } = await verifyUser(supabaseAdmin, token);
   if (authError || !user) {
     sendJson(res, 401, { error: "Sessão inválida" });

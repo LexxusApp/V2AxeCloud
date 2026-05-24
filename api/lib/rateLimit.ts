@@ -4,10 +4,29 @@ type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
 
-function clientIp(req: Request): string {
-  const xf = req.headers["x-forwarded-for"];
+function clientIp(req: { headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }): string {
+  const xf = req.headers?.["x-forwarded-for"];
   const raw = Array.isArray(xf) ? xf[0] : xf;
   return String(raw || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+}
+
+export function consumeRateLimit(
+  req: { headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } },
+  opts: { windowMs: number; max: number; keyPrefix: string }
+): { allowed: boolean; remaining: number; resetAt: number } {
+  const key = `${opts.keyPrefix}:${clientIp(req as any)}`;
+  const now = Date.now();
+  let bucket = buckets.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    bucket = { count: 0, resetAt: now + opts.windowMs };
+    buckets.set(key, bucket);
+  }
+  bucket.count += 1;
+  return {
+    allowed: bucket.count <= opts.max,
+    remaining: Math.max(0, opts.max - bucket.count),
+    resetAt: bucket.resetAt,
+  };
 }
 
 function createRateLimit(opts: {
@@ -48,7 +67,7 @@ export const authRateLimit = createRateLimit({
 
 export const filhoLoginRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 8,
   keyPrefix: "filho",
   message: { error: "Muitas tentativas de login. Aguarde alguns minutos." },
 });
@@ -72,4 +91,32 @@ export const apiReadRateLimit = createRateLimit({
   max: 300,
   keyPrefix: "read",
   message: { error: "Limite de requisições excedido." },
+});
+
+export const auditLogRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyPrefix: "audit",
+  message: { error: "Muitas tentativas de registro. Aguarde alguns minutos." },
+});
+
+export const sensitiveActionRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  keyPrefix: "sensitive",
+  message: { error: "Limite de ações sensíveis excedido. Aguarde alguns minutos." },
+});
+
+export const whatsappSendRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 40,
+  keyPrefix: "wa-send",
+  message: { error: "Limite de envios WhatsApp excedido. Tente mais tarde." },
+});
+
+export const pushDirectRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  keyPrefix: "push-direct",
+  message: { error: "Limite de notificações diretas excedido." },
 });
