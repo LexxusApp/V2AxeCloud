@@ -25,6 +25,8 @@ export function AuthScreenBackground({ variant = 'default', fixed = false, class
       <img
         src={LANDING_HERO_IMAGE}
         alt=""
+        width={1920}
+        height={1080}
         fetchPriority="high"
         decoding="async"
         className="h-full w-full object-cover opacity-55"

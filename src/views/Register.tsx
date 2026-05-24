@@ -20,7 +20,7 @@ import { RegistrationProgress } from '../components/RegistrationProgress';
 import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
 
 const GOLD = '#f2b90f';
-const fontLogin = '[font-family:Montserrat,system-ui,sans-serif]';
+const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
 
 const highlights = [
   'Filhos de santo, mural e calendário no mesmo fluxo',

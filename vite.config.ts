@@ -96,6 +96,21 @@ export default defineConfig(({mode}) => {
       },
       dedupe: ['react', 'react-dom', 'framer-motion'],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('framer-motion')) return 'vendor-motion';
+            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
+            if (id.includes('date-fns')) return 'vendor-dates';
+            if (id.includes('lucide-react')) return 'vendor-lucide';
+            if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

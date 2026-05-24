@@ -6,7 +6,7 @@ import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { RegistrationProgress } from '../components/RegistrationProgress';
 import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
 
-const fontLogin = '[font-family:Montserrat,system-ui,sans-serif]';
+const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
 
 function readTenantFromUrl(): string {
   if (typeof window === 'undefined') return '';

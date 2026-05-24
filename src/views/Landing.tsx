@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -21,15 +21,31 @@ import {
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
-import { LANDING_HERO_IMAGE } from '../constants/landingBackground';
 import { HOME_SEO } from '../constants/seoHome';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
-import { SystemTour } from '../components/landing/SystemTour';
-import { ConnectedAccess } from '../components/landing/ConnectedAccess';
-import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
-import { LandingAudience } from '../components/landing/LandingAudience';
-import { LandingSecurity } from '../components/landing/LandingSecurity';
-import { LandingFaq } from '../components/landing/LandingFaq';
+
+const SystemTour = lazy(() =>
+  import('../components/landing/SystemTour').then((m) => ({ default: m.SystemTour }))
+);
+const ConnectedAccess = lazy(() =>
+  import('../components/landing/ConnectedAccess').then((m) => ({ default: m.ConnectedAccess }))
+);
+const WhatsAppAutomation = lazy(() =>
+  import('../components/landing/WhatsAppAutomation').then((m) => ({ default: m.WhatsAppAutomation }))
+);
+const LandingAudience = lazy(() =>
+  import('../components/landing/LandingAudience').then((m) => ({ default: m.LandingAudience }))
+);
+const LandingSecurity = lazy(() =>
+  import('../components/landing/LandingSecurity').then((m) => ({ default: m.LandingSecurity }))
+);
+const LandingFaq = lazy(() =>
+  import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
+);
+
+function LandingSectionFallback({ minHeight = '16rem' }: { minHeight?: string }) {
+  return <div aria-hidden className="w-full" style={{ minHeight }} />;
+}
 
 /** Mesmo contato comercial do Login (`Login.tsx`) */
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
@@ -175,7 +191,7 @@ function ScrollToTopButton() {
 }
 
 export default function Landing() {
-  const { premium: landingPrice } = usePlansCatalog();
+  const { premium: landingPrice } = usePlansCatalog({ defer: true });
   return (
     <div className="relative min-h-dvh overflow-x-hidden">
       <span id="top" className="sr-only" aria-hidden />
@@ -260,18 +276,13 @@ export default function Landing() {
           aria-labelledby="hero-title"
         >
           <div
-            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-25 mix-blend-luminosity"
-            style={{ backgroundImage: `url('${LANDING_HERO_IMAGE}')` }}
-            aria-hidden
-          />
-          <div
             className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,10,10,0.9)_70%)]"
             aria-hidden
           />
 
           <div className="container relative z-10 mx-auto max-w-5xl px-0 text-center">
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium tracking-wide text-primary"
             >
@@ -296,9 +307,8 @@ export default function Landing() {
             </p>
 
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
               className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
             >
               <a
@@ -357,11 +367,17 @@ export default function Landing() {
           </div>
         </section>
 
-        <SystemTour />
+        <Suspense fallback={<LandingSectionFallback minHeight="28rem" />}>
+          <SystemTour />
+        </Suspense>
 
-        <ConnectedAccess />
+        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
+          <ConnectedAccess />
+        </Suspense>
 
-        <WhatsAppAutomation />
+        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
+          <WhatsAppAutomation />
+        </Suspense>
 
         <section
           id="funcionalidades"
@@ -399,9 +415,13 @@ export default function Landing() {
           </div>
         </section>
 
-        <LandingAudience />
+        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
+          <LandingAudience />
+        </Suspense>
 
-        <LandingSecurity />
+        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
+          <LandingSecurity />
+        </Suspense>
 
         <section
           id="mensalidade"
@@ -463,7 +483,9 @@ export default function Landing() {
           </div>
         </section>
 
-        <LandingFaq />
+        <Suspense fallback={<LandingSectionFallback minHeight="16rem" />}>
+          <LandingFaq />
+        </Suspense>
 
         <section
           className="relative border-t border-white/5 py-12 sm:py-14"

@@ -11,9 +11,6 @@
       })();
     </script>
     <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -33,10 +30,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" as="image" href="/login-bg-desktop.png" fetchpriority="high" />
 
     <style>
       html,
@@ -161,7 +155,7 @@
 
         window.setTimeout(function () {
           if (document.getElementById('axecloud-boot')) hardRefreshFromNetwork();
-        }, 10000);
+        }, 20000);
       })();
     </script>
   </head>

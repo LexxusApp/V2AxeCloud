@@ -6,9 +6,15 @@ import {
   type PremiumDisplayPrice,
 } from '../lib/plansDisplay';
 
-export function usePlansCatalog() {
+type Options = {
+  /** Adia fetch de /api/plans para depois do idle — melhora FCP/LCP na landing. */
+  defer?: boolean;
+};
+
+export function usePlansCatalog(options?: Options) {
+  const defer = options?.defer ?? false;
   const [plans, setPlans] = useState<PlansCatalogClient>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!defer);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -23,8 +29,30 @@ export function usePlansCatalog() {
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!defer) {
+      void refresh();
+      return;
+    }
+
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) void refresh();
+    };
+
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(run, { timeout: 4000 });
+      return () => {
+        cancelled = true;
+        cancelIdleCallback(id);
+      };
+    }
+
+    const timer = window.setTimeout(run, 2500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [defer, refresh]);
 
   const premium = useMemo(() => premiumDisplayFromCatalog(plans), [plans]);
 

@@ -318,9 +318,8 @@ export default function Login() {
       </a>
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        initial={false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5 }}
         className="relative z-10 my-auto w-full max-w-[22rem] sm:max-w-md"
       >
         <div className={cn(AUTH_MODAL_CARD, 'space-y-4')}>
