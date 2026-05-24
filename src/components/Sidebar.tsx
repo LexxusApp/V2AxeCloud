@@ -17,6 +17,7 @@ import {
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import { hasPlanAccess } from '../constants/plans';
 import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
@@ -31,6 +32,7 @@ interface SidebarProps {
   tenantData?: { 
     nome: string; 
     plan: string;
+    tenant_id?: string | null;
     foto_url?: string | null;
     cargo?: string | null;
     role?: string | null;
@@ -52,14 +54,21 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
   React.useEffect(() => {
     if (userRole !== 'admin') return;
+    const tenantId = tenantData?.tenant_id;
+    if (!tenantId) return;
 
     const fetchPending = async () => {
-      const { count } = await supabase
-        .from('caixinha_doacoes')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pendente');
-      
-      setPendingDonations(count || 0);
+      try {
+        const res = await authFetch(
+          `/api/v1/financial/caixinha?tenantId=${encodeURIComponent(tenantId)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = Array.isArray(data.pendingDonations) ? data.pendingDonations.length : 0;
+        setPendingDonations(count);
+      } catch {
+        /* badge opcional — falha silenciosa */
+      }
     };
 
     fetchPending();
@@ -78,7 +87,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
       window.clearTimeout(subscribeTimer);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [userRole]);
+  }, [userRole, tenantData?.tenant_id]);
 
   const handleLogout = () => {
     performFastLogout();
