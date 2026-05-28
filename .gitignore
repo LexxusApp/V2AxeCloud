@@ -10,3 +10,5 @@ supabase/.temp/
 *.p12
 certs/
 .vercel
+advisors-output.json
+audit-advisors.json
