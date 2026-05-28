@@ -224,7 +224,7 @@ export function App() {
                   <span className="sr-only">Menu</span>
                   <Menu className="h-5 w-5" />
                 </summary>
-                <div className="landing-glass absolute right-0 mt-2 w-56 overflow-hidden rounded-xl p-1.5">
+                <div className="landing-nav-menu absolute right-0 mt-2 w-56 overflow-hidden rounded-xl p-1.5">
                   {nav.map((l) => (
                     <a
                       key={l.href}
