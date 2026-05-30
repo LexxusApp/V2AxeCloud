@@ -21,6 +21,7 @@ export const FOUNDER_BENEFITS = [
 export const FOUNDER_REQUIREMENTS = [
   'Terreiro ou casa de axé em atividade (Umbanda, Candomblé, Jurema ou vertente afim)',
   'Zelador(a) ou responsável pela administração disponível para conversa inicial',
+  'E-mail do zelador para criação do acesso ao painel (login do terreiro)',
   'Autorização para futuro perfil público no portal (nome, cidade e tradição — sem expor endereço sem consentimento)',
   'Disposição para dar feedback honesto nos primeiros 90 dias',
 ] as const;

@@ -59,7 +59,7 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
       const tradicao = String(body.tradicao || "").trim().toLowerCase();
       const whatsapp = normalizeWhatsapp(String(body.whatsapp || ""));
       const nome_contato = String(body.nome_contato || "").trim() || null;
-      const email = String(body.email || "").trim().toLowerCase() || null;
+      const email = String(body.email || "").trim().toLowerCase();
       const mensagem = String(body.mensagem || "").trim().slice(0, 2000) || null;
       const autoriza_perfil_publico = Boolean(body.autoriza_perfil_publico);
       const autoriza_depoimento = Boolean(body.autoriza_depoimento);
@@ -78,6 +78,11 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
       }
       if (whatsapp.length < 10 || whatsapp.length > 13) {
         return res.status(400).json({ error: "Informe um WhatsApp válido com DDD." });
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({
+          error: "Informe o e-mail do zelador — usamos esse endereço para criar o acesso ao painel.",
+        });
       }
       if (!autoriza_perfil_publico) {
         return res.status(400).json({

@@ -227,17 +227,22 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
 
           <div>
             <label htmlFor="fp-email" className={labelClass}>
-              E-mail (opcional)
+              E-mail do zelador *
             </label>
             <input
               id="fp-email"
               type="email"
+              required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={fieldClass}
-              placeholder="contato@casadeaxe.com.br"
+              placeholder="zelador@casadeaxe.com.br"
               disabled={slotsClosed || submitting}
             />
+            <p className="mt-1.5 text-xs leading-relaxed text-zinc-500 sm:text-[13px]">
+              Será o login de acesso ao painel quando a casa for aprovada.
+            </p>
           </div>
 
           <div>
