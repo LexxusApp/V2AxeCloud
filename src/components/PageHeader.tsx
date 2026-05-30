@@ -1,4 +1,5 @@
 import React from 'react';
+import { ZeladorIdentityBadge } from './ZeladorIdentityBadge';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -39,47 +40,7 @@ export default function PageHeader({ title, subtitle, actions, tabs, tenantData 
           {/* Badge de identificacao do zelador - apenas visual, sem dropdown.
              Configuracoes e Sair do Sistema vivem na sidebar para evitar duplicidade. */}
           <div className="relative hidden shrink-0 lg:block">
-            <div
-              className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 p-1 pr-3"
-              aria-label="Identificação do zelador"
-            >
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-primary bg-primary text-sm font-black text-background shadow-lg shadow-primary/20 md:h-9 md:w-9">
-                {tenantData?.foto_url ? (
-                  <img
-                    src={tenantData.foto_url}
-                    alt={tenantData?.nome || 'Terreiro'}
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        const fallbackInitial = (tenantData?.nome?.[0] || 'T').toUpperCase();
-                        parent.innerHTML = fallbackInitial;
-                      }
-                    }}
-                  />
-                ) : (
-                  (tenantData?.nome?.[0] || 'T').toUpperCase()
-                )}
-              </div>
-              <div className="hidden flex-col items-start gap-0.5 md:flex">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold tracking-tight text-white">
-                    {tenantData?.nome || 'Zelador'}
-                  </span>
-                  <span className="rounded-[4px] bg-[#FBBC00]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#FBBC00]">
-                    {tenantData?.plan?.toUpperCase() || 'PREMIUM'}
-                  </span>
-                </div>
-                {(tenantData?.role === 'filho' || tenantData?.cargo?.trim()) && (
-                  <span className="max-w-[180px] truncate text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    {tenantData?.role === 'filho' ? 'Filho de Santo' : tenantData?.cargo?.trim()}
-                  </span>
-                )}
-              </div>
-            </div>
+            <ZeladorIdentityBadge tenantData={tenantData} />
           </div>
         </div>
       </header>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import useSWR from 'swr';
 import NotificationPanel from '../components/NotificationPanel';
+import { ZeladorIdentityBadge } from '../components/ZeladorIdentityBadge';
 import {
   Plus,
   ChevronRight,
@@ -364,8 +365,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   if (loading) return <div className="h-[70vh] flex items-center justify-center"><LuxuryLoading /></div>;
 
   const terreiroNome = tenantData?.nome?.trim() || '';
-  const headerRoleLine =
-    userRole === 'filho' ? 'Filho de Santo' : (tenantData?.cargo?.trim() || null);
 
   const now = new Date();
   const hour = now.getHours();
@@ -392,21 +391,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         <div className="flex shrink-0 items-center gap-2 lg:gap-3">
           <div className="hidden lg:flex items-center gap-3">
             <NotificationPanel tenantData={tenantData} systemVersion={systemVersion} userRole={userRole} userId={user?.id} />
-            <div className="flex items-center gap-3 bg-[#121212]/50 p-1 pr-4 rounded-full border border-white/5 cursor-pointer hover:bg-[#1a1a1a] transition-all">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-primary/20 flex items-center justify-center text-background font-black text-sm">
-                {tenantData?.foto_url ? (
-                  <img src={tenantData.foto_url} alt={terreiroNome} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  terreiroNome.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className="text-left min-w-0 max-w-[200px]">
-                <p className="text-xs font-bold text-white leading-none truncate">{terreiroNome}</p>
-                {headerRoleLine && (
-                  <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest leading-none truncate">{headerRoleLine}</p>
-                )}
-              </div>
-            </div>
+            <ZeladorIdentityBadge tenantData={tenantData} />
           </div>
         </div>
       </header>
