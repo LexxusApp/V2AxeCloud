@@ -23,7 +23,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.login]: {
     title: 'Entrar | AxéCloud',
     description:
-      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, almoxarifado e mural.',
+      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.',
     canonicalPath: '/login',
     robots: 'index, follow',
   },
@@ -44,7 +44,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.register]: {
     title: 'Cadastrar terreiro | AxéCloud',
     description:
-      'Cadastre seu terreiro de Umbanda ou Candomblé no AxéCloud e organize financeiro, almoxarifado e portal do filho de santo.',
+      'Cadastre seu terreiro de Umbanda ou Candomblé no AxéCloud e organize financeiro, galeria de fotos e portal do filho de santo.',
     canonicalPath: '/register',
     robots: 'noindex, follow',
   },
@@ -77,7 +77,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.contentArticle]: {
     title: 'Como o AxéCloud ajuda terreiros | Portal AxéCloud',
     description:
-      'Gestão financeira, almoxarifado, calendário de giras e portal do filho de santo — como o AxéCloud organiza casas de Umbanda e Candomblé.',
+      'Gestão financeira, galeria de fotos, calendário de giras e portal do filho de santo — como o AxéCloud organiza casas de Umbanda e Candomblé.',
     canonicalPath: '/conteudo/como-o-axecloud-ajuda-terreiros',
     robots: 'index, follow',
   },

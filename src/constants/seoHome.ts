@@ -4,15 +4,15 @@ export const SITE_ORIGIN = 'https://axecloud.com.br';
 export const HOME_SEO = {
   title: 'AxéCloud | Sistema de Gestão para Terreiros de Umbanda e Candomblé',
   description:
-    'Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, almoxarifado, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.',
+    'Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.',
   h1: 'Sistema de gestão para terreiros de Umbanda e Candomblé',
   heroTagline: 'Tecnologia a serviço do sagrado.',
   heroBadge: 'Software de gestão para terreiros, casas de axé e comunidades de Umbanda e Candomblé',
   keywords:
-    'AxéCloud, gestão de terreiro, software para terreiro, casa de axé, zelador, filhos de santo, candomblé, umbanda, jurema, gestão mística, financeiro de terreiro, mensalidade terreiro, almoxarifado de axé, calendário de giras, portal filho de santo, terreiro umbanda, terreiro candomblé',
+    'AxéCloud, gestão de terreiro, software para terreiro, casa de axé, zelador, filhos de santo, candomblé, umbanda, jurema, gestão mística, financeiro de terreiro, mensalidade terreiro, galeria de fotos terreiro, calendário de giras, portal filho de santo, terreiro umbanda, terreiro candomblé',
   ogImageAlt: 'AxéCloud — Sistema de gestão para terreiros de Umbanda e Candomblé',
   manifestDescription:
-    'Gestão para terreiros de Umbanda e Candomblé: financeiro, almoxarifado, giras e portal do filho de santo.',
+    'Gestão para terreiros de Umbanda e Candomblé: financeiro, galeria de fotos, giras e portal do filho de santo.',
 } as const;
 
 export type HomeFaqItem = { q: string; a: string };
@@ -31,12 +31,12 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
     a: 'Sim. Cada filho de santo acessa um portal com mural de avisos, biblioteca de estudos, calendário de giras e mensalidades — tudo separado do painel do zelador.',
   },
   {
-    q: 'Posso controlar almoxarifado de velas, ervas e materiais de axé?',
-    a: 'Sim. O almoxarifado inteligente controla estoque de velas, ervas, guias e saídas de materiais de chão, com leitura clara para ogãs, cambonos e zeladores.',
+    q: 'Posso guardar fotos de giras e eventos do terreiro?',
+    a: 'Sim. A galeria de fotos organiza álbuns por festa, gira ou tema — memória da casa em um só lugar, com acesso controlado pela diretoria.',
   },
   {
     q: 'Mais de uma pessoa pode administrar o terreiro?',
-    a: 'Com certeza. O zelador principal pode criar acessos para ogãs, cambonos ou membros da diretoria cuidarem do financeiro, almoxarifado e calendário.',
+    a: 'Com certeza. O zelador principal pode criar acessos para ogãs, cambonos ou membros da diretoria cuidarem do financeiro, galeria, mural e calendário.',
   },
   {
     q: 'O calendário de giras e obrigações está incluído?',
@@ -66,8 +66,8 @@ export const HOME_STATIC_SECTIONS: readonly { heading: string; body: string }[] 
     body: 'Biblioteca de estudos, mural espiritual, calendário de giras e pagamento de mensalidade num único app pensado para a rotina da casa.',
   },
   {
-    heading: 'Almoxarifado e calendário de giras',
-    body: 'Estoque de velas, ervas e materiais sagrados sem planilhas. Agenda de giras, festas e obrigações visível para toda a comunidade do terreiro.',
+    heading: 'Galeria de fotos e calendário de giras',
+    body: 'Álbuns de giras, festas e momentos da comunidade sem pastas espalhadas. Agenda de giras, festas e obrigações visível para toda a comunidade do terreiro.',
   },
 ];
 

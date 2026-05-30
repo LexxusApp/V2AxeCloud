@@ -7,14 +7,14 @@ export const PORTAL_ARTICLE = {
   slug: 'como-o-axecloud-ajuda-terreiros',
   title: 'Como o AxéCloud ajuda terreiros a se organizar',
   summary:
-    'Gestão financeira, calendário de giras, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa.',
+    'Gestão financeira, calendário de giras, galeria de fotos, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa.',
   publishedAt: '2026-05-29',
   readingMinutes: 6,
   sections: [
     {
       title: 'O desafio da administração na casa de axé',
       body:
-        'Dirigir um terreiro exige cuidado espiritual e organização prática ao mesmo tempo: mensalidades dos filhos de santo, estoque de velas e ervas, convocação de giras, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce.',
+        'Dirigir um terreiro exige cuidado espiritual e organização prática ao mesmo tempo: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce.',
     },
     {
       title: 'Financeiro com transparência',
@@ -22,9 +22,9 @@ export const PORTAL_ARTICLE = {
         'O AxéCloud registra mensalidades, doações e despesas com histórico claro. Filhos de santo podem pagar via Pix; a diretoria acompanha tudo em tempo real. Menos dúvida sobre quem está em dia, mais confiança na gestão da casa — sem transformar a contribuição em burocracia fria.',
     },
     {
-      title: 'Almoxarifado do chão',
+      title: 'Galeria de fotos da casa',
       body:
-        'Velas, defumadores, ervas, guias e materiais de obrigação saem e entram o tempo todo. O módulo de almoxarifado centraliza entradas, saídas e alertas de estoque baixo, para ogãs, cambonos e zeladores terem leitura clara do que a casa precisa.',
+        'Giras, festas de santo, obrigações e momentos da comunidade merecem memória. A galeria do AxéCloud organiza álbuns e fotos do terreiro em um só lugar — a diretoria guarda o registro com respeito, e filhos de santo podem reviver a história da casa sem depender de grupos espalhados no celular.',
     },
     {
       title: 'Calendário e mural integrados',

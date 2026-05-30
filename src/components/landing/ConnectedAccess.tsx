@@ -25,7 +25,7 @@ const ACCESS_CARDS: AccessCard[] = [
     title: 'Painel do Zelador (Administração)',
     topics: [
       'Controle total do caixa da casa',
-      'Gerenciamento do estoque do almoxarifado',
+      'Galeria de fotos e álbuns da casa',
       'Cadastro de filhos de santo',
       'Chamadas de giras e eventos',
       'Relatórios financeiros da Efí Bank',

@@ -7,7 +7,6 @@ import {
   ImageIcon,
   Megaphone,
   MessageCircle,
-  Package,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
@@ -121,11 +120,11 @@ const HERO_FEATURE_PAIRS: HeroFeaturePair[] = [
   ],
   [
     {
-      id: 'estoque',
-      icon: Package,
-      tag: 'Almoxarifado',
-      title: 'Estoque sagrado',
-      desc: 'Oferendas e materiais sob controle',
+      id: 'albums',
+      icon: ImageIcon,
+      tag: 'Galeria',
+      title: 'Álbuns por gira',
+      desc: 'Fotos organizadas por festa e evento',
       accent: 'violet',
       slot: 'top',
     },
@@ -301,7 +300,7 @@ export function LandingHero() {
           </p>
 
           <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg lg:mx-0 mx-auto">
-            O painel que zeladores e diretorias usam para organizar mensalidades, estoque sagrado, giras e a
+            O painel que zeladores e diretorias usam para organizar mensalidades, galeria de fotos, giras e a
             comunicação com filhos de santo — com respeito à tradição.
           </p>
 

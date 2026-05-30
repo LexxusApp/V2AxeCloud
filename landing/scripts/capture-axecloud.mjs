@@ -27,7 +27,7 @@ const LOGADO = [
   { name: 'Filhos de Santo', file: 'filhos-de-santo.png' },
   { name: 'Calendário / Eventos', file: 'calendario-eventos.png' },
   { name: 'Mural', file: 'mural.png' },
-  { name: 'Almoxarifado', file: 'almoxarifado.png' },
+  { name: 'Galeria', file: 'galeria.png' },
   { name: 'Financeiro', file: 'financeiro.png' },
   { name: 'Biblioteca de Estudo', file: 'biblioteca-estudo.png' },
   { name: 'Loja do Axé', file: 'loja-axe.png' },

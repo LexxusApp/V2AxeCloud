@@ -170,7 +170,7 @@ function buildContent(doc) {
 
   hr(doc);
   heading(doc, '2. Situação atual do AxéCloud', 1);
-  bullet(doc, 'Produto: SaaS multi-tenant com financeiro, almoxarifado, calendário, mural, biblioteca, galeria e WhatsApp.');
+  bullet(doc, 'Produto: SaaS multi-tenant com financeiro, calendário, mural, biblioteca, galeria de fotos e WhatsApp.');
   bullet(doc, 'Marketing: landing com SEO, FAQ e JSON-LD em axecloud.com.br.');
   bullet(doc, 'Gap do portal: sem diretório público, perfis de terreiro, agenda pública ou conteúdo editorial.');
   bullet(doc, 'Situação comercial: sem terreiros cadastrados ativos; mensalidade atual R$ 89,90 (plano Médio).');

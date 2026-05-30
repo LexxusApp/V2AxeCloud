@@ -5,10 +5,10 @@ import {
   Check,
   Crown,
   Facebook,
+  Images,
   Instagram,
   MessageCircle,
   Menu,
-  Package,
   Users,
   Wallet,
   Youtube,
@@ -29,10 +29,10 @@ const nav = [
 
 const features = [
   {
-    icon: Package,
-    title: 'Almoxarifado inteligente',
+    icon: Images,
+    title: 'Galeria de fotos da casa',
     description:
-      'Estoque de velas, defumadores, ervas e materiais do chão. Entradas, saídas e alertas sem planilha espalhada.',
+      'Álbuns de giras, festas e momentos da comunidade. Memória do terreiro organizada, sem pastas espalhadas no celular.',
   },
   {
     icon: Wallet,
@@ -78,7 +78,7 @@ const plans = [
     price: 'R$ 49,90',
     period: '/mês',
     blurb: 'Até ~25 filhos de santo',
-    features: ['Almoxarifado e mural', 'Financeiro + Pix e histórico', '1 perfil de filho de santo'],
+    features: ['Galeria e mural', 'Financeiro + Pix e histórico', '1 perfil de filho de santo'],
     highlight: false,
   },
   {
@@ -110,7 +110,7 @@ const appScreensLogado: { src: string; label: string; desc: string }[] = [
   { src: '/screenshots/filhos-de-santo.png', label: 'Filhos de Santo', desc: 'Pessoas do terreiro, cadastros e atalhos para a rotina.' },
   { src: '/screenshots/calendario-eventos.png', label: 'Calendário e eventos', desc: 'Giras, compromissos e a agenda alinhada à casa.' },
   { src: '/screenshots/mural.png', label: 'Mural', desc: 'Comunicados e avisos visíveis para a comunidade.' },
-  { src: '/screenshots/almoxarifado.png', label: 'Almoxarifado', desc: 'Estoque, materiais e tudo o que o chão consome no dia a dia.' },
+  { src: '/screenshots/galeria.png', label: 'Galeria', desc: 'Álbuns de fotos e vídeos do terreiro, organizados por evento ou tema.' },
   { src: '/screenshots/financeiro.png', label: 'Financeiro', desc: 'Entradas, saídas, Pix e histórico com transparência.' },
   { src: '/screenshots/biblioteca-estudo.png', label: 'Biblioteca de estudo', desc: 'Materiais e estudos acessíveis a quem precisa aprender.' },
   { src: '/screenshots/loja-axe.png', label: 'Loja do Axé', desc: 'Ofertas e itens vinculados à casa, quando a loja estiver ativa no plano.' },
@@ -289,7 +289,7 @@ export function App() {
 
             <div className="mt-12 grid gap-3 sm:grid-cols-3 sm:mt-16">
               {[
-                { k: 'Almoxarifado, mural e notificações' },
+                { k: 'Galeria, mural e notificações' },
                 { k: 'Financeiro, Pix e histórico' },
                 { k: 'Filho de santo, agenda e estudos' },
               ].map((s) => (

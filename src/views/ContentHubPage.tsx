@@ -6,7 +6,7 @@ const links = [
   {
     href: ROUTES.contentArticle,
     title: 'Como o AxéCloud ajuda terreiros a se organizar',
-    description: 'Financeiro, almoxarifado, calendário e portal do filho de santo — visão geral do sistema.',
+    description: 'Financeiro, galeria de fotos, calendário e portal do filho de santo — visão geral do sistema.',
     Icon: FileText,
   },
   {
