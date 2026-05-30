@@ -60,6 +60,34 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/dashboard',
     robots: 'noindex, nofollow',
   },
+  [ROUTES.founderProgram]: {
+    title: 'Programa Fundador | AxéCloud — 12 meses gratuitos para terreiros',
+    description:
+      'Inscreva sua casa de axé no Programa Fundador AxéCloud: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.',
+    canonicalPath: '/programa-fundador',
+    robots: 'index, follow',
+  },
+  [ROUTES.contentHub]: {
+    title: 'Conteúdo | Portal AxéCloud — Umbanda e Candomblé',
+    description:
+      'Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do portal AxéCloud.',
+    canonicalPath: '/conteudo',
+    robots: 'index, follow',
+  },
+  [ROUTES.contentArticle]: {
+    title: 'Como o AxéCloud ajuda terreiros | Portal AxéCloud',
+    description:
+      'Gestão financeira, almoxarifado, calendário de giras e portal do filho de santo — como o AxéCloud organiza casas de Umbanda e Candomblé.',
+    canonicalPath: '/conteudo/como-o-axecloud-ajuda-terreiros',
+    robots: 'index, follow',
+  },
+  [ROUTES.glossary]: {
+    title: 'Glossário do axé — 10 termos essenciais | AxéCloud',
+    description:
+      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé e mais — linguagem respeitosa para quem está conhecendo a tradição.',
+    canonicalPath: '/conteudo/glossario',
+    robots: 'index, follow',
+  },
 };
 
 function upsertMeta(name: string, content: string) {

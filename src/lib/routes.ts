@@ -7,7 +7,22 @@ export const ROUTES = {
   dashboard: '/dashboard',
   terms: '/termos',
   privacy: '/privacidade',
+  founderProgram: '/programa-fundador',
+  contentHub: '/conteudo',
+  contentArticle: '/conteudo/como-o-axecloud-ajuda-terreiros',
+  glossary: '/conteudo/glossario',
 } as const;
+
+/** Rotas de marketing indexáveis (portal + landing). */
+export const PUBLIC_MARKETING_PATHS = [
+  ROUTES.home,
+  ROUTES.register,
+  ROUTES.checkout,
+  ROUTES.founderProgram,
+  ROUTES.contentHub,
+  ROUTES.contentArticle,
+  ROUTES.glossary,
+] as const;
 
 export function normalizePath(pathname: string): string {
   const p = (pathname || '/').replace(/\/+$/, '') || '/';
@@ -15,5 +30,5 @@ export function normalizePath(pathname: string): string {
 }
 
 export function isPublicMarketingPath(path: string): boolean {
-  return path === ROUTES.home || path === ROUTES.register || path === ROUTES.checkout;
+  return (PUBLIC_MARKETING_PATHS as readonly string[]).includes(path);
 }

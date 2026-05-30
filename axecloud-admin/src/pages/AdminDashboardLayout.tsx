@@ -8,6 +8,7 @@ import {
   CreditCard,
   FlaskConical,
   HardDrive,
+  Gauge,
   LayoutDashboard,
   LogOut,
   MessageCircle,
@@ -15,20 +16,21 @@ import {
   ScrollText,
   Shield,
   X,
-  FileBarChart,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type AdminNavTab =
   | "overview"
   | "tenants"
+  | "founders"
   | "logs"
   | "storage"
+  | "metrics"
   | "create"
   | "demo"
   | "plans"
   | "whatsapp"
-  | "audit"
   | "monitor";
 
 type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon };
@@ -36,14 +38,15 @@ type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon };
 const MAIN_NAV: NavItem[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "tenants", label: "Terreiros", icon: Building2 },
+  { id: "founders", label: "Programa Fundador", icon: Sparkles },
   { id: "plans", label: "Mensalidades", icon: CreditCard },
   { id: "logs", label: "Eventos", icon: ScrollText },
-  { id: "audit", label: "Relatórios", icon: FileBarChart },
   { id: "whatsapp", label: "Notificações", icon: MessageCircle },
 ];
 
 const EXTRA_NAV: NavItem[] = [
   { id: "storage", label: "Armazenamento", icon: HardDrive },
+  { id: "metrics", label: "Infra Supabase", icon: Gauge },
   { id: "monitor", label: "Monitor", icon: Activity },
   { id: "create", label: "Novo terreiro", icon: PlusCircle },
   { id: "demo", label: "Conta demo", icon: FlaskConical },
@@ -86,7 +89,7 @@ export function AdminDashboardLayout({
       <aside className="admin-sidebar" aria-label="Menu principal">
         <div className="admin-sidebar-brand border-b border-white/5 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--ac-accent)] text-white shadow-lg shadow-[var(--ac-accent-glow)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
               <Shield className="h-4 w-4" strokeWidth={2} />
             </div>
             <div className="min-w-0">
@@ -132,7 +135,7 @@ export function AdminDashboardLayout({
           })}
         </nav>
         <div className="admin-sidebar-session border-t border-white/5 p-3">
-          <div className="rounded-xl bg-white/[0.04] p-2.5">
+          <div className="rounded-[var(--ac-radius-sm)] bg-white/[0.04] p-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9aa3ad]">Sessão</p>
             <p className="mt-1 truncate text-sm font-medium text-white">{displayName}</p>
             <p className="truncate text-[11px] text-[#b8c0c8]">{email}</p>
@@ -157,8 +160,8 @@ export function AdminDashboardLayout({
             >
               <Bell className="h-4 w-4" />
             </button>
-            <div className="hidden sm:flex items-center gap-2.5 rounded-xl border border-[var(--ac-paper-border)] bg-white px-3 py-2 shadow-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--ac-accent)] text-xs font-bold text-white">
+            <div className="hidden sm:flex items-center gap-2.5 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-3 py-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-xs font-bold text-white">
                 {initials}
               </div>
               <div className="min-w-0 max-w-[180px]">
@@ -181,10 +184,10 @@ export function AdminDashboardLayout({
                 type="button"
                 onClick={() => onTab(item.id)}
                 className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  "shrink-0 rounded-[var(--ac-radius-sm)] px-3 py-1.5 text-xs font-semibold transition",
                   tab === item.id
                     ? "bg-[var(--ac-accent)] text-white"
-                    : "bg-white border border-[var(--ac-paper-border)] text-[var(--ac-text-muted)]"
+                    : "bg-[var(--ac-paper-surface)] border border-[var(--ac-paper-border)] text-[var(--ac-text-muted)]"
                 )}
               >
                 {item.label}
@@ -235,7 +238,7 @@ export function AdminStatCard({
 }) {
   return (
     <article className="admin-stat-card group relative overflow-hidden">
-      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[var(--ac-accent-soft)] blur-2xl transition group-hover:bg-[var(--ac-accent-glow)]" />
+      <div className="pointer-events-none absolute -right-4 -top-4 h-20 w-20 rounded-[var(--ac-radius)] bg-[var(--ac-accent-soft)] opacity-80" />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="admin-label">{title}</p>
@@ -244,7 +247,7 @@ export function AdminStatCard({
           </p>
           {hint ? <p className="mt-1 text-xs text-[var(--ac-text-faint)]">{hint}</p> : null}
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--ac-paper-border)] bg-[var(--ac-accent-soft)] text-[var(--ac-accent)]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-accent-soft)] text-[var(--ac-accent)]">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>
       </div>
@@ -290,7 +293,7 @@ export function AdminQuickActions({
             <button
               type="button"
               onClick={item.onClick}
-              className="flex w-full items-center justify-between gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-white px-4 py-3.5 text-left text-sm font-medium text-[var(--ac-text)] transition hover:border-[var(--ac-accent)] hover:bg-[var(--ac-accent-soft)]"
+              className="flex w-full items-center justify-between gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] px-4 py-3.5 text-left text-sm font-medium text-[var(--ac-text)] transition hover:border-[var(--ac-accent)] hover:bg-[var(--ac-accent-soft)]"
             >
               <span>{item.label}</span>
               <span className="text-[var(--ac-accent)]" aria-hidden>

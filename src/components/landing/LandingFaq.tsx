@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { HOME_FAQ } from '../../constants/seoHome';
 import { cn } from '../../lib/utils';
+import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 const fade = {
   initial: { opacity: 0, y: 20 },
@@ -13,7 +14,7 @@ const fade = {
 
 function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
-    <div className="border-b border-neutral-800 last:border-b-0">
+    <div className="border-b border-[#2a2108] last:border-b-0">
       <button
         type="button"
         onClick={onToggle}
@@ -23,7 +24,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
         <span className="text-sm font-semibold text-white sm:text-base">{q}</span>
         <ChevronDown
           className={cn(
-            'mt-0.5 h-5 w-5 shrink-0 text-amber-500/80 transition-transform duration-200',
+            'mt-0.5 h-5 w-5 shrink-0 text-primary/80 transition-transform duration-200',
             open && 'rotate-180'
           )}
           aria-hidden
@@ -38,7 +39,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
             transition={{ duration: 0.22, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-neutral-400 sm:pb-5">{a}</p>
+            <p className="pb-4 text-sm leading-relaxed text-zinc-400 sm:pb-5">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -50,25 +51,16 @@ export function LandingFaq() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section
-      id="faq"
-      className="relative border-t border-white/5 py-16 sm:py-20"
-      aria-labelledby="faq-head"
-    >
-      <motion.div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8" {...fade}>
-        <div className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">
-            Dúvidas frequentes
-          </p>
-          <h2 id="faq-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
-            Perguntas sobre gestão de terreiros
-          </h2>
-          <p className="mt-2 text-sm text-neutral-500">
-            Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud.
-          </p>
-        </div>
+    <LandingSection id="faq" aria-labelledby="faq-head">
+      <motion.div className="landing-section-inner max-w-2xl" {...fade}>
+        <LandingSectionHeader
+          kicker="Dúvidas frequentes"
+          title="Perguntas sobre gestão de terreiros"
+          titleId="faq-head"
+          lead="Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud."
+        />
 
-        <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-900/40 px-4 backdrop-blur-sm sm:px-6">
+        <div className="landing-mystic-card relative z-10 mt-8 px-4 sm:px-6">
           {HOME_FAQ.map((item, i) => (
             <FaqItem
               key={item.q}
@@ -80,6 +72,6 @@ export function LandingFaq() {
           ))}
         </div>
       </motion.div>
-    </section>
+    </LandingSection>
   );
 }

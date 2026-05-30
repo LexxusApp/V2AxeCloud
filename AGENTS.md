@@ -5,3 +5,4 @@
 - **Reboot a pedido (logout/reload forçado)**: se o usuário pedir explicitamente "reboot do sistema", "atualização forçada", "derrubar todos os usuários", "forçar logout", aí sim bumpe `SYSTEM_VERSION` E adicione um `performFastLogout()` ou `performEmergencyClientReset()` no caminho adequado — porque o bump por si só virou soft.
 - **Language Preference**: All responses from the AI must be in Portuguese (PT-BR), as requested by the user.
 - **Git (branch padrão)**: commits e `git push` somente na branch **`main`**. Não enviar para `dev` salvo pedido explícito do usuário.
+- **Supabase (projeto remoto)**: o CLI está ligado ao project **`vlaojhfwhqmwudqsumpi`** (AxeCloud). Para migrations, SQL, diagnóstico e alterações de schema/dados, **executar directamente** via `npx supabase` (`db push`, `db query --linked`, `migration list`, etc.) — não pedir ao utilizador para aplicar SQL manualmente no dashboard, salvo bloqueio real de credenciais.

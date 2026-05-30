@@ -72,6 +72,25 @@ export async function handleAdminOverview(sb: SupabaseClient) {
     }
   }
 
+  let founderApplications = {
+    available: false,
+    pending: 0,
+    total: 0,
+    remainingSlots: 20,
+  };
+  try {
+    const { getFounderApplicationStats } = await import("./founderProgramAdmin.js");
+    const stats = await getFounderApplicationStats(sb);
+    founderApplications = {
+      available: stats.available,
+      pending: stats.pending,
+      total: stats.total,
+      remainingSlots: stats.remainingSlots,
+    };
+  } catch {
+    /* opcional */
+  }
+
   return {
     leadersCount,
     filhosCount: filhosCount ?? 0,
@@ -79,6 +98,7 @@ export async function handleAdminOverview(sb: SupabaseClient) {
     planHistogram,
     accessLogsAvailable,
     accessEventsLast7Days: accessLast7d,
+    founderApplications,
   };
 }
 
@@ -91,61 +111,8 @@ export async function handleAdminActivity(sb: SupabaseClient) {
     if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
   });
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  let accessLogs: { created_at?: string; city?: string; ll?: number[] }[] | null = [];
-  let accessLogsAvailable = true;
-  let accessLogsError: string | undefined;
-  try {
-    const q = await sb
-      .from("access_logs")
-      .select("created_at, city, ll")
-      .gte("created_at", thirtyDaysAgo.toISOString());
-    if (q.error) {
-      if (isMissingOrUnknownTable(q.error, "access_logs")) {
-        accessLogsAvailable = false;
-        accessLogsError = q.error.message;
-      } else {
-        throw q.error;
-      }
-    } else {
-      accessLogs = q.data;
-    }
-  } catch (acErr: unknown) {
-    if (isMissingOrUnknownTable(acErr as { message?: string }, "access_logs")) {
-      accessLogsAvailable = false;
-      accessLogsError = (acErr as { message?: string })?.message;
-    } else {
-      throw acErr;
-    }
-  }
-
-  if (!accessLogsAvailable) {
-    return {
-      childrenPerTenant,
-      dailyAccess: {},
-      geoActivity: [],
-      accessLogsAvailable: false,
-      accessLogsError,
-    };
-  }
-
-  const dailyAccess: Record<string, number> = {};
-  (accessLogs || []).forEach((log) => {
-    const date = String(log.created_at || "").split("T")[0];
-    if (date) dailyAccess[date] = (dailyAccess[date] || 0) + 1;
-  });
-  return {
-    childrenPerTenant,
-    dailyAccess,
-    geoActivity:
-      accessLogs?.filter((l) => l.ll).map((l) => ({
-        city: l.city,
-        lat: l.ll![0],
-        lon: l.ll![1],
-      })) || [],
-    accessLogsAvailable: true,
-  };
+  const { fetchAdminActivityStats } = await import("./adminActivityStats.js");
+  return fetchAdminActivityStats(sb);
 }
 
 type UnifiedAuditRow = {
@@ -304,7 +271,9 @@ export async function handleAdminTenants(sb: SupabaseClient) {
     .is("deleted_at", null);
   if (pError) throw pError;
 
-  const { data: subs, error: sError } = await sb.from("subscriptions").select("id, plan, expires_at, status");
+  const { data: subs, error: sError } = await sb
+    .from("subscriptions")
+    .select("id, plan, expires_at, status, pending_since");
   if (sError) throw sError;
 
   const { data: childrenRaw, error: cError } = await sb
@@ -329,7 +298,7 @@ export async function handleAdminTenants(sb: SupabaseClient) {
       return true;
     }) || [];
 
-  const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null }) => {
+  const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null; updated_at?: string | null }) => {
     const sub = subs?.find((s: { id?: string }) => s.id === p.id);
     return {
       ...p,
@@ -337,6 +306,7 @@ export async function handleAdminTenants(sb: SupabaseClient) {
       plan: sub?.plan || "premium",
       expires_at: sub?.expires_at ?? null,
       subscription_status: sub?.status ?? null,
+      created_at: (sub as { pending_since?: string | null })?.pending_since ?? p.updated_at ?? null,
     };
   });
 

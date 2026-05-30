@@ -99,7 +99,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
     <div className="admin-login-shell">
       <aside className="admin-login-brand">
         <div>
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ac-accent)] text-white">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
             <Shield className="h-6 w-6" />
           </div>
           <h1 className="mt-8 text-3xl font-semibold tracking-tight leading-tight">
@@ -118,7 +118,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
       <div className="admin-login-form-wrap">
         <div className="w-full max-w-[400px]">
           <div className="mb-8 lg:hidden">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ac-accent)] text-white">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
               <Shield className="h-5 w-5" />
             </div>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight">Entrar no console</h2>
@@ -149,7 +149,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
 
           <form
             onSubmit={submit}
-            className="rounded-[var(--ac-radius)] border border-[var(--ac-paper-border)] bg-white p-6 sm:p-8 shadow-[var(--ac-shadow)] space-y-5"
+            className="rounded-[var(--ac-radius)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] p-6 sm:p-8 shadow-[var(--ac-shadow)] space-y-5"
           >
             <div>
               <label className="admin-label">E-mail</label>

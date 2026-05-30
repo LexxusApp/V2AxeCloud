@@ -869,6 +869,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               session.user.user_metadata?.role,
               session.access_token
             );
+            if (session.access_token) {
+              const { trackSessionActivity } = await import('./lib/trackSessionActivity');
+              void trackSessionActivity(session.access_token);
+            }
             initializedRef.current = true;
           }
         } else {

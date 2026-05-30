@@ -22,14 +22,15 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
       }
 
       await supabaseAdmin.from("access_logs").insert({
+        event_type: "session.activity",
         user_id: user.id,
+        user_email: user.email ? String(user.email).toLowerCase() : null,
         ip: ip || null,
         city: geoData?.city || null,
         region: geoData?.region || null,
         country: geoData?.country || null,
-        ll: geoData?.ll || null,
+        metadata: geoData?.ll ? { ll: geoData.ll } : null,
         user_agent: req.headers["user-agent"] || null,
-        created_at: new Date().toISOString(),
       });
 
       res.json({ success: true, geo: geoData });
@@ -61,30 +62,12 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: accessLogs, error: accessError } = await supabaseAdmin
-        .from("access_logs")
-        .select("created_at, city, ll")
-        .gte("created_at", thirtyDaysAgo.toISOString());
-      if (accessError) throw accessError;
-
-      const dailyAccess: Record<string, number> = {};
-      (accessLogs || []).forEach((log: { created_at?: string }) => {
-        const date = String(log.created_at || "").split("T")[0];
-        if (!date) return;
-        dailyAccess[date] = (dailyAccess[date] || 0) + 1;
-      });
-
+      const { fetchAdminActivityStats } = await import("./adminActivityStats.js");
+      const stats = await fetchAdminActivityStats(supabaseAdmin);
       res.json({
-        childrenPerTenant,
-        dailyAccess,
-        geoActivity:
-          (accessLogs || [])
-            .filter((l: { ll?: number[] | null }) => Array.isArray(l.ll) && l.ll.length >= 2)
-            .map((l: { city?: string | null; ll?: number[] }) => ({
-              city: l.city,
-              lat: l.ll![0],
-              lon: l.ll![1],
-            })) || [],
+        childrenPerTenant: stats.childrenPerTenant,
+        dailyAccess: stats.dailyAccess,
+        geoActivity: stats.geoActivity,
       });
     } catch (error) {
       console.error("[STATS] Error fetching system stats:", error);

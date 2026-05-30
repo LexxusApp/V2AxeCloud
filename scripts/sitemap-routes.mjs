@@ -30,4 +30,28 @@ export const SITEMAP_ROUTES = [
     priority: 0.5,
     comment: 'Política de Privacidade pública',
   },
+  {
+    path: '/programa-fundador',
+    changeFrequency: 'weekly',
+    priority: 0.95,
+    comment: 'Programa Fundador — inscrição de terreiros',
+  },
+  {
+    path: '/conteudo',
+    changeFrequency: 'weekly',
+    priority: 0.85,
+    comment: 'Hub de conteúdo do portal',
+  },
+  {
+    path: '/conteudo/como-o-axecloud-ajuda-terreiros',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+    comment: 'Artigo — como o AxéCloud ajuda terreiros',
+  },
+  {
+    path: '/conteudo/glossario',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+    comment: 'Glossário do axé',
+  },
 ];

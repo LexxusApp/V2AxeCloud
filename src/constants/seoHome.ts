@@ -43,6 +43,10 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
     a: 'Sim. O calendário litúrgico organiza giras, festas e obrigações do terreiro. Filhos de santo veem a agenda; a diretoria gerencia eventos e presença.',
   },
   {
+    q: 'Existe programa gratuito para começar?',
+    a: 'Sim. O Programa Fundador oferece 12 meses gratuitos para as primeiras casas selecionadas, com onboarding personalizado. Depois do período, a mensalidade segue a partir de R$ 89,90. Inscreva-se em axecloud.com.br/programa-fundador.',
+  },
+  {
     q: 'Preciso instalar alguma coisa no computador ou celular?',
     a: 'Não. O AxéCloud funciona 100% na nuvem pelo navegador — computador, tablet ou celular — sem instalação.',
   },

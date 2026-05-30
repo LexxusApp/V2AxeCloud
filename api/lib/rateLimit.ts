@@ -120,3 +120,10 @@ export const pushDirectRateLimit = createRateLimit({
   keyPrefix: "push-direct",
   message: { error: "Limite de notificações diretas excedido." },
 });
+
+export const publicFormRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  keyPrefix: "public-form",
+  message: { error: "Muitas tentativas. Aguarde alguns minutos antes de enviar novamente." },
+});

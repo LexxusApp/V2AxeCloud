@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, LayoutDashboard, Megaphone, Users, type LucideIcon } from 'lucide-react';
+import { CalendarDays, Images, LayoutDashboard, Megaphone, Package, Users, Wallet, BookOpen, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 type TourStep = {
   id: string;
@@ -45,6 +46,38 @@ const TOUR_STEPS: TourStep[] = [
     src: '/screenshots/mural.png',
     desc: 'Comunicados e avisos visíveis para a comunidade, sem grupos espalhados.',
   },
+  {
+    id: 'galeria',
+    label: 'Galeria',
+    shortLabel: 'Galeria',
+    icon: Images,
+    src: '/screenshots/galeria.png',
+    desc: 'Álbuns de fotos e vídeos do terreiro, organizados por evento ou tema.',
+  },
+  {
+    id: 'financeiro',
+    label: 'Financeiro',
+    shortLabel: 'Financeiro',
+    icon: Wallet,
+    src: '/screenshots/financeiro.png',
+    desc: 'Entradas, saídas, Pix e histórico com transparência para a diretoria.',
+  },
+  {
+    id: 'biblioteca',
+    label: 'Biblioteca de Estudo',
+    shortLabel: 'Biblioteca',
+    icon: BookOpen,
+    src: '/screenshots/biblioteca-estudo.png',
+    desc: 'Materiais e estudos acessíveis a quem precisa aprender na casa.',
+  },
+  {
+    id: 'loja',
+    label: 'Loja do Axé',
+    shortLabel: 'Loja',
+    icon: Package,
+    src: '/screenshots/loja-axe.png',
+    desc: 'Ofertas e itens vinculados à casa, com pedidos e estoque integrados.',
+  },
 ];
 
 const fade = {
@@ -59,27 +92,17 @@ export function SystemTour() {
   const active = TOUR_STEPS.find((s) => s.id === activeId) ?? TOUR_STEPS[0];
 
   return (
-    <section
-      id="tour"
-      className="relative border-t border-white/5 py-16 sm:py-24"
-      aria-labelledby="tour-head"
-    >
-      <motion.div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8" {...fade}>
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">
-            Tour do produto
-          </p>
-          <h2 id="tour-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
-            Veja o painel por dentro
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-400 sm:text-base">
-            Telas reais capturadas de uma sessão de zelador. Navegue pelos módulos principais — a mesma
-            experiência que sua equipe terá após o login.
-          </p>
-        </div>
+    <LandingSection id="tour" variant="alt" aria-labelledby="tour-head">
+      <motion.div className="landing-section-inner" {...fade}>
+        <LandingSectionHeader
+          kicker="Tour do produto"
+          title="Veja o painel por dentro"
+          titleId="tour-head"
+          lead="Telas reais capturadas de uma sessão de zelador. Navegue pelos módulos principais — a mesma experiência que sua equipe terá após o login."
+        />
 
         <div
-          className="mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-0"
+          className="relative z-10 mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-0"
           role="tablist"
           aria-label="Módulos do sistema"
         >
@@ -98,11 +121,11 @@ export function SystemTour() {
                 className={cn(
                   'inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-[13px] font-semibold transition-all duration-200 sm:px-4',
                   isActive
-                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 shadow-[0_0_24px_-6px_rgba(251,191,36,0.35)]'
-                    : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900/80 hover:text-neutral-200'
+                    ? 'border-primary/40 bg-primary/10 text-primary shadow-[0_0_24px_-6px_rgba(251,188,0,0.35)]'
+                    : 'border-white/10 bg-white/[0.03] text-zinc-500 hover:border-white/20 hover:text-zinc-200'
                 )}
               >
-                <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-amber-400' : 'text-neutral-500')} />
+                <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-zinc-600')} />
                 <span className="hidden sm:inline">{step.label}</span>
                 <span className="sm:hidden">{step.shortLabel}</span>
               </button>
@@ -114,27 +137,16 @@ export function SystemTour() {
           id={`tour-panel-${active.id}`}
           role="tabpanel"
           aria-labelledby={`tour-tab-${active.id}`}
-          className="mt-8"
+          className="relative z-10 mt-8"
         >
           <div className="relative mx-auto max-w-4xl">
-            <motion.div
-              className="pointer-events-none absolute -inset-4 rounded-3xl bg-amber-500/8 blur-3xl sm:-inset-8"
-              aria-hidden
-            />
-            <motion.div
-              className={cn(
-                'relative overflow-hidden rounded-2xl border border-neutral-800',
-                'bg-neutral-950 shadow-2xl shadow-black/60',
-                'ring-1 ring-white/[0.06]'
-              )}
-            >
-              <div className="flex items-center gap-2 border-b border-neutral-800 bg-neutral-900/90 px-4 py-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500/90" aria-hidden />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/90" aria-hidden />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" aria-hidden />
-                <span className="ml-2 truncate text-[11px] font-mono text-neutral-500">
-                  axecloud.com.br — {active.label}
-                </span>
+            <div className="landing-hero-orb landing-hero-orb--a !top-auto !bottom-0 !left-1/4 opacity-60" aria-hidden />
+            <div className="landing-device-frame landing-hero-device">
+              <div className="landing-device-chrome">
+                <span className="landing-device-dot bg-red-500/90" aria-hidden />
+                <span className="landing-device-dot bg-amber-400/90" aria-hidden />
+                <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
+                <span className="landing-device-url">app.axecloud.com.br — {active.label}</span>
               </div>
               <div className="bg-[#0a0a0a] p-2 sm:p-3">
                 <AnimatePresence mode="wait">
@@ -148,7 +160,7 @@ export function SystemTour() {
                     <img
                       src={active.src}
                       alt={`${active.label} — gestão de terreiro AxéCloud`}
-                      className="mx-auto h-auto w-full max-h-[min(70vh,520px)] rounded-lg object-contain object-top shadow-[inset_0_0_60px_rgba(0,0,0,0.4)]"
+                      className="mx-auto h-auto w-full max-h-[min(70vh,520px)] rounded-lg object-contain object-top"
                       width={1400}
                       height={900}
                       loading="lazy"
@@ -157,14 +169,14 @@ export function SystemTour() {
                   </motion.div>
                 </AnimatePresence>
               </div>
-              <div className="border-t border-neutral-800 bg-neutral-900/60 px-4 py-4 sm:px-5">
+              <div className="border-t border-[#2a2108] bg-[#0d0d0d]/90 px-4 py-4 sm:px-5">
                 <p className="text-[11px] font-black uppercase tracking-widest text-primary">{active.label}</p>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-400">{active.desc}</p>
+                <p className="mt-1 text-sm leading-relaxed text-zinc-400">{active.desc}</p>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </motion.div>
-    </section>
+    </LandingSection>
   );
 }

@@ -54,6 +54,7 @@ import { logEvent } from "./lib/auditLog.js";
 import { createAuditLog } from "./lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
+import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
@@ -88,6 +89,7 @@ import {
   pushDirectRateLimit,
 } from "./lib/rateLimit.js";
 import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
+import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -2906,6 +2908,9 @@ async function startServer() {
   });
 
   // GET /api/tenant-info: em produção via api/public.ts (rewrite); localmente também neste Express.
+  app.get("/api/tenant-info", (req, res) => {
+    void handleTenantInfoRoute(req as Parameters<typeof handleTenantInfoRoute>[0], res);
+  });
 
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {
@@ -3152,6 +3157,7 @@ async function startServer() {
   });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
+  registerFounderProgramRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });

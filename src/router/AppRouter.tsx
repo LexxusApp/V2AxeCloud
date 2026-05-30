@@ -7,6 +7,10 @@ import Loading from '../app/loading';
 const Landing = lazy(() => import('../views/Landing'));
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
+const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
+const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
+const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
+const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
@@ -24,6 +28,14 @@ function RoutedPage({ path }: { path: string }) {
       return <TermsPage />;
     case ROUTES.privacy:
       return <PrivacyPage />;
+    case ROUTES.founderProgram:
+      return <FounderProgramPage />;
+    case ROUTES.contentHub:
+      return <ContentHubPage />;
+    case ROUTES.contentArticle:
+      return <PortalArticlePage />;
+    case ROUTES.glossary:
+      return <GlossaryPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
     case ROUTES.home:

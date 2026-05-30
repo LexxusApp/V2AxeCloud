@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Crown, TrendingUp, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 type AudienceItem = {
   id: string;
@@ -41,25 +42,20 @@ const fade = {
 
 export function LandingAudience() {
   return (
-    <section
-      id="para-quem"
-      className="relative border-t border-white/5 bg-black/25 py-16 sm:py-24"
-      aria-labelledby="quem-head"
-    >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <LandingSection id="para-quem" variant="highlight" aria-labelledby="quem-head">
+      <div className="landing-section-inner">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
-          <motion.div {...fade}>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/90">Para quem</p>
-            <h2 id="quem-head" className="mt-2 text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
-              Quem manda, quem cuida e quem cresce junto
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-neutral-400 sm:text-base">
-              A landing segue a mesma promessa do sistema: profissionalismo com respeito. Feito para quem segura a
-              casa — do zelador ao sacerdote — sem transformar a fé em burocracia.
-            </p>
+          <motion.div {...fade} className="relative z-10">
+            <LandingSectionHeader
+              kicker="Para quem"
+              title="Quem manda, quem cuida e quem cresce junto"
+              titleId="quem-head"
+              center={false}
+              lead="A mesma promessa do sistema: profissionalismo com respeito. Feito para quem segura a casa — do zelador ao sacerdote — sem transformar a fé em burocracia."
+            />
           </motion.div>
 
-          <ul className="space-y-3 sm:space-y-4" role="list">
+          <ul className="relative z-10 space-y-3 sm:space-y-4" role="list">
             {AUDIENCE.map((item, i) => {
               const Icon = item.icon;
               return (
@@ -68,25 +64,23 @@ export function LandingAudience() {
                   {...fade}
                   transition={{ ...fade.transition, delay: 0.06 * i }}
                   className={cn(
-                    'flex gap-4 rounded-2xl p-4 sm:p-5 transition-colors',
-                    item.featured
-                      ? 'border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.12] via-neutral-900/50 to-neutral-950/80 shadow-[0_0_48px_-16px_rgba(251,191,36,0.35)] backdrop-blur-md'
-                      : 'border border-neutral-800/80 bg-neutral-900/35 backdrop-blur-sm hover:border-neutral-700/80'
+                    'landing-mystic-card flex gap-4 !rounded-2xl p-4 sm:p-5',
+                    item.featured && 'border-primary/30'
                   )}
                 >
                   <span
                     className={cn(
                       'grid h-11 w-11 shrink-0 place-items-center rounded-xl border',
                       item.featured
-                        ? 'border-amber-500/35 bg-amber-500/15 text-amber-400'
-                        : 'border-neutral-700 bg-neutral-950/80 text-primary'
+                        ? 'border-primary/35 bg-primary/15 text-primary'
+                        : 'border-white/10 bg-white/[0.04] text-primary'
                     )}
                   >
                     <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
                   </span>
                   <div className="min-w-0">
                     <h3 className="text-sm font-bold text-white sm:text-base">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-neutral-400">{item.text}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-400">{item.text}</p>
                   </div>
                 </motion.li>
               );
@@ -94,6 +88,6 @@ export function LandingAudience() {
           </ul>
         </div>
       </div>
-    </section>
+    </LandingSection>
   );
 }

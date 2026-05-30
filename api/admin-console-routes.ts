@@ -195,6 +195,20 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         planHistogram,
         accessLogsAvailable,
         accessEventsLast7Days: accessLast7d,
+        founderApplications: await (async () => {
+          try {
+            const { getFounderApplicationStats } = await import("./lib/founderProgramAdmin.js");
+            const stats = await getFounderApplicationStats(deps.supabaseAdmin);
+            return {
+              available: stats.available,
+              pending: stats.pending,
+              total: stats.total,
+              remainingSlots: stats.remainingSlots,
+            };
+          } catch {
+            return { available: false, pending: 0, total: 0, remainingSlots: 20 };
+          }
+        })(),
       });
     } catch (e: any) {
       console.error("[admin-console/overview]", e);
@@ -1220,61 +1234,8 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
       });
 
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      let accessLogs: any[] | null = [];
-      let accessLogsAvailable = true;
-      let accessLogsError: string | undefined;
-      try {
-        const q = await deps.supabaseAdmin
-          .from("access_logs")
-          .select("created_at, city, ll")
-          .gte("created_at", thirtyDaysAgo.toISOString());
-        if (q.error) {
-          if (isMissingOrUnknownTable(q.error, "access_logs")) {
-            accessLogsAvailable = false;
-            accessLogsError = q.error.message;
-          } else {
-            throw q.error;
-          }
-        } else {
-          accessLogs = q.data;
-        }
-      } catch (acErr: any) {
-        if (isMissingOrUnknownTable(acErr, "access_logs")) {
-          accessLogsAvailable = false;
-          accessLogsError = acErr?.message;
-        } else {
-          throw acErr;
-        }
-      }
-
-      if (!accessLogsAvailable) {
-        return res.json({
-          childrenPerTenant,
-          dailyAccess: {},
-          geoActivity: [],
-          accessLogsAvailable: false,
-          accessLogsError,
-        });
-      }
-
-      const dailyAccess: Record<string, number> = {};
-      (accessLogs || []).forEach((log: any) => {
-        const date = String(log.created_at || "").split("T")[0];
-        if (date) dailyAccess[date] = (dailyAccess[date] || 0) + 1;
-      });
-      res.json({
-        childrenPerTenant,
-        dailyAccess,
-        geoActivity:
-          accessLogs?.filter((l: any) => l.ll).map((l: any) => ({
-            city: l.city,
-            lat: l.ll[0],
-            lon: l.ll[1],
-          })) || [],
-        accessLogsAvailable: true,
-      });
+      const { fetchAdminActivityStats } = await import("./lib/adminActivityStats.js");
+      res.json(await fetchAdminActivityStats(deps.supabaseAdmin));
     } catch (e: any) {
       console.error("[admin-console/activity]", e);
       res.status(500).json({ error: e?.message || "Erro interno" });
@@ -1375,6 +1336,67 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/quick-actions/financial-report]", e);
       res.status(500).json({ error: e?.message || "Erro ao gerar relatório" });
+    }
+  });
+
+  app.get("/api/admin-console/founder-applications", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listFounderApplications, getFounderApplicationStats } = await import("./lib/founderProgramAdmin.js");
+      const status = typeof req.query.status === "string" ? req.query.status : "";
+      const limit = typeof req.query.limit === "string" ? req.query.limit : "200";
+      const [list, stats] = await Promise.all([
+        listFounderApplications(deps.supabaseAdmin, { status, limit: Number(limit) }),
+        getFounderApplicationStats(deps.supabaseAdmin),
+      ]);
+      res.json({ success: true, stats, ...list });
+    } catch (e: any) {
+      console.error("[admin-console/founder-applications]", e);
+      res.status(500).json({ error: e?.message || "Erro ao listar inscrições" });
+    }
+  });
+
+  app.get("/api/admin-console/supabase-metrics", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const refresh = String(req.query.refresh || "") === "1";
+      const { fetchSupabaseMetricsSnapshot } = await import("./lib/supabaseMetrics.js");
+      const snapshot = await fetchSupabaseMetricsSnapshot({ bypassCache: refresh });
+      res.json({ success: true, ...snapshot });
+    } catch (e: any) {
+      console.error("[admin-console/supabase-metrics]", e);
+      res.status(500).json({ error: e?.message || "Erro ao obter métricas Supabase" });
+    }
+  });
+
+  app.patch("/api/admin-console/founder-applications/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    const status = String((req.body || {}).status || "").trim().toLowerCase();
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+    try {
+      const { updateFounderApplicationStatus, FOUNDER_STATUSES } = await import("./lib/founderProgramAdmin.js");
+      if (!(FOUNDER_STATUSES as readonly string[]).includes(status)) {
+        return res.status(400).json({ error: "Status inválido." });
+      }
+      const row = await updateFounderApplicationStatus(deps.supabaseAdmin, id, status as any);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "founder-application.status",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "founder_application",
+        targetId: id,
+        description: `Inscrição «${row.nome_casa}» → ${status}`,
+        metadata: { status, nome_casa: row.nome_casa },
+        req,
+      });
+      res.json({ success: true, row });
+    } catch (e: any) {
+      console.error("[admin-console/founder-applications/patch]", e);
+      res.status(500).json({ error: e?.message || "Erro ao actualizar inscrição" });
     }
   });
 }
