@@ -10,12 +10,12 @@ import {
 import { useFounderProgramStats } from '../../hooks/useFounderProgramStats';
 
 const fieldClass = cn(
-  'w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-3 py-2.5',
-  'text-sm text-white placeholder:text-neutral-500',
+  'w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-3.5 py-3',
+  'text-base text-white placeholder:text-neutral-500',
   'outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/15',
 );
 
-const labelClass = 'mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-400';
+const labelClass = 'mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-zinc-400 sm:text-[13px]';
 
 type FounderProgramFormProps = {
   className?: string;
@@ -84,7 +84,7 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
   return (
     <div className={className}>
       {showSlotsBanner ? (
-        <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-zinc-300">
+        <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3.5 text-base text-zinc-300">
           {statsLoading ? (
             <span className="text-zinc-500">Carregando vagas…</span>
           ) : slotsClosed ? (
@@ -106,7 +106,7 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
       ) : null}
 
       {success ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-sm text-emerald-100" role="status">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-base text-emerald-100" role="status">
           <p className="flex items-start gap-2 font-semibold">
             <Check className="mt-0.5 h-4 w-4 shrink-0" />
             {success}
@@ -263,13 +263,13 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
               className="mt-1 h-4 w-4 accent-primary"
               disabled={slotsClosed || submitting}
             />
-            <span className="text-xs leading-relaxed text-zinc-400">
+            <span className="text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
               Autorizo a exibição futura de perfil público no portal AxéCloud (nome da casa, cidade, tradição e
               contato — sem endereço completo sem meu consentimento). *
             </span>
           </label>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3.5">
             <input
               type="checkbox"
               checked={autorizaDepoimento}
@@ -277,7 +277,7 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
               className="mt-1 h-4 w-4 accent-primary"
               disabled={slotsClosed || submitting}
             />
-            <span className="text-xs leading-relaxed text-zinc-400">
+            <span className="text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
               Autorizo depoimento sobre o uso do AxéCloud em materiais do site (opcional).
             </span>
           </label>
@@ -291,13 +291,13 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
           <button
             type="submit"
             disabled={slotsClosed || submitting || !autorizaPerfil}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-black uppercase tracking-wider text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-base font-black uppercase tracking-wider text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {slotsClosed ? 'Vagas esgotadas' : 'Quero ser casa fundadora'}
           </button>
 
-          <p className="text-center text-[11px] leading-relaxed text-zinc-600">
+          <p className="text-center text-xs leading-relaxed text-zinc-600 sm:text-sm">
             Gratuito por {FOUNDER_PROGRAM.freeMonths} meses para casas selecionadas. Depois:{' '}
             {FOUNDER_PROGRAM.futurePriceLabel}. Sem cartão nesta etapa.
           </p>

@@ -213,12 +213,12 @@ function HeroFeatureFloatingCards() {
                 animate={{ opacity: 1, x: 0, y: 0 }}
                 transition={{ duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  'absolute max-w-[11rem] rounded-xl border bg-neutral-950/90 px-3 py-2.5',
-                  'shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md sm:max-w-[12rem]',
+                  'absolute rounded-xl border bg-neutral-950/90 px-2.5 py-2 sm:px-3 sm:py-2.5',
+                  'shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md',
                   accent.border,
                   card.slot === 'top'
-                    ? '-left-2 top-[18%] sm:-left-6'
-                    : '-right-1 bottom-[22%] sm:-right-5 max-w-[10.5rem]',
+                    ? 'left-0 top-[12%] max-w-[10.25rem] sm:-left-6 sm:top-[18%] sm:max-w-[12rem]'
+                    : 'right-0 bottom-[16%] max-w-[9.75rem] sm:-right-5 sm:bottom-[22%] sm:max-w-[10.5rem]',
                 )}
               >
                 <p
@@ -266,7 +266,7 @@ const highlights = [
 export function LandingHero() {
   return (
     <section
-      className="landing-hero relative -mx-4 overflow-hidden px-4 pb-20 pt-6 sm:-mx-6 sm:px-6 sm:pb-24 lg:-mx-8 lg:px-8 lg:pb-28"
+      className="landing-hero relative -mx-4 overflow-x-hidden px-4 pb-20 pt-6 sm:-mx-6 sm:px-6 sm:pb-24 lg:-mx-8 lg:px-8 lg:pb-28"
       aria-labelledby="hero-title"
     >
       <AuthScreenBackground variant="dark" className="absolute inset-0 landing-hero-photo" />
@@ -338,7 +338,7 @@ export function LandingHero() {
           initial={{ opacity: 0, y: 32, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.65, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto w-full max-w-lg lg:max-w-none"
+          className="relative mx-auto w-full max-w-lg overflow-visible px-0.5 sm:px-0 lg:max-w-none"
         >
           <div className="landing-hero-glow pointer-events-none absolute -inset-6 rounded-[2rem] opacity-80" aria-hidden />
 
