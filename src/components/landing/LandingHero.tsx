@@ -1,12 +1,21 @@
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
+  BookOpen,
   CalendarDays,
+  ImageIcon,
+  Megaphone,
+  MessageCircle,
+  Package,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   TrendingUp,
+  UserCircle,
   Users,
   Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 import { HOME_SEO } from '../../constants/seoHome';
 import { ROUTES } from '../../lib/routes';
@@ -14,6 +23,238 @@ import { AuthScreenBackground } from '../AuthScreenBackground';
 import { cn } from '../../lib/utils';
 
 const HERO_SCREENSHOT = '/screenshots/painel-inicio.png';
+
+const ROTATE_MS = 4500;
+
+type HeroFeatureCard = {
+  id: string;
+  icon: LucideIcon;
+  tag: string;
+  title: string;
+  desc: string;
+  accent: 'primary' | 'emerald' | 'sky' | 'violet';
+  slot: 'top' | 'bottom';
+};
+
+type HeroFeaturePair = [HeroFeatureCard, HeroFeatureCard];
+
+const HERO_FEATURE_PAIRS: HeroFeaturePair[] = [
+  [
+    {
+      id: 'financeiro',
+      icon: TrendingUp,
+      tag: 'Financeiro',
+      title: 'Mensalidades claras',
+      desc: 'Pix e histórico para a diretoria',
+      accent: 'primary',
+      slot: 'top',
+    },
+    {
+      id: 'giras',
+      icon: CalendarDays,
+      tag: 'Giras',
+      title: 'Agenda da casa',
+      desc: 'Filhos e zelador no mesmo fluxo',
+      accent: 'emerald',
+      slot: 'bottom',
+    },
+  ],
+  [
+    {
+      id: 'filhos',
+      icon: Users,
+      tag: 'Filhos de santo',
+      title: 'Cadastro da casa',
+      desc: 'Pessoas, contatos e rotina organizados',
+      accent: 'sky',
+      slot: 'top',
+    },
+    {
+      id: 'mural',
+      icon: Megaphone,
+      tag: 'Mural',
+      title: 'Avisos da diretoria',
+      desc: 'Comunicados visíveis para a comunidade',
+      accent: 'violet',
+      slot: 'bottom',
+    },
+  ],
+  [
+    {
+      id: 'galeria',
+      icon: ImageIcon,
+      tag: 'Galeria',
+      title: 'Memória do terreiro',
+      desc: 'Fotos e momentos da casa num só lugar',
+      accent: 'primary',
+      slot: 'top',
+    },
+    {
+      id: 'biblioteca',
+      icon: BookOpen,
+      tag: 'Biblioteca',
+      title: 'Estudos e textos',
+      desc: 'Conteúdo sagrado acessível aos filhos',
+      accent: 'emerald',
+      slot: 'bottom',
+    },
+  ],
+  [
+    {
+      id: 'portal',
+      icon: UserCircle,
+      tag: 'Portal do filho',
+      title: 'Área da comunidade',
+      desc: 'Extrato, giras e avisos no celular',
+      accent: 'sky',
+      slot: 'top',
+    },
+    {
+      id: 'whatsapp',
+      icon: MessageCircle,
+      tag: 'WhatsApp',
+      title: 'Avisos automáticos',
+      desc: 'Lembretes de gira e mensalidade',
+      accent: 'emerald',
+      slot: 'bottom',
+    },
+  ],
+  [
+    {
+      id: 'estoque',
+      icon: Package,
+      tag: 'Almoxarifado',
+      title: 'Estoque sagrado',
+      desc: 'Oferendas e materiais sob controle',
+      accent: 'violet',
+      slot: 'top',
+    },
+    {
+      id: 'loja',
+      icon: ShoppingBag,
+      tag: 'Loja do axé',
+      title: 'Vendas da casa',
+      desc: 'Artigos e contribuições integrados',
+      accent: 'primary',
+      slot: 'bottom',
+    },
+  ],
+  [
+    {
+      id: 'pix',
+      icon: Wallet,
+      tag: 'Pix integrado',
+      title: 'Cobrança transparente',
+      desc: 'EFI Bank com confirmação automática',
+      accent: 'primary',
+      slot: 'top',
+    },
+    {
+      id: 'seguranca',
+      icon: ShieldCheck,
+      tag: 'Dados protegidos',
+      title: 'Sigilo da casa',
+      desc: 'Criptografia e respeito à privacidade',
+      accent: 'emerald',
+      slot: 'bottom',
+    },
+  ],
+];
+
+const accentStyles = {
+  primary: {
+    tag: 'text-primary',
+    border: 'border-primary/25',
+  },
+  emerald: {
+    tag: 'text-emerald-400/90',
+    border: 'border-emerald-500/20',
+  },
+  sky: {
+    tag: 'text-sky-400/90',
+    border: 'border-sky-500/20',
+  },
+  violet: {
+    tag: 'text-violet-400/90',
+    border: 'border-violet-500/20',
+  },
+} as const;
+
+function HeroFeatureFloatingCards() {
+  const [pairIndex, setPairIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPairIndex((i) => (i + 1) % HERO_FEATURE_PAIRS.length);
+    }, ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const pair = HERO_FEATURE_PAIRS[pairIndex];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20" aria-live="polite" aria-atomic="true">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={pairIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: 'easeInOut' }}
+          className="absolute inset-0"
+        >
+          {pair.map((card, i) => {
+            const Icon = card.icon;
+            const accent = accentStyles[card.accent];
+            return (
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, x: card.slot === 'top' ? -16 : 16, y: 8 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className={cn(
+                  'absolute max-w-[11rem] rounded-xl border bg-neutral-950/90 px-3 py-2.5',
+                  'shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md sm:max-w-[12rem]',
+                  accent.border,
+                  card.slot === 'top'
+                    ? '-left-2 top-[18%] sm:-left-6'
+                    : '-right-1 bottom-[22%] sm:-right-5 max-w-[10.5rem]',
+                )}
+              >
+                <p
+                  className={cn(
+                    'flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider',
+                    accent.tag,
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {card.tag}
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-white">{card.title}</p>
+                <p className="text-[11px] leading-snug text-zinc-500">{card.desc}</p>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
+
+      <div
+        className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
+        aria-hidden
+      >
+        {HERO_FEATURE_PAIRS.map((_, i) => (
+          <span
+            key={i}
+            className={cn(
+              'h-1 rounded-full transition-all duration-300',
+              i === pairIndex ? 'w-4 bg-primary' : 'w-1 bg-white/25',
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const highlights = [
   { icon: Wallet, label: 'Financeiro + Pix' },
@@ -125,39 +366,7 @@ export function LandingHero() {
             </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.45, duration: 0.4 }}
-            className={cn(
-              'absolute -left-2 top-[18%] z-20 max-w-[11rem] rounded-xl border border-primary/25',
-              'bg-neutral-950/90 px-3 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md sm:-left-6 sm:max-w-[12rem]',
-            )}
-          >
-            <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-primary">
-              <TrendingUp className="h-3.5 w-3.5" aria-hidden />
-              Financeiro
-            </p>
-            <p className="mt-0.5 text-sm font-bold text-white">Mensalidades claras</p>
-            <p className="text-[11px] text-zinc-500">Pix e histórico para a diretoria</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.55, duration: 0.4 }}
-            className={cn(
-              'absolute -right-1 bottom-[22%] z-20 max-w-[10.5rem] rounded-xl border border-white/10',
-              'bg-neutral-950/90 px-3 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md sm:-right-5',
-            )}
-          >
-            <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400/90">
-              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-              Giras
-            </p>
-            <p className="mt-0.5 text-sm font-bold text-white">Agenda da casa</p>
-            <p className="text-[11px] text-zinc-500">Filhos e zelador no mesmo fluxo</p>
-          </motion.div>
+          <HeroFeatureFloatingCards />
         </motion.div>
       </div>
     </section>
