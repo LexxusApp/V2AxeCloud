@@ -428,14 +428,14 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           tenantData={tenantData}
           setActiveTab={setActiveTab}
           actions={
-            <div className="flex items-center gap-4">
+            <div className="flex w-full flex-wrap items-center gap-3 xl:w-auto xl:flex-nowrap">
               {isAdmin && (
                 <button 
                   onClick={() => setIsAddProductOpen(true)}
-                  className="px-4 py-3 bg-primary text-background rounded-lg font-black text-sm hover:scale-105 transition-transform flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-black text-background transition-transform hover:scale-105 md:px-4 md:text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Novo Produto
+                  Novo
                 </button>
               )}
               <button 
@@ -454,7 +454,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
         />
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="bg-[#121212] rounded-2xl border border-[#FBBC00]/20 overflow-hidden animate-pulse md:rounded-3xl">
                 <div className="aspect-square bg-white/5" />
@@ -473,7 +473,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             <p className="text-gray-400 mt-2">A loja do terreiro ainda está vazia.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
             {products.map(product => {
               const isLowStock = product.estoque_atual > 0 && product.estoque_atual <= product.estoque_minimo;
               const isOutOfStock = product.estoque_atual === 0;

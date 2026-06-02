@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Plus, MoreVertical, User, Calendar, MapPin, Phone, Loader2, X, Upload, CheckCircle2, Lock } from 'lucide-react';
+import { Search, Filter, Plus, User, Calendar, Phone, Loader2, X, CheckCircle2, Lock, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch, getAccessToken } from '../lib/authenticatedFetch';
@@ -9,6 +9,7 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import LuxuryLoading from '../components/LuxuryLoading';
 import PageHeader from '../components/PageHeader';
 import Avatar from '../components/Avatar';
+import { ChildMemberSacredWatermark } from '../components/ChildMemberSacredWatermark';
 import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 
 interface Child {
@@ -197,8 +198,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   }
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader 
+    <div className="relative flex min-h-full flex-col">
+      <PageHeader
         title={<>Gestão de <span className="text-primary">Filhos</span></>}
         subtitle="Administre a comunidade do seu terreiro."
         tenantData={tenantData}
@@ -216,7 +217,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               "w-full md:w-auto px-6 py-3 rounded-lg font-black flex items-center justify-center gap-2 transition-transform",
               isLimitReached
                 ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700" 
-                : "bg-primary text-background shadow-lg shadow-primary/20 hover:scale-105"
+                : "bg-primary text-background shadow-[0_8px_28px_rgba(251,188,0,0.35)] hover:scale-105"
             )}
             title={isLimitReached ? "Limite de filhos atingido no seu plano atual" : "Adicionar novo filho de santo"}
           >
@@ -226,7 +227,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         }
       />
 
-      <div className="flex-1 mx-auto w-full max-w-[1440px] space-y-8 px-3 pb-20 animate-in slide-in-from-bottom-4 duration-700 sm:px-4 md:px-6 lg:px-10">
+      <div className="relative z-[1] mx-auto w-full max-w-[1440px] flex-1 space-y-8 px-3 pb-20 animate-in slide-in-from-bottom-4 duration-700 sm:px-4 md:px-6 lg:px-10">
         {/* Filters Bar */}
         <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative min-w-0 flex-1 w-full group">
@@ -261,89 +262,102 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       </div>
 
       {/* Grid */}
-      <div
-        className={cn(
-          'grid gap-3 md:gap-4',
-          filteredChildren.length === 1
-            ? 'grid-cols-1'
-            : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6'
-        )}
-      >
-        {filteredChildren.length > 0 ? filteredChildren.map((child, idx) => {
-          const singleCard = filteredChildren.length === 1;
-          return (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredChildren.length > 0 ? filteredChildren.map((child, idx) => (
           <motion.div
             key={child.id}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.05 }}
-            className={cn(
-              'card-luxury group relative overflow-hidden rounded-xl border-white/5 bg-black/40 p-3 shadow-xl transition-all duration-500 hover:border-primary/30 md:p-4',
-              singleCard &&
-                'w-full max-w-[200px] justify-self-start sm:max-w-[210px] md:max-w-[220px] md:p-3.5'
-            )}
+            className="child-member-card group"
           >
-            <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
-                onClick={() => handleDelete(child.id, child.nome)}
-                className="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
-                title="Excluir Perfil"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <div className="child-member-card__inner">
+              <div className="child-member-card__content">
+                {/* Marca d'água sagrada — centralizada atrás do avatar, como na referência */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 z-0 flex justify-center overflow-hidden"
+                  aria-hidden
+                >
+                  <div className="child-member-card__watermark">
+                    <ChildMemberSacredWatermark className="h-full w-full opacity-[0.13]" />
+                  </div>
+                </div>
 
-            <div className={cn(
-              'flex mb-3 gap-3',
-              singleCard ? 'flex-col items-center text-center gap-2.5' : 'items-center'
-            )}>
-              <div className="relative shrink-0">
+            <div
+              className={cn(
+                'absolute right-4 top-4 h-2.5 w-2.5 rounded-full border-2 border-[#141414]',
+                child.status === 'Ativo' ? 'bg-emerald-500' : 'bg-amber-500'
+              )}
+              title={child.status}
+            />
+
+            <button
+              type="button"
+              onClick={() => handleDelete(child.id, child.nome)}
+              className="absolute left-3 top-3 rounded-lg p-1.5 text-gray-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
+              title="Excluir Perfil"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+
+            <div className="relative z-[1] flex flex-col items-center px-5 pb-4 pt-8 text-center">
+              <div className="child-member-avatar-ring">
                 <Avatar
                   src={child.foto_url}
                   name={child.nome}
-                  shape="rounded"
-                  textSize={singleCard ? 'text-base' : 'text-sm'}
-                  className={cn(
-                    'border-2 border-white/5 group-hover:border-primary/50 transition-all duration-500 shadow-lg',
-                    singleCard ? 'w-14 h-14' : 'w-11 h-11'
-                  )}
+                  shape="circle"
+                  textSize="text-xl"
+                  className="h-20 w-20 border-2 border-[#141414]/80 bg-[#141414] shadow-inner transition-all duration-300 group-hover:border-primary/30"
                 />
-                <div className={cn(
-                  "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#1A1A1A]",
-                  child.status === 'Ativo' ? "bg-emerald-500" : "bg-amber-500"
-                )} />
               </div>
-              <div className={cn('min-w-0', singleCard ? 'w-full px-0' : 'flex-1 pr-5')}>
-                <h3 className="text-sm font-black text-white group-hover:text-primary transition-colors tracking-tight truncate">{child.nome}</h3>
-                <span className="text-[9px] font-black text-primary/80 uppercase tracking-widest truncate block">{child.cargo}</span>
+              <h3 className="mt-4 line-clamp-2 text-lg font-black tracking-tight text-white transition-colors group-hover:text-primary">
+                {child.nome}
+              </h3>
+              <span className="mt-1 line-clamp-1 text-[11px] font-black uppercase tracking-[0.22em] text-primary">
+                {child.cargo || 'Filho de Santo'}
+              </span>
+            </div>
+
+            <div className="mx-5 border-t border-white/10" />
+
+            <div className="flex flex-1 flex-col justify-center space-y-4 px-5 py-5">
+              <div className="flex items-start gap-3">
+                <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Iniciação</p>
+                  <p className="truncate text-sm font-bold text-white">
+                    {child.data_entrada
+                      ? new Date(child.data_entrada).toLocaleDateString('pt-BR')
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <User className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Ancestral</p>
+                  <p className="truncate text-sm font-bold text-white">{child.orixa_frente || '—'}</p>
+                </div>
               </div>
             </div>
 
-            <div className={cn('space-y-1.5', singleCard && 'text-center')}>
-              <div className={cn('flex items-center gap-2 text-gray-400', singleCard && 'justify-center')}>
-                <Calendar className="w-3 h-3 text-primary/60 shrink-0" />
-                <span className="text-[10px] font-bold truncate">{new Date(child.data_entrada).toLocaleDateString('pt-BR')}</span>
-              </div>
-              <div className={cn('flex items-center gap-2 text-gray-400', singleCard && 'justify-center')}>
-                <User className="w-3 h-3 text-primary/60 shrink-0" />
-                <span className="text-[10px] font-bold truncate">{child.orixa_frente}</span>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2.5 border-t border-white/5">
-              <button 
+            <div className="px-5 pb-5">
+              <button
+                type="button"
                 onClick={() => {
                   setSelectedChildId(child.id);
                   setActiveTab('profile');
                 }}
-                className="w-full bg-white/5 hover:bg-primary hover:text-background text-white font-black py-2 rounded-lg transition-all text-[9px] uppercase tracking-widest border border-white/5 hover:border-primary"
+                className="flex w-full items-center justify-between rounded-xl border border-primary/35 bg-transparent px-4 py-3 text-sm font-black text-primary transition-all hover:border-primary/55 hover:bg-primary/[0.04]"
               >
                 Ver Perfil
+                <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2.5} />
               </button>
             </div>
+              </div>
+            </div>
           </motion.div>
-          );
-        }) : (
+        )) : (
           <div className="col-span-full py-20 text-center space-y-4">
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
               <User className="w-10 h-10 text-gray-600" />

@@ -78,6 +78,176 @@
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
+/* Iluminação ambiente dourada — painel principal (todas as páginas autenticadas) */
+.app-content-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-content-panel__base {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #121212;
+  background-image:
+    radial-gradient(ellipse 130% 75% at 50% 108%, rgba(251, 188, 0, 0.28) 0%, rgba(251, 188, 0, 0.1) 32%, rgba(251, 188, 0, 0.03) 55%, transparent 72%),
+    radial-gradient(ellipse 70% 45% at 50% 88%, rgba(251, 188, 0, 0.07) 0%, transparent 68%),
+    radial-gradient(circle at 12% 0%, rgba(251, 188, 0, 0.12) 0%, transparent 46%),
+    radial-gradient(circle at 88% 4%, rgba(251, 188, 0, 0.1) 0%, transparent 44%);
+}
+
+.app-page-shell {
+  position: relative;
+  z-index: 2;
+}
+
+/* Rodapé global — rola com o conteúdo */
+.app-footer {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(251, 188, 0, 0.02) 55%,
+    rgba(251, 188, 0, 0.045) 100%
+  );
+}
+
+.app-footer__glow {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 0;
+  width: 18rem;
+  height: 3.5rem;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse,
+    rgba(251, 188, 0, 0.08) 0%,
+    rgba(251, 188, 0, 0.025) 52%,
+    transparent 78%
+  );
+  filter: blur(18px);
+}
+
+.app-footer__line {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 34rem);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(251, 188, 0, 0.08) 18%,
+    rgba(251, 188, 0, 0.24) 50%,
+    rgba(251, 188, 0, 0.08) 82%,
+    transparent 100%
+  );
+}
+
+/* Cards de Membros */
+.child-member-card {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(251, 188, 0, 0.14) 0%,
+    rgba(251, 188, 0, 0.05) 28%,
+    rgba(255, 255, 255, 0.04) 52%,
+    rgba(251, 188, 0, 0.04) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(251, 188, 0, 0.04),
+    0 22px 44px -26px rgba(0, 0, 0, 0.9),
+    0 0 52px -22px rgba(251, 188, 0, 0.05);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+@media (min-width: 640px) {
+  .child-member-card {
+    max-width: none;
+  }
+}
+
+.child-member-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(251, 188, 0, 0.08),
+    0 26px 52px -22px rgba(0, 0, 0, 0.92),
+    0 0 64px -18px rgba(251, 188, 0, 0.08);
+}
+
+.child-member-card__inner {
+  position: relative;
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: calc(1rem - 1px);
+  background: linear-gradient(
+    165deg,
+    rgba(22, 22, 20, 0.96) 0%,
+    rgba(16, 16, 14, 0.94) 36%,
+    rgba(12, 12, 12, 0.98) 100%
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.child-member-card__inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 130% 90% at 0% 0%, rgba(251, 188, 0, 0.06), transparent 58%),
+    radial-gradient(ellipse 90% 70% at 100% 0%, rgba(251, 188, 0, 0.035), transparent 52%);
+  pointer-events: none;
+}
+
+.child-member-card__inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(251, 188, 0, 0.02) 0%, transparent 38%);
+  pointer-events: none;
+}
+
+.child-member-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+}
+
+.child-member-card__watermark {
+  position: relative;
+  margin-top: 0.75rem;
+  height: 11.5rem;
+  width: 11.5rem;
+  -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.45) 58%, transparent 78%);
+  mask-image: radial-gradient(circle, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.45) 58%, transparent 78%);
+}
+
+.child-member-card__watermark::after {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  background: radial-gradient(circle, rgba(251, 188, 0, 0.04) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+.child-member-avatar-ring {
+  padding: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(145deg, rgba(251, 188, 0, 0.55), rgba(217, 156, 10, 0.35), rgba(251, 188, 0, 0.22));
+  box-shadow: 0 0 16px rgba(251, 188, 0, 0.1);
+}
+
 .login-radius {
   border-radius: 10px;
 }

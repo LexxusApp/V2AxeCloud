@@ -3627,6 +3627,9 @@ async function startServer() {
       const filtered = (data || []).filter(
         (r: any) => String(r?.status || "").toLowerCase() !== "excluido"
       );
+      console.log(
+        `[SERVER] GET /api/transactions ok. tenant=${effectiveTenant} rows=${filtered.length}`
+      );
       res.json({ data: filtered });
     } catch (error: any) {
       console.error("[SERVER] Error fetching transactions:", error.message || error);

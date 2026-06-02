@@ -1,18 +1,19 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar as CalendarIcon, 
-  Images, 
-  Wallet, 
-  Bell,
-  Settings as SettingsIcon, 
-  LogOut,
+import {
+  Home,
   User,
+  UserCircle,
+  CalendarDays,
+  Newspaper,
+  Images,
+  PieChart,
+  Settings as SettingsIcon,
+  LogOut,
   X,
   BookOpen,
   ShoppingBag,
   Lock,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,13 +42,13 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
-  { id: 'children', label: 'Filhos de Santo', icon: Users },
-  { id: 'calendar', label: 'Calendário / Eventos', icon: CalendarIcon },
-  { id: 'mural', label: 'Mural', icon: Bell },
+  { id: 'dashboard', label: 'Dashboard', icon: Home, filledWhenActive: true },
+  { id: 'children', label: 'Membros', icon: User },
+  { id: 'calendar', label: 'Giras / Eventos', icon: CalendarDays },
+  { id: 'mural', label: 'Comunicados', icon: Newspaper },
   { id: 'gallery', label: 'Galeria', icon: Images },
-  { id: 'financial', label: 'Financeiro', icon: Wallet },
-];
+  { id: 'financial', label: 'Financeiro', icon: PieChart },
+] as const;
 
 export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMobileOpen, isAdmin, userRole = 'admin', tenantData }: SidebarProps) {
   const [pendingDonations, setPendingDonations] = React.useState(0);
@@ -93,11 +94,11 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
     performFastLogout();
   };
 
-  const currentNavItems = userRole === 'filho' 
+  const currentNavItems = userRole === 'filho'
     ? [
-        { id: 'profile', label: 'Meu Perfil', icon: User },
+        { id: 'profile', label: 'Meu Perfil', icon: UserCircle },
         { id: 'financial', label: 'Mensalidade', icon: Wallet },
-        { id: 'calendar', label: 'Calendário / Eventos', icon: CalendarIcon },
+        { id: 'calendar', label: 'Giras / Eventos', icon: CalendarDays },
         { id: 'library', label: 'Biblioteca de Estudo', icon: BookOpen },
         { id: 'store', label: 'Loja do Axé', icon: ShoppingBag },
         { id: 'settings', label: 'Configurações', icon: SettingsIcon },
@@ -146,35 +147,34 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
       {/* Sidebar — só translateX animado; blur só no desktop */}
       <aside className={cn(
-        "fixed left-0 top-0 bottom-0 z-[70] flex w-72 flex-col border-r border-white/5 lg:w-56",
+        "fixed left-0 top-0 bottom-0 z-[70] flex w-[248px] flex-col border-r border-white/5",
         "will-change-transform [transition:transform_250ms_cubic-bezier(0.4,0,0.2,1)] lg:will-change-auto",
-        "max-lg:bg-[#0a0a0a]/[0.98] max-lg:backdrop-blur-none",
-        "lg:bg-black/80 lg:backdrop-blur-md",
+        "bg-black",
         isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="flex flex-col h-full p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <div className="flex flex-col h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {/* Marca AXÉCLOUD sem imagem externa */}
-          <div className="mb-6 shrink-0">
+          <div className="mb-5 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 flex items-center justify-center">
-                <div className="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary">
-                  <div className="w-3 h-3 bg-primary rounded-full" />
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0.5 h-2 bg-primary" />
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0.5 h-2 bg-primary" />
-                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-0.5 bg-primary" />
-                  <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-0.5 bg-primary" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary">
+                  <div className="h-4 w-4 rounded-full bg-primary" />
+                  <div className="absolute -top-1.5 left-1/2 h-3 w-0.5 -translate-x-1/2 bg-primary" />
+                  <div className="absolute -bottom-1.5 left-1/2 h-3 w-0.5 -translate-x-1/2 bg-primary" />
+                  <div className="absolute top-1/2 -left-1.5 h-0.5 w-3 -translate-y-1/2 bg-primary" />
+                  <div className="absolute top-1/2 -right-1.5 h-0.5 w-3 -translate-y-1/2 bg-primary" />
                 </div>
               </div>
-              <div className="flex flex-col">
-                <div className="text-xl font-black tracking-[0.1em] text-white leading-none">AXÉCLOUD</div>
-                <p className="text-[10px] font-bold tracking-[0.2em] text-primary mt-1">GESTÃO SAGRADA</p>
+              <div className="flex min-w-0 flex-col">
+                <div className="whitespace-nowrap text-xl font-black leading-none tracking-[0.08em] text-white">AXÉCLOUD</div>
+                <p className="mt-1 whitespace-nowrap text-[10px] font-bold tracking-[0.18em] text-primary">GESTÃO SAGRADA</p>
               </div>
             </div>
           </div>
 
           {/* Divisor estetico entre a marca e a navegacao: esticado ate as
               bordas da sidebar via -mx-6 (compensa o p-6 do container). */}
-          <div className="-mx-6 mb-4 h-px shrink-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="-mx-4 mb-5 h-px shrink-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pb-4">
@@ -195,21 +195,31 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
                       setIsMobileOpen(false);
                     }}
                     className={cn(
-                      "w-full flex items-center gap-4 px-6 py-3 lg:px-4 lg:py-2 rounded-lg font-bold transition-all duration-300 relative",
+                      'relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 font-bold transition-all duration-300',
                       isActive 
-                        ? "bg-primary/10 text-primary shadow-[0_0_20px_rgba(251,188,0,0.05)]" 
+                        ? "bg-transparent text-primary" 
                         : "text-gray-400 hover:text-white hover:bg-white/5",
                       isLocked && "opacity-50"
                     )}
                   >
-                    <Icon className={cn(
-                      "w-5 h-5 transition-transform duration-300 group-hover:scale-110",
-                      isActive ? "text-primary" : "text-gray-500"
-                    )} />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <Icon
+                      className={cn(
+                        'h-[22px] w-[22px] shrink-0 transition-transform duration-300 group-hover:scale-110',
+                        isActive ? 'text-primary' : 'text-gray-400'
+                      )}
+                      strokeWidth={isActive ? 2.25 : 1.75}
+                      fill={
+                        isActive && 'filledWhenActive' in item && item.filledWhenActive
+                          ? 'currentColor'
+                          : 'none'
+                      }
+                    />
+                    <span className="min-w-0 flex-1 whitespace-nowrap text-left text-[14px] leading-tight tracking-tight">
+                      {item.label}
+                    </span>
                     
                     {item.id === 'financial' && pendingDonations > 0 && (
-                      <span className="absolute right-10 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                      <span className="absolute right-3 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                     )}
 
                     {isLocked && <Lock className="w-4 h-4 text-[#FBBC00]" />}
@@ -235,12 +245,12 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
           {/* Footer: Logout */}
           <div className="pt-4 mt-auto border-t border-white/10 shrink-0 space-y-2">
             <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen(false)} />
-            <button 
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-6 py-3 rounded-xl font-bold text-red-500 hover:bg-red-500/10 transition-all group"
+              className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-red-500 transition-all hover:bg-red-500/10"
             >
-              <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-              Sair do Sistema
+              <LogOut className="h-[22px] w-[22px] shrink-0 transition-transform group-hover:-translate-x-1" />
+              <span className="whitespace-nowrap">Sair do Sistema</span>
             </button>
           </div>
         </div>

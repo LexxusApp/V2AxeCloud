@@ -12,3 +12,6 @@ certs/
 .vercel
 advisors-output.json
 audit-advisors.json
+.agents/
+.cursor/
+public/screenshots/debug*.png

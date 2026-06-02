@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import NotificationPanel from '../components/NotificationPanel';
 import { ZeladorIdentityBadge } from '../components/ZeladorIdentityBadge';
 import {
   Plus,
   ChevronRight,
+  ChevronDown,
   ArrowUpRight,
   ArrowDownRight,
   MoreVertical,
@@ -26,9 +26,9 @@ import {
   AreaChart,
   Area,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
+  CartesianGrid,
+  XAxis,
+  YAxis,
 } from 'recharts';
 import { cn } from '../lib/utils';
 import LuxuryLoading from '../components/LuxuryLoading';
@@ -102,7 +102,10 @@ async function fetchDashboardFinanceBundle(
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
-    const children = (childrenRes.data || []).filter((c: any) => c.status === 'Ativo');
+    const children = (childrenRes.data || []).filter((c: any) => {
+      const s = String(c?.status ?? 'Ativo').trim().toLowerCase();
+      return s === 'ativo' || s === 'active' || s === '';
+    });
     const rawTx = (txRes.data || []) as any[];
     const normalized = rawTx.map((t) => ({ ...t, valor: Number(t.valor) || 0 }));
 
@@ -184,10 +187,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     () => resolveTenantIdForFinance(tenantData?.tenant_id || initialTenantFromStorage, user?.id),
     [tenantData?.tenant_id, user?.id, initialTenantFromStorage]
   );
-  /** Lançamentos da tabela `financeiro` (via `/api/transactions`), no mesmo formato da página Financeiro. */
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [childrenData, setChildrenData] = useState<any[]>([]);
-  const [historyData, setHistoryData] = useState<any[]>([]);
+  /** Último bundle válido — evita “sumir” dados durante revalidação SWR ou HMR. */
+  const lastBundleRef = useRef<DashboardBundle | null>(null);
 
   const dashboardCalendar = useMemo(() => {
     const anchor = new Date();
@@ -201,7 +202,34 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     return { days, monthTitle, anchor };
   }, []);
 
-  const { stats, chartData, hasMonthFinanceData } = useMemo(() => {
+  const [flowPeriod, setFlowPeriod] = useState<'6months' | 'month'>('6months');
+  const [flowPeriodOpen, setFlowPeriodOpen] = useState(false);
+
+  const dashboardSwrKey =
+    user?.id && tenantId
+      ? (['dashboard-finance', user.id, tenantId, userRole] as const)
+      : null;
+  const { data: dashboardBundle, isLoading, isValidating, error, mutate } = useSWR(
+    dashboardSwrKey,
+    () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id),
+    {
+      revalidateOnMount: true,
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+      keepPreviousData: true,
+      errorRetryCount: 2,
+    }
+  );
+
+  if (dashboardBundle) {
+    lastBundleRef.current = dashboardBundle;
+  }
+  const resolvedBundle = dashboardBundle ?? lastBundleRef.current;
+  const transactions = resolvedBundle?.transactions ?? [];
+  const childrenData = resolvedBundle?.childrenData ?? [];
+  const historyData = resolvedBundle?.historyData ?? [];
+
+  const { stats, flowChartData, flowYMax, hasMonthFinanceData } = useMemo(() => {
     const anchor = new Date();
     const prevMonthRef = subMonths(anchor, 1);
 
@@ -246,28 +274,45 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
     const hasData = rec > 0 || des > 0;
 
-    const entradasOrdenadas = counted
-      .filter((t) => normalizeMovimentoTipo(t.tipo) === 'entrada')
-      .map((t) => {
-        const d = parseFinanceiroDataRef(t);
-        const ts = d ? d.getTime() : 0;
-        return { ts, valor: Number(t.valor) || 0 };
-      })
-      .filter((x) => x.ts > 0)
-      .sort((a, b) => a.ts - b.ts);
+    const monthLabel = (ref: Date) => {
+      const abbr = format(ref, 'MMM', { locale: ptBR }).replace('.', '').toUpperCase();
+      return `01/${abbr}`;
+    };
 
-    // Recharts (AreaChart) precisa de pelo menos 2 pontos para desenhar a linha.
-    // Começamos a série em 0 (antes da primeira entrada) e adicionamos o cumulativo
-    // a cada entrada — garante N+1 pontos e visualização correta mesmo com 1 só entrada.
-    const series: Array<{ val: number }> = [];
-    if (entradasOrdenadas.length > 0) {
-      series.push({ val: 0 });
-      let cum = 0;
-      for (const row of entradasOrdenadas) {
-        cum += row.valor;
-        series.push({ val: cum });
+    const monthlyFlow: Array<{ name: string; val: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthRef = subMonths(anchor, i);
+      let monthNet = 0;
+      for (const t of counted) {
+        if (!isLancamentoNoMesRef(t, monthRef)) continue;
+        const n = Number(t.valor) || 0;
+        const mt = normalizeMovimentoTipo(t.tipo);
+        if (mt === 'entrada') monthNet += n;
+        else if (mt === 'saida') monthNet -= n;
       }
+      monthlyFlow.push({ name: monthLabel(monthRef), val: Math.max(0, monthNet) });
     }
+
+    const daysInMonth = eachDayOfInterval({ start: startOfMonth(anchor), end: endOfMonth(anchor) });
+    const dailyFlow: Array<{ name: string; val: number }> = daysInMonth.map((day) => {
+      let dayNet = 0;
+      for (const t of counted) {
+        const d = parseFinanceiroDataRef(t);
+        if (!d || !isSameDay(d, day)) continue;
+        const n = Number(t.valor) || 0;
+        const mt = normalizeMovimentoTipo(t.tipo);
+        if (mt === 'entrada') dayNet += n;
+        else if (mt === 'saida') dayNet -= n;
+      }
+      return { name: format(day, 'dd', { locale: ptBR }), val: Math.max(0, dayNet) };
+    });
+
+    const flowSeries = monthlyFlow;
+    const flowMax = Math.max(...flowSeries.map((p) => p.val), 0);
+    const flowYMax =
+      flowMax <= 0
+        ? 5000
+        : Math.ceil(flowMax / 1000) * 1000 || 1000;
 
     return {
       stats: {
@@ -278,31 +323,22 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         marginPct,
       },
       hasMonthFinanceData: hasData,
-      chartData: series.length > 0 ? series : [{ val: 0 }, { val: 0 }],
+      flowChartData: { monthly: monthlyFlow, daily: dailyFlow },
+      flowYMax,
     };
   }, [transactions]);
 
-  const dashboardSwrKey =
-    user?.id && tenantId && isSessionReady
-      ? (['dashboard-finance', user.id, tenantId, userRole] as const)
-      : null;
-  const { data: dashboardBundle, isLoading, mutate } = useSWR(
-    dashboardSwrKey,
-    () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id),
-    {
-      revalidateOnMount: true,
-      revalidateOnFocus: true,
-      dedupingInterval: 0,
-      errorRetryCount: 1,
-    }
+  const activeFlowChart = useMemo(
+    () => (flowPeriod === 'month' ? flowChartData.daily : flowChartData.monthly),
+    [flowChartData, flowPeriod]
   );
 
-  useEffect(() => {
-    if (!dashboardBundle) return;
-    setTransactions(dashboardBundle.transactions);
-    setChildrenData(dashboardBundle.childrenData);
-    setHistoryData(dashboardBundle.historyData);
-  }, [dashboardBundle]);
+  const activeFlowYMax = useMemo(() => {
+    const max = Math.max(...activeFlowChart.map((p) => p.val), 0);
+    if (max <= 0) return flowPeriod === 'month' ? 1000 : flowYMax;
+    const step = max <= 1000 ? 200 : 1000;
+    return Math.ceil(max / step) * step;
+  }, [activeFlowChart, flowPeriod, flowYMax]);
 
   useEffect(() => {
     const onFinanceUpdated = () => {
@@ -338,7 +374,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     };
   }, [tenantId, mutate]);
 
-  const loading = Boolean(dashboardSwrKey && isLoading && !dashboardBundle);
+  const loading = Boolean(
+    dashboardSwrKey && !resolvedBundle && (isLoading || isValidating)
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -364,6 +402,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
   if (loading) return <div className="h-[70vh] flex items-center justify-center"><LuxuryLoading /></div>;
 
+  const fetchFailed = Boolean(dashboardSwrKey && error && !resolvedBundle);
+
   const terreiroNome = tenantData?.nome?.trim() || '';
 
   const now = new Date();
@@ -378,6 +418,21 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   return (
     <div className="min-h-screen bg-transparent text-white p-6 lg:p-10 font-sans selection:bg-[#D4AF37]/30">
       
+      {fetchFailed && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm font-medium text-amber-200">
+            Não foi possível carregar os dados do terreiro. Verifique a conexão ou tente de novo.
+          </p>
+          <button
+            type="button"
+            onClick={() => void mutate()}
+            className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-black"
+          >
+            Recarregar
+          </button>
+        </div>
+      )}
+
       {/* Header Bar */}
       <header className="mb-10 flex items-center justify-between">
         <div className="min-w-0">
@@ -390,7 +445,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
         <div className="flex shrink-0 items-center gap-2 lg:gap-3">
           <div className="hidden lg:flex items-center gap-3">
-            <NotificationPanel tenantData={tenantData} systemVersion={systemVersion} userRole={userRole} userId={user?.id} />
             <ZeladorIdentityBadge tenantData={tenantData} />
           </div>
         </div>
@@ -402,87 +456,161 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         {/* Left Section (65%) */}
         <div className="lg:col-span-8 space-y-8">
           
-          {/* Card: Pagamentos do Mês */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8 relative overflow-hidden group">
+          {/* Card: entradas + fluxo financeiro */}
+          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-6 md:p-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 blur-[120px] -mr-48 -mt-48 pointer-events-none" />
-            
-            <div className="relative z-10 flex justify-between items-start mb-2">
-               <div>
-                  <p className="text-sm font-medium text-gray-400">Entradas no caixa (acumulado)</p>
-                  <h2 className="text-5xl font-black mt-2 tracking-tighter">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceita)}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-2 mt-4 text-[13px] font-bold">
-                    {stats.growthPct !== null ? (
-                      <>
-                        <span
-                          className={cn(
-                            'flex items-center gap-1',
-                            stats.growthPct >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                          )}
-                        >
-                          {stats.growthPct >= 0 ? <Plus className="w-3.5 h-3.5" /> : null}
-                          {stats.growthPct < 0 ? '−' : null}
-                          {Math.abs(stats.growthPct)}%
-                        </span>
-                        <span className="text-gray-500 font-medium">em relação ao mês anterior (receitas)</span>
-                      </>
-                    ) : (
-                      <span className="text-gray-500 font-medium">Sem comparativo com o mês anterior</span>
-                    )}
-                  </div>
-               </div>
-               <div className="flex gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30"></div>
-               </div>
+
+            <div className="relative z-10 flex justify-between items-start gap-4 mb-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-gray-400 leading-snug">
+                  Entradas no caixa (acumulado)
+                </p>
+                <h2 className="text-3xl md:text-4xl font-black mt-1 tracking-tighter text-white truncate">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceita)}
+                </h2>
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] font-bold leading-snug">
+                  {stats.growthPct !== null ? (
+                    <>
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-0.5 shrink-0',
+                          stats.growthPct >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                        )}
+                      >
+                        {stats.growthPct >= 0 ? <Plus className="w-3 h-3" /> : null}
+                        {stats.growthPct < 0 ? '−' : null}
+                        {Math.abs(stats.growthPct)}%
+                      </span>
+                      <span className="text-gray-500 font-medium">
+                        em relação ao mês anterior (receitas)
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-gray-500 font-medium">
+                      Sem comparativo com o mês anterior
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 pt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30" />
+              </div>
             </div>
 
-            <div className="h-44 w-full mt-6 relative z-10 min-w-0">
+            <div className="relative z-10 flex justify-end mb-3">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setFlowPeriodOpen((o) => !o)}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#1a1a1a] px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 transition-colors hover:border-white/20 hover:text-white"
+                  aria-expanded={flowPeriodOpen}
+                  aria-haspopup="listbox"
+                >
+                  {flowPeriod === 'month' ? 'Este mês' : 'Últimos 6 meses'}
+                  <ChevronDown
+                    className={cn('h-3 w-3 text-gray-500 transition-transform', flowPeriodOpen && 'rotate-180')}
+                  />
+                </button>
+                {flowPeriodOpen && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 cursor-default"
+                      aria-label="Fechar filtro"
+                      onClick={() => setFlowPeriodOpen(false)}
+                    />
+                    <ul
+                      role="listbox"
+                      className="absolute right-0 z-20 mt-1.5 min-w-[9.5rem] overflow-hidden rounded-lg border border-white/10 bg-[#1a1a1a] py-0.5 shadow-xl"
+                    >
+                      {(
+                        [
+                          { id: 'month' as const, label: 'Este mês' },
+                          { id: '6months' as const, label: 'Últimos 6 meses' },
+                        ] as const
+                      ).map((opt) => (
+                        <li key={opt.id}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={flowPeriod === opt.id}
+                            className={cn(
+                              'w-full px-3 py-2 text-left text-[10px] font-semibold transition-colors',
+                              flowPeriod === opt.id
+                                ? 'bg-[#FF9F0A]/15 text-[#FF9F0A]'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                            )}
+                            onClick={() => {
+                              setFlowPeriod(opt.id);
+                              setFlowPeriodOpen(false);
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="h-48 md:h-56 w-full relative z-10 min-w-0">
               {!hasMonthFinanceData ? (
-                <div className="flex h-full min-h-[176px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/25 px-6 text-center">
-                  <Wallet className="mb-3 h-10 w-10 text-[#D4AF37]/35" aria-hidden />
+                <div className="flex h-full min-h-[192px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/25 px-6 text-center">
+                  <Wallet className="mb-3 h-10 w-10 text-[#FF9F0A]/35" aria-hidden />
                   <p className="text-sm font-bold text-gray-400">Nenhum lançamento financeiro confirmado</p>
                   <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-gray-600">
-                    Quando houver entradas ou saídas confirmadas no painel financeiro, o gráfico e o resumo serão preenchidos automaticamente (inclui datas futuras).
-                  </p>
-                </div>
-              ) : stats.totalReceita <= 0 ? (
-                <div className="flex h-full min-h-[176px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/25 px-6 text-center">
-                  <Wallet className="mb-3 h-10 w-10 text-[#D4AF37]/35" aria-hidden />
-                  <p className="text-sm font-bold text-gray-400">Sem entradas confirmadas no período carregado</p>
-                  <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-gray-600">
-                    Registre entradas confirmadas no financeiro para ver a evolução acumulada aqui.
+                    Quando houver entradas ou saídas confirmadas no painel financeiro, o fluxo será exibido aqui.
                   </p>
                 </div>
               ) : (
-                <>
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={176} debounce={50}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorWave" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#D4AF37" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="val"
-                        stroke="#D4AF37"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorWave)"
-                        animationDuration={900}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 opacity-40">
-                    <div className="absolute left-1/4 top-1/4 h-1.5 w-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_10px_#D4AF37]" />
-                    <div className="absolute left-1/2 top-3/4 h-1.5 w-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_10px_#D4AF37]" />
-                    <div className="absolute right-1/4 top-2/3 h-2 w-2 rounded-full bg-[#D4AF37] shadow-[0_0_12px_#D4AF37]" />
-                  </div>
-                </>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={192} debounce={50}>
+                  <AreaChart
+                    data={activeFlowChart}
+                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="fluxoOrangeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#FF9F0A" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#FF9F0A" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="#2a2a2a" strokeDasharray="0" vertical horizontal />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }}
+                      dy={8}
+                      interval={flowPeriod === 'month' ? 'preserveStartEnd' : 0}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }}
+                      domain={[0, activeFlowYMax]}
+                      tickCount={6}
+                      width={48}
+                      tickFormatter={(v) =>
+                        v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
+                      }
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="val"
+                      stroke="#FF9F0A"
+                      strokeWidth={2.5}
+                      fill="url(#fluxoOrangeGradient)"
+                      fillOpacity={1}
+                      dot={{ r: 4, fill: '#FF9F0A', strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: '#FF9F0A', stroke: '#121212', strokeWidth: 2 }}
+                      animationDuration={800}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               )}
             </div>
           </div>
@@ -582,52 +710,44 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 )}
              </div>
              
-             <div className="flex flex-col items-center justify-center p-6 bg-black/20 rounded-3xl border border-white/5 min-w-[200px] relative overflow-hidden group">
-                <div className="absolute inset-0 bg-[#D4AF37]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative z-10 w-40 h-40 min-w-0">
+             <div className="relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-black/20 p-6 md:w-[220px] md:min-w-[220px]">
+                <div className="absolute inset-0 bg-[#D4AF37]/5 opacity-0 transition-opacity hover:opacity-100"></div>
+                <div className="relative z-10 flex min-h-40 w-40 min-w-0 items-center justify-center">
                   {!hasMonthFinanceData ? (
                     <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-2 text-center">
                       <Wallet className="mb-2 h-8 w-8 text-[#D4AF37]/30" aria-hidden />
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Sem dados</p>
                     </div>
                   ) : (
-                    <>
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={160} debounce={50}>
-                        <PieChart>
-                          <Pie
-                            data={(() => {
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="relative flex h-32 w-32 items-center justify-center">
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            background: (() => {
                               const fluxo = stats.totalReceita + stats.totalDespesa;
-                              if (fluxo <= 0) return [{ val: 0 }, { val: 1 }];
-                              const recPct = Math.round((stats.totalReceita / fluxo) * 100);
-                              return [{ val: Math.max(0, recPct) }, { val: Math.max(0, 100 - recPct) }];
-                            })()}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={55}
-                            outerRadius={65}
-                            stroke="none"
-                            dataKey="val"
-                            startAngle={90}
-                            endAngle={-270}
-                          >
-                            <Cell fill="#D4AF37" />
-                            <Cell fill="rgba(255,255,255,0.06)" />
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-black text-white">
-                          {stats.totalReceita > 0 && stats.marginPct !== null
-                            ? `${stats.marginPct}%`
-                            : `${Math.round(
-                                (stats.totalReceita / Math.max(stats.totalReceita + stats.totalDespesa, 1)) * 100
-                              )}%`}
-                        </span>
+                              const pct = fluxo > 0 ? Math.round((stats.totalReceita / fluxo) * 100) : 0;
+                              const clampedPct = Math.min(100, Math.max(0, pct));
+                              return `conic-gradient(#D4AF37 0% ${clampedPct}%, rgba(255,255,255,0.06) ${clampedPct}% 100%)`;
+                            })(),
+                          }}
+                          aria-hidden
+                        />
+                        <div className="absolute inset-[10px] rounded-full bg-[#0b0b0b]" aria-hidden />
+                        <span className="pointer-events-none relative z-10 text-3xl font-black text-white">
+                            {stats.totalReceita > 0 && stats.marginPct !== null
+                              ? `${stats.marginPct}%`
+                              : `${Math.round(
+                                  (stats.totalReceita / Math.max(stats.totalReceita + stats.totalDespesa, 1)) * 100
+                                )}%`}
+                          </span>
+                      </div>
+                      <div className="pointer-events-none mt-3 text-center">
                         <span className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] text-gray-500">
                           {stats.totalReceita > 0 ? 'Lucro ÷ receitas' : 'Receitas no fluxo'}
                         </span>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
              </div>

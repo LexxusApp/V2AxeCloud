@@ -60,12 +60,27 @@ function timeAgo(dateStr: string): string {
 
 const STORAGE_KEY = 'axecloud_notifications';
 const MURAL_READ_KEY = 'axecloud_mural_read';
+/** IDs de notificações de pagamento que o usuário já viu/dispensou — evita recriar no próximo mount. */
+const PAYMENT_ACK_KEY = 'axecloud_payment_notifs_ack';
 
 function loadNotifications(): AppNotification[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
 }
 function saveNotifications(notifs: AppNotification[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs));
+}
+function loadPaymentAck(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(PAYMENT_ACK_KEY) || '[]')); } catch { return new Set(); }
+}
+function ackPaymentKeys(ids: string[]) {
+  const paymentIds = ids.filter((id) => id.startsWith('payment_'));
+  if (paymentIds.length === 0) return;
+  const s = loadPaymentAck();
+  paymentIds.forEach((id) => s.add(id));
+  localStorage.setItem(PAYMENT_ACK_KEY, JSON.stringify([...s]));
+}
+function isPaymentAcked(id: string): boolean {
+  return id.startsWith('payment_') && loadPaymentAck().has(id);
 }
 function loadMuralRead(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(MURAL_READ_KEY) || '[]')); } catch { return new Set(); }
@@ -81,7 +96,9 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
   const [muralNotifs, setMuralNotifs] = useState<AppNotification[]>([]);
   const [muralRead, setMuralRead] = useState<Set<string>>(loadMuralRead);
   const panelRef = useRef<HTMLDivElement>(null);
+  const paymentFetchRef = useRef<string | null>(null);
   const isFilho = userRole === 'filho';
+  const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
 
   // Fecha ao clicar fora
   useEffect(() => {
@@ -103,60 +120,77 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
   // neste mês. Também removemos automaticamente notificações residuais antigas de
   // sistema/plano que possam estar no localStorage do usuário.
   useEffect(() => {
-    if (isFilho) return; // filho usa canal próprio (mural)
+    if (isFilho) return;
 
     let saved = loadNotifications();
-
-    // Migração silenciosa: limpa notificações automáticas legadas (sistema/plano "ativo").
     const cleaned = saved.filter(
       (n) =>
         !(n.type === 'system' && typeof n.id === 'string' && n.id.startsWith('sys_')) &&
-        !(n.type === 'plan' && typeof n.id === 'string' && n.id.startsWith('plan_') && n.id.endsWith('_active'))
+        !(n.type === 'plan' && typeof n.id === 'string' && n.id.startsWith('plan_') && n.id.endsWith('_active')) &&
+        !(n.type === 'payment' && isPaymentAcked(n.id))
     );
     if (cleaned.length !== saved.length) {
       saved = cleaned;
       saveNotifications(saved);
     }
-
-    if (tenantData?.tenant_id) {
-      const now = new Date();
-      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const payKey = `payment_${tenantData.tenant_id}_${thisMonth}`;
-      supabase
-        .from('financeiro')
-        .select('id, descricao, valor, created_at')
-        .eq('tenant_id', tenantData.tenant_id)
-        .eq('tipo', 'entrada')
-        .gte('created_at', `${thisMonth}-01`)
-        .limit(1)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setNotifs((prev) => {
-              if (prev.find((n) => n.id === payKey)) return prev;
-              const updated = [
-                {
-                  id: payKey,
-                  type: 'payment' as const,
-                  title: 'Entrada registrada',
-                  body: `${data.descricao || 'Entrada'} — ${new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(data.valor)} registrada neste mês.`,
-                  read: false,
-                  created_at: data.created_at,
-                },
-                ...prev,
-              ];
-              saveNotifications(updated);
-              return updated;
-            });
-          }
-        });
-    }
-
     setNotifs(saved);
-  }, [tenantData, systemVersion, isFilho]);
+  }, [isFilho, tenantId]);
+
+  // Uma vez por tenant/mês: avisa se há entrada no mês, só se o usuário ainda não dispensou/leu.
+  useEffect(() => {
+    if (isFilho || !tenantId) return;
+
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const payKey = `payment_${tenantId}_${thisMonth}`;
+    const fetchKey = `${tenantId}:${thisMonth}`;
+
+    if (paymentFetchRef.current === fetchKey) return;
+    paymentFetchRef.current = fetchKey;
+
+    if (isPaymentAcked(payKey)) return;
+
+    let cancelled = false;
+
+    supabase
+      .from('financeiro')
+      .select('id, descricao, valor, created_at')
+      .eq('tenant_id', tenantId)
+      .eq('tipo', 'entrada')
+      .gte('created_at', `${thisMonth}-01`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data || isPaymentAcked(payKey)) return;
+
+        setNotifs((prev) => {
+          const existing = prev.find((n) => n.id === payKey);
+          if (existing) return prev;
+
+          const updated: AppNotification[] = [
+            {
+              id: payKey,
+              type: 'payment',
+              title: 'Entrada registrada',
+              body: `${data.descricao || 'Entrada'} — ${new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              }).format(Number(data.valor) || 0)}.`,
+              read: false,
+              created_at: data.created_at,
+            },
+            ...prev,
+          ];
+          saveNotifications(updated);
+          return updated;
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFilho, tenantId]);
 
   // ── Avisos do mural para filho de santo ──
   useEffect(() => {
@@ -229,6 +263,7 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
       setMuralRead(newRead);
       setMuralNotifs(prev => prev.map(n => ({ ...n, read: true })));
     } else {
+      ackPaymentKeys(notifs.map((n) => n.id));
       const updated = notifs.map(n => ({ ...n, read: true }));
       saveNotifications(updated);
       setNotifs(updated);
@@ -242,6 +277,7 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
       setMuralRead(newRead);
       setMuralNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     } else {
+      ackPaymentKeys([id]);
       const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
       saveNotifications(updated);
       setNotifs(updated);
@@ -252,6 +288,7 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
     if (isFilho) {
       setMuralNotifs(prev => prev.filter(n => n.id !== id));
     } else {
+      ackPaymentKeys([id]);
       const updated = notifs.filter(n => n.id !== id);
       saveNotifications(updated);
       setNotifs(updated);
@@ -262,6 +299,7 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
     if (isFilho) {
       setMuralNotifs([]);
     } else {
+      ackPaymentKeys(notifs.map((n) => n.id));
       setNotifs([]);
       saveNotifications([]);
     }

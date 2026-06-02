@@ -40,6 +40,7 @@ import {
 import { resolveTenantFromSupabase } from './lib/resolveTenantFromSupabase';
 import { PwaInstallTopbarButton } from './components/PwaInstallTopbarButton';
 import LegalTermsModal from './components/LegalTermsModal';
+import AppFooter from './components/AppFooter';
 import { AuthScreenBackground } from './components/AuthScreenBackground';
 import { CURRENT_LEGAL_TERMS_VERSION } from './config/legal';
 import {
@@ -1419,9 +1420,11 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       )}
 
       <div className={cn(
-        "flex min-w-0 flex-1 flex-col h-[100dvh] relative z-10",
-        userRole === 'filho' ? "lg:pl-64" : "lg:pl-56"
+        "app-content-panel flex min-w-0 flex-1 flex-col h-[100dvh] relative z-10",
+        userRole === 'filho' ? "lg:pl-64" : "lg:pl-[248px]"
       )}>
+        <div className="app-content-panel__base" aria-hidden />
+
         {/* Mobile Header */}
         <header className="sticky top-0 z-50 flex h-20 min-w-0 shrink-0 items-center justify-between border-b border-white/5 bg-black/40 px-4 backdrop-blur-xl sm:px-6 lg:hidden">
           {userRole === 'filho' ? (
@@ -1519,11 +1522,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         </header>
 
         {/* Main Content Area with Scroll */}
-        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <main className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]/80 pb-6 backdrop-blur-[2px] lg:pb-0" data-role={userRole ?? undefined}>
+        <div className="relative z-[2] min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <main
+            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]/80 backdrop-blur-[2px]"
+            data-role={userRole ?? undefined}
+          >
             {/* Notificações push: apenas filhos — banner só com permissão ainda "default"; granted/denied o navegador já decidiu */}
             {userRole === 'filho' && permission === 'default' && session && (
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+              <div className="mx-4 mb-6 bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 sm:mx-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <Bell className="w-6 h-6 text-primary" />
@@ -1543,29 +1549,25 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               </div>
             )}
             {userRole === 'filho' && permission === 'denied' && session && (
-              <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-gray-400">
+              <div className="mx-4 mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-gray-400 sm:mx-6">
                 Notificações estão <span className="font-bold text-white/80">bloqueadas</span> neste navegador. Para receber avisos do terreiro, permita o site em{' '}
                 <span className="text-gray-300">Configurações do site</span> (ícone de cadeado ou informações ao lado do endereço).
               </div>
             )}
-            <Suspense
-              fallback={
-                <div className="flex min-h-[60vh] items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              }
-            >
-              {renderView()}
-            </Suspense>
+            <div className="flex-1">
+              <Suspense
+                fallback={
+                  <div className="flex min-h-[60vh] items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                }
+              >
+                {renderView()}
+              </Suspense>
+            </div>
+            <AppFooter />
           </main>
         </div>
-
-        {/* Footer */}
-        <footer className="px-6 py-4 border-t border-white/5 text-center bg-black/20 backdrop-blur-md">
-          <p className="text-xs font-black text-gray-600 uppercase tracking-[0.2em]">
-            © 2026 AxéCloud - CNPJ: 66.335.964/0001-07
-          </p>
-        </footer>
       </div>
     </div>
     <LegalTermsModal

@@ -85,3 +85,21 @@ export function AxeCloudLogoMark({
     </div>
   );
 }
+
+/** Emblema circular da marca (bússola) — sidebar, rodapé, etc. */
+export function AxeCloudEmblem({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'relative grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#c78b00] text-[#d9a11a] shadow-[0_0_14px_rgba(242,185,15,0.28)]',
+        className
+      )}
+      aria-hidden
+    >
+      <span className="absolute inset-[5px] rounded-full border border-[#6c4a00]/90" />
+      <span className="absolute h-px w-[70%] bg-[#9d6f05]" />
+      <span className="absolute h-[70%] w-px bg-[#9d6f05]" />
+      <span className="relative h-1.5 w-1.5 rounded-full bg-[#f2b90f] shadow-[0_0_6px_rgba(242,185,15,0.85)]" />
+    </div>
+  );
+}
