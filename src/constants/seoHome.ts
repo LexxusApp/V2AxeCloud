@@ -7,7 +7,6 @@ export const HOME_SEO = {
     'Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.',
   h1: 'Sistema de gestão para terreiros de Umbanda e Candomblé',
   heroTagline: 'Tecnologia a serviço do sagrado.',
-  heroBadge: 'Software de gestão para terreiros, casas de axé e comunidades de Umbanda e Candomblé',
   keywords:
     'AxéCloud, gestão de terreiro, software para terreiro, casa de axé, zelador, filhos de santo, candomblé, umbanda, jurema, gestão mística, financeiro de terreiro, mensalidade terreiro, galeria de fotos terreiro, calendário de giras, portal filho de santo, terreiro umbanda, terreiro candomblé',
   ogImageAlt: 'AxéCloud — Sistema de gestão para terreiros de Umbanda e Candomblé',

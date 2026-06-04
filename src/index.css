@@ -320,21 +320,6 @@
   opacity: 1;
 }
 
-/* Hero — mais presença visual */
-.landing-hero-photo img {
-  opacity: 0.62 !important;
-  filter: saturate(1.05) contrast(1.05);
-}
-
-.landing-hero-photo > div:first-of-type {
-  background: linear-gradient(
-    105deg,
-    rgba(6, 7, 8, 0.92) 0%,
-    rgba(6, 7, 8, 0.75) 42%,
-    rgba(6, 7, 8, 0.55) 100%
-  ) !important;
-}
-
 .landing-hero-orb {
   position: absolute;
   border-radius: 50%;
@@ -407,16 +392,6 @@
     padding-top: 5.5rem;
     padding-bottom: 5.5rem;
   }
-}
-
-.landing-section-grid {
-  position: absolute;
-  inset: 0;
-  background-size: 56px 56px;
-  background-image: linear-gradient(rgba(251, 188, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(251, 188, 0, 0.04) 1px, transparent 1px);
-  mask-image: linear-gradient(180deg, transparent 0%, black 12%, black 88%, transparent 100%);
-  opacity: 0.55;
 }
 
 .landing-section--highlight {

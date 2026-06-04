@@ -22,7 +22,6 @@ export function LandingSection({
       className={cn('landing-section', `landing-section--${variant}`, className)}
       aria-labelledby={labelledBy}
     >
-      <div className="landing-section-grid pointer-events-none" aria-hidden />
       {children}
     </section>
   );

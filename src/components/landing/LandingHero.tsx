@@ -9,7 +9,6 @@ import {
   MessageCircle,
   ShieldCheck,
   ShoppingBag,
-  Sparkles,
   TrendingUp,
   UserCircle,
   Users,
@@ -283,11 +282,6 @@ export function LandingHero() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="text-center lg:text-left"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-primary shadow-[0_0_24px_rgba(251,188,0,0.12)]">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            {HOME_SEO.heroBadge}
-          </div>
-
           <h1
             id="hero-title"
             className="text-[2rem] font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.25rem] xl:text-6xl"
