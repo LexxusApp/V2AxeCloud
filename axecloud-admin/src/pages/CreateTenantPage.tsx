@@ -93,18 +93,21 @@ export function CreateTenantPage({
       const observacao = prefill
         ? `axecloud-admin · programa-fundador:${prefill.founderId} · ${prefill.cidade}/${prefill.estado}`
         : "axecloud-admin";
-      const r = await apiJson<{ welcome?: { status?: string } }>("/api/admin/create-tenant", {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          password,
-          nome_terreiro: nomeTerreiro,
-          nome_zelador: nomeZelador,
-          whatsapp,
-          plan,
-          observacao,
-        }),
-      });
+      const r = await apiJson<{ welcome?: { status?: string }; user?: { id?: string } }>(
+        "/api/admin/create-tenant",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            password,
+            nome_terreiro: nomeTerreiro,
+            nome_zelador: nomeZelador,
+            whatsapp,
+            plan,
+            observacao,
+          }),
+        }
+      );
       const w = String(r?.welcome?.status || "");
       let suffix = "";
       if (w === "queued") suffix = " · WhatsApp de boas-vindas em rota.";
@@ -113,9 +116,13 @@ export function CreateTenantPage({
       setStatus(`Terreiro criado.${suffix}`);
       if (prefill) {
         try {
+          const leaderId = r?.user?.id ? String(r.user.id) : null;
           await apiJson(`/api/admin-console/founder-applications/${prefill.founderId}`, {
             method: "PATCH",
-            body: JSON.stringify({ status: "accepted" }),
+            body: JSON.stringify({
+              status: "accepted",
+              ...(leaderId ? { leader_id: leaderId } : {}),
+            }),
           });
         } catch {
           /* não bloqueia */

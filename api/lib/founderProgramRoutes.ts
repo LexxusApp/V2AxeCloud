@@ -109,6 +109,9 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
       }
 
       const meta = clientMeta(req);
+      const { resolveLeaderIdByEmail } = await import("./founderProgramAdmin.js");
+      const existingLeaderId = await resolveLeaderIdByEmail(supabaseAdmin, email);
+
       const { data, error } = await supabaseAdmin
         .from("founder_applications")
         .insert({
@@ -123,6 +126,7 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
           autoriza_perfil_publico,
           autoriza_depoimento,
           status: "pending",
+          leader_id: existingLeaderId,
           ip: meta.ip,
           user_agent: meta.userAgent,
         })

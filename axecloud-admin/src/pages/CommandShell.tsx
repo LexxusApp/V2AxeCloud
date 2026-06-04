@@ -293,7 +293,14 @@ export function CommandShell({ session }: { session: Session }) {
         )}
 
         {tab === "founders" && (
-          <FounderProgramPanel onMessage={setMsg} onCreateTenant={openCreateFromFounder} />
+          <FounderProgramPanel
+            onMessage={setMsg}
+            onCreateTenant={openCreateFromFounder}
+            onOpenTerreiro={(leaderId) => {
+              goTab("tenants");
+              setDrawerTenantId(leaderId);
+            }}
+          />
         )}
 
         {tab === "logs" && (

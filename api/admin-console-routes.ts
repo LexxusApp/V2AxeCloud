@@ -1375,28 +1375,71 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
     const id = String(req.params.id || "").trim();
-    const status = String((req.body || {}).status || "").trim().toLowerCase();
+    const body = req.body || {};
+    const statusRaw = body.status != null ? String(body.status).trim().toLowerCase() : "";
+    const leaderIdRaw =
+      body.leader_id === null || body.leader_id === ""
+        ? body.leader_id === null
+          ? null
+          : undefined
+        : String(body.leader_id || "").trim() || undefined;
     if (!id) return res.status(400).json({ error: "id obrigatório" });
     try {
-      const { updateFounderApplicationStatus, FOUNDER_STATUSES } = await import("./lib/founderProgramAdmin.js");
-      if (!(FOUNDER_STATUSES as readonly string[]).includes(status)) {
-        return res.status(400).json({ error: "Status inválido." });
+      const { updateFounderApplication, FOUNDER_STATUSES } = await import("./lib/founderProgramAdmin.js");
+      const patch: { status?: (typeof FOUNDER_STATUSES)[number]; leader_id?: string | null } = {};
+      if (statusRaw) {
+        if (!(FOUNDER_STATUSES as readonly string[]).includes(statusRaw)) {
+          return res.status(400).json({ error: "Status inválido." });
+        }
+        patch.status = statusRaw as (typeof FOUNDER_STATUSES)[number];
       }
-      const row = await updateFounderApplicationStatus(deps.supabaseAdmin, id, status as any);
+      if (leaderIdRaw !== undefined) patch.leader_id = leaderIdRaw;
+      if (Object.keys(patch).length === 0) {
+        return res.status(400).json({ error: "Informe status e/ou leader_id." });
+      }
+      const row = await updateFounderApplication(deps.supabaseAdmin, id, patch);
       void logEvent(deps.supabaseAdmin, {
-        eventType: "founder-application.status",
+        eventType: "founder-application.updated",
         userId: ctx.user.id,
         userEmail: ctx.user.email,
         targetType: "founder_application",
         targetId: id,
-        description: `Inscrição «${row.nome_casa}» → ${status}`,
-        metadata: { status, nome_casa: row.nome_casa },
+        description: `Inscrição «${row.nome_casa}» actualizada`,
+        metadata: { ...patch, nome_casa: row.nome_casa, leader_id: row.leader_id },
         req,
       });
       res.json({ success: true, row });
     } catch (e: any) {
       console.error("[admin-console/founder-applications/patch]", e);
       res.status(500).json({ error: e?.message || "Erro ao actualizar inscrição" });
+    }
+  });
+
+  app.post("/api/admin-console/founder-applications/:id/link-existing", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+    try {
+      const { linkFounderApplicationToExistingLeader } = await import("./lib/founderProgramAdmin.js");
+      const row = await linkFounderApplicationToExistingLeader(deps.supabaseAdmin, id);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "founder-application.linked",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "founder_application",
+        targetId: id,
+        tenantId: row.linked_tenant_id || row.leader_id || undefined,
+        description: `Inscrição «${row.nome_casa}» vinculada ao terreiro ${row.leader_id}`,
+        metadata: { leader_id: row.leader_id, linked_nome_terreiro: row.linked_nome_terreiro },
+        req,
+      });
+      res.json({ success: true, row });
+    } catch (e: any) {
+      console.error("[admin-console/founder-applications/link-existing]", e);
+      const msg = e?.message || "Erro ao vincular terreiro";
+      const code = msg.includes("Nenhum terreiro") ? 404 : 500;
+      res.status(code).json({ error: msg });
     }
   });
 }

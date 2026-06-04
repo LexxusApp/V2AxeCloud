@@ -5,6 +5,7 @@ import {
   Check,
   Crown,
   ExternalLink,
+  Link2,
   MessageCircle,
   PlusCircle,
   RefreshCw,
@@ -32,6 +33,9 @@ type FounderRow = {
   autoriza_perfil_publico: boolean;
   autoriza_depoimento: boolean;
   status: FounderStatus;
+  leader_id: string | null;
+  linked_nome_terreiro?: string | null;
+  linked_tenant_id?: string | null;
 };
 
 type FounderStats = {
@@ -79,9 +83,10 @@ function statusBadge(status: FounderStatus) {
 type FounderProgramPanelProps = {
   onMessage: (msg: string) => void;
   onCreateTenant: (row: FounderPrefillSource) => void;
+  onOpenTerreiro?: (leaderId: string) => void;
 };
 
-export function FounderProgramPanel({ onMessage, onCreateTenant }: FounderProgramPanelProps) {
+export function FounderProgramPanel({ onMessage, onCreateTenant, onOpenTerreiro }: FounderProgramPanelProps) {
   const [stats, setStats] = useState<FounderStats | null>(null);
   const [rows, setRows] = useState<FounderRow[]>([]);
   const [available, setAvailable] = useState(true);
@@ -127,6 +132,26 @@ export function FounderProgramPanel({ onMessage, onCreateTenant }: FounderProgra
       await refresh();
     } catch (e) {
       onMessage(e instanceof Error ? e.message : "Erro ao actualizar");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function linkExisting(id: string) {
+    setUpdatingId(id);
+    try {
+      const j = await apiJson<{ row: FounderRow }>(
+        `/api/admin-console/founder-applications/${id}/link-existing`,
+        { method: "POST" }
+      );
+      onMessage(
+        j.row?.linked_nome_terreiro
+          ? `Vinculado a «${j.row.linked_nome_terreiro}».`
+          : "Terreiro vinculado à inscrição."
+      );
+      await refresh();
+    } catch (e) {
+      onMessage(e instanceof Error ? e.message : "Erro ao vincular");
     } finally {
       setUpdatingId(null);
     }
@@ -222,6 +247,20 @@ export function FounderProgramPanel({ onMessage, onCreateTenant }: FounderProgra
                         <p className="mt-0.5 text-[11px] text-[var(--ac-text-muted)]">
                           {TRADICAO_LABEL[row.tradicao] || row.tradicao}
                         </p>
+                        {row.leader_id ? (
+                          <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-400">
+                              Terreiro no sistema
+                            </span>
+                            {row.linked_nome_terreiro ? (
+                              <span className="text-[var(--ac-text-muted)]">{row.linked_nome_terreiro}</span>
+                            ) : null}
+                          </p>
+                        ) : row.email ? (
+                          <p className="mt-1 text-[11px] text-amber-400/90">
+                            E-mail pode corresponder a terreiro já cadastrado — use «Vincular existente».
+                          </p>
+                        ) : null}
                         {row.mensagem ? (
                           <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-[var(--ac-text-faint)] line-clamp-2">
                             {row.mensagem}
@@ -275,7 +314,28 @@ export function FounderProgramPanel({ onMessage, onCreateTenant }: FounderProgra
                               <ExternalLink className="h-3 w-3 opacity-60" />
                             </a>
                           ) : null}
-                          {row.status !== "rejected" ? (
+                          {row.leader_id && onOpenTerreiro ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenTerreiro(row.leader_id!)}
+                              className="inline-flex items-center gap-1 rounded-[var(--ac-radius-sm)] border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Ver terreiro
+                            </button>
+                          ) : null}
+                          {row.status !== "rejected" && !row.leader_id && row.email ? (
+                            <button
+                              type="button"
+                              disabled={updatingId === row.id}
+                              onClick={() => void linkExisting(row.id)}
+                              className="inline-flex items-center gap-1 rounded-[var(--ac-radius-sm)] border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[11px] font-semibold text-sky-400 hover:bg-sky-500/20"
+                            >
+                              <Link2 className="h-3.5 w-3.5" />
+                              Vincular existente
+                            </button>
+                          ) : null}
+                          {row.status !== "rejected" && !row.leader_id ? (
                             <button
                               type="button"
                               onClick={() => onCreateTenant(row)}
