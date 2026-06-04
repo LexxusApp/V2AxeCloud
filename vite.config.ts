@@ -4,6 +4,7 @@ import path from 'path';
 import type {Plugin} from 'vite';
 import {defineConfig, loadEnv} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
+import {prerenderPublicPages} from './scripts/vite-plugin-prerender-public';
 import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
 import {HOME_SEO} from './src/constants/seoHome';
 
@@ -26,6 +27,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       stripCrossoriginFromBuiltHtml(),
       seoHomeInject(),
+      prerenderPublicPages(),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,

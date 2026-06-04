@@ -1,3 +1,5 @@
+import { buildPublicSiteNavHtml } from './seoPublicPages';
+
 /** Metadados e conteúdo estático da home — fonte única para HTML, JSON-LD e landing. */
 export const SITE_ORIGIN = 'https://axecloud.com.br';
 
@@ -189,6 +191,8 @@ export function buildHomeBodyInject(): string {
     `      <dl>`,
     faq,
     `      </dl>`,
+    '',
+    buildPublicSiteNavHtml(),
     `    </article>`,
     `    <div id="axecloud-boot" aria-hidden="true">`,
     `      <div class="spinner"></div>`,
