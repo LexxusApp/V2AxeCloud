@@ -34,10 +34,6 @@ export default function MarketingPageShell({
         isFounder ? 'bg-[#050505]' : 'bg-neutral-950',
       )}
     >
-      {isFounder ? (
-        <div className="landing-grid-faint pointer-events-none fixed inset-0 opacity-25" aria-hidden />
-      ) : null}
-
       <header className="relative z-10 border-b border-[#2a2108]/80 bg-[#050505]/95 backdrop-blur-xl">
         <div
           className={cn(

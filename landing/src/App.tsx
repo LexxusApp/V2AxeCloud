@@ -189,7 +189,6 @@ export function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/80 to-background" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
         <div className="absolute top-1/2 left-1/2 h-[min(100vw,720px)] w-[min(100vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-[100px]" />
-        <div className="grid-faint absolute inset-0 opacity-60" />
       </div>
 
       <header className="sticky top-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">

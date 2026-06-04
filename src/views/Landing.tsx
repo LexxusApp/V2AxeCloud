@@ -192,7 +192,6 @@ export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
   return (
     <div className="relative min-h-dvh overflow-x-hidden bg-[#050505]">
-      <div className="landing-grid-faint pointer-events-none fixed inset-0 z-0 opacity-30" aria-hidden />
       <span id="top" className="sr-only" aria-hidden />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
