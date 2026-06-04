@@ -90,18 +90,15 @@ export default function FilhoSidebar({
               key={item.id}
               onClick={() => handleNav(item.id)}
               className={cn(
-                "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors duration-200 group relative overflow-hidden",
+                "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors duration-200 group",
                 activeTab === item.id
-                  ? "text-yellow-500 font-black bg-yellow-500/10"
-                  : "text-gray-500 hover:text-white hover:bg-white/5"
+                  ? "text-white font-black"
+                  : "text-gray-500 hover:text-white"
               )}
             >
-              {activeTab === item.id && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-500 rounded-r-full" />
-              )}
               <item.icon className={cn(
                 "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
-                activeTab === item.id ? "text-yellow-500" : "text-gray-500"
+                activeTab === item.id ? "text-white" : "text-gray-500"
               )} />
               <span className="text-[11px] uppercase font-black tracking-[0.15em]">{item.label}</span>
             </button>
@@ -124,7 +121,7 @@ export default function FilhoSidebar({
 
   return (
     <>
-      <div className="hidden lg:flex w-64 h-screen flex-col fixed left-0 top-0 z-[100] border-r border-white/5 bg-black/40 backdrop-blur-md p-8">
+      <div className="hidden lg:flex w-64 h-screen flex-col fixed left-0 top-0 z-[100] border-r border-white/5 bg-black p-8">
         <SidebarContent />
       </div>
 
@@ -137,7 +134,7 @@ export default function FilhoSidebar({
 
       <aside
         className={cn(
-          'fixed left-0 top-0 bottom-0 z-[120] flex w-72 flex-col border-r border-white/10 bg-[#0a0a0a]/[0.98] p-8 lg:hidden',
+          'fixed left-0 top-0 bottom-0 z-[120] flex w-72 flex-col border-r border-white/10 bg-black p-8 lg:hidden',
           MOBILE_DRAWER_TRANSITION,
           isMobileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
         )}
