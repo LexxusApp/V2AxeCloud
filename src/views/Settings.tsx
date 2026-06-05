@@ -9,6 +9,8 @@ import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
 import WhatsAppConfig from './WhatsAppConfig';
 import PageHeader from '../components/PageHeader';
+import { FounderHouseBadge } from '../components/founder/FounderHouseBadge';
+import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
 
 interface SettingsProps {
   user: any;
@@ -20,6 +22,7 @@ interface SettingsProps {
 
 export default function Settings({ user, session, tenantData, onRefresh, setActiveTab }: SettingsProps) {
   const tenantId = tenantData?.tenant_id;
+  const { isFounderHouse, status: founderStatus, loading: founderLoading } = useFounderHouseStatus();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -412,10 +415,22 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                     className="hidden"
                   />
                 </div>
-                <div className="text-center md:text-left">
+                <div className="text-center md:text-left space-y-3">
                   <h3 className="text-3xl font-black text-white">{profile?.nome_terreiro || 'Zelador de Axé'}</h3>
                   <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">{profile?.email}</p>
-                  <div className="flex items-center justify-center md:justify-start gap-4 mt-3">
+                  {isFounderHouse && <FounderHouseBadge className="mx-auto md:mx-0" />}
+                  {!founderLoading && !isFounderHouse && founderStatus === 'pending' && (
+                    <p className="text-xs text-zinc-500 max-w-md">
+                      Inscrição no Programa Fundador em análise. O selo de Casa Fundadora aparece aqui quando a
+                      inscrição for aceita.
+                    </p>
+                  )}
+                  {!founderLoading && !isFounderHouse && founderStatus === 'contacted' && (
+                    <p className="text-xs text-zinc-500 max-w-md">
+                      Estamos em contato sobre o Programa Fundador. O selo será exibido após a confirmação.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-center md:justify-start gap-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="text-primary text-[10px] font-black hover:underline uppercase tracking-widest flex items-center gap-2"

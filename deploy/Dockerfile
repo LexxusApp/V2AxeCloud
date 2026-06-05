@@ -1,0 +1,26 @@
+# Build: Vite SPA + API Node (tsx) — contexto = raiz do repositório
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_VAPID_PUBLIC_KEY=""
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+    VITE_VAPID_PUBLIC_KEY=$VITE_VAPID_PUBLIC_KEY
+RUN npm run build
+
+FROM node:22-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm install tsx@^4.21.0
+COPY --from=build /app/dist ./dist
+COPY api ./api
+COPY src ./src
+COPY lib ./lib
+COPY certs ./certs
+EXPOSE 3000
+CMD ["npx", "tsx", "api/index.ts"]

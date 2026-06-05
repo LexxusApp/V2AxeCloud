@@ -275,3 +275,71 @@ export async function updateFounderApplicationStatus(
 ): Promise<FounderApplicationRow> {
   return updateFounderApplication(sb, id, { status });
 }
+
+export type FounderHouseStatus = {
+  isFounderHouse: boolean;
+  status: FounderStatus | null;
+  nomeCasa: string | null;
+};
+
+/** Selo visível ao zelador quando a inscrição vinculada ao terreiro está aceita. */
+export async function getFounderHouseStatusForLeader(
+  sb: SupabaseClient,
+  leaderId: string
+): Promise<FounderHouseStatus> {
+  const empty: FounderHouseStatus = { isFounderHouse: false, status: null, nomeCasa: null };
+  const id = String(leaderId || "").trim();
+  if (!id) return empty;
+
+  const { data: byLeader, error: leaderErr } = await sb
+    .from("founder_applications")
+    .select("status, nome_casa")
+    .eq("leader_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (leaderErr) {
+    if (isMissingOrUnknownTable(leaderErr, "founder_applications")) return empty;
+    throw leaderErr;
+  }
+
+  if (byLeader) {
+    const status = byLeader.status as FounderStatus;
+    return {
+      isFounderHouse: status === "accepted",
+      status,
+      nomeCasa: String(byLeader.nome_casa || "").trim() || null,
+    };
+  }
+
+  const { data: profile, error: profileErr } = await sb
+    .from("perfil_lider")
+    .select("email")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (profileErr || !profile?.email) return empty;
+
+  const { data: byEmail, error: emailErr } = await sb
+    .from("founder_applications")
+    .select("status, nome_casa")
+    .ilike("email", normalizeEmail(profile.email))
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (emailErr) {
+    if (isMissingOrUnknownTable(emailErr, "founder_applications")) return empty;
+    throw emailErr;
+  }
+  if (!byEmail) return empty;
+
+  const status = byEmail.status as FounderStatus;
+  return {
+    isFounderHouse: status === "accepted",
+    status,
+    nomeCasa: String(byEmail.nome_casa || "").trim() || null,
+  };
+}

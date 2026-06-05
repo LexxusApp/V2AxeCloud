@@ -2,11 +2,15 @@ const TOKEN_KEY = "axecloud_admin_access_token";
 
 export const API_UNAVAILABLE = "API_UNAVAILABLE";
 
-/** API de produção: sempre axecloud.com.br (evita api/index pesado em *.vercel.app). */
+/**
+ * Base da API no browser.
+ * Produção no Vercel: vazio → `/api/...` no mesmo host; vercel.json faz proxy para axecloud.com.br.
+ * Evita ERR_NAME_NOT_RESOLVED quando o DNS local do `axecloud.com.br` falha no PC do admin.
+ * Override: VITE_API_BASE_URL=https://axecloud.com.br (chamada cross-origin direta).
+ */
 export function resolveApiBaseUrl(): string {
   const fromEnv = String(import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/$/, "");
   if (fromEnv) return fromEnv;
-  if (import.meta.env.PROD) return "https://axecloud.com.br";
   return "";
 }
 

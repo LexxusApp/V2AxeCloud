@@ -1,0 +1,10 @@
+{
+	email {$ACME_EMAIL}
+}
+
+axecloud.com.br, www.axecloud.com.br {
+	@www host www.axecloud.com.br
+	redir @www https://axecloud.com.br{uri} permanent
+
+	reverse_proxy app:3000
+}

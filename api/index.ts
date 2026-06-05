@@ -46,6 +46,7 @@ import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/conso
 import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
+import cronHandler from "./cron.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
@@ -3164,8 +3165,16 @@ async function startServer() {
   registerFilhoHomeRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
 
-  // Cron Vercel (Fase 4): roda monitoramento contínuo dos audit_targets.
-  // Configure o schedule em vercel.json e o secret em CRON_SECRET.
+  // Cron: ping Evolution (Vercel rewrite + VPS Express)
+  app.get("/api/v1/cron/ping-evolution", async (req, res) => {
+    req.query = { ...req.query, job: "ping-evolution" };
+    await cronHandler(req, res);
+  });
+  app.all("/api/cron", async (req, res) => {
+    await cronHandler(req, res);
+  });
+
+  // Cron (Fase 4): monitoramento contínuo dos audit_targets — secret em CRON_SECRET.
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);
   });

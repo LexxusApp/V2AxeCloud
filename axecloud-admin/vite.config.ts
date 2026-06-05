@@ -6,10 +6,7 @@ import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const proxyTarget = env.VITE_PROXY_API || "http://localhost:3000";
-  const isProd = mode === "production";
-  const apiBase =
-    env.VITE_API_BASE_URL?.trim() ||
-    (isProd ? "https://axecloud.com.br" : "");
+  const apiBase = env.VITE_API_BASE_URL?.trim() || "";
   return {
     plugins: [react(), tailwindcss()],
     define: {

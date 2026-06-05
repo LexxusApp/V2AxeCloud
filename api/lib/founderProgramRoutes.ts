@@ -1,6 +1,8 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
+import { requireAuthOrRespond } from "./requireAuth.js";
+import { getFounderHouseStatusForLeader } from "./founderProgramAdmin.js";
 
 const FOUNDER_MAX_SLOTS = 20;
 const TRADICOES = new Set(["umbanda", "candomble", "jurema", "mista", "outra"]);
@@ -34,6 +36,18 @@ async function countActiveApplications(supabaseAdmin: SupabaseClient): Promise<n
 }
 
 export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.get("/api/v1/founder-program/me", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+      if (!user) return;
+      const status = await getFounderHouseStatusForLeader(supabaseAdmin, user.id);
+      res.json(status);
+    } catch (err: unknown) {
+      console.error("[founder-program/me]", err);
+      res.status(500).json({ error: "Não foi possível carregar o status do programa fundador." });
+    }
+  });
+
   app.get("/api/v1/founder-program/stats", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
       const used = await countActiveApplications(supabaseAdmin);
