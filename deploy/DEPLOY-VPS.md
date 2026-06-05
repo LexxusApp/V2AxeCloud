@@ -65,3 +65,86 @@ cd /opt/axecloud && git pull
 docker compose -f deploy/docker-compose.yml --env-file .env build app
 docker compose -f deploy/docker-compose.yml --env-file .env up -d app
 ```
+
+## 8. Segurança (Semana 1)
+
+### Na VPS (scripts em `deploy/scripts/`)
+
+```bash
+# Hardening SSH, fail2ban, Netdata, .env 600
+bash deploy/scripts/vps-hardening.sh
+
+# Headers HTTP (Caddyfile), swap 2G, healthcheck cron
+bash deploy/scripts/vps-week1-security.sh
+
+# Rotacionar CRON_SECRET + EVOLUTION_API_KEY (faz backup do .env)
+bash deploy/scripts/rotate-vps-secrets.sh
+```
+
+Healthcheck: log em `/var/log/axecloud-healthcheck.log` (cron `*/5`).
+
+### Cloudflare (painel — manual)
+
+1. **SSL/TLS** → Full (strict), Minimum TLS 1.2, Always Use HTTPS.
+2. **Security** → Bot Fight Mode: On (se não atrapalhar usuários legítimos).
+3. **Security** → WAF → Managed rules: On.
+4. **Security** → WAF → Custom rule** (exemplo):
+   - Nome: `Rate limit API sensível`
+   - Expression: `(http.request.uri.path contains "/api/whatsapp") or (http.request.uri.path contains "/api/auth")`
+   - Action: Block ou Managed Challenge se > 60 req/min por IP.
+5. **DNS** → Proxy laranja em `@` e `www` (já deve estar).
+6. Conta Cloudflare: ativar **2FA** no login.
+
+Uptime externo (opcional): [UptimeRobot](https://uptimerobot.com) monitorando `https://axecloud.com.br/api/plans` a cada 5 min.
+
+## 9. Segurança (Semana 2)
+
+### Na VPS
+
+```bash
+# Anti-scanner no Caddy, healthcheck pela URL pública (Cloudflare + TLS)
+bash deploy/scripts/vps-week2-security.sh
+```
+
+Logs:
+
+- Interno (Docker): `/var/log/axecloud-healthcheck.log`
+- Externo (HTTPS): `/var/log/axecloud-external-healthcheck.log`
+
+Teste anti-scanner (deve retornar 404):
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://axecloud.com.br/.env
+curl -sS -o /dev/null -w "%{http_code}\n" https://axecloud.com.br/wp-admin/
+```
+
+### Cloudflare (painel — espelhar o Caddy)
+
+**Security → Security rules → Custom rule** (ação **Block**):
+
+- Nome: `Block scanner paths`
+- Expression:
+
+```
+(http.request.uri.path contains "/wp-admin") or
+(http.request.uri.path contains "/.env") or
+(http.request.uri.path contains "/phpmyadmin") or
+(http.request.uri.path contains "/xmlrpc.php") or
+(http.request.uri.path contains "/vendor/phpunit")
+```
+
+Não aplicar Challenge em `/api/*` — só Block nesses paths.
+
+### Contas (manual, ~10 min)
+
+- Cloudflare: **2FA** no login da conta
+- Supabase: **2FA** no dashboard
+- Contabo: **2FA** no painel
+
+### Auditoria RLS (dev)
+
+```bash
+npx supabase db query --linked "SELECT relname, relrowsecurity, (SELECT count(*) FROM pg_policies p WHERE p.tablename = c.relname) AS policies FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relkind = 'r' AND relrowsecurity = false;"
+```
+
+Tabelas com RLS ligado e **0 policies** (`access_logs`, `founder_applications`, `payment_webhook_events`, etc.) são **intencionais**: só o backend com `service_role` acessa.

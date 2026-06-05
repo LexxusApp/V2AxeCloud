@@ -195,7 +195,7 @@ export default function Landing() {
       <span id="top" className="sr-only" aria-hidden />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
-        <div className="mx-auto grid h-[4.25rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+        <div className="landing-gutter-x mx-auto grid h-[4.25rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4">
           <a href="#top" className="min-w-0 shrink-0" aria-label="AxéCloud — início">
             <LogoMark compact />
           </a>
@@ -428,7 +428,7 @@ export default function Landing() {
       </main>
 
       <footer className="landing-footer relative z-[1] py-8 sm:py-10" role="contentinfo">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-4 sm:flex-row sm:px-6 sm:items-start">
+        <div className="landing-gutter-x mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 sm:flex-row sm:items-start">
           <div className="text-center sm:text-left">
             <LogoMark compact />
             <p className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zinc-600 sm:justify-start">

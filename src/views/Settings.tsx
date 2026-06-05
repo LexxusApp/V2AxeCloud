@@ -334,7 +334,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   }
 
   return (
-    <div className="space-y-12 pb-20">
+    <>
       <PageHeader 
         title={<>Configurações do <span className="text-primary">Axé</span></>}
         subtitle="Personalize sua experiência e gerencie os módulos do AxéCloud."
@@ -342,47 +342,50 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         setActiveTab={setActiveTab}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="app-page-gutter mx-auto max-w-[1440px] space-y-8 pb-20 md:space-y-10">
+      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Sidebar Settings */}
-        <div className="lg:col-span-3 lg:max-w-sm space-y-3 lg:pl-3">
+        <div className="lg:col-span-3 lg:max-w-sm lg:space-y-3 lg:pl-3">
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
           <button 
             onClick={() => setActiveSection('profile')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
+              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
               activeSection === 'profile' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
-            <User className="w-5 h-5" />
+            <User className="w-5 h-5 shrink-0" />
             Perfil do Zelador
           </button>
           <button 
             onClick={() => setActiveSection('subscription')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
+              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
               activeSection === 'subscription' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
-            <CreditCard className="w-5 h-5" />
+            <CreditCard className="w-5 h-5 shrink-0" />
             Assinatura
           </button>
           <button 
             onClick={() => setActiveSection('whatsapp')}
             className={cn(
-              "w-full flex items-center gap-3 p-4 rounded-lg font-black text-sm transition-all",
+              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
               activeSection === 'whatsapp' ? "bg-emerald-500 text-background shadow-xl shadow-emerald-500/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 shrink-0"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
             Conexão WhatsApp
           </button>
+          </div>
         </div>
 
         {/* Content Settings */}
-        <div className="lg:col-span-9 space-y-10">
+        <div className="min-w-0 lg:col-span-9 space-y-10">
           {activeSection === 'profile' ? (
             <div className="card-luxury p-10 space-y-10">
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="relative group">
+              <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+                <div className="relative group shrink-0 mx-auto lg:mx-0">
                   <div className="w-28 h-28 rounded-[2.5rem] bg-primary/10 flex items-center justify-center text-primary font-black text-5xl shadow-2xl shadow-primary/10 border border-primary/20 overflow-hidden">
                     {profile?.foto_url ? (
                       <img 
@@ -400,40 +403,23 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                       </div>
                     )}
                   </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={photoUploading}
-                    className="absolute -bottom-2 -right-2 p-3 bg-primary text-background rounded-2xl shadow-xl hover:scale-110 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </button>
-                  <input 
+                </div>
+                <div className="min-w-0 flex-1 space-y-3 text-center md:text-left">
+                  <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handlePhotoUpload}
                     accept="image/*"
                     className="hidden"
                   />
-                </div>
-                <div className="text-center md:text-left space-y-3">
                   <h3 className="text-3xl font-black text-white">{profile?.nome_terreiro || 'Zelador de Axé'}</h3>
                   <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">{profile?.email}</p>
-                  {isFounderHouse && <FounderHouseBadge className="mx-auto md:mx-0" />}
-                  {!founderLoading && !isFounderHouse && founderStatus === 'pending' && (
-                    <p className="text-xs text-zinc-500 max-w-md">
-                      Inscrição no Programa Fundador em análise. O selo de Casa Fundadora aparece aqui quando a
-                      inscrição for aceita.
-                    </p>
-                  )}
-                  {!founderLoading && !isFounderHouse && founderStatus === 'contacted' && (
-                    <p className="text-xs text-zinc-500 max-w-md">
-                      Estamos em contato sobre o Programa Fundador. O selo será exibido após a confirmação.
-                    </p>
-                  )}
                   <div className="flex items-center justify-center md:justify-start gap-4">
-                    <button 
+                    <button
+                      type="button"
+                      disabled={photoUploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-primary text-[10px] font-black hover:underline uppercase tracking-widest flex items-center gap-2"
+                      className="text-primary text-[10px] font-black hover:underline uppercase tracking-widest flex items-center gap-2 disabled:opacity-50"
                     >
                       <Camera className="w-4 h-4" />
                       Alterar Foto
@@ -448,6 +434,31 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                       </button>
                     )}
                   </div>
+                </div>
+                <div className="w-full shrink-0 lg:w-[17.5rem] xl:w-[20rem]">
+                  {isFounderHouse && <FounderHouseBadge variant="panel" className="h-full" />}
+                  {!founderLoading && !isFounderHouse && founderStatus === 'pending' && (
+                    <div className="flex h-full min-h-[7.5rem] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                        Programa Fundador
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-zinc-300">Inscrição em análise</p>
+                      <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                        O selo de Casa Fundadora aparece aqui quando a inscrição for aceita.
+                      </p>
+                    </div>
+                  )}
+                  {!founderLoading && !isFounderHouse && founderStatus === 'contacted' && (
+                    <div className="flex h-full min-h-[7.5rem] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                        Programa Fundador
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-zinc-300">Em contato</p>
+                      <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                        O selo será exibido após a confirmação da sua casa.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -550,6 +561,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           />
         </div>
       )}
+      </div>
 
       <Dialog.Root
         open={deleteModalOpen}
@@ -611,6 +623,6 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-    </div>
+    </>
   );
 }

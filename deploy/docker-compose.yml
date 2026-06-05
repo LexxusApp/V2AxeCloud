@@ -19,6 +19,18 @@ services:
     networks:
       - web
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - web
+
   evolution-db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -37,18 +49,31 @@ services:
       - web
 
   evolution:
-    image: atendai/evolution-api:v2.2.3
+    # atendai/evolution-api parou em v2.2.3; imagem oficial atual: evoapicloud (QR/pairing corrigidos)
+    image: evoapicloud/evolution-api:v2.3.7
     restart: unless-stopped
     env_file: ../.env
     environment:
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-https://axecloud.com.br}
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_DB_PASSWORD}@evolution-db:5432/evolution?schema=public
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+      QRCODE_LIMIT: "30"
+      QRCODE_COLOR: "#175197"
+      # Safari costuma parear melhor no fluxo "código no celular" que Chrome/Desktop
+      CONFIG_SESSION_PHONE_CLIENT: Safari
+      CONFIG_SESSION_PHONE_NAME: Safari
     volumes:
       - evolution_data:/evolution/instances
     depends_on:
+      redis:
+        condition: service_healthy
       evolution-db:
         condition: service_healthy
     networks:

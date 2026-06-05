@@ -1426,7 +1426,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         <div className="app-content-panel__base" aria-hidden />
 
         {/* Mobile Header */}
-        <header className="sticky top-0 z-50 flex h-20 min-w-0 shrink-0 items-center justify-between border-b border-white/5 bg-black/40 px-4 backdrop-blur-xl sm:px-6 lg:hidden">
+        <header className="page-header-shell sticky top-0 z-50 flex h-20 min-w-0 shrink-0 items-center justify-between border-b border-white/5 bg-black/40 backdrop-blur-xl lg:hidden">
           {userRole === 'filho' ? (
             /* Header exclusivo para filho de santo */
             <>

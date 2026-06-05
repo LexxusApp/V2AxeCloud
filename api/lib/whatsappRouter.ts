@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createAxeInstance,
+  createInstanceWithQrCode,
   createInstanceWithPairingCode,
   evolutionInstanceName,
   getAxeEvolutionStatusAndQr,
@@ -174,16 +175,18 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         return sendJson(res, 200, { message: "WhatsApp já está conectado." });
       }
       const phone = String(body.phone || body.number || "").trim();
-      if (phone) {
+      const mode = String(body.mode || "").trim().toLowerCase();
+      if (phone && mode !== "qrcode") {
         const out = await createInstanceWithPairingCode(evolutionInstanceName(user.id), phone);
         return sendJson(res, 200, {
-          message: "Use o código no WhatsApp em até 60 segundos.",
+          message: "Use o código ou escaneie o QR no WhatsApp em até 60 segundos.",
           pairingCode: out.pairingCode,
+          qrcode: out.qrcode,
           mode: "pairing",
         });
       }
-      const qrcode = await createAxeInstance(user.id);
-      return sendJson(res, 200, { message: "Iniciando conexão WhatsApp...", qrcode, mode: "qrcode" });
+      const qrcode = await createInstanceWithQrCode(user.id);
+      return sendJson(res, 200, { message: "Escaneie o QR Code no WhatsApp.", qrcode, mode: "qrcode" });
     }
 
     if (act === "test-message" && method === "POST") {

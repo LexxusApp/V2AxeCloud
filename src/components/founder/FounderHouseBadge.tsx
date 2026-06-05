@@ -3,8 +3,8 @@ import { cn } from '../../lib/utils';
 
 type FounderHouseBadgeProps = {
   className?: string;
-  /** compacto = só ícone + texto curto (header); default = selo completo */
-  variant?: 'compact' | 'full';
+  /** compact = header; full = inline; panel = coluna lateral no perfil */
+  variant?: 'compact' | 'full' | 'panel';
 };
 
 /** Selo exibido ao zelador quando o terreiro está aceito no Programa Fundador. */
@@ -21,6 +21,32 @@ export function FounderHouseBadge({ className, variant = 'full' }: FounderHouseB
         <Award className="h-3 w-3" aria-hidden />
         FUNDADOR
       </span>
+    );
+  }
+
+  if (variant === 'panel') {
+    return (
+      <div
+        className={cn(
+          'flex h-full min-h-[7.5rem] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-[#FBBC00]/30 bg-gradient-to-br from-[#FBBC00]/15 via-[#FBBC00]/5 to-transparent px-5 py-6 text-center',
+          className
+        )}
+        role="status"
+        aria-label="Casa Fundadora do Programa Fundador AxéCloud"
+      >
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FBBC00]/35 bg-[#FBBC00]/20 text-[#FBBC00]">
+          <Award className="h-6 w-6" aria-hidden />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FBBC00]">
+            Programa Fundador
+          </p>
+          <p className="text-base font-black text-white">Casa Fundadora</p>
+          <p className="text-xs leading-relaxed text-zinc-400">
+            Selo no perfil da casa · prioridade no portal público
+          </p>
+        </div>
+      </div>
     );
   }
 

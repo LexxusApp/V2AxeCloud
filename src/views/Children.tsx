@@ -214,7 +214,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               setIsModalOpen(true);
             }}
             className={cn(
-              "w-full md:w-auto px-6 py-3 rounded-lg font-black flex items-center justify-center gap-2 transition-transform",
+              "app-page-action px-5 py-2.5 rounded-lg font-black inline-flex items-center justify-center gap-2 transition-transform text-sm",
               isLimitReached
                 ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700" 
                 : "bg-primary text-background shadow-[0_8px_28px_rgba(251,188,0,0.35)] hover:scale-105"
@@ -227,7 +227,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         }
       />
 
-      <div className="relative z-[1] mx-auto w-full max-w-[1440px] flex-1 space-y-8 px-3 pb-20 animate-in slide-in-from-bottom-4 duration-700 sm:px-4 md:px-6 lg:px-10">
+      <div className="app-page-gutter relative z-[1] mx-auto w-full max-w-[1440px] flex-1 space-y-8 pb-20 animate-in slide-in-from-bottom-4 duration-700">
         {/* Filters Bar */}
         <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative min-w-0 flex-1 w-full group">
@@ -246,7 +246,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               key={status}
               onClick={() => setFilterStatus(status)}
               className={cn(
-                "flex-1 md:flex-none px-4 md:px-5 py-3 md:py-3.5 rounded-2xl font-bold transition-all border text-sm md:text-base",
+                "shrink-0 px-4 py-3 rounded-2xl font-bold transition-all border text-sm md:px-5 md:py-3.5 md:text-base",
                 filterStatus === status 
                   ? "bg-primary/10 border-primary/30 text-primary" 
                   : "bg-card border-border text-gray-400 hover:border-white/20 hover:text-white"

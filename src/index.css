@@ -102,6 +102,35 @@
   z-index: 2;
 }
 
+/* Margem lateral consistente nas páginas autenticadas (mobile-first) */
+.app-page-gutter,
+.page-header-shell {
+  padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 640px) {
+  .app-page-gutter,
+  .page-header-shell {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-page-gutter,
+  .page-header-shell {
+    padding-left: max(2.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(2.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+.app-page-action {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+}
+
 /* Rodapé global — rola com o conteúdo */
 .app-footer {
   position: relative;
@@ -415,28 +444,34 @@
   background: linear-gradient(180deg, #0a0a0a 0%, rgba(12, 12, 14, 1) 50%, #050505 100%);
 }
 
+.landing-gutter-x,
+.landing-section-inner {
+  padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 640px) {
+  .landing-gutter-x,
+  .landing-section-inner {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .landing-gutter-x,
+  .landing-section-inner {
+    padding-left: max(2rem, env(safe-area-inset-left, 0px));
+    padding-right: max(2rem, env(safe-area-inset-right, 0px));
+  }
+}
+
 .landing-section-inner {
   position: relative;
   z-index: 1;
   margin-left: auto;
   margin-right: auto;
   max-width: 72rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 640px) {
-  .landing-section-inner {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .landing-section-inner {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
 }
 
 .landing-kicker {

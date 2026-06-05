@@ -215,14 +215,13 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
         actions={
           <div
             className={cn(
-              'grid w-full min-w-0 max-w-full gap-2 sm:gap-3',
-              isAdmin ? 'grid-cols-2' : 'grid-cols-1'
+              'flex flex-wrap items-center gap-2 sm:gap-3',
             )}
           >
             {isAdmin && (
               <button 
                 onClick={() => setIsAddItemModalOpen(true)}
-                className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-2.5 text-xs font-bold text-white transition-all hover:bg-white/10 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
+                className="app-page-action flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-bold text-white transition-all hover:bg-white/10 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
               >
                 <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 <span className="truncate">Novo Item</span>
@@ -230,10 +229,7 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
             )}
             <button 
               onClick={() => setIsShoppingListOpen(true)}
-              className={cn(
-                'flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-2 py-2.5 text-xs font-black text-black shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-3 sm:text-sm',
-                !isAdmin && 'col-span-full'
-              )}
+              className="app-page-action flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-black text-black shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
             >
               <ShoppingCart className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
               <span className="min-w-0 truncate sm:hidden">Lista</span>

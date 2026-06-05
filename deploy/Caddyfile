@@ -6,5 +6,30 @@ axecloud.com.br, www.axecloud.com.br {
 	@www host www.axecloud.com.br
 	redir @www https://axecloud.com.br{uri} permanent
 
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# Bloqueia paths típicos de scanners (equivalente à custom rule Cloudflare)
+	@scanners {
+		path /.env*
+		path /.git*
+		path /wp-admin*
+		path /wp-login.php
+		path /phpmyadmin*
+		path /pma*
+		path /xmlrpc.php
+		path /vendor/phpunit*
+		path /actuator*
+		path /containers/json
+		path /.well-known/security.txt
+	}
+	respond @scanners 404
+
 	reverse_proxy app:3000
 }

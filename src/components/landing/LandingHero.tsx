@@ -264,7 +264,7 @@ const highlights = [
 export function LandingHero() {
   return (
     <section
-      className="landing-hero relative -mx-4 overflow-x-hidden px-4 pb-20 pt-6 sm:-mx-6 sm:px-6 sm:pb-24 lg:-mx-8 lg:px-8 lg:pb-28"
+      className="landing-hero relative overflow-x-hidden pb-20 pt-6 sm:pb-24 lg:pb-28"
       aria-labelledby="hero-title"
     >
       <AuthScreenBackground variant="dark" className="absolute inset-0 landing-hero-photo" />
@@ -275,7 +275,7 @@ export function LandingHero() {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14 xl:gap-16">
+      <div className="landing-gutter-x relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14 xl:gap-16">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

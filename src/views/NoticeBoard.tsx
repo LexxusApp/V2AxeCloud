@@ -308,9 +308,9 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         setActiveTab={setActiveTab}
         actions={
           !!isAdmin && (
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-primary text-background px-8 py-3 rounded-lg font-black flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+              className="app-page-action inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-black text-background shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
             >
               <Plus className="w-6 h-6" />
               Postar Novo Aviso

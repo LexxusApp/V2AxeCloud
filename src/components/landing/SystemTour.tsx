@@ -102,7 +102,7 @@ export function SystemTour() {
         />
 
         <div
-          className="relative z-10 mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-0"
+          className="relative z-10 mt-8 -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-0"
           role="tablist"
           aria-label="Módulos do sistema"
         >

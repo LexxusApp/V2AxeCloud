@@ -3,6 +3,7 @@
  * Configure EVOLUTION_API_BASE_URL e EVOLUTION_API_KEY no ambiente em produção.
  */
 import QRCode from "qrcode";
+import { normalizeBrWhatsAppMsisdn } from "../lib/whatsappPhone";
 
 export const WHATSAPP_INITIALIZING_MESSAGE_PT =
   "O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.";
@@ -19,6 +20,7 @@ function resolvedApiKey(): string {
 }
 
 const EVOLUTION_API_TIMEOUT_MS = 29000;
+const EVOLUTION_PAIRING_TIMEOUT_MS = 55_000;
 const EVOLUTION_STATUS_TIMEOUT_MS = 15000;
 const EVOLUTION_COLD_START_RETRY_DELAY_MS = 2000;
 
@@ -225,32 +227,43 @@ export async function createAxeInstance(tenantId: string): Promise<string> {
 
 async function fetchConnectQr(instanceName: string): Promise<string> {
   const path = `/instance/connect/${encodeURIComponent(instanceName)}`;
-  const res = await evolutionRequest(path, { method: "GET" });
-  const data: unknown = await res.json().catch(() => ({}));
-  logEvolution(`GET ${path}`, res.status, summarizeBody(data));
+  let lastErr = "Evolution não devolveu QR (count:0). Tente de novo em alguns segundos.";
 
-  if (res.status === 401) {
-    console.error("[Evolution API] Erro 401 no connect: apikey inválida.");
-    throw new Error("Evolution API retornou 401 em /instance/connect.");
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (attempt > 0) await delay(3000);
+    const res = await evolutionRequest(path, { method: "GET" });
+    const data: unknown = await res.json().catch(() => ({}));
+    logEvolution(`GET ${path}`, res.status, summarizeBody(data));
+
+    if (res.status === 401) {
+      throw new Error("Evolution API retornou 401 em /instance/connect.");
+    }
+    if (res.status === 404) {
+      throw new Error(`Evolution API retornou 404: instância "${instanceName}" não existe.`);
+    }
+    if (!res.ok) {
+      lastErr =
+        data && typeof data === "object" && "response" in data
+          ? summarizeBody((data as { response: unknown }).response)
+          : String((data as { error?: string })?.error || res.statusText);
+      continue;
+    }
+
+    const b64 = pickQrBase64(data);
+    if (b64) {
+      console.log("[Evolution API] QR obtido via GET /instance/connect.");
+      return b64;
+    }
+    try {
+      const out = await resolveDisplayString(data);
+      console.log("[Evolution API] GET /instance/connect concluído (QR/link).");
+      return out;
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : lastErr;
+    }
   }
 
-  if (res.status === 404) {
-    console.error(`[Evolution API] Erro 404 no connect: instância "${instanceName}" não encontrada.`);
-    throw new Error(`Evolution API retornou 404: instância "${instanceName}" não existe.`);
-  }
-
-  if (!res.ok) {
-    const msg =
-      data && typeof data === "object" && "response" in data
-        ? summarizeBody((data as { response: unknown }).response)
-        : String((data as { error?: string })?.error || res.statusText);
-    console.error(`[Evolution API] Connect falhou: ${msg}`);
-    throw new Error(msg || `Evolution connect (${res.status})`);
-  }
-
-  const out = await resolveDisplayString(data);
-  console.log("[Evolution API] GET /instance/connect concluído com sucesso (QR/link disponível).");
-  return out;
+  throw new Error(lastErr);
 }
 
 type UiStatus = "CONNECTED" | "QRCODE" | "LOADING" | "DISCONNECTED";
@@ -463,37 +476,58 @@ export async function sendEvolutionTextMessage(
 /** Nome canónico da instância usada pelo Console Admin global (separada dos terreiros). */
 export const CONSOLE_ADMIN_INSTANCE_NAME = "axecloud_console_admin";
 
-/**
- * Normaliza para MSISDN aceito pela Evolution/Baileys (DDI + DDD + linha, só dígitos).
- * Regras:
- *  - 10 ou 11 dígitos (DDD + linha brasileira) → prefixa "55".
- *  - 12 ou 13 dígitos começando com "55" → mantém.
- *  - 12+ dígitos com outro DDI (ex.: "351", "1", "44") → mantém.
- *  - <10 dígitos → erro.
- */
 function normalizeMsisdn(phone: string): string {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (!digits) throw new Error("Número de telefone inválido");
-  if (digits.length < 10) {
-    throw new Error("Número incompleto: digite DDD + linha (10 ou 11 dígitos).");
+  return normalizeBrWhatsAppMsisdn(phone);
+}
+
+function looksLikePairingCode(value: string): boolean {
+  const compact = value.replace(/\s|-/g, "").toUpperCase();
+  return compact.length >= 6 && compact.length <= 12 && /^[A-Z0-9]+$/.test(compact);
+}
+
+function pickQrBase64(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  for (const key of ["base64", "qrcode"]) {
+    const v = d[key];
+    if (typeof v === "string" && v.length > 40) {
+      return v.startsWith("data:image") ? v : `data:image/png;base64,${v}`;
+    }
   }
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
-  return digits;
+  if (d.qrcode && typeof d.qrcode === "object") {
+    const b = (d.qrcode as Record<string, unknown>).base64;
+    if (typeof b === "string" && b.length > 40) {
+      return b.startsWith("data:image") ? b : `data:image/png;base64,${b}`;
+    }
+  }
+  return null;
 }
 
 function pickPairingCode(data: unknown): string | null {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const code = pickPairingCode(item);
+      if (code) return code;
+    }
+    return null;
+  }
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
-  const direct = d.pairingCode ?? d.pairing_code ?? d.code;
-  if (typeof direct === "string" && direct.length >= 6) return direct;
-  if (d.qrcode && typeof d.qrcode === "object") {
-    const inner = (d.qrcode as Record<string, unknown>).pairingCode;
-    if (typeof inner === "string" && inner.length >= 6) return inner;
-  }
-  if (d.instance && typeof d.instance === "object") {
-    const inner = (d.instance as Record<string, unknown>).pairingCode;
-    if (typeof inner === "string" && inner.length >= 6) return inner;
+  const candidates = [
+    d.pairingCode,
+    d.pairing_code,
+    d.qrcode && typeof d.qrcode === "object"
+      ? (d.qrcode as Record<string, unknown>).pairingCode
+      : null,
+    d.qrcode && typeof d.qrcode === "object"
+      ? (d.qrcode as Record<string, unknown>).pairing_code
+      : null,
+    d.instance && typeof d.instance === "object"
+      ? (d.instance as Record<string, unknown>).pairingCode
+      : null,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && looksLikePairingCode(c)) return c;
   }
   return null;
 }
@@ -507,15 +541,24 @@ function pickPairingCode(data: unknown): string | null {
 export async function createInstanceWithPairingCode(
   instanceName: string,
   phone: string
-): Promise<{ pairingCode: string; instanceName: string }> {
+): Promise<{ pairingCode: string; instanceName: string; qrcode: string | null }> {
   const cleanInstance = evolutionInstanceName(instanceName);
   const number = normalizeMsisdn(phone);
+
+  // Sessão limpa evita códigos expirados e estado "connecting" preso.
+  try {
+    await deleteEvolutionInstanceByName(cleanInstance);
+    await delay(3500);
+  } catch {
+    /* instância pode não existir */
+  }
 
   const createPath = "/instance/create";
   const createBody = {
     instanceName: cleanInstance,
     integration: "WHATSAPP-BAILEYS" as const,
     qrcode: false,
+    pairing: true,
     number,
   };
   console.log(
@@ -527,10 +570,11 @@ export async function createInstanceWithPairingCode(
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      res = await evolutionRequest(createPath, {
-        method: "POST",
-        body: JSON.stringify(createBody),
-      });
+      res = await evolutionRequest(
+        createPath,
+        { method: "POST", body: JSON.stringify(createBody) },
+        EVOLUTION_PAIRING_TIMEOUT_MS,
+      );
       data = await res.json().catch(() => ({}));
       logEvolution(`POST ${createPath}`, res.status, summarizeBody(data));
 
@@ -559,29 +603,68 @@ export async function createInstanceWithPairingCode(
     throw new Error("Evolution API retornou 401 (apikey inválida).");
   }
 
-  if (res.ok) {
-    const code = pickPairingCode(data);
-    if (code) return { pairingCode: code, instanceName: cleanInstance };
+  if (!res.ok && !isInstanceAlreadyExists(res.status, data)) {
+    throw new Error(evolutionErrorMessage(data, `Evolution create falhou (${res.status})`));
   }
 
-  // Já existe — pedir connect com o número.
-  if (isInstanceAlreadyExists(res.status, data) || res.ok) {
-    const path = `/instance/connect/${encodeURIComponent(cleanInstance)}?number=${encodeURIComponent(number)}`;
-    const r2 = await evolutionRequest(path, { method: "GET" });
+  const draftFromCreate = pickPairingCode(data);
+  if (draftFromCreate) {
+    console.log(
+      `[Evolution API] pairing | create devolveu ${draftFromCreate} (rascunho — aguardando estabilizar)`,
+    );
+  }
+
+  // Cada GET /instance/connect gera um código NOVO e invalida o anterior no celular.
+  const connectPath = `/instance/connect/${encodeURIComponent(cleanInstance)}?number=${encodeURIComponent(number)}`;
+
+  async function fetchOnePairingCode(): Promise<{ pairingCode: string | null; qrcode: string | null }> {
+    const r2 = await evolutionRequest(connectPath, { method: "GET" }, EVOLUTION_PAIRING_TIMEOUT_MS);
     const d2: unknown = await r2.json().catch(() => ({}));
-    logEvolution(`GET ${path}`, r2.status, summarizeBody(d2));
+    logEvolution(`GET ${connectPath}`, r2.status, summarizeBody(d2));
     if (r2.status === 401) throw new Error("Evolution API retornou 401 em /instance/connect.");
     if (!r2.ok) {
-      const msg = evolutionErrorMessage(d2, `Falha ao gerar pairing (${r2.status})`);
-      throw new Error(msg);
+      throw new Error(evolutionErrorMessage(d2, `Falha ao gerar pairing (${r2.status})`));
     }
-    const code = pickPairingCode(d2);
-    if (code) return { pairingCode: code, instanceName: cleanInstance };
-    throw new Error("Evolution API não devolveu pairingCode. Verifique a versão da API.");
+    return { pairingCode: pickPairingCode(d2), qrcode: pickQrBase64(d2) };
   }
 
-  const msg = evolutionErrorMessage(data, `Evolution create falhou (${res.status})`);
-  throw new Error(msg);
+  // O código devolvido no create costuma falhar no celular; aguarda o Baileys estabilizar.
+  const PAIRING_WARMUP_MS = 10_000;
+  console.log(`[Evolution API] pairing | aguardando ${PAIRING_WARMUP_MS}ms antes do /connect único`);
+  await delay(PAIRING_WARMUP_MS);
+
+  let connected = await fetchOnePairingCode();
+  let fromCreate = connected.pairingCode;
+  let qr = connected.qrcode;
+
+  if (!fromCreate && !qr) {
+    console.log("[Evolution API] pairing | sem código; aguardando 5s e última tentativa /connect");
+    await delay(5000);
+    connected = await fetchOnePairingCode();
+    fromCreate = connected.pairingCode;
+    qr = connected.qrcode;
+  }
+
+  if (!fromCreate) {
+    throw new Error(
+      "Evolution não gerou código de pareamento. Aguarde 1 minuto e tente de novo (não clique várias vezes).",
+    );
+  }
+
+  console.log(`[Evolution API] pairing | código final (${fromCreate}) — use no WhatsApp em até 60s`);
+  return { pairingCode: fromCreate, instanceName: cleanInstance, qrcode: qr };
+}
+
+/** Gera QR Code para escanear no WhatsApp (sem código numérico). */
+export async function createInstanceWithQrCode(tenantId: string): Promise<string> {
+  const cleanInstance = evolutionInstanceName(tenantId);
+  try {
+    await deleteEvolutionInstanceByName(cleanInstance);
+    await delay(1200);
+  } catch {
+    /* ok */
+  }
+  return createAxeInstance(tenantId);
 }
 
 /** Status simples da instância do console (sem QR) — via connectionState. */
@@ -617,6 +700,23 @@ export async function sendEvolutionTextByInstance(
   if (!res.ok) throw new Error(evolutionErrorMessage(data, `Falha ao enviar (${res.status})`));
   const key = data && typeof data === "object" && "key" in data ? (data as { key?: { id?: string } }).key : undefined;
   return { messageId: typeof key?.id === "string" ? key.id : undefined };
+}
+
+/** Remove instância na Evolution (logout + delete). Útil quando ficou presa em `connecting`. */
+export async function deleteEvolutionInstanceByName(instanceName: string): Promise<void> {
+  const cleanInstance = evolutionInstanceName(instanceName);
+  try {
+    await logoutEvolutionInstanceByName(cleanInstance);
+  } catch {
+    /* logout pode falhar se já estiver fechada */
+  }
+  const path = `/instance/delete/${encodeURIComponent(cleanInstance)}`;
+  const res = await evolutionRequest(path, { method: "DELETE" });
+  const data: unknown = await res.json().catch(() => ({}));
+  logEvolution(`DELETE ${path}`, res.status, summarizeBody(data));
+  if (res.status === 401) throw new Error("Evolution API retornou 401 ao remover instância.");
+  if (res.status === 404) return;
+  if (!res.ok) throw new Error(evolutionErrorMessage(data, `Falha ao remover instância (${res.status})`));
 }
 
 /** Logout para uma instância arbitrária (não usa tenantId). */

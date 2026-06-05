@@ -17,9 +17,9 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, subtitle, actions, tabs, tenantData }: PageHeaderProps) {
   return (
-    <div className="mb-0 w-full min-w-0 max-w-full overflow-x-hidden bg-transparent px-3 py-3 sm:px-4 md:mb-6 md:px-6 md:py-8 lg:px-10">
-      <header className="mx-auto flex min-w-0 max-w-[1440px] flex-col justify-between gap-6 md:gap-8 xl:flex-row xl:items-center">
-        <div className="min-w-0 max-w-full space-y-1 md:space-y-2">
+    <div className="page-header-shell mb-0 w-full min-w-0 max-w-full overflow-x-hidden bg-transparent py-3 md:mb-6 md:py-8">
+      <header className="mx-auto flex min-w-0 max-w-[1440px] flex-col justify-between gap-4 md:gap-8 lg:flex-row lg:items-start lg:gap-6 xl:items-center">
+        <div className="min-w-0 flex-1 max-w-full space-y-1 md:space-y-2 lg:pr-4">
           <h2 className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-4xl [&>*]:min-w-0">
             {title}
           </h2>
@@ -30,16 +30,16 @@ export default function PageHeader({ title, subtitle, actions, tabs, tenantData 
           )}
         </div>
 
-        <div className="flex w-full min-w-0 max-w-full flex-col items-stretch gap-4 pb-2 md:gap-6 xl:w-auto xl:max-w-none xl:flex-row xl:items-center xl:pb-0">
+        <div className="flex min-w-0 max-w-full flex-col items-start gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end md:gap-4 xl:w-auto xl:flex-nowrap xl:items-center xl:gap-4 xl:pb-0">
           {actions && (
-            <div className="w-full min-w-0 max-w-full xl:w-auto xl:max-w-none">
+            <div className="flex min-w-0 shrink-0 items-center [&_.app-page-action]:inline-flex [&_.app-page-action]:w-auto [&_.app-page-action]:max-w-full">
               {actions}
             </div>
           )}
 
           {/* Badge de identificacao do zelador - apenas visual, sem dropdown.
              Configuracoes e Sair do Sistema vivem na sidebar para evitar duplicidade. */}
-          <div className="relative hidden shrink-0 xl:block">
+          <div className="relative hidden shrink-0 sm:ml-0 xl:block">
             <ZeladorIdentityBadge tenantData={tenantData} />
           </div>
         </div>
