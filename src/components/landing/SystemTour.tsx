@@ -139,7 +139,7 @@ export function SystemTour() {
           aria-labelledby={`tour-tab-${active.id}`}
           className="relative z-10 mt-8"
         >
-          <div className="relative mx-auto max-w-4xl">
+          <div className="relative w-full">
             <div className="landing-hero-orb landing-hero-orb--a !top-auto !bottom-0 !left-1/4 opacity-60" aria-hidden />
             <div className="landing-device-frame landing-hero-device">
               <div className="landing-device-chrome">

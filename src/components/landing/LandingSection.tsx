@@ -47,15 +47,15 @@ export function LandingSectionHeader({
   className,
 }: LandingSectionHeaderProps) {
   return (
-    <div className={cn(center && 'mx-auto max-w-2xl text-center', className)}>
-      <p className="landing-kicker">
+    <div className={cn(center && 'w-full text-center', !center && 'w-full', className)}>
+      <p className={cn('landing-kicker', center && 'justify-center')}>
         {icon}
         {kicker}
       </p>
       <h2 id={titleId} className="landing-title">
         {title}
       </h2>
-      {lead ? <p className="landing-lead">{lead}</p> : null}
+      {lead ? <p className={cn('landing-lead', center && 'mx-auto max-w-3xl')}>{lead}</p> : null}
     </div>
   );
 }

@@ -52,7 +52,7 @@ export function LandingFaq() {
 
   return (
     <LandingSection id="faq" aria-labelledby="faq-head">
-      <motion.div className="landing-section-inner max-w-2xl" {...fade}>
+      <motion.div className="landing-section-inner mx-auto max-w-4xl" {...fade}>
         <LandingSectionHeader
           kicker="Dúvidas frequentes"
           title="Perguntas sobre gestão de terreiros"

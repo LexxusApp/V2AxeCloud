@@ -2,16 +2,12 @@
 import { motion } from 'framer-motion';
 import {
   ArrowUp,
-  BookOpen,
-  CalendarDays,
   Check,
   Facebook,
   Instagram,
   LogIn,
   MessageCircle,
   Menu,
-  Image as ImageIcon,
-  Wallet,
   Youtube,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -21,6 +17,7 @@ import { HOME_SEO } from '../constants/seoHome';
 import { LandingFounderProgram } from '../components/landing/LandingFounderProgram';
 import { LandingHero } from '../components/landing/LandingHero';
 import { LandingPortalPreview } from '../components/landing/LandingPortalPreview';
+import { LandingResources } from '../components/landing/LandingResources';
 import { LandingSection, LandingSectionHeader } from '../components/landing/LandingSection';
 
 const SystemTour = lazy(() =>
@@ -52,38 +49,12 @@ const CNPJ = '66.335.964/0001-07';
 
 /** Menu enxuto — o resto das secções fica no scroll e no rodapé */
 const nav = [
+  { href: '#top', label: 'Início' },
   { href: ROUTES.founderProgram, label: 'Fundador' },
   { href: '#tour', label: 'Tour' },
-  { href: '#funcionalidades', label: 'Recursos' },
+  { href: '#recursos', label: 'Recursos' },
   { href: '#mensalidade', label: 'Planos' },
   { href: '#faq', label: 'FAQ' },
-] as const;
-
-const features = [
-  {
-    icon: ImageIcon,
-    title: 'Galeria de fotos',
-    description:
-      'Álbuns com fotos e vídeos da casa: giras, momentos da comunidade e memória do terreiro reunidos num só lugar.',
-  },
-  {
-    icon: Wallet,
-    title: 'Financeiro transparente',
-    description:
-      'Mensalidades e doações com Pix, histórico e leitura clara para a diretoria. Menos dúvida, mais confiança.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Portal do filho de santo',
-    description:
-      'Biblioteca de estudos, mural e acesso ao que importa. Calendário e presença nas giras, no mesmo fluxo do app.',
-    extra: (
-      <p className="mt-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary/90">
-        <CalendarDays className="h-4 w-4 text-primary" />
-        Agenda e giras integradas
-      </p>
-    ),
-  },
 ] as const;
 
 const premiumFeatures = [
@@ -195,7 +166,7 @@ export default function Landing() {
       <span id="top" className="sr-only" aria-hidden />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
-        <div className="landing-gutter-x mx-auto grid h-[4.25rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4">
+        <div className="landing-gutter-x grid h-[4.25rem] w-full grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4">
           <a href="#top" className="min-w-0 shrink-0" aria-label="AxéCloud — início">
             <LogoMark compact />
           </a>
@@ -279,6 +250,8 @@ export default function Landing() {
       <main className="relative z-[1]" style={{ paddingTop: LANDING_HEADER_OFFSET }}>
         <LandingHero />
 
+        <LandingResources />
+
         <LandingFounderProgram />
 
         <LandingPortalPreview />
@@ -294,37 +267,6 @@ export default function Landing() {
         <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
           <WhatsAppAutomation />
         </Suspense>
-
-        <LandingSection id="funcionalidades" aria-labelledby="feat-head">
-          <div className="landing-section-inner">
-            <motion.div {...fade}>
-              <LandingSectionHeader
-                kicker="Dentro do app"
-                title="Tudo o que a casa gira, organizado"
-                titleId="feat-head"
-                lead="Mesma linguagem do app real: módulos que a diretoria já conhece ao abrir o painel."
-              />
-            </motion.div>
-            <ul className="relative z-10 mt-10 grid list-none gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3" role="list">
-              {features.map((f, i) => (
-                <motion.li
-                  key={f.title}
-                  {...fade}
-                  transition={{ ...fade.transition, delay: 0.06 * i }}
-                >
-                  <div className="landing-mystic-card h-full p-6 sm:p-7">
-                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                      <f.icon className="h-5 w-5" strokeWidth={1.5} />
-                    </div>
-                    <h3 className="text-lg font-bold text-white">{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-zinc-400">{f.description}</p>
-                    {'extra' in f && f.extra}
-                  </div>
-                </motion.li>
-              ))}
-            </ul>
-          </div>
-        </LandingSection>
 
         <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
           <LandingAudience />
@@ -428,7 +370,7 @@ export default function Landing() {
       </main>
 
       <footer className="landing-footer relative z-[1] py-8 sm:py-10" role="contentinfo">
-        <div className="landing-gutter-x mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 sm:flex-row sm:items-start">
+        <div className="landing-gutter-x flex w-full flex-col items-center justify-between gap-5 sm:flex-row sm:items-start">
           <div className="text-center sm:text-left">
             <LogoMark compact />
             <p className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zinc-600 sm:justify-start">
