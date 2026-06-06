@@ -4,5 +4,6 @@ Disallow: /api/
 Disallow: /dashboard
 Disallow: /checkout
 Disallow: /register
+Disallow: /consulente
 
 Sitemap: https://axecloud.com.br/sitemap.xml

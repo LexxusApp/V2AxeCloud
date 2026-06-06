@@ -4312,6 +4312,18 @@ async function startServer() {
     const indexPath = path.join(distPath, "index.html");
     const hasSpa = existsSync(indexPath);
     if (hasSpa) {
+      app.use((req, res, next) => {
+        const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
+        if (
+          pathOnly.startsWith("/dashboard") ||
+          pathOnly.startsWith("/checkout") ||
+          pathOnly.startsWith("/register") ||
+          pathOnly.startsWith("/consulente")
+        ) {
+          res.setHeader("X-Robots-Tag", "noindex, nofollow");
+        }
+        next();
+      });
       app.use(express.static(distPath));
     } else {
       console.warn(

@@ -110,16 +110,61 @@ function upsertCanonical(href: string) {
   el.setAttribute('href', href);
 }
 
-/** Atualiza title, description, canonical e robots conforme a rota da SPA. */
+function upsertOg(property: string, content: string) {
+  let el = document.querySelector(`meta[property="${property}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('property', property);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function upsertTwitter(name: string, content: string) {
+  let el = document.querySelector(`meta[name="${name}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('name', name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function resolveRouteSeo(path: string): RouteSeo {
+  if (path.startsWith(`${ROUTES.consulentePortal}/`)) {
+    return {
+      title: 'Portal do consulente | AxéCloud',
+      description: DEFAULT_DESCRIPTION,
+      canonicalPath: path,
+      robots: 'noindex, follow',
+    };
+  }
+  return ROUTE_SEO[path] ?? ROUTE_SEO[ROUTES.home];
+}
+
+/** Atualiza title, description, canonical, robots e Open Graph conforme a rota da SPA. */
 export function applyRouteSeo(pathname: string) {
   const path = normalizePath(pathname);
-  const seo = ROUTE_SEO[path] ?? ROUTE_SEO[ROUTES.home];
+  const seo = resolveRouteSeo(path);
   const canonical =
     seo.canonicalPath === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${seo.canonicalPath}`;
+  const ogType =
+    path.startsWith('/conteudo/') && path !== ROUTES.contentHub ? 'article' : 'website';
 
   document.title = seo.title;
   upsertMeta('description', seo.description);
   upsertMeta('robots', seo.robots);
   upsertCanonical(canonical);
+  upsertOg('og:type', ogType);
+  upsertOg('og:site_name', 'AxéCloud');
+  upsertOg('og:url', canonical);
+  upsertOg('og:title', seo.title);
+  upsertOg('og:description', seo.description);
+  upsertOg('og:image', `${SITE_ORIGIN}/og-image.png`);
+  upsertOg('og:locale', 'pt_BR');
+  upsertTwitter('twitter:card', 'summary_large_image');
+  upsertTwitter('twitter:title', seo.title);
+  upsertTwitter('twitter:description', seo.description);
+  upsertTwitter('twitter:image', `${SITE_ORIGIN}/og-image.png`);
   document.documentElement.lang = 'pt-BR';
 }

@@ -114,6 +114,7 @@ export function buildRobotsTxt(siteUrl) {
     'Disallow: /dashboard',
     'Disallow: /checkout',
     'Disallow: /register',
+    'Disallow: /consulente',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',

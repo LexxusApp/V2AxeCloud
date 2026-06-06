@@ -29,7 +29,8 @@ export default defineConfig(({mode}) => {
       seoHomeInject(),
       prerenderPublicPages(),
       VitePWA({
-        registerType: 'autoUpdate',
+        /** prompt: aguarda o usuário (banner) antes de skipWaiting — evita loop e não prende logados em cache antigo. */
+        registerType: 'prompt',
         injectRegister: false,
         includeAssets: [
           'favicon.ico',
@@ -79,13 +80,35 @@ export default defineConfig(({mode}) => {
           ],
         },
         workbox: {
-          /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos (cleanupOutdatedCaches). */
-          /** Bump após fix de logout (HTML stale → 404 em /assets). */
-          cacheId: 'axecloud-v106',
+          /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
+          cacheId: 'axecloud-v107',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [/^\/api\//],
-          // Sem runtimeCaching: evita no-response do Workbox em PNG/CSS; precache cobre o essencial.
+          /** HTML e assets: rede primeiro — PWA instalado não fica preso em bundle antigo se houver rede. */
+          runtimeCaching: [
+            {
+              urlPattern: ({ request, sameOrigin }) => sameOrigin && request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'axecloud-html-network-first-v107',
+                networkTimeoutSeconds: 8,
+                expiration: { maxEntries: 12, maxAgeSeconds: 3600 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+            {
+              urlPattern: ({ request, sameOrigin }) =>
+                sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'axecloud-runtime-network-first-v107',
+                networkTimeoutSeconds: 12,
+                expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+          ],
         },
       }),
     ],
