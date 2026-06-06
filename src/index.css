@@ -107,11 +107,6 @@
   width: 100%;
   max-width: 88rem;
   margin-inline: auto;
-  isolation: isolate;
-}
-
-.dashboard-compact section {
-  contain: layout paint;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -124,9 +119,7 @@
   }
 }
 
-/* Evita artefato de GPU (faixa colorida) ao rolar no Android — Recharts + blur */
 .dashboard-chart {
-  contain: paint;
   overflow: hidden;
 }
 
@@ -135,8 +128,11 @@
   overflow: hidden !important;
 }
 
-.dashboard-avatar-scroll {
-  contain: paint;
+/* Mobile: gradientes do painel causam ghosting ao rolar sobre cards semi-transparentes */
+@media (max-width: 1023px) {
+  .app-content-panel__base {
+    background-image: none;
+  }
 }
 
 /* Margem lateral consistente nas páginas autenticadas (mobile-first) */

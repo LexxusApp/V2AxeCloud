@@ -76,7 +76,7 @@ function Panel({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-xl border border-white/[0.08] bg-[#141414] shadow-sm isolate',
+        'overflow-hidden rounded-xl border border-white/[0.08] bg-[#141414]',
         className,
       )}
     >
@@ -100,9 +100,9 @@ function KpiCard({
 }) {
   const tones = {
     default: 'border-white/[0.08] bg-[#141414] text-white',
-    gold: 'border-primary/25 bg-primary/10 text-primary',
-    sky: 'border-sky-500/25 bg-sky-500/10 text-sky-400',
-    emerald: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
+    gold: 'border-primary/25 bg-[#1a1708] text-primary',
+    sky: 'border-sky-500/25 bg-[#0a141a] text-sky-400',
+    emerald: 'border-emerald-500/25 bg-[#0f1812] text-emerald-400',
   };
   return (
     <div className={cn('rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3', tones[tone])}>
@@ -218,7 +218,7 @@ export function DashboardHome({
   const pagarHoje = sumTodayFlow(transactions, 'saida');
 
   return (
-    <div className="dashboard-compact min-h-screen bg-transparent px-3 py-4 font-sans text-white sm:px-4 lg:px-6 lg:py-5">
+    <div className="dashboard-compact min-h-screen bg-[#121212] px-3 py-4 font-sans text-white sm:px-4 lg:px-6 lg:py-5">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">{formattedDate}</p>
@@ -276,38 +276,59 @@ export function DashboardHome({
               {!hasMonthFinanceData ? (
                 <EmptyHint>Nenhum lançamento confirmado ainda.</EmptyHint>
               ) : (
-                <div className="dashboard-chart relative h-28 w-full min-w-0 overflow-hidden sm:h-32">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <AreaChart data={activeFlowChart} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id={flowGradientId} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#FBBC00" stopOpacity={0.35} />
-                          <stop offset="100%" stopColor="#FBBC00" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="#262626" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fill: '#737373', fontSize: 9 }} axisLine={false} tickLine={false} />
-                      <YAxis
-                        tick={{ fill: '#737373', fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={36}
-                        domain={[0, activeFlowYMax]}
-                        tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="val"
-                        stroke="#FBBC00"
-                        strokeWidth={2}
-                        fill={`url(#${flowGradientId})`}
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <>
+                  {/* Mobile: sem SVG/Recharts — evita artefato de GPU no Android ao rolar */}
+                  <div className="space-y-3 py-1 lg:hidden">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                      {flowPeriod === 'month' ? 'Saldo diário (mês)' : 'Saldo líquido (6 meses)'}
+                    </p>
+                    <p className="text-2xl font-black tabular-nums text-primary">
+                      {money(stats.lucroLiquido)}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded-lg border border-emerald-500/25 bg-[#0f1812] px-3 py-2">
+                        <p className="text-zinc-500">Receitas</p>
+                        <p className="font-bold text-emerald-400">{money(stats.totalReceita)}</p>
+                      </div>
+                      <div className="rounded-lg border border-rose-500/25 bg-[#1a1012] px-3 py-2">
+                        <p className="text-zinc-500">Despesas</p>
+                        <p className="font-bold text-rose-400">{money(stats.totalDespesa)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="dashboard-chart relative hidden h-28 w-full min-w-0 overflow-hidden sm:h-32 lg:block">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <AreaChart data={activeFlowChart} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id={flowGradientId} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#FBBC00" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="#FBBC00" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="#262626" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: '#737373', fontSize: 9 }} axisLine={false} tickLine={false} />
+                        <YAxis
+                          tick={{ fill: '#737373', fontSize: 9 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={36}
+                          domain={[0, activeFlowYMax]}
+                          tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="val"
+                          stroke="#FBBC00"
+                          strokeWidth={2}
+                          fill={`url(#${flowGradientId})`}
+                          isAnimationActive={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
               )}
-              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-3 text-[11px]">
+              <div className="mt-3 hidden grid-cols-3 gap-2 border-t border-white/[0.06] pt-3 text-[11px] lg:grid">
                 <div>
                   <p className="text-zinc-500">Receitas</p>
                   <p className="font-bold text-emerald-400">{money(stats.totalReceita)}</p>
@@ -556,17 +577,17 @@ export function DashboardHome({
         {/* Coluna lateral */}
         <div className="min-w-0 space-y-3 xl:col-span-4">
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+            <div className="rounded-xl border border-emerald-500/25 bg-[#0f1812] px-3 py-2.5">
               <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
                 <ArrowUpRight className="h-3 w-3 text-emerald-400" /> A receber hoje
               </p>
-              <p className="mt-1 text-sm font-black text-emerald-400">{money(receberHoje)}</p>
+              <p className="mt-1 text-sm font-black tabular-nums text-emerald-400">{money(receberHoje)}</p>
             </div>
-            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 py-2.5">
+            <div className="rounded-xl border border-rose-500/25 bg-[#1a1012] px-3 py-2.5">
               <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
                 <ArrowDownRight className="h-3 w-3 text-rose-400" /> A pagar hoje
               </p>
-              <p className="mt-1 text-sm font-black text-rose-400">{money(pagarHoje)}</p>
+              <p className="mt-1 text-sm font-black tabular-nums text-rose-400">{money(pagarHoje)}</p>
             </div>
           </div>
 
