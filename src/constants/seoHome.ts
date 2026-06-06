@@ -1,4 +1,5 @@
 import { buildPublicSiteNavHtml } from './seoPublicPages';
+import { SOCIAL_SAME_AS } from './socialLinks';
 
 /** Metadados e conteúdo estático da home — fonte única para HTML, JSON-LD e landing. */
 export const SITE_ORIGIN = 'https://axecloud.com.br';
@@ -105,6 +106,7 @@ export function buildHomeJsonLd(): string {
       url: `${SITE_ORIGIN}/`,
       logo: `${SITE_ORIGIN}/axecloud_512.png`,
       description: HOME_SEO.description,
+      sameAs: [...SOCIAL_SAME_AS],
     },
     {
       '@type': 'WebSite',

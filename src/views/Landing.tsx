@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import {
   ArrowUp,
   Check,
-  Facebook,
   Instagram,
   LogIn,
   MessageCircle,
   Menu,
-  Youtube,
 } from 'lucide-react';
+import { TikTokIcon } from '../components/icons/TikTokIcon';
+import { SOCIAL_LINKS } from '../constants/socialLinks';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
@@ -419,21 +419,21 @@ export default function Landing() {
               © {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}
             </p>
           </div>
-          <ul className="flex items-center gap-2" aria-label="Redes">
-            {[
-              { href: 'https://instagram.com', label: 'Instagram', Icon: Instagram },
-              { href: 'https://facebook.com', label: 'Facebook', Icon: Facebook },
-              { href: 'https://youtube.com', label: 'YouTube', Icon: Youtube },
-            ].map(({ href, label, Icon }) => (
-              <li key={label}>
+          <ul className="flex items-center gap-2" aria-label="Redes sociais oficiais">
+            {SOCIAL_LINKS.map(({ id, href, label, rel }) => (
+              <li key={id}>
                 <a
                   href={href}
                   target="_blank"
-                  rel="noreferrer"
+                  rel={rel}
                   className="grid h-9 w-9 place-items-center rounded-md border border-white/10 text-zinc-500 transition hover:border-primary/30 hover:text-primary"
-                  aria-label={label}
+                  aria-label={`${label} @axecloudoficial`}
                 >
-                  <Icon className="h-4 w-4" />
+                  {id === 'instagram' ? (
+                    <Instagram className="h-4 w-4" />
+                  ) : (
+                    <TikTokIcon className="h-4 w-4" />
+                  )}
                 </a>
               </li>
             ))}
