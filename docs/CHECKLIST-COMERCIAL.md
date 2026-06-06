@@ -43,17 +43,9 @@ Plano prático para sair de **zero cases visíveis** e competir com [Kanzuá](ht
 - [ ] Grupos de zeladores / federações locais (com respeito, sem spam)
 - [ ] Contatos que já perguntaram sobre o sistema no passado
 
-### Script WhatsApp (adaptar)
+### Scripts WhatsApp
 
-```
-Axé, [nome]! Sou [seu nome], do AxéCloud — sistema de gestão para terreiros
-(financeiro, Pix, calendário, mural e portal do filho de santo).
-
-Estamos no Programa Fundador: 12 meses gratuitos para as primeiras casas,
-com onboarding junto com você. Já temos a [nome da casa] em Suzano usando.
-
-Posso te mandar um vídeo rápido de 2 min do painel? Sem compromisso.
-```
+Ver **`docs/SCRIPT-WHATSAPP-PROSPECCAO.md`** — 9 mensagens prontas (frio, indicação, follow-up, objeções, fechamento e pedido de indicação para Suzano/Alto Tietê).
 
 ### Registrar cada contato
 

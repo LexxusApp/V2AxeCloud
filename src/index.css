@@ -78,9 +78,10 @@
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
-/* Iluminação ambiente dourada — painel principal (desktop) */
+/* Iluminação ambiente dourada — painel principal (todas as páginas autenticadas) */
 .app-content-panel {
   position: relative;
+  isolation: isolate;
 }
 
 .app-content-panel__base {
@@ -96,41 +97,9 @@
     radial-gradient(circle at 88% 4%, rgba(251, 188, 0, 0.1) 0%, transparent 44%);
 }
 
-@media (max-width: 1023px) {
-  .app-content-panel__base {
-    display: none;
-  }
-}
-
 .app-page-shell {
   position: relative;
   z-index: 2;
-}
-
-/* Dashboard denso — painéis compactos, grid responsivo */
-.dashboard-compact {
-  width: 100%;
-  max-width: 88rem;
-  margin-inline: auto;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-compact section {
-    transition: border-color 0.15s ease;
-  }
-
-  .dashboard-compact section:hover {
-    border-color: rgba(251, 188, 0, 0.12);
-  }
-}
-
-.dashboard-chart {
-  background-color: #141414;
-}
-
-.dashboard-chart svg {
-  display: block;
-  vertical-align: top;
 }
 
 /* Margem lateral consistente nas páginas autenticadas (mobile-first) */
@@ -784,47 +753,6 @@
   gap: 0.55rem;
   font-size: 0.8125rem;
   line-height: 1.45;
-  color: #d4d4d4;
-}
-
-/* Personalização por tradição */
-.landing-tradition-card {
-  height: 100%;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(8, 8, 8, 0.92) 100%);
-  padding: 1.5rem 1.5rem 1.35rem;
-}
-
-.landing-tradition-card__kicker {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(251, 188, 0, 0.9);
-}
-
-.landing-tradition-card__title {
-  margin-top: 0.45rem;
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.landing-tradition-card__list {
-  margin-top: 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  list-style: none;
-  padding: 0;
-}
-
-.landing-tradition-card__list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
-  font-size: 0.8125rem;
   color: #d4d4d4;
 }
 

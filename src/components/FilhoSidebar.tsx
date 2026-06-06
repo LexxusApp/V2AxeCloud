@@ -135,8 +135,7 @@ export default function FilhoSidebar({
       <aside
         className={cn(
           'fixed left-0 top-0 bottom-0 z-[120] flex w-72 flex-col border-r border-white/10 bg-black p-8 lg:hidden',
-          MOBILE_DRAWER_TRANSITION,
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+          isMobileOpen ? 'flex' : 'hidden',
         )}
         aria-hidden={!isMobileOpen}
       >

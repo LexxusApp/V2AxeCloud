@@ -163,12 +163,11 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
         />
       )}
 
-      {/* Sidebar — só translateX animado; blur só no desktop */}
+      {/* Mobile: hidden quando fechada (translate-x deixa camada fantasma no Android) */}
       <aside className={cn(
-        "fixed left-0 top-0 bottom-0 z-[70] flex w-[248px] flex-col border-r border-white/5",
-        "will-change-transform [transition:transform_250ms_cubic-bezier(0.4,0,0.2,1)] lg:will-change-auto",
-        "bg-black",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "fixed left-0 top-0 bottom-0 z-[70] flex w-[248px] flex-col border-r border-white/5 bg-black",
+        isMobileOpen ? "max-lg:flex" : "max-lg:hidden",
+        "lg:flex",
       )}>
         <div className="flex flex-col h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {/* Marca AXÉCLOUD sem imagem externa */}

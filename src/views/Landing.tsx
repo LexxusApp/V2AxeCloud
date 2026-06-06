@@ -44,10 +44,6 @@ const LandingTestimonials = lazy(() =>
 const LandingBeforeAfter = lazy(() =>
   import('../components/landing/LandingBeforeAfter').then((m) => ({ default: m.LandingBeforeAfter }))
 );
-const LandingTraditions = lazy(() =>
-  import('../components/landing/LandingTraditions').then((m) => ({ default: m.LandingTraditions }))
-);
-
 function LandingSectionFallback({ minHeight = '16rem' }: { minHeight?: string }) {
   return <div aria-hidden className="w-full" style={{ minHeight }} />;
 }
@@ -65,7 +61,6 @@ const nav = [
   { href: '#recursos', label: 'Recursos' },
   { href: '#antes-depois', label: 'Antes/Depois' },
   { href: '#apps', label: 'Apps' },
-  { href: '#tradicao', label: 'Tradição' },
   { href: '#depoimentos', label: 'Depoimentos' },
   { href: '#mensalidade', label: 'Planos' },
   { href: '#faq', label: 'FAQ' },
@@ -280,10 +275,6 @@ export default function Landing() {
 
         <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
           <ConnectedAccess />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
-          <LandingTraditions />
         </Suspense>
 
         <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
