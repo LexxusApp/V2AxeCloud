@@ -23,10 +23,10 @@ const email = process.env.AXE_TEST_EMAIL?.trim() || '';
 const pass = process.env.AXE_TEST_PASSWORD || '';
 
 const LOGADO = [
-  { name: 'Início', file: 'painel-inicio.png' },
-  { name: 'Filhos de Santo', file: 'filhos-de-santo.png' },
-  { name: 'Calendário / Eventos', file: 'calendario-eventos.png' },
-  { name: 'Mural', file: 'mural.png' },
+  { name: 'Dashboard', file: 'painel-inicio.png' },
+  { name: 'Membros', file: 'filhos-de-santo.png' },
+  { name: 'Giras / Eventos', file: 'calendario-eventos.png' },
+  { name: 'Comunicados', file: 'mural.png' },
   { name: 'Galeria', file: 'galeria.png' },
   { name: 'Financeiro', file: 'financeiro.png' },
   { name: 'Biblioteca de Estudo', file: 'biblioteca-estudo.png' },
@@ -109,13 +109,13 @@ try {
     await page.getByRole('button', { name: /^Entrar$/i }).click();
 
     await page.waitForURL(/\/dashboard/, { timeout: 120_000 });
-    await page.locator('aside button').filter({ hasText: 'Início' }).first().waitFor({ state: 'visible', timeout: 120_000 });
+    await page.locator('aside button').filter({ hasText: 'Dashboard' }).first().waitFor({ state: 'visible', timeout: 120_000 });
     await page.waitForTimeout(2000);
     await dismissLegalTermsIfOpen(page);
 
     for (const t of LOGADO) {
       lastDialog = '';
-      if (t.name !== 'Início') {
+      if (t.name !== 'Dashboard') {
         await dismissLegalTermsIfOpen(page);
         await page.locator('aside button').filter({ hasText: t.name }).first().click({ timeout: 15_000 });
       }
