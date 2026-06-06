@@ -9,6 +9,8 @@ import {
   ArrowDownRight,
   MoreVertical,
   Wallet,
+  HandHeart,
+  Cake,
 } from 'lucide-react';
 import {
   format,
@@ -43,11 +45,60 @@ import {
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
 
+type DashboardPedido = {
+  id: string;
+  nome: string;
+  status: string;
+  created_at: string;
+  mensagem?: string;
+};
+
+type DashboardBirthday = {
+  id: string;
+  nome: string;
+  foto_url?: string | null;
+  data_nascimento: string;
+  day: number;
+};
+
 type DashboardBundle = {
   transactions: any[];
   childrenData: any[];
   historyData: any[];
+  pedidosData: DashboardPedido[];
+  birthdayData: DashboardBirthday[];
 };
+
+const PEDIDO_STATUS_LABEL: Record<string, string> = {
+  pendente: 'Pendente',
+  em_atendimento: 'Em atendimento',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+};
+
+function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
+  const month = new Date().getMonth();
+  return children
+    .filter((c) => {
+      const raw = String(c?.data_nascimento || '').trim();
+      if (!raw) return false;
+      const d = new Date(`${raw.slice(0, 10)}T12:00:00`);
+      return !Number.isNaN(d.getTime()) && d.getMonth() === month;
+    })
+    .map((c) => {
+      const raw = String(c.data_nascimento).slice(0, 10);
+      const d = new Date(`${raw}T12:00:00`);
+      return {
+        id: String(c.id),
+        nome: String(c.nome || 'Filho de santo'),
+        foto_url: c.foto_url,
+        data_nascimento: raw,
+        day: d.getDate(),
+      };
+    })
+    .sort((a, b) => a.day - b.day)
+    .slice(0, 8);
+}
 
 async function fetchDashboardFinanceBundle(
   user: { id: string },
@@ -73,7 +124,8 @@ async function fetchDashboardFinanceBundle(
       userRole || ''
     )}&limit=400`;
 
-    const [childrenRes, txRes, lojaRes] = await Promise.all([
+    const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
+    const [childrenRes, txRes, lojaRes, pedidosRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -100,6 +152,11 @@ async function fetchDashboardFinanceBundle(
             return r.json() as Promise<{ data?: any[] }>;
           })
         : Promise.resolve({ data: [] as any[] }),
+      userRole !== 'filho'
+        ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then(async (r) =>
+            r.ok ? r.json() : { items: [] }
+          )
+        : Promise.resolve({ items: [] }),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -156,14 +213,27 @@ async function fetchDashboardFinanceBundle(
       (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
     );
 
+    const pedidosRaw = (pedidosRes.items || pedidosRes.data || []) as DashboardPedido[];
+    const pedidosData = [...pedidosRaw]
+      .sort((a, b) => {
+        const rank = (s: string) =>
+          s === 'pendente' ? 0 : s === 'em_atendimento' ? 1 : s === 'concluido' ? 2 : 3;
+        const diff = rank(String(a.status)) - rank(String(b.status));
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
+      .slice(0, 5);
+
     return {
       transactions: normalized,
       childrenData: children.slice(0, 4),
       historyData: merged.slice(0, 8),
+      pedidosData,
+      birthdayData: birthdaysThisMonth(children),
     };
   } catch (e) {
     console.error('Error fetching dashboard data:', e);
-    return { transactions: [], childrenData: [], historyData: [] };
+    return { transactions: [], childrenData: [], historyData: [], pedidosData: [], birthdayData: [] };
   }
 }
 
@@ -228,6 +298,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const transactions = resolvedBundle?.transactions ?? [];
   const childrenData = resolvedBundle?.childrenData ?? [];
   const historyData = resolvedBundle?.historyData ?? [];
+  const pedidosData = resolvedBundle?.pedidosData ?? [];
+  const birthdayData = resolvedBundle?.birthdayData ?? [];
+
+  const birthdayMonthLabel = useMemo(() => {
+    const raw = format(new Date(), 'MMMM', { locale: ptBR });
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }, []);
 
   const { stats, flowChartData, flowYMax, hasMonthFinanceData } = useMemo(() => {
     const anchor = new Date();
@@ -615,6 +692,71 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </div>
           </div>
 
+          {/* Card: Pedidos de reza */}
+          {userRole !== 'filho' && (
+            <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+              <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
+                    <HandHeart className="h-5 w-5 text-[#D4AF37]" aria-hidden />
+                  </div>
+                  <h3 className="text-xl font-bold">Pedidos de reza</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('atendimentos')}
+                  className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] hover:underline"
+                >
+                  Ver todos
+                </button>
+              </div>
+
+              {pedidosData.length > 0 ? (
+                <div className="space-y-4">
+                  {pedidosData.map((pedido) => (
+                    <button
+                      key={pedido.id}
+                      type="button"
+                      onClick={() => setActiveTab('atendimentos')}
+                      className="flex w-full items-start justify-between gap-4 rounded-2xl border border-white/5 bg-black/20 px-4 py-3 text-left transition-colors hover:border-[#D4AF37]/25 hover:bg-white/[0.03]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-white">{pedido.nome}</p>
+                        <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-gray-500">
+                          {pedido.mensagem || 'Sem mensagem'}
+                        </p>
+                        <p className="mt-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-600">
+                          {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider',
+                          pedido.status === 'pendente' && 'border-amber-500/25 bg-amber-500/15 text-amber-400',
+                          pedido.status === 'em_atendimento' && 'border-sky-500/25 bg-sky-500/15 text-sky-400',
+                          pedido.status === 'concluido' && 'border-emerald-500/25 bg-emerald-500/15 text-emerald-400',
+                          pedido.status === 'cancelado' && 'border-zinc-500/25 bg-zinc-500/15 text-zinc-400',
+                          !['pendente', 'em_atendimento', 'concluido', 'cancelado'].includes(pedido.status) &&
+                            'border-white/10 bg-white/5 text-gray-400',
+                        )}
+                      >
+                        {PEDIDO_STATUS_LABEL[pedido.status] || pedido.status}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-6 text-center">
+                  <HandHeart className="mb-3 h-9 w-9 text-[#D4AF37]/30" aria-hidden />
+                  <p className="text-sm font-bold text-gray-400">Nenhum pedido de reza</p>
+                  <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-gray-600">
+                    Pedidos enviados pelo portal do consulente aparecem aqui.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Card: Filhos de Santo */}
           <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
              <div className="flex justify-between items-center mb-8">
@@ -827,6 +969,69 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                  <div className="flex flex-col items-center justify-center h-full opacity-20 italic text-sm text-center">Nenhum histórico disponível.</div>
                )}
              </div>
+          </div>
+
+          {/* Card: Aniversariantes do mês */}
+          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
+                  <Cake className="h-5 w-5 text-[#D4AF37]" aria-hidden />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Aniversariantes do mês</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">{birthdayMonthLabel}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('children')}
+                className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] hover:underline"
+              >
+                Ver membros
+              </button>
+            </div>
+
+            {birthdayData.length > 0 ? (
+              <div className="space-y-4">
+                {birthdayData.map((person) => (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => {
+                      if (setSelectedChildId) {
+                        setSelectedChildId(person.id);
+                        setActiveTab('profile');
+                      }
+                    }}
+                    className="flex w-full items-center gap-4 rounded-2xl border border-white/5 bg-black/20 px-3 py-2.5 text-left transition-colors hover:border-[#D4AF37]/25 hover:bg-white/[0.03]"
+                  >
+                    <Avatar
+                      src={person.foto_url}
+                      name={person.nome}
+                      shape="circle"
+                      textSize="text-sm"
+                      className="h-11 w-11 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white">{person.nome}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">
+                        Dia {person.day}
+                      </p>
+                    </div>
+                    <Cake className="h-4 w-4 shrink-0 text-[#D4AF37]/50" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[100px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 text-center">
+                <Cake className="mb-2 h-8 w-8 text-[#D4AF37]/30" aria-hidden />
+                <p className="text-sm font-bold text-gray-400">Nenhum aniversariante em {birthdayMonthLabel}</p>
+                <p className="mt-1 text-xs font-medium text-gray-600">
+                  Cadastre a data de nascimento nos perfis dos filhos de santo.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
