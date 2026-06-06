@@ -140,16 +140,16 @@ export function SystemTour() {
           aria-labelledby={`tour-tab-${active.id}`}
           className="relative z-10 mt-8"
         >
-          <div className="relative w-full">
+          <div className="relative flex w-full justify-center">
             <div className="landing-hero-orb landing-hero-orb--a !top-auto !bottom-0 !left-1/4 opacity-60" aria-hidden />
-            <div className="landing-device-frame landing-hero-device">
+            <div className="landing-device-frame landing-hero-device landing-tour-device mx-auto w-fit max-w-full">
               <div className="landing-device-chrome">
                 <span className="landing-device-dot bg-red-500/90" aria-hidden />
                 <span className="landing-device-dot bg-amber-400/90" aria-hidden />
                 <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
                 <span className="landing-device-url">app.axecloud.com.br — {active.label}</span>
               </div>
-              <div className="bg-[#0a0a0a] p-2 sm:p-3">
+              <div className="leading-[0]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={active.id}
@@ -157,11 +157,12 @@ export function SystemTour() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.28, ease: 'easeOut' }}
+                    className="block"
                   >
                     <img
                       src={active.src}
                       alt={`${active.label} — gestão de terreiro AxéCloud`}
-                      className="mx-auto h-auto w-full max-h-[min(70vh,520px)] rounded-lg object-contain object-top"
+                      className="block h-auto max-h-[min(70vh,520px)] w-auto max-w-[min(100vw-2.5rem,960px)]"
                       width={1400}
                       height={900}
                       loading="lazy"
