@@ -6,6 +6,8 @@
  *   $env:AXE_TEST_EMAIL="email@exemplo.com"
  *   $env:AXE_TEST_PASSWORD="senha"
  *   node scripts/capture-axecloud.mjs
+ *
+ * Após capturar: bump `LANDING_SCREENSHOT_VERSION` em src/constants/landingScreenshots.ts
  */
 import { chromium } from 'playwright';
 import { mkdir, stat, copyFile } from 'node:fs/promises';

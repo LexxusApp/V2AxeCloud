@@ -15,12 +15,13 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
+import { landingScreenshot } from '../../constants/landingScreenshots';
 import { HOME_SEO } from '../../constants/seoHome';
 import { ROUTES } from '../../lib/routes';
 import { AuthScreenBackground } from '../AuthScreenBackground';
 import { cn } from '../../lib/utils';
 
-const HERO_SCREENSHOT = '/screenshots/painel-inicio.png';
+const HERO_SCREENSHOT = landingScreenshot('painel-inicio.png');
 
 const ROTATE_MS = 4500;
 

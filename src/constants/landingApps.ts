@@ -1,3 +1,5 @@
+import { landingScreenshot } from './landingScreenshots';
+
 export type LandingAppCard = {
   id: string;
   badge: string;
@@ -27,7 +29,7 @@ export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
       'Mensalidades e Pix integrado',
       'Acesso simples pelo celular (PWA)',
     ],
-    screenshot: '/screenshots/portal-filho-home.png',
+    screenshot: landingScreenshot('portal-filho-home.png'),
     screenshotAlt: 'Tela inicial do portal do filho de santo no celular',
   },
   {
@@ -42,7 +44,7 @@ export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
       'Galeria de fotos e calendário de giras',
       'Mural, biblioteca e loja do axé',
     ],
-    screenshot: '/screenshots/painel-zelador-home.png',
+    screenshot: landingScreenshot('painel-zelador-home.png'),
     screenshotAlt: 'Dashboard do zelador do AxéCloud no celular',
   },
 ] as const;

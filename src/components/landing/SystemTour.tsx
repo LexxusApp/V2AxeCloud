@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Images, LayoutDashboard, Megaphone, Package, Users, Wallet, BookOpen, type LucideIcon } from 'lucide-react';
+import { landingScreenshot } from '../../constants/landingScreenshots';
 import { cn } from '../../lib/utils';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
@@ -19,7 +20,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Início (Painel)',
     shortLabel: 'Painel',
     icon: LayoutDashboard,
-    src: '/screenshots/painel-inicio.png',
+    src: landingScreenshot('painel-inicio.png'),
     desc: 'Resumo, números e o que a casa precisa enxergar de primeira.',
   },
   {
@@ -27,7 +28,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Filhos de Santo',
     shortLabel: 'Filhos',
     icon: Users,
-    src: '/screenshots/filhos-de-santo.png',
+    src: landingScreenshot('filhos-de-santo.png'),
     desc: 'Pessoas do terreiro, cadastros e atalhos para a rotina do dia a dia.',
   },
   {
@@ -35,7 +36,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Calendário de Giras',
     shortLabel: 'Giras',
     icon: CalendarDays,
-    src: '/screenshots/calendario-eventos.png',
+    src: landingScreenshot('calendario-eventos.png'),
     desc: 'Giras, compromissos e a agenda alinhada à casa — tudo visível para a diretoria.',
   },
   {
@@ -43,7 +44,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Mural de Avisos',
     shortLabel: 'Mural',
     icon: Megaphone,
-    src: '/screenshots/mural.png',
+    src: landingScreenshot('mural.png'),
     desc: 'Comunicados e avisos visíveis para a comunidade, sem grupos espalhados.',
   },
   {
@@ -51,7 +52,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Galeria',
     shortLabel: 'Galeria',
     icon: Images,
-    src: '/screenshots/galeria.png',
+    src: landingScreenshot('galeria.png'),
     desc: 'Álbuns de fotos e vídeos do terreiro, organizados por evento ou tema.',
   },
   {
@@ -59,7 +60,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Financeiro',
     shortLabel: 'Financeiro',
     icon: Wallet,
-    src: '/screenshots/financeiro.png',
+    src: landingScreenshot('financeiro.png'),
     desc: 'Entradas, saídas, Pix e histórico com transparência para a diretoria.',
   },
   {
@@ -67,7 +68,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Biblioteca de Estudo',
     shortLabel: 'Biblioteca',
     icon: BookOpen,
-    src: '/screenshots/biblioteca-estudo.png',
+    src: landingScreenshot('biblioteca-estudo.png'),
     desc: 'Materiais e estudos acessíveis a quem precisa aprender na casa.',
   },
   {
@@ -75,7 +76,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Loja do Axé',
     shortLabel: 'Loja',
     icon: Package,
-    src: '/screenshots/loja-axe.png',
+    src: landingScreenshot('loja-axe.png'),
     desc: 'Ofertas e itens vinculados à casa, com pedidos e estoque integrados.',
   },
 ];
