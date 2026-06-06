@@ -59,9 +59,6 @@ const nav = [
   { href: '#portal-axe', label: 'Casas' },
   { href: '#tour', label: 'Tour' },
   { href: '#recursos', label: 'Recursos' },
-  { href: '#antes-depois', label: 'Antes/Depois' },
-  { href: '#apps', label: 'Apps' },
-  { href: '#depoimentos', label: 'Depoimentos' },
   { href: '#mensalidade', label: 'Planos' },
   { href: '#faq', label: 'FAQ' },
 ] as const;

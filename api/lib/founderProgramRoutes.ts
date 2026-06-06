@@ -53,7 +53,7 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
       const { data, error } = await supabaseAdmin
         .from("founder_applications")
         .select(
-          "id, nome_casa, cidade, estado, tradicao, nome_contato, depoimento_texto, depoimento_publicado"
+          "id, nome_casa, cidade, estado, tradicao, nome_contato, depoimento_texto, depoimento_publicado, leader_id"
         )
         .eq("status", "accepted")
         .eq("autoriza_perfil_publico", true)
@@ -73,11 +73,36 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
         outra: "Casa de axé",
       };
 
+      const leaderIds = [
+        ...new Set(
+          (data || [])
+            .map((row) => String(row.leader_id || "").trim())
+            .filter((id) => id.length > 0),
+        ),
+      ];
+
+      const portalSlugByLeader = new Map<string, string>();
+      if (leaderIds.length > 0) {
+        const { data: leaders } = await supabaseAdmin
+          .from("perfil_lider")
+          .select("id, public_slug, portal_consulente_ativo")
+          .in("id", leaderIds)
+          .eq("portal_consulente_ativo", true)
+          .is("deleted_at", null);
+
+        for (const leader of leaders || []) {
+          const slug = String(leader.public_slug || "").trim();
+          if (slug) portalSlugByLeader.set(String(leader.id), slug);
+        }
+      }
+
       const items = (data || []).map((row) => {
         const quotePublished =
           row.depoimento_publicado && String(row.depoimento_texto || "").trim().length >= 12
             ? String(row.depoimento_texto).trim()
             : undefined;
+        const leaderId = String(row.leader_id || "").trim();
+        const portalSlug = leaderId ? portalSlugByLeader.get(leaderId) : undefined;
         return {
           id: String(row.id),
           houseName: String(row.nome_casa || "").trim(),
@@ -86,6 +111,7 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
           tradition: tradicaoLabel[String(row.tradicao || "").toLowerCase()] || "Casa de axé",
           contactName: String(row.nome_contato || "").trim() || undefined,
           quote: quotePublished,
+          portalSlug,
         };
       });
 

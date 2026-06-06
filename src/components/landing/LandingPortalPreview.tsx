@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Award, MapPin, Search } from 'lucide-react';
+import { Award, HandHeart, MapPin, Search } from 'lucide-react';
 import { FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { useFounderHouses } from '../../hooks/useFounderHouses';
-import { ROUTES } from '../../lib/routes';
+import { ROUTES, consulentePortalPath } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
@@ -19,12 +19,14 @@ function FounderHouseCard({
   state,
   tradition,
   quote,
+  portalSlug,
 }: {
   houseName: string;
   city: string;
   state: string;
   tradition: string;
   quote?: string;
+  portalSlug?: string;
 }) {
   return (
     <article className="landing-mystic-card flex h-full flex-col p-5 text-left sm:p-6">
@@ -49,6 +51,19 @@ function FounderHouseCard({
           Primeira casa validando o AxéCloud no Programa Fundador — organização digital com respeito à tradição.
         </p>
       )}
+      {portalSlug ? (
+        <a
+          href={consulentePortalPath(portalSlug)}
+          className="landing-btn-primary mt-5 inline-flex w-full items-center justify-center gap-2 text-xs uppercase tracking-wider"
+        >
+          <HandHeart className="h-4 w-4 shrink-0" aria-hidden />
+          Pedir reza nesta casa
+        </a>
+      ) : (
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-600">
+          Pedidos de reza online quando a casa activar o portal do consulente.
+        </p>
+      )}
     </article>
   );
 }
@@ -67,7 +82,7 @@ export function LandingPortalPreview() {
             titleId="portal-head"
             lead={
               hasHouses
-                ? `O diretório público está nascendo com as primeiras casas do Programa Fundador. Já ${count === 1 ? 'há 1 casa fundadora' : `há ${count} casas fundadoras`} usando o sistema — com respeito, opt-in e curadoria.`
+                ? `O diretório público está nascendo com as primeiras casas do Programa Fundador. Consulentes podem enviar pedidos de reza pelo portal de cada casa — sem precisar entrar no sistema.`
                 : 'Estamos construindo o diretório público de terreiros e a agenda cultural do axé no Brasil. As primeiras casas aparecerão aqui através do Programa Fundador — com respeito, opt-in e curadoria.'
             }
           />
@@ -103,11 +118,14 @@ export function LandingPortalPreview() {
                     state={house.state}
                     tradition={house.tradition}
                     quote={house.quote}
+                    portalSlug={house.portalSlug}
                   />
                 ))}
               </div>
-              <p className="text-center text-sm text-zinc-500">
-                Agenda cultural e busca por cidade chegam na próxima fase do portal.
+              <p className="text-center text-sm leading-relaxed text-zinc-500">
+                Cada casa com portal activo recebe pedidos em{' '}
+                <span className="font-mono text-xs text-zinc-400">axecloud.com.br/consulente/nome-da-casa</span>.
+                O zelador acompanha em Atendimentos, dentro do terreiro.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <a href={ROUTES.founderProgram} className="landing-btn-primary text-xs uppercase tracking-wider">

@@ -8,6 +8,8 @@ export type PublicFounderHouse = {
   tradition: string;
   contactName?: string;
   quote?: string;
+  /** Slug do portal público quando a casa activou pedidos de reza */
+  portalSlug?: string;
 };
 
 export function useFounderHouses() {
