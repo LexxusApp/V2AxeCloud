@@ -216,7 +216,7 @@ export function OverviewPanel({
           ? (raw as { price: number }).price
           : key === "vita"
             ? 49.9
-            : 89.9;
+            : 69.9;
       return acc + (t.is_blocked ? 0 : price);
     }, 0);
   }, [tenants, plansCatalog]);

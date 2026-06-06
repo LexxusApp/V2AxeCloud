@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { PLAN_PRICE_STANDARD_CENTS, PLAN_PRICE_STANDARD_REAIS } from "../../lib/planPricing.js";
 import { loadGlobalSettingPayload, saveGlobalSettingPayload } from "./globalSettings.js";
 
 /**
@@ -18,13 +19,13 @@ export const PLANS_CATALOG_KEYS = ["premium", "vita"] as const;
 export type PlanCatalogKey = (typeof PLANS_CATALOG_KEYS)[number];
 
 /** Fallback de cobrança EFI quando o catálogo no banco não define preço. */
-export const PREMIUM_CHECKOUT_FALLBACK_CENTS = 8990;
+export const PREMIUM_CHECKOUT_FALLBACK_CENTS = PLAN_PRICE_STANDARD_CENTS;
 
 /** Fallback de exibição no catálogo (UI) quando o banco não responde. */
 export const PLANS_CATALOG_DEFAULT: Record<PlanCatalogKey, PlanCatalogEntry> = {
   premium: {
     name: "Premium",
-    price: 89.9,
+    price: PLAN_PRICE_STANDARD_REAIS,
     description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
   },
   vita: {

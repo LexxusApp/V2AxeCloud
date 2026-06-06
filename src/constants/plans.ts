@@ -60,18 +60,12 @@ export const PLAN_NAMES: Record<string, string> = {
   vita: 'Plano Vita',
 };
 
+import { PLAN_PRICE_STANDARD_REAIS } from '../../lib/planPricing';
+
 /** Preços padrão (reais) quando /api/plans não responde — espelha api/lib/plansCatalog.ts */
 export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
-  premium: 89.9,
+  premium: PLAN_PRICE_STANDARD_REAIS,
   vita: 49.9,
-};
-
-// import.meta.env só existe no contexto Vite (browser). No Node.js (servidor), é undefined.
-// Usamos optional chaining para não quebrar o servidor ao importar este arquivo.
-const _env = (import.meta as any).env ?? {};
-export const CHECKOUT_URLS: Record<string, string> = {
-  premium: _env.VITE_KIWIFY_PREMIUM_URL || '',
-  vita: _env.VITE_KIWIFY_VITA_URL || '',
 };
 
 export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'subscription' | 'caixinha' | 'saude_axe' | 'camarinha' | 'atendimentos';

@@ -62,7 +62,7 @@ import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
 import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
-import { requireTenantReadAccess, verifyKiwifyWebhook, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
+import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 
 process.on('uncaughtException', (err) => {
@@ -4155,64 +4155,6 @@ async function startServer() {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Erro ao deslogar" });
     }
-  });
-
-  // API Route: Kiwify Webhook
-  app.post("/api/webhooks/kiwify", express.json(), async (req, res) => {
-    if (!verifyKiwifyWebhook(req)) {
-      return res.status(401).json({ error: "Webhook não autorizado" });
-    }
-    const payload = req.body;
-    const { order_status, customer, product_id, subscription_id } = payload;
-
-    console.log(`[KIWIFY WEBHOOK] Received: ${order_status} for ${customer?.email}`);
-
-    // Só processamos se o pagamento for aprovado
-    if (order_status === 'paid') {
-      try {
-        const email = customer?.email;
-        if (!email) throw new Error("Email do cliente não encontrado no payload");
-
-        // 1. Encontrar o usuário pelo email
-        const { data: userData, error: userError } = await supabaseAdmin
-          .from('perfil_lider')
-          .select('id, tenant_id')
-          .eq('email', email)
-          .single();
-
-        if (userError || !userData) {
-          console.error(`[KIWIFY WEBHOOK] Usuário não encontrado para o email: ${email}`);
-          return res.status(404).json({ error: "Usuário não encontrado" });
-        }
-
-        // 2. Mapear o product_id para o plano (Isso deve ser configurado conforme seus produtos no Kiwify)
-        // Exemplo de mapeamento:
-        let planToSet = "premium";
-        // Mapear product_id do Kiwify para "premium" | "vita" conforme os teus produtos.
-
-        console.log(`[KIWIFY WEBHOOK] Atualizando plano para ${planToSet} para o tenant ${userData.tenant_id}`);
-
-        // 3. Atualizar a assinatura
-        const { error: updateError } = await supabaseAdmin
-          .from('subscriptions')
-          .update({
-            plan: planToSet,
-            status: 'active',
-            // Adicionar 30 dias de expiração se não for vitalício
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          })
-          .eq('tenant_id', userData.tenant_id);
-
-        if (updateError) throw updateError;
-
-        console.log(`[KIWIFY WEBHOOK] Plano atualizado com sucesso!`);
-      } catch (error) {
-        console.error(`[KIWIFY WEBHOOK] Erro ao processar:`, error);
-        return res.status(500).json({ error: "Erro interno ao processar webhook" });
-      }
-    }
-
-    res.status(200).send('OK');
   });
 
   // Vite middleware setup

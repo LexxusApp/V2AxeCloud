@@ -89,7 +89,11 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
 
-    const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
+    const tenant = await resolveTenantFromAuth(supabaseAdmin, req);
+    const amountCents = await resolvePremiumOnboardingAmountCents(
+      supabaseAdmin,
+      tenant?.tenantId
+    );
     const publicConfig = {
       amountCents,
       amountLabel: formatAmountLabelFromCents(amountCents),
@@ -98,7 +102,6 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       cardTokenizationReady: EFI_CARD_CHECKOUT_ENABLED && !!payeeCode,
     };
 
-    const tenant = await resolveTenantFromAuth(supabaseAdmin, req);
     if (!tenant) {
       return res.json(publicConfig);
     }
@@ -182,7 +185,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const payerName = String(req.body?.payerName || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const payerCpf = String(req.body?.cpf || "").trim();
 
-      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
+      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin, tenant.tenantId);
       const charge = await efiPixCreateImmediateCharge(pixEnv, {
         tenantId: tenant.tenantId,
         amountCents,
@@ -316,7 +319,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const nome = String(customer.name || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const email = String(customer.email || profile?.email || tenant.email).trim();
 
-      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin);
+      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin, tenant.tenantId);
       const result = await efiCreateCardSubscriptionOneStep(efi, {
         tenantId: tenant.tenantId,
         email,

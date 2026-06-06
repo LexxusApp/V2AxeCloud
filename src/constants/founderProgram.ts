@@ -1,8 +1,15 @@
+import {
+  PLAN_PRICE_FOUNDER_LABEL,
+  PLAN_PRICE_STANDARD_LABEL,
+} from '../../lib/planPricing';
+
 /** Programa Fundador — configuração central (portal + landing). */
 export const FOUNDER_PROGRAM = {
   maxSlots: 20,
   freeMonths: 12,
-  futurePriceLabel: 'R$ 89,90/mês',
+  founderPriceLabel: PLAN_PRICE_FOUNDER_LABEL,
+  standardPriceLabel: PLAN_PRICE_STANDARD_LABEL,
+  futurePriceLabel: `${PLAN_PRICE_FOUNDER_LABEL} (fundador) · ${PLAN_PRICE_STANDARD_LABEL} (demais casas)`,
   pilotCity: 'Grande São Paulo',
   pilotRegionNote:
     'Começamos pelo eixo Grande São Paulo e região metropolitana. Casas de outras cidades também podem se inscrever — entraremos em contato conforme abrirmos novas vagas.',

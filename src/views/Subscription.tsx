@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Check, Crown, Zap, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { PLAN_NAMES, CHECKOUT_URLS, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
+import { PLAN_NAMES, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../lib/plansDisplay';
+import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
+import { ROUTES } from '../lib/routes';
+import { PLAN_PRICE_FOUNDER_REAIS } from '../../lib/planPricing';
 import PageHeader from '../components/PageHeader';
 
 interface PlanCardProps {
@@ -20,9 +23,10 @@ interface PlanCardProps {
   isCurrentPlan?: boolean;
   /** Card mais estreito e tipografia reduzida (ex.: único plano na tela) */
   compact?: boolean;
+  priceNote?: string;
 }
 
-function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan, compact }: PlanCardProps) {
+function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan, compact, priceNote }: PlanCardProps) {
   return (
     <motion.div 
       whileHover={{ y: compact ? -3 : -6 }}
@@ -64,6 +68,9 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
           <span className={cn("font-black text-white", compact ? "text-2xl" : "text-3xl")}>R$ {price}</span>
           <span className={cn("text-gray-500 font-bold", compact ? "text-xs" : "text-sm")}>/mês</span>
         </div>
+        {priceNote && (
+          <p className={cn("text-primary/90 font-bold mt-1", compact ? "text-[10px]" : "text-xs")}>{priceNote}</p>
+        )}
       </div>
 
       <div className={cn("flex-1", compact ? "mb-5 space-y-2" : "mb-7 space-y-3")}>
@@ -121,63 +128,37 @@ interface SubscriptionProps {
 export default function Subscription({ session, tenantData, onPlanUpdated, hideHeader, onlyCurrentPlan, onlyAvailablePlans, setActiveTab }: SubscriptionProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const { isFounderHouse } = useFounderHouseStatus();
 
   const handleSelectPlan = async (planId: string) => {
-    console.log(`[SUBSCRIPTION] handleSelectPlan: ${planId}`);
-    
-    if (tenantData?.plan === planId) {
+    if (tenantData?.plan === planId && tenantData?.status === 'active') {
       alert('Você já possui este plano ativo.');
       return;
     }
 
-    const url = CHECKOUT_URLS[planId];
-    
-    if (!url) {
-      console.error(`[SUBSCRIPTION] URL de checkout não encontrada para o plano: ${planId}`);
-      console.log('[DEBUG] CHECKOUT_URLS:', CHECKOUT_URLS);
-      alert(`Erro: A URL de checkout para o plano "${planId}" não foi configurada. Por favor, verifique se as variáveis VITE_KIWIFY_${planId.toUpperCase()}_URL estão configuradas corretamente no painel de Secrets ou no Vercel.`);
-      return;
-    }
-
-    console.log(`[SUBSCRIPTION] Abrindo checkout Kiwify em pop-up: ${url}`);
-    
-    const width = 500;
-    const height = 750;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
-    
-    window.open(
-      url, 
-      'KiwifyCheckout', 
-      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
-    );
+    setLoading(planId);
+    window.location.href = ROUTES.checkout;
   };
 
-  // Listener para mensagens do iframe de checkout (caso a Kiwify envie mensagens via postMessage)
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Aqui você pode adicionar lógica para capturar eventos reais da Kiwify se eles usarem postMessage
-      // Por enquanto, mantemos apenas para logs de depuração
-      if (event.data?.type === 'checkout_success') {
-        console.log('[SUBSCRIPTION] Evento de sucesso recebido via postMessage');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
   const formatPrice = (price?: number, fallbackReais?: number) => {
+    const effectiveFallback =
+      isFounderHouse && fallbackReais === DEFAULT_PLAN_PRICES_REAIS.premium
+        ? PLAN_PRICE_FOUNDER_REAIS
+        : fallbackReais;
     const fb =
-      fallbackReais != null
-        ? formatPriceBRL(fallbackReais)
+      effectiveFallback != null
+        ? formatPriceBRL(effectiveFallback)
         : formatPriceBRL(DEFAULT_PLAN_PRICES_REAIS.premium);
     if (price === undefined || price === null) return fb;
     const n = Number(price);
     if (!Number.isFinite(n) || n <= 0) return fb;
+    if (isFounderHouse && n === DEFAULT_PLAN_PRICES_REAIS.premium) {
+      return formatPriceBRL(PLAN_PRICE_FOUNDER_REAIS);
+    }
     return formatPriceBRL(n);
   };
+
+  const premiumPriceNote = isFounderHouse ? 'Preço vitalício Casa Fundadora' : undefined;
 
   if (fetchingPlans) {
     if (onlyCurrentPlan) {
@@ -198,8 +179,6 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   const currentPlanName = PLAN_NAMES[planKey] || plansConfig[tenantData?.plan]?.name || tenantData?.plan || 'Nenhum';
   const expiresAt = tenantData?.expires_at ? new Date(tenantData.expires_at).toLocaleDateString('pt-BR') : 'Sem validade definida';
   const isLifetime = isLifetimePlan(tenantData?.plan);
-  // Nome amigavel para o cabecalho do card: evita duplicacao "Plano Plano Vita"
-  // e usa terminologia mais clara para vitalicios.
   const displayPlanName = isLifetime ? 'Mensalidade Vitalícia' : `Plano ${currentPlanName}`;
 
   if (onlyCurrentPlan) {
@@ -221,7 +200,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
         </div>
         {!isLifetime && (
           <button 
-            onClick={() => handleSelectPlan(tenantData?.plan)}
+            onClick={() => handleSelectPlan(tenantData?.plan || 'premium')}
             disabled={loading === tenantData?.plan}
             className="bg-primary text-background px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all disabled:opacity-50 whitespace-nowrap"
           >
@@ -254,13 +233,13 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
           loading={loading === 'premium'}
           isCurrentPlan={planKey === 'premium'}
           compact
+          priceNote={premiumPriceNote}
         />
       </div>
     </div>
   );
 
   if (onlyAvailablePlans) {
-    // Vitalicio: nao faz sentido oferecer upgrade — escondemos a grade de planos.
     if (isLifetime) return null;
     return (
       <div className="w-full">
@@ -299,7 +278,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
             </div>
             {!isLifetime && (
               <button 
-                onClick={() => handleSelectPlan(tenantData?.plan)}
+                onClick={() => handleSelectPlan(tenantData?.plan || 'premium')}
                 disabled={loading === tenantData?.plan}
                 className="bg-primary text-background px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all disabled:opacity-50 whitespace-nowrap"
               >

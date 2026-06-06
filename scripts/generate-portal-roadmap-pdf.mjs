@@ -173,7 +173,7 @@ function buildContent(doc) {
   bullet(doc, 'Produto: SaaS multi-tenant com financeiro, calendário, mural, biblioteca, galeria de fotos e WhatsApp.');
   bullet(doc, 'Marketing: landing com SEO, FAQ e JSON-LD em axecloud.com.br.');
   bullet(doc, 'Gap do portal: sem diretório público, perfis de terreiro, agenda pública ou conteúdo editorial.');
-  bullet(doc, 'Situação comercial: sem terreiros cadastrados ativos; mensalidade atual R$ 89,90 (plano Médio).');
+  bullet(doc, 'Situação comercial: casas fundadoras em onboarding; mensalidade padrão R$ 69,90 (fundador R$ 49,90 vitalício).');
 
   hr(doc);
   heading(doc, '3. Visão e posicionamento (18 meses)', 1);
@@ -191,17 +191,17 @@ function buildContent(doc) {
   heading(doc, '4. Estratégia de precificação', 1);
   paragraph(
     doc,
-    'Pergunta central: com zero terreiros cadastrados, devo remover a cobrança para atrair casas e cobrar depois, ou manter R$ 89,90?',
+    'Pergunta central: com as primeiras casas fundadoras, como escalar prova social mantendo R$ 69,90 padrão e R$ 49,90 vitalício para fundadores?',
   );
 
   heading(doc, 'Recomendação: não tire a cobrança — mude o modelo de entrada', 2);
-  bullet(doc, 'O problema hoje não é o preço (R$ 89,90 é razoável para gestão completa), e sim a ausência de prova social, confiança e casos reais.');
+  bullet(doc, 'O problema hoje não é o preço (R$ 69,90 é razoável para gestão completa), e sim ampliar prova social, confiança e casos reais.');
   bullet(doc, 'Grátis para sempre atrai curiosos sem compromisso e dificulta cobrar depois (“por que agora pago?”).');
   bullet(doc, 'Cobrar desde o dia 1 sem nenhum terreiro usando gera atrito desnecessário na fase zero.');
 
   heading(doc, 'Modelo sugerido: Programa Fundador', 2);
   bullet(doc, 'Oferta clara na landing: “Programa Fundador — gratuito por 6 a 12 meses para as primeiras 20 casas”.');
-  bullet(doc, 'Preço futuro visível: “Depois do período fundador: a partir de R$ 89,90/mês”. Transparência gera confiança.');
+  bullet(doc, 'Preço futuro visível: “Fundador R$ 49,90/mês vitalício · demais casas R$ 69,90/mês”. Transparência gera confiança.');
   bullet(doc, 'Limite de vagas: escassez real (“restam X vagas”) cria urgência sem desvalorizar o produto.');
   bullet(doc, 'Compromisso mútuo: a casa ganha uso gratuito; você ganha feedback, depoimento e permissão para perfil público.');
   bullet(doc, 'Plano gratuito permanente (freemium) só se limitado: ex. até 15 filhos, sem WhatsApp automático — evita canibalizar o Médio.');

@@ -73,17 +73,6 @@ export function isAllowedPdfProxyUrl(rawUrl: string): boolean {
   }
 }
 
-export function verifyKiwifyWebhook(req: { headers?: Record<string, string | string[] | undefined> }): boolean {
-  const secret = process.env.KIWIFY_WEBHOOK_SECRET || "";
-  if (!secret) return false;
-  const header =
-    req.headers?.["x-kiwify-signature"] ||
-    req.headers?.["x-webhook-token"] ||
-    req.headers?.["authorization"];
-  const value = Array.isArray(header) ? header[0] : header;
-  return String(value || "").replace(/^Bearer\s+/i, "") === secret;
-}
-
 export function verifyWhatsAppWebhook(req: { headers?: Record<string, string | string[] | undefined> }): boolean {
   const secret = process.env.WHATSAPP_WEBHOOK_SECRET || process.env.EVOLUTION_WEBHOOK_SECRET || "";
   if (!secret) return false;

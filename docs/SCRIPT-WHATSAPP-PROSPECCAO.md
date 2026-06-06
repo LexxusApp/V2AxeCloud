@@ -66,7 +66,7 @@ cadastro dos filhos de santo e portal separado pra cada integrante.
 No Programa Fundador: 12 meses sem mensalidade, onboarding comigo,
 e a casa aparece como fundadora no site (já temos Suzano).
 
-Depois do período: a partir de R$ 89,90/mês — mas quem entra agora como fundador
+Depois do período: R$ 49,90/mês vitalício para casas aprovadas ou R$ 69,90/mês — quem entra agora como fundador
 negocia com transparência antes de qualquer cobrança.
 
 Quer uma call de 15 min essa semana? Qual dia é melhor pra você?

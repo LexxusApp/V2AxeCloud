@@ -83,7 +83,7 @@ const plans = [
   },
   {
     name: 'Médio',
-    price: 'R$ 89,90',
+    price: 'R$ 69,90',
     period: '/mês',
     blurb: 'Até ~80 filhos de santo',
     features: ['Tudo do plano pequeno', 'Calendário e giras ativas', 'Biblioteca e comunicação com a casa'],

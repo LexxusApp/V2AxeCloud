@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizePlansCatalog, resolvePremiumAmountCents } from "./plansCatalog.js";
+import { normalizePlansCatalog } from "./plansCatalog.js";
+import { resolveTenantPremiumAmountCents } from "./premiumPricing.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   sendEvolutionTextByInstance,
@@ -56,11 +57,12 @@ export function efiNotificationUrl(): string {
   return secret ? `${base}?secret=${encodeURIComponent(secret)}` : base;
 }
 
-/** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) → env → fallback R$ 5,00. */
+/** Preço do onboarding Premium: fundador aceito → R$ 49,90; senão catálogo → env → fallback R$ 69,90. */
 export async function resolvePremiumOnboardingAmountCents(
-  supabaseAdmin: SupabaseClient
+  supabaseAdmin: SupabaseClient,
+  tenantId?: string | null
 ): Promise<number> {
-  return resolvePremiumAmountCents(supabaseAdmin);
+  return resolveTenantPremiumAmountCents(supabaseAdmin, tenantId);
 }
 
 export async function registerNewTenant(

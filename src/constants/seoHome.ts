@@ -45,7 +45,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
   {
     q: 'Existe programa gratuito para começar?',
-    a: 'Sim. O Programa Fundador oferece 12 meses gratuitos para as primeiras casas selecionadas, com onboarding personalizado. Depois do período, a mensalidade segue a partir de R$ 89,90. Inscreva-se em axecloud.com.br/programa-fundador.',
+    a: 'Sim. O Programa Fundador oferece 12 meses gratuitos para as primeiras casas selecionadas, com onboarding personalizado. Depois do período: R$ 49,90/mês vitalício para casas aprovadas ou R$ 69,90/mês para as demais. Inscreva-se em axecloud.com.br/programa-fundador.',
   },
   {
     q: 'Preciso instalar alguma coisa no computador ou celular?',
