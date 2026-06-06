@@ -432,7 +432,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
               {isAdmin && (
                 <button 
                   onClick={() => setIsAddProductOpen(true)}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-black text-background transition-transform hover:scale-105 md:px-4 md:text-sm"
+                  className="app-page-action"
                 >
                   <Plus className="w-4 h-4" />
                   Novo
@@ -440,7 +440,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
               )}
               <button 
                 onClick={() => setIsCartOpen(true)}
-                className="relative p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/10"
+                className="app-page-action app-page-action--icon relative"
               >
                 <ShoppingBag className="w-6 h-6 text-primary" />
                 {cart.length > 0 && (

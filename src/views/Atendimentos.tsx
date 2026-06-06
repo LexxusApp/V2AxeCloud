@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { HandHeart, Loader2, MessageCircle, Phone } from 'lucide-react';
+import { HandHeart, Loader2, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authFetch } from '../lib/authenticatedFetch';
 import PageHeader from '../components/PageHeader';
@@ -29,6 +29,21 @@ const STATUS_CLASS: Record<PedidoReza['status'], string> = {
   concluido: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
   cancelado: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/25',
 };
+
+const STATUS_ACCENT: Record<PedidoReza['status'], string> = {
+  pendente: 'bg-amber-400',
+  em_atendimento: 'bg-sky-400',
+  concluido: 'bg-emerald-400',
+  cancelado: 'bg-zinc-500',
+};
+
+function formatPedidoWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
 
 interface AtendimentosProps {
   tenantData?: { tenant_id?: string | null };
@@ -98,7 +113,7 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className="app-page-action rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold text-primary"
+            className="app-page-action"
           >
             Configurar portal
           </button>
@@ -118,62 +133,83 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((pedido) => (
             <motion.article
               key={pedido.id}
               layout
-              className="rounded-2xl border border-white/10 bg-card p-4 sm:p-5"
+              className="group relative overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] via-card to-card shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-base font-bold text-white">{pedido.nome}</p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {new Date(pedido.created_at).toLocaleString('pt-BR')}
-                  </p>
+              <div
+                className={cn('absolute left-0 top-0 h-full w-[3px]', STATUS_ACCENT[pedido.status])}
+                aria-hidden
+              />
+
+              <div className="flex gap-3 p-3 pl-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-black/30">
+                  <HandHeart className="h-4 w-4 text-primary/80" strokeWidth={2} aria-hidden />
                 </div>
-                <span
-                  className={cn(
-                    'inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide',
-                    STATUS_CLASS[pedido.status],
-                  )}
-                >
-                  {STATUS_LABEL[pedido.status]}
-                </span>
-              </div>
 
-              <p className="mt-3 text-sm leading-relaxed text-gray-300">{pedido.mensagem}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">{pedido.nome}</p>
+                      <p className="mt-0.5 text-[10px] font-medium tabular-nums text-gray-500">
+                        {formatPedidoWhen(pedido.created_at)}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider',
+                        STATUS_CLASS[pedido.status],
+                      )}
+                    >
+                      {STATUS_LABEL[pedido.status]}
+                    </span>
+                  </div>
 
-              {pedido.whatsapp ? (
-                <a
-                  href={`https://wa.me/55${pedido.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  WhatsApp
-                  <Phone className="h-3 w-3 opacity-60" />
-                  {pedido.whatsapp}
-                </a>
-              ) : null}
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-gray-400">
+                    {pedido.mensagem}
+                  </p>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <select
-                  value={pedido.status}
-                  disabled={busyId === pedido.id}
-                  onChange={(e) =>
-                    void updatePedido(pedido.id, { status: e.target.value as PedidoReza['status'] })
-                  }
-                  className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs font-semibold text-white"
-                >
-                  {(Object.keys(STATUS_LABEL) as PedidoReza['status'][]).map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </select>
-                {busyId === pedido.id ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}
+                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2">
+                    {pedido.whatsapp ? (
+                      <a
+                        href={`https://wa.me/55${pedido.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-w-0 items-center gap-1 text-[10px] font-bold text-emerald-400 transition hover:text-emerald-300"
+                      >
+                        <MessageCircle className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{pedido.whatsapp}</span>
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-gray-600">Sem WhatsApp</span>
+                    )}
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <select
+                        value={pedido.status}
+                        disabled={busyId === pedido.id}
+                        onChange={(e) =>
+                          void updatePedido(pedido.id, {
+                            status: e.target.value as PedidoReza['status'],
+                          })
+                        }
+                        className="max-w-[8.5rem] rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white"
+                      >
+                        {(Object.keys(STATUS_LABEL) as PedidoReza['status'][]).map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
+                      {busyId === pedido.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.article>
           ))}

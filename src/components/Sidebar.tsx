@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Newspaper,
   Images,
+  Package,
   PieChart,
   Settings as SettingsIcon,
   LogOut,
@@ -51,6 +52,7 @@ const navItems = [
   { id: 'calendar', label: 'Giras / Eventos', icon: CalendarDays },
   { id: 'mural', label: 'Comunicados', icon: Newspaper },
   { id: 'gallery', label: 'Galeria', icon: Images },
+  { id: 'inventory', label: 'Almoxarifado', icon: Package },
   { id: 'financial', label: 'Financeiro', icon: PieChart },
 ] as const;
 

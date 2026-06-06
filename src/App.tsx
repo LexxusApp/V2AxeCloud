@@ -1062,12 +1062,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     }
   }, [userRole, activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 'inventory') {
-      setActiveTab('gallery');
-    }
-  }, [activeTab]);
-
   /** Loading prolongado: evita recarga automática para não entrar em loop no mobile. */
   useEffect(() => {
     if (!loading) return;

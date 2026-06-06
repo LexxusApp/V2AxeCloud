@@ -505,11 +505,11 @@ export default function WhatsAppConfig() {
   const renderConnectionPanel = () => {
     if (status === 'DISCONNECTED') {
       return (
-        <div className="space-y-6">
-          <div className="flex h-40 w-40 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#181818] p-4 sm:h-48 sm:w-48">
-            <Smartphone className="h-12 w-12 text-white/20" />
+        <div className="flex h-full min-h-[220px] flex-col items-center justify-center space-y-6 text-center">
+          <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#181818] sm:h-40 sm:w-40">
+            <Smartphone className="h-12 w-12 text-white/20" aria-hidden />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 px-2">
             <p className="font-bold text-white">Inicie a Conexão</p>
             <p className="mx-auto max-w-[260px] text-xs leading-relaxed text-gray-500">
               {isMobileConnect
@@ -523,7 +523,7 @@ export default function WhatsAppConfig() {
 
     if (status === 'PAIRING' && (qrCode || pairingCode)) {
       return (
-        <div className="w-full space-y-5">
+        <div className="flex h-full w-full flex-col items-center justify-center space-y-5">
           {qrCode && (
             <div className="mx-auto w-full max-w-[220px] rounded-2xl border border-emerald-500/30 bg-white p-3">
               <img src={qrCode} alt="QR Code WhatsApp" className="h-auto w-full rounded-lg" />
@@ -585,7 +585,7 @@ export default function WhatsAppConfig() {
 
     if (status === 'PAIRING' || status === 'LOADING') {
       return (
-        <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="flex h-full flex-col items-center justify-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="text-xs font-black uppercase tracking-widest text-primary">
             {status === 'PAIRING'
@@ -599,7 +599,7 @@ export default function WhatsAppConfig() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center space-y-6">
+      <div className="flex h-full w-full flex-col items-center justify-center space-y-6">
         <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500">
           <CheckCircle2 className="h-12 w-12 text-background" />
         </div>
@@ -664,55 +664,63 @@ export default function WhatsAppConfig() {
         </div>
       </div>
 
-      <div className="grid min-w-0 grid-cols-1 gap-6 text-left md:grid-cols-2 md:gap-8">
-        <div className="space-y-6">
-          {serviceNotice && (
-            <div className="rounded-2xl border border-amber-500/30 bg-[#1a1508] px-4 py-3 text-xs font-semibold text-amber-200/90">
-              {serviceNotice}
-            </div>
-          )}
-          {errorMsg && (
-            <div className="rounded-2xl border border-red-500/30 bg-[#1a1012] px-4 py-3 text-xs font-semibold text-red-300">
-              {errorMsg}
-            </div>
-          )}
-          <div className="space-y-4">
-            <h3 className="flex items-center gap-2 text-xl font-bold text-white">
-              <Shield className="w-5 h-5 text-emerald-500" />
-              Status da Instância
-            </h3>
-            <div className={`rounded-2xl border p-4 sm:p-6 ${
-              status === 'CONNECTED' 
-                ? 'border-emerald-500/25 bg-[#0f1812] font-black text-emerald-500' 
+      <div className="min-w-0 space-y-6 text-left">
+        {serviceNotice && (
+          <div className="rounded-2xl border border-amber-500/30 bg-[#1a1508] px-4 py-3 text-xs font-semibold text-amber-200/90">
+            {serviceNotice}
+          </div>
+        )}
+        {errorMsg && (
+          <div className="rounded-2xl border border-red-500/30 bg-[#1a1012] px-4 py-3 text-xs font-semibold text-red-300">
+            {errorMsg}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <h3 className="flex items-center gap-2 text-xl font-bold text-white">
+            <Shield className="h-5 w-5 shrink-0 text-emerald-500" />
+            Status da Instância
+          </h3>
+          <div
+            className={`rounded-2xl border p-4 sm:p-6 ${
+              status === 'CONNECTED'
+                ? 'border-emerald-500/25 bg-[#0f1812] font-black text-emerald-500'
                 : status === 'LOADING' || status === 'PAIRING'
-                ? 'border-primary/25 bg-[#1a1708] text-primary'
-                : 'border-white/10 bg-[#181818] text-gray-400'
-            }`}>
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                  {status === 'LOADING' ? (
-                    <Loader2 className="h-6 w-6 shrink-0 animate-spin" />
-                  ) : status === 'CONNECTED' ? (
-                    <CheckCircle2 className="h-6 w-6 shrink-0" />
-                  ) : status === 'PAIRING' ? (
-                    <Loader2 className="h-6 w-6 shrink-0 animate-spin" />
-                  ) : (
-                    <AlertCircle className="h-6 w-6 shrink-0" />
-                  )}
-                  <span className="min-w-0 text-sm font-black uppercase tracking-widest">
-                    {status === 'CONNECTED' ? 'Conectado' : 
-                     status === 'LOADING' ? 'Inicializando...' : 
-                     status === 'PAIRING' ? (qrCode ? 'Escaneie o QR' : 'Aguardando código') : 'Desconectado'}
-                  </span>
-                </div>
-              </div>
+                  ? 'border-primary/25 bg-[#1a1708] text-primary'
+                  : 'border-white/10 bg-[#181818] text-gray-400'
+            }`}
+          >
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+              {status === 'LOADING' ? (
+                <Loader2 className="h-6 w-6 shrink-0 animate-spin" />
+              ) : status === 'CONNECTED' ? (
+                <CheckCircle2 className="h-6 w-6 shrink-0" />
+              ) : status === 'PAIRING' ? (
+                <Loader2 className="h-6 w-6 shrink-0 animate-spin" />
+              ) : (
+                <AlertCircle className="h-6 w-6 shrink-0" />
+              )}
+              <span className="min-w-0 text-sm font-black uppercase tracking-widest">
+                {status === 'CONNECTED'
+                  ? 'Conectado'
+                  : status === 'LOADING'
+                    ? 'Inicializando...'
+                    : status === 'PAIRING'
+                      ? qrCode
+                        ? 'Escaneie o QR'
+                        : 'Aguardando código'
+                      : 'Desconectado'}
+              </span>
             </div>
+          </div>
+        </div>
 
-            {(status === 'DISCONNECTED' || status === 'PAIRING') && (
-              <div className="space-y-4 rounded-2xl border border-white/10 bg-[#181818] p-5 sm:p-6">
-                <h4 className="text-sm font-black uppercase tracking-widest text-white">Vincular WhatsApp</h4>
+        <div className="grid min-w-0 grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:gap-8">
+          {(status === 'DISCONNECTED' || status === 'PAIRING') ? (
+            <div className="flex h-full flex-col space-y-4 rounded-2xl border border-white/10 bg-[#181818] p-5 sm:p-6">
+              <h4 className="text-sm font-black uppercase tracking-widest text-white">Vincular WhatsApp</h4>
 
-                {isMobileConnect ? (
+              {isMobileConnect ? (
                   <>
                     <p className="text-xs text-gray-400 leading-relaxed">
                       No <strong className="text-white">mesmo celular</strong> do WhatsApp: gere o código aqui e digite no app
@@ -778,82 +786,97 @@ export default function WhatsAppConfig() {
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      No <strong className="text-white">computador</strong>, escaneie o QR com o celular. No <strong className="text-white">celular</strong>,
-                      use o código numérico com o número desta conta.
+                    <p className="text-xs leading-relaxed text-gray-400">
+                      No <strong className="text-white">computador</strong>, escaneie o QR com o celular. No{' '}
+                      <strong className="text-white">celular</strong>, use o código numérico com o número desta conta.
                     </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-3 rounded-xl border border-emerald-500/25 bg-[#0f1812] p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300">QR Code</p>
-                        <button
-                          type="button"
-                          onClick={() => void handleStartQr()}
-                          disabled={loading || status === 'PAIRING'}
-                          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-widest text-background transition-colors hover:bg-emerald-400 disabled:opacity-50"
-                        >
-                          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-                          Conectar com QR
-                        </button>
+                    <div className="grid flex-1 gap-4 sm:grid-cols-2 sm:items-stretch">
+                      <div className="flex h-full min-h-[148px] flex-col rounded-xl border border-emerald-500/25 bg-[#0f1812] p-4">
+                        <p className="text-center text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                          QR Code
+                        </p>
+                        <div className="mt-3 flex flex-1 flex-col justify-end">
+                          <button
+                            type="button"
+                            onClick={() => void handleStartQr()}
+                            disabled={loading || status === 'PAIRING'}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-widest text-background transition-colors hover:bg-emerald-400 disabled:opacity-50"
+                          >
+                            {loading ? (
+                              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                            ) : (
+                              <Smartphone className="h-4 w-4 shrink-0" />
+                            )}
+                            <span>Conectar com QR</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="space-y-3 rounded-xl border border-white/10 bg-[#181818] p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Código no celular</p>
-                        <input
-                          type="tel"
-                          inputMode="numeric"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="11912276156"
-                          disabled={loading || status === 'PAIRING'}
-                          className="w-full rounded-xl border border-white/10 bg-background px-3 py-2.5 font-mono text-sm text-white outline-none focus:border-emerald-500 disabled:opacity-60"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void handleStart()}
-                          disabled={loading || (status === 'PAIRING' && pairingLocked)}
-                          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-[#0f1812] px-4 text-[11px] font-black uppercase tracking-widest text-emerald-200 hover:bg-[#142018] disabled:opacity-50"
-                        >
-                          {status === 'PAIRING' && pairingLocked ? 'Código ativo' : 'Gerar código'}
-                        </button>
+                      <div className="flex h-full min-h-[148px] flex-col rounded-xl border border-white/10 bg-[#181818] p-4">
+                        <p className="text-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          Código no celular
+                        </p>
+                        <div className="mt-3 flex flex-1 flex-col justify-end gap-3">
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="11912276156"
+                            disabled={loading || status === 'PAIRING'}
+                            className="w-full rounded-xl border border-white/10 bg-background px-3 py-2.5 font-mono text-sm text-white outline-none focus:border-emerald-500 disabled:opacity-60"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleStart()}
+                            disabled={loading || (status === 'PAIRING' && pairingLocked)}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-[#0f1812] px-4 text-[11px] font-black uppercase tracking-widest text-emerald-200 hover:bg-[#142018] disabled:opacity-50"
+                          >
+                            {status === 'PAIRING' && pairingLocked ? 'Código ativo' : 'Gerar código'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </>
                 )}
 
-                {status === 'PAIRING' && (
-                  <button
-                    type="button"
-                    onClick={cancelPairing}
-                    className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white"
-                  >
-                    Cancelar / tentar de novo
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+              {status === 'PAIRING' && (
+                <button
+                  type="button"
+                  onClick={cancelPairing}
+                  className="text-left text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white"
+                >
+                  Cancelar / tentar de novo
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#141414] p-6 text-center md:col-span-2">
+              {renderConnectionPanel()}
+            </div>
+          )}
 
-          <div className="space-y-4 rounded-2xl border border-white/10 bg-[#181818] p-5 sm:p-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-white">Recursos Ativos</h4>
-            <ul className="space-y-3">
-              {[
-                'Avisos de Mural Automáticos',
-                'Lembretes de Mensalidade',
-                'Confirmação de Eventos',
-                'Transmissão de Recados'
-              ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm text-gray-400 font-medium">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {(status === 'DISCONNECTED' || status === 'PAIRING') && (
+            <div className="flex h-full min-h-[220px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-5 text-center sm:p-8">
+              {renderConnectionPanel()}
+            </div>
+          )}
         </div>
 
-        <div className="space-y-6">
-          <div className="flex min-h-[260px] flex-col items-center justify-center space-y-6 overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-5 text-center sm:min-h-[300px] sm:p-8">
-            {renderConnectionPanel()}
-          </div>
+        <div className="space-y-4 rounded-2xl border border-white/10 bg-[#181818] p-5 sm:p-6">
+          <h4 className="text-sm font-black uppercase tracking-widest text-white">Recursos Ativos</h4>
+          <ul className="space-y-3">
+            {[
+              'Avisos de Mural Automáticos',
+              'Lembretes de Mensalidade',
+              'Confirmação de Eventos',
+              'Transmissão de Recados',
+            ].map((item, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-400">
+                <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -879,7 +902,7 @@ export default function WhatsAppConfig() {
             type="button"
             onClick={handleSaveTemplates}
             disabled={savingTemplates}
-            className="app-page-action inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-primary px-4 py-2.5 text-xs font-black uppercase tracking-widest text-background disabled:opacity-60 sm:self-auto"
+            className="app-page-action self-start sm:self-auto"
           >
             {savingTemplates ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {savingTemplates ? 'Salvando...' : 'Salvar Mensagens'}

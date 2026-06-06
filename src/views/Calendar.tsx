@@ -610,7 +610,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           actions={
             <button
               onClick={fetchEvents}
-              className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-colors"
+              className="app-page-action app-page-action--icon"
               title="Atualizar"
             >
               <Loader2 className={cn("w-5 h-5", loading && "animate-spin")} />
@@ -902,7 +902,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             )}
             <button 
               onClick={fetchEvents}
-              className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-colors"
+              className="app-page-action app-page-action--icon"
               title="Atualizar"
             >
               <Loader2 className={cn("w-5 h-5", loading && "animate-spin")} />

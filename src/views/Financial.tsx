@@ -891,12 +891,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               <div className="relative group">
                 <button 
                   onClick={handleDownloadReport}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-black transition-all sm:gap-2 sm:px-4 sm:py-3 sm:text-sm",
-                    hasReportsAccess 
-                      ? "bg-white/5 text-white border-white/10 hover:bg-white/10" 
-                      : "bg-white/5 text-white/40 border-border hover:bg-white/10"
-                  )}
+                  className={cn('app-page-action', !hasReportsAccess && 'opacity-60')}
                 >
                   <Download className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                   <span>Relatório</span>
@@ -909,7 +904,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               </div>
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-black text-background shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02] sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
+                className="app-page-action"
               >
                 <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 <span className="sm:hidden">Lançar</span>

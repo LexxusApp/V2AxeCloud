@@ -213,12 +213,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               }
               setIsModalOpen(true);
             }}
-            className={cn(
-              "app-page-action px-5 py-2.5 rounded-lg font-black inline-flex items-center justify-center gap-2 transition-transform text-sm",
-              isLimitReached
-                ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700" 
-                : "bg-primary text-background shadow-[0_8px_28px_rgba(251,188,0,0.35)] hover:scale-105"
-            )}
+            className={cn('app-page-action', isLimitReached && 'app-page-action--disabled')}
             title={isLimitReached ? "Limite de filhos atingido no seu plano atual" : "Adicionar novo filho de santo"}
           >
             {isLimitReached ? <Lock className="w-5 h-5 text-[#FBBC00]" /> : <Plus className="w-5 h-5" />}

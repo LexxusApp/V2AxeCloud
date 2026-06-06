@@ -430,8 +430,8 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     <button 
                       onClick={() => setIsUploadModalOpen(true)}
                       className={cn(
-                        'flex min-w-0 w-full max-w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-black text-background shadow-xl shadow-primary/20 transition-all sm:w-auto sm:gap-3 sm:px-6 sm:py-3 sm:text-sm md:px-8',
-                        !hasPlanAccess(tenantData?.plan, 'library') ? 'opacity-50' : 'hover:scale-[1.02]'
+                        'app-page-action',
+                        !hasPlanAccess(tenantData?.plan, 'library') && 'app-page-action--disabled',
                       )}
                     >
                       {!hasPlanAccess(tenantData?.plan, 'library') ? <Lock className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" /> : <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />}

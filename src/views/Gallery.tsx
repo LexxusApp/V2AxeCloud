@@ -174,7 +174,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
           isAdmin ? (
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="app-page-action inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-background shadow-lg shadow-primary/20 transition-all hover:scale-105"
+              className="app-page-action"
             >
               <FolderPlus className="h-4 w-4" />
               Novo Álbum
