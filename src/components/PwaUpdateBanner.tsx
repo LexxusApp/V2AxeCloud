@@ -42,7 +42,10 @@ export function PwaUpdateBanner() {
       await applyPwaUpdate();
     } catch {
       setApplying(false);
+      return;
     }
+    // Se o reload não ocorrer (bloqueio raro), libera o botão após o timeout do apply.
+    window.setTimeout(() => setApplying(false), 4000);
   };
 
   return (
