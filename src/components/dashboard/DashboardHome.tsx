@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -10,14 +10,6 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import {
   format,
   getDate,
@@ -31,6 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import Avatar from '../Avatar';
 import { ZeladorIdentityBadge } from '../ZeladorIdentityBadge';
+import { FlowSparkline } from './FlowSparkline';
 import type { DashboardBundle } from '../../lib/fetchDashboardBundle';
 import { sumTodayFlow } from '../../lib/fetchDashboardBundle';
 
@@ -76,7 +69,7 @@ function Panel({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-xl border border-white/[0.08] bg-[#141414]',
+        'rounded-xl border border-white/[0.08] bg-[#141414]',
         className,
       )}
     >
@@ -163,7 +156,6 @@ export function DashboardHome({
   timeGreeting,
   firstName,
 }: DashboardHomeProps) {
-  const flowGradientId = useId().replace(/:/g, '');
   const { childrenData, events, notices, pedidos, historyData, transactions } = bundle;
   const today = startOfDay(new Date());
   const anchor = dashboardCalendar.anchor;
@@ -276,59 +268,11 @@ export function DashboardHome({
               {!hasMonthFinanceData ? (
                 <EmptyHint>Nenhum lançamento confirmado ainda.</EmptyHint>
               ) : (
-                <>
-                  {/* Mobile: sem SVG/Recharts — evita artefato de GPU no Android ao rolar */}
-                  <div className="space-y-3 py-1 lg:hidden">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">
-                      {flowPeriod === 'month' ? 'Saldo diário (mês)' : 'Saldo líquido (6 meses)'}
-                    </p>
-                    <p className="text-2xl font-black tabular-nums text-primary">
-                      {money(stats.lucroLiquido)}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div className="rounded-lg border border-emerald-500/25 bg-[#0f1812] px-3 py-2">
-                        <p className="text-zinc-500">Receitas</p>
-                        <p className="font-bold text-emerald-400">{money(stats.totalReceita)}</p>
-                      </div>
-                      <div className="rounded-lg border border-rose-500/25 bg-[#1a1012] px-3 py-2">
-                        <p className="text-zinc-500">Despesas</p>
-                        <p className="font-bold text-rose-400">{money(stats.totalDespesa)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="dashboard-chart relative hidden h-28 w-full min-w-0 overflow-hidden sm:h-32 lg:block">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                      <AreaChart data={activeFlowChart} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id={flowGradientId} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#FBBC00" stopOpacity={0.35} />
-                            <stop offset="100%" stopColor="#FBBC00" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="#262626" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fill: '#737373', fontSize: 9 }} axisLine={false} tickLine={false} />
-                        <YAxis
-                          tick={{ fill: '#737373', fontSize: 9 }}
-                          axisLine={false}
-                          tickLine={false}
-                          width={36}
-                          domain={[0, activeFlowYMax]}
-                          tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="val"
-                          stroke="#FBBC00"
-                          strokeWidth={2}
-                          fill={`url(#${flowGradientId})`}
-                          isAnimationActive={false}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </>
+                <div className="dashboard-chart relative h-28 w-full min-w-0 bg-[#141414] sm:h-32">
+                  <FlowSparkline data={activeFlowChart} yMax={activeFlowYMax} />
+                </div>
               )}
-              <div className="mt-3 hidden grid-cols-3 gap-2 border-t border-white/[0.06] pt-3 text-[11px] lg:grid">
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-3 text-[11px]">
                 <div>
                   <p className="text-zinc-500">Receitas</p>
                   <p className="font-bold text-emerald-400">{money(stats.totalReceita)}</p>
@@ -397,7 +341,7 @@ export function DashboardHome({
               ) : (
                 <ul className="grid gap-2 sm:grid-cols-2">
                   {notices.slice(0, 4).map((n) => (
-                    <li key={n.id} className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2 text-[12px]">
+                    <li key={n.id} className="rounded-lg border border-white/[0.05] bg-[#161616] px-3 py-2 text-[12px]">
                       <p className="truncate font-semibold text-zinc-200">{n.titulo}</p>
                       <p className="text-[10px] text-zinc-600">
                         {n.categoria || 'Geral'}
@@ -427,7 +371,7 @@ export function DashboardHome({
             {childrenData.length === 0 ? (
               <EmptyHint>Cadastre filhos de santo em Membros.</EmptyHint>
             ) : (
-              <div className="dashboard-avatar-scroll flex gap-3 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="grid grid-cols-4 gap-3 sm:flex sm:gap-3 md:overflow-x-auto md:overflow-y-hidden md:pb-1 md:[-ms-overflow-style:none] md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
                 {childrenData.slice(0, 12).map((filho) => (
                   <button
                     key={filho.id}
@@ -530,7 +474,7 @@ export function DashboardHome({
                             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-black tabular-nums',
                             hoje
                               ? 'bg-primary text-black ring-2 ring-primary/40'
-                              : 'border border-white/10 bg-white/[0.04] text-zinc-300',
+                              : 'border border-white/10 bg-[#1a1a1a] text-zinc-300',
                           )}
                         >
                           {String(dia).padStart(2, '0')}
@@ -697,7 +641,7 @@ export function DashboardHome({
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-bold text-zinc-400 transition hover:border-primary/30 hover:text-primary"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#181818] px-3 py-1.5 text-[11px] font-bold text-zinc-400 transition hover:border-primary/30 hover:text-primary"
           >
             <Icon className="h-3.5 w-3.5" />
             {label}

@@ -78,10 +78,9 @@
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
-/* Iluminação ambiente dourada — painel principal (todas as páginas autenticadas) */
+/* Iluminação ambiente dourada — painel principal (desktop) */
 .app-content-panel {
   position: relative;
-  isolation: isolate;
 }
 
 .app-content-panel__base {
@@ -95,6 +94,12 @@
     radial-gradient(ellipse 70% 45% at 50% 88%, rgba(251, 188, 0, 0.07) 0%, transparent 68%),
     radial-gradient(circle at 12% 0%, rgba(251, 188, 0, 0.12) 0%, transparent 46%),
     radial-gradient(circle at 88% 4%, rgba(251, 188, 0, 0.1) 0%, transparent 44%);
+}
+
+@media (max-width: 1023px) {
+  .app-content-panel__base {
+    display: none;
+  }
 }
 
 .app-page-shell {
@@ -120,19 +125,12 @@
 }
 
 .dashboard-chart {
-  overflow: hidden;
+  background-color: #141414;
 }
 
-.dashboard-chart .recharts-wrapper,
 .dashboard-chart svg {
-  overflow: hidden !important;
-}
-
-/* Mobile: gradientes do painel causam ghosting ao rolar sobre cards semi-transparentes */
-@media (max-width: 1023px) {
-  .app-content-panel__base {
-    background-image: none;
-  }
+  display: block;
+  vertical-align: top;
 }
 
 /* Margem lateral consistente nas páginas autenticadas (mobile-first) */
