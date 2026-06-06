@@ -47,13 +47,18 @@ export function LandingFounderProgram() {
         <motion.ul
           {...fade}
           transition={{ ...fade.transition, delay: 0.08 }}
-          className="relative z-10 mt-10 grid w-full gap-3 sm:grid-cols-2"
+          className="relative z-10 mx-auto mt-10 flex max-w-2xl flex-col gap-2.5"
           role="list"
         >
           {FOUNDER_BENEFITS.slice(0, 4).map((line) => (
-            <li key={line} className="landing-mystic-card flex gap-3 p-4 text-sm text-zinc-400">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
-              {line}
+            <li
+              key={line}
+              className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3.5 text-left"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                <Check className="h-4 w-4" strokeWidth={2.2} aria-hidden />
+              </span>
+              <p className="pt-0.5 text-sm leading-relaxed text-zinc-300">{line}</p>
             </li>
           ))}
         </motion.ul>
