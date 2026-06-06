@@ -10,6 +10,8 @@ export type PublicFounderHouse = {
   quote?: string;
   /** Slug do portal público quando a casa activou pedidos de reza */
   portalSlug?: string;
+  /** Foto do perfil do terreiro (perfil_lider.foto_url) */
+  fotoUrl?: string;
 };
 
 export function useFounderHouses() {

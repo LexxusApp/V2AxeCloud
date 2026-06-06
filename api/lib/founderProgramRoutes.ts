@@ -81,18 +81,22 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
         ),
       ];
 
-      const portalSlugByLeader = new Map<string, string>();
+      const leaderMetaById = new Map<string, { portalSlug?: string; fotoUrl?: string }>();
       if (leaderIds.length > 0) {
         const { data: leaders } = await supabaseAdmin
           .from("perfil_lider")
-          .select("id, public_slug, portal_consulente_ativo")
+          .select("id, public_slug, portal_consulente_ativo, foto_url")
           .in("id", leaderIds)
-          .eq("portal_consulente_ativo", true)
           .is("deleted_at", null);
 
         for (const leader of leaders || []) {
-          const slug = String(leader.public_slug || "").trim();
-          if (slug) portalSlugByLeader.set(String(leader.id), slug);
+          const id = String(leader.id);
+          const slug =
+            leader.portal_consulente_ativo && String(leader.public_slug || "").trim()
+              ? String(leader.public_slug).trim()
+              : undefined;
+          const fotoUrl = String(leader.foto_url || "").trim() || undefined;
+          leaderMetaById.set(id, { portalSlug: slug, fotoUrl });
         }
       }
 
@@ -102,7 +106,7 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
             ? String(row.depoimento_texto).trim()
             : undefined;
         const leaderId = String(row.leader_id || "").trim();
-        const portalSlug = leaderId ? portalSlugByLeader.get(leaderId) : undefined;
+        const leaderMeta = leaderId ? leaderMetaById.get(leaderId) : undefined;
         return {
           id: String(row.id),
           houseName: String(row.nome_casa || "").trim(),
@@ -111,7 +115,8 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
           tradition: tradicaoLabel[String(row.tradicao || "").toLowerCase()] || "Casa de axé",
           contactName: String(row.nome_contato || "").trim() || undefined,
           quote: quotePublished,
-          portalSlug,
+          portalSlug: leaderMeta?.portalSlug,
+          fotoUrl: leaderMeta?.fotoUrl,
         };
       });
 

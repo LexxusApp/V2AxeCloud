@@ -13,6 +13,28 @@ const fade = {
   transition: { duration: 0.5 },
 } as const;
 
+function FounderHouseAvatar({ houseName, fotoUrl }: { houseName: string; fotoUrl?: string }) {
+  if (fotoUrl) {
+    return (
+      <img
+        src={fotoUrl}
+        alt=""
+        className="h-12 w-12 shrink-0 rounded-full border border-primary/35 object-cover shadow-[0_0_20px_rgba(251,188,0,0.12)] sm:h-14 sm:w-14"
+      />
+    );
+  }
+
+  const initial = houseName.trim().charAt(0).toUpperCase() || 'A';
+  return (
+    <span
+      aria-hidden
+      className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/10 text-sm font-black text-primary sm:h-14 sm:w-14 sm:text-base"
+    >
+      {initial}
+    </span>
+  );
+}
+
 function FounderHouseCard({
   houseName,
   city,
@@ -20,6 +42,7 @@ function FounderHouseCard({
   tradition,
   quote,
   portalSlug,
+  fotoUrl,
 }: {
   houseName: string;
   city: string;
@@ -27,6 +50,7 @@ function FounderHouseCard({
   tradition: string;
   quote?: string;
   portalSlug?: string;
+  fotoUrl?: string;
 }) {
   return (
     <article className="landing-mystic-card flex h-full flex-col p-5 text-left sm:p-6">
@@ -37,7 +61,10 @@ function FounderHouseCard({
         </span>
         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">{tradition}</span>
       </div>
-      <h3 className="text-base font-bold leading-snug text-white sm:text-lg">{houseName}</h3>
+      <div className="flex items-center gap-3">
+        <FounderHouseAvatar houseName={houseName} fotoUrl={fotoUrl} />
+        <h3 className="min-w-0 flex-1 text-base font-bold leading-snug text-white sm:text-lg">{houseName}</h3>
+      </div>
       <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-500">
         <MapPin className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />
         {city} — {state}
@@ -119,6 +146,7 @@ export function LandingPortalPreview() {
                     tradition={house.tradition}
                     quote={house.quote}
                     portalSlug={house.portalSlug}
+                    fotoUrl={house.fotoUrl}
                   />
                 ))}
               </div>
