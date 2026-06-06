@@ -347,11 +347,11 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
       <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Sidebar Settings */}
         <div className="lg:col-span-3 lg:max-w-sm lg:space-y-3 lg:pl-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-col gap-2">
           <button 
             onClick={() => setActiveSection('profile')}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
+              "flex w-full items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all",
               activeSection === 'profile' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
@@ -361,7 +361,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           <button 
             onClick={() => setActiveSection('subscription')}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
+              "flex w-full items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all",
               activeSection === 'subscription' ? "bg-primary text-background shadow-xl shadow-primary/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
@@ -371,7 +371,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           <button 
             onClick={() => setActiveSection('whatsapp')}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
+              "flex w-full items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all",
               activeSection === 'whatsapp' ? "bg-emerald-500 text-background shadow-xl shadow-emerald-500/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >
@@ -381,7 +381,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           <button
             onClick={() => setActiveSection('portal')}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
+              "flex w-full items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all",
               activeSection === 'portal' ? "bg-sky-500 text-background shadow-xl shadow-sky-500/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
             )}
           >

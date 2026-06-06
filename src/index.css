@@ -107,14 +107,36 @@
   width: 100%;
   max-width: 88rem;
   margin-inline: auto;
+  isolation: isolate;
 }
 
 .dashboard-compact section {
-  transition: border-color 0.15s ease;
+  contain: layout paint;
 }
 
-.dashboard-compact section:hover {
-  border-color: rgba(251, 188, 0, 0.12);
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-compact section {
+    transition: border-color 0.15s ease;
+  }
+
+  .dashboard-compact section:hover {
+    border-color: rgba(251, 188, 0, 0.12);
+  }
+}
+
+/* Evita artefato de GPU (faixa colorida) ao rolar no Android — Recharts + blur */
+.dashboard-chart {
+  contain: paint;
+  overflow: hidden;
+}
+
+.dashboard-chart .recharts-wrapper,
+.dashboard-chart svg {
+  overflow: hidden !important;
+}
+
+.dashboard-avatar-scroll {
+  contain: paint;
 }
 
 /* Margem lateral consistente nas páginas autenticadas (mobile-first) */

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -76,7 +76,7 @@ function Panel({
   return (
     <section
       className={cn(
-        'rounded-xl border border-white/[0.08] bg-[#141414] shadow-sm',
+        'overflow-hidden rounded-xl border border-white/[0.08] bg-[#141414] shadow-sm isolate',
         className,
       )}
     >
@@ -163,6 +163,7 @@ export function DashboardHome({
   timeGreeting,
   firstName,
 }: DashboardHomeProps) {
+  const flowGradientId = useId().replace(/:/g, '');
   const { childrenData, events, notices, pedidos, historyData, transactions } = bundle;
   const today = startOfDay(new Date());
   const anchor = dashboardCalendar.anchor;
@@ -241,9 +242,9 @@ export function DashboardHome({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-12 xl:gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12 xl:gap-4">
         {/* Coluna principal */}
-        <div className="space-y-3 xl:col-span-8">
+        <div className="min-w-0 space-y-3 xl:col-span-8">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Panel
               title="Fluxo financeiro"
@@ -275,11 +276,11 @@ export function DashboardHome({
               {!hasMonthFinanceData ? (
                 <EmptyHint>Nenhum lançamento confirmado ainda.</EmptyHint>
               ) : (
-                <div className="h-28 w-full min-w-0 sm:h-32">
+                <div className="dashboard-chart relative h-28 w-full min-w-0 overflow-hidden sm:h-32">
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <AreaChart data={activeFlowChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                    <AreaChart data={activeFlowChart} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                       <defs>
-                        <linearGradient id="dashFlow" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id={flowGradientId} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#FBBC00" stopOpacity={0.35} />
                           <stop offset="100%" stopColor="#FBBC00" stopOpacity={0} />
                         </linearGradient>
@@ -294,7 +295,14 @@ export function DashboardHome({
                         domain={[0, activeFlowYMax]}
                         tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
                       />
-                      <Area type="monotone" dataKey="val" stroke="#FBBC00" strokeWidth={2} fill="url(#dashFlow)" />
+                      <Area
+                        type="monotone"
+                        dataKey="val"
+                        stroke="#FBBC00"
+                        strokeWidth={2}
+                        fill={`url(#${flowGradientId})`}
+                        isAnimationActive={false}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -398,7 +406,7 @@ export function DashboardHome({
             {childrenData.length === 0 ? (
               <EmptyHint>Cadastre filhos de santo em Membros.</EmptyHint>
             ) : (
-              <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="dashboard-avatar-scroll flex gap-3 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {childrenData.slice(0, 12).map((filho) => (
                   <button
                     key={filho.id}
@@ -546,7 +554,7 @@ export function DashboardHome({
         </div>
 
         {/* Coluna lateral */}
-        <div className="space-y-3 xl:col-span-4">
+        <div className="min-w-0 space-y-3 xl:col-span-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
               <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">

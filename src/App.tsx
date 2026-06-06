@@ -7,7 +7,6 @@ import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
 import { Loader2, Menu, ShieldAlert, Bell } from 'lucide-react';
-import NotificationPanel from './components/NotificationPanel';
 import { cn } from './lib/utils';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import Paywall from './components/Paywall';
@@ -1477,7 +1476,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <PwaInstallTopbarButton />
-                <NotificationPanel tenantData={tenantData} systemVersion={SYSTEM_VERSION} userRole={userRole} userId={session?.user?.id} />
                 <button
                   onClick={() => setIsMobileOpen(true)}
                   className="p-2 text-gray-400 hover:text-white"
@@ -1529,7 +1527,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <PwaInstallTopbarButton />
-                <NotificationPanel tenantData={tenantData} systemVersion={SYSTEM_VERSION} userRole={userRole} userId={session?.user?.id} />
                 <button 
                   onClick={() => setIsMobileOpen(true)}
                   className="p-2 text-gray-400 hover:text-white"
@@ -1544,7 +1541,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         {/* Main Content Area with Scroll */}
         <div className="relative z-[2] min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           <main
-            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]/80 backdrop-blur-[2px]"
+            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]"
             data-role={userRole ?? undefined}
           >
             {/* Notificações push: apenas filhos — banner só com permissão ainda "default"; granted/denied o navegador já decidiu */}
