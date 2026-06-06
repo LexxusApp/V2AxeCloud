@@ -92,7 +92,9 @@ import {
   whatsappSendRateLimit,
   pushDirectRateLimit,
   apiReadRateLimit,
+  filhoLoginRateLimit,
 } from "./lib/rateLimit.js";
+import { handleFilhoLoginRoute } from "./lib/filhoLoginRoute.js";
 import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
 import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
 
@@ -3173,6 +3175,10 @@ async function startServer() {
   });
 
   registerAuthAuditRoutes(app, { supabaseAdmin, verifyUser });
+
+  app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {
+    void handleFilhoLoginRoute(req, res);
+  });
 
   registerAdminConsoleRoutes(app, {
     verifyUser,

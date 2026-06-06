@@ -23,7 +23,7 @@ export function ConnectedAccess() {
           />
         </motion.div>
 
-        <div className="relative z-10 mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3 2xl:gap-8">
+        <div className="relative z-10 mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
           {LANDING_APP_CARDS.map((card, index) => (
             <motion.article
               key={card.id}

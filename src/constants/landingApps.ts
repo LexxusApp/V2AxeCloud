@@ -10,8 +10,8 @@ export type LandingAppCard = {
 
 export const LANDING_APPS_HEADING = {
   kicker: 'Apps & PWA',
-  title: 'Apps para aproximar sua casa da comunidade e dos consulentes',
-  lead: 'Além da gestão interna, o AxéCloud oferece portais online para filhos de santo, zeladores e consulentes — giras, avisos, mensalidades e pedidos de reza com praticidade no celular.',
+  title: 'Apps para aproximar sua casa dos filhos de santo e da diretoria',
+  lead: 'Além da gestão interna, o AxéCloud oferece acesso online para que filhos de santo e zeladores acompanhem giras, avisos e mensalidades com mais praticidade — direto no celular, sem instalar pela loja.',
 } as const;
 
 export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
@@ -27,8 +27,8 @@ export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
       'Mensalidades e Pix integrado',
       'Acesso simples pelo celular (PWA)',
     ],
-    screenshot: '/screenshots/acesso-celular.png',
-    screenshotAlt: 'Portal do filho de santo do AxéCloud no celular',
+    screenshot: '/screenshots/portal-filho-home.png',
+    screenshotAlt: 'Tela inicial do portal do filho de santo no celular',
   },
   {
     id: 'zelador',
@@ -42,22 +42,7 @@ export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
       'Galeria de fotos e calendário de giras',
       'Mural, biblioteca e loja do axé',
     ],
-    screenshot: '/screenshots/painel-inicio.png',
-    screenshotAlt: 'Painel do zelador do AxéCloud no celular',
-  },
-  {
-    id: 'consulente',
-    badge: 'Para consulentes',
-    title: 'Portal do Consulente',
-    description:
-      'Quem consulta a casa pode enviar pedidos de reza e acompanhar avisos importantes em um acesso público simples, sem precisar ser filho de santo.',
-    features: [
-      'Pedidos de reza pela internet',
-      'Avisos e orientações da casa',
-      'Contacto organizado para a diretoria',
-      'Atendimento centralizado no painel',
-    ],
-    screenshot: '/screenshots/formulario-de-acesso.png',
-    screenshotAlt: 'Portal do consulente do AxéCloud',
+    screenshot: '/screenshots/painel-zelador-home.png',
+    screenshotAlt: 'Dashboard do zelador do AxéCloud no celular',
   },
 ] as const;
