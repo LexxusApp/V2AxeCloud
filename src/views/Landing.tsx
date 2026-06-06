@@ -60,6 +60,7 @@ const CNPJ = '66.335.964/0001-07';
 const nav = [
   { href: '#top', label: 'Início' },
   { href: ROUTES.founderProgram, label: 'Fundador' },
+  { href: '#portal-axe', label: 'Casas' },
   { href: '#tour', label: 'Tour' },
   { href: '#recursos', label: 'Recursos' },
   { href: '#antes-depois', label: 'Antes/Depois' },

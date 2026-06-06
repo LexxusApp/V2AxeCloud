@@ -6,6 +6,7 @@ export type FounderProgramStats = {
   usedSlots: number;
   remainingSlots: number;
   acceptingApplications: boolean;
+  acceptedHouses: number;
 };
 
 const FALLBACK: FounderProgramStats = {
@@ -13,6 +14,7 @@ const FALLBACK: FounderProgramStats = {
   usedSlots: 0,
   remainingSlots: FOUNDER_PROGRAM.maxSlots,
   acceptingApplications: true,
+  acceptedHouses: 0,
 };
 
 export function useFounderProgramStats() {

@@ -26,9 +26,20 @@ export function LandingFounderProgram() {
             icon={<Sparkles className="h-3.5 w-3.5" aria-hidden />}
             lead="Estamos validando o AxéCloud com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
           />
-          {!loading && stats.acceptingApplications ? (
+          {!loading ? (
             <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-primary">
-              {stats.remainingSlots} vagas restantes · {FOUNDER_PROGRAM.pilotCity}
+              {[
+                stats.acceptedHouses > 0
+                  ? `${stats.acceptedHouses} casa${stats.acceptedHouses === 1 ? '' : 's'} fundadora${stats.acceptedHouses === 1 ? '' : 's'} ativa${stats.acceptedHouses === 1 ? '' : 's'}`
+                  : null,
+                stats.acceptingApplications
+                  ? `${stats.remainingSlots} vagas restantes · ${FOUNDER_PROGRAM.pilotCity}`
+                  : stats.acceptedHouses === 0
+                    ? 'Vagas esgotadas no momento'
+                    : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           ) : null}
         </motion.div>

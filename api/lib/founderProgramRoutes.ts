@@ -48,6 +48,54 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
     }
   });
 
+  app.get("/api/v1/landing/founder-houses", apiReadRateLimit, async (_req: Request, res: Response) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("founder_applications")
+        .select(
+          "id, nome_casa, cidade, estado, tradicao, nome_contato, depoimento_texto, depoimento_publicado"
+        )
+        .eq("status", "accepted")
+        .eq("autoriza_perfil_publico", true)
+        .order("created_at", { ascending: true })
+        .limit(24);
+
+      if (error) {
+        console.warn("[landing/founder-houses]", error.message);
+        return res.json({ items: [] });
+      }
+
+      const tradicaoLabel: Record<string, string> = {
+        umbanda: "Umbanda",
+        candomble: "Candomblé",
+        jurema: "Jurema",
+        mista: "Tradição mista",
+        outra: "Casa de axé",
+      };
+
+      const items = (data || []).map((row) => {
+        const quotePublished =
+          row.depoimento_publicado && String(row.depoimento_texto || "").trim().length >= 12
+            ? String(row.depoimento_texto).trim()
+            : undefined;
+        return {
+          id: String(row.id),
+          houseName: String(row.nome_casa || "").trim(),
+          city: String(row.cidade || "").trim(),
+          state: String(row.estado || "").trim(),
+          tradition: tradicaoLabel[String(row.tradicao || "").toLowerCase()] || "Casa de axé",
+          contactName: String(row.nome_contato || "").trim() || undefined,
+          quote: quotePublished,
+        };
+      });
+
+      res.json({ items });
+    } catch (err: unknown) {
+      console.error("[landing/founder-houses]", err);
+      res.json({ items: [] });
+    }
+  });
+
   app.get("/api/v1/landing/testimonials", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
       const { data, error } = await supabaseAdmin
@@ -99,11 +147,23 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
     try {
       const used = await countActiveApplications(supabaseAdmin);
       const remaining = Math.max(0, FOUNDER_MAX_SLOTS - used);
+
+      const { count: acceptedHouses, error: acceptedErr } = await supabaseAdmin
+        .from("founder_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "accepted")
+        .eq("autoriza_perfil_publico", true);
+
+      if (acceptedErr) {
+        console.warn("[founder-program/stats] accepted count:", acceptedErr.message);
+      }
+
       res.json({
         maxSlots: FOUNDER_MAX_SLOTS,
         usedSlots: used,
         remainingSlots: remaining,
         acceptingApplications: remaining > 0,
+        acceptedHouses: acceptedHouses ?? 0,
       });
     } catch (err: unknown) {
       console.error("[founder-program/stats]", err);
