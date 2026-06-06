@@ -5,7 +5,7 @@ export const FOUNDER_STATUSES = ["pending", "contacted", "accepted", "rejected"]
 export type FounderStatus = (typeof FOUNDER_STATUSES)[number];
 
 const FOUNDER_SELECT =
-  "id, created_at, nome_casa, cidade, estado, tradicao, whatsapp, nome_contato, email, mensagem, autoriza_perfil_publico, autoriza_depoimento, status, leader_id";
+  "id, created_at, nome_casa, cidade, estado, tradicao, whatsapp, nome_contato, email, mensagem, autoriza_perfil_publico, autoriza_depoimento, depoimento_texto, depoimento_publicado, status, leader_id";
 
 export type FounderApplicationRow = {
   id: string;
@@ -20,6 +20,8 @@ export type FounderApplicationRow = {
   mensagem: string | null;
   autoriza_perfil_publico: boolean;
   autoriza_depoimento: boolean;
+  depoimento_texto: string | null;
+  depoimento_publicado: boolean;
   status: FounderStatus;
   leader_id: string | null;
   /** Preenchido na listagem quando leader_id está ligado a perfil_lider. */
@@ -30,6 +32,8 @@ export type FounderApplicationRow = {
 export type FounderApplicationPatch = {
   status?: FounderStatus;
   leader_id?: string | null;
+  depoimento_texto?: string | null;
+  depoimento_publicado?: boolean;
 };
 
 function normalizeEmail(email: string | null | undefined): string {
@@ -242,6 +246,13 @@ export async function updateFounderApplication(
   const update: Record<string, unknown> = {};
   if (patch.status !== undefined) update.status = patch.status;
   if (patch.leader_id !== undefined) update.leader_id = patch.leader_id;
+  if (patch.depoimento_texto !== undefined) {
+    const t = patch.depoimento_texto == null ? null : String(patch.depoimento_texto).trim();
+    update.depoimento_texto = t && t.length > 0 ? t.slice(0, 2000) : null;
+  }
+  if (patch.depoimento_publicado !== undefined) {
+    update.depoimento_publicado = Boolean(patch.depoimento_publicado);
+  }
 
   if (Object.keys(update).length === 0) {
     const row = await getFounderApplicationById(sb, id);

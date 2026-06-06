@@ -25,27 +25,36 @@ import BodyPortal from '../components/BodyPortal';
 interface Product {
   id: string;
   item: string;
-  categoria: 'Rituais' | 'Cozinha de Santo' | 'Vestuário' | 'Limpeza';
+  categoria: 'Rituais' | 'Cozinha de Santo' | 'Vestuário' | 'Limpeza' | 'Camarinha';
   quantidade_atual: number;
   quantidade_minima: number;
   status: string;
 }
 
-const categories = ['Todos', 'Rituais', 'Cozinha de Santo', 'Vestuário', 'Limpeza'] as const;
+const categories = ['Todos', 'Camarinha', 'Rituais', 'Cozinha de Santo', 'Vestuário', 'Limpeza'] as const;
 
 interface InventoryProps {
   tenantData?: any;
   userRole?: string;
   isAdminGlobal?: boolean;
   setActiveTab: (tab: string) => void;
+  presetCategory?: string;
+  moduleTitle?: string;
 }
 
-export default function Inventory({ tenantData, userRole, isAdminGlobal, setActiveTab }: InventoryProps) {
+export default function Inventory({
+  tenantData,
+  userRole,
+  isAdminGlobal,
+  setActiveTab,
+  presetCategory,
+  moduleTitle = 'Almoxarifado',
+}: InventoryProps) {
   // Não-filhos são sempre gestores do terreiro (plano determina quais funções de gestão estão disponíveis).
   const isAdmin = userRole !== 'filho';
   const tenantId = tenantData?.tenant_id;
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [activeCategory, setActiveCategory] = useState<string>(presetCategory || 'Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -177,6 +186,8 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
     return { label: 'Em Dia', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
   };
 
+  const visibleCategories = presetCategory ? (['Todos', presetCategory] as const) : categories;
+
   const filteredProducts = useMemo(() => products.filter(p => {
     const matchesCat = activeCategory === 'Todos' || p.categoria === activeCategory;
     const matchesSearch = p.item.toLowerCase().includes(searchTerm.toLowerCase());
@@ -208,8 +219,18 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
   return (
     <div className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden">
       <PageHeader 
-        title={<>Almoxarifado <span className="text-primary">Místico</span></>}
-        subtitle="Gestão de estoque e insumos de axé."
+        title={
+          moduleTitle === 'Camarinha' ? (
+            <>Camarinha <span className="text-primary">da Casa</span></>
+          ) : (
+            <>Almoxarifado <span className="text-primary">Místico</span></>
+          )
+        }
+        subtitle={
+          moduleTitle === 'Camarinha'
+            ? 'Itens ritualísticos e preparo da camarinha.'
+            : 'Gestão de estoque e insumos de axé.'
+        }
         tenantData={tenantData}
         setActiveTab={setActiveTab}
         actions={
@@ -309,7 +330,7 @@ export default function Inventory({ tenantData, userRole, isAdminGlobal, setActi
         {/* Filters & Search - Glass style */}
         <div className="flex min-w-0 max-w-full flex-col gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-2 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-1 overflow-x-auto overscroll-x-contain p-1 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:max-w-[55%] xl:max-w-none">
-            {categories.map((cat) => (
+            {visibleCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}

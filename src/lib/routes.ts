@@ -11,7 +11,12 @@ export const ROUTES = {
   contentHub: '/conteudo',
   contentArticle: '/conteudo/como-o-axecloud-ajuda-terreiros',
   glossary: '/conteudo/glossario',
+  consulentePortal: '/consulente',
 } as const;
+
+export function consulentePortalPath(slug: string): string {
+  return `/consulente/${encodeURIComponent(slug)}`;
+}
 
 /** Rotas de marketing indexáveis (portal + landing). */
 export const PUBLIC_MARKETING_PATHS = [

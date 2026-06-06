@@ -92,12 +92,19 @@ export function verifyWhatsAppWebhook(req: { headers?: Record<string, string | s
   return String(value || "") === secret;
 }
 
-/** Opcional: se EFI_WEBHOOK_SECRET estiver definido, exige header antes de processar o token EFI. */
-export function verifyEfiWebhook(req: { headers?: Record<string, string | string[] | undefined> }): boolean {
+/** Exige EFI_WEBHOOK_SECRET em produção (header ou ?secret= na URL registrada na EFI). */
+export function verifyEfiWebhook(req: {
+  headers?: Record<string, string | string[] | undefined>;
+  query?: Record<string, string | string[] | undefined>;
+}): boolean {
   const secret = process.env.EFI_WEBHOOK_SECRET || "";
-  if (!secret) return true;
+  if (!secret) {
+    return process.env.NODE_ENV !== "production";
+  }
   const header = req.headers?.["x-efi-webhook-secret"] || req.headers?.["authorization"];
-  const value = Array.isArray(header) ? header[0] : header;
-  const token = String(value || "").replace(/^Bearer\s+/i, "");
-  return token === secret;
+  const headerValue = Array.isArray(header) ? header[0] : header;
+  const headerToken = String(headerValue || "").replace(/^Bearer\s+/i, "");
+  const q = req.query?.secret;
+  const querySecret = Array.isArray(q) ? q[0] : q;
+  return headerToken === secret || String(querySecret || "") === secret;
 }

@@ -1383,10 +1383,23 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
           ? null
           : undefined
         : String(body.leader_id || "").trim() || undefined;
+    const depoimentoTextoRaw =
+      body.depoimento_texto === null
+        ? null
+        : body.depoimento_texto !== undefined
+          ? String(body.depoimento_texto)
+          : undefined;
+    const depoimentoPublicadoRaw =
+      body.depoimento_publicado !== undefined ? Boolean(body.depoimento_publicado) : undefined;
     if (!id) return res.status(400).json({ error: "id obrigatório" });
     try {
       const { updateFounderApplication, FOUNDER_STATUSES } = await import("./lib/founderProgramAdmin.js");
-      const patch: { status?: (typeof FOUNDER_STATUSES)[number]; leader_id?: string | null } = {};
+      const patch: {
+        status?: (typeof FOUNDER_STATUSES)[number];
+        leader_id?: string | null;
+        depoimento_texto?: string | null;
+        depoimento_publicado?: boolean;
+      } = {};
       if (statusRaw) {
         if (!(FOUNDER_STATUSES as readonly string[]).includes(statusRaw)) {
           return res.status(400).json({ error: "Status inválido." });
@@ -1394,8 +1407,10 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         patch.status = statusRaw as (typeof FOUNDER_STATUSES)[number];
       }
       if (leaderIdRaw !== undefined) patch.leader_id = leaderIdRaw;
+      if (depoimentoTextoRaw !== undefined) patch.depoimento_texto = depoimentoTextoRaw;
+      if (depoimentoPublicadoRaw !== undefined) patch.depoimento_publicado = depoimentoPublicadoRaw;
       if (Object.keys(patch).length === 0) {
-        return res.status(400).json({ error: "Informe status e/ou leader_id." });
+        return res.status(400).json({ error: "Informe campos para actualizar." });
       }
       const row = await updateFounderApplication(deps.supabaseAdmin, id, patch);
       void logEvent(deps.supabaseAdmin, {

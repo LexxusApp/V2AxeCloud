@@ -15,8 +15,13 @@ const LoginPage = lazy(() => import('../pages/LoginPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
+const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 
 function RoutedPage({ path }: { path: string }) {
+  if (path.startsWith('/consulente/') && path.length > '/consulente/'.length) {
+    return <ConsulentePortalPage />;
+  }
+
   switch (path) {
     case ROUTES.register:
       return <Register />;

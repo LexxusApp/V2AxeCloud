@@ -5,6 +5,7 @@ cd /opt/axecloud
 
 echo "[caddy] reload (anti-scanner + headers)"
 docker compose -f deploy/docker-compose.yml --env-file .env up -d caddy
+docker compose -f deploy/docker-compose.yml --env-file .env restart caddy
 
 echo "[healthcheck] cron externo a cada 5 min"
 chmod +x /opt/axecloud/deploy/scripts/vps-external-healthcheck.sh

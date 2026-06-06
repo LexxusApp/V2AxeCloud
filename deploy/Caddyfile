@@ -27,7 +27,6 @@ axecloud.com.br, www.axecloud.com.br {
 		path /vendor/phpunit*
 		path /actuator*
 		path /containers/json
-		path /.well-known/security.txt
 	}
 	respond @scanners 404
 

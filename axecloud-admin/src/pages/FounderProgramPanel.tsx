@@ -32,6 +32,8 @@ type FounderRow = {
   mensagem: string | null;
   autoriza_perfil_publico: boolean;
   autoriza_depoimento: boolean;
+  depoimento_texto: string | null;
+  depoimento_publicado: boolean;
   status: FounderStatus;
   leader_id: string | null;
   linked_nome_terreiro?: string | null;
@@ -94,6 +96,9 @@ export function FounderProgramPanel({ onMessage, onCreateTenant, onOpenTerreiro 
   const [filter, setFilter] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [depoimentoEditId, setDepoimentoEditId] = useState<string | null>(null);
+  const [depoimentoTexto, setDepoimentoTexto] = useState("");
+  const [depoimentoPublicado, setDepoimentoPublicado] = useState(false);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -132,6 +137,32 @@ export function FounderProgramPanel({ onMessage, onCreateTenant, onOpenTerreiro 
       await refresh();
     } catch (e) {
       onMessage(e instanceof Error ? e.message : "Erro ao actualizar");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  function openDepoimentoEditor(row: FounderRow) {
+    setDepoimentoEditId(row.id);
+    setDepoimentoTexto(row.depoimento_texto || "");
+    setDepoimentoPublicado(Boolean(row.depoimento_publicado));
+  }
+
+  async function saveDepoimento(id: string) {
+    setUpdatingId(id);
+    try {
+      await apiJson(`/api/admin-console/founder-applications/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          depoimento_texto: depoimentoTexto.trim() || null,
+          depoimento_publicado: depoimentoPublicado,
+        }),
+      });
+      onMessage(depoimentoPublicado ? "Depoimento publicado na landing." : "Depoimento guardado.");
+      setDepoimentoEditId(null);
+      await refresh();
+    } catch (e) {
+      onMessage(e instanceof Error ? e.message : "Erro ao guardar depoimento");
     } finally {
       setUpdatingId(null);
     }
@@ -277,7 +308,60 @@ export function FounderProgramPanel({ onMessage, onCreateTenant, onOpenTerreiro 
                               Depoimento OK
                             </span>
                           ) : null}
+                          {row.depoimento_publicado ? (
+                            <span className="rounded border border-primary/30 px-1.5 py-0.5 text-[var(--ac-accent)]">
+                              Na landing
+                            </span>
+                          ) : null}
                         </div>
+                        {row.autoriza_depoimento ? (
+                          <div className="mt-2 max-w-xs">
+                            {depoimentoEditId === row.id ? (
+                              <div className="space-y-2 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper)] p-2">
+                                <textarea
+                                  value={depoimentoTexto}
+                                  onChange={(e) => setDepoimentoTexto(e.target.value)}
+                                  rows={4}
+                                  placeholder="Texto do depoimento para a landing…"
+                                  className="admin-input !text-[11px]"
+                                />
+                                <label className="flex items-center gap-2 text-[11px] text-[var(--ac-text-muted)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={depoimentoPublicado}
+                                    onChange={(e) => setDepoimentoPublicado(e.target.checked)}
+                                  />
+                                  Publicar na landing
+                                </label>
+                                <div className="flex gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={updatingId === row.id}
+                                    onClick={() => void saveDepoimento(row.id)}
+                                    className="admin-btn-primary !py-1 !text-[11px]"
+                                  >
+                                    Guardar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDepoimentoEditId(null)}
+                                    className="admin-btn-secondary !py-1 !text-[11px]"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openDepoimentoEditor(row)}
+                                className="text-[11px] font-semibold text-[var(--ac-accent)] hover:underline"
+                              >
+                                {row.depoimento_texto ? "Editar depoimento" : "Adicionar depoimento"}
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-3 py-3 align-top text-xs text-[var(--ac-text-muted)] whitespace-nowrap">
                         {row.cidade}, {row.estado}

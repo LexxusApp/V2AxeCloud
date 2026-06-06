@@ -38,7 +38,7 @@ function isLifetimePlanSlug(slug: string): boolean {
 }
 
 const PERFIL_LIDER_BASE_SELECT =
-  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url";
+  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao";
 
 async function fetchPerfilLiderByUserId(sb: SupabaseClient, userId: string) {
   const withTerms = `${PERFIL_LIDER_BASE_SELECT}, terms_accepted_version`;
@@ -133,7 +133,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       if (leaderRef) {
         leaderProfile = await sb
           .from("perfil_lider")
-          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url")
+          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao")
           .eq("id", leaderRef)
           .maybeSingle();
         if (leaderProfile.error) throw leaderProfile.error;
@@ -142,7 +142,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       if (!leaderProfile.data && linkedChild.tenant_id) {
         const alt = await sb
           .from("perfil_lider")
-          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url")
+          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao")
           .eq("tenant_id", linkedChild.tenant_id)
           .limit(1);
         if (alt.error) throw alt.error;
@@ -181,6 +181,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
         expires_at: leaderSub.data?.expires_at || null,
         foto_url: leaderProfile.data?.foto_url || null,
+        tradicao: leaderProfile.data?.tradicao || "mista",
       });
     }
 
@@ -225,7 +226,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         const candidateLeaderId = childData.lider_id || childData.tenant_id;
         let leaderProfile: any = await sb
           .from("perfil_lider")
-          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url")
+          .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao")
           .eq("id", candidateLeaderId)
           .maybeSingle();
         if (leaderProfile.error) throw leaderProfile.error;
@@ -233,7 +234,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         if (!leaderProfile.data && childData.tenant_id) {
           const alt = await sb
             .from("perfil_lider")
-            .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url")
+            .select("id, nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao")
             .eq("tenant_id", childData.tenant_id)
             .limit(1);
           if (alt.error) throw alt.error;
@@ -291,6 +292,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       expires_at: expiresOut,
       foto_url: profileRes.data?.foto_url || null,
       terms_accepted_version: profileRes.data?.terms_accepted_version || null,
+      tradicao: profileRes.data?.tradicao || "mista",
     });
   } catch (error: any) {
     console.error("[SERVER] Erro ao buscar tenant info:", error);

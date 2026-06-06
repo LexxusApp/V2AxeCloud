@@ -14,7 +14,10 @@ import {
   ShoppingBag,
   Lock,
   Wallet,
+  Flower2,
+  HandHeart,
 } from 'lucide-react';
+import { showAtendimentosModule, showCamarinhaModule } from '../lib/tradicaoModules';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -37,6 +40,7 @@ interface SidebarProps {
     foto_url?: string | null;
     cargo?: string | null;
     role?: string | null;
+    tradicao?: string | null;
   } | null;
   pendingDonationsCount?: number;
 }
@@ -94,6 +98,18 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
     performFastLogout();
   };
 
+  const traditionNavItems =
+    userRole === 'admin'
+      ? [
+          ...(showCamarinhaModule(tenantData?.tradicao)
+            ? [{ id: 'camarinha' as const, label: 'Camarinha', icon: Flower2 }]
+            : []),
+          ...(showAtendimentosModule(tenantData?.tradicao)
+            ? [{ id: 'atendimentos' as const, label: 'Atendimentos', icon: HandHeart }]
+            : []),
+        ]
+      : [];
+
   const currentNavItems = userRole === 'filho'
     ? [
         { id: 'profile', label: 'Meu Perfil', icon: UserCircle },
@@ -104,7 +120,9 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
         { id: 'settings', label: 'Configurações', icon: SettingsIcon },
       ]
     : [
-        ...navItems,
+        ...navItems.slice(0, 4),
+        ...traditionNavItems,
+        ...navItems.slice(4),
         { id: 'library', label: 'Biblioteca de Estudo', icon: BookOpen },
         { id: 'store', label: 'Loja do Axé', icon: ShoppingBag },
         { id: 'settings', label: 'Configurações', icon: SettingsIcon },

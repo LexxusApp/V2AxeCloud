@@ -51,7 +51,9 @@ export function resolvePublicAppUrl(): string {
 }
 
 export function efiNotificationUrl(): string {
-  return `${resolvePublicAppUrl()}/api/webhooks/efi`;
+  const base = `${resolvePublicAppUrl()}/api/webhooks/efi`;
+  const secret = process.env.EFI_WEBHOOK_SECRET || "";
+  return secret ? `${base}?secret=${encodeURIComponent(secret)}` : base;
 }
 
 /** Preço do onboarding Premium: catálogo admin (`global_settings.plans`) → env → fallback R$ 5,00. */

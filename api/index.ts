@@ -57,6 +57,7 @@ import { createAuditLog } from "./lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
+import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
@@ -79,6 +80,7 @@ import {
   resolveFinanceiroTenantScope as resolveFinanceiroTenantScopeLib,
   assertUserCanAccessTenant,
   pickAllowedChildFields,
+  isValidUuid,
 } from "./lib/tenantAccess.js";
 import { requireAuthOrRespond, getBearerToken } from "./lib/requireAuth.js";
 import { requireApiUser, requireApiTenantRead, requireApiGlobalAdmin } from "./lib/routeAuthHelpers.js";
@@ -89,6 +91,7 @@ import {
   sensitiveActionRateLimit,
   whatsappSendRateLimit,
   pushDirectRateLimit,
+  apiReadRateLimit,
 } from "./lib/rateLimit.js";
 import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
 import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
@@ -2428,6 +2431,26 @@ async function startServer() {
       if (!access) return;
       const { user } = access;
 
+      const normalizedKey = String(storageKey || "").replace(/\\/g, "/");
+      const expectedPrefix = `${tenantId}/${albumId}/`;
+      if (!normalizedKey.startsWith(expectedPrefix) || normalizedKey.includes("..")) {
+        return res.status(400).json({ error: "storageKey inválido para este álbum" });
+      }
+
+      const { data: album, error: albumError } = await supabaseAdmin
+        .from("gallery_albums")
+        .select("id")
+        .eq("id", albumId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (albumError) throw albumError;
+      if (!album) return res.status(404).json({ error: "Álbum não encontrado" });
+
+      const expectedPublicUrl = buildR2PublicUrl(normalizedKey);
+      if (String(publicUrl) !== expectedPublicUrl) {
+        return res.status(400).json({ error: "publicUrl não confere com storageKey" });
+      }
+
       const numericSize = Number(sizeBytes);
       const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
       const { data, error } = await supabaseAdmin
@@ -2440,8 +2463,8 @@ async function startServer() {
             file_name: String(fileName),
             mime_type: String(contentType),
             size_bytes: numericSize,
-            storage_key: String(storageKey),
-            public_url: String(publicUrl),
+            storage_key: normalizedKey,
+            public_url: expectedPublicUrl,
             created_by: user.id,
           },
         ])
@@ -3010,7 +3033,7 @@ async function startServer() {
   });
 
   // API Route: Get Global Plans Config
-  app.get("/api/plans", async (req, res) => {
+  app.get("/api/plans", apiReadRateLimit, async (req, res) => {
     try {
       const plans = await loadPlansCatalog(supabaseAdmin);
       res.setHeader("Cache-Control", "public, max-age=0, s-maxage=30, must-revalidate");
@@ -3160,6 +3183,10 @@ async function startServer() {
 
   registerOnboardingRoutes(app, { supabaseAdmin });
   registerFounderProgramRoutes(app, { supabaseAdmin });
+  registerConsulentePortalRoutes(app, {
+    supabaseAdmin,
+    resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
+  });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
@@ -3361,17 +3388,17 @@ async function startServer() {
       const tenantId = userProfile?.tenant_id;
       if (!tenantId) return res.status(403).json({ error: "Tenant não configurado" });
 
-      // Restituição dos campos conforme planejado originalmente
-      const dataToInsert: any = {
-        ...childData,
+      const allowed = pickAllowedChildFields((childData || {}) as Record<string, unknown>);
+      const dataToInsert: Record<string, unknown> = {
+        ...allowed,
         lider_id: userId,
-        tenant_id: tenantId
+        tenant_id: tenantId,
       };
-      
-      // Sanitização de dados vazios
-      if (dataToInsert.data_nascimento === '') dataToInsert.data_nascimento = null;
-      if (dataToInsert.data_entrada === '') dataToInsert.data_entrada = null;
-      if (childData.id && childData.id !== '') dataToInsert.id = childData.id;
+
+      if (dataToInsert.data_nascimento === "") dataToInsert.data_nascimento = null;
+      if (dataToInsert.data_entrada === "") dataToInsert.data_entrada = null;
+      const presetId = String(childData?.id || "").trim();
+      if (presetId && isValidUuid(presetId)) dataToInsert.id = presetId;
       
       console.log(`[SERVER] Inserting child data:`, dataToInsert);
 
@@ -3659,12 +3686,35 @@ async function startServer() {
     if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
     try {
-      const insertData = {
-        ...payload,
-        valor: Number(payload.valor) || 0,
+      const allowedTxFields = new Set([
+        "tipo",
+        "valor",
+        "categoria",
+        "data",
+        "descricao",
+        "filho_id",
+        "data_vencimento",
+        "status",
+        "competencia_date",
+      ]);
+      const insertData: Record<string, unknown> = {
         lider_id: authUser.id,
         tenant_id: tid,
+        valor: Number(payload.valor) || 0,
       };
+      for (const [k, v] of Object.entries(payload)) {
+        if (allowedTxFields.has(k)) insertData[k] = v;
+      }
+      if (insertData.filho_id) {
+        const fid = String(insertData.filho_id);
+        const { data: childRow } = await supabaseAdmin
+          .from("filhos_de_santo")
+          .select("id")
+          .eq("id", fid)
+          .eq("tenant_id", tid)
+          .maybeSingle();
+        if (!childRow) return res.status(400).json({ error: "filho_id inválido para este terreiro" });
+      }
       const { data, error } = await supabaseAdmin
         .from("financeiro")
         .insert([insertData])
@@ -4222,7 +4272,7 @@ async function startServer() {
             // Adicionar 30 dias de expiração se não for vitalício
             expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           })
-          .eq('tenant_id', userData.tenant_id);
+          .eq('id', userData.id);
 
         if (updateError) throw updateError;
 

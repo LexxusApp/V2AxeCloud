@@ -48,6 +48,53 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
     }
   });
 
+  app.get("/api/v1/landing/testimonials", apiReadRateLimit, async (_req: Request, res: Response) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("founder_applications")
+        .select("id, depoimento_texto, nome_contato, nome_casa, cidade, estado, tradicao")
+        .eq("depoimento_publicado", true)
+        .not("depoimento_texto", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(9);
+
+      if (error) {
+        console.warn("[landing/testimonials]", error.message);
+        return res.json({ items: [] });
+      }
+
+      const tradicaoLabel: Record<string, string> = {
+        umbanda: "Umbanda",
+        candomble: "Candomblé",
+        jurema: "Jurema",
+        mista: "Mista",
+        outra: "Outra",
+      };
+
+      const items = (data || [])
+        .map((row) => {
+          const quote = String(row.depoimento_texto || "").trim();
+          if (quote.length < 12) return null;
+          const authorName = String(row.nome_contato || row.nome_casa || "Dirigente").trim();
+          return {
+            id: String(row.id),
+            quote,
+            authorName,
+            houseName: String(row.nome_casa || "").trim() || undefined,
+            authorRole: tradicaoLabel[String(row.tradicao || "").toLowerCase()] || undefined,
+            city: String(row.cidade || "").trim(),
+            state: String(row.estado || "").trim(),
+          };
+        })
+        .filter(Boolean);
+
+      res.json({ items });
+    } catch (err: unknown) {
+      console.error("[landing/testimonials]", err);
+      res.json({ items: [] });
+    }
+  });
+
   app.get("/api/v1/founder-program/stats", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
       const used = await countActiveApplications(supabaseAdmin);

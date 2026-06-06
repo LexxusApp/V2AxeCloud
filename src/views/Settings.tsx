@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Loader2, CheckCircle2, Save, CreditCard, Camera, Trash2 } from 'lucide-react';
+import { User, Loader2, CheckCircle2, Save, CreditCard, Camera, Trash2, Globe } from 'lucide-react';
+import { PortalConsulenteSettings } from '../components/settings/PortalConsulenteSettings';
 import { motion } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '../lib/utils';
@@ -28,7 +29,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'profile' | 'subscription' | 'whatsapp'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'subscription' | 'whatsapp' | 'portal'>('profile');
   const [photoUploading, setPhotoUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -377,6 +378,16 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 shrink-0"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
             Conexão WhatsApp
           </button>
+          <button
+            onClick={() => setActiveSection('portal')}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-3 font-black text-sm transition-all lg:w-full",
+              activeSection === 'portal' ? "bg-sky-500 text-background shadow-xl shadow-sky-500/10" : "bg-white/5 text-gray-400 hover:bg-white/10"
+            )}
+          >
+            <Globe className="w-5 h-5 shrink-0" />
+            Portal do Consulente
+          </button>
           </div>
         </div>
 
@@ -493,6 +504,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             />
           ) : activeSection === 'whatsapp' ? (
             <WhatsAppConfig />
+          ) : activeSection === 'portal' ? (
+            <div className="card-luxury p-8 sm:p-10">
+              <PortalConsulenteSettings />
+            </div>
           ) : null}
 
           {activeSection === 'profile' && (

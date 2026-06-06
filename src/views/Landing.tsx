@@ -38,6 +38,15 @@ const LandingSecurity = lazy(() =>
 const LandingFaq = lazy(() =>
   import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
 );
+const LandingTestimonials = lazy(() =>
+  import('../components/landing/LandingTestimonials').then((m) => ({ default: m.LandingTestimonials }))
+);
+const LandingBeforeAfter = lazy(() =>
+  import('../components/landing/LandingBeforeAfter').then((m) => ({ default: m.LandingBeforeAfter }))
+);
+const LandingTraditions = lazy(() =>
+  import('../components/landing/LandingTraditions').then((m) => ({ default: m.LandingTraditions }))
+);
 
 function LandingSectionFallback({ minHeight = '16rem' }: { minHeight?: string }) {
   return <div aria-hidden className="w-full" style={{ minHeight }} />;
@@ -53,6 +62,10 @@ const nav = [
   { href: ROUTES.founderProgram, label: 'Fundador' },
   { href: '#tour', label: 'Tour' },
   { href: '#recursos', label: 'Recursos' },
+  { href: '#antes-depois', label: 'Antes/Depois' },
+  { href: '#apps', label: 'Apps' },
+  { href: '#tradicao', label: 'Tradição' },
+  { href: '#depoimentos', label: 'Depoimentos' },
   { href: '#mensalidade', label: 'Planos' },
   { href: '#faq', label: 'FAQ' },
 ] as const;
@@ -252,6 +265,10 @@ export default function Landing() {
 
         <LandingResources />
 
+        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
+          <LandingBeforeAfter />
+        </Suspense>
+
         <LandingFounderProgram />
 
         <LandingPortalPreview />
@@ -264,6 +281,10 @@ export default function Landing() {
           <ConnectedAccess />
         </Suspense>
 
+        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
+          <LandingTraditions />
+        </Suspense>
+
         <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
           <WhatsAppAutomation />
         </Suspense>
@@ -274,6 +295,10 @@ export default function Landing() {
 
         <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
           <LandingSecurity />
+        </Suspense>
+
+        <Suspense fallback={<LandingSectionFallback minHeight="22rem" />}>
+          <LandingTestimonials />
         </Suspense>
 
         <LandingSection id="mensalidade" variant="highlight" aria-labelledby="mensalidade-head">

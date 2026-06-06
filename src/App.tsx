@@ -29,6 +29,8 @@ const Library = lazy(() => import('./views/Library'));
 const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
 const Subscription = lazy(() => import('./views/Subscription'));
+const Atendimentos = lazy(() => import('./views/Atendimentos'));
+const Camarinha = lazy(() => import('./views/Camarinha'));
 import { useWebPush } from './hooks/useWebPush';
 import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
@@ -174,6 +176,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     foto_url?: string;
     cargo?: string | null;
     role?: string | null;
+    tradicao?: string | null;
   } | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filhoFotoUrl, setFilhoFotoUrl] = useState<string | null>(null);
@@ -619,7 +622,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           status: data.status,
           foto_url: tenantFotoUrl,
           cargo: data.cargo ?? undefined,
-          role: role
+          role: role,
+          tradicao: data.tradicao || 'mista',
         });
         if (String(tenantId || '').trim()) {
           writeCachedTenantIdForUser(userId, String(tenantId));
@@ -1044,6 +1048,16 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }, []);
 
   useEffect(() => {
+    const onTradicaoUpdated = (e: Event) => {
+      const tradicao = (e as CustomEvent<{ tradicao?: string }>).detail?.tradicao;
+      if (!tradicao) return;
+      setTenantData((prev) => (prev ? { ...prev, tradicao } : prev));
+    };
+    window.addEventListener('axecloud:tradicao-updated', onTradicaoUpdated);
+    return () => window.removeEventListener('axecloud:tradicao-updated', onTradicaoUpdated);
+  }, []);
+
+  useEffect(() => {
     if (userRole === 'filho' && !FILHO_ALLOWED_TABS.has(activeTab)) {
       setActiveTab('profile');
     }
@@ -1280,6 +1294,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       settings: true,
       profile: true,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
+      camarinha: hasPlanAccess(tenantData?.plan, 'camarinha', isAdminGlobal),
+      atendimentos: hasPlanAccess(tenantData?.plan, 'atendimentos', isAdminGlobal),
       gallery: hasPlanAccess(tenantData?.plan, 'gallery', isAdminGlobal),
       library: hasPlanAccess(tenantData?.plan, 'library', isAdminGlobal),
       financial: hasPlanAccess(tenantData?.plan, 'financial', isAdminGlobal),
@@ -1307,6 +1323,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
       case 'inventory': 
         return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
+      case 'camarinha':
+        return <Camarinha tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
+      case 'atendimentos':
+        return <Atendimentos tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'gallery':
         return <Gallery tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'calendar': 

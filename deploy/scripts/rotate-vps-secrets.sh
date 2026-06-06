@@ -24,6 +24,12 @@ EVO=$(new_secret)
 rotate_key CRON_SECRET "$CRON"
 rotate_key EVOLUTION_API_KEY "$EVO"
 
+if ! grep -q "^EFI_WEBHOOK_SECRET=" "$ENV_FILE"; then
+  EFI=$(new_secret)
+  rotate_key EFI_WEBHOOK_SECRET "$EFI"
+  echo "EFI_WEBHOOK_SECRET criado — atualize a URL do webhook na EFI: .../api/webhooks/efi?secret=<valor>"
+fi
+
 chmod 600 "$ENV_FILE"
 docker compose -f deploy/docker-compose.yml --env-file .env up -d app evolution
 
