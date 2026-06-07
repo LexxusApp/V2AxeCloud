@@ -81,11 +81,15 @@ export default function WhatsAppConfig() {
     },
     financeiro: {
       title: 'Financeiro (Lembrete)',
-      hint: 'Modelo de lembrete financeiro geral.',
+      hint: 'Enviado automaticamente 3 dias antes e no dia do vencimento.',
+    },
+    mensalidade_confirmada: {
+      title: 'Mensalidade Confirmada',
+      hint: 'Enviada ao confirmar pagamento no financeiro.',
     },
     mural_aviso: {
       title: 'Aviso de Mural',
-      hint: 'Disparada ao publicar aviso no mural.',
+      hint: 'Disparada automaticamente ao publicar aviso no mural.',
     },
     convite_evento: {
       title: 'Convite de Evento',
@@ -866,10 +870,11 @@ export default function WhatsAppConfig() {
           <h4 className="text-sm font-black uppercase tracking-widest text-white">Recursos Ativos</h4>
           <ul className="space-y-3">
             {[
-              'Avisos de Mural Automáticos',
-              'Lembretes de Mensalidade',
-              'Confirmação de Eventos',
-              'Transmissão de Recados',
+              'Avisos de Mural ao publicar',
+              'Lembrete automático de mensalidade',
+              'Convites de eventos no calendário',
+              'Alertas de estoque crítico (cron diário)',
+              'Cobrança manual no financeiro',
             ].map((item, i) => (
               <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-400">
                 <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />

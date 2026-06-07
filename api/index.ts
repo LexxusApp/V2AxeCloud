@@ -48,6 +48,8 @@ import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
+import { sendWhatsAppForTenant } from "./lib/whatsappSendCore.js";
+import { dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
@@ -1391,6 +1393,38 @@ async function startServer() {
     }
   });
 
+  async function notifyMensalidadeConfirmadaWhatsApp(
+    sb: typeof supabaseAdmin,
+    args: {
+      tenantId: string;
+      zeladorId: string;
+      filhoId: string;
+      nome: string;
+      valor: number;
+      competencia: string;
+    }
+  ): Promise<void> {
+    const { data: profile } = await sb
+      .from("perfil_lider")
+      .select("nome_terreiro")
+      .eq("id", args.zeladorId)
+      .maybeSingle();
+    const competenciaFmt = args.competencia.includes("-")
+      ? format(parseISO(args.competencia), "MM/yyyy")
+      : args.competencia;
+    await sendWhatsAppForTenant(sb, {
+      tenantId: args.zeladorId,
+      tipo: "mensalidade_confirmada",
+      filhoId: args.filhoId,
+      variables: {
+        nome_filho: args.nome,
+        valor: args.valor.toFixed(2),
+        competencia: competenciaFmt,
+        nome_terreiro: String(profile?.nome_terreiro || "Terreiro"),
+      },
+    });
+  }
+
   // Helper: enviar push apenas para filhos de santo (tabela push_subscriptions por user_id)
   async function sendPushNotification(
     tenantId: string,
@@ -1544,6 +1578,18 @@ async function startServer() {
         body: conteudo.substring(0, 100) + (conteudo.length > 100 ? '...' : ''),
         url: '/mural'
       });
+
+      const { data: leaderProfile } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("nome_terreiro")
+        .eq("id", zeladorId)
+        .maybeSingle();
+      void dispatchMuralWhatsApp(
+        supabaseAdmin,
+        zeladorId,
+        titulo,
+        String(leaderProfile?.nome_terreiro || "Terreiro")
+      ).catch((err) => console.error("[MURAL WA] auto-dispatch:", err));
 
       res.json({ success: true, data: notice, push: pushResult });
     } catch (error: any) {
@@ -1978,6 +2024,14 @@ async function startServer() {
 
       const { data: rpcId, error: rpcErr } = await supabaseAdmin.rpc("confirm_mensalidade_payment", rpcArgs);
       if (!rpcErr && rpcId) {
+        void notifyMensalidadeConfirmadaWhatsApp(supabaseAdmin, {
+          tenantId: String(tenant_id),
+          zeladorId: user.id,
+          filhoId: String(filho_id),
+          nome,
+          valor: v,
+          competencia: compDate,
+        }).catch((err) => console.error("[confirm-mensalidade WA]:", err));
         return res.json({ success: true, id: rpcId, via: "rpc" });
       }
       if (rpcErr) {
@@ -2000,6 +2054,14 @@ async function startServer() {
         console.error("[SERVER] confirm-mensalidade fallback insert:", insErr);
         return res.status(500).json({ error: insErr.message || "Falha ao registrar pagamento" });
       }
+      void notifyMensalidadeConfirmadaWhatsApp(supabaseAdmin, {
+        tenantId: String(tenant_id),
+        zeladorId: user.id,
+        filhoId: String(filho_id),
+        nome,
+        valor: v,
+        competencia: compDate,
+      }).catch((err) => console.error("[confirm-mensalidade WA]:", err));
       return res.json({ success: true, id: inserted?.id, via: "insert" });
     } catch (err: any) {
       console.error("[SERVER] confirm-mensalidade:", err?.message || err);
@@ -3204,6 +3266,10 @@ async function startServer() {
     req.query = { ...req.query, job: "ping-evolution" };
     await cronHandler(req, res);
   });
+  app.get("/api/v1/cron/whatsapp-jobs", async (req, res) => {
+    req.query = { ...req.query, job: "whatsapp-jobs" };
+    await cronHandler(req, res);
+  });
   app.all("/api/cron", async (req, res) => {
     await cronHandler(req, res);
   });
@@ -4064,72 +4130,23 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { tipo, filhoId, variables } = req.body;
+      const { tipo, filhoId, variables, forcePhone } = req.body;
 
-      const { data: config } = await supabaseAdmin
-        .from('whatsapp_config')
-        .select('*')
-        .eq('tenant_id', user.id)
-        .single();
-
-      let phone: string | undefined;
-      if (filhoId) {
-        const { data: filho } = await supabaseAdmin
-          .from('filhos_de_santo')
-          .select('whatsapp_phone, tenant_id, lider_id')
-          .eq('id', filhoId)
-          .single();
-        const okFilho = filho && await assertZeladorTenantAccess(
-          supabaseAdmin,
-          resolveLeaderId,
-          user.id,
-          String(filho.tenant_id || filho.lider_id || user.id)
-        );
-        if (!okFilho) return res.status(403).json({ error: "Filho não pertence ao seu terreiro" });
-        phone = filho?.whatsapp_phone;
-      }
-      if (!phone) return res.status(400).json({ error: "Telefone não encontrado" });
-      phone = String(phone).replace(/\D/g, '');
-      if (!phone.startsWith('55')) phone = `55${phone}`;
-
-      let message = resolveWhatsAppTemplate(config?.templates, String(tipo || ""));
-
-      Object.entries(variables || {}).forEach(([key, value]) => {
-        message = message.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+      const result = await sendWhatsAppForTenant(supabaseAdmin, {
+        tenantId: user.id,
+        tipo: String(tipo || ""),
+        filhoId,
+        forcePhone,
+        variables,
       });
 
-      if (message.includes('nota sigilosa') || message.includes('segredo')) {
-        message = "Você tem uma nova atualização sigilosa no seu prontuário. Acesse o AxéCloud para conferir.";
-      }
-
-      const tenantId = user.id;
-      const phoneFinal = phone;
-      const messageFinal = message;
-
-      setTimeout(async () => {
-        try {
-          const { messageId } = await sendEvolutionTextMessage(tenantId, phoneFinal, messageFinal);
-          const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
-          await supabaseAdmin.from('whatsapp_logs').insert({
-            tenant_id: tenantId,
-            filho_id: filhoId,
-            tipo,
-            telefone: phoneFinal,
-            mensagem: messageFinal,
-            status: 'sent',
-            external_id: externalId
-          });
-        } catch (err: any) {
-          console.error(`[WHATSAPP - ${tenantId}] Evolution send Error:`, err?.message || err);
-        }
-      }, 500);
-
-      res.json({ success: true, message: "Mensagem enfileirada para envio" });
+      res.json({ success: true, message: "Mensagem enviada com sucesso", externalId: result.externalId });
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") {
         return whatsappInitializingResponse(res, error);
       }
-      res.status(500).json({ error: error.message });
+      const status = error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : 500;
+      res.status(status).json({ error: error?.message || "Erro ao enviar mensagem" });
     }
   });
 

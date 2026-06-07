@@ -34,17 +34,22 @@ docker compose -f deploy/docker-compose.yml logs -f app
 
 Teste: `curl -sS http://127.0.0.1:3000/api/plans` (via rede interna do host pode precisar `docker exec`).
 
-## 4. Cron (ping Evolution)
+## 4. Cron (ping Evolution + WhatsApp)
 
-No host (script já em `deploy/cron-ping-evolution.sh`):
+No host (scripts em `deploy/cron-ping-evolution.sh` e `deploy/cron-whatsapp-jobs.sh`):
 
 ```bash
 chmod +x /opt/axecloud/deploy/cron-ping-evolution.sh
+chmod +x /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 sed -i 's/\r$//' /opt/axecloud/deploy/cron-ping-evolution.sh   # se veio do Windows
+sed -i 's/\r$//' /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 (crontab -l 2>/dev/null | grep -v cron-ping-evolution; echo "*/10 * * * * /opt/axecloud/deploy/cron-ping-evolution.sh") | crontab -
+(crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs; echo "0 9 * * * /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
 ```
 
 O script usa a rede Docker (`http://app:3000/...`) para não seguir redirect HTTPS do Caddy para a Vercel enquanto o DNS ainda aponta para `76.76.21.21`.
+
+`cron-whatsapp-jobs.sh` dispara lembretes de mensalidade (3 dias antes e no vencimento) e alertas de estoque crítico — uma vez por dia às 09:00.
 
 ## 5. Webhooks
 

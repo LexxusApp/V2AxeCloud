@@ -76,6 +76,10 @@
       "destination": "/api/cron?job=ping-evolution"
     },
     {
+      "source": "/api/v1/cron/whatsapp-jobs",
+      "destination": "/api/cron?job=whatsapp-jobs"
+    },
+    {
       "source": "/api/cron/audit-tick",
       "destination": "/api/cron?job=audit-tick"
     },

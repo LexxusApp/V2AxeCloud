@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  createAxeInstance,
   createInstanceWithQrCode,
   createInstanceWithPairingCode,
   evolutionInstanceName,
@@ -9,15 +8,12 @@ import {
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../../src/services/evolution.service.js";
-import {
-  normalizeWhatsAppTemplates,
-  resolveWhatsAppTemplate,
-} from "../../src/constants/whatsappTemplates.js";
+import { normalizeWhatsAppTemplates } from "../../src/constants/whatsappTemplates.js";
+import { sendWhatsAppForTenant } from "./whatsappSendCore.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 import { verifyWhatsAppWebhook } from "./secureRoutes.js";
-import { assertZeladorTenantAccess } from "./tenantAccess.js";
 import { consumeRateLimit } from "./rateLimit.js";
 
 function whatsappInitializingResponse(res: any, err?: unknown) {
@@ -120,52 +116,21 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         return sendJson(res, 429, { error: "Limite de envios WhatsApp excedido. Tente mais tarde." });
       }
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const { tipo, filhoId, variables } = body;
-      const { data: config } = await sb.from("whatsapp_config").select("*").eq("tenant_id", user.id).single();
-      let phone: string | undefined;
-      if (filhoId) {
-        const { data: filho } = await sb
-          .from("filhos_de_santo")
-          .select("whatsapp_phone, tenant_id, lider_id")
-          .eq("id", filhoId)
-          .single();
-        const ok = filho && (await assertZeladorTenantAccess(sb, user.id, String(filho.tenant_id || filho.lider_id || user.id)));
-        if (!ok) return sendJson(res, 403, { error: "Filho não pertence ao seu terreiro" });
-        phone = filho?.whatsapp_phone;
+      const { tipo, filhoId, variables, forcePhone } = body;
+      try {
+        const result = await sendWhatsAppForTenant(sb, {
+          tenantId: user.id,
+          tipo: String(tipo || ""),
+          filhoId,
+          forcePhone,
+          variables,
+        });
+        return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso", externalId: result.externalId });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; message?: string };
+        const status = e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : 500;
+        return sendJson(res, status, { error: e.message || "Erro ao enviar mensagem" });
       }
-      if (!phone) return sendJson(res, 400, { error: "Telefone não encontrado" });
-      phone = String(phone).replace(/\D/g, "");
-      if (!phone.startsWith("55")) phone = `55${phone}`;
-
-      let message = resolveWhatsAppTemplate(config?.templates, String(tipo || ""));
-      Object.entries(variables || {}).forEach(([key, value]) => {
-        message = message.replace(new RegExp(`{{${key}}}`, "g"), String(value));
-      });
-      if (message.includes("nota sigilosa") || message.includes("segredo")) {
-        message = "Você tem uma nova atualização sigilosa no seu prontuário. Acesse o AxéCloud para conferir.";
-      }
-
-      const tenantId = user.id;
-      const phoneFinal = phone;
-      const messageFinal = message;
-      setTimeout(async () => {
-        try {
-          const { messageId } = await sendEvolutionTextMessage(tenantId, phoneFinal, messageFinal);
-          const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
-          await sb.from("whatsapp_logs").insert({
-            tenant_id: tenantId,
-            filho_id: filhoId,
-            tipo,
-            telefone: phoneFinal,
-            mensagem: messageFinal,
-            status: "sent",
-            external_id: externalId,
-          });
-        } catch (err: unknown) {
-          console.error(`[WHATSAPP - ${tenantId}] Evolution send Error:`, err);
-        }
-      }, 500);
-      return sendJson(res, 200, { success: true, message: "Mensagem enfileirada para envio" });
     }
 
     if ((act === "start" || act === "connect") && method === "POST") {

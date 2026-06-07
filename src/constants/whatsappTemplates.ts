@@ -2,6 +2,7 @@ export type WhatsAppTemplateType =
   | 'boas_vindas'
   | 'cobranca_mensalidade'
   | 'financeiro'
+  | 'mensalidade_confirmada'
   | 'mural_aviso'
   | 'convite_evento'
   | 'estoque_critico';
@@ -13,6 +14,8 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!',
   financeiro:
     'Olá, {{nome_filho}}! Lembramos do pagamento de sua mensalidade no valor de R$ {{valor_mensalidade}}, com vencimento em {{data_vencimento}}, para o terreiro {{nome_terreiro}}. Axé!',
+  mensalidade_confirmada:
+    'Olá, {{nome_filho}}! Confirmamos o recebimento da sua mensalidade de {{competencia}} no valor de R$ {{valor}} no {{nome_terreiro}}. Obrigado pela contribuição. Axé! 🙏',
   mural_aviso:
     'Paz e Luz, {{nome_filho}}! Há um novo aviso no Mural do terreiro {{nome_terreiro}}:\n\n*{{titulo_aviso}}*\n\nAcesse o sistema para ver os detalhes. Axé!',
   convite_evento:
@@ -25,6 +28,7 @@ export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'boas_vindas',
   'cobranca_mensalidade',
   'financeiro',
+  'mensalidade_confirmada',
   'mural_aviso',
   'convite_evento',
   'estoque_critico',

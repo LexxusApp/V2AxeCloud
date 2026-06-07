@@ -3981,63 +3981,22 @@ async function startServer() {
 
       const { tipo, filhoId, variables, forcePhone } = req.body;
 
-      const { data: config } = await supabaseAdmin
-        .from('whatsapp_config')
-        .select('*')
-        .eq('tenant_id', user.id)
-        .single();
-
-      let phone = forcePhone;
-      if (!phone && filhoId) {
-        const { data: filho } = await supabaseAdmin
-          .from('filhos_de_santo')
-          .select('whatsapp_phone')
-          .eq('id', filhoId)
-          .single();
-        phone = filho?.whatsapp_phone;
-      }
-      if (!phone) return res.status(400).json({ error: "Telefone não encontrado" });
-      phone = String(phone).replace(/\D/g, '');
-      if (!phone.startsWith('55')) phone = `55${phone}`;
-
-      let message = resolveWhatsAppTemplate(config?.templates, String(tipo || ""));
-
-      Object.entries(variables || {}).forEach(([key, value]) => {
-        message = message.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+      const { sendWhatsAppForTenant } = await import("./api/lib/whatsappSendCore.js");
+      const result = await sendWhatsAppForTenant(supabaseAdmin, {
+        tenantId: user.id,
+        tipo: String(tipo || ""),
+        filhoId,
+        forcePhone,
+        variables,
       });
 
-      if (message.includes('nota sigilosa') || message.includes('segredo')) {
-        message = "Você tem uma nova atualização sigilosa no seu prontuário. Acesse o AxéCloud para conferir.";
-      }
-
-      const tenantId = user.id;
-      const phoneFinal = phone;
-      const messageFinal = message;
-
-      setTimeout(async () => {
-        try {
-          const { messageId } = await sendEvolutionTextMessage(tenantId, phoneFinal, messageFinal);
-          const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
-          await supabaseAdmin.from('whatsapp_logs').insert({
-            tenant_id: tenantId,
-            filho_id: filhoId,
-            tipo,
-            telefone: phoneFinal,
-            mensagem: messageFinal,
-            status: 'sent',
-            external_id: externalId
-          });
-        } catch (err: any) {
-          console.error(`[WHATSAPP - ${tenantId}] Evolution send Error:`, err?.message || err);
-        }
-      }, 500);
-
-      res.json({ success: true, message: "Mensagem enfileirada para envio" });
+      res.json({ success: true, message: "Mensagem enviada com sucesso", externalId: result.externalId });
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") {
         return whatsappInitializingResponse(res, error);
       }
-      res.status(500).json({ error: error.message });
+      const status = error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : 500;
+      res.status(status).json({ error: error?.message || "Erro ao enviar mensagem" });
     }
   });
 

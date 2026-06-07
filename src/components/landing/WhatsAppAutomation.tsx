@@ -11,16 +11,16 @@ const fade = {
 
 const benefits = [
   {
-    title: 'Avisos automáticos de Giras e Eventos',
-    desc: 'Seus filhos de santo recebem o cronograma e chamadas direto no celular.',
+    title: 'Convites de eventos pelo calendário',
+    desc: 'Convidados com telefone recebem o convite no WhatsApp ao serem adicionados ao evento.',
   },
   {
-    title: 'Lembrete amigável de Mensalidades',
-    desc: 'O sistema notifica automaticamente quando uma contribuição via PIX estiver próxima do vencimento.',
+    title: 'Lembrete automático de mensalidade',
+    desc: 'Três dias antes (e no dia) do vencimento configurado, filhos com WhatsApp cadastrado recebem lembrete.',
   },
   {
-    title: 'Confirmações de Recibo em Tempo Real',
-    desc: 'Assim que o pagamento cai na sua conta Efí, o filho de santo recebe o comprovante no WhatsApp na mesma hora.',
+    title: 'Comprovante ao confirmar pagamento',
+    desc: 'Quando o zelador confirma a mensalidade no financeiro, o filho recebe a confirmação no WhatsApp.',
   },
 ] as const;
 

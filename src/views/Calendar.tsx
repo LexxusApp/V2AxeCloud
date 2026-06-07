@@ -354,7 +354,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
            const token = session?.access_token;
            const uid = session?.user?.id;
            if (!token || !uid) return;
-           await fetch(whatsappApiUrl('/whatsapp/send'), {
+           const waRes = await fetch(whatsappApiUrl('/whatsapp/send'), {
               method: 'POST',
               headers: whatsappRailwayHeaders(token, uid),
               body: JSON.stringify({
@@ -369,6 +369,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 }
               })
            });
+           if (!waRes.ok) {
+             const waErr = await waRes.json().catch(() => ({}));
+             console.warn('WhatsApp convite:', (waErr as { error?: string }).error || waRes.status);
+           }
          } catch(e) {
             console.error('Erro ao enviar whatsapp para convidado', e);
          }
