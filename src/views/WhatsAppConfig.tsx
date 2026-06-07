@@ -93,7 +93,7 @@ export default function WhatsAppConfig() {
     },
     convite_evento: {
       title: 'Convite de Evento',
-      hint: 'Enviada para convidados de evento.',
+      hint: 'Inclui links de confirmar/declinar presença ({{link_confirmar}}, {{link_declinar}}).',
     },
     estoque_critico: {
       title: 'Estoque Crítico',

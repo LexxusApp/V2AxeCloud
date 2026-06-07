@@ -131,6 +131,15 @@ function upsertTwitter(name: string, content: string) {
 }
 
 function resolveRouteSeo(path: string): RouteSeo {
+  if (path.startsWith(`${ROUTES.eventRsvp}/`)) {
+    return {
+      title: 'Confirmação de presença | AxéCloud',
+      description: 'Confirme ou decline seu convite para o evento do terreiro.',
+      canonicalPath: path,
+      robots: 'noindex, nofollow',
+    };
+  }
+
   if (path.startsWith(`${ROUTES.consulentePortal}/`)) {
     return {
       title: 'Portal do consulente | AxéCloud',

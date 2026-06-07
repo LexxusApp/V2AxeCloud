@@ -12,6 +12,7 @@ import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton'
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../constants/plans';
+import { eventRsvpPublicUrl } from '../lib/eventRsvp';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
 interface Event {
@@ -42,7 +43,21 @@ interface Guest {
   id: string;
   nome: string;
   telefone?: string | null;
-  status: 'Confirmado' | 'Pendente' | 'Check-in';
+  rsvp_token?: string | null;
+  status: 'Confirmado' | 'Pendente' | 'Check-in' | 'Recusado';
+}
+
+function guestStatusMeta(status: Guest['status']) {
+  switch (status) {
+    case 'Confirmado':
+      return { label: 'Confirmado', color: 'text-primary', badge: 'bg-primary/15 text-primary' };
+    case 'Recusado':
+      return { label: 'Não vai', color: 'text-red-400', badge: 'bg-red-500/15 text-red-400' };
+    case 'Check-in':
+      return { label: 'Check-in', color: 'text-emerald-500', badge: 'bg-emerald-500/20 text-emerald-500' };
+    default:
+      return { label: 'Pendente', color: 'text-amber-400', badge: 'bg-amber-500/15 text-amber-400' };
+  }
 }
 
 interface CalendarProps {
@@ -315,7 +330,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     try {
       const { data, error } = await supabase
         .from('convidados_eventos')
-        .select('id, nome, telefone, status')
+        .select('id, nome, telefone, status, rsvp_token')
         .eq('event_id', eventId)
         .order('nome');
       
@@ -354,6 +369,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
            const token = session?.access_token;
            const uid = session?.user?.id;
            if (!token || !uid) return;
+           const rsvpToken = String(data?.rsvp_token || '').trim();
            const waRes = await fetch(whatsappApiUrl('/whatsapp/send'), {
               method: 'POST',
               headers: whatsappRailwayHeaders(token, uid),
@@ -365,7 +381,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   nome_evento: selectedEventForGuests.titulo,
                   data_evento: format(parseISO(selectedEventForGuests.data), 'dd/MM/yyyy'),
                   hora_evento: selectedEventForGuests.hora,
-                  nome_terreiro: tenantData?.nome_terreiro || 'Nosso Terreiro'
+                  nome_terreiro: tenantData?.nome_terreiro || 'Nosso Terreiro',
+                  link_confirmar: rsvpToken ? eventRsvpPublicUrl(rsvpToken, 'confirmar') : '',
+                  link_declinar: rsvpToken ? eventRsvpPublicUrl(rsvpToken, 'declinar') : '',
                 }
               })
            });
@@ -1423,18 +1441,22 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 {activeModalTab === 'guests' ? (
                   <>
                     {/* Stats */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-white/5 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-black text-white">{guests.length}</p>
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total</p>
                   </div>
-                  <div className="bg-emerald-500/10 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-emerald-500">{guests.filter(g => g.status === 'Check-in').length}</p>
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Presentes</p>
-                  </div>
                   <div className="bg-primary/10 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-primary">{guests.filter(g => g.status === 'Confirmado').length}</p>
+                    <p className="text-2xl font-black text-primary">{guests.filter(g => g.status === 'Confirmado' || g.status === 'Check-in').length}</p>
                     <p className="text-[10px] font-black text-primary uppercase tracking-widest">Confirmados</p>
+                  </div>
+                  <div className="bg-red-500/10 rounded-2xl p-4 text-center">
+                    <p className="text-2xl font-black text-red-400">{guests.filter(g => g.status === 'Recusado').length}</p>
+                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Não vão</p>
+                  </div>
+                  <div className="bg-amber-500/10 rounded-2xl p-4 text-center">
+                    <p className="text-2xl font-black text-amber-400">{guests.filter(g => g.status === 'Pendente').length}</p>
+                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Pendentes</p>
                   </div>
                 </div>
 
@@ -1498,12 +1520,14 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   ) : guests.filter(g => g.nome.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
                     guests
                       .filter(g => g.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(guest => (
+                      .map(guest => {
+                      const statusMeta = guestStatusMeta(guest.status);
+                      return (
                       <div key={guest.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
                         <div className="flex items-center gap-4">
                           <div className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center",
-                            guest.status === 'Check-in' ? "bg-emerald-500/20 text-emerald-500" : "bg-white/5 text-gray-500"
+                            statusMeta.badge
                           )}>
                             <User className="w-5 h-5" />
                           </div>
@@ -1511,9 +1535,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                             <p className="font-bold text-white">{guest.nome}</p>
                             <p className={cn(
                               "text-[10px] font-black uppercase tracking-widest",
-                              guest.status === 'Check-in' ? "text-emerald-500" : "text-gray-500"
+                              statusMeta.color
                             )}>
-                              {guest.status}
+                              {statusMeta.label}
                             </p>
                           </div>
                         </div>
@@ -1545,7 +1569,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           )}
                         </div>
                       </div>
-                    ))
+                    );})
                   ) : (
                     <div className="text-center py-10 text-gray-600 font-medium italic">
                       Nenhum convidado encontrado.

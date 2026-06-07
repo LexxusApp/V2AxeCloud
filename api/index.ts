@@ -60,6 +60,7 @@ import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
+import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
@@ -3255,6 +3256,7 @@ async function startServer() {
     supabaseAdmin,
     resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
   });
+  registerEventRsvpRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });

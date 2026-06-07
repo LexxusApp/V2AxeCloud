@@ -12,7 +12,12 @@ export const ROUTES = {
   contentArticle: '/conteudo/como-o-axecloud-ajuda-terreiros',
   glossary: '/conteudo/glossario',
   consulentePortal: '/consulente',
+  eventRsvp: '/convite',
 } as const;
+
+export function eventRsvpPath(token: string, action: 'confirmar' | 'declinar'): string {
+  return `/convite/${encodeURIComponent(token)}/${action}`;
+}
 
 export function consulentePortalPath(slug: string): string {
   return `/consulente/${encodeURIComponent(slug)}`;
