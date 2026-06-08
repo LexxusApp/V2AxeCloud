@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   BookOpen,
@@ -181,10 +180,12 @@ const accentStyles = {
 
 function HeroFeatureFloatingCards() {
   const [pairIndex, setPairIndex] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setPairIndex((i) => (i + 1) % HERO_FEATURE_PAIRS.length);
+      setAnimKey((k) => k + 1);
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
   }, []);
@@ -193,54 +194,40 @@ function HeroFeatureFloatingCards() {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20" aria-live="polite" aria-atomic="true">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={pairIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.35, ease: 'easeInOut' }}
-          className="absolute inset-0"
-        >
-          {pair.map((card, i) => {
-            const Icon = card.icon;
-            const accent = accentStyles[card.accent];
-            return (
-              <motion.div
-                key={card.id}
-                initial={{ opacity: 0, x: card.slot === 'top' ? -16 : 16, y: 8 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      <div key={animKey} className="landing-hero-pair absolute inset-0">
+        {pair.map((card, i) => {
+          const Icon = card.icon;
+          const accent = accentStyles[card.accent];
+          return (
+            <div
+              key={card.id}
+              className={cn(
+                'landing-hero-card absolute rounded-xl border bg-neutral-950/90 px-2.5 py-2 sm:px-3 sm:py-2.5',
+                'shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md',
+                accent.border,
+                i === 1 && 'landing-hero-card--delay',
+                card.slot === 'top'
+                  ? 'left-0 top-[12%] max-w-[10.25rem] sm:-left-6 sm:top-[18%] sm:max-w-[12rem]'
+                  : 'right-0 bottom-[16%] max-w-[9.75rem] sm:-right-5 sm:bottom-[22%] sm:max-w-[10.5rem]',
+              )}
+            >
+              <p
                 className={cn(
-                  'absolute rounded-xl border bg-neutral-950/90 px-2.5 py-2 sm:px-3 sm:py-2.5',
-                  'shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md',
-                  accent.border,
-                  card.slot === 'top'
-                    ? 'left-0 top-[12%] max-w-[10.25rem] sm:-left-6 sm:top-[18%] sm:max-w-[12rem]'
-                    : 'right-0 bottom-[16%] max-w-[9.75rem] sm:-right-5 sm:bottom-[22%] sm:max-w-[10.5rem]',
+                  'flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider',
+                  accent.tag,
                 )}
               >
-                <p
-                  className={cn(
-                    'flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider',
-                    accent.tag,
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {card.tag}
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-white">{card.title}</p>
-                <p className="text-[11px] leading-snug text-zinc-500">{card.desc}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </AnimatePresence>
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {card.tag}
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-white">{card.title}</p>
+              <p className="text-[11px] leading-snug text-zinc-500">{card.desc}</p>
+            </div>
+          );
+        })}
+      </div>
 
-      <div
-        className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
-        aria-hidden
-      >
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden>
         {HERO_FEATURE_PAIRS.map((_, i) => (
           <span
             key={i}
@@ -277,12 +264,7 @@ export function LandingHero() {
       />
 
       <div className="landing-gutter-x relative z-10 grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14 xl:gap-16">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center lg:text-left"
-        >
+        <div className="landing-hero-copy text-center lg:text-left">
           <h1
             id="hero-title"
             className="text-[2rem] font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.25rem] xl:text-6xl"
@@ -326,14 +308,9 @@ export function LandingHero() {
               </li>
             ))}
           </ul>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.65, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto w-full max-w-lg overflow-visible px-0.5 sm:px-0 lg:max-w-none"
-        >
+        <div className="landing-hero-visual relative mx-auto w-full max-w-lg overflow-visible px-0.5 sm:px-0 lg:max-w-none">
           <div className="landing-hero-glow pointer-events-none absolute -inset-6 rounded-[2rem] opacity-80" aria-hidden />
 
           <div className="landing-hero-device relative">
@@ -361,7 +338,7 @@ export function LandingHero() {
           </div>
 
           <HeroFeatureFloatingCards />
-        </motion.div>
+        </div>
       </div>
     </section>
   );

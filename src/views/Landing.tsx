@@ -1,5 +1,4 @@
 ﻿import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   ArrowUp,
   Check,
@@ -14,12 +13,19 @@ import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { HOME_SEO } from '../constants/seoHome';
-import { LandingFounderProgram } from '../components/landing/LandingFounderProgram';
 import { LandingHero } from '../components/landing/LandingHero';
-import { LandingPortalPreview } from '../components/landing/LandingPortalPreview';
-import { LandingResources } from '../components/landing/LandingResources';
+import { LandingReveal } from '../components/landing/LandingReveal';
 import { LandingSection, LandingSectionHeader } from '../components/landing/LandingSection';
 
+const LandingResources = lazy(() =>
+  import('../components/landing/LandingResources').then((m) => ({ default: m.LandingResources }))
+);
+const LandingFounderProgram = lazy(() =>
+  import('../components/landing/LandingFounderProgram').then((m) => ({ default: m.LandingFounderProgram }))
+);
+const LandingPortalPreview = lazy(() =>
+  import('../components/landing/LandingPortalPreview').then((m) => ({ default: m.LandingPortalPreview }))
+);
 const SystemTour = lazy(() =>
   import('../components/landing/SystemTour').then((m) => ({ default: m.SystemTour }))
 );
@@ -125,13 +131,6 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
   );
 }
 
-const fade = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.25 },
-  transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
-} as const;
-
 const LANDING_HEADER_OFFSET = '4.25rem';
 
 function ScrollToTopButton() {
@@ -167,8 +166,14 @@ function ScrollToTopButton() {
 
 export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
+
+  useEffect(() => {
+    document.getElementById('axecloud-seo-static')?.remove();
+    document.getElementById('axecloud-boot')?.remove();
+  }, []);
+
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-[#050505]">
+    <div className="axecloud-landing-enter relative min-h-dvh overflow-x-hidden bg-[#050505]">
       <span id="top" className="sr-only" aria-hidden />
 
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2a2108] bg-[#050505]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#050505]/90">
@@ -256,15 +261,21 @@ export default function Landing() {
       <main className="relative z-[1]" style={{ paddingTop: LANDING_HEADER_OFFSET }}>
         <LandingHero />
 
-        <LandingResources />
+        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
+          <LandingResources />
+        </Suspense>
 
         <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
           <LandingBeforeAfter />
         </Suspense>
 
-        <LandingFounderProgram />
+        <Suspense fallback={<LandingSectionFallback minHeight="22rem" />}>
+          <LandingFounderProgram />
+        </Suspense>
 
-        <LandingPortalPreview />
+        <Suspense fallback={<LandingSectionFallback minHeight="24rem" />}>
+          <LandingPortalPreview />
+        </Suspense>
 
         <Suspense fallback={<LandingSectionFallback minHeight="28rem" />}>
           <SystemTour />
@@ -292,19 +303,15 @@ export default function Landing() {
 
         <LandingSection id="mensalidade" variant="highlight" aria-labelledby="mensalidade-head">
           <div className="landing-section-inner">
-            <motion.div {...fade}>
+            <LandingReveal>
               <LandingSectionHeader
                 kicker="Mensalidade"
                 title="Um valor. Todo o AxéCloud."
                 titleId="mensalidade-head"
                 lead={landingPrice.description}
               />
-            </motion.div>
-            <motion.div
-              {...fade}
-              transition={{ ...fade.transition, delay: 0.08 }}
-              className="relative z-10 mx-auto mt-10 max-w-lg"
-            >
+            </LandingReveal>
+            <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-10 max-w-lg">
               <div className="landing-pricing-card relative flex flex-col sm:p-8">
                 <span className="relative z-10 mb-3 inline-flex w-max rounded border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-primary">
                   Plano Premium
@@ -344,7 +351,7 @@ export default function Landing() {
                   </a>
                 </p>
               </div>
-            </motion.div>
+            </LandingReveal>
           </div>
         </LandingSection>
 
@@ -354,7 +361,7 @@ export default function Landing() {
 
         <LandingSection aria-label="Fechamento">
           <div className="landing-section-inner max-w-3xl">
-            <motion.div {...fade} className="landing-cta-band relative z-10">
+            <LandingReveal className="landing-cta-band relative z-10">
               <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-zinc-600">
                 Que o axé acompanhe
               </p>
@@ -378,7 +385,7 @@ export default function Landing() {
                   Falar com o comercial
                 </a>
               </div>
-            </motion.div>
+            </LandingReveal>
           </div>
         </LandingSection>
       </main>

@@ -1,10 +1,9 @@
 import { Suspense, lazy, useEffect } from 'react';
+import { RouteLoadingFallback } from '../app/routeLoading';
 import { usePathname } from '../hooks/usePathname';
 import { ROUTES } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
-import Loading from '../app/loading';
-
-const Landing = lazy(() => import('../views/Landing'));
+import Landing from '../views/Landing';
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
 const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
@@ -66,7 +65,7 @@ export default function AppRouter() {
   }, [path]);
 
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<RouteLoadingFallback path={path} />}>
       <RoutedPage path={path} />
     </Suspense>
   );

@@ -267,10 +267,6 @@ export function buildPublicPageBodyInject(page: PublicPrerenderPage): string {
     '',
     buildPublicSiteNavHtml(),
     `    </article>`,
-    `    <div id="axecloud-boot" aria-hidden="true">`,
-    `      <div class="spinner"></div>`,
-    `      <p>Carregando AxéCloud...</p>`,
-    `    </div>`,
   ].join('\n');
 }
 

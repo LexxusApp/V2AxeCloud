@@ -1,4 +1,5 @@
 import { buildPublicSiteNavHtml } from './seoPublicPages';
+import { LANDING_SCREENSHOT_VERSION } from './landingScreenshots';
 import { SOCIAL_SAME_AS } from './socialLinks';
 
 /** Metadados e conteúdo estático da home — fonte única para HTML, JSON-LD e landing. */
@@ -168,6 +169,11 @@ export function buildHomeHeadInject(): string {
     `<meta name="twitter:image" content="${SITE_ORIGIN}/og-image.png" />`,
     `<meta name="twitter:image:alt" content="${escapeHtml(ogAlt)}" />`,
     '',
+    `<link rel="preload" as="image" href="/screenshots/painel-inicio.png?v=${LANDING_SCREENSHOT_VERSION}" fetchpriority="high" />`,
+    `<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />`,
+    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />`,
+    `<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" /></noscript>`,
+    '',
     `<script type="application/ld+json">\n${buildHomeJsonLd()}\n    </script>`,
   ].join('\n    ');
 }
@@ -196,10 +202,6 @@ export function buildHomeBodyInject(): string {
     '',
     buildPublicSiteNavHtml(),
     `    </article>`,
-    `    <div id="axecloud-boot" aria-hidden="true">`,
-    `      <div class="spinner"></div>`,
-    `      <p>Carregando AxéCloud...</p>`,
-    `    </div>`,
   ].join('\n');
 }
 

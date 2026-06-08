@@ -1,4 +1,9 @@
 /** Rotas públicas e do app (SPA Vite — equivalente conceitual ao App Router do Next). */
+export function isHomePath(path: string): boolean {
+  const p = path.replace(/\/+$/, '') || '/';
+  return p === '/' || p === '';
+}
+
 export const ROUTES = {
   home: '/',
   login: '/login',

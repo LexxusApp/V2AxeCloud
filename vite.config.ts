@@ -125,6 +125,9 @@ export default defineConfig(({mode}) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('/src/views/Landing') || id.includes('/src/components/landing/LandingHero')) {
+              return 'landing-home';
+            }
             if (!id.includes('node_modules')) return;
             if (id.includes('@supabase')) return 'vendor-supabase';
             if (id.includes('framer-motion')) return 'vendor-motion';
