@@ -51,7 +51,7 @@ export default defineConfig(({mode}) => {
           name: 'AxéCloud',
           short_name: 'AxéCloud',
           description: HOME_SEO.manifestDescription,
-          start_url: 'https://axecloud.com.br/',
+          start_url: 'https://axecloud.com.br/login',
           scope: 'https://axecloud.com.br/',
           lang: 'pt-BR',
           theme_color: '#000000',
@@ -81,17 +81,38 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v107',
+          cacheId: 'axecloud-v108',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
-          navigateFallbackDenylist: [/^\/api\//],
+          navigateFallbackDenylist: [
+            /^\/api\//,
+            /^\/$/,
+            /^\/termos(\/|$)/,
+            /^\/privacidade(\/|$)/,
+            /^\/programa-fundador(\/|$)/,
+            /^\/conteudo(\/|$)/,
+          ],
           /** HTML e assets: rede primeiro — PWA instalado não fica preso em bundle antigo se houver rede. */
           runtimeCaching: [
             {
-              urlPattern: ({ request, sameOrigin }) => sameOrigin && request.mode === 'navigate',
+              urlPattern: ({ request, sameOrigin, url }) => {
+                if (!sameOrigin || request.mode !== 'navigate') return false;
+                const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
+                if (
+                  p === '/' ||
+                  p === '/termos' ||
+                  p === '/privacidade' ||
+                  p === '/programa-fundador' ||
+                  p === '/conteudo' ||
+                  p.startsWith('/conteudo/')
+                ) {
+                  return false;
+                }
+                return true;
+              },
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-html-network-first-v107',
+                cacheName: 'axecloud-html-network-first-v108',
                 networkTimeoutSeconds: 8,
                 expiration: { maxEntries: 12, maxAgeSeconds: 3600 },
                 cacheableResponse: { statuses: [0, 200] },
@@ -102,7 +123,7 @@ export default defineConfig(({mode}) => {
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v107',
+                cacheName: 'axecloud-runtime-network-first-v108',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },

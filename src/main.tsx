@@ -25,7 +25,7 @@ function checkServiceWorkerUpdate() {
   });
 }
 
-const SW_RESET_KEY = 'axecloud-sw-reset-v107';
+const SW_RESET_KEY = 'axecloud-sw-reset-v108';
 
 /** Uma vez: remove SW/cache antigos que serviam bundle desatualizado. */
 async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
