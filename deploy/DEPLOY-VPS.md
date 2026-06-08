@@ -24,12 +24,20 @@ nano .env   # preencher secrets (copiar do Vercel/.env local)
 
 ## 3. Subir stack
 
+O deploy sobe **dois frontends** no mesmo domínio:
+
+| Serviço | Rotas | Função |
+|---------|-------|--------|
+| `marketing` | `/`, `/termos`, `/programa-fundador`, `/conteudo/*` | Site leve (nginx + `landing-dist`) |
+| `app` | `/login`, `/register`, `/dashboard`, `/api/*`, etc. | SPA + API Node |
+
 ```bash
 cd /opt/axecloud
 docker compose -f deploy/docker-compose.yml --env-file .env build
 docker compose -f deploy/docker-compose.yml --env-file .env up -d
 docker compose -f deploy/docker-compose.yml ps
 docker compose -f deploy/docker-compose.yml logs -f app
+docker compose -f deploy/docker-compose.yml logs -f marketing
 ```
 
 Teste: `curl -sS http://127.0.0.1:3000/api/plans` (via rede interna do host pode precisar `docker exec`).

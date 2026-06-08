@@ -1,4 +1,12 @@
 services:
+  marketing:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.landing
+    restart: unless-stopped
+    networks:
+      - web
+
   app:
     build:
       context: ..
@@ -93,6 +101,7 @@ services:
       - caddy_config:/config
     depends_on:
       - app
+      - marketing
     networks:
       - web
 

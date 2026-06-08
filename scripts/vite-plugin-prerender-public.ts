@@ -12,25 +12,33 @@ const HEAD_MARKER = /<!-- SEO_HEAD_INJECT -->[\s\S]*?<!-- \/SEO_HEAD_INJECT -->/
 const BODY_MARKER = /<!-- SEO_BODY_INJECT -->[\s\S]*?<!-- \/SEO_BODY_INJECT -->/;
 const NOSCRIPT_MARKER = /<!-- SEO_NOSCRIPT_INJECT -->[\s\S]*?<!-- \/SEO_NOSCRIPT_INJECT -->/;
 
+type PrerenderOptions = {
+  /** Rotas omitidas (ex.: /login no bundle de marketing). */
+  excludePaths?: readonly string[];
+};
+
 /**
- * Gera dist/{rota}/index.html com meta e HTML estático corretos por URL.
+ * Gera {outDir}/{rota}/index.html com meta e HTML estático corretos por URL.
  * O Vercel serve esses arquivos antes do rewrite SPA — essencial para indexação.
  */
-export function prerenderPublicPages(): Plugin {
+export function prerenderPublicPages(outDirName = 'dist', options?: PrerenderOptions): Plugin {
+  const exclude = new Set(options?.excludePaths ?? []);
+
   return {
     name: 'prerender-public-pages',
     apply: 'build',
     closeBundle() {
-      const distDir = path.resolve(process.cwd(), 'dist');
+      const distDir = path.resolve(process.cwd(), outDirName);
       const indexPath = path.join(distDir, 'index.html');
       if (!fs.existsSync(indexPath)) {
-        this.warn('[prerender] dist/index.html ausente — pulando pré-render público.');
+        this.warn(`[prerender] ${outDirName}/index.html ausente — pulando pré-render público.`);
         return;
       }
 
       const template = fs.readFileSync(indexPath, 'utf8');
+      const pages = PUBLIC_PRERENDER_PAGES.filter((p) => !exclude.has(p.path));
 
-      for (const page of PUBLIC_PRERENDER_PAGES) {
+      for (const page of pages) {
         const segment = page.path.replace(/^\//, '');
         const outDir = path.join(distDir, segment);
         const html = template
@@ -52,7 +60,7 @@ export function prerenderPublicPages(): Plugin {
       }
 
       console.log(
-        `[prerender] ${PUBLIC_PRERENDER_PAGES.length} página(s) pública(s): ${PUBLIC_PRERENDER_PAGES.map((p) => p.path).join(', ')}`,
+        `[prerender] ${pages.length} página(s) em ${outDirName}: ${pages.map((p) => p.path).join(', ')}`,
       );
     },
   };

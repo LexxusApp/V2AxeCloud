@@ -3,19 +3,26 @@ import { RouteLoadingFallback } from '../app/routeLoading';
 import { usePathname } from '../hooks/usePathname';
 import { ROUTES } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
-import Landing from '../views/Landing';
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
-const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
-const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
-const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
-const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
-const TermsPage = lazy(() => import('../pages/TermsPage'));
-const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
+
+function AppNotFound() {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.location.replace(ROUTES.home);
+    }
+  }, []);
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-neutral-950 text-neutral-400">
+      <p className="text-sm">Redirecionando…</p>
+    </div>
+  );
+}
 
 function RoutedPage({ path }: { path: string }) {
   if (path.startsWith('/consulente/') && path.length > '/consulente/'.length) {
@@ -33,29 +40,15 @@ function RoutedPage({ path }: { path: string }) {
       return <Checkout />;
     case ROUTES.login:
       return <LoginPage />;
-    case ROUTES.terms:
-      return <TermsPage />;
-    case ROUTES.privacy:
-      return <PrivacyPage />;
-    case ROUTES.founderProgram:
-      return <FounderProgramPage />;
-    case ROUTES.contentHub:
-      return <ContentHubPage />;
-    case ROUTES.contentArticle:
-      return <PortalArticlePage />;
-    case ROUTES.glossary:
-      return <GlossaryPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
-    case ROUTES.home:
     default:
-      return <Landing />;
+      return <AppNotFound />;
   }
 }
 
 /**
- * Roteador central (Vite SPA — equivalente a app/page, app/login, app/dashboard).
- * `Suspense` + `src/app/loading.tsx` evitam flash de HTML sem estilo entre rotas.
+ * SPA do app (login, cadastro, painel) — marketing em site separado (landing-dist).
  */
 export default function AppRouter() {
   const path = usePathname();

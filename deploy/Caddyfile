@@ -15,7 +15,6 @@ axecloud.com.br, www.axecloud.com.br {
 		-Server
 	}
 
-	# Bloqueia paths típicos de scanners (equivalente à custom rule Cloudflare)
 	@scanners {
 		path /.env*
 		path /.git*
@@ -30,5 +29,49 @@ axecloud.com.br, www.axecloud.com.br {
 	}
 	respond @scanners 404
 
-	reverse_proxy app:3000
+	# API sempre no app Node
+	@api path /api/*
+	handle @api {
+		reverse_proxy app:3000
+	}
+
+	# Assets do marketing (prefixo dedicado — não colide com /assets/ do app)
+	@massets path /m-assets/*
+	handle @massets {
+		reverse_proxy marketing:80
+	}
+
+	# Estáticos compartilhados (screenshots, ícones, SEO)
+	@public_static {
+		path /favicon.ico
+		path /robots.txt
+		path /sitemap.xml
+		path /og-image.png
+		path /screenshots/*
+		path /axecloud_*.png
+	}
+	handle @public_static {
+		reverse_proxy marketing:80
+	}
+
+	# Páginas públicas de marketing (site leve)
+	@marketing {
+		path /
+		path /termos
+		path /termos/*
+		path /privacidade
+		path /privacidade/*
+		path /programa-fundador
+		path /programa-fundador/*
+		path /conteudo
+		path /conteudo/*
+	}
+	handle @marketing {
+		reverse_proxy marketing:80
+	}
+
+	# App SPA: login, cadastro, painel, convites, portal consulente, PWA
+	handle {
+		reverse_proxy app:3000
+	}
 }

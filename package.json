@@ -12,6 +12,8 @@
     "generate:favicons": "node scripts/generate-favicons.mjs",
     "capture-screens": "node scripts/capture-axecloud.mjs",
     "build": "npm run generate:sitemap && vite build",
+    "build:landing": "vite build --config vite.landing.config.ts",
+    "build:all": "npm run build && npm run build:landing",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"

@@ -28,6 +28,17 @@ export function consulentePortalPath(slug: string): string {
   return `/consulente/${encodeURIComponent(slug)}`;
 }
 
+/** Rotas servidas pelo site de marketing estático (Caddy → container marketing). */
+export const MARKETING_SITE_PATHS = [
+  ROUTES.home,
+  ROUTES.terms,
+  ROUTES.privacy,
+  ROUTES.founderProgram,
+  ROUTES.contentHub,
+  ROUTES.contentArticle,
+  ROUTES.glossary,
+] as const;
+
 /** Rotas de marketing indexáveis (portal + landing). */
 export const PUBLIC_MARKETING_PATHS = [
   ROUTES.home,
@@ -38,6 +49,11 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.contentArticle,
   ROUTES.glossary,
 ] as const;
+
+export function isMarketingSitePath(path: string): boolean {
+  const p = normalizePath(path);
+  return (MARKETING_SITE_PATHS as readonly string[]).includes(p);
+}
 
 export function normalizePath(pathname: string): string {
   const p = (pathname || '/').replace(/\/+$/, '') || '/';
