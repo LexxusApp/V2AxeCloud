@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Moon, Star, Bell, Loader2, X, CheckCircle2, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, CheckCircle2, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, Sparkles } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
-import PageHeader from '../components/PageHeader';
-import BodyPortal from '../components/BodyPortal';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import {
+  AppDemoCard,
+  AppDemoPanelHeader,
+  AppPrimaryButton,
+  appInputClass,
+  appLabelClass,
+} from '../components/ui/appDemoUi';
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -76,7 +82,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedEventForGuests, setSelectedEventForGuests] = useState<Event | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'guests' | 'preparation'>('guests');
@@ -92,7 +97,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [newTaskName, setNewTaskName] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeView, setActiveView] = useState<'view' | 'management'>('view');
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'event' | 'guest' | 'task', title?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
@@ -155,16 +159,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       setActiveModalTab('guests');
     }
   }, [selectedEventForGuests]);
-
-  useEffect(() => {
-    if (!isModalOpen) {
-      setBannerFile(null);
-      setBannerPreview((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    }
-  }, [isModalOpen]);
 
   async function fetchChildren() {
     if (!effectiveTenantId) return;
@@ -474,7 +468,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         throw new Error(errData.error || 'Failed to create event');
       }
       
-      setIsModalOpen(false);
+      setBannerFile(null);
+      setBannerPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       setFormData({
         titulo: '',
         data: format(new Date(), 'yyyy-MM-dd'),
@@ -566,50 +564,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     );
   }, [events]);
 
+  const eventsNewestFirst = useMemo(() => [...eventsSorted].reverse(), [eventsSorted]);
+
   if (loading && events.length === 0) {
     return (
-      <div className="flex flex-col min-h-full">
-        <PageHeader
-          title={
-            isFilho ? (
-              <>Giras & <span className="text-primary">Eventos</span></>
-            ) : (
-              <>Calendário de <span className="text-primary">Axé</span></>
-            )
-          }
-          subtitle={isFilho ? 'Calendário de obrigações do terreiro.' : 'Gestão de obrigações e eventos espirituais.'}
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
-        />
-        <div className="flex-1 px-4 md:px-6 lg:px-10 pb-20 max-w-[1200px] mx-auto w-full">
-          <div className="rounded-2xl border border-white/5 bg-card/30 p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <SkeletonBlock className="h-6 w-40" />
-              <div className="flex gap-2">
-                <SkeletonBlock className="h-9 w-9 rounded-lg" />
-                <SkeletonBlock className="h-9 w-9 rounded-lg" />
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-1.5 mb-2">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                <div key={i} className="text-center text-[8px] font-black text-gray-600 py-1">
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {Array.from({ length: 35 }).map((_, i) => (
-                <SkeletonBlock key={i} className="aspect-square rounded-xl min-h-[2.25rem]" />
-              ))}
-            </div>
-          </div>
-          <div className="mt-8 space-y-3">
-            <CalendarEventRowSkeleton />
-            <CalendarEventRowSkeleton />
-            <CalendarEventRowSkeleton />
-          </div>
-        </div>
-      </div>
+      <AppPageShell>
+        <AppPanelLoading />
+      </AppPageShell>
     );
   }
 
@@ -623,28 +584,28 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       });
 
     return (
-      <div className="flex flex-col min-h-full">
-        <PageHeader
-          title={<>Giras & <span className="text-primary">Eventos</span></>}
-          subtitle="Calendário de obrigações do terreiro."
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
-          actions={
+      <AppPageShell>
+        <AppDemoPanelHeader
+          title="Giras e eventos"
+          description="Calendário de obrigações do terreiro."
+          action={
             <button
-              onClick={fetchEvents}
-              className="app-page-action app-page-action--icon"
+              type="button"
+              onClick={() => void fetchEvents()}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9]"
               title="Atualizar"
             >
-              <Loader2 className={cn("w-5 h-5", loading && "animate-spin")} />
+              <Loader2 className={cn('h-4 w-4', loading && 'animate-spin')} />
+              Atualizar
             </button>
           }
         />
 
-        <div className="flex-1 px-4 md:px-6 lg:px-10 pb-24 max-w-[1200px] mx-auto w-full animate-in zoom-in-95 duration-700">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
 
             {/* Calendário compacto — coluna esquerda */}
-            <div className="card-luxury p-5 lg:sticky lg:top-6">
+            <AppDemoCard className="p-5 lg:sticky lg:top-6">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-base font-black text-white capitalize">
                   {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
@@ -720,7 +681,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   </div>
                 ))}
               </div>
-            </div>
+            </AppDemoCard>
 
             {/* Lista de eventos — coluna direita */}
             <div className="space-y-4">
@@ -736,9 +697,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   <CalendarEventRowSkeleton />
                 </div>
               ) : upcomingEvents.length === 0 ? (
-                <div className="card-luxury p-10 text-center text-gray-500 font-medium">
+                <AppDemoCard className="text-center text-[#94A3B8]">
                   Nenhum evento cadastrado.
-                </div>
+                </AppDemoCard>
               ) : (
                 <div className="space-y-3">
                   {upcomingEvents.map((event, idx) => {
@@ -752,7 +713,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         transition={{ delay: idx * 0.04 }}
                         onClick={() => setFilhoEventDetail(event)}
                         className={cn(
-                          "card-luxury w-full text-left overflow-hidden border-l-4 transition-all hover:border-primary/80 hover:shadow-lg hover:shadow-primary/5",
+                          "w-full overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left border-l-4 transition-all hover:border-[#2F3643]",
                           passed ? "border-l-gray-600 opacity-60" : "border-l-primary"
                         )}
                       >
@@ -892,490 +853,246 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             </div>
           )}
         </AnimatePresence>
-      </div>
+      </AppPageShell>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-full lg:min-h-0 lg:flex-1">
-      <PageHeader 
-        title={<>Calendário de <span className="text-primary">Axé</span></>}
-        subtitle="Gestão de obrigações e eventos espirituais."
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-        actions={
-          <div className="flex items-center gap-3">
-            {isAdmin && (
-              <div className="flex bg-white/5 p-1 rounded-xl">
-                <button 
-                  onClick={() => setActiveView('view')}
-                  className={cn("px-6 py-2.5 rounded-lg font-bold text-sm transition-all", activeView === 'view' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-                >
-                  Visualizar Datas
-                </button>
-                <button 
-                  onClick={() => setActiveView('management')}
-                  className={cn("px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2", activeView === 'management' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-                >
-                  Gestão de Eventos
-                  {!hasAccess && <Lock className="w-4 h-4 text-[#FBBC00]" />}
-                </button>
-              </div>
-            )}
-            <button 
-              onClick={fetchEvents}
-              className="app-page-action app-page-action--icon"
+    <>
+      <AppPageShell>
+        <AppDemoPanelHeader
+          title="Calendário de giras"
+          description="Agende trabalhos espirituais, festas e giras — com lembretes automáticos no WhatsApp."
+          action={
+            <button
+              type="button"
+              onClick={() => void fetchEvents()}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
               title="Atualizar"
             >
-              <Loader2 className={cn("w-5 h-5", loading && "animate-spin")} />
+              <Loader2 className={cn('h-4 w-4', loading && 'animate-spin')} />
+              Atualizar
             </button>
-          </div>
-        }
-      />
+          }
+        />
 
-      <div className="flex-1 px-4 md:px-6 lg:px-10 pb-20 max-w-[1440px] mx-auto w-full space-y-8 animate-in zoom-in-95 duration-700 lg:flex lg:flex-col lg:min-h-0">
-        {activeView === 'view' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 lg:items-stretch lg:flex-1 lg:min-h-[calc(100dvh-11.5rem)]">
-        {/* Calendário — desktop: altura até preencher a viewport (área útil abaixo do header) */}
-        <div className="lg:col-span-7 xl:col-span-7 space-y-4 min-w-0 w-full lg:h-full lg:flex lg:flex-col lg:min-h-0">
-          <div className="card-luxury p-4 md:p-5 lg:p-6 lg:pb-7 w-full max-w-full lg:max-w-[720px] xl:max-w-[780px] lg:flex-1 lg:flex lg:flex-col lg:min-h-0 lg:h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-white capitalize">
-                {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-              </h3>
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsModalOpen(true);
-                    }}
-                    className="flex items-center justify-center gap-1.5 bg-primary text-black px-3 py-2 rounded-lg hover:bg-primary/90 transition-all font-black text-[10px] uppercase tracking-wider shadow-lg shadow-primary/20"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Novo Evento</span>
-                    <span className="inline sm:hidden">Novo</span>
-                  </button>
-                )}
-                <div className="flex gap-1.5">
-                  <button onClick={prevMonth} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button onClick={nextMonth} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <AppDemoCard>
+            <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Nova gira / evento</h4>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className={appLabelClass}>Nome</label>
+                <input
+                  required
+                  className={appInputClass}
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  placeholder="Ex: Gira Caboclos Penacho"
+                />
               </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 lg:gap-1.5 mb-2 lg:mb-2.5">
-              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-                <div key={day} className="text-center text-[9px] font-black text-gray-500 uppercase tracking-widest py-1 lg:py-1.5">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 lg:gap-1.5 lg:flex-1 lg:min-h-0 lg:[grid-template-rows:repeat(6,minmax(2.75rem,1fr))]">
-              {calendarDays.map((day, idx) => {
-                const dayEvents = events.filter(e => isSameDay(parseISO(e.data), day));
-                const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = isSameMonth(day, monthStart);
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedDate(day)}
-                    className={cn(
-                      "aspect-square p-0.5 sm:p-1 rounded-lg border transition-all flex flex-col items-center relative group overflow-hidden",
-                      "lg:aspect-auto lg:h-full lg:min-h-[2.75rem] lg:max-h-none lg:py-1.5",
-                      isSelected 
-                        ? "bg-white/10 border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
-                        : "bg-card border-border hover:border-white/20 hover:bg-white/5",
-                      !isCurrentMonth && "opacity-30"
-                    )}
-                  >
-                    {/* Event Highlight Glow */}
-                    {dayEvents.length > 0 && !isSelected && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                    )}
-
-                    <span className={cn(
-                      "text-xs font-black relative z-10",
-                      isSelected ? "text-white" : (dayEvents.length > 0 ? "text-primary" : "text-gray-400")
-                    )}>
-                      {format(day, 'd')}
-                    </span>
-                    
-                    {/* Event dots */}
-                    {dayEvents.length > 0 && (
-                      <div className="flex gap-0.5 mt-auto pb-0.5 relative z-10 flex-wrap justify-center">
-                        {dayEvents.slice(0, 3).map((e, i) => (
-                          <div key={i} className="w-1 h-1 rounded-full bg-primary" />
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Agenda / lateral — mesma altura mínima que o calendário; conteúdo distribuído no eixo vertical */}
-        <div className="lg:col-span-5 xl:col-span-5 space-y-8 min-w-0 lg:h-full lg:min-h-0 lg:flex lg:flex-col lg:justify-between lg:space-y-0 lg:gap-8">
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Próximo evento
-            </h3>
-            <div className="space-y-4">
-              {nextUpcomingEvent && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  key={nextUpcomingEvent.id}
-                  className="card-luxury p-5 border-l-4 border-l-primary"
+              <div>
+                <label className={appLabelClass}>Tipo de trabalho</label>
+                <select
+                  required
+                  className={appInputClass}
+                  value={formData.tipo}
+                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black text-primary uppercase tracking-widest">{nextUpcomingEvent.tipo}</span>
-                    <div className="flex gap-2">
-                      {isAdmin && (
-                        <>
-                          {hasAccess && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedEventForGuests(nextUpcomingEvent);
-                              }}
-                              className="p-1 hover:bg-white/10 rounded text-primary hover:text-primary/80 transition-colors"
-                              title="Gestão de Convidados"
-                            >
-                              <Ticket className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setItemToDelete({ id: nextUpcomingEvent.id, type: 'event', title: nextUpcomingEvent.titulo });
-                            }}
-                            className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-red-500 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                      <Bell className="w-4 h-4 text-gray-600" />
-                    </div>
-                  </div>
-                  <h4 className="font-bold text-white text-lg">{nextUpcomingEvent.titulo}</h4>
-                  <div className="flex flex-col gap-1 text-gray-400 mt-2">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4 shrink-0" />
-                      <span className="text-sm font-medium">
-                        {format(parseISO(nextUpcomingEvent.data), "EEEE, dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 shrink-0" />
-                      <span className="text-sm font-medium">{nextUpcomingEvent.hora}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-              {!nextUpcomingEvent && (
-                <div className="card-luxury p-8 text-center text-gray-500 font-medium">
-                  Não há eventos futuros agendados.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Moon className="w-5 h-5 text-primary" />
-              Influência Astral
-            </h3>
-            <div className="card-luxury p-6 bg-gradient-to-br from-primary/5 to-transparent">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Moon className="w-6 h-6 text-primary" />
+                  <option value="Gira">Normal</option>
+                  <option value="Festa">Festa pública</option>
+                  <option value="Obrigação">Trabalho interno</option>
+                  <option value="Manutenção">Caridade</option>
+                  <option value="Reunião">Reunião</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={appLabelClass}>Data</label>
+                  <input
+                    required
+                    type="date"
+                    className={appInputClass}
+                    value={formData.data}
+                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                  />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white">Lua Crescente</h4>
-                  <p className="text-xs text-gray-400 font-medium">Ciclo de Expansão</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-400 leading-relaxed font-medium">
-                Período favorável para ebós de prosperidade e abertura de caminhos. Evite rituais de banimento.
-              </p>
-            </div>
-          </div>
-        </div>
-        </div>
-      ) : (
-        <div className={cn("relative min-h-[60vh] rounded-[2.5rem]", !hasAccess && "overflow-hidden")}>
-          {!hasAccess && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center backdrop-blur-md bg-background/60">
-              <div className="card-luxury p-10 max-w-md text-center space-y-6 border-[#FBBC00]/20 shadow-2xl shadow-[#FBBC00]/10">
-                <div className="w-20 h-20 bg-[#FBBC00]/10 rounded-full flex items-center justify-center mx-auto">
-                  <Lock className="w-10 h-10 text-[#FBBC00]" />
-                </div>
-                <h3 className="text-2xl font-black text-white">Organize suas Giras e Festas com Precisão.</h3>
-                <p className="text-gray-400 font-medium">A Gestão de Eventos permite controlar convidados, tarefas e cronogramas. Disponível apenas no Plano Oirô.</p>
-                <button className="w-full bg-[#FBBC00] text-black font-black py-4 rounded-2xl hover:scale-105 transition-transform shadow-lg shadow-[#FBBC00]/20">
-                  Fazer Upgrade Agora
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className={cn("space-y-6", !hasAccess && "opacity-30 pointer-events-none blur-sm")}>
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-black text-white">Todos os Eventos</h3>
-              {isAdmin && (
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="bg-primary text-background px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-                >
-                  <Plus className="w-5 h-5" />
-                  Novo Evento
-                </button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {eventsSorted.map(event => {
-                const passed = isEventPassed(event.data, event.hora);
-                return (
-                <div key={event.id} className={cn("card-luxury overflow-hidden border-l-4 flex flex-col h-full p-0", passed ? "border-l-gray-500 opacity-75" : "border-l-primary")}>
-                  <div className="relative h-40 w-full shrink-0 overflow-hidden bg-[#0d0d0d]">
-                    {event.banner_url ? (
-                      <img src={event.banner_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                        <CalendarIcon className="h-12 w-12 text-white/15" />
-                      </div>
-                    )}
-                    <span className="absolute top-2 left-2 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-white/10 bg-black/60 backdrop-blur-sm text-primary">
-                      {event.tipo}
-                    </span>
-                    {passed && (
-                      <span className="absolute top-2 right-2 text-[10px] font-black text-red-300 uppercase tracking-widest bg-red-500/80 backdrop-blur-sm px-2 py-0.5 rounded-md">
-                        Encerrado
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col flex-1 p-5 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <h4 className="font-bold text-white text-lg leading-tight line-clamp-2 flex-1 min-w-0">{event.titulo}</h4>
-                      {isAdmin && (
-                        <div className="flex gap-1 shrink-0">
-                          {!passed && (
-                            <button 
-                              type="button"
-                              onClick={() => handleNotifyAll(event)}
-                              disabled={isNotifying === event.id}
-                              className="p-2 bg-[#FBBC00]/10 hover:bg-[#FBBC00]/20 rounded-xl text-[#FBBC00] transition-colors flex items-center justify-center disabled:opacity-50"
-                              title="Notificar todos os filhos"
-                            >
-                              {isNotifying === event.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-                            </button>
-                          )}
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              setSelectedEventForGuests(event);
-                            }}
-                            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-primary transition-colors"
-                            title="Gestão de Convidados"
-                          >
-                            <Ticket className="w-4 h-4" />
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => setItemToDelete({ id: event.id, type: 'event', title: event.titulo })}
-                            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-500 hover:text-red-500 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-gray-400 text-sm mb-4 line-clamp-2 flex-1">{event.descricao || 'Sem descrição.'}</div>
-                    <div className="flex items-center gap-4 text-gray-500 text-sm font-medium pt-4 border-t border-white/5 mt-auto">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarIcon className="w-4 h-4 shrink-0" />
-                        {format(parseISO(event.data), 'dd/MM/yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        {event.hora}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )})}
-              {eventsSorted.length === 0 && (
-                <div className="col-span-full card-luxury p-12 text-center text-gray-500 font-medium">
-                  Nenhum evento cadastrado.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-
-      {/* Add Event Modal — portal evita fixed relativo ao main com backdrop-blur/scroll */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <BodyPortal>
-          <div className="fixed inset-0 z-[100] flex min-h-0 items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
-            />
-            <motion.div
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-lg"
-            >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                    <CalendarIcon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-base font-black text-white sm:text-xl">Novo Evento</h3>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Cronograma de Axé</p>
-                  </div>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Título do Evento</label>
-                  <input required type="text" value={formData.titulo}
-                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-primary"
-                    placeholder="Ex: Toque de Oxóssi" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Data</label>
-                    <input required type="date" value={formData.data}
-                      onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                      className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-primary" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Hora</label>
-                    <input required type="time" value={formData.hora}
-                      onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
-                      className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-primary" />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Tipo de Evento</label>
-                  <select required value={formData.tipo} onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-primary [&>option]:bg-[#1B1C1C]">
-                    <option value="Gira">Gira</option>
-                    <option value="Festa">Festa</option>
-                    <option value="Obrigação">Obrigação</option>
-                    <option value="Manutenção">Manutenção</option>
-                    <option value="Reunião">Reunião</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Descrição</label>
-                  <textarea value={formData.descricao} rows={3}
-                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                    className="w-full resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-primary"
-                    placeholder="Detalhes do evento..." />
-                </div>
-
-                <div className="space-y-2 rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Banner do evento (opcional)</label>
+                  <label className={appLabelClass}>Horário</label>
                   <input
-                    ref={bannerInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      if (!f.type.startsWith('image/')) {
-                        alert('Selecione um arquivo de imagem.');
-                        return;
-                      }
-                      if (f.size > 4.5 * 1024 * 1024) {
-                        alert('Imagem muito grande (máx. 4,5 MB).');
-                        return;
-                      }
-                      setBannerFile(f);
-                      setBannerPreview((prev) => {
-                        if (prev) URL.revokeObjectURL(prev);
-                        return URL.createObjectURL(f);
-                      });
-                      e.target.value = '';
-                    }}
+                    required
+                    type="time"
+                    className={appInputClass}
+                    value={formData.hora}
+                    onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
                   />
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => bannerInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
-                    >
-                      <ImagePlus className="h-4 w-4 text-primary" />
-                      Escolher imagem
-                    </button>
-                    {bannerPreview && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBannerFile(null);
-                          setBannerPreview((prev) => {
-                            if (prev) URL.revokeObjectURL(prev);
-                            return null;
-                          });
-                        }}
-                        className="rounded-xl px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-400"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                  {bannerPreview && (
-                    <div className="relative mt-1 overflow-hidden rounded-xl border border-white/10">
-                      <img src={bannerPreview} alt="" className="max-h-36 w-full object-cover" />
-                    </div>
-                  )}
-                  <p className="text-[10px] text-gray-600 leading-relaxed">JPEG, PNG, WebP ou GIF. Aparece na gestão de eventos e para os filhos de santo.</p>
                 </div>
+              </div>
+              <div>
+                <label className={appLabelClass}>Destaque</label>
+                <select
+                  className={appInputClass}
+                  value={formData.status_confirmacao}
+                  onChange={(e) => setFormData({ ...formData, status_confirmacao: e.target.value })}
+                >
+                  <option value="Confirmado">Confirmada</option>
+                  <option value="Especial">Especial / obrigação</option>
+                </select>
+              </div>
+              <div>
+                <label className={appLabelClass}>Descrição (opcional)</label>
+                <textarea
+                  rows={2}
+                  className={cn(appInputClass, 'resize-none')}
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  placeholder="Detalhes do evento…"
+                />
+              </div>
+              <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3">
+                <label className={appLabelClass}>Banner (opcional)</label>
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (!f.type.startsWith('image/')) {
+                      alert('Selecione um arquivo de imagem.');
+                      return;
+                    }
+                    if (f.size > 4.5 * 1024 * 1024) {
+                      alert('Imagem muito grande (máx. 4,5 MB).');
+                      return;
+                    }
+                    setBannerFile(f);
+                    setBannerPreview((prev) => {
+                      if (prev) URL.revokeObjectURL(prev);
+                      return URL.createObjectURL(f);
+                    });
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="mt-1 inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
+                >
+                  <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                  {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
+                </button>
+              </div>
+              <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
+                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Marcar na agenda'}
+              </AppPrimaryButton>
+            </form>
+          </AppDemoCard>
 
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setIsModalOpen(false)}
-                    className="flex-1 rounded-2xl border border-white/5 bg-white/5 py-3 font-black text-sm text-white transition-all hover:bg-white/10">
-                    Cancelar
-                  </button>
-                  <button type="submit" disabled={isSubmitting}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 font-black text-sm text-background shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50">
-                    {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-                    Confirmar
-                  </button>
+          <div className="space-y-3 lg:col-span-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {eventsNewestFirst.map((event) => {
+                const passed = isEventPassed(event.data, event.hora);
+                const isEspecial =
+                  event.status_confirmacao === 'Especial' || event.tipo === 'Obrigação';
+                return (
+                  <article
+                    key={event.id}
+                    className={cn(
+                      'flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-4 transition-colors hover:border-[#2F3643]',
+                      passed && 'opacity-70',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span
+                          className={
+                            isEspecial
+                              ? 'rounded-full border border-rose-500/30 bg-rose-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-rose-300'
+                              : 'rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-emerald-300'
+                          }
+                        >
+                          {event.tipo}
+                        </span>
+                        <h4 className="mt-2 text-sm font-bold text-[#F1F5F9]">{event.titulo}</h4>
+                        {event.descricao ? (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-[#94A3B8]">{event.descricao}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 gap-0.5">
+                        {!passed ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleNotifyAll(event)}
+                            disabled={isNotifying === event.id}
+                            className="rounded p-1 text-primary hover:bg-white/5 disabled:opacity-50"
+                            title="Notificar filhos"
+                          >
+                            {isNotifying === event.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Bell className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEventForGuests(event)}
+                          className={cn(
+                            'rounded p-1 hover:bg-white/5',
+                            hasAccess ? 'text-primary' : 'text-zinc-600',
+                          )}
+                          title={hasAccess ? 'Convidados' : 'Plano Oirô'}
+                          disabled={!hasAccess}
+                        >
+                          <Ticket className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
+                          }
+                          className="rounded p-1 text-zinc-500 hover:text-rose-400"
+                          aria-label="Remover gira"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-[#1E242B] pt-3 text-xs text-[#94A3B8]">
+                      <span className="flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                        {format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" aria-hidden />
+                        {event.hora}
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
+              {eventsNewestFirst.length === 0 ? (
+                <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8] sm:col-span-2">
+                  Nenhuma gira cadastrada ainda.
                 </div>
-              </form>
-            </motion.div>
+              ) : null}
+            </div>
+            <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
+              <div className="rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary">
+                <Sparkles className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-[#94A3B8]">
+                  Convidados com telefone recebem o convite ao serem adicionados ao evento — e lembretes
+                  automáticos antes da gira.
+                </p>
+              </div>
+            </div>
           </div>
-          </BodyPortal>
-        )}
-      </AnimatePresence>
+        </div>
+      </AppPageShell>
 
       {/* Guest Management Modal */}
       <AnimatePresence>
@@ -1737,6 +1454,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

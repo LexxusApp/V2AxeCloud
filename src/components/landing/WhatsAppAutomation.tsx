@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Bell, CheckCircle, MessageSquare, ShieldCheck } from 'lucide-react';
+import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection } from './LandingSection';
 
 const fade = {
@@ -58,9 +59,9 @@ export function WhatsAppAutomation() {
                   transition={{ ...fade.transition, delay: 0.06 * i }}
                   className="flex items-start gap-3"
                 >
-                  <div className="mt-1 rounded-lg border border-primary/20 bg-primary/10 p-1.5 text-primary">
-                    <CheckCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  </div>
+                  <LandingIconBox accent="emerald" className="mt-1 shrink-0 !h-8 !w-8">
+                    <CheckCircle className={landingIconClass('emerald', 'h-4 w-4')} strokeWidth={2} aria-hidden />
+                  </LandingIconBox>
                   <div>
                     <h3 className="text-sm font-semibold text-white">{item.title}</h3>
                     <p className="text-xs leading-relaxed text-zinc-500">{item.desc}</p>

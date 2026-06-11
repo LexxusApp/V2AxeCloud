@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import { ZeladorIdentityBadge } from '../components/ZeladorIdentityBadge';
 import {
   Plus,
   ChevronRight,
@@ -34,6 +33,8 @@ import {
 } from 'recharts';
 import { cn } from '../lib/utils';
 import LuxuryLoading from '../components/LuxuryLoading';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import Avatar from '../components/Avatar';
 import { supabase } from '../lib/supabase';
 import {
@@ -71,7 +72,9 @@ type DashboardBundle = {
 
 const PEDIDO_STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente',
-  em_atendimento: 'Em atendimento',
+  aceito: 'Aceito',
+  em_oracao: 'Em prece',
+  em_atendimento: 'Em prece',
   concluido: 'Concluído',
   cancelado: 'Cancelado',
 };
@@ -493,8 +496,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   })();
 
   return (
-    <div className="min-h-screen bg-transparent text-white p-6 lg:p-10 font-sans selection:bg-[#D4AF37]/30">
-      
+    <AppPageShell>
       {fetchFailed && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <p className="text-sm font-medium text-amber-200">
@@ -510,22 +512,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
       )}
 
-      {/* Header Bar */}
-      <header className="mb-10 flex items-center justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
-            {formattedDate}
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white leading-tight lg:text-4xl">
-            {timeGreeting}, <span className="text-[#D4AF37]">{firstName}</span>
-          </h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 lg:gap-3">
-          <div className="hidden lg:flex items-center gap-3">
-            <ZeladorIdentityBadge tenantData={tenantData} />
-          </div>
-        </div>
-      </header>
+      <AppDemoPanelHeader
+        title={`${timeGreeting}, ${firstName}`}
+        description={formattedDate}
+      />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -534,9 +524,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         <div className="lg:col-span-8 space-y-8">
           
           {/* Card: entradas + fluxo financeiro */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-6 md:p-8 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 blur-[120px] -mr-48 -mt-48 pointer-events-none" />
-
+          <div className="app-v3-panel p-6 md:p-8 relative overflow-hidden group">
             <div className="relative z-10 flex justify-between items-start gap-4 mb-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gray-400 leading-snug">
@@ -570,9 +558,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 pt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
-                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30" />
-                <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/30" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/30" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/30" />
               </div>
             </div>
 
@@ -694,18 +682,18 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
           {/* Card: Pedidos de reza */}
           {userRole !== 'filho' && (
-            <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+            <div className="app-v3-panel p-8">
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
-                    <HandHeart className="h-5 w-5 text-[#D4AF37]" aria-hidden />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+                    <HandHeart className="h-5 w-5 text-primary" aria-hidden />
                   </div>
                   <h3 className="text-xl font-bold">Pedidos de reza</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('atendimentos')}
-                  className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] hover:underline"
+                  className="text-xs font-bold uppercase tracking-widest text-primary hover:underline"
                 >
                   Ver todos
                 </button>
@@ -718,7 +706,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       key={pedido.id}
                       type="button"
                       onClick={() => setActiveTab('atendimentos')}
-                      className="flex w-full items-start justify-between gap-4 rounded-2xl border border-white/5 bg-black/20 px-4 py-3 text-left transition-colors hover:border-[#D4AF37]/25 hover:bg-white/[0.03]"
+                      className="flex w-full items-start justify-between gap-4 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3 text-left transition-colors hover:border-primary/25 hover:bg-white/[0.03]"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-white">{pedido.nome}</p>
@@ -747,7 +735,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 </div>
               ) : (
                 <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-6 text-center">
-                  <HandHeart className="mb-3 h-9 w-9 text-[#D4AF37]/30" aria-hidden />
+                  <HandHeart className="mb-3 h-9 w-9 text-primary/30" aria-hidden />
                   <p className="text-sm font-bold text-gray-400">Nenhum pedido de reza</p>
                   <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-gray-600">
                     Pedidos enviados pelo portal do consulente aparecem aqui.
@@ -758,10 +746,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           )}
 
           {/* Card: Filhos de Santo */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+          <div className="app-v3-panel p-8">
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-xl font-bold">Filhos de Santo</h3>
-                <button onClick={() => setActiveTab('children')} className="text-xs font-bold text-[#D4AF37] hover:underline uppercase tracking-widest">Ver todos</button>
+                <button onClick={() => setActiveTab('children')} className="text-xs font-bold text-primary hover:underline uppercase tracking-widest">Ver todos</button>
              </div>
              
              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -779,9 +767,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                     {/* Avatar com anel pulsante permanente */}
                     <div className="relative w-20 h-20">
                       {/* Anel externo pulsante */}
-                      <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/60 animate-ping-slow" />
+                      <span className="absolute inset-0 rounded-full border-2 border-primary/60 animate-ping-slow" />
                       {/* Anel fixo dourado */}
-                      <span className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/80 group-hover:border-[#D4AF37] transition-colors" />
+                      <span className="absolute inset-0 rounded-full border-2 border-primary/80 group-hover:border-primary transition-colors" />
                       {/* Foto */}
                       <div className="absolute inset-[3px] rounded-full overflow-hidden">
                         <Avatar
@@ -793,9 +781,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                         />
                       </div>
                       {/* Brilho ao hover */}
-                      <div className="absolute inset-0 rounded-full bg-[#D4AF37]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 rounded-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <p className="text-xs font-bold mt-3 text-center text-[#D4AF37]">{filho.nome.split(' ')[0]}</p>
+                    <p className="text-xs font-bold mt-3 text-center text-primary">{filho.nome.split(' ')[0]}</p>
                     <p className="text-[10px] text-gray-500 mt-0.5 text-center truncate w-full uppercase tracking-widest font-medium">Ativo</p>
                   </div>
                 ))}
@@ -809,12 +797,12 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </div>
 
           {/* Card: Resumo Financeiro */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8 flex flex-col md:flex-row gap-10">
+          <div className="app-v3-panel p-8 flex flex-col md:flex-row gap-10">
              <div className="flex-1">
                 <h3 className="text-xl font-bold mb-8">Resumo Financeiro</h3>
                 {!hasMonthFinanceData ? (
                   <div className="flex min-h-[160px] flex-col items-start justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-6 py-8">
-                    <Wallet className="mb-3 h-9 w-9 text-[#D4AF37]/35" aria-hidden />
+                    <Wallet className="mb-3 h-9 w-9 text-primary/35" aria-hidden />
                     <p className="text-sm font-bold text-gray-400">Nenhum dado confirmado</p>
                     <p className="mt-1 max-w-md text-xs font-medium leading-relaxed text-gray-600">
                       Receitas, despesas e lucro somam todos os lançamentos confirmados do terreiro, inclusive com data futura.
@@ -852,12 +840,12 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 )}
              </div>
              
-             <div className="relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-black/20 p-6 md:w-[220px] md:min-w-[220px]">
-                <div className="absolute inset-0 bg-[#D4AF37]/5 opacity-0 transition-opacity hover:opacity-100"></div>
+             <div className="relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-[#1E242B] bg-[#12161A] p-6 md:w-[220px] md:min-w-[220px]">
+                <div className="absolute inset-0 bg-primary/5 opacity-0 transition-opacity hover:opacity-100"></div>
                 <div className="relative z-10 flex min-h-40 w-40 min-w-0 items-center justify-center">
                   {!hasMonthFinanceData ? (
                     <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-2 text-center">
-                      <Wallet className="mb-2 h-8 w-8 text-[#D4AF37]/30" aria-hidden />
+                      <Wallet className="mb-2 h-8 w-8 text-primary/30" aria-hidden />
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Sem dados</p>
                     </div>
                   ) : (
@@ -870,7 +858,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                               const fluxo = stats.totalReceita + stats.totalDespesa;
                               const pct = fluxo > 0 ? Math.round((stats.totalReceita / fluxo) * 100) : 0;
                               const clampedPct = Math.min(100, Math.max(0, pct));
-                              return `conic-gradient(#D4AF37 0% ${clampedPct}%, rgba(255,255,255,0.06) ${clampedPct}% 100%)`;
+                              return `conic-gradient(#facc15 0% ${clampedPct}%, rgba(255,255,255,0.06) ${clampedPct}% 100%)`;
                             })(),
                           }}
                           aria-hidden
@@ -900,19 +888,22 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         <div className="lg:col-span-4 space-y-8">
           
           {/* Card: Calendário */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+          <div className="app-v3-panel p-8">
              <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold">Calendário</h3>
                 <ChevronRight className="w-5 h-5 text-gray-600" />
              </div>
              
-             <p className="text-xs font-bold text-[#D4AF37] text-center mb-6 uppercase tracking-widest">
+             <p className="text-xs font-bold text-primary text-center mb-6 uppercase tracking-widest">
                 {dashboardCalendar.monthTitle}
              </p>
              
-             <div className="grid grid-cols-7 gap-y-2 gap-x-0 text-center">
-                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => (
-                  <span key={day} className="text-[9px] font-bold text-gray-600 uppercase col-span-1">{day}</span>
+             <div className="grid grid-cols-7 gap-y-1 gap-x-0 text-center sm:gap-y-2">
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day) => (
+                  <span key={day} className="col-span-1 text-[8px] font-bold uppercase text-gray-600 sm:text-[9px]">
+                    <span className="sm:hidden">{day.charAt(0)}</span>
+                    <span className="hidden sm:inline">{day}</span>
+                  </span>
                 ))}
                 {dashboardCalendar.days.map(day => {
                   const inMonth = isSameMonth(day, dashboardCalendar.anchor);
@@ -921,10 +912,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                     <span
                       key={day.toISOString()}
                       className={cn(
-                        'text-xs font-bold p-2 rounded-lg flex items-center justify-center min-h-[2rem]',
+                        'flex min-h-[1.75rem] items-center justify-center rounded-md p-1 text-[11px] font-bold sm:min-h-[2rem] sm:rounded-lg sm:p-2 sm:text-xs',
                         !inMonth && 'text-gray-700 opacity-35',
                         inMonth && !isTodayCell && 'text-gray-400',
-                        isTodayCell && 'bg-[#D4AF37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                        isTodayCell && 'bg-primary text-black shadow-[0_0_15px_rgba(250,204,21,0.35)]'
                       )}
                     >
                       {format(day, 'd')}
@@ -935,7 +926,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </div>
 
           {/* Card: Histórico */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8 flex flex-col min-h-[400px]">
+          <div className="app-v3-panel p-8 flex flex-col min-h-[400px]">
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-bold">Histórico</h3>
                 <button aria-label="Mais opções de histórico" className="text-gray-600 hover:text-white transition-colors">
@@ -972,11 +963,11 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </div>
 
           {/* Card: Aniversariantes do mês */}
-          <div className="bg-[#121212] rounded-[2rem] border border-white/5 shadow-2xl p-8">
+          <div className="app-v3-panel p-8">
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
-                  <Cake className="h-5 w-5 text-[#D4AF37]" aria-hidden />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+                  <Cake className="h-5 w-5 text-primary" aria-hidden />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold">Aniversariantes do mês</h3>
@@ -986,7 +977,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               <button
                 type="button"
                 onClick={() => setActiveTab('children')}
-                className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] hover:underline"
+                className="text-xs font-bold uppercase tracking-widest text-primary hover:underline"
               >
                 Ver membros
               </button>
@@ -1004,7 +995,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                         setActiveTab('profile');
                       }
                     }}
-                    className="flex w-full items-center gap-4 rounded-2xl border border-white/5 bg-black/20 px-3 py-2.5 text-left transition-colors hover:border-[#D4AF37]/25 hover:bg-white/[0.03]"
+                    className="flex w-full items-center gap-4 rounded-2xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 text-left transition-colors hover:border-primary/25 hover:bg-white/[0.03]"
                   >
                     <Avatar
                       src={person.foto_url}
@@ -1015,17 +1006,17 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-white">{person.nome}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
                         Dia {person.day}
                       </p>
                     </div>
-                    <Cake className="h-4 w-4 shrink-0 text-[#D4AF37]/50" aria-hidden />
+                    <Cake className="h-4 w-4 shrink-0 text-primary/50" aria-hidden />
                   </button>
                 ))}
               </div>
             ) : (
               <div className="flex min-h-[100px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 text-center">
-                <Cake className="mb-2 h-8 w-8 text-[#D4AF37]/30" aria-hidden />
+                <Cake className="mb-2 h-8 w-8 text-primary/30" aria-hidden />
                 <p className="text-sm font-bold text-gray-400">Nenhum aniversariante em {birthdayMonthLabel}</p>
                 <p className="mt-1 text-xs font-medium text-gray-600">
                   Cadastre a data de nascimento nos perfis dos filhos de santo.
@@ -1036,7 +1027,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
 
       </div>
-
-    </div>
+    </AppPageShell>
   );
 }

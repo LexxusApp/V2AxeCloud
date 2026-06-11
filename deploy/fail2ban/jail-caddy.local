@@ -1,0 +1,8 @@
+[caddy-scanner]
+enabled = true
+filter = caddy-scanner
+logpath = /var/log/caddy/access.log
+maxretry = 5
+findtime = 10m
+bantime = 48h
+backend = auto

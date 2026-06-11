@@ -2,7 +2,7 @@ import express from "express";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { constants as zlibConstants } from "node:zlib";
 import axios from "axios";
 import { fileURLToPath } from "url";
@@ -56,11 +56,13 @@ import { logEvent } from "./api/lib/auditLog.js";
 import { createAuditLog } from "./api/lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./api/lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
+import { registerConsulentePortalRoutes } from "./api/lib/consulentePortalRoutes.js";
 import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
+import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./api/lib/runtimePublicConfig.js";
 import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
 import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
@@ -1205,6 +1207,15 @@ async function startServer() {
     next();
   });
 
+  app.get("/api/public-config", (_req, res) => {
+    const cfg = getRuntimePublicConfig();
+    res.json({
+      supabaseUrl: cfg.supabaseUrl,
+      supabaseAnonKey: cfg.supabaseAnonKey,
+      vapidPublicKey: cfg.vapidPublicKey,
+    });
+  });
+
   app.get("/api/health-check", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
@@ -1410,10 +1421,10 @@ async function startServer() {
   // API Route: Upload Profile Photo (Bypasses Storage RLS)
   app.post("/api/v1/profile/upload-photo", async (req, res) => {
     const authHeader = req.headers.authorization;
-    const { fileData, fileName, contentType } = req.body;
+    const { fileData, fileName, contentType } = req.body || {};
 
-    if (!authHeader || !fileData) {
-      return res.status(400).json({ error: "Unauthorized or missing data" });
+    if (!authHeader || !fileData || !fileName) {
+      return res.status(400).json({ error: "Dados da imagem ausentes." });
     }
 
     try {
@@ -1424,28 +1435,35 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Buffer conversion from base64
-      const buffer = Buffer.from(fileData, 'base64');
-      
-      // Upload using service role key (bypasses RLS)
-      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from('perfil_fotos')
-        .upload(fileName, buffer, {
-          contentType: contentType || 'image/jpeg',
-          upsert: true
+      const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+      if (!safeName || !safeName.startsWith(user.id)) {
+        return res.status(400).json({ error: "Nome de arquivo inválido." });
+      }
+
+      const buffer = Buffer.from(String(fileData), "base64");
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Imagem maior que 5 MB." });
+      }
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("perfil_fotos")
+        .upload(safeName, buffer, {
+          contentType: contentType || "image/jpeg",
+          upsert: true,
         });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabaseAdmin.storage
-        .from('perfil_fotos')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("perfil_fotos").getPublicUrl(safeName);
 
       res.json({ publicUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[SERVER] Erro no upload de foto:", error);
-      res.status(500).json({ error: error.message || "Erro interno ao subir foto" });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Erro interno ao subir foto",
+      });
     }
   });
 
@@ -2388,6 +2406,7 @@ async function startServer() {
         email: profile?.email,
         nome_terreiro: profile?.nome_terreiro || 'Meu Terreiro',
         cargo: profile?.cargo || 'Zelador',
+        zelador: profile?.zelador || profile?.cargo || null,
         foto_url: profile?.foto_url || null,
         updated_at: new Date().toISOString()
       };
@@ -2832,6 +2851,10 @@ async function startServer() {
   });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
+  registerConsulentePortalRoutes(app, {
+    supabaseAdmin,
+    resolveLeaderId: (tenantId) => resolveLeaderId(tenantId),
+  });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
@@ -4168,12 +4191,14 @@ async function startServer() {
       if (!hasSpa) {
         return res.status(503).type("text/plain").send("Frontend não incluído nesta função serverless.");
       }
-      res.sendFile(indexPath, (err) => {
-        if (err) {
-          console.error("[SERVER] sendFile index.html:", err.message);
-          if (!res.headersSent) res.status(503).type("text/plain").send("Erro ao servir SPA");
-        }
-      });
+      try {
+        const html = injectRuntimeConfigHtml(readFileSync(indexPath, "utf8"));
+        res.type("html").send(html);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[SERVER] serve SPA index.html:", message);
+        if (!res.headersSent) res.status(503).type("text/plain").send("Erro ao servir SPA");
+      }
     });
   }
 

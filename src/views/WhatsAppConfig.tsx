@@ -13,6 +13,7 @@ import {
   type WhatsAppTemplateType,
 } from '../constants/whatsappTemplates';
 import { digitsOnly, normalizeBrWhatsAppMsisdn, previewBrWhatsAppMsisdn } from '../lib/whatsappPhone';
+import { AppDemoCard } from '../components/ui/appDemoUi';
 
 const WHATSAPP_INIT_FALLBACK =
   'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
@@ -50,7 +51,12 @@ function qrImageSrc(src: string | null | undefined): string | null {
   return `data:image/png;base64,${s}`;
 }
 
-export default function WhatsAppConfig() {
+type WhatsAppConfigProps = {
+  /** Dentro de Configurações — layout v3 sem card externo duplicado */
+  embedded?: boolean;
+};
+
+export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps) {
   const [status, setStatus] = useState<WaStatus>('DISCONNECTED');
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -656,17 +662,47 @@ export default function WhatsAppConfig() {
     );
   };
 
-  return (
-    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-6 overflow-x-hidden rounded-lg border border-white/10 bg-[#121212] p-5 sm:space-y-8 sm:p-8 lg:p-10">
-      <div className="grid gap-4 border-b border-white/5 pb-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/25 bg-[#0f1812] text-emerald-500 sm:h-20 sm:w-20 sm:rounded-3xl">
-          <MessageSquare className="h-8 w-8" />
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-3xl font-black leading-tight text-white sm:text-3xl">Conexão WhatsApp</h2>
-          <p className="mt-1 max-w-xl text-sm font-medium leading-relaxed text-gray-500 sm:text-base">Integre seu Terreiro com notificações automáticas via WhatsApp pela Evolution API.</p>
-        </div>
+  const isConnected = status === 'CONNECTED';
+
+  const header = embedded ? (
+    <div className="flex flex-col gap-4 border-b border-[#1E242B] pb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h6 className="flex items-center gap-2 font-display text-lg font-bold text-[#F1F5F9]">
+          <MessageSquare className="h-5 w-5 text-[#10B981]" aria-hidden />
+          Integração & Configuração do WhatsApp
+        </h6>
+        <p className="text-xs text-[#94A3B8]">
+          Conecte o número do terreiro para automatizar notificações, cobranças de mensalidades e avisos de giras.
+        </p>
       </div>
+      <span
+        className={`flex items-center gap-1.5 self-start rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase transition-all sm:self-auto ${
+          isConnected
+            ? 'border-[#10B981]/20 bg-emerald-950/20 text-[#10B981]'
+            : 'border-[#1E242B] bg-[#1E252E] text-[#94A3B8]'
+        }`}
+      >
+        <span className={`h-2 w-2 rounded-full ${isConnected ? 'animate-ping bg-emerald-500' : 'bg-gray-500'}`} />
+        {isConnected ? 'Dispositivo Conectado' : 'Aparelho Desconectado'}
+      </span>
+    </div>
+  ) : (
+    <div className="grid gap-4 border-b border-white/5 pb-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-6">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/25 bg-[#0f1812] text-emerald-500 sm:h-20 sm:w-20 sm:rounded-3xl">
+        <MessageSquare className="h-8 w-8" />
+      </div>
+      <div className="min-w-0">
+        <h2 className="text-3xl font-black leading-tight text-white sm:text-3xl">Conexão WhatsApp</h2>
+        <p className="mt-1 max-w-xl text-sm font-medium leading-relaxed text-gray-500 sm:text-base">
+          Integre seu Terreiro com notificações automáticas via WhatsApp pela Evolution API.
+        </p>
+      </div>
+    </div>
+  );
+
+  const body = (
+    <>
+      {header}
 
       <div className="min-w-0 space-y-6 text-left">
         {serviceNotice && (
@@ -945,6 +981,20 @@ export default function WhatsAppConfig() {
           ))}
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="animate-fadeIn space-y-6 overflow-x-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:p-6">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AppDemoCard className="mx-auto w-full min-w-0 max-w-5xl space-y-6 overflow-x-hidden sm:space-y-8">
+      {body}
+    </AppDemoCard>
   );
 }

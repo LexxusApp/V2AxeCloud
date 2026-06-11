@@ -2,7 +2,7 @@ import express from "express";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { constants as zlibConstants } from "node:zlib";
 import axios from "axios";
 import { fileURLToPath } from "url";
@@ -100,6 +100,7 @@ import {
 import { handleFilhoLoginRoute } from "./lib/filhoLoginRoute.js";
 import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
 import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
+import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./lib/runtimePublicConfig.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1249,6 +1250,15 @@ async function startServer() {
     if (m === "OPTIONS" || m === "TRACE" || m === "HEAD") return next();
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
     next();
+  });
+
+  app.get("/api/public-config", (_req, res) => {
+    const cfg = getRuntimePublicConfig();
+    res.json({
+      supabaseUrl: cfg.supabaseUrl,
+      supabaseAnonKey: cfg.supabaseAnonKey,
+      vapidPublicKey: cfg.vapidPublicKey,
+    });
   });
 
   app.get("/api/health-check", (req, res) => {
@@ -2821,6 +2831,49 @@ async function startServer() {
     }
   });
 
+  app.post("/api/v1/profile/upload-photo", async (req, res) => {
+    const { fileData, fileName, contentType } = req.body || {};
+
+    if (!fileData || !fileName) {
+      return res.status(400).json({ error: "Dados da imagem ausentes." });
+    }
+
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+      if (!safeName || !safeName.startsWith(user.id)) {
+        return res.status(400).json({ error: "Nome de arquivo inválido." });
+      }
+
+      const buffer = Buffer.from(String(fileData), "base64");
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Imagem maior que 5 MB." });
+      }
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("perfil_fotos")
+        .upload(safeName, buffer, {
+          contentType: contentType || "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("perfil_fotos").getPublicUrl(safeName);
+
+      res.json({ publicUrl });
+    } catch (error: unknown) {
+      console.error("[SERVER] Erro no upload de foto:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Erro interno ao subir foto",
+      });
+    }
+  });
+
   // API Route: Save User Settings (Bypasses RLS)
   app.post("/api/v1/settings/save", async (req, res) => {
     console.log(`[SERVER] Recebida requisição em /api/v1/settings/save`);
@@ -2854,6 +2907,8 @@ async function startServer() {
         email: profile?.email,
         nome_terreiro: profile?.nome_terreiro || 'Meu Terreiro',
         cargo: profile?.cargo || 'Zelador',
+        zelador: profile?.zelador || profile?.cargo || null,
+        foto_url: profile?.foto_url || null,
         updated_at: new Date().toISOString()
       };
 
@@ -4067,6 +4122,13 @@ async function startServer() {
     });
   }
 
+  const defaultWaPreferences = () => ({
+    notifGiras: true,
+    notifFinanceiro: true,
+    notifReza: true,
+    notifAniversarios: true,
+  });
+
   // --- WHATSAPP INTEGRATION ENDPOINTS (Evolution API) ---
   app.get("/api/whatsapp/config", async (req, res) => {
     try {
@@ -4075,27 +4137,32 @@ async function startServer() {
 
       const { data, error } = await supabaseAdmin
         .from("whatsapp_config")
-        .select("templates")
+        .select("templates, metadata, phone_number")
         .eq("tenant_id", user.id)
         .maybeSingle();
       if (error) {
         const msg = String((error as { message?: string })?.message || "");
         const code = String((error as { code?: string })?.code || "");
-        // Tabela ainda não migrada (PostgREST cache miss / relation missing): devolve defaults
-        // ao invés de 500 para não quebrar a UI de Configurações.
         if (code === "PGRST205" || code === "42P01" || /schema cache|whatsapp_config/i.test(msg)) {
           return res.json({
             success: true,
             templates: normalizeWhatsAppTemplates(null),
+            preferences: defaultWaPreferences(),
+            phoneNumber: null,
             warning: "WHATSAPP_TABLE_NOT_READY",
           });
         }
         throw error;
       }
 
+      const meta = (data?.metadata && typeof data.metadata === "object" ? data.metadata : {}) as Record<string, unknown>;
+      const prefs = (meta.preferences && typeof meta.preferences === "object" ? meta.preferences : {}) as Record<string, boolean>;
+
       return res.json({
         success: true,
         templates: normalizeWhatsAppTemplates(data?.templates),
+        preferences: { ...defaultWaPreferences(), ...prefs },
+        phoneNumber: data?.phone_number || null,
       });
     } catch (error: any) {
       return res.status(500).json({ error: error?.message || "Erro ao carregar configurações do WhatsApp." });
@@ -4107,14 +4174,25 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { instance_name, evolution_api_url, templates } = req.body || {};
+      const { instance_name, evolution_api_url, templates, preferences } = req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(templates);
+      const { data: existing } = await supabaseAdmin
+        .from("whatsapp_config")
+        .select("metadata")
+        .eq("tenant_id", user.id)
+        .maybeSingle();
+      const prevMeta = (existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {}) as Record<string, unknown>;
+      const nextMeta = { ...prevMeta };
+      if (preferences && typeof preferences === "object") {
+        nextMeta.preferences = { ...defaultWaPreferences(), ...preferences };
+      }
       const { error } = await supabaseAdmin
         .from('whatsapp_config')
         .upsert({
           instance_name,
           evolution_api_url,
           templates: safeTemplates,
+          metadata: nextMeta,
           id: user.id,
           tenant_id: user.id,
           updated_at: new Date().toISOString()
@@ -4124,6 +4202,86 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/whatsapp/logs", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const { data, error } = await supabaseAdmin
+        .from("whatsapp_logs")
+        .select("id, telefone, mensagem, tipo, status, created_at")
+        .eq("tenant_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      res.json({ success: true, logs: data || [] });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || "Erro ao carregar logs." });
+    }
+  });
+
+  app.post("/api/whatsapp/broadcast", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const message = String(req.body?.message || "").trim();
+      if (!message) return res.status(400).json({ error: "Mensagem obrigatória." });
+
+      const { data: leader } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      const tenantScope = String(leader?.tenant_id || user.id);
+
+      const { data: filhos, error: filhosErr } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .select("id, nome, whatsapp_phone")
+        .or(`tenant_id.eq.${tenantScope},lider_id.eq.${user.id}`)
+        .not("whatsapp_phone", "is", null);
+      if (filhosErr) throw filhosErr;
+
+      const targets = (filhos || []).filter((f) => String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10);
+      if (!targets.length) {
+        return res.status(400).json({ error: "Nenhum filho de santo com WhatsApp cadastrado." });
+      }
+
+      let sent = 0;
+      let failed = 0;
+      for (const filho of targets) {
+        try {
+          let phoneDigits = String(filho.whatsapp_phone).replace(/\D/g, "");
+          if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
+          await sendEvolutionTextMessage(user.id, phoneDigits, message);
+          sent += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      if (sent > 0) {
+        await supabaseAdmin.from("whatsapp_logs").insert({
+          tenant_id: user.id,
+          tipo: "teste",
+          telefone: "corrente_geral",
+          mensagem: message,
+          status: failed > 0 ? "partial" : "sent",
+          external_id: `broadcast_${Date.now()}`,
+        });
+      }
+
+      res.json({
+        success: true,
+        sent,
+        failed,
+        total: targets.length,
+        destino: `Corrente Geral (${targets.length} médiuns)`,
+      });
+    } catch (error: any) {
+      if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
+      res.status(500).json({ error: error?.message || "Erro na transmissão." });
     }
   });
 
@@ -4301,12 +4459,14 @@ async function startServer() {
       if (!hasSpa) {
         return res.status(503).type("text/plain").send("Frontend não incluído nesta função serverless.");
       }
-      res.sendFile(indexPath, (err) => {
-        if (err) {
-          console.error("[SERVER] sendFile index.html:", err.message);
-          if (!res.headersSent) res.status(503).type("text/plain").send("Erro ao servir SPA");
-        }
-      });
+      try {
+        const html = injectRuntimeConfigHtml(readFileSync(indexPath, "utf8"));
+        res.type("html").send(html);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[SERVER] serve SPA index.html:", message);
+        if (!res.headersSent) res.status(503).type("text/plain").send("Erro ao servir SPA");
+      }
     });
   }
 

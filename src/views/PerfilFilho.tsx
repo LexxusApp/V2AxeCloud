@@ -29,6 +29,7 @@ import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPaymentModal';
 import Avatar from '../components/Avatar';
 import Library from './Library';
+import { AppPageShell } from '../components/app/AppTopNav';
 
 type Tenant =
   | { nome?: string; plan?: string; tenant_id?: string; foto_url?: string }
@@ -496,7 +497,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   }, [proximoEvento]);
 
   return (
-    <div className="px-4 sm:px-6 pt-6 pb-10 space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto w-full">
+    <AppPageShell>
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Topo — nome do terreiro (vínculo) + perfil compacto */}
       <header className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-black px-6 py-8 sm:px-10 sm:py-10 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
         <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-10">
@@ -943,5 +945,6 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         txid={(filho?.id || user.id).replace(/-/g, '').slice(0, 25).padEnd(5, '0')}
       />
     </div>
+    </AppPageShell>
   );
 }

@@ -11,6 +11,8 @@
       })();
     </script>
     <meta charset="UTF-8" />
+    <!-- RUNTIME_CONFIG_INJECT -->
+    <script>document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -18,6 +20,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="AxéCloud" />
+    <!-- SEO_VERIFICATION_INJECT -->
+    <!-- /SEO_VERIFICATION_INJECT -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="48x48" href="/axecloud_48.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/axecloud_96.png" />
@@ -25,7 +29,8 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/axecloud_192.png" />
     <!-- SEO_HEAD_INJECT -->
     <title>AxéCloud | Sistema de Gestão para Terreiros de Umbanda e Candomblé</title>
-    <meta name="description" content="Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado." />
+    <meta name="description" content="AxéCloud é o software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado." />
+    <meta name="keywords" content="AxéCloud, axecloud, AxeCloud, axe cloud, Axe Cloud, Axé cloud, Axé Cloud, gestão de terreiro, software para terreiro, sistema para terreiro, casa de axé, umbanda, candomblé" />
     <!-- /SEO_HEAD_INJECT -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -61,7 +66,19 @@
         white-space: nowrap;
         border: 0;
       }
-      #axecloud-seo-static {
+      html.js #axecloud-seo-static {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+        pointer-events: none !important;
+      }
+      html:not(.js) #axecloud-seo-static {
         max-width: 48rem;
         margin: 0 auto;
         padding: 1.5rem 1rem 2rem;
@@ -70,29 +87,29 @@
         line-height: 1.6;
         color: #d4d4d4;
       }
-      #axecloud-seo-static h1 {
+      html:not(.js) #axecloud-seo-static h1 {
         margin: 0 0 0.75rem;
         font-size: 1.5rem;
         font-weight: 800;
         color: #fafafa;
       }
-      #axecloud-seo-static h2 {
+      html:not(.js) #axecloud-seo-static h2 {
         margin: 1.25rem 0 0.5rem;
         font-size: 1.125rem;
         font-weight: 700;
         color: #fafafa;
       }
-      #axecloud-seo-static p,
-      #axecloud-seo-static dd {
+      html:not(.js) #axecloud-seo-static p,
+      html:not(.js) #axecloud-seo-static dd {
         margin: 0 0 0.75rem;
         color: #a3a3a3;
       }
-      #axecloud-seo-static dt {
+      html:not(.js) #axecloud-seo-static dt {
         margin-top: 0.75rem;
         font-weight: 600;
         color: #e5e5e5;
       }
-      #axecloud-seo-static nav {
+      html:not(.js) #axecloud-seo-static nav {
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem 1.25rem;
@@ -101,11 +118,11 @@
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         font-size: 0.8125rem;
       }
-      #axecloud-seo-static nav a {
+      html:not(.js) #axecloud-seo-static nav a {
         color: #d4af37;
         text-decoration: none;
       }
-      #axecloud-seo-static nav a:hover {
+      html:not(.js) #axecloud-seo-static nav a:hover {
         text-decoration: underline;
       }
     </style>
@@ -146,14 +163,14 @@
     </script>
   </head>
   <body class="bg-neutral-950 text-white antialiased">
-    <div id="root">
-      <!-- SEO_BODY_INJECT -->
-      <article id="axecloud-seo-static" aria-label="Sobre o AxéCloud">
-        <h1>Sistema de gestão para terreiros de Umbanda e Candomblé</h1>
-        <p>Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo.</p>
-      </article>
-      <!-- /SEO_BODY_INJECT -->
-    </div>
+    <div id="root"></div>
+    <!-- SEO_BODY_INJECT -->
+    <article id="axecloud-seo-static" aria-label="Sobre o AxéCloud">
+      <h1>AxéCloud — sistema de gestão para terreiros de Umbanda e Candomblé</h1>
+      <p>AxéCloud é o software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo.</p>
+      <p>Se você buscou por axecloud, axe cloud, Axe Cloud ou Axé cloud, este é o site oficial em axecloud.com.br.</p>
+    </article>
+    <!-- /SEO_BODY_INJECT -->
     <noscript>
       <!-- SEO_NOSCRIPT_INJECT -->
       <h1>Sistema de gestão para terreiros de Umbanda e Candomblé</h1>

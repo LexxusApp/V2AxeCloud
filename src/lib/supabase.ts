@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getRuntimeSupabaseAnonKey, getRuntimeSupabaseUrl } from './runtimeConfig';
 
 // --- Supabase React StrictMode Lock Warning/Error Mitigation ---
 // React StrictMode double-mounts components in development, causing Supabase GoTrue to
@@ -58,11 +59,11 @@ console.error = (...args) => {
 };
 // ----------------------------------------------------------------
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = getRuntimeSupabaseUrl();
+const supabaseAnonKey = getRuntimeSupabaseAnonKey();
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing. Please check your .env file.');
+  console.warn('Supabase credentials missing. Verifique .env ou __AXECLOUD_RUNTIME__ no servidor.');
 }
 
 const nativeFetch = globalThis.fetch.bind(globalThis);

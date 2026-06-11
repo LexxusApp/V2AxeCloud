@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
@@ -10,7 +11,11 @@ type Deps = {
 };
 
 const TRADICOES = new Set(["umbanda", "candomble", "jurema", "mista", "outra"]);
-const PEDIDO_STATUSES = new Set(["pendente", "em_atendimento", "concluido", "cancelado"]);
+const PEDIDO_STATUSES = new Set(["pendente", "aceito", "em_oracao", "concluido", "cancelado"]);
+const VELAS = new Set(["Branca", "Vermelha", "Azul", "Verde", "Amarela", "Preta", "Nenhuma"]);
+
+const PEDIDO_SELECT =
+  "id, created_at, updated_at, nome, whatsapp, mensagem, status, observacao_interna, categoria, linha, vela, nome_terreiro, acesso_token";
 
 export function slugifyPublicSlug(raw: string): string {
   return String(raw || "")
@@ -26,17 +31,90 @@ function normalizeWhatsapp(raw: string): string {
   return String(raw || "").replace(/\D/g, "");
 }
 
+function newAcessoToken(): string {
+  return randomBytes(24).toString("base64url");
+}
+
 async function findLeaderBySlug(sb: SupabaseClient, slug: string) {
   const s = slugifyPublicSlug(slug);
   if (!s || s.length < 3) return null;
   const { data, error } = await sb
     .from("perfil_lider")
-    .select("id, tenant_id, nome_terreiro, foto_url, tradicao, portal_consulente_ativo, portal_consulente_mensagem, public_slug")
+    .select("id, tenant_id, nome_terreiro, foto_url, tradicao, portal_consulente_ativo, portal_consulente_mensagem, public_slug, nome")
     .eq("portal_consulente_ativo", true)
     .is("deleted_at", null)
     .ilike("public_slug", s)
     .maybeSingle();
   if (error || !data) return null;
+  return data;
+}
+
+async function findPedidoByToken(sb: SupabaseClient, token: string) {
+  const t = String(token || "").trim();
+  if (!t || t.length < 16) return null;
+  const { data, error } = await sb
+    .from("pedidos_reza")
+    .select(PEDIDO_SELECT)
+    .eq("acesso_token", t)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
+async function loadMensagens(sb: SupabaseClient, pedidoId: string) {
+  const { data, error } = await sb
+    .from("pedidos_reza_mensagens")
+    .select("id, created_at, sender, texto")
+    .eq("pedido_id", pedidoId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return data || [];
+}
+
+async function insertMensagem(
+  sb: SupabaseClient,
+  pedidoId: string,
+  sender: "zelador" | "visitante" | "sistema",
+  texto: string,
+) {
+  const { data, error } = await sb
+    .from("pedidos_reza_mensagens")
+    .insert({ pedido_id: pedidoId, sender, texto: texto.slice(0, 2000) })
+    .select("id, created_at, sender, texto")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+function systemMessageForStatus(status: string, vela: string | null): string | null {
+  if (status === "aceito") {
+    const velaTxt = vela && vela !== "Nenhuma" ? ` a vela ${vela}` : "";
+    return `Saravá! O Zelador aceitou seu pedido e firmou${velaTxt} em nosso congá de caridade.`;
+  }
+  if (status === "em_oracao") {
+    return "Corrente Espiritual Ativa no terreiro! Mentalize pensamentos de cura e amparo.";
+  }
+  if (status === "concluido") {
+    return "Sessão de oração finalizada. Que Oxalá cubra você de paz e proteção.";
+  }
+  return null;
+}
+
+async function assertPedidoTenantAccess(
+  sb: SupabaseClient,
+  tenantId: string,
+  pedidoId: string,
+  resolveLeaderId: (tenantId: string) => Promise<string>,
+) {
+  const leaderPk = await resolveLeaderId(tenantId);
+  const { data, error } = await sb
+    .from("pedidos_reza")
+    .select("id, status, vela, tenant_id, lider_id")
+    .eq("id", pedidoId)
+    .or(`tenant_id.eq.${tenantId},lider_id.eq.${leaderPk}`)
+    .maybeSingle();
+  if (error) throw error;
   return data;
 }
 
@@ -60,6 +138,61 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     }
   });
 
+  app.get("/api/v1/landing/terreiros-pedidos-reza", apiReadRateLimit, async (_req: Request, res: Response) => {
+    try {
+      const { data: leaders, error } = await sb
+        .from("perfil_lider")
+        .select("id, nome_terreiro, public_slug, foto_url, tradicao")
+        .eq("portal_consulente_ativo", true)
+        .not("public_slug", "is", null)
+        .is("deleted_at", null)
+        .order("nome_terreiro", { ascending: true })
+        .limit(48);
+      if (error) throw error;
+
+      const leaderIds = (leaders || []).map((row) => String(row.id));
+      const cityByLeader = new Map<string, { cidade: string; estado: string }>();
+      if (leaderIds.length > 0) {
+        const { data: founders } = await sb
+          .from("founder_applications")
+          .select("leader_id, cidade, estado")
+          .in("leader_id", leaderIds)
+          .eq("status", "accepted");
+        for (const row of founders || []) {
+          const lid = String(row.leader_id || "");
+          if (!lid) continue;
+          cityByLeader.set(lid, {
+            cidade: String(row.cidade || "Brasil"),
+            estado: String(row.estado || ""),
+          });
+        }
+      }
+
+      res.json({
+        items: (leaders || [])
+          .filter((row) => {
+            const slug = String(row.public_slug || "").trim();
+            return slug.length >= 3;
+          })
+          .map((row) => {
+            const loc = cityByLeader.get(String(row.id));
+            return {
+              id: row.id,
+              nome: row.nome_terreiro,
+              slug: row.public_slug,
+              cidade: loc?.cidade || "Brasil",
+              estado: loc?.estado || "",
+              fotoUrl: row.foto_url,
+              tradicao: row.tradicao,
+            };
+          }),
+      });
+    } catch (e: unknown) {
+      console.error("[landing/terreiros-pedidos-reza]", e);
+      res.json({ items: [] });
+    }
+  });
+
   app.post("/api/v1/public/consulente/:slug/pedidos-reza", publicFormRateLimit, async (req: Request, res: Response) => {
     try {
       const leader = await findLeaderBySlug(sb, String(req.params.slug || ""));
@@ -69,6 +202,10 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const nome = String(body.nome || "").trim();
       const mensagem = String(body.mensagem || "").trim();
       const whatsapp = normalizeWhatsapp(String(body.whatsapp || ""));
+      const categoria = String(body.categoria || "").trim().slice(0, 120) || null;
+      const linha = String(body.linha || "").trim().slice(0, 120) || null;
+      const velaRaw = String(body.vela || "Nenhuma").trim();
+      const vela = VELAS.has(velaRaw as never) ? velaRaw : "Nenhuma";
 
       if (nome.length < 2) return res.status(400).json({ error: "Informe seu nome." });
       if (mensagem.length < 8) return res.status(400).json({ error: "Descreva seu pedido de reza." });
@@ -78,6 +215,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
 
       const tenantId = String(leader.tenant_id || leader.id);
       const liderId = String(leader.id);
+      const acessoToken = newAcessoToken();
 
       const { data, error } = await sb
         .from("pedidos_reza")
@@ -88,15 +226,57 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
           whatsapp: whatsapp || null,
           mensagem: mensagem.slice(0, 2000),
           status: "pendente",
+          categoria,
+          linha,
+          vela,
+          nome_terreiro: leader.nome_terreiro,
+          acesso_token: acessoToken,
         })
-        .select("id")
+        .select("id, acesso_token")
         .single();
 
       if (error) throw error;
-      res.status(201).json({ success: true, id: data.id, message: "Pedido recebido. A casa entrará em contacto em breve." });
+
+      await insertMensagem(sb, data.id, "visitante", mensagem.slice(0, 2000));
+
+      res.status(201).json({
+        success: true,
+        id: data.id,
+        acessoToken: data.acesso_token,
+        message: "Pedido recebido. Acompanhe o altar virtual na coluna ao lado.",
+      });
     } catch (e: unknown) {
       console.error("[public/consulente/pedidos-reza]", e);
       res.status(500).json({ error: "Não foi possível enviar o pedido. Tente novamente." });
+    }
+  });
+
+  app.get("/api/v1/public/pedidos-reza/:token", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const pedido = await findPedidoByToken(sb, String(req.params.token || ""));
+      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+      const mensagens = await loadMensagens(sb, pedido.id);
+      res.json({ item: { ...pedido, acesso_token: undefined }, mensagens });
+    } catch (e: unknown) {
+      console.error("[public/pedidos-reza/get]", e);
+      res.status(500).json({ error: "Erro ao carregar pedido." });
+    }
+  });
+
+  app.post("/api/v1/public/pedidos-reza/:token/mensagens", publicFormRateLimit, async (req: Request, res: Response) => {
+    try {
+      const pedido = await findPedidoByToken(sb, String(req.params.token || ""));
+      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+      const texto = String(req.body?.texto || "").trim();
+      if (texto.length < 1) return res.status(400).json({ error: "Mensagem vazia." });
+      if (pedido.status === "cancelado" || pedido.status === "concluido") {
+        return res.status(400).json({ error: "Este pedido foi encerrado." });
+      }
+      const msg = await insertMensagem(sb, pedido.id, "visitante", texto);
+      res.status(201).json({ success: true, mensagem: msg });
+    } catch (e: unknown) {
+      console.error("[public/pedidos-reza/mensagens]", e);
+      res.status(500).json({ error: "Não foi possível enviar a mensagem." });
     }
   });
 
@@ -112,8 +292,9 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const leaderPk = await resolveLeaderId(tenantId);
       const { data, error } = await sb
         .from("pedidos_reza")
-        .select("id, created_at, updated_at, nome, whatsapp, mensagem, status, observacao_interna")
+        .select(PEDIDO_SELECT)
         .or(`tenant_id.eq.${tenantId},lider_id.eq.${leaderPk}`)
+        .in("status", ["pendente", "aceito", "em_oracao", "em_atendimento"])
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -121,6 +302,29 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     } catch (e: unknown) {
       console.error("[atendimentos/pedidos-reza]", e);
       res.status(500).json({ error: "Erro ao listar pedidos." });
+    }
+  });
+
+  app.get("/api/v1/atendimentos/pedidos-reza/:id", apiReadRateLimit, async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return;
+    const id = String(req.params.id || "").trim();
+    const tenantId = normalizeQueryTenantId(req.query.tenantId);
+    if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId obrigatórios" });
+    const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+    try {
+      const pedido = await assertPedidoTenantAccess(sb, tenantId, id, resolveLeaderId);
+      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+      const { data, error } = await sb.from("pedidos_reza").select(PEDIDO_SELECT).eq("id", id).maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Pedido não encontrado." });
+      const mensagens = await loadMensagens(sb, id);
+      res.json({ item: data, mensagens });
+    } catch (e: unknown) {
+      console.error("[atendimentos/pedidos-reza/get]", e);
+      res.status(500).json({ error: "Erro ao carregar pedido." });
     }
   });
 
@@ -135,10 +339,13 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
 
     const body = req.body || {};
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    let newStatus: string | null = null;
+
     if (body.status != null) {
       const status = String(body.status).trim().toLowerCase();
       if (!PEDIDO_STATUSES.has(status)) return res.status(400).json({ error: "Status inválido." });
       update.status = status;
+      newStatus = status;
     }
     if (body.observacao_interna !== undefined) {
       const obs = body.observacao_interna == null ? null : String(body.observacao_interna).trim().slice(0, 2000);
@@ -147,20 +354,53 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     if (Object.keys(update).length <= 1) return res.status(400).json({ error: "Nada para actualizar." });
 
     try {
+      const existing = await assertPedidoTenantAccess(sb, tenantId, id, resolveLeaderId);
+      if (!existing) return res.status(404).json({ error: "Pedido não encontrado." });
+
       const leaderPk = await resolveLeaderId(tenantId);
       const { data, error } = await sb
         .from("pedidos_reza")
         .update(update)
         .eq("id", id)
         .or(`tenant_id.eq.${tenantId},lider_id.eq.${leaderPk}`)
-        .select("id, status, observacao_interna, updated_at")
+        .select(PEDIDO_SELECT)
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Pedido não encontrado." });
-      res.json({ success: true, item: data });
+
+      if (newStatus) {
+        const sysMsg = systemMessageForStatus(newStatus, data.vela);
+        if (sysMsg) await insertMensagem(sb, id, "sistema", sysMsg);
+      }
+
+      const mensagens = await loadMensagens(sb, id);
+      res.json({ success: true, item: data, mensagens });
     } catch (e: unknown) {
       console.error("[atendimentos/pedidos-reza/patch]", e);
       res.status(500).json({ error: "Erro ao actualizar pedido." });
+    }
+  });
+
+  app.post("/api/v1/atendimentos/pedidos-reza/:id/mensagens", apiReadRateLimit, async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return;
+    const id = String(req.params.id || "").trim();
+    const tenantId = normalizeQueryTenantId(req.body?.tenantId ?? req.query.tenantId);
+    if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId obrigatórios" });
+    const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+    const texto = String(req.body?.texto || "").trim();
+    if (texto.length < 1) return res.status(400).json({ error: "Mensagem vazia." });
+
+    try {
+      const pedido = await assertPedidoTenantAccess(sb, tenantId, id, resolveLeaderId);
+      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+      const msg = await insertMensagem(sb, id, "zelador", texto);
+      res.status(201).json({ success: true, mensagem: msg });
+    } catch (e: unknown) {
+      console.error("[atendimentos/pedidos-reza/mensagens]", e);
+      res.status(500).json({ error: "Não foi possível enviar a mensagem." });
     }
   });
 
@@ -175,13 +415,16 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Perfil não encontrado." });
+      const slug = data.public_slug ? String(data.public_slug).trim() : "";
+      const portalAtivo = Boolean(data.portal_consulente_ativo);
       res.json({
         tradicao: data.tradicao || "mista",
         publicSlug: data.public_slug,
-        portalAtivo: Boolean(data.portal_consulente_ativo),
+        portalAtivo,
         mensagem: data.portal_consulente_mensagem,
         nomeTerreiro: data.nome_terreiro,
-        portalUrl: data.public_slug ? `/consulente/${data.public_slug}` : null,
+        portalUrl: slug ? `/consulente/${slug}` : null,
+        listagemPedidosUrl: portalAtivo && slug ? `/espaco-do-fiel?casa=${encodeURIComponent(slug)}` : null,
       });
     } catch (e: unknown) {
       console.error("[settings/portal-consulente/get]", e);
@@ -231,12 +474,16 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const { error } = await sb.from("perfil_lider").update(update).eq("id", user.id);
       if (error) throw error;
 
+      const savedSlug = update.public_slug ? String(update.public_slug).trim() : "";
+      const savedAtivo = Boolean(update.portal_consulente_ativo);
       res.json({
         success: true,
         tradicao: update.tradicao,
         publicSlug: update.public_slug,
-        portalAtivo: update.portal_consulente_ativo,
-        portalUrl: update.public_slug ? `/consulente/${update.public_slug}` : null,
+        portalAtivo: savedAtivo,
+        portalUrl: savedSlug ? `/consulente/${savedSlug}` : null,
+        listagemPedidosUrl:
+          savedAtivo && savedSlug ? `/espaco-do-fiel?casa=${encodeURIComponent(savedSlug)}` : null,
       });
     } catch (e: unknown) {
       console.error("[settings/portal-consulente/post]", e);

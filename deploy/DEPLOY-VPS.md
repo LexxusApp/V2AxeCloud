@@ -28,7 +28,7 @@ O deploy sobe **dois frontends** no mesmo domínio:
 
 | Serviço | Rotas | Função |
 |---------|-------|--------|
-| `marketing` | `/`, `/termos`, `/programa-fundador`, `/conteudo/*` | Site leve (nginx + `landing-dist`) |
+| `marketing` | `/`, `/termos`, `/privacidade`, `/programa-fundador`, `/espaco-do-fiel`, `/conteudo/*` | Site leve (nginx + `landing-dist`) |
 | `app` | `/login`, `/register`, `/dashboard`, `/api/*`, etc. | SPA + API Node |
 
 ```bash

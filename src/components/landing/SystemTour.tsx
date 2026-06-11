@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Images, LayoutDashboard, Megaphone, Package, Users, Wallet, BookOpen, type LucideIcon } from 'lucide-react';
 import { landingScreenshot } from '../../constants/landingScreenshots';
 import { cn } from '../../lib/utils';
+import { landingIconClass, type LandingIconAccent } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 type TourStep = {
@@ -10,6 +11,7 @@ type TourStep = {
   label: string;
   shortLabel: string;
   icon: LucideIcon;
+  accent: LandingIconAccent;
   src: string;
   desc: string;
 };
@@ -20,6 +22,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Início (Painel)',
     shortLabel: 'Painel',
     icon: LayoutDashboard,
+    accent: 'violet',
     src: landingScreenshot('painel-inicio.png'),
     desc: 'Resumo, números e o que a casa precisa enxergar de primeira.',
   },
@@ -28,6 +31,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Filhos de Santo',
     shortLabel: 'Filhos',
     icon: Users,
+    accent: 'emerald',
     src: landingScreenshot('filhos-de-santo.png'),
     desc: 'Pessoas do terreiro, cadastros e atalhos para a rotina do dia a dia.',
   },
@@ -36,6 +40,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Calendário de Giras',
     shortLabel: 'Giras',
     icon: CalendarDays,
+    accent: 'rose',
     src: landingScreenshot('calendario-eventos.png'),
     desc: 'Giras, compromissos e a agenda alinhada à casa — tudo visível para a diretoria.',
   },
@@ -44,6 +49,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Mural de Avisos',
     shortLabel: 'Mural',
     icon: Megaphone,
+    accent: 'amber',
     src: landingScreenshot('mural.png'),
     desc: 'Comunicados e avisos visíveis para a comunidade, sem grupos espalhados.',
   },
@@ -52,6 +58,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Galeria',
     shortLabel: 'Galeria',
     icon: Images,
+    accent: 'sky',
     src: landingScreenshot('galeria.png'),
     desc: 'Álbuns de fotos e vídeos do terreiro, organizados por evento ou tema.',
   },
@@ -60,6 +67,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Financeiro',
     shortLabel: 'Financeiro',
     icon: Wallet,
+    accent: 'emerald',
     src: landingScreenshot('financeiro.png'),
     desc: 'Entradas, saídas, Pix e histórico com transparência para a diretoria.',
   },
@@ -68,6 +76,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Biblioteca de Estudo',
     shortLabel: 'Biblioteca',
     icon: BookOpen,
+    accent: 'violet',
     src: landingScreenshot('biblioteca-estudo.png'),
     desc: 'Materiais e estudos acessíveis a quem precisa aprender na casa.',
   },
@@ -76,6 +85,7 @@ const TOUR_STEPS: TourStep[] = [
     label: 'Loja do Axé',
     shortLabel: 'Loja',
     icon: Package,
+    accent: 'gold',
     src: landingScreenshot('loja-axe.png'),
     desc: 'Ofertas e itens vinculados à casa, com pedidos e estoque integrados.',
   },
@@ -122,11 +132,16 @@ export function SystemTour() {
                 className={cn(
                   'inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-[13px] font-semibold transition-all duration-200 sm:px-4',
                   isActive
-                    ? 'border-primary/40 bg-primary/10 text-primary shadow-[0_0_24px_-6px_rgba(251,188,0,0.35)]'
+                    ? 'border-[#2F3643] bg-[#1E242B] text-[#F1F5F9]'
                     : 'border-white/10 bg-white/[0.03] text-zinc-500 hover:border-white/20 hover:text-zinc-200'
                 )}
               >
-                <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-zinc-600')} />
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    isActive ? landingIconClass(step.accent) : 'text-zinc-600',
+                  )}
+                />
                 <span className="hidden sm:inline">{step.label}</span>
                 <span className="sm:hidden">{step.shortLabel}</span>
               </button>
@@ -141,7 +156,6 @@ export function SystemTour() {
           className="relative z-10 mt-8"
         >
           <div className="relative flex w-full justify-center">
-            <div className="landing-hero-orb landing-hero-orb--a !top-auto !bottom-0 !left-1/4 opacity-60" aria-hidden />
             <div className="landing-device-frame landing-hero-device landing-tour-device mx-auto w-fit max-w-full">
               <div className="landing-device-chrome">
                 <span className="landing-device-dot bg-red-500/90" aria-hidden />

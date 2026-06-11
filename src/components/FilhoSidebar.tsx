@@ -60,7 +60,7 @@ export default function FilhoSidebar({
       <div className="space-y-10">
         <div className="flex flex-col items-center text-center pt-2">
           <div className="relative mb-5">
-            <div className="w-20 h-20 rounded-full border-4 border-yellow-500/20 p-1 bg-black/40 shadow-lg shadow-yellow-500/5 overflow-hidden ring-2 ring-black/40">
+            <div className="w-20 h-20 rounded-full border-4 border-primary/25 p-1 bg-[#12161A] shadow-lg shadow-primary/5 overflow-hidden ring-2 ring-[#0B0D11]">
               <Avatar
                 src={fotoUrl}
                 name={displayName}
@@ -70,15 +70,15 @@ export default function FilhoSidebar({
                 className="w-full h-full"
               />
             </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 bg-yellow-500 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center">
+            <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-4 border-[#0B0D11] flex items-center justify-center">
               <div className="w-1.5 h-1.5 bg-black rounded-full" />
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-[9px] font-black text-yellow-500 uppercase tracking-[0.3em] opacity-80">
+            <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] opacity-90">
               {tenantData?.nome || 'TERREIRO'}
             </p>
-            <h2 className="text-sm font-black text-white uppercase tracking-tight truncate w-full px-2">
+            <h2 className="text-sm font-bold text-[#F1F5F9] uppercase tracking-tight truncate w-full px-2">
               {displayName}
             </h2>
           </div>
@@ -90,15 +90,15 @@ export default function FilhoSidebar({
               key={item.id}
               onClick={() => handleNav(item.id)}
               className={cn(
-                "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors duration-200 group",
+                'w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors duration-200 group font-bold',
                 activeTab === item.id
-                  ? "text-white font-black"
-                  : "text-gray-500 hover:text-white"
+                  ? 'bg-primary text-[#080A0D]'
+                  : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
               )}
             >
               <item.icon className={cn(
-                "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
-                activeTab === item.id ? "text-white" : "text-gray-500"
+                'w-5 h-5 transition-transform duration-200 group-hover:scale-105',
+                activeTab === item.id ? 'text-[#080A0D]' : 'text-[#94A3B8] group-hover:text-[#F1F5F9]',
               )} />
               <span className="text-[11px] uppercase font-black tracking-[0.15em]">{item.label}</span>
             </button>
@@ -106,7 +106,7 @@ export default function FilhoSidebar({
         </div>
       </div>
 
-      <div className="pt-6 border-t border-white/5 space-y-2">
+      <div className="pt-6 border-t border-[#1E242B] space-y-2">
         <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen?.(false)} />
         <button
           onClick={handleLogout}
@@ -121,7 +121,7 @@ export default function FilhoSidebar({
 
   return (
     <>
-      <div className="hidden lg:flex w-64 h-screen flex-col fixed left-0 top-0 z-[100] border-r border-white/5 bg-black p-8">
+      <div className="hidden lg:flex w-64 h-screen flex-col fixed left-0 top-0 z-[100] border-r border-[#1E242B] bg-[#0B0D11] p-8">
         <SidebarContent />
       </div>
 
@@ -134,7 +134,7 @@ export default function FilhoSidebar({
 
       <aside
         className={cn(
-          'fixed left-0 top-0 bottom-0 z-[120] flex w-72 flex-col border-r border-white/10 bg-black p-8 lg:hidden',
+          'fixed left-0 top-0 bottom-0 z-[120] flex w-72 flex-col border-r border-[#1E242B] bg-[#0B0D11] p-8 lg:hidden',
           isMobileOpen ? 'flex' : 'hidden',
         )}
         aria-hidden={!isMobileOpen}

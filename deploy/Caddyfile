@@ -1,10 +1,28 @@
 {
 	email {$ACME_EMAIL}
+	crowdsec {
+		api_url http://crowdsec:8080
+		api_key {$CROWDSEC_CADDY_API_KEY}
+		ticker_interval 30s
+		appsec_url http://crowdsec:7422
+	}
+	servers {
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
 }
 
 axecloud.com.br, www.axecloud.com.br {
 	@www host www.axecloud.com.br
 	redir @www https://axecloud.com.br{uri} permanent
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MiB
+			roll_keep 5
+			mode 0644
+		}
+		format json
+	}
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -15,63 +33,95 @@ axecloud.com.br, www.axecloud.com.br {
 		-Server
 	}
 
-	@scanners {
-		path /.env*
-		path /.git*
-		path /wp-admin*
-		path /wp-login.php
-		path /phpmyadmin*
-		path /pma*
-		path /xmlrpc.php
-		path /vendor/phpunit*
-		path /actuator*
-		path /containers/json
-	}
-	respond @scanners 404
+	route {
+		crowdsec
+		appsec
 
-	# API sempre no app Node
-	@api path /api/*
-	handle @api {
-		reverse_proxy app:3000
-	}
+		@scanners {
+			path /.env
+			path /.env.*
+			path /.git*
+			path /wp-admin*
+			path /wp-login.php
+			path /phpmyadmin*
+			path /pma*
+			path /xmlrpc.php
+			path /vendor/phpunit*
+			path /actuator*
+			path /containers/json
+		}
+		handle @scanners {
+			respond 404
+		}
 
-	# Assets do marketing (prefixo dedicado — não colide com /assets/ do app)
-	@massets path /m-assets/*
-	handle @massets {
-		reverse_proxy marketing:80
-	}
+		@api_sensitive {
+			path /api/auth*
+			path /api/whatsapp*
+			path /api/v1/auth/*
+			path /api/v1/checkout/*
+			path /api/webhooks/*
+			path /api/v1/founder-program/*
+			path /api/v1/public/*
+		}
+		handle @api_sensitive {
+			rate_limit {
+				zone api_sensitive {
+					key {http.request.header.CF-Connecting-IP}
+					events 60
+					window 1m
+				}
+			}
+			reverse_proxy app:3000
+		}
 
-	# Estáticos compartilhados (screenshots, ícones, SEO)
-	@public_static {
-		path /favicon.ico
-		path /robots.txt
-		path /sitemap.xml
-		path /og-image.png
-		path /screenshots/*
-		path /axecloud_*.png
-	}
-	handle @public_static {
-		reverse_proxy marketing:80
-	}
+		@api path /api/*
+		handle @api {
+			rate_limit {
+				zone api_general {
+					key {http.request.header.CF-Connecting-IP}
+					events 300
+					window 1m
+				}
+			}
+			reverse_proxy app:3000
+		}
 
-	# Páginas públicas de marketing (site leve)
-	@marketing {
-		path /
-		path /termos
-		path /termos/*
-		path /privacidade
-		path /privacidade/*
-		path /programa-fundador
-		path /programa-fundador/*
-		path /conteudo
-		path /conteudo/*
-	}
-	handle @marketing {
-		reverse_proxy marketing:80
-	}
+		@massets path /m-assets/*
+		handle @massets {
+			reverse_proxy marketing:80
+		}
 
-	# App SPA: login, cadastro, painel, convites, portal consulente, PWA
-	handle {
-		reverse_proxy app:3000
+		@public_static {
+			path /favicon.ico
+			path /robots.txt
+			path /sitemap.xml
+			path /og-image.png
+			path /screenshots/*
+			path /axecloud_*.png
+		}
+		handle @public_static {
+			reverse_proxy marketing:80
+		}
+
+		@marketing {
+			path /
+			path /termos
+			path /termos/*
+			path /privacidade
+			path /privacidade/*
+			path /programa-fundador
+			path /programa-fundador/*
+			path /espaco-do-fiel
+			path /espaco-do-fiel/*
+			path /conteudo
+			path /conteudo/*
+		}
+		handle @marketing {
+			reverse_proxy marketing:80
+		}
+
+		handle {
+			reverse_proxy app:3000
+		}
 	}
 }

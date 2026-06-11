@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
-import Sidebar from './components/Sidebar';
-import FilhoSidebar from './components/FilhoSidebar';
+import AppTopNav from './components/app/AppTopNav';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
-import { Loader2, Menu, ShieldAlert, Bell } from 'lucide-react';
+import { Loader2, ShieldAlert, Bell } from 'lucide-react';
 import { cn } from './lib/utils';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import Paywall from './components/Paywall';
@@ -163,7 +162,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   const [isAdminGlobal, setIsAdminGlobal] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'filho' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [tenantData, setTenantData] = useState<{ 
@@ -824,7 +822,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             // enquanto os dados do novo usuário ainda estão sendo carregados.
             roleRecoveryOnceForUserRef.current = null;
             setTenantRecoveryFailed(false);
-            setIsMobileOpen(false);
             const cachedImmediate = peekCachedTenantId(session.user.id);
             const cachedRoleAnchor = readUserRoleAnchor();
             const hasFullCache = !!cachedImmediate && !!cachedRoleAnchor;
@@ -898,7 +895,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           setTenantRecoveryFailed(false);
           setIsSessionHydrating(false);
           setActiveTab('dashboard');
-          setIsMobileOpen(false);
           initializedRef.current = false;
           persistFilhoFlag(false);
         }
@@ -1409,133 +1405,20 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   return (
     <>
-    <div className="h-[100dvh] w-full bg-[#121317] text-white font-sans selection:bg-primary selection:text-background flex relative overflow-hidden">
-      {userRole === 'filho' ? (
-        <FilhoSidebar 
-          activeTab={activeTab} 
-          setActiveTab={navigateToTab} 
-          tenantData={tenantData}
-          user={session?.user}
-          filhoFotoUrl={filhoFotoUrl}
-          isMobileOpen={isMobileOpen}
-          setIsMobileOpen={setIsMobileOpen}
-        />
-      ) : (
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={navigateToTab} 
-          isMobileOpen={isMobileOpen} 
-          setIsMobileOpen={setIsMobileOpen} 
-          isAdmin={isAdminGlobal}
-          userRole={userRole}
-          tenantData={tenantData}
-        />
-      )}
+    <div className="app-v3 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9] font-sans selection:bg-primary selection:text-[#080A0D]">
+      <AppTopNav
+        activeTab={activeTab}
+        setActiveTab={navigateToTab}
+        userRole={userRole}
+        isAdmin={isAdminGlobal}
+        tenantData={tenantData}
+        userDisplayName={session?.user?.user_metadata?.nome}
+        filhoFotoUrl={filhoFotoUrl}
+      />
 
-      <div className={cn(
-        "app-content-panel flex min-w-0 flex-1 flex-col h-[100dvh] relative z-10",
-        userRole === 'filho' ? "lg:pl-64" : "lg:pl-[248px]"
-      )}>
-        <div className="app-content-panel__base" aria-hidden />
-
-        {/* Mobile Header */}
-        <header className="page-header-shell sticky top-0 z-50 flex h-20 min-w-0 shrink-0 items-center justify-between border-b border-white/5 bg-[#121212] lg:hidden">
-          {userRole === 'filho' ? (
-            /* Header exclusivo para filho de santo */
-            <>
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-yellow-500/30 bg-black/40">
-                  <img
-                    src={
-                      filhoFotoUrl ||
-                      session?.user?.user_metadata?.foto_url ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(session?.user?.user_metadata?.nome || 'filho')}`
-                    }
-                    alt="Perfil"
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col pr-2">
-                  <p className="truncate text-sm font-black text-white">
-                    {session?.user?.user_metadata?.nome || 'Filho de Santo'}
-                  </p>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-yellow-500" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-yellow-500">
-                      {tenantData?.nome || 'TERREIRO'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <PwaInstallTopbarButton />
-                <button
-                  onClick={() => setIsMobileOpen(true)}
-                  className="p-2 text-gray-400 hover:text-white"
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
-              </div>
-            </>
-          ) : (
-            /* Header padrão do zelador */
-            <>
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl bg-primary text-center text-lg font-black leading-10 text-background shadow-lg shadow-primary/20">
-                  {tenantData?.foto_url ? (
-                    <img 
-                      src={tenantData.foto_url} 
-                      alt="Profile" 
-                      className="h-full w-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    tenantData?.nome?.[0] || 'Z'
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col pr-2">
-                  <p className="truncate text-sm font-black text-white" title={tenantData?.nome || 'AXÉCLOUD'}>
-                    {tenantData?.nome || 'AXÉCLOUD'}
-                  </p>
-                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
-                      <p className="text-[9px] font-black uppercase tracking-widest text-primary">ONLINE</p>
-                    </div>
-                    {tenantData && (
-                      <>
-                        <span className="shrink-0 text-[10px] text-white/30">|</span>
-                        <span className={cn(
-                          "min-w-0 truncate text-[9px] font-black uppercase tracking-widest",
-                          getPlanColor(tenantData.plan)
-                        )}>
-                          {tenantData.plan}
-                          {tenantData.plan.toLowerCase() === 'premium' && " 👑"}
-                          {(tenantData.plan.toLowerCase() === 'vita' || tenantData.plan.toLowerCase() === 'plano vita' || tenantData.plan.toLowerCase() === 'cortesia') && " 💎"}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <PwaInstallTopbarButton />
-                <button 
-                  onClick={() => setIsMobileOpen(true)}
-                  className="p-2 text-gray-400 hover:text-white"
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
-              </div>
-            </>
-          )}
-        </header>
-
-        {/* Main Content Area with Scroll */}
-        <div className="relative z-[2] min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+      <div className="relative z-[1] min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12]">
           <main
-            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#121212]"
+            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
           >
             {/* Notificações push: apenas filhos — banner só com permissão ainda "default"; granted/denied o navegador já decidiu */}
@@ -1578,7 +1461,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             </div>
             <AppFooter />
           </main>
-        </div>
       </div>
     </div>
     <LegalTermsModal

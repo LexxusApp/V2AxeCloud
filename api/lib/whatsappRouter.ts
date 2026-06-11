@@ -74,10 +74,17 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     const user = await requireAuthUser(sb, req, res);
     if (!user) return;
 
+    const defaultPreferences = () => ({
+      notifGiras: true,
+      notifFinanceiro: true,
+      notifReza: true,
+      notifAniversarios: true,
+    });
+
     if (act === "config" && method === "GET") {
       const { data, error } = await sb
         .from("whatsapp_config")
-        .select("templates")
+        .select("templates, metadata, phone_number")
         .eq("tenant_id", user.id)
         .maybeSingle();
       if (error) {
@@ -87,27 +94,115 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
           return sendJson(res, 200, {
             success: true,
             templates: normalizeWhatsAppTemplates(null),
+            preferences: defaultPreferences(),
+            phoneNumber: null,
             warning: "WHATSAPP_TABLE_NOT_READY",
           });
         }
         throw error;
       }
-      return sendJson(res, 200, { success: true, templates: normalizeWhatsAppTemplates(data?.templates) });
+      const meta = (data?.metadata && typeof data.metadata === "object" ? data.metadata : {}) as Record<string, unknown>;
+      const prefs = (meta.preferences && typeof meta.preferences === "object" ? meta.preferences : {}) as Record<string, boolean>;
+      return sendJson(res, 200, {
+        success: true,
+        templates: normalizeWhatsAppTemplates(data?.templates),
+        preferences: { ...defaultPreferences(), ...prefs },
+        phoneNumber: data?.phone_number || null,
+      });
     }
 
     if (act === "config" && method === "POST") {
       const config = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(config?.templates);
+      const { data: existing } = await sb
+        .from("whatsapp_config")
+        .select("metadata")
+        .eq("tenant_id", user.id)
+        .maybeSingle();
+      const prevMeta = (existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {}) as Record<string, unknown>;
+      const nextMeta = { ...prevMeta };
+      if (config?.preferences && typeof config.preferences === "object") {
+        nextMeta.preferences = { ...defaultPreferences(), ...config.preferences };
+      }
       const { error } = await sb.from("whatsapp_config").upsert({
         instance_name: config?.instance_name,
         evolution_api_url: config?.evolution_api_url,
         templates: safeTemplates,
+        metadata: nextMeta,
         id: user.id,
         tenant_id: user.id,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
       return sendJson(res, 200, { success: true });
+    }
+
+    if (act === "logs" && method === "GET") {
+      const { data, error } = await sb
+        .from("whatsapp_logs")
+        .select("id, telefone, mensagem, tipo, status, created_at")
+        .eq("tenant_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      return sendJson(res, 200, { success: true, logs: data || [] });
+    }
+
+    if (act === "broadcast" && method === "POST") {
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 10, keyPrefix: "wa-broadcast" });
+      if (!rl.allowed) {
+        return sendJson(res, 429, { error: "Limite de transmissões excedido. Tente mais tarde." });
+      }
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const message = String(body.message || "").trim();
+      if (!message) return sendJson(res, 400, { error: "Mensagem obrigatória." });
+
+      const access = await sb.from("perfil_lider").select("tenant_id").eq("id", user.id).maybeSingle();
+      const tenantScope = String(access.data?.tenant_id || user.id);
+
+      const { data: filhos, error: filhosErr } = await sb
+        .from("filhos_de_santo")
+        .select("id, nome, whatsapp_phone")
+        .or(`tenant_id.eq.${tenantScope},lider_id.eq.${user.id}`)
+        .not("whatsapp_phone", "is", null);
+      if (filhosErr) throw filhosErr;
+
+      const targets = (filhos || []).filter((f) => String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10);
+      if (!targets.length) {
+        return sendJson(res, 400, { error: "Nenhum filho de santo com WhatsApp cadastrado." });
+      }
+
+      let sent = 0;
+      let failed = 0;
+      for (const filho of targets) {
+        try {
+          let phoneDigits = String(filho.whatsapp_phone).replace(/\D/g, "");
+          if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
+          await sendEvolutionTextMessage(user.id, phoneDigits, message);
+          sent += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      if (sent > 0) {
+        await sb.from("whatsapp_logs").insert({
+          tenant_id: user.id,
+          tipo: "teste",
+          telefone: "corrente_geral",
+          mensagem: message,
+          status: failed > 0 ? "partial" : "sent",
+          external_id: `broadcast_${Date.now()}`,
+        });
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        sent,
+        failed,
+        total: targets.length,
+        destino: `Corrente Geral (${targets.length} médiuns)`,
+      });
     }
 
     if (act === "send" && method === "POST") {

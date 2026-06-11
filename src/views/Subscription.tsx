@@ -8,7 +8,8 @@ import { formatPriceBRL } from '../lib/plansDisplay';
 import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
 import { ROUTES } from '../lib/routes';
 import { PLAN_PRICE_FOUNDER_REAIS } from '../../lib/planPricing';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 
 interface PlanCardProps {
   name: string;
@@ -163,9 +164,9 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   if (fetchingPlans) {
     if (onlyCurrentPlan) {
       return (
-        <div className="card-luxury p-8 flex items-center justify-center min-h-[120px]">
+        <AppDemoCard className="flex min-h-[120px] items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        </AppDemoCard>
       );
     }
     return (
@@ -183,7 +184,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
 
   if (onlyCurrentPlan) {
     return (
-      <div className="card-luxury p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-primary/20 bg-primary/5">
+      <AppDemoCard className="flex flex-col items-center justify-between gap-6 border-primary/20 bg-primary/5 md:flex-row">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
             <Crown className="w-8 h-8 text-primary" />
@@ -208,7 +209,7 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
             RENOVAR ASSINATURA
           </button>
         )}
-      </div>
+      </AppDemoCard>
     );
   }
 
@@ -248,20 +249,18 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
     );
   }
 
-  return (
-    <div className={cn("max-w-7xl mx-auto", hideHeader ? "" : "pb-12")}>
-      {!hideHeader && (
-        <PageHeader 
-          title={<>Escolha o fundamento da sua <span className="text-[#FBBC00]">Gestão</span></>}
-          subtitle="Selecione o plano que melhor atende às necessidades do seu terreiro e tenha controle total na palma da sua mão."
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
+  const inner = (
+    <div className={cn(hideHeader ? '' : '')}>
+      {!hideHeader ? (
+        <AppDemoPanelHeader
+          title="Assinatura do terreiro"
+          description="Selecione o plano que melhor atende às necessidades do seu terreiro."
         />
-      )}
+      ) : null}
 
       {hideHeader && (
         <div className="mb-12">
-          <div className="card-luxury p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-primary/20 bg-primary/5">
+          <AppDemoCard className="flex flex-col items-center justify-between gap-6 border-primary/20 bg-primary/5 md:flex-row">
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
                 <Crown className="w-8 h-8 text-primary" />
@@ -286,13 +285,13 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
                 RENOVAR ASSINATURA
               </button>
             )}
-          </div>
+          </AppDemoCard>
         </div>
       )}
 
       {plansGrid}
 
-      <div className="mt-20 p-10 rounded-3xl bg-white/5 border border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
+      <AppDemoCard className="mt-20 flex flex-col items-center justify-between gap-8 md:flex-row">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
             <ShieldCheck className="w-10 h-10 text-white" />
@@ -303,7 +302,9 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
           </div>
         </div>
         <p className="text-[11px] font-black uppercase tracking-widest text-gray-500">Pagamento via PIX · EFI Bank</p>
-      </div>
+      </AppDemoCard>
     </div>
   );
+
+  return hideHeader ? inner : <AppPageShell>{inner}</AppPageShell>;
 }

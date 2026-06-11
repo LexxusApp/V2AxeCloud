@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { Crown, TrendingUp, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { LandingIconBox, landingIconClass, type LandingIconAccent } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 type AudienceItem = {
   id: string;
   icon: LucideIcon;
+  accent: LandingIconAccent;
   title: string;
   text: string;
   featured?: boolean;
@@ -15,6 +17,7 @@ const AUDIENCE: AudienceItem[] = [
   {
     id: 'zeladores',
     icon: Users,
+    accent: 'emerald',
     title: 'Zeladores e quem cuida do chão',
     text: 'Rotina, oferenda e pessoas no mesmo lugar. Menos corre-corre, mais clareza para cuidar da casa.',
     featured: true,
@@ -22,12 +25,14 @@ const AUDIENCE: AudienceItem[] = [
   {
     id: 'pais',
     icon: Crown,
+    accent: 'gold',
     title: 'Pais e mães de santo',
     text: 'Comando com profissionalismo: números e processos alinhados ao axé, não ao improviso burocrático.',
   },
   {
     id: 'crescimento',
     icon: TrendingUp,
+    accent: 'sky',
     title: 'Terreiro em crescimento',
     text: 'Do pequeno ao que já gira muito: escala a organização sem perder a sensibilidade com a comunidade.',
   },
@@ -42,7 +47,7 @@ const fade = {
 
 export function LandingAudience() {
   return (
-    <LandingSection id="para-quem" variant="highlight" aria-labelledby="quem-head">
+    <LandingSection id="para-quem" variant="alt" aria-labelledby="quem-head">
       <div className="landing-section-inner">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
           <motion.div {...fade} className="relative z-10">
@@ -68,19 +73,12 @@ export function LandingAudience() {
                     item.featured && 'border-primary/30'
                   )}
                 >
-                  <span
-                    className={cn(
-                      'grid h-11 w-11 shrink-0 place-items-center rounded-xl border',
-                      item.featured
-                        ? 'border-primary/35 bg-primary/15 text-primary'
-                        : 'border-white/10 bg-white/[0.04] text-primary'
-                    )}
-                  >
-                    <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
-                  </span>
+                  <LandingIconBox accent={item.accent} className="shrink-0">
+                    <Icon className={landingIconClass(item.accent, 'h-5 w-5')} strokeWidth={1.5} aria-hidden />
+                  </LandingIconBox>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-white sm:text-base">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-zinc-400">{item.text}</p>
+                    <h3 className="text-base font-bold text-white sm:text-lg">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-400 sm:text-base">{item.text}</p>
                   </div>
                 </motion.li>
               );

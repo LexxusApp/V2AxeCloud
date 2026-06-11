@@ -1,7 +1,7 @@
 import type React from 'react';
 import { cn } from '../lib/utils';
 
-const pulse = 'animate-pulse bg-white/[0.06] border border-white/[0.04]';
+const pulse = 'animate-pulse bg-[#1E242B]/40 border border-[#1E242B]/60';
 
 export function SkeletonBlock({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn(pulse, 'rounded-lg', className)} {...props} />;
@@ -11,7 +11,7 @@ export function LibraryCardSkeleton({ embedded }: { embedded?: boolean }) {
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-xl border border-white/5 bg-[#111] flex flex-col',
+        'overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] flex flex-col',
         embedded && 'min-h-0'
       )}
     >

@@ -37,6 +37,12 @@ export const SITEMAP_ROUTES = [
     comment: 'Programa Fundador — inscrição de terreiros',
   },
   {
+    path: '/espaco-do-fiel',
+    changeFrequency: 'weekly',
+    priority: 0.9,
+    comment: 'Espaço do Fiel — portal público de pedidos de reza',
+  },
+  {
     path: '/conteudo',
     changeFrequency: 'weekly',
     priority: 0.85,

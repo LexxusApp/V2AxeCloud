@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { usePathname } from '../hooks/usePathname';
+import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
 
@@ -8,6 +9,7 @@ const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
 const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
 const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
 const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
+const EspacoDoFielPage = lazy(() => import('../views/EspacoDoFielPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 
@@ -29,10 +31,24 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <PortalArticlePage />;
     case ROUTES.glossary:
       return <GlossaryPage />;
+    case ROUTES.espacoDoFiel:
+      return <EspacoDoFielPage />;
     case ROUTES.home:
     default:
       return <Landing />;
   }
+}
+
+function MarketingAppRouteRedirect({ path }: { path: string }) {
+  useEffect(() => {
+    redirectToAppDevOriginIfNeeded(path);
+  }, [path]);
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[#080A0D] text-[#94A3B8]">
+      <p className="text-sm">Abrindo o painel…</p>
+    </div>
+  );
 }
 
 /** SPA leve — só páginas de marketing (sem login, dashboard, API client pesado). */
@@ -42,6 +58,10 @@ export default function MarketingRouter() {
   useEffect(() => {
     applyRouteSeo(path);
   }, [path]);
+
+  if (import.meta.env.DEV && isAppSpaPath(path)) {
+    return <MarketingAppRouteRedirect path={path} />;
+  }
 
   return (
     <Suspense fallback={<MarketingSectionFallback />}>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { LANDING_RESOURCES, LANDING_RESOURCES_HEADING } from '../../constants/landingResources';
+import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 const fade = {
@@ -12,7 +13,7 @@ const fade = {
 export function LandingResources() {
   return (
     <LandingSection id="recursos" variant="alt" aria-labelledby="recursos-head">
-      <div className="landing-section-inner">
+      <div className="landing-section-inner mx-auto max-w-7xl">
         <motion.div {...fade}>
           <LandingSectionHeader
             kicker={LANDING_RESOURCES_HEADING.kicker}
@@ -23,7 +24,7 @@ export function LandingResources() {
         </motion.div>
 
         <ul
-          className="relative z-10 mt-10 grid list-none grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6"
+          className="relative z-10 mt-14 grid list-none grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
           role="list"
         >
           {LANDING_RESOURCES.map((item, i) => {
@@ -35,10 +36,10 @@ export function LandingResources() {
                 transition={{ ...fade.transition, delay: 0.05 * i }}
                 className="h-full"
               >
-                <article className="landing-resource-card group h-full">
-                  <div className="landing-resource-card__icon" aria-hidden>
-                    <Icon className="h-6 w-6" strokeWidth={1.5} />
-                  </div>
+                <article className="landing-resource-card group h-full p-8">
+                  <LandingIconBox accent={item.iconAccent} className="mb-6">
+                    <Icon className={landingIconClass(item.iconAccent, 'h-6 w-6')} strokeWidth={1.5} aria-hidden />
+                  </LandingIconBox>
                   <h3 className="landing-resource-card__title">{item.title}</h3>
                   <p className="landing-resource-card__desc">{item.description}</p>
                 </article>

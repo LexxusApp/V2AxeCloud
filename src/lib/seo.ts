@@ -1,4 +1,5 @@
 import { metadata as homeMetadata } from '../app/page';
+import { BRAND_NAME, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
 import { ROUTES, normalizePath } from './routes';
 
 const SITE_ORIGIN = 'https://axecloud.com.br';
@@ -88,6 +89,13 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/conteudo/glossario',
     robots: 'index, follow',
   },
+  [ROUTES.espacoDoFiel]: {
+    title: 'Espaço do Fiel — Pedir Reza | AxéCloud',
+    description:
+      'Portal público de pedidos de reza: selecione um terreiro parceiro por cidade, acenda sua vela virtual e acompanhe o altar com respeito e privacidade.',
+    canonicalPath: '/espaco-do-fiel',
+    robots: 'index, follow',
+  },
 };
 
 function upsertMeta(name: string, content: string) {
@@ -162,10 +170,11 @@ export function applyRouteSeo(pathname: string) {
 
   document.title = seo.title;
   upsertMeta('description', seo.description);
+  upsertMeta('keywords', buildBrandKeywordsMeta());
   upsertMeta('robots', seo.robots);
   upsertCanonical(canonical);
   upsertOg('og:type', ogType);
-  upsertOg('og:site_name', 'AxéCloud');
+  upsertOg('og:site_name', BRAND_NAME);
   upsertOg('og:url', canonical);
   upsertOg('og:title', seo.title);
   upsertOg('og:description', seo.description);

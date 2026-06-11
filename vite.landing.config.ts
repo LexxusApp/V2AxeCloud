@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import type { Plugin } from 'vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { prerenderPublicPages } from './scripts/vite-plugin-prerender-public';
 import { seoHomeInject } from './scripts/vite-plugin-seo-inject';
 import { ROUTES } from './src/lib/routes';
@@ -19,10 +19,27 @@ function stripCrossoriginFromBuiltHtml(): Plugin {
 }
 
 /** Build estático da landing — assets em /m-assets/ para não colidir com o SPA do app. */
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const proxyTarget = env.VITE_PROXY_API || 'http://localhost:3000';
+
+  return {
   root: path.resolve(__dirname, 'marketing'),
   publicDir: path.resolve(__dirname, 'public'),
   base: '/',
+  server: {
+    port: 5174,
+    // Código-fonte em ../src — necessário para `npm run dev:landing`
+    fs: {
+      allow: [path.resolve(__dirname)],
+    },
+    proxy: {
+      '/api': {
+        target: proxyTarget,
+        changeOrigin: true,
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -56,4 +73,5 @@ export default defineConfig({
       },
     },
   },
+};
 });

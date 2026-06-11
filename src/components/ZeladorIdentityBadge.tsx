@@ -1,6 +1,7 @@
 import { cn } from '../lib/utils';
 import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
 import { FounderHouseBadge } from './founder/FounderHouseBadge';
+import { performFastLogout } from '../lib/logout';
 
 type ZeladorIdentityBadgeProps = {
   tenantData?: {
@@ -11,43 +12,81 @@ type ZeladorIdentityBadgeProps = {
     role?: string;
   } | null;
   className?: string;
+  /** Link discreto de logout abaixo da foto */
+  showLogout?: boolean;
+  /** Só avatar (+ sair); sem nome e badges */
+  compact?: boolean;
+  /** Foto alternativa (ex.: filho de santo) */
+  fotoUrl?: string | null;
+  displayName?: string;
 };
 
 /** Badge de foto, nome, plano e cargo — mesmo visual em todas as páginas. */
-export function ZeladorIdentityBadge({ tenantData, className }: ZeladorIdentityBadgeProps) {
+export function ZeladorIdentityBadge({
+  tenantData,
+  className,
+  showLogout,
+  compact,
+  fotoUrl,
+  displayName: displayNameProp,
+}: ZeladorIdentityBadgeProps) {
   const isZelador = tenantData?.role !== 'filho';
   const { isFounderHouse } = useFounderHouseStatus(isZelador);
-  const displayName = tenantData?.nome?.trim() || 'Zelador';
+  const displayName = displayNameProp?.trim() || tenantData?.nome?.trim() || 'Zelador';
   const initial = (displayName[0] || 'Z').toUpperCase();
   const roleLine =
     tenantData?.role === 'filho' ? 'Filho de Santo' : tenantData?.cargo?.trim() || null;
+  const avatarSrc = fotoUrl ?? tenantData?.foto_url;
+
+  const avatar = (
+    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-primary bg-primary text-sm font-black text-background shadow-lg shadow-primary/20 md:h-9 md:w-9">
+      {avatarSrc ? (
+        <img
+          src={avatarSrc}
+          alt={displayName}
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) parent.textContent = initial;
+          }}
+        />
+      ) : (
+        initial
+      )}
+    </div>
+  );
+
+  const logoutBtn = showLogout ? (
+    <button
+      type="button"
+      onClick={() => void performFastLogout()}
+      className="text-[9px] font-medium tracking-wide text-[#4B5563] transition-colors hover:text-[#94A3B8]"
+    >
+      sair
+    </button>
+  ) : null;
 
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-full border border-white/10 bg-white/5 p-1 pr-3',
+        'flex items-center gap-3 rounded-full border border-white/10 bg-white/5 p-1',
+        compact ? 'pr-1' : 'pr-3',
         className
       )}
       aria-label="Identificação do zelador"
     >
-      <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-primary bg-primary text-sm font-black text-background shadow-lg shadow-primary/20 md:h-9 md:w-9">
-        {tenantData?.foto_url ? (
-          <img
-            src={tenantData.foto_url}
-            alt={displayName}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) parent.textContent = initial;
-            }}
-          />
-        ) : (
-          initial
-        )}
-      </div>
+      {showLogout ? (
+        <div className="flex flex-col items-center gap-0.5 px-0.5">
+          {avatar}
+          {logoutBtn}
+        </div>
+      ) : (
+        avatar
+      )}
+      {!compact && (
       <div className="hidden min-w-0 flex-col items-start gap-0.5 md:flex">
         <div className="flex max-w-[220px] items-center gap-2">
           <span className="truncate text-sm font-bold tracking-tight text-white" title={displayName}>
@@ -67,6 +106,7 @@ export function ZeladorIdentityBadge({ tenantData, className }: ZeladorIdentityB
           </span>
         )}
       </div>
+      )}
     </div>
   );
 }

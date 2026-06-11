@@ -15,7 +15,7 @@ const sizeStyles: Record<
   }
 > = {
   compact: {
-    root: 'gap-3 min-w-[176px]',
+    root: 'gap-3 min-w-0 max-w-full',
     emblem: 'h-10 w-10 border',
     emblemGlow: 'shadow-[0_0_18px_rgba(242,185,15,0.16)]',
     ring: 'inset-[6px]',
@@ -24,7 +24,7 @@ const sizeStyles: Record<
     tagline: 'mt-1 text-[7px] tracking-[0.28em]',
   },
   default: {
-    root: 'gap-3 min-w-[214px]',
+    root: 'gap-3 min-w-0 max-w-full sm:min-w-[214px]',
     emblem: 'h-12 w-12 border',
     emblemGlow: 'shadow-[0_0_18px_rgba(242,185,15,0.16)]',
     ring: 'inset-[6px]',
@@ -33,7 +33,7 @@ const sizeStyles: Record<
     tagline: 'mt-1 text-[9px] tracking-[0.28em]',
   },
   large: {
-    root: 'gap-4 min-w-[260px]',
+    root: 'gap-4 min-w-0 max-w-full sm:min-w-[260px]',
     emblem: 'h-16 w-16 border-2',
     emblemGlow: 'shadow-[0_0_32px_rgba(242,185,15,0.35)]',
     ring: 'inset-[9px] border-2',

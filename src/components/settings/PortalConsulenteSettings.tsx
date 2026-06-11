@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Copy, ExternalLink, Globe, Loader2, Save } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { marketingHref } from '../../lib/appHref';
+import { ROUTES } from '../../lib/routes';
 import { TRADICAO_OPTIONS } from '../../lib/tradicaoModules';
 import { cn } from '../../lib/utils';
 
@@ -10,6 +12,7 @@ type PortalSettings = {
   portalAtivo: boolean;
   mensagem: string | null;
   portalUrl: string | null;
+  listagemPedidosUrl: string | null;
 };
 
 export function PortalConsulenteSettings() {
@@ -31,6 +34,7 @@ export function PortalConsulenteSettings() {
           portalAtivo: Boolean(json.portalAtivo),
           mensagem: json.mensagem || '',
           portalUrl: json.portalUrl || null,
+          listagemPedidosUrl: json.listagemPedidosUrl || null,
         });
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Erro ao carregar'))
@@ -60,6 +64,7 @@ export function PortalConsulenteSettings() {
           ? {
               ...prev,
               portalUrl: json.portalUrl || null,
+              listagemPedidosUrl: json.listagemPedidosUrl || null,
               publicSlug: json.publicSlug || prev.publicSlug,
             }
           : prev,
@@ -94,6 +99,16 @@ export function PortalConsulenteSettings() {
   }
 
   const previewUrl = data.portalUrl || (data.publicSlug ? `/consulente/${data.publicSlug}` : null);
+  const listagemUrl =
+    data.listagemPedidosUrl ||
+    (data.portalAtivo && data.publicSlug
+      ? `${ROUTES.espacoDoFiel}?casa=${encodeURIComponent(data.publicSlug)}`
+      : null);
+
+  function publicHref(path: string): string {
+    if (typeof window === 'undefined') return path;
+    return `${window.location.origin}${marketingHref(path)}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -103,7 +118,16 @@ export function PortalConsulenteSettings() {
           Tradição e portal do consulente
         </h3>
         <p className="mt-1 text-sm text-gray-500">
-          Define a linha da casa e o link público para pedidos de reza de consulentes.
+          Com o portal activo, a sua casa aparece no{' '}
+          <a
+            href={marketingHref(ROUTES.espacoDoFiel)}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            Espaço do Fiel — Pedidos de Reza
+          </a>
+          , onde consulentes escolhem o terreiro e enviam pedidos com altar virtual.
         </p>
       </div>
 
@@ -168,25 +192,49 @@ export function PortalConsulenteSettings() {
         </div>
       </div>
 
-      {previewUrl && data.portalAtivo ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Abrir portal
-          </a>
-          <button
-            type="button"
-            onClick={copyLink}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-white"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {copied ? 'Copiado!' : 'Copiar link'}
-          </button>
+      {data.portalAtivo && (listagemUrl || previewUrl) ? (
+        <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-primary/80">Links públicos</p>
+          <div className="flex flex-wrap items-center gap-3">
+            {listagemUrl ? (
+              <a
+                href={marketingHref(listagemUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Página de Pedidos de Reza
+              </a>
+            ) : null}
+            {previewUrl ? (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Portal directo da casa
+              </a>
+            ) : null}
+            {previewUrl ? (
+              <button
+                type="button"
+                onClick={copyLink}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-white"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                {copied ? 'Copiado!' : 'Copiar portal directo'}
+              </button>
+            ) : null}
+          </div>
+          {listagemUrl ? (
+            <p className="text-[11px] text-gray-500">
+              No site:{' '}
+              <span className="font-mono text-gray-400">{publicHref(listagemUrl)}</span>
+            </p>
+          ) : null}
         </div>
       ) : null}
 

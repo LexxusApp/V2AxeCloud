@@ -19,6 +19,7 @@
       })();
     </script>
     <meta charset="UTF-8" />
+    <script>document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -46,21 +47,43 @@
       content="Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo."
     />
     <!-- /SEO_HEAD_INJECT -->
+    <style>
+      html.js #axecloud-seo-static {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+        pointer-events: none !important;
+      }
+      html:not(.js) #axecloud-seo-static {
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 2rem;
+        font-family: system-ui, sans-serif;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        color: #d4d4d4;
+      }
+    </style>
   </head>
   <body class="bg-neutral-950 text-white antialiased">
-    <div id="root">
-      <!-- SEO_BODY_INJECT -->
-      <article id="axecloud-seo-static" aria-label="Sobre o AxéCloud">
-        <h1>Sistema de gestão para terreiros de Umbanda e Candomblé</h1>
-        <p>Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo.</p>
-      </article>
-      <!-- /SEO_BODY_INJECT -->
-    </div>
+    <div id="root"></div>
+    <!-- SEO_BODY_INJECT -->
+    <article id="axecloud-seo-static" aria-label="Sobre o AxéCloud">
+      <h1>Sistema de gestão para terreiros de Umbanda e Candomblé</h1>
+      <p>Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo.</p>
+    </article>
+    <!-- /SEO_BODY_INJECT -->
     <noscript>
       <!-- SEO_NOSCRIPT_INJECT -->
       <p>Ative o JavaScript para acessar a plataforma completa.</p>
       <!-- /SEO_NOSCRIPT_INJECT -->
     </noscript>
-    <script type="module" src="../src/marketing/main.tsx"></script>
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>

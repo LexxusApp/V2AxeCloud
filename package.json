@@ -9,9 +9,12 @@
     "dev:admin-vite": "npm run dev --prefix axecloud-admin",
     "dev:with-admin": "npm run dev:admin",
     "generate:sitemap": "node scripts/generate-sitemap.mjs",
+    "submit:sitemap": "node scripts/submit-sitemap.mjs",
     "generate:favicons": "node scripts/generate-favicons.mjs",
     "capture-screens": "node scripts/capture-axecloud.mjs",
     "build": "npm run generate:sitemap && vite build",
+    "dev:landing": "vite --config vite.landing.config.ts --port 5174",
+    "dev:site": "concurrently -k -n app,landing -c cyan,yellow \"npm run dev\" \"npm run dev:landing\"",
     "build:landing": "vite build --config vite.landing.config.ts",
     "build:all": "npm run build && npm run build:landing",
     "preview": "vite preview",
@@ -78,5 +81,9 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.6",
+    "axios": "^1.15.0"
   }
 }

@@ -1,88 +1,95 @@
-import { motion } from 'framer-motion';
-import { Database, KeyRound, Scale, Server, ShieldCheck } from 'lucide-react';
-import { LandingSection } from './LandingSection';
+import { Check, Lock } from 'lucide-react';
 
-const fade = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.25 },
-  transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
-} as const;
-
-const points = [
+const SECURITY_POINTS = [
   {
-    icon: ShieldCheck,
-    title: 'Dados criptografados em trânsito e em repouso',
-    detail: 'TLS 1.3 no canal HTTPS e AES-256 no armazenamento — da navegação ao banco de dados.',
+    title: 'Sem publicidade ou cookies rastreadores',
+    detail: 'Seus dados nunca serão expostos ou mercantilizados por anunciantes terceiros.',
   },
   {
-    icon: Server,
-    title: 'Hospedagem em servidores seguros e monitorados',
-    detail: 'Infraestrutura dedicada com firewall, backups automáticos e vigilância contínua de disponibilidade.',
+    title: 'Backup Em Nuvem Redundante',
+    detail:
+      'Segurança física com servidores duplicados localizados confidencialmente na América Latina.',
   },
   {
-    icon: Database,
-    title: 'Isolamento multi-tenant (RLS)',
-    detail: 'Row Level Security no banco: cada terreiro só acessa o próprio ambiente.',
-  },
-  {
-    icon: KeyRound,
-    title: 'RBAC e menor privilégio',
-    detail: 'Perfis segregados (zelador, filho, diretoria) com permissões granulares por módulo.',
-  },
-  {
-    icon: Scale,
-    title: 'LGPD e sigilo da casa',
-    detail: 'Tratamento de dados pessoais alinhado à lei, com confidencialidade sobre filhos e finanças.',
+    title: 'Exportação Completa de Dados',
+    detail:
+      'Você é dono da sua própria história. Exporte relatórios ou todas as listas em PDF e Excel com apenas um clique.',
   },
 ] as const;
 
 export function LandingSecurity() {
   return (
-    <LandingSection id="seguranca" aria-labelledby="seguranca-head">
-      <motion.div className="landing-section-inner" {...fade}>
-        <div className="landing-mystic-card relative z-10 flex flex-col gap-8 p-6 sm:flex-row sm:items-start sm:gap-10 sm:p-8 lg:p-10">
-          <div className="flex shrink-0 items-center justify-center sm:w-[120px] sm:pt-1">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-2xl" aria-hidden />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 sm:h-20 sm:w-20">
-                <ShieldCheck className="h-9 w-9 text-primary sm:h-10 sm:w-10" strokeWidth={1.5} aria-hidden />
+    <section id="seguranca" className="border-t border-[#1E242B] bg-[#0B0F13] py-20 md:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className="relative order-2 lg:order-1">
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl border border-[#1E242B] bg-[#13171D] p-8">
+              <div className="w-full rounded-2xl border border-[#1E242B] bg-[#12161A] p-6 shadow-xl">
+                <div className="mb-4 flex items-center gap-2 border-b border-[#1E242B] pb-3.5">
+                  <Lock className="h-4 w-4 text-emerald-400" aria-hidden />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
+                    Protocolo de Sigilo Religioso Axé-Lock
+                  </span>
+                </div>
+
+                <div className="space-y-3 font-mono text-[10px] text-[#94A3B8]">
+                  <p className="flex justify-between gap-4">
+                    <span>{'>'} ESTADO DO BANCO:</span>
+                    <span className="font-bold text-emerald-400">100% ENCRIPTADO</span>
+                  </p>
+                  <p className="flex justify-between gap-4">
+                    <span>{'>'} DIRETRIZ LGPD:</span>
+                    <span className="text-right text-[#F1F5F9]">DADOS SENSÍVEIS (ALTA SEGURANÇA)</span>
+                  </p>
+                  <p className="flex justify-between gap-4">
+                    <span>{'>'} BACKUP AUTOMÁTICO:</span>
+                    <span className="font-bold text-sky-400">DE HORA EM HORA</span>
+                  </p>
+                  <div className="rounded-lg border border-emerald-950 bg-emerald-950/40 p-2.5 font-sans text-[10px] text-emerald-300">
+                    Diferente de redes sociais públicas, os dados de assentamentos, obrigações espirituais e
+                    fichas litúrgicas nunca são monitorados por sistemas de anúncio ou buscadores como o Google.
+                  </div>
+                </div>
               </div>
+
+              <div
+                className="pointer-events-none absolute -bottom-4 -right-4 -z-10 h-28 w-28 rounded-full bg-[#FACC15]/10 blur-2xl"
+                aria-hidden
+              />
             </div>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="landing-kicker !justify-start">Segurança</p>
-            <h2
-              id="seguranca-head"
-              className="mt-1 text-xl font-extrabold leading-snug text-white sm:text-2xl lg:text-3xl"
-            >
-              Infraestrutura blindada para o que é sagrado da sua casa
+          <div className="order-1 space-y-6 lg:order-2">
+            <span className="block text-xs font-bold uppercase tracking-widest text-[#FACC15]">
+              Inviolabilidade Histórica
+            </span>
+
+            <h2 className="font-display text-3xl font-black tracking-tight text-[#F1F5F9] md:text-4xl">
+              Seus dados preservados com o máximo sigilo profissional
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Tratamos filhos de santo, financeiro e rotina litúrgica como dados sensíveis de missão crítica:
-              arquitetura em nuvem com segregação por terreiro, criptografia ponta a ponta, políticas de acesso
-              restritivas e monitoramento contínuo — porque zelar da casa também é zelar da privacidade dela.
+
+            <p className="text-sm font-light leading-relaxed text-[#94A3B8] md:text-base">
+              Reconhecemos a extrema seriedade que envolve os nomes ritualísticos e preparos internos de terreiros
+              tradicionais de matriz africana. O Axé Cloud segue rigorosamente as leis civis de dados (LGPD) sob a
+              tutela de dados religiosos extremamente sensíveis.
             </p>
-            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-primary/80">
-              HSTS · headers hardened · backups · conformidade LGPD
-            </p>
-            <ul className="mt-6 grid list-none gap-4 sm:grid-cols-2" role="list">
-              {points.map(({ icon: Icon, title, detail }) => (
-                <li key={title} className="rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3.5">
-                  <div className="flex items-start gap-2.5">
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-bold leading-snug text-white">{title}</p>
-                      <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">{detail}</p>
-                    </div>
+
+            <div className="space-y-4">
+              {SECURITY_POINTS.map((point) => (
+                <div key={point.title} className="flex gap-3">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-800/50 bg-emerald-950/60 text-emerald-300">
+                    <Check className="h-3 w-3" aria-hidden />
                   </div>
-                </li>
+                  <div>
+                    <h3 className="text-xs font-bold text-[#F1F5F9]">{point.title}</h3>
+                    <p className="text-xs text-[#94A3B8]">{point.detail}</p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
-      </motion.div>
-    </LandingSection>
+      </div>
+    </section>
   );
 }

@@ -20,7 +20,8 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
 import CommentSection from '../components/CommentSection';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 
@@ -337,7 +338,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     }
   };
 
-  return (
+  const body = (
     <div className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden', embedded && 'min-h-0')}>
       <AnimatePresence mode="wait">
         {selectedMaterial && !embedded ? (
@@ -373,7 +374,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             </div>
 
             {/* PDF Viewer (Iframe) */}
-            <div className="card-luxury relative aspect-[16/9] w-full min-w-0 max-w-full overflow-hidden rounded-3xl shadow-2xl">
+            <AppDemoCard className="relative aspect-[16/9] w-full min-w-0 max-w-full overflow-hidden p-0">
               <iframe 
                 src={`${selectedMaterial.arquivo_url}#toolbar=0`}
                 className="w-full h-full border-none"
@@ -384,7 +385,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   Modo de Estudo Ativo
                 </div>
               </div>
-            </div>
+            </AppDemoCard>
 
             {/* Comments Section */}
             <div className="mx-auto w-full min-w-0 max-w-4xl">
@@ -420,24 +421,27 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 </button>
               </div>
             ) : (
-              <PageHeader 
-                title={<>Biblioteca de <span className="text-primary">Estudos</span></>}
-                subtitle="O conhecimento é a base do fundamento."
-                tenantData={tenantData}
-                setActiveTab={setActiveTab}
-                actions={
-                  isAdmin && (
-                    <button 
+              <AppDemoPanelHeader
+                title="Biblioteca de estudos"
+                description="O conhecimento é a base do fundamento."
+                action={
+                  isAdmin ? (
+                    <button
+                      type="button"
                       onClick={() => setIsUploadModalOpen(true)}
                       className={cn(
-                        'app-page-action',
-                        !hasPlanAccess(tenantData?.plan, 'library') && 'app-page-action--disabled',
+                        'inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]',
+                        !hasPlanAccess(tenantData?.plan, 'library') && 'opacity-50',
                       )}
                     >
-                      {!hasPlanAccess(tenantData?.plan, 'library') ? <Lock className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" /> : <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />}
-                      <span className="truncate sm:whitespace-normal">Subir Material</span>
+                      {!hasPlanAccess(tenantData?.plan, 'library') ? (
+                        <Lock className="h-4 w-4" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                      Subir material
                     </button>
-                  )
+                  ) : null
                 }
               />
             )}
@@ -646,4 +650,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       </AnimatePresence>
     </div>
   );
+
+  return embedded ? body : <AppPageShell>{body}</AppPageShell>;
 }

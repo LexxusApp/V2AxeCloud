@@ -1,3 +1,4 @@
+import { buildBrandKeywordsMeta } from './seoBrandKeywords';
 import {
   PRIVACY_POLICY_SECTIONS,
   PRIVACY_POLICY_SUMMARY,
@@ -174,6 +175,29 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       })),
     },
   },
+  {
+    path: ROUTES.espacoDoFiel,
+    title: 'Espaço do Fiel — Pedir Reza | AxéCloud',
+    description:
+      'Portal público de pedidos de reza: selecione um terreiro parceiro por cidade, acenda sua vela virtual e acompanhe o altar com respeito e privacidade.',
+    h1: 'Portal Público de Pedidos de Reza',
+    intro:
+      'Ambiente dedicado do visitante e herdeiro de fé — selecione uma casa parceira, firme seu pedido e acompanhe a vela virtual no altar.',
+    sections: [
+      {
+        heading: 'Selecione o terreiro por cidade',
+        body: 'Encontre casas religiosas parceiras em São Paulo, Rio de Janeiro, Salvador e outras cidades.',
+      },
+      {
+        heading: 'Formulário de amparo',
+        body: 'Envie seu pedido de reza com tipo, linha de trabalho e cor da vela virtual.',
+      },
+      {
+        heading: 'Altar virtual',
+        body: 'Acompanhe o status do pedido — vela acesa quando aceito pelo zelador, apagada enquanto pendente.',
+      },
+    ],
+  },
 ] as const;
 
 export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] = [
@@ -182,6 +206,7 @@ export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] =
   { href: `${SITE_ORIGIN}${ROUTES.terms}`, label: 'Termos de Uso' },
   { href: `${SITE_ORIGIN}${ROUTES.privacy}`, label: 'Política de Privacidade' },
   { href: `${SITE_ORIGIN}${ROUTES.founderProgram}`, label: 'Programa Fundador' },
+  { href: `${SITE_ORIGIN}${ROUTES.espacoDoFiel}`, label: 'Espaço do Fiel' },
   { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
 ];
 
@@ -232,6 +257,7 @@ export function buildPublicPageHeadInject(page: PublicPrerenderPage): string {
     `<title>${escapeHtml(t)}</title>`,
     '',
     `<meta name="description" content="${escapeHtml(d)}" />`,
+    `<meta name="keywords" content="${escapeHtml(buildBrandKeywordsMeta())}" />`,
     `<meta name="robots" content="index, follow" />`,
     `<link rel="canonical" href="${url}" />`,
     '',

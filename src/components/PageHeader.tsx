@@ -1,5 +1,4 @@
 import React from 'react';
-import { ZeladorIdentityBadge } from './ZeladorIdentityBadge';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -15,24 +14,20 @@ interface PageHeaderProps {
   setActiveTab: (tab: string) => void;
 }
 
-export default function PageHeader({ title, subtitle, actions, tabs, tenantData }: PageHeaderProps) {
+export default function PageHeader({ title, subtitle, actions, tabs }: PageHeaderProps) {
   return (
-    <div className="page-header-shell mb-0 w-full min-w-0 max-w-full overflow-x-hidden bg-transparent py-3 md:mb-6 md:py-8">
+    <div className="page-header-shell mb-0 w-full min-w-0 max-w-full overflow-x-hidden bg-transparent py-3 md:mb-5 md:py-6">
       <header className="mx-auto flex min-w-0 max-w-[1440px] flex-col gap-3 md:gap-4">
         <div className="flex min-w-0 items-start justify-between gap-4 md:gap-6">
-          <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
-            <h2 className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-4xl [&>*]:min-w-0">
+          <div className="min-w-0 flex-1 space-y-1 md:space-y-1.5">
+            <h2 className="font-display flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-xl font-bold leading-tight tracking-tight text-[#F1F5F9] sm:text-2xl md:text-3xl [&>*]:min-w-0">
               {title}
             </h2>
             {subtitle ? (
-              <p className="max-w-full break-words text-sm font-medium text-gray-400 md:text-base">
+              <p className="max-w-full break-words text-sm font-medium text-[#94A3B8]">
                 {subtitle}
               </p>
             ) : null}
-          </div>
-
-          <div className="hidden shrink-0 sm:block">
-            <ZeladorIdentityBadge tenantData={tenantData} />
           </div>
         </div>
 

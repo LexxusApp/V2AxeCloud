@@ -1,3 +1,9 @@
+import {
+  BRAND_NAME,
+  buildBrandAlternateNamesJsonLd,
+  buildBrandKeywordsMeta,
+  buildBrandRecognitionParagraph,
+} from './seoBrandKeywords';
 import { buildPublicSiteNavHtml } from './seoPublicPages';
 import { LANDING_SCREENSHOT_VERSION } from './landingScreenshots';
 import { SOCIAL_SAME_AS } from './socialLinks';
@@ -6,14 +12,14 @@ import { SOCIAL_SAME_AS } from './socialLinks';
 export const SITE_ORIGIN = 'https://axecloud.com.br';
 
 export const HOME_SEO = {
-  title: 'AxéCloud | Sistema de Gestão para Terreiros de Umbanda e Candomblé',
+  title: `${BRAND_NAME} | Sistema de Gestão para Terreiros de Umbanda e Candomblé`,
   description:
-    'Software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.',
-  h1: 'Sistema de gestão para terreiros de Umbanda e Candomblé',
+    `${BRAND_NAME} é o software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
+  h1: `${BRAND_NAME} — sistema de gestão para terreiros de Umbanda e Candomblé`,
   heroTagline: 'Tecnologia a serviço do sagrado.',
-  keywords:
-    'AxéCloud, gestão de terreiro, software para terreiro, casa de axé, zelador, filhos de santo, candomblé, umbanda, jurema, gestão mística, financeiro de terreiro, mensalidade terreiro, galeria de fotos terreiro, calendário de giras, portal filho de santo, terreiro umbanda, terreiro candomblé',
-  ogImageAlt: 'AxéCloud — Sistema de gestão para terreiros de Umbanda e Candomblé',
+  keywords: buildBrandKeywordsMeta(),
+  brandRecognition: buildBrandRecognitionParagraph(),
+  ogImageAlt: `${BRAND_NAME} — Sistema de gestão para terreiros de Umbanda e Candomblé`,
   manifestDescription:
     'Gestão para terreiros de Umbanda e Candomblé: financeiro, galeria de fotos, giras e portal do filho de santo.',
 } as const;
@@ -21,6 +27,10 @@ export const HOME_SEO = {
 export type HomeFaqItem = { q: string; a: string };
 
 export const HOME_FAQ: readonly HomeFaqItem[] = [
+  {
+    q: 'O que é o AxéCloud (axe cloud / axecloud)?',
+    a: 'O AxéCloud é o sistema oficial de gestão para terreiros de Umbanda e Candomblé em axecloud.com.br. Se você pesquisou por "axe cloud", "Axe Cloud", "axecloud" ou "Axé cloud", encontrou o lugar certo — financeiro, galeria, calendário de giras e portal do filho de santo em um só lugar.',
+  },
   {
     q: 'O AxéCloud serve para terreiros de Umbanda, Candomblé e Jurema?',
     a: 'Sim. O AxéCloud é flexível para casas de axé de Umbanda, Candomblé, Jurema e outras vertentes. Você personaliza termos, cargos e rotinas conforme a tradição do seu terreiro.',
@@ -59,18 +69,25 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
 ] as const;
 
+/** Cabeçalho da seção «A plataforma» na landing. */
+export const HOME_PLATAFORMA = {
+  titleBefore: 'Uma ferramenta ungida com',
+  titleHighlight: 'Respeito e Tradição',
+  lead: 'Diferente de sistemas de e-commerce ou gerências de escritório frias, as funcionalidades do Axé Cloud foram esculpidas ouvindo zeladores, mães e pais de santo, ogãs e médiuns da corrente.',
+} as const;
+
 export const HOME_STATIC_SECTIONS: readonly { heading: string; body: string }[] = [
   {
-    heading: 'Gestão financeira para terreiros de axé',
-    body: 'Controle mensalidades de filhos de santo, doações, despesas e arrecadações Pix com transparência para zeladores, pais de santo e diretoria de terreiros de Umbanda e Candomblé.',
+    heading: 'Privacidade Silenciosa',
+    body: 'Ambiente fechado da sua casa religiosa. Apenas pessoas autorizadas têm acesso. Ficha de desenvolvimento espiritual, batismo e feitura do médium protegidos sob sigilo canônico absoluto.',
   },
   {
-    heading: 'Portal do filho de santo',
-    body: 'Biblioteca de estudos, mural espiritual, calendário de giras e pagamento de mensalidade num único app pensado para a rotina da casa.',
+    heading: 'Respeito Litúrgico',
+    body: 'Nossos campos utilizam termos litúrgicos reais: Amaci do Médium, Orixá de Cabeça, Guia de Frente (Caboclos, Exus, Pretos Velhos), Adoxado, Abian, Ogãs, Cambones, Coroa de Santo e Obrigações de Anos.',
   },
   {
-    heading: 'Galeria de fotos e calendário de giras',
-    body: 'Álbuns de giras, festas e momentos da comunidade sem pastas espalhadas. Agenda de giras, festas e obrigações visível para toda a comunidade do terreiro.',
+    heading: 'Conexão Consistente',
+    body: 'Aproxima o terreiro de seus praticantes frequentes através de avisos, escala de trabalhos espirituais nos dias de gira, comemorações de aniversariantes e de formações da corrente.',
   },
 ];
 
@@ -86,7 +103,8 @@ export function buildHomeJsonLd(): string {
   const graph = [
     {
       '@type': 'SoftwareApplication',
-      name: 'AxéCloud',
+      name: BRAND_NAME,
+      alternateName: buildBrandAlternateNamesJsonLd(),
       url: `${SITE_ORIGIN}/`,
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web, iOS, Android',
@@ -103,7 +121,8 @@ export function buildHomeJsonLd(): string {
     {
       '@type': 'Organization',
       '@id': `${SITE_ORIGIN}/#organization`,
-      name: 'AxéCloud',
+      name: BRAND_NAME,
+      alternateName: buildBrandAlternateNamesJsonLd(),
       url: `${SITE_ORIGIN}/`,
       logo: `${SITE_ORIGIN}/axecloud_512.png`,
       description: HOME_SEO.description,
@@ -112,7 +131,8 @@ export function buildHomeJsonLd(): string {
     {
       '@type': 'WebSite',
       '@id': `${SITE_ORIGIN}/#website`,
-      name: 'AxéCloud',
+      name: BRAND_NAME,
+      alternateName: buildBrandAlternateNamesJsonLd(),
       url: `${SITE_ORIGIN}/`,
       description: HOME_SEO.description,
       inLanguage: 'pt-BR',
@@ -189,9 +209,10 @@ export function buildHomeBodyInject(): string {
   ).join('\n');
 
   return [
-    `    <article id="axecloud-seo-static" aria-label="Sobre o AxéCloud">`,
+    `    <article id="axecloud-seo-static" aria-label="Sobre o ${escapeHtml(BRAND_NAME)}">`,
     `      <h1>${escapeHtml(HOME_SEO.h1)}</h1>`,
     `      <p>${escapeHtml(HOME_SEO.description)}</p>`,
+    `      <p>${escapeHtml(HOME_SEO.brandRecognition)}</p>`,
     '',
     sections,
     '',

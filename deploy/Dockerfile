@@ -10,11 +10,16 @@ ARG VITE_VAPID_PUBLIC_KEY=""
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
     VITE_VAPID_PUBLIC_KEY=$VITE_VAPID_PUBLIC_KEY
+RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \
+    (echo "ERRO: VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórios no build do app." && exit 1)
 RUN npm run build
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev && npm install tsx@^4.21.0
 COPY --from=build /app/dist ./dist

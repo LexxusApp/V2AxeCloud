@@ -17,6 +17,7 @@ export const ROUTES = {
   contentArticle: '/conteudo/como-o-axecloud-ajuda-terreiros',
   glossary: '/conteudo/glossario',
   consulentePortal: '/consulente',
+  espacoDoFiel: '/espaco-do-fiel',
   eventRsvp: '/convite',
 } as const;
 
@@ -34,6 +35,7 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.terms,
   ROUTES.privacy,
   ROUTES.founderProgram,
+  ROUTES.espacoDoFiel,
   ROUTES.contentHub,
   ROUTES.contentArticle,
   ROUTES.glossary,
@@ -45,6 +47,7 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.register,
   ROUTES.checkout,
   ROUTES.founderProgram,
+  ROUTES.espacoDoFiel,
   ROUTES.contentHub,
   ROUTES.contentArticle,
   ROUTES.glossary,

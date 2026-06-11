@@ -87,19 +87,37 @@ services:
     networks:
       - web
 
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: "crowdsecurity/caddy crowdsecurity/linux crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"
+    volumes:
+      - crowdsec_config:/etc/crowdsec
+      - crowdsec_data:/var/lib/crowdsec/data
+      - /var/log/caddy:/var/log/caddy:ro
+      - ./crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
+    networks:
+      - web
+
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     environment:
       ACME_EMAIL: ${ACME_EMAIL}
+      CROWDSEC_CADDY_API_KEY: ${CROWDSEC_CADDY_API_KEY}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - /var/log/caddy:/var/log/caddy
     depends_on:
+      - crowdsec
       - app
       - marketing
     networks:
@@ -113,3 +131,5 @@ volumes:
   evolution_data:
   caddy_data:
   caddy_config:
+  crowdsec_config:
+  crowdsec_data:

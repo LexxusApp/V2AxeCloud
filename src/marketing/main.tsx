@@ -6,22 +6,14 @@ import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import MarketingRouter from './MarketingRouter';
 import '../index.css';
 
-async function bootstrapMarketing() {
-  await purgeLegacyAppServiceWorker();
-
-  try {
-    sessionStorage.removeItem('axecloud_marketing_sw_fixup');
-  } catch {
-    /* */
-  }
+function bootstrapMarketing() {
+  document.getElementById('axecloud-seo-static')?.remove();
+  document.getElementById('axecloud-boot')?.remove();
 
   const rootEl = document.getElementById('root');
   if (!rootEl) {
     throw new Error('#root não encontrado');
   }
-
-  document.getElementById('axecloud-seo-static')?.remove();
-  document.getElementById('axecloud-boot')?.remove();
 
   createRoot(rootEl).render(
     <StrictMode>
@@ -30,8 +22,16 @@ async function bootstrapMarketing() {
       </AppErrorBoundary>
     </StrictMode>,
   );
+
+  try {
+    sessionStorage.removeItem('axecloud_marketing_sw_fixup');
+  } catch {
+    /* */
+  }
+
+  void purgeLegacyAppServiceWorker();
 }
 
 if (!redirectToCanonicalOriginIfNeeded()) {
-  void bootstrapMarketing();
+  bootstrapMarketing();
 }

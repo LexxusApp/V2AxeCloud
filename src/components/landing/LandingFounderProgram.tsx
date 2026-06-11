@@ -3,6 +3,7 @@ import { ArrowRight, Check, Crown, Sparkles } from 'lucide-react';
 import { FOUNDER_BENEFITS, FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { ROUTES } from '../../lib/routes';
 import { useFounderProgramStats } from '../../hooks/useFounderProgramStats';
+import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 const fade = {
@@ -16,7 +17,7 @@ export function LandingFounderProgram() {
   const { stats, loading } = useFounderProgramStats();
 
   return (
-    <LandingSection id="programa-fundador" variant="highlight" aria-labelledby="founder-head">
+    <LandingSection id="programa-fundador" variant="alt" aria-labelledby="founder-head">
       <div className="landing-section-inner">
         <motion.div {...fade}>
           <LandingSectionHeader
@@ -55,10 +56,10 @@ export function LandingFounderProgram() {
               key={line}
               className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3.5 text-left"
             >
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
-                <Check className="h-4 w-4" strokeWidth={2.2} aria-hidden />
-              </span>
-              <p className="pt-0.5 text-sm leading-relaxed text-zinc-300">{line}</p>
+              <LandingIconBox accent="emerald" className="shrink-0 !h-8 !w-8">
+                <Check className={landingIconClass('emerald', 'h-4 w-4')} strokeWidth={2.2} aria-hidden />
+              </LandingIconBox>
+              <p className="pt-0.5 text-sm leading-relaxed text-zinc-300 sm:text-base">{line}</p>
             </li>
           ))}
         </motion.ul>

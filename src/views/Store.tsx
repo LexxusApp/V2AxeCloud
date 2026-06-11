@@ -7,7 +7,8 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Toast from '@radix-ui/react-toast';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoPanelHeader } from '../components/ui/appDemoUi';
 
 interface Product {
   id: string;
@@ -417,41 +418,44 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
   return (
     <Toast.Provider swipeDirection="right">
-      <div className="space-y-8">
-        <PageHeader 
-          title={<>Loja do <span className="text-primary">Axé</span></>}
-          subtitle={
+      <AppPageShell>
+        <AppDemoPanelHeader
+          title="Loja do Axé"
+          description={
             userRole === 'filho'
-              ? 'Compre com pagamento na mensalidade ou via PIX, ou reserve itens com o zelador. O pedido aparece para a gestão do terreiro.'
-              : 'Artigos religiosos com baixa automática no estoque. Abaixo você acompanha pedidos feitos pelos filhos de santo.'
+              ? 'Compre com pagamento na mensalidade ou via PIX, ou reserve itens com o zelador.'
+              : 'Artigos religiosos com baixa automática no estoque e pedidos dos filhos de santo.'
           }
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
-          actions={
-            <div className="flex w-full flex-wrap items-center gap-3 xl:w-auto xl:flex-nowrap">
-              {isAdmin && (
-                <button 
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              {isAdmin ? (
+                <button
+                  type="button"
                   onClick={() => setIsAddProductOpen(true)}
-                  className="app-page-action"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
                 >
-                  <Plus className="w-4 h-4" />
-                  Novo
+                  <Plus className="h-4 w-4" />
+                  Novo produto
                 </button>
-              )}
-              <button 
+              ) : null}
+              <button
+                type="button"
                 onClick={() => setIsCartOpen(true)}
-                className="app-page-action app-page-action--icon relative"
+                className="relative inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
               >
-                <ShoppingBag className="w-6 h-6 text-primary" />
-                {cart.length > 0 && (
-                  <span className="absolute -top-2 -right-2 w-6 h-6 bg-primary text-background rounded-full flex items-center justify-center text-xs font-black">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                Carrinho
+                {cart.length > 0 ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-[#080A0D]">
                     {cartQuantity}
                   </span>
-                )}
+                ) : null}
               </button>
             </div>
           }
         />
+
+        <div className="space-y-8">
 
         {loading ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
@@ -625,7 +629,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             )}
           </section>
         )}
-      </div>
+        </div>
+      </AppPageShell>
 
       {/* Cart Sheet */}
       <Dialog.Root open={isCartOpen} onOpenChange={setIsCartOpen}>

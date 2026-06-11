@@ -5,7 +5,8 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import Avatar from '../components/Avatar';
 import { hasPlanAccess } from '../constants/plans';
 
@@ -625,13 +626,16 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
   const anosDeCasa = calculateYears(editData.data_entrada || child.data_entrada);
 
   return (
-    <div className="flex flex-col w-full min-h-full text-white animate-in fade-in duration-700">
-      <PageHeader 
-        title={isSelfView ? "Meu Perfil" : "Perfil do Filho"}
-        subtitle={isSelfView ? "Gerencie suas informações e obrigações." : `Visualizando prontuário de ${child?.nome || '...'}`}
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
+    <AppPageShell>
+      <AppDemoPanelHeader
+        title={isSelfView ? 'Meu perfil' : 'Perfil do filho'}
+        description={
+          isSelfView
+            ? 'Gerencie suas informações e obrigações.'
+            : `Prontuário de ${child?.nome || '...'}`
+        }
       />
+      <div className="flex flex-col w-full min-h-full text-white animate-in fade-in duration-700">
       
       {/* HEADER DINÂMICO (ESTILO PRONTUÁRIO) */}
       <div className="w-full pt-3 pb-4 px-4 md:px-12 md:pt-6 md:pb-4 border-b border-white/5">
@@ -1370,7 +1374,8 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           </div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </AppPageShell>
   );
 }
 

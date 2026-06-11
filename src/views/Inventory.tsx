@@ -18,9 +18,9 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
-import LuxuryLoading from '../components/LuxuryLoading';
-import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 
 interface Product {
   id: string;
@@ -210,68 +210,57 @@ export default function Inventory({
 
   if (loading && products.length === 0) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <LuxuryLoading />
-      </div>
+      <AppPageShell>
+        <AppPanelLoading />
+      </AppPageShell>
     );
   }
 
   return (
-    <div className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden">
-      <PageHeader 
-        title={
-          moduleTitle === 'Camarinha' ? (
-            <>Camarinha <span className="text-primary">da Casa</span></>
-          ) : (
-            <>Almoxarifado <span className="text-primary">Místico</span></>
-          )
-        }
-        subtitle={
+    <AppPageShell>
+      <AppDemoPanelHeader
+        title={moduleTitle === 'Camarinha' ? 'Camarinha da casa' : 'Almoxarifado'}
+        description={
           moduleTitle === 'Camarinha'
             ? 'Itens ritualísticos e preparo da camarinha.'
             : 'Gestão de estoque e insumos de axé.'
         }
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-        actions={
-          <div
-            className={cn(
-              'flex flex-wrap items-center gap-2 sm:gap-3',
-            )}
-          >
-            {isAdmin && (
-              <button 
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin ? (
+              <button
+                type="button"
                 onClick={() => setIsAddItemModalOpen(true)}
-                className="app-page-action"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
               >
-                <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                <span className="truncate">Novo Item</span>
+                <Plus className="h-4 w-4" />
+                Novo item
               </button>
-            )}
-            <button 
+            ) : null}
+            <button
+              type="button"
               onClick={() => setIsShoppingListOpen(true)}
-              className="app-page-action"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
             >
-              <ShoppingCart className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-              <span className="min-w-0 truncate sm:hidden">Lista</span>
-              <span className="hidden min-w-0 truncate sm:inline">Lista de Compras</span>
-              {lowStockItems.length > 0 && (
-                <span className="shrink-0 rounded-lg bg-black/20 px-1.5 py-0.5 text-[10px] font-black text-black sm:px-2 sm:text-[11px]">
+              <ShoppingCart className="h-4 w-4" />
+              Lista de compras
+              {lowStockItems.length > 0 ? (
+                <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-[#080A0D]">
                   {lowStockItems.length}
                 </span>
-              )}
+              ) : null}
             </button>
           </div>
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 space-y-8 px-4 pb-20 animate-in fade-in duration-700 md:px-6 lg:px-10">
+      <div className="space-y-8">
         
         {/* Superior Dashboard Bento Grid */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           
           {/* Main Info Box */}
-          <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden p-6 md:col-span-6 lg:col-span-5">
+          <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden md:col-span-6 lg:col-span-5">
              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-20 -mt-20 group-hover:bg-primary/20 transition-all duration-700" />
              <div className="relative z-10 flex items-start justify-between">
                 <div>
@@ -292,11 +281,11 @@ export default function Inventory({
                </div>
                <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Geral</span>
              </div>
-          </div>
+          </AppDemoCard>
 
           {/* Alerts Box */}
           <div className="grid grid-cols-1 gap-4 md:col-span-6 lg:col-span-7 sm:grid-cols-2">
-            <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden border-primary/20 bg-primary/5 p-5 hover:border-primary/40">
+            <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden border-primary/25 bg-primary/5 hover:border-primary/40">
                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[50px] -mr-10 -mt-10" />
                <div className="relative z-10 mb-3 flex items-center gap-3">
                  <div className="rounded-lg bg-primary/20 p-2.5">
@@ -308,9 +297,9 @@ export default function Inventory({
                  <div className="mb-1 text-3xl font-black tracking-tighter text-white">{lowStockItems.length}</div>
                  <p className="text-xs font-bold leading-snug text-gray-400">Itens se aproximando do limite mínimo de estoque.</p>
                </div>
-            </div>
+            </AppDemoCard>
 
-            <div className="card-luxury relative flex min-h-[180px] flex-col justify-between overflow-hidden border-red-500/20 bg-red-500/5 p-5 hover:border-red-500/40">
+            <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden border-red-500/25 bg-red-500/5 hover:border-red-500/40">
                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-[50px] -mr-10 -mt-10" />
                <div className="relative z-10 mb-3 flex items-center gap-3">
                  <div className="rounded-lg bg-red-500/20 p-2.5">
@@ -322,7 +311,7 @@ export default function Inventory({
                  <div className="mb-1 text-3xl font-black tracking-tighter text-white">{outOfStockItems.length}</div>
                  <p className="text-xs font-bold leading-snug text-gray-400">Itens que acabaram e precisam de reposição urgente.</p>
                </div>
-            </div>
+            </AppDemoCard>
           </div>
 
         </div>
@@ -368,7 +357,7 @@ export default function Inventory({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="card-luxury p-1 relative overflow-hidden group flex flex-col hover:border-primary/30 transition-colors"
+              className="overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-1 transition-colors hover:border-[#2F3643] group flex flex-col"
             >
               {/* Product Background Decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none opacity-50" />
@@ -566,7 +555,7 @@ export default function Inventory({
           </div>
         )}
       </AnimatePresence>
-    </div>
-    </div>
+      </div>
+    </AppPageShell>
   );
 }

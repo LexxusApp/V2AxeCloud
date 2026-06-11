@@ -27,7 +27,14 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import {
+  AppDemoCard,
+  AppDemoPanelHeader,
+  AppPrimaryButton,
+  appInputClass,
+  appLabelClass,
+} from '../components/ui/appDemoUi';
 
 interface Notice {
   id: string;
@@ -186,7 +193,6 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       
       setLastPostedNotice({ titulo: formData.titulo, conteudo: formData.conteudo });
 
-      setIsModalOpen(false);
       setShowSuccessModal(true);
       setFormData({ titulo: '', conteudo: '', categoria: 'Geral', expiracao: '' });
       fetchNotices();
@@ -299,264 +305,170 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       });
   }, [notices, activeCategory, searchTerm]);
 
+  if (loading && notices.length === 0) {
+    return <AppPanelLoading />;
+  }
+
+  const searchBar = (
+    <div className="relative w-full sm:w-72">
+      <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94A3B8]" aria-hidden />
+      <input
+        type="search"
+        placeholder="Buscar avisos..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className={cn(appInputClass, 'pl-9')}
+      />
+    </div>
+  );
+
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader 
-        title={<>Mural de <span className="text-primary">Avisos</span></>}
-        subtitle="Fique por dentro das atividades do Axé."
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-        actions={
-          !!isAdmin && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="app-page-action"
-            >
-              <Plus className="w-6 h-6" />
-              Postar Novo Aviso
-            </button>
-          )
-        }
+    <AppPageShell>
+      <AppDemoPanelHeader
+        title="Mural de avisos"
+        description="Comunicados para filhos de santo e diretoria — substitui grupos espalhados no WhatsApp."
+        action={searchBar}
       />
 
-      <div className="flex-1 px-4 md:px-6 lg:px-10 pb-12 max-w-[1440px] mx-auto w-full space-y-8">
-        {/* Filters & Search */}
-      <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
-        <div className="flex bg-card p-1.5 rounded-2xl border border-white/5 w-full lg:w-auto overflow-x-auto no-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={cn(
-                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
-                activeCategory === cat 
-                  ? "bg-primary text-background shadow-lg shadow-primary/20" 
-                  : "text-gray-400 hover:text-white"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        
-        <div className="relative w-full lg:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-primary transition-colors" />
-          <input
-            type="text"
-            placeholder="Buscar avisos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-card border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
-          />
-        </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setActiveCategory(cat)}
+            className={cn(
+              'rounded-lg border px-3 py-1.5 text-xs font-bold transition-all',
+              activeCategory === cat
+                ? 'border-primary/35 bg-primary/10 text-primary'
+                : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:text-[#F1F5F9]',
+            )}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
-      {/* Feed */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {[1, 2, 3].map(i => (
-            <div
-              key={i}
-              className="card-luxury h-64 animate-pulse bg-white/5 w-full max-w-[min(100%,calc(50vw-1rem))] justify-self-start md:max-w-none"
-            />
-          ))}
-        </div>
-      ) : filteredNotices.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {filteredNotices.map((notice, idx) => {
-            const config = categoryConfig[notice.categoria] || categoryConfig.Geral;
-            const Icon = config.icon;
-            
+      <div className={cn('grid grid-cols-1 gap-6', isAdmin && 'lg:grid-cols-3')}>
+        {isAdmin ? (
+          <AppDemoCard>
+            <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-[#F1F5F9]">
+              <Bell className="h-4 w-4 text-amber-400" aria-hidden />
+              Novo aviso
+            </h4>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className={appLabelClass}>Título</label>
+                <input
+                  required
+                  className={appInputClass}
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  placeholder="Ex: Escala da gira de sábado"
+                />
+              </div>
+              <div>
+                <label className={appLabelClass}>Categoria</label>
+                <select
+                  className={appInputClass}
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value as Notice['categoria'] })}
+                >
+                  <option value="Geral">Geral</option>
+                  <option value="Urgente">Urgente</option>
+                  <option value="Festas">Festas</option>
+                  <option value="Doutrina">Doutrina</option>
+                </select>
+              </div>
+              <div>
+                <label className={appLabelClass}>Mensagem</label>
+                <textarea
+                  required
+                  className={cn(appInputClass, 'min-h-[88px] resize-y')}
+                  value={formData.conteudo}
+                  onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
+                  placeholder="Texto visível para a comunidade da casa..."
+                />
+              </div>
+              <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
+                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Publicar aviso'}
+              </AppPrimaryButton>
+            </form>
+          </AppDemoCard>
+        ) : null}
+
+        <ul className={cn('space-y-3', isAdmin ? 'lg:col-span-2' : '')} role="list">
+          {filteredNotices.map((notice) => {
+            const isUrgent = notice.categoria === 'Urgente';
             return (
-              <motion.div
+              <li
                 key={notice.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
                 className={cn(
-                  "card-luxury p-4 sm:p-5 md:p-8 flex flex-col gap-4 sm:gap-5 md:gap-6 w-full max-w-[min(100%,calc(50vw-1rem))] justify-self-start md:max-w-none",
-                  "group transition-all duration-500 hover:scale-[1.03] lg:hover:scale-105",
-                  notice.categoria === 'Urgente' && "border-red-500/30 bg-red-500/5"
+                  'rounded-2xl border border-[#1E242B] bg-[#13171D] p-4 transition-colors hover:border-[#2F3643]',
+                  isUrgent && 'border-rose-500/25',
                 )}
               >
-                <div className="flex items-start justify-between">
-                  <div className={cn("p-3 rounded-2xl", config.bg, config.border)}>
-                    <Icon className={cn("w-6 h-6", config.color)} />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isUrgent ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-400">
+                          Urgente
+                        </span>
+                      ) : null}
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        {notice.categoria}
+                      </span>
+                      <span className="text-[10px] text-zinc-600">
+                        {format(new Date(notice.data_publicacao), "dd MMM yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                    <h4 className="mt-2 text-sm font-bold text-[#F1F5F9]">{notice.titulo}</h4>
+                    <div className="prose prose-invert prose-sm mt-1.5 max-w-none text-xs leading-relaxed text-[#94A3B8] [&_p]:my-1">
+                      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={cn("px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest", config.badge)}>
-                      {notice.categoria}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
-                      <CalendarIcon className="w-3 h-3" />
-                      {format(new Date(notice.data_publicacao), "dd 'de' MMM", { locale: ptBR })}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 md:space-y-3 flex-grow min-w-0">
-                  <h3 className="text-base sm:text-lg md:text-xl font-black text-white group-hover:text-primary transition-colors leading-tight break-words">
-                    {notice.titulo}
-                  </h3>
-                  <div className="text-gray-400 text-xs sm:text-sm leading-relaxed line-clamp-4 prose prose-invert prose-sm max-w-none [&_p]:my-1">
-                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                    <div className="flex gap-2">
-                      <button 
-                        disabled={isNotifyingWA}
-                        onClick={() => handleMassWhatsAppNotification(notice.titulo)}
-                        className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
-                        title="Notificar Todos via WhatsApp"
+                  {isAdmin ? (
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => void deleteNotice(notice.id)}
+                        className="rounded p-1 text-zinc-500 hover:text-rose-400"
+                        aria-label="Remover aviso"
                       >
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
-                      <a 
-                        href={generateWhatsAppLink(notice.titulo, notice.conteudo)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-white/5 text-gray-500 hover:bg-primary/10 hover:text-primary transition-all"
-                        title="Compartilhar Manualmente"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </a>
-                      <button 
-                        onClick={() => copyToClipboard(notice.titulo, notice.conteudo, notice.id)}
-                        className={cn(
-                          "p-2 rounded-xl bg-white/5 transition-all",
-                          copiedId === notice.id ? "text-emerald-500 bg-emerald-500/10" : "text-gray-500 hover:bg-white/10 hover:text-white"
-                        )}
-                        title="Copiar texto formatado"
-                      >
-                        <Copy className="w-4 h-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <button 
-                      onClick={() => deleteNotice(notice.id)}
-                      className="p-2 rounded-xl bg-white/5 text-gray-500 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                  ) : null}
+                </div>
+                {isAdmin ? (
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-[#1E242B] pt-3">
+                    <button
+                      type="button"
+                      disabled={isNotifyingWA}
+                      onClick={() => void handleMassWhatsAppNotification(notice.titulo)}
+                      className="rounded-lg border border-emerald-500/25 bg-emerald-950/40 px-2 py-1 text-[10px] font-bold text-emerald-300"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      WhatsApp em massa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyToClipboard(notice.titulo, notice.conteudo, notice.id)}
+                      className="rounded-lg border border-[#1E242B] px-2 py-1 text-[10px] font-bold text-[#94A3B8]"
+                    >
+                      {copiedId === notice.id ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
-                )}
-              </motion.div>
+                ) : null}
+              </li>
             );
           })}
-        </div>
-      ) : (
-        <div className="py-20 text-center space-y-6">
-          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
-            <Bell className="w-10 h-10 text-gray-600" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-white">Nenhum aviso encontrado</h3>
-            <p className="text-gray-500 max-w-xs mx-auto">Tudo tranquilo por aqui. Novos avisos aparecerão neste feed.</p>
-          </div>
-          {!!isAdmin && (
-            <motion.button 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsModalOpen(true)}
-              className="bg-primary text-background px-10 py-4 rounded-2xl font-black flex items-center gap-3 mx-auto shadow-2xl shadow-primary/40 hover:bg-white transition-all group"
-            >
-              <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
-              <span className="text-lg">Postar Primeiro Aviso</span>
-            </motion.button>
-          )}
-        </div>
-      )}
-
-      {/* FAB for Mobile Admins */}
-      {isAdmin && (
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="lg:hidden fixed bottom-24 right-6 w-16 h-16 bg-primary text-background rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center z-50 active:scale-90 transition-transform"
-        >
-          <Plus className="w-8 h-8" />
-        </button>
-      )}
-
-      {/* Post Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.9] backdrop-blur-none"
-            />
-            <motion.div
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-2xl"
-            >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-8">
-                <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-2xl">Novo <span className="text-primary">Aviso</span></h3>
-                  <p className="text-xs text-gray-400 font-medium mt-0.5">Comunique-se com os Filhos de Santo.</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="shrink-0 rounded-2xl bg-white/5 p-2 text-gray-400 transition-colors hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-8 sm:py-6 space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Título</label>
-                    <input required type="text" value={formData.titulo}
-                      onChange={e => setFormData({...formData, titulo: e.target.value})}
-                      placeholder="Ex: Festa de Iemanjá"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-primary/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Categoria</label>
-                    <select value={formData.categoria}
-                      onChange={e => setFormData({...formData, categoria: e.target.value as Notice['categoria']})}
-                      className="w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-primary/50 [&>option]:bg-[#1B1C1C]">
-                      <option value="Geral">Geral</option>
-                      <option value="Urgente">Urgente</option>
-                      <option value="Festas">Festas</option>
-                      <option value="Doutrina">Doutrina</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Conteúdo (Suporta Markdown)</label>
-                  <textarea required rows={5} value={formData.conteudo}
-                    onChange={e => setFormData({...formData, conteudo: e.target.value})}
-                    placeholder="Use **negrito** para destacar..."
-                    className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white outline-none transition-all focus:border-primary/50" />
-                </div>
-
-                <div className="flex items-center gap-2 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
-                  <Bell className="h-3.5 w-3.5 shrink-0 text-yellow-500" />
-                  <span className="text-xs text-yellow-400">Notificação push enviada automaticamente aos filhos de santo.</span>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setIsModalOpen(false)}
-                    className="flex-1 rounded-2xl py-3 font-black text-sm text-gray-400 transition-all hover:bg-white/5 hover:text-white">
-                    Cancelar
-                  </button>
-                  <button disabled={isSubmitting} type="submit"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 font-black text-sm text-background shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-50">
-                    {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Send className="h-5 w-5" />Publicar</>}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          {filteredNotices.length === 0 ? (
+            <li className="rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
+              Nenhum aviso publicado ainda.
+            </li>
+          ) : null}
+        </ul>
+      </div>
 
       {/* Success Modal */}
       <AnimatePresence>
@@ -615,7 +527,6 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           </div>
         )}
       </AnimatePresence>
-    </div>
-    </div>
+    </AppPageShell>
   );
 }

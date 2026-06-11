@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
-import { FilhoHomeSkeleton } from '../components/Skeleton';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -87,9 +87,9 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
 
   if (loading && child == null) {
     return (
-      <div className="flex-1 p-4 lg:p-10 min-h-screen">
-        <FilhoHomeSkeleton />
-      </div>
+      <AppPageShell>
+        <AppPanelLoading />
+      </AppPageShell>
     );
   }
 
@@ -104,7 +104,8 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
   const displayNameToRender = isIdTechnical ? (user?.user_metadata?.nome || 'Filho de Santo') : displayChild.nome;
 
   return (
-    <div className="flex-1 p-4 lg:p-10 space-y-8 overflow-y-auto custom-scrollbar relative z-10">
+    <AppPageShell>
+      <div className="space-y-8">
       {/* 1. Header Profile Card (Estilo Foto 1) */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -239,6 +240,7 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
           <span className="w-12 h-[1px] bg-white/10" />
         </div>
       </div>
-    </div>
+      </div>
+    </AppPageShell>
   );
 }

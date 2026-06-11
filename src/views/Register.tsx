@@ -145,13 +145,13 @@ export default function Register() {
       animate={{ opacity: 1 }}
       className={cn(
         'fixed inset-0 z-[100] antialiased',
-        'max-lg:overflow-y-auto max-lg:overflow-x-hidden',
-        'lg:flex lg:flex-row lg:overflow-hidden',
+        'flex flex-col-reverse max-lg:overflow-y-auto max-lg:overflow-x-hidden',
+        'lg:flex-row lg:overflow-hidden',
         fontLogin
       )}
     >
       <aside
-        className="relative flex w-full shrink-0 flex-col justify-between overflow-hidden bg-black lg:h-screen lg:min-h-0 lg:w-[52%] xl:w-[55%]"
+        className="relative hidden w-full shrink-0 flex-col justify-between overflow-hidden bg-black lg:flex lg:h-screen lg:min-h-0 lg:w-[52%] xl:w-[55%]"
         aria-label="Sobre o AxéCloud"
       >
         <AuthScreenBackground className="absolute inset-0" />
@@ -215,6 +215,13 @@ export default function Register() {
               : 'max-w-[460px] py-4 sm:py-5 lg:justify-start lg:pt-5 lg:pb-8'
           )}
         >
+          <a
+            href={ROUTES.home}
+            className="mb-4 inline-flex w-fit items-center gap-1.5 text-[12px] font-medium text-zinc-500 transition hover:text-zinc-800 lg:hidden"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Voltar ao site
+          </a>
           <RegistrationProgress currentStep={step} compact={step === 2} />
 
           <AnimatePresence mode="wait">
@@ -226,6 +233,15 @@ export default function Register() {
                 exit={{ opacity: 0, x: -12 }}
                 transition={{ duration: 0.25 }}
               >
+                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 lg:hidden">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">AxéCloud</p>
+                  <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+                    {checkoutPriceLabel}
+                    {catalogPrice.period} · PIX · painel liberado após o pagamento.
+                  </p>
+                </div>
+
                 <header className="mb-6">
                   <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
                     Cadastre seu terreiro

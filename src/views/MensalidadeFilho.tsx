@@ -16,7 +16,8 @@ import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig } from '../components/PixPaymentModal';
-import PageHeader from '../components/PageHeader';
+import { AppPageShell } from '../components/app/AppTopNav';
+import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import { MensalidadeCardSkeleton } from '../components/Skeleton';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/staleCache';
@@ -265,32 +266,20 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
   if (loading && filho == null) {
     return (
-      <div className="flex flex-col min-h-full">
-        <PageHeader
-          title={<>Minhas <span className="text-primary">Mensalidades</span></>}
-          subtitle="Controle suas contribuições com o terreiro."
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
-        />
-        <div className="flex-1 px-4 md:px-6 lg:px-10 pb-20 max-w-7xl mx-auto w-full space-y-6">
-          <MensalidadeCardSkeleton />
-        </div>
-      </div>
+      <AppPageShell>
+        <AppDemoPanelHeader title="Minhas mensalidades" description="Controle suas contribuições com o terreiro." />
+        <MensalidadeCardSkeleton />
+      </AppPageShell>
     );
   }
 
   const pixNotConfigured = pixFetched && !loadingPix && !pixConfig?.chave_pix;
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader 
-        title={<>Minhas <span className="text-primary">Mensalidades</span></>}
-        subtitle="Controle suas contribuições com o terreiro."
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-      />
+    <AppPageShell>
+      <AppDemoPanelHeader title="Minhas mensalidades" description="Controle suas contribuições com o terreiro." />
 
-      <div className="flex-1 px-4 md:px-6 lg:px-10 pb-20 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in duration-700">
+      <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Main Payment Section */}
@@ -417,7 +406,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="card-luxury p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-primary/20 transition-colors"
+                      className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-[#2F3643] transition-colors"
                     >
                       <div className="flex items-center gap-5">
                         <div className={cn(
@@ -449,10 +438,10 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                     </motion.div>
                   ))
                 ) : (
-                  <div className="card-luxury p-12 text-center space-y-4">
+                  <AppDemoCard className="text-center space-y-4">
                     <Wallet className="w-12 h-12 text-gray-700 mx-auto" />
                     <p className="text-gray-500 font-medium italic">Nenhuma mensalidade registrada até o momento.</p>
-                  </div>
+                  </AppDemoCard>
                 )}
               </div>
             </div>
@@ -460,7 +449,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
           {/* Sidebar / Info Section */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="card-luxury p-8 bg-gradient-to-br from-primary/5 to-transparent space-y-6">
+            <AppDemoCard className="space-y-6 border-primary/20 bg-primary/5">
               <h4 className="text-lg font-black text-white uppercase tracking-widest">Informações</h4>
               <div className="space-y-6">
                 <div className="flex gap-4">
@@ -489,7 +478,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                   "Quem ajuda o terreiro, ajuda a si mesmo."
                 </p>
               </div>
-            </div>
+            </AppDemoCard>
 
             {/* Quick Action */}
             <button 
@@ -523,6 +512,6 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           return format(venc, "dd/MM/yyyy");
         })()}
       />
-    </div>
+    </AppPageShell>
   );
 }

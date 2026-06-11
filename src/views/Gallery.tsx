@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Film, FolderPlus, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { authFetch } from '../lib/authenticatedFetch';
 
@@ -164,38 +165,37 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
   };
 
   return (
-    <div className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden">
-      <PageHeader
-        title={<>Galeria de <span className="text-primary">Fotos e Vídeos</span></>}
-        subtitle="Crie álbuns clicáveis e gerencie mídia do seu terreiro."
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-        actions={
+    <AppPageShell>
+      <AppDemoPanelHeader
+        title="Galeria de fotos e vídeos"
+        description="Crie álbuns clicáveis e gerencie mídia do seu terreiro."
+        action={
           isAdmin ? (
             <button
+              type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="app-page-action"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
             >
               <FolderPlus className="h-4 w-4" />
-              Novo Álbum
+              Novo álbum
             </button>
           ) : null
         }
       />
 
-      <div className="mx-auto w-full max-w-[1440px] flex-1 space-y-5 px-4 pb-20 md:px-6 lg:px-10">
+      <div className="space-y-5">
         {loading ? (
-          <div className="flex h-[45vh] items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <AppPanelLoading />
         ) : !selectedAlbum ? (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {albums.map((album) => (
               <button
                 key={album.id}
+                type="button"
                 onClick={() => setSelectedAlbumId(album.id)}
-                className="card-luxury group rounded-2xl border border-white/5 p-6 text-left transition-all hover:border-primary/30"
+                className="text-left transition-colors hover:border-[#2F3643]"
               >
+              <AppDemoCard className="group h-full">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-xl font-black text-white transition-colors group-hover:text-primary">{album.name}</h3>
                   <span className="rounded-lg bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
@@ -203,17 +203,18 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
                   </span>
                 </div>
                 <p className="mb-6 line-clamp-2 text-sm text-gray-400">{album.description || 'Sem descrição'}</p>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
+                <div className="flex items-center gap-3 text-xs text-[#94A3B8]">
                   <ImageIcon className="h-4 w-4" />
                   <span>Clique para abrir o álbum</span>
                 </div>
+              </AppDemoCard>
               </button>
             ))}
 
             {albums.length === 0 && (
-              <div className="col-span-full rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
-                <p className="text-lg font-black text-white">Nenhum álbum criado</p>
-                <p className="mt-2 text-sm text-gray-500">Crie o primeiro álbum para começar a enviar fotos e vídeos.</p>
+              <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 p-10 text-center">
+                <p className="text-lg font-bold text-[#F1F5F9]">Nenhum álbum criado</p>
+                <p className="mt-2 text-sm text-[#94A3B8]">Crie o primeiro álbum para começar a enviar fotos e vídeos.</p>
               </div>
             )}
           </div>
@@ -236,10 +237,10 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <h2 className="text-2xl font-black text-white">{selectedAlbum.name}</h2>
-              <p className="mt-2 text-sm text-gray-400">{selectedAlbum.description || 'Sem descrição'}</p>
-            </div>
+            <AppDemoCard>
+              <h2 className="text-xl font-bold text-[#F1F5F9]">{selectedAlbum.name}</h2>
+              <p className="mt-2 text-sm text-[#94A3B8]">{selectedAlbum.description || 'Sem descrição'}</p>
+            </AppDemoCard>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {selectedAlbum.media.map((item) => (
@@ -358,6 +359,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal, setActive
           </BodyPortal>
         )}
       </AnimatePresence>
-    </div>
+    </AppPageShell>
   );
 }

@@ -1,0 +1,7 @@
+listen_addr: 0.0.0.0:7422
+appsec_configs:
+  - crowdsecurity/appsec-default
+labels:
+  type: appsec
+source: appsec
+name: axecloud-appsec

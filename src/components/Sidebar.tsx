@@ -10,7 +10,7 @@ import {
   PieChart,
   Settings as SettingsIcon,
   LogOut,
-  X,
+  Flame,
   BookOpen,
   ShoppingBag,
   Lock,
@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { showAtendimentosModule, showCamarinhaModule } from '../lib/tradicaoModules';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
@@ -167,33 +166,28 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
 
       {/* Mobile: hidden quando fechada (translate-x deixa camada fantasma no Android) */}
       <aside className={cn(
-        "fixed left-0 top-0 bottom-0 z-[70] flex w-[248px] flex-col border-r border-white/5 bg-black",
+        "fixed left-0 top-0 bottom-0 z-[70] flex w-[248px] flex-col border-r border-[#1E242B] bg-[#0B0D11]",
         isMobileOpen ? "max-lg:flex" : "max-lg:hidden",
         "lg:flex",
       )}>
-        <div className="flex flex-col h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {/* Marca AXÉCLOUD sem imagem externa */}
+        <div className="flex flex-col h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1f252d] scrollbar-track-transparent">
           <div className="mb-5 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center">
-                <div className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary">
-                  <div className="h-4 w-4 rounded-full bg-primary" />
-                  <div className="absolute -top-1.5 left-1/2 h-3 w-0.5 -translate-x-1/2 bg-primary" />
-                  <div className="absolute -bottom-1.5 left-1/2 h-3 w-0.5 -translate-x-1/2 bg-primary" />
-                  <div className="absolute top-1/2 -left-1.5 h-0.5 w-3 -translate-y-1/2 bg-primary" />
-                  <div className="absolute top-1/2 -right-1.5 h-0.5 w-3 -translate-y-1/2 bg-primary" />
-                </div>
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-amber-500">
+                <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
               </div>
               <div className="flex min-w-0 flex-col">
-                <div className="whitespace-nowrap text-xl font-black leading-none tracking-[0.08em] text-white">AXÉCLOUD</div>
-                <p className="mt-1 whitespace-nowrap text-[10px] font-bold tracking-[0.18em] text-primary">GESTÃO SAGRADA</p>
+                <div className="whitespace-nowrap font-display text-lg font-bold leading-none tracking-tight text-[#F1F5F9]">
+                  AXÉCLOUD
+                </div>
+                <p className="mt-0.5 whitespace-nowrap text-[10px] font-bold tracking-[0.14em] text-primary">
+                  GESTÃO SAGRADA
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Divisor estetico entre a marca e a navegacao: esticado ate as
-              bordas da sidebar via -mx-6 (compensa o p-6 do container). */}
-          <div className="-mx-4 mb-5 h-px shrink-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="-mx-4 mb-5 h-px shrink-0 bg-[#1E242B]" />
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar pb-4">
@@ -214,17 +208,17 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
                       setIsMobileOpen(false);
                     }}
                     className={cn(
-                      'relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 font-bold transition-all duration-300',
-                      isActive 
-                        ? "bg-transparent text-primary" 
-                        : "text-gray-400 hover:text-white hover:bg-white/5",
-                      isLocked && "opacity-50"
+                      'relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-bold transition-all duration-200',
+                      isActive
+                        ? 'bg-primary text-[#080A0D] shadow-sm'
+                        : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+                      isLocked && 'opacity-50',
                     )}
                   >
                     <Icon
                       className={cn(
-                        'h-[22px] w-[22px] shrink-0 transition-transform duration-300 group-hover:scale-110',
-                        isActive ? 'text-primary' : 'text-gray-400'
+                        'h-[20px] w-[20px] shrink-0 transition-transform duration-200 group-hover:scale-105',
+                        isActive ? 'text-[#080A0D]' : 'text-[#94A3B8] group-hover:text-[#F1F5F9]',
                       )}
                       strokeWidth={isActive ? 2.25 : 1.75}
                       fill={
@@ -241,14 +235,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
                       <span className="absolute right-3 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                     )}
 
-                    {isLocked && <Lock className="w-4 h-4 text-[#FBBC00]" />}
-                    
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 w-1 h-6 bg-primary rounded-r-full"
-                      />
-                    )}
+                    {isLocked && <Lock className="w-4 h-4 text-primary" />}
                   </button>
 
                   {isLocked && (
@@ -262,7 +249,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
           </nav>
 
           {/* Footer: Logout */}
-          <div className="pt-4 mt-auto border-t border-white/10 shrink-0 space-y-2">
+          <div className="pt-4 mt-auto border-t border-[#1E242B] shrink-0 space-y-2">
             <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen(false)} />
             <button
               onClick={handleLogout}

@@ -29,7 +29,7 @@ export function LandingSection({
 
 type LandingSectionHeaderProps = {
   kicker: string;
-  title: string;
+  title: ReactNode;
   titleId?: string;
   lead?: string;
   center?: boolean;

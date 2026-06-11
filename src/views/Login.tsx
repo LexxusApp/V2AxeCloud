@@ -311,7 +311,7 @@ export default function Login() {
 
       <a
         href={ROUTES.home}
-        className="absolute left-6 top-6 z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
+        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.5rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Conhecer o AxéCloud
@@ -347,7 +347,8 @@ export default function Login() {
 
         <header className="space-y-4 text-center">
           <div className="flex justify-center py-1">
-            <AxeCloudLogoMark size="large" />
+            <AxeCloudLogoMark size="default" className="max-w-full sm:hidden" />
+            <AxeCloudLogoMark size="large" className="hidden max-w-full sm:flex" />
           </div>
           <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">

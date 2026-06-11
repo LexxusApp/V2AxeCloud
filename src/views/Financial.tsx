@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useSWR from 'swr';
-import { DollarSign, TrendingUp, TrendingDown, PieChart, Download, Plus, ArrowUpRight, ArrowDownRight, CreditCard, Loader2, X, CheckCircle2, MessageCircle, Lock, Smartphone, Bell, Target, Save, Undo2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { DollarSign, Download, Plus, Loader2, X, CheckCircle2, MessageCircle, Lock, Smartphone, Bell, Target, Save, Undo2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
-import LuxuryLoading from '../components/LuxuryLoading';
 import FinanceiroBasico from '../components/FinanceiroBasico';
-import PageHeader from '../components/PageHeader';
 import BodyPortal from '../components/BodyPortal';
+import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import {
+  AppDemoCard,
+  AppDemoPanelHeader,
+  AppDemoTableShell,
+  AppPrimaryButton,
+  appInputClass,
+  appLabelClass,
+} from '../components/ui/appDemoUi';
 import { hasPlanAccess, canonicalPlanSlug } from '../constants/plans';
 import {
   countsTowardSaldo,
@@ -175,7 +181,6 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   const isBasicFinancePlan = plan === 'free';
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [children, setChildren] = useState<any[]>([]);
   const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'caixinha' | 'configs'>('overview');
@@ -528,17 +533,13 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   // Mantido para eventual plano básico legado; hoje a régua oficial é Premium/Vita.
   if (isBasicFinancePlan && userRole !== 'filho') {
     return (
-      <div className="flex flex-col min-h-full">
-        <PageHeader 
-          title={<>Gestão <span className="text-primary">Financeira</span></>}
-          subtitle="Controle simplificado de fluxo de caixa."
-          tenantData={tenantData}
-          setActiveTab={setActiveTab}
+      <AppPageShell>
+        <AppDemoPanelHeader
+          title="Financeiro do terreiro"
+          description="Controle simplificado de fluxo de caixa."
         />
-        <div className="flex-1 px-4 md:px-6 lg:px-10 pb-20 max-w-[1440px] mx-auto w-full space-y-8">
-          <FinanceiroBasico tenantId={tenantId} userId={userId} />
-        </div>
-      </div>
+        <FinanceiroBasico tenantId={tenantId} userId={userId} />
+      </AppPageShell>
     );
   }
 
@@ -727,7 +728,6 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao registrar lançamento');
       
-      setIsModalOpen(false);
       setFormData({
         tipo: 'entrada',
         valor: '',
@@ -806,298 +806,334 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
 
   const saldo = useMemo(() => stats.entradas - stats.saidas, [stats]);
 
-  /** Entradas confirmadas agregadas por mês de competência (últimos 12 meses com lançamento). */
-  const chartData = useMemo(() => {
-    const byMonth: Record<string, number> = {};
-    for (const t of transactions) {
-      if (!countsTowardSaldo(t)) continue;
-      if (normalizeMovimentoTipo(t.tipo) !== 'entrada') continue;
-      const d = parseFinanceiroDataRef(t);
-      if (!d) continue;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      byMonth[key] = (byMonth[key] || 0) + (Number(t.valor) || 0);
-    }
-    return Object.entries(byMonth)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12)
-      .map(([ym, value]) => {
-        const [yearStr, monthStr] = ym.split('-');
-        const y = Number(yearStr);
-        const mo = Number(monthStr);
-        const labelDate = new Date(y, mo - 1, 1);
-        return {
-          name: labelDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-          value,
-          tipo: 'entrada' as const,
-        };
-      });
-  }, [transactions]);
+  const formatBRL = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   if (loading && transactions.length === 0) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <LuxuryLoading />
-      </div>
+      <AppPageShell>
+        <AppPanelLoading />
+      </AppPageShell>
     );
   }
 
   return (
-    <div className="flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden">
-      <PageHeader 
-        title={<>{isAdmin ? 'Gestão Financeira' : 'Meu Financeiro'}</>}
-        subtitle={isAdmin ? 'Controle de fluxo de caixa e arrecadações.' : 'Acompanhe suas contribuições e mensalidades.'}
-        tenantData={tenantData}
-        setActiveTab={setActiveTab}
-        tabs={
-          isAdmin && (
-            <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-0.5 overflow-x-auto overscroll-x-contain rounded-xl bg-white/5 p-1 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <button 
-                onClick={() => setActiveView('overview')}
-                className={cn("shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5 sm:text-sm whitespace-nowrap", activeView === 'overview' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-              >
-                Visão Geral
-              </button>
-              <button 
-                onClick={() => setActiveView('mensalidades')}
-                className={cn("shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5 sm:text-sm whitespace-nowrap flex items-center gap-1.5", activeView === 'mensalidades' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-              >
-                Mensalidades
-              </button>
-              {hasCaixinhaAccess && (
-                <button 
-                  onClick={() => setActiveView('caixinha')}
-                  className={cn("shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5 sm:text-sm whitespace-nowrap flex items-center gap-1.5", activeView === 'caixinha' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-                >
-                  <span className="hidden sm:inline">Caixinha do Axé</span>
-                  <span className="sm:hidden">Caixinha</span>
-                  {pendingDonations.length > 0 && (
-                    <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-500" />
-                  )}
-                </button>
-              )}
-              <button 
-                onClick={() => setActiveView('configs')}
-                className={cn("shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5 sm:text-sm whitespace-nowrap flex items-center gap-1.5", activeView === 'configs' ? "bg-white/10 text-white shadow-lg" : "text-gray-500 hover:text-white")}
-              >
-                <span className="hidden sm:inline">Configurações</span>
-                <span className="sm:hidden">Configs</span>
-              </button>
-            </div>
-          )
+    <AppPageShell>
+      <AppDemoPanelHeader
+        title={isAdmin ? 'Financeiro do terreiro' : 'Meu financeiro'}
+        description={
+          isAdmin
+            ? 'Entradas, saídas e saldo em tempo real — com Pix e mensalidades integrados.'
+            : 'Acompanhe suas contribuições e mensalidades.'
         }
-        actions={
-          isAdmin && (
-            <div className="flex shrink-0 gap-2 sm:gap-3">
-              <div className="relative group">
-                <button 
-                  onClick={handleDownloadReport}
-                  className={cn('app-page-action', !hasReportsAccess && 'opacity-60')}
-                >
-                  <Download className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                  <span>Relatório</span>
-                </button>
-                {!hasReportsAccess && (
-                  <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[min(280px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-white/10 bg-black px-3 py-2 text-[10px] font-bold leading-snug text-primary opacity-0 transition-opacity group-hover:opacity-100 sm:whitespace-nowrap">
-                    Relatórios em PDF são exclusivos
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="app-page-action"
-              >
-                <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                <span className="sm:hidden">Lançar</span>
-                <span className="hidden sm:inline">Lançamento</span>
-              </button>
-            </div>
-          )
+        action={
+          isAdmin ? (
+            <button
+              type="button"
+              onClick={handleDownloadReport}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]',
+                !hasReportsAccess && 'opacity-60',
+              )}
+            >
+              <Download className="h-4 w-4" />
+              Relatório PDF
+            </button>
+          ) : null
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 space-y-8 px-4 pb-20 md:space-y-12 md:px-6 lg:px-10">
+      {isAdmin ? (
+        <div className="mb-6 flex min-h-[44px] w-full max-w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveView('overview')}
+            className={cn(
+              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
+              activeView === 'overview' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+            )}
+          >
+            Visão geral
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('mensalidades')}
+            className={cn(
+              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
+              activeView === 'mensalidades' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+            )}
+          >
+            Mensalidades
+          </button>
+          {hasCaixinhaAccess ? (
+            <button
+              type="button"
+              onClick={() => setActiveView('caixinha')}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
+                activeView === 'caixinha' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+              )}
+            >
+              Caixinha do Axé
+              {pendingDonations.length > 0 ? (
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-500" />
+              ) : null}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setActiveView('configs')}
+            className={cn(
+              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
+              activeView === 'configs' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+            )}
+          >
+            Configurações
+          </button>
+        </div>
+      ) : null}
+
+      <div className="space-y-6">
         {activeView === 'overview' ? (
         <>
-          {/* Financial Summary */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-emerald-500/10 to-transparent p-5 shadow-xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-emerald-500">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">+15%</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Entradas (confirmadas)</p>
-          <h3 className="mt-2 text-3xl font-black text-white">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.entradas)}
-          </h3>
-        </div>
-
-        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-red-500/10 to-transparent p-5 shadow-xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-red-500">
-              <TrendingDown className="h-5 w-5" />
-            </div>
-            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-500">-5%</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Saídas (confirmadas)</p>
-          <h3 className="mt-2 text-3xl font-black text-white">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.saidas)}
-          </h3>
-        </div>
-
-        <div className="card-luxury min-h-[170px] border-white/5 bg-gradient-to-br from-primary/10 to-transparent p-5 shadow-xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2.5 text-primary">
-              <DollarSign className="h-5 w-5" />
-            </div>
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-primary">Saldo</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Saldo no caixa</p>
-          <h3 className="mt-2 text-3xl font-black text-white">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}
-          </h3>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
-        {/* Chart Section */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="card-luxury p-6 md:p-8 h-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
-              <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-primary" />
-                Evolução Mensal
-              </h3>
-              <select className="bg-card border border-border text-gray-400 text-xs md:text-sm font-bold rounded-xl px-4 py-2 focus:outline-none focus:border-primary/50 w-full md:w-auto [&>option]:bg-[#1B1C1C]">
-                <option>Últimos 6 meses</option>
-                <option>Último ano</option>
-              </select>
-            </div>
-            
-            {chartData.length > 0 ? (
-              <div className="h-64 md:h-80 w-full min-h-[256px] min-w-0">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256} debounce={50}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333434" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} 
-                    />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(251,188,0,0.05)' }}
-                      contentStyle={{ backgroundColor: '#242525', border: '1px solid #333434', borderRadius: '12px', fontWeight: 700, fontSize: '12px' }}
-                    />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.tipo === 'entrada' ? '#10B981' : '#EF4444'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <AppDemoCard className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Entradas</span>
+                <p className="mt-1 text-xl font-bold text-emerald-400">{formatBRL(stats.entradas)}</p>
               </div>
-            ) : (
-              <div className="h-[120px] flex items-center justify-center text-center px-6">
-                <p className="text-xs md:text-sm font-bold text-primary tracking-wide">
-                  Gráfico ficará disponível após o primeiro lançamento de entrada ou saída.
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/40 p-2.5 text-emerald-400">
+                <Plus className="h-5 w-5" />
+              </div>
+            </AppDemoCard>
+            <AppDemoCard className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Saídas</span>
+                <p className="mt-1 text-xl font-bold text-rose-400">{formatBRL(stats.saidas)}</p>
+              </div>
+              <div className="rounded-xl border border-rose-500/20 bg-rose-950/40 p-2.5 text-rose-400">
+                <Trash2 className="h-5 w-5" />
+              </div>
+            </AppDemoCard>
+            <AppDemoCard className="flex items-center justify-between border-primary/25">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-primary">Saldo</span>
+                <p className={cn('mt-1 text-xl font-bold', saldo >= 0 ? 'text-[#F1F5F9]' : 'text-rose-400')}>
+                  {formatBRL(saldo)}
                 </p>
               </div>
-            )}
+              <div className="rounded-xl border border-primary/20 bg-[#1E252E] p-2.5 text-primary">
+                <DollarSign className="h-5 w-5" />
+              </div>
+            </AppDemoCard>
           </div>
-        </div>
 
-        {/* Transactions Section */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              Últimos Lançamentos
-            </h3>
-            <button className="text-sm font-bold text-primary hover:underline">Ver todos</button>
-          </div>
-          <div className="space-y-4">
-            {transactions.map((t) => (
-              <div key={t.id} className="card-luxury p-5 flex items-center justify-between group relative">
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center border",
-                    t.tipo === 'entrada' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"
-                  )}>
-                    {t.tipo === 'entrada' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {isAdmin ? (
+              <AppDemoCard>
+                <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Novo lançamento</h4>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div>
+                    <label className={appLabelClass}>Descrição</label>
+                    <input
+                      required
+                      className={appInputClass}
+                      value={formData.descricao}
+                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                      placeholder="Ex: Mensalidade — filho João"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={appLabelClass}>Fluxo</label>
+                      <select
+                        className={appInputClass}
+                        value={formData.tipo}
+                        onChange={(e) =>
+                          setFormData({ ...formData, tipo: e.target.value as 'entrada' | 'saida' })
+                        }
+                      >
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={appLabelClass}>Categoria</label>
+                      <select
+                        required
+                        className={appInputClass}
+                        value={formData.categoria}
+                        onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                      >
+                        <option value="">Selecione…</option>
+                        <option value="Mensalidade">Mensalidade</option>
+                        <option value="Doação">Doação</option>
+                        <option value="Evento">Evento</option>
+                        <option value="Insumos">Insumos</option>
+                        <option value="Contas">Contas</option>
+                        <option value="Manutenção">Manutenção</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={appLabelClass}>Valor (R$)</label>
+                      <input
+                        required
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className={appInputClass}
+                        value={formData.valor}
+                        onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                        placeholder="150.00"
+                      />
+                    </div>
+                    <div>
+                      <label className={appLabelClass}>Data</label>
+                      <input
+                        required
+                        type="date"
+                        className={appInputClass}
+                        value={formData.data}
+                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">{t.descricao}</h4>
-                    <p className="text-xs text-gray-400 font-medium">{new Date(t.data).toLocaleDateString('pt-BR')} • {t.categoria}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-sm font-black",
-                    t.tipo === 'entrada' ? "text-emerald-500" : "text-red-500"
-                  )}>
-                    {t.tipo === 'entrada' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.valor)}
-                  </span>
-                  {t.categoria === 'Mensalidade' && (t as any).filho_id && (
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const { data: { session } } = await supabase.auth.getSession();
-                          const token = session?.access_token;
-                          const uid = session?.user?.id;
-                          if (!token || !uid) throw new Error('Sessão expirada');
-                          await fetch(whatsappApiUrl('/whatsapp/send'), {
-                            method: 'POST',
-                            headers: whatsappRailwayHeaders(token, uid),
-                            body: JSON.stringify({
-                              tipo: 'financeiro',
-                              filhoId: (t as any).filho_id,
-                              variables: {
-                                nome_filho: t.descricao.split(' ').slice(1).join(' ') || 'Filho',
-                                valor_mensalidade: t.valor.toString(),
-                                data_vencimento: new Date(t.data).toLocaleDateString('pt-BR'),
-                                nome_terreiro: tenantData?.nome || 'Nosso Terreiro'
-                              }
-                            })
-                          });
-                          alert('✅ Lembrete Enviado com Sucesso!');
-                        } catch (e) {
-                          console.error('Error sending financial reminder:', e);
-                          alert('Erro ao enviar lembrete.');
-                        }
-                      }}
-                      className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all"
-                      title="Enviar Lembrete WhatsApp"
+                    <label className={appLabelClass}>Vincular a filho (opcional)</label>
+                    <select
+                      className={appInputClass}
+                      value={formData.filho_id}
+                      onChange={(e) => setFormData({ ...formData, filho_id: e.target.value })}
                     >
-                      <MessageCircle className="w-4 h-4" />
-                    </button>
-                  )}
-                  {isAdmin && (
-                  <button 
-                    onClick={() => handleDelete(t.id)}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-500 hover:text-red-500 transition-all"
-                    title="Excluir lançamento"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                      <option value="">Nenhum</option>
+                      {children.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
+                    {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Registrar lançamento'}
+                  </AppPrimaryButton>
+                </form>
+              </AppDemoCard>
+            ) : null}
+
+            <div className={cn(isAdmin ? 'lg:col-span-2' : 'lg:col-span-3')}>
+            <AppDemoTableShell>
+              <table className="min-w-full divide-y divide-[#1E242B] text-xs">
+                <thead className="bg-[#12161A]">
+                  <tr>
+                    {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
+                      <th
+                        key={h || 'act'}
+                        className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1E242B]">
+                  {transactions.map((t) => (
+                    <tr key={t.id} className="hover:bg-[#1E242B]/40">
+                      <td className="px-4 py-3.5 font-medium text-[#F1F5F9]">{t.descricao}</td>
+                      <td className="px-4 py-3.5 text-[#94A3B8]">{t.categoria}</td>
+                      <td className="px-4 py-3.5 text-[#94A3B8]">
+                        {new Date(t.data).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={
+                            t.tipo === 'entrada'
+                              ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
+                              : 'rounded-full border border-rose-500/30 bg-rose-950/50 px-2 py-0.5 text-[9px] font-bold text-rose-300'
+                          }
+                        >
+                          {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                        </span>
+                      </td>
+                      <td
+                        className={cn(
+                          'px-4 py-3.5 text-right font-bold',
+                          t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400',
+                        )}
+                      >
+                        {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {t.categoria === 'Mensalidade' && (t as Transaction & { filho_id?: string }).filho_id ? (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const {
+                                    data: { session },
+                                  } = await supabase.auth.getSession();
+                                  const token = session?.access_token;
+                                  const uid = session?.user?.id;
+                                  if (!token || !uid) throw new Error('Sessão expirada');
+                                  await fetch(whatsappApiUrl('/whatsapp/send'), {
+                                    method: 'POST',
+                                    headers: whatsappRailwayHeaders(token, uid),
+                                    body: JSON.stringify({
+                                      tipo: 'financeiro',
+                                      filhoId: (t as Transaction & { filho_id?: string }).filho_id,
+                                      variables: {
+                                        nome_filho: t.descricao.split(' ').slice(1).join(' ') || 'Filho',
+                                        valor_mensalidade: t.valor.toString(),
+                                        data_vencimento: new Date(t.data).toLocaleDateString('pt-BR'),
+                                        nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
+                                      },
+                                    }),
+                                  });
+                                  alert('Lembrete enviado com sucesso!');
+                                } catch (e) {
+                                  console.error('Error sending financial reminder:', e);
+                                  alert('Erro ao enviar lembrete.');
+                                }
+                              }}
+                              className="rounded p-1 text-primary hover:bg-white/5"
+                              title="Enviar lembrete WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                          {isAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(t.id)}
+                              className="rounded p-1 text-rose-400 hover:bg-white/5"
+                              aria-label="Remover lançamento"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
+                        Nenhum lançamento registrado ainda.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </AppDemoTableShell>
+            </div>
           </div>
-        </div>
-      </div>
         </>
       ) : (
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
-            <div className="card-luxury p-4 sm:p-6 lg:p-8">
+            <AppDemoCard>
               <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-2xl font-black leading-tight text-white sm:text-2xl">Controle de Mensalidades</h3>
@@ -1301,51 +1337,94 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                       Nenhuma mensalidade paga registrada no mês atual.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-white/5">
-                      <table className="w-full border-collapse text-left">
-                        <thead>
-                          <tr className="border-b border-white/5 bg-white/[0.03]">
-                            <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Filho</th>
-                            <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Valor</th>
-                            <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Data do pagamento</th>
-                            <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {mensalidadesPagas.map((row) => {
-                            const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                            const pay = String(row.data || '').slice(0, 10);
-                            return (
-                              <tr key={row.id}>
-                                <td className="px-4 py-3 font-bold text-white">{nome}</td>
-                                <td className="px-4 py-3 text-sm font-black text-emerald-400">
-                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                    Number(row.valor) || 0
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-300">
-                                  {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleMensalidadeEstornar(row)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-black text-rose-400 transition-colors hover:bg-rose-500/20"
-                                  >
-                                    <Undo2 className="h-3.5 w-3.5" />
-                                    Estornar
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                    <>
+                      <div className="space-y-3 sm:hidden">
+                        {mensalidadesPagas.map((row) => {
+                          const nome = row.filhos_de_santo?.nome || 'Filho de santo';
+                          const pay = String(row.data || '').slice(0, 10);
+                          return (
+                            <div key={row.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
+                              <div className="mb-3 flex items-start justify-between gap-3">
+                                <h4 className="min-w-0 flex-1 text-base font-black leading-snug text-white">{nome}</h4>
+                                <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                                  Pago
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Valor</span>
+                                  <p className="mt-1 font-black text-emerald-400">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                      Number(row.valor) || 0
+                                    )}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Pagamento</span>
+                                  <p className="mt-1 font-bold text-gray-300">
+                                    {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleMensalidadeEstornar(row)}
+                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs font-black text-rose-400 transition-colors hover:bg-rose-500/20"
+                              >
+                                <Undo2 className="h-3.5 w-3.5" />
+                                Estornar pagamento
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="hidden overflow-x-auto rounded-xl border border-white/5 sm:block">
+                        <table className="w-full border-collapse text-left">
+                          <thead>
+                            <tr className="border-b border-white/5 bg-white/[0.03]">
+                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Filho</th>
+                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Valor</th>
+                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Data do pagamento</th>
+                              <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {mensalidadesPagas.map((row) => {
+                              const nome = row.filhos_de_santo?.nome || 'Filho de santo';
+                              const pay = String(row.data || '').slice(0, 10);
+                              return (
+                                <tr key={row.id}>
+                                  <td className="px-4 py-3 font-bold text-white">{nome}</td>
+                                  <td className="px-4 py-3 text-sm font-black text-emerald-400">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                      Number(row.valor) || 0
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-300">
+                                    {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleMensalidadeEstornar(row)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-black text-rose-400 transition-colors hover:bg-rose-500/20"
+                                    >
+                                      <Undo2 className="h-3.5 w-3.5" />
+                                      Estornar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
-            </div>
+            </AppDemoCard>
           ) : activeView === 'caixinha' ? (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -1370,7 +1449,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {pendingDonations.map(donation => (
-                      <div key={donation.id} className="card-luxury p-6 flex flex-col gap-4 border-l-4 border-l-red-500">
+                      <AppDemoCard key={donation.id} className="flex flex-col gap-4 border-l-4 border-l-red-500">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Doador</p>
@@ -1399,7 +1478,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                             Rejeitar
                           </button>
                         </div>
-                      </div>
+                      </AppDemoCard>
                     ))}
                   </div>
                 </div>
@@ -1409,7 +1488,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                 {metas.map(meta => {
                   const progress = Math.min((Number(meta.valor_atual) / Number(meta.valor_alvo)) * 100, 100);
                   return (
-                    <div key={meta.id} className="card-luxury p-8 space-y-6">
+                    <AppDemoCard key={meta.id} className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                           <Target className="w-6 h-6 text-primary" />
@@ -1444,14 +1523,14 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                           </div>
                         </div>
                       )}
-                    </div>
+                    </AppDemoCard>
                   );
                 })}
               </div>
             </div>
           ) : (
             <div className="max-w-2xl mx-auto space-y-8">
-              <div className="card-luxury p-8 space-y-6">
+              <AppDemoCard className="space-y-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <Smartphone className="w-4 h-4 text-primary" />
@@ -1539,7 +1618,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                     </button>
                   </div>
                 </form>
-              </div>
+              </AppDemoCard>
             </div>
           )}
         </div>
@@ -1684,162 +1763,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
           </div>
         )}
       </AnimatePresence>
-
-      {/* Add Transaction Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <BodyPortal>
-          <div className="fixed inset-0 z-[100] flex min-h-0 items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
-            />
-            <motion.div
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-lg"
-            >
-              <div className="p-5 sm:p-6 border-b border-white/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-white">Novo Lançamento</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 font-medium uppercase tracking-widest">Controle de Caixa</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 hover:bg-white/5 rounded-xl text-gray-500 transition-colors"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto no-scrollbar">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, tipo: 'entrada' })}
-                    className={cn(
-                      "py-3 rounded-xl font-black flex items-center justify-center gap-2 border transition-all text-sm",
-                      formData.tipo === 'entrada' 
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" 
-                        : "bg-white/5 border-white/5 text-gray-500"
-                    )}
-                  >
-                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Entrada
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, tipo: 'saida' })}
-                    className={cn(
-                      "py-3 rounded-xl font-black flex items-center justify-center gap-2 border transition-all text-sm",
-                      formData.tipo === 'saida' 
-                        ? "bg-red-500/10 border-red-500/30 text-red-500" 
-                        : "bg-white/5 border-white/5 text-gray-500"
-                    )}
-                  >
-                    <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Saída
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Valor (R$)</label>
-                    <input
-                      required
-                      type="number"
-                      step="0.01"
-                      value={formData.valor}
-                      onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
-                      placeholder="0,00"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Categoria</label>
-                    <select
-                      required
-                      value={formData.categoria}
-                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all [&>option]:bg-[#1B1C1C]"
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="Mensalidade">Mensalidade</option>
-                      <option value="Doação">Doação</option>
-                      <option value="Evento">Evento</option>
-                      <option value="Insumos">Insumos</option>
-                      <option value="Contas">Contas</option>
-                      <option value="Manutenção">Manutenção</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Data</label>
-                    <input
-                      required
-                      type="date"
-                      value={formData.data}
-                      onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Vincular a Filho (Opcional)</label>
-                    <select
-                      value={formData.filho_id}
-                      onChange={(e) => setFormData({ ...formData, filho_id: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all [&>option]:bg-[#1B1C1C]"
-                    >
-                      <option value="">Nenhum</option>
-                      {children.map(c => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Descrição</label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.descricao}
-                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
-                      placeholder="Ex: Mensalidade João Silva"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-3 sm:gap-4 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-white/5 hover:bg-white/10 text-white font-black py-3 sm:py-4 rounded-xl transition-all border border-white/5 text-sm sm:text-base"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 bg-primary text-background font-black py-3 sm:py-4 rounded-xl transition-all flex items-center justify-center gap-2 sm:gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] disabled:opacity-50 text-sm sm:text-base"
-                  >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-                    Confirmar
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-          </BodyPortal>
-        )}
-      </AnimatePresence>
-    </div>
-    </div>
+      </div>
+    </AppPageShell>
   );
 }

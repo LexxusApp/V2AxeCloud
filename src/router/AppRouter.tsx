@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import { RouteLoadingFallback } from '../app/routeLoading';
 import { usePathname } from '../hooks/usePathname';
+import { redirectToMarketingDevOriginIfNeeded } from '../lib/appHref';
 import { isMarketingSitePath, ROUTES } from '../lib/routes';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import { applyRouteSeo } from '../lib/seo';
@@ -20,6 +21,10 @@ function AppNotFound({ path }: { path: string }) {
   useEffect(() => {
     if (started.current || typeof window === 'undefined') return;
     started.current = true;
+
+    if (import.meta.env.DEV && redirectToMarketingDevOriginIfNeeded(path)) {
+      return;
+    }
 
     const target = isMarketingSitePath(path) ? path : ROUTES.home;
 

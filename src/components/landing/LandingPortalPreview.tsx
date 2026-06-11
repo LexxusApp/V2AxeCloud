@@ -4,6 +4,7 @@ import { FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { useFounderHouses } from '../../hooks/useFounderHouses';
 import { ROUTES, consulentePortalPath } from '../../lib/routes';
 import { cn } from '../../lib/utils';
+import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 const fade = {
@@ -19,7 +20,7 @@ function FounderHouseAvatar({ houseName, fotoUrl }: { houseName: string; fotoUrl
       <img
         src={fotoUrl}
         alt=""
-        className="h-12 w-12 shrink-0 rounded-full border border-primary/35 object-cover shadow-[0_0_20px_rgba(251,188,0,0.12)] sm:h-14 sm:w-14"
+        className="h-12 w-12 shrink-0 rounded-full border border-[#2F3643] object-cover sm:h-14 sm:w-14"
       />
     );
   }
@@ -28,7 +29,7 @@ function FounderHouseAvatar({ houseName, fotoUrl }: { houseName: string; fotoUrl
   return (
     <span
       aria-hidden
-      className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/10 text-sm font-black text-primary sm:h-14 sm:w-14 sm:text-base"
+      className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#2F3643] bg-[#1E252E] text-sm font-black text-violet-400 sm:h-14 sm:w-14 sm:text-base"
     >
       {initial}
     </span>
@@ -55,7 +56,7 @@ function FounderHouseCard({
   return (
     <article className="landing-mystic-card flex h-full flex-col p-5 text-left sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/35 bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-400">
           <Award className="h-3.5 w-3.5" aria-hidden />
           Casa fundadora
         </span>
@@ -66,7 +67,7 @@ function FounderHouseCard({
         <h3 className="min-w-0 flex-1 text-base font-bold leading-snug text-white sm:text-lg">{houseName}</h3>
       </div>
       <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-500">
-        <MapPin className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />
+        <MapPin className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />
         {city} — {state}
       </p>
       {quote ? (
@@ -173,12 +174,12 @@ export function LandingPortalPreview() {
                 <span className="landing-device-url">portal.axecloud.com.br — diretório</span>
               </div>
               <div className="p-8 text-center sm:p-10">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-[0_0_32px_rgba(251,188,0,0.12)]">
-                  <Search className="h-7 w-7" aria-hidden />
-                </div>
+                <LandingIconBox accent="sky" size="lg" className="mx-auto mb-5">
+                  <Search className={landingIconClass('sky', 'h-7 w-7')} aria-hidden />
+                </LandingIconBox>
                 <p className="text-base font-semibold text-white">Casas fundadoras em breve</p>
                 <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-zinc-500">
-                  <MapPin className="h-4 w-4 text-primary/80" aria-hidden />
+                  <MapPin className="h-4 w-4 text-rose-400" aria-hidden />
                   Começando pela Grande São Paulo e região
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">

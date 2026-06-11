@@ -7,10 +7,12 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import type { LandingIconAccent } from '../components/landing/landingIconAccents';
 
 export type LandingResourceItem = {
   id: string;
   icon: LucideIcon;
+  iconAccent: LandingIconAccent;
   title: string;
   description: string;
 };
@@ -20,6 +22,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'agenda',
     icon: CalendarDays,
+    iconAccent: 'rose',
     title: 'Calendário de giras',
     description:
       'Organize giras, festas, obrigações e compromissos da casa em uma agenda visual que zelador e filhos de santo acompanham juntos.',
@@ -27,6 +30,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'financeiro',
     icon: Wallet,
+    iconAccent: 'emerald',
     title: 'Financeiro + Pix',
     description:
       'Controle mensalidades, doações e despesas com Pix integrado, histórico claro e leitura transparente para a diretoria.',
@@ -34,6 +38,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'filhos',
     icon: Users,
+    iconAccent: 'gold',
     title: 'Filhos de santo',
     description:
       'Cadastre filhos de santo, cargos, orixás e contatos. Toda a corrente da casa organizada num único painel.',
@@ -41,6 +46,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'mural',
     icon: Megaphone,
+    iconAccent: 'sky',
     title: 'Mural de avisos',
     description:
       'Publique comunicados oficiais da diretoria para a comunidade — avisos visíveis no portal, sem depender só de grupos.',
@@ -48,6 +54,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'galeria',
     icon: ImageIcon,
+    iconAccent: 'violet',
     title: 'Galeria de fotos',
     description:
       'Álbuns por gira e evento: memória do terreiro reunida em um só lugar, com acesso controlado pela casa.',
@@ -55,6 +62,7 @@ export const LANDING_RESOURCES: readonly LandingResourceItem[] = [
   {
     id: 'acesso',
     icon: Smartphone,
+    iconAccent: 'amber',
     title: 'Acesso online',
     description:
       'Funciona no celular, tablet ou computador pelo navegador — zelador, filhos de santo e diretoria, sem instalar app.',
