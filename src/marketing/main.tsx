@@ -2,6 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppErrorBoundary } from '../components/AppErrorBoundary';
 import { redirectToCanonicalOriginIfNeeded } from '../lib/canonicalOrigin';
+import {
+  MARKETING_REDIRECT_ATTEMPTS_KEY,
+  MARKETING_SW_FIX_KEY,
+} from '../lib/marketingDocumentGuard';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import MarketingRouter from './MarketingRouter';
 import '../index.css';
@@ -25,6 +29,8 @@ function bootstrapMarketing() {
 
   try {
     sessionStorage.removeItem('axecloud_marketing_sw_fixup');
+    sessionStorage.removeItem(MARKETING_SW_FIX_KEY);
+    sessionStorage.removeItem(MARKETING_REDIRECT_ATTEMPTS_KEY);
   } catch {
     /* */
   }

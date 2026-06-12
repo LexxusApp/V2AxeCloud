@@ -7,6 +7,12 @@ import {VitePWA} from 'vite-plugin-pwa';
 import {prerenderPublicPages} from './scripts/vite-plugin-prerender-public';
 import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
 import {HOME_SEO} from './src/constants/seoHome';
+import {MARKETING_SITE_PATHS} from './src/lib/routes';
+
+function isMarketingNavigatePath(pathname: string): boolean {
+  const p = pathname.replace(/\/+$/, '') || '/';
+  return (MARKETING_SITE_PATHS as readonly string[]).includes(p) || p.startsWith('/conteudo/');
+}
 
 /** Vite injeta crossorigin nos bundles; com CORP global isso quebrava script/style no Brave/Chrome. */
 function stripCrossoriginFromBuiltHtml(): Plugin {
@@ -26,8 +32,8 @@ export default defineConfig(({mode}) => {
       react(),
       tailwindcss(),
       stripCrossoriginFromBuiltHtml(),
-      seoHomeInject(),
-      prerenderPublicPages(),
+      seoHomeInject({ preloadTourImage: false }),
+      prerenderPublicPages('dist', { excludePaths: MARKETING_SITE_PATHS }),
       VitePWA({
         /** prompt: aguarda o usuário (banner) antes de skipWaiting — evita loop e não prende logados em cache antigo. */
         registerType: 'prompt',
@@ -81,7 +87,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v108',
+          cacheId: 'axecloud-v109',
           cleanupOutdatedCaches: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [
@@ -90,6 +96,7 @@ export default defineConfig(({mode}) => {
             /^\/termos(\/|$)/,
             /^\/privacidade(\/|$)/,
             /^\/programa-fundador(\/|$)/,
+            /^\/espaco-do-fiel(\/|$)/,
             /^\/conteudo(\/|$)/,
           ],
           /** HTML e assets: rede primeiro — PWA instalado não fica preso em bundle antigo se houver rede. */
@@ -98,21 +105,20 @@ export default defineConfig(({mode}) => {
               urlPattern: ({ request, sameOrigin, url }) => {
                 if (!sameOrigin || request.mode !== 'navigate') return false;
                 const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
-                if (
-                  p === '/' ||
-                  p === '/termos' ||
-                  p === '/privacidade' ||
-                  p === '/programa-fundador' ||
-                  p === '/conteudo' ||
-                  p.startsWith('/conteudo/')
-                ) {
-                  return false;
-                }
+                return isMarketingNavigatePath(p);
+              },
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: ({ request, sameOrigin, url }) => {
+                if (!sameOrigin || request.mode !== 'navigate') return false;
+                const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
+                if (isMarketingNavigatePath(p)) return false;
                 return true;
               },
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-html-network-first-v108',
+                cacheName: 'axecloud-html-network-first-v109',
                 networkTimeoutSeconds: 8,
                 expiration: { maxEntries: 12, maxAgeSeconds: 3600 },
                 cacheableResponse: { statuses: [0, 200] },
@@ -123,7 +129,7 @@ export default defineConfig(({mode}) => {
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v108',
+                cacheName: 'axecloud-runtime-network-first-v109',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },

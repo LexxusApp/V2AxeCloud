@@ -22,6 +22,7 @@ export type PwaInstallContextValue = {
 };
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
+const PWA_INSTALL_DISMISS_KEY = 'axecloud-pwa-install-dismissed';
 
 export function PwaInstallProvider({ children }: { children: React.ReactNode }) {
   const isDev = import.meta.env.DEV;
@@ -47,6 +48,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     const onBeforeInstall = (e: Event) => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (!path.startsWith('/dashboard')) return;
+      if (localStorage.getItem(PWA_INSTALL_DISMISS_KEY) === '1') return;
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
@@ -69,7 +71,10 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     const evt = deferredPrompt;
     await evt.prompt();
     try {
-      await evt.userChoice;
+      const { outcome } = await evt.userChoice;
+      if (outcome === 'dismissed') {
+        localStorage.setItem(PWA_INSTALL_DISMISS_KEY, '1');
+      }
     } catch {
       /* ignorado */
     }

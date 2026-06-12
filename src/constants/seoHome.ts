@@ -155,13 +155,19 @@ export function buildHomeJsonLd(): string {
   return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2);
 }
 
-export function buildHomeHeadInject(): string {
+export type BuildHomeHeadInjectOptions = {
+  /** Preload da screenshot do tour — só na landing; no SPA (/dashboard, /login) gera aviso no console. */
+  preloadTourImage?: boolean;
+};
+
+export function buildHomeHeadInject(options: BuildHomeHeadInjectOptions = {}): string {
+  const { preloadTourImage = true } = options;
   const t = HOME_SEO.title;
   const d = HOME_SEO.description;
   const url = `${SITE_ORIGIN}/`;
   const ogAlt = HOME_SEO.ogImageAlt;
 
-  return [
+  const lines = [
     `<title>${escapeHtml(t)}</title>`,
     '',
     `<meta name="description" content="${escapeHtml(d)}" />`,
@@ -189,13 +195,23 @@ export function buildHomeHeadInject(): string {
     `<meta name="twitter:image" content="${SITE_ORIGIN}/og-image.png" />`,
     `<meta name="twitter:image:alt" content="${escapeHtml(ogAlt)}" />`,
     '',
-    `<link rel="preload" as="image" href="/screenshots/painel-inicio.png?v=${LANDING_SCREENSHOT_VERSION}" fetchpriority="high" />`,
+  ];
+
+  if (preloadTourImage) {
+    lines.push(
+      `<link rel="preload" as="image" href="/screenshots/painel-inicio.png?v=${LANDING_SCREENSHOT_VERSION}" fetchpriority="high" />`,
+    );
+  }
+
+  lines.push(
     `<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />`,
     `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />`,
     `<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" /></noscript>`,
     '',
     `<script type="application/ld+json">\n${buildHomeJsonLd()}\n    </script>`,
-  ].join('\n    ');
+  );
+
+  return lines.join('\n    ');
 }
 
 export function buildHomeBodyInject(): string {

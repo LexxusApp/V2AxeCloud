@@ -17,4 +17,15 @@ export async function purgeLegacyAppServiceWorker(): Promise<void> {
   } catch {
     /* */
   }
+
+  if (navigator.serviceWorker.controller) {
+    await new Promise<void>((resolve) => {
+      const timer = window.setTimeout(resolve, 600);
+      const onChange = () => {
+        window.clearTimeout(timer);
+        resolve();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', onChange, { once: true });
+    });
+  }
 }

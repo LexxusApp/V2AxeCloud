@@ -1,7 +1,11 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { RouteLoadingFallback } from '../app/routeLoading';
 import { usePathname } from '../hooks/usePathname';
 import { redirectToMarketingDevOriginIfNeeded } from '../lib/appHref';
+import {
+  MARKETING_REDIRECT_ATTEMPTS_KEY,
+  escapeAppBundleOnMarketingUrl,
+} from '../lib/marketingDocumentGuard';
 import { isMarketingSitePath, ROUTES } from '../lib/routes';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import { applyRouteSeo } from '../lib/seo';
@@ -13,10 +17,9 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
 
-const HOME_FIX_KEY = 'axecloud_marketing_sw_fixup';
-
 function AppNotFound({ path }: { path: string }) {
   const started = useRef(false);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     if (started.current || typeof window === 'undefined') return;
@@ -27,18 +30,37 @@ function AppNotFound({ path }: { path: string }) {
     }
 
     const target = isMarketingSitePath(path) ? path : ROUTES.home;
+    const attempts = parseInt(sessionStorage.getItem(MARKETING_REDIRECT_ATTEMPTS_KEY) || '0', 10);
 
-    if (sessionStorage.getItem(HOME_FIX_KEY) === target) {
+    if (attempts >= 3) {
+      setStuck(true);
       return;
     }
-    sessionStorage.setItem(HOME_FIX_KEY, target);
 
-    void purgeLegacyAppServiceWorker().finally(() => {
-      const bust = `_swfix=${Date.now()}`;
-      const join = target.includes('?') ? '&' : '?';
-      window.location.replace(`${target}${join}${bust}`);
-    });
+    void (async () => {
+      const escaped = await escapeAppBundleOnMarketingUrl();
+      if (escaped) return;
+
+      await purgeLegacyAppServiceWorker();
+      const url = new URL(target, window.location.origin);
+      url.searchParams.set('_nocache', String(Date.now()));
+      window.location.replace(url.pathname + url.search);
+    })();
   }, [path]);
+
+  if (stuck) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-neutral-950 px-6 text-center text-neutral-400">
+        <p className="text-sm">Não foi possível abrir a página automaticamente.</p>
+        <a
+          href={ROUTES.home}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-black hover:opacity-90"
+        >
+          Ir para o início
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-neutral-950 text-neutral-400">

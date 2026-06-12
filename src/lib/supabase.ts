@@ -55,6 +55,18 @@ console.error = (...args) => {
   if (args[0] && (args[0] as { isAcquireTimeout?: boolean }).isAcquireTimeout) {
     return;
   }
+  const errMsg = String(
+    typeof args[0] === 'string'
+      ? args[0]
+      : (args[0] as { message?: string })?.message || '',
+  ).toLowerCase();
+  if (
+    errMsg.includes('invalid refresh token') ||
+    errMsg.includes('refresh token not found') ||
+    (errMsg.includes('authapierror') && errMsg.includes('refresh'))
+  ) {
+    return;
+  }
   originalError(...args);
 };
 // ----------------------------------------------------------------
@@ -74,8 +86,31 @@ function isJwtExpiredMessage(value: unknown): boolean {
   return msg.includes('jwt') && msg.includes('expir');
 }
 
+const AUTH_STORAGE_KEY = 'axecloud-auth-token';
+
+/** Remove storage órfão antes do GoTrue tentar refresh com token inválido/ausente. */
+function sanitizeAuthStorageBeforeInit(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const refresh =
+      parsed?.refresh_token ??
+      (parsed?.currentSession as { refresh_token?: string } | undefined)?.refresh_token ??
+      (parsed?.session as { refresh_token?: string } | undefined)?.refresh_token;
+    if (typeof refresh !== 'string' || !refresh.trim()) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+sanitizeAuthStorageBeforeInit();
+
 /** Só força logout global em erros de refresh claramente fatais — rede/lock não podem apagar sessão. */
-function isRefreshFailureFatal(value: unknown): boolean {
+export function isRefreshFailureFatal(value: unknown): boolean {
   if (isJwtExpiredMessage(value)) return true;
   const msg = String((value as { message?: string })?.message || value || '').toLowerCase();
   const code = String((value as { code?: string })?.code || '').toLowerCase();
@@ -90,6 +125,44 @@ function isRefreshFailureFatal(value: unknown): boolean {
 function emitSessionExpired(reason: string) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { reason } }));
+}
+
+/** Limpa sessão local sem chamar a API (útil em /login com refresh token revogado). */
+export async function purgeLocalAuthSession(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+async function purgeLocalAuthIfRefreshTokenRejected(
+  getClient: () => SupabaseClient,
+  response: Response,
+  urlStr: string,
+): Promise<void> {
+  if (!urlStr.includes('/auth/v1/token') || response.status !== 400) return;
+  if (!urlStr.includes('grant_type=refresh_token')) return;
+  try {
+    const body = (await response.clone().json()) as {
+      error_description?: string;
+      msg?: string;
+      error?: string;
+    };
+    const msg = String(
+      body?.error_description || body?.msg || body?.error || '',
+    ).toLowerCase();
+    if (
+      msg.includes('refresh') ||
+      msg.includes('invalid_grant') ||
+      msg.includes('not found')
+    ) {
+      await getClient().auth.signOut({ scope: 'local' });
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Rotas onde 401 indica sessão inválida e vale tentar refresh (não inclui /token para evitar recursão no fetch). */
@@ -117,9 +190,11 @@ function createResilientFetch(getClient: () => SupabaseClient): typeof fetch {
       throw err;
     }
 
+    const urlStr = typeof input === 'string' ? input : (input as Request).url;
+    await purgeLocalAuthIfRefreshTokenRejected(getClient, response, urlStr);
+
     if (response.status !== 401) return response;
 
-    const urlStr = typeof input === 'string' ? input : (input as Request).url;
     if (!isSupabaseRecoverable401(urlStr)) return response;
 
     const supabase = getClient();
@@ -221,7 +296,7 @@ function createAxecloudSupabaseClient(): SupabaseClient {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        storageKey: 'axecloud-auth-token',
+        storageKey: AUTH_STORAGE_KEY,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         // Lock resiliente para evitar travamento eterno quando uma aba anterior
         // morreu segurando a lock (`navigator.locks` órfão).
@@ -266,7 +341,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       }
     }
     void supabase.auth.getSession().then(({ data: { session } }) => {
-      const exp = session?.expires_at;
+      if (!session?.refresh_token) return;
+      const exp = session.expires_at;
       if (exp == null || !Number.isFinite(exp)) return;
       const expMs = Number(exp) * 1000;
       if (expMs < Date.now() + 120_000) {

@@ -128,6 +128,36 @@
     </style>
     <script>
       (function () {
+        var MARKETING =
+          /^\/(?:termos|privacidade|programa-fundador|espaco-do-fiel|conteudo(?:\/|$))?\/?$/;
+        var p = (location.pathname || '/').replace(/\/+$/, '') || '/';
+        var onMarketing = p === '/' || MARKETING.test(p);
+        if (onMarketing && 'serviceWorker' in navigator) {
+          var attempts = parseInt(sessionStorage.getItem('axecloud_marketing_redirect_attempts') || '0', 10);
+          if (attempts >= 3) return;
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            var hasSw = regs.length > 0 || !!navigator.serviceWorker.controller;
+            if (!hasSw) return;
+            sessionStorage.setItem('axecloud_marketing_redirect_attempts', String(attempts + 1));
+            return Promise.all(regs.map(function (r) { return r.unregister(); }));
+          }).then(function () {
+              if ('caches' in window) {
+                return caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                });
+              }
+            }).finally(function () {
+              var u = new URL(location.href);
+              u.searchParams.delete('_swfix');
+              u.searchParams.delete('_nocache');
+              location.replace(u.pathname + u.search + u.hash);
+            });
+          }
+        }
+      })();
+    </script>
+    <script>
+      (function () {
         var RETRY_KEY = 'axecloud_stale_boot_retries';
         var MAX_RETRIES = 3;
 

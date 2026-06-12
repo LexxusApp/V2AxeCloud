@@ -754,6 +754,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         }
       } else {
         setSession(null);
+        if (localStorage.getItem('axecloud-auth-token')) {
+          void supabase.auth.signOut({ scope: 'local' });
+        }
         // Só mostra Login depois que getSession() de fato respondeu sem usuário.
         if (!authFirstEventHandledRef.current) {
           authFirstEventHandledRef.current = true;

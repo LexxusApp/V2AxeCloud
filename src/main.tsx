@@ -7,6 +7,7 @@ import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
+import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {bindPwaApplyUpdate, markPwaUpdateAvailable} from './lib/pwaUpdate';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
@@ -133,5 +134,11 @@ function bootstrapApp() {
 }
 
 if (!redirectToCanonicalOriginIfNeeded()) {
-  bootstrapApp();
+  if (import.meta.env.PROD && isMarketingDocumentPath(window.location.pathname)) {
+    void escapeAppBundleOnMarketingUrl().then((escaped) => {
+      if (!escaped) window.location.replace('/');
+    });
+  } else {
+    bootstrapApp();
+  }
 }
