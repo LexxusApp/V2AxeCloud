@@ -6,6 +6,7 @@ import {
   HandHeart,
   Home,
   Images,
+  Landmark,
   LogOut,
   Megaphone,
   Newspaper,
@@ -25,6 +26,13 @@ export type AppNavItem = {
   icon: LucideIcon;
   filledWhenActive?: boolean;
 };
+
+/** Módulos agrupados no menu «Casa» (zelador). */
+export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'mural'] as const;
+
+export type ZeladorNavEntry =
+  | { type: 'item'; item: AppNavItem }
+  | { type: 'casa'; label: string; icon: LucideIcon; items: AppNavItem[] };
 
 const ZELADOR_CORE: AppNavItem[] = [
   { id: 'dashboard', label: 'Início', icon: Home, filledWhenActive: true },
@@ -52,6 +60,36 @@ export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {
   const beforeStore = ZELADOR_CORE.slice(0, storeIdx);
   const storeAndAfter = ZELADOR_CORE.slice(storeIdx);
   return [...beforeStore, ...tradition, ...storeAndAfter];
+}
+
+/** Menu do zelador com grupo «Casa» (Filhos, Giras, Mural) para caber sem scroll horizontal. */
+export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntry[] {
+  const items = buildZeladorNavItems(tradicao);
+  const casaSet = new Set<string>(ZELADOR_CASA_CHILD_IDS);
+  const casaItems = ZELADOR_CASA_CHILD_IDS.map((id) => items.find((i) => i.id === id)).filter(
+    (i): i is AppNavItem => i != null,
+  );
+
+  const entries: ZeladorNavEntry[] = [];
+  let casaInserted = false;
+
+  for (const item of items) {
+    if (casaSet.has(item.id)) {
+      if (!casaInserted) {
+        entries.push({
+          type: 'casa',
+          label: 'Casa',
+          icon: Landmark,
+          items: casaItems,
+        });
+        casaInserted = true;
+      }
+      continue;
+    }
+    entries.push({ type: 'item', item });
+  }
+
+  return entries;
 }
 
 export const FILHO_NAV: AppNavItem[] = [

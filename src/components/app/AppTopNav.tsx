@@ -1,14 +1,22 @@
 import {
+  ChevronDown,
   Flame,
   Loader2,
   Lock,
   Menu,
   X,
+  type LucideIcon,
 } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 import { hasPlanAccess } from '../../constants/plans';
-import { buildZeladorNavItems, FILHO_NAV, type AppNavItem } from '../../constants/appNav';
+import {
+  buildZeladorNavEntries,
+  buildZeladorNavItems,
+  FILHO_NAV,
+  type AppNavItem,
+  type ZeladorNavEntry,
+} from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
 
 type AppTopNavProps = {
@@ -38,41 +46,140 @@ function NavTab({
   isActive: boolean;
   isLocked: boolean;
   onSelect: () => void;
-  layout?: 'inline' | 'grid';
+  layout?: 'inline' | 'grid' | 'dropdown';
 }) {
   const Icon = item.icon;
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={isActive}
+      role={layout === 'dropdown' ? 'menuitem' : 'tab'}
+      aria-selected={layout === 'dropdown' ? undefined : isActive}
       onClick={onSelect}
       className={cn(
         'inline-flex shrink-0 items-center gap-1.5 font-bold transition-all',
         layout === 'grid'
           ? 'w-full rounded-xl border px-3 py-2.5 text-[11px]'
-          : 'rounded-lg px-3 py-2 text-xs',
+          : layout === 'dropdown'
+            ? 'w-full rounded-lg px-3 py-2.5 text-left text-xs'
+            : 'rounded-lg px-3 py-2 text-xs',
         isActive
           ? layout === 'grid'
             ? 'border-primary/40 bg-primary text-[#080A0D] shadow-sm'
-            : 'bg-primary text-[#080A0D] shadow-sm'
+            : layout === 'dropdown'
+              ? 'bg-primary/15 text-primary'
+              : 'bg-primary text-[#080A0D] shadow-sm'
           : layout === 'grid'
             ? 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]'
-            : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+            : layout === 'dropdown'
+              ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
+              : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
         isLocked && 'opacity-50',
       )}
     >
       <Icon
-        className={cn('shrink-0', layout === 'grid' ? 'h-4 w-4' : 'h-3.5 w-3.5')}
+        className={cn('shrink-0', layout === 'grid' || layout === 'dropdown' ? 'h-4 w-4' : 'h-3.5 w-3.5')}
         aria-hidden
         strokeWidth={isActive ? 2.25 : 1.75}
         fill={isActive && item.filledWhenActive ? 'currentColor' : 'none'}
       />
-      <span className={layout === 'grid' ? 'line-clamp-2 text-left leading-tight' : 'whitespace-nowrap'}>
+      <span
+        className={
+          layout === 'grid'
+            ? 'line-clamp-2 text-left leading-tight'
+            : layout === 'dropdown'
+              ? 'flex-1'
+              : 'whitespace-nowrap'
+        }
+      >
         {item.label}
       </span>
       {isLocked ? <Lock className="h-3 w-3 shrink-0 text-primary" aria-hidden /> : null}
     </button>
+  );
+}
+
+function NavCasaDropdown({
+  label,
+  icon: CasaIcon,
+  items,
+  activeTab,
+  isItemLocked,
+  onSelect,
+}: {
+  label: string;
+  icon: LucideIcon;
+  items: AppNavItem[];
+  activeTab: string;
+  isItemLocked: (item: AppNavItem) => boolean;
+  onSelect: (item: AppNavItem) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const isGroupActive = items.some((i) => i.id === activeTab);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={isGroupActive}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+          isGroupActive || open
+            ? 'bg-primary text-[#080A0D] shadow-sm'
+            : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+        )}
+      >
+        <CasaIcon className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={isGroupActive ? 2.25 : 1.75} />
+        <span className="whitespace-nowrap">{label}</span>
+        <ChevronDown
+          className={cn('h-3.5 w-3.5 shrink-0 transition-transform', open && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          aria-label="Módulos da casa"
+          className="absolute left-0 top-full z-50 mt-1.5 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-xl shadow-black/40"
+        >
+          {items.map((item) => (
+            <NavTab
+              key={item.id}
+              item={item}
+              layout="dropdown"
+              isActive={activeTab === item.id}
+              isLocked={isItemLocked(item)}
+              onSelect={() => {
+                onSelect(item);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -92,11 +199,18 @@ export default function AppTopNav({
     [userRole, tenantData?.tradicao],
   );
 
+  const zeladorEntries = useMemo(
+    () => (userRole === 'filho' ? null : buildZeladorNavEntries(tenantData?.tradicao)),
+    [userRole, tenantData?.tradicao],
+  );
+
   const activeItem = navItems.find((item) => item.id === activeTab);
 
+  const isItemLocked = (item: AppNavItem) =>
+    userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin);
+
   const handleSelect = (item: AppNavItem) => {
-    const locked = userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin);
-    if (locked) {
+    if (isItemLocked(item)) {
       alert(
         `Este recurso não está disponível no plano ${tenantData?.plan?.toUpperCase() || 'AXÉ'}. Atualize seu plano para acessar.`,
       );
@@ -111,8 +225,66 @@ export default function AppTopNav({
     userRole === 'filho'
       ? userDisplayName || 'Filho de Santo'
       : `${tenantData?.plan?.toUpperCase() || 'AXÉ'} · gestão do terreiro`;
-  const profileFoto =
-    userRole === 'filho' ? filhoFotoUrl : tenantData?.foto_url;
+  const profileFoto = userRole === 'filho' ? filhoFotoUrl : tenantData?.foto_url;
+
+  const renderMobileEntry = (entry: ZeladorNavEntry, key: string) => {
+    if (entry.type === 'item') {
+      return (
+        <NavTab
+          key={key}
+          item={entry.item}
+          layout="grid"
+          isActive={activeTab === entry.item.id}
+          isLocked={isItemLocked(entry.item)}
+          onSelect={() => handleSelect(entry.item)}
+        />
+      );
+    }
+
+    return (
+      <div key={key} className="col-span-2 space-y-2 sm:col-span-3">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-wider text-primary">{entry.label}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {entry.items.map((item) => (
+            <NavTab
+              key={item.id}
+              item={item}
+              layout="grid"
+              isActive={activeTab === item.id}
+              isLocked={isItemLocked(item)}
+              onSelect={() => handleSelect(item)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDesktopEntry = (entry: ZeladorNavEntry, key: string) => {
+    if (entry.type === 'item') {
+      return (
+        <NavTab
+          key={key}
+          item={entry.item}
+          isActive={activeTab === entry.item.id}
+          isLocked={isItemLocked(entry.item)}
+          onSelect={() => handleSelect(entry.item)}
+        />
+      );
+    }
+
+    return (
+      <NavCasaDropdown
+        key={key}
+        label={entry.label}
+        icon={entry.icon}
+        items={entry.items}
+        activeTab={activeTab}
+        isItemLocked={isItemLocked}
+        onSelect={handleSelect}
+      />
+    );
+  };
 
   return (
     <header className="shrink-0 border-b border-[#1E242B] bg-[#13171D]">
@@ -174,38 +346,42 @@ export default function AppTopNav({
             role="tablist"
             aria-label="Módulos do AxéCloud"
           >
-            {navItems.map((item) => (
-              <NavTab
-                key={item.id}
-                item={item}
-                layout="grid"
-                isActive={activeTab === item.id}
-                isLocked={
-                  userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin)
-                }
-                onSelect={() => handleSelect(item)}
-              />
-            ))}
+            {userRole === 'filho'
+              ? navItems.map((item) => (
+                  <NavTab
+                    key={item.id}
+                    item={item}
+                    layout="grid"
+                    isActive={activeTab === item.id}
+                    isLocked={isItemLocked(item)}
+                    onSelect={() => handleSelect(item)}
+                  />
+                ))
+              : zeladorEntries?.map((entry, index) =>
+                  renderMobileEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+                )}
           </div>
         ) : null}
 
-        <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">
+        <div className="hidden min-w-0 flex-1 items-center lg:flex">
           <div
-            className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#334155]"
+            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
             role="tablist"
             aria-label="Módulos do AxéCloud"
           >
-            {navItems.map((item) => (
-              <NavTab
-                key={item.id}
-                item={item}
-                isActive={activeTab === item.id}
-                isLocked={
-                  userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin)
-                }
-                onSelect={() => handleSelect(item)}
-              />
-            ))}
+            {userRole === 'filho'
+              ? navItems.map((item) => (
+                  <NavTab
+                    key={item.id}
+                    item={item}
+                    isActive={activeTab === item.id}
+                    isLocked={isItemLocked(item)}
+                    onSelect={() => handleSelect(item)}
+                  />
+                ))
+              : zeladorEntries?.map((entry, index) =>
+                  renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+                )}
           </div>
         </div>
       </div>
