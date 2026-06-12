@@ -24,7 +24,6 @@ import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import { hasPlanAccess } from '../constants/plans';
-import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
 
 interface SidebarProps {
   activeTab: string;
@@ -249,8 +248,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
           </nav>
 
           {/* Footer: Logout */}
-          <div className="pt-4 mt-auto border-t border-[#1E242B] shrink-0 space-y-2">
-            <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen(false)} />
+          <div className="pt-4 mt-auto border-t border-[#1E242B] shrink-0">
             <button
               onClick={handleLogout}
               className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-red-500 transition-all hover:bg-red-500/10"

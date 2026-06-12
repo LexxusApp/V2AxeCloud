@@ -1,7 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
-import {PwaInstallProvider} from './contexts/PwaInstallContext';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
@@ -121,14 +120,12 @@ function bootstrapApp() {
 
   createRoot(rootEl).render(
     <StrictMode>
-      <PwaInstallProvider>
-        <AppErrorBoundary>
-          <PwaUpdateBanner />
-          <EmergencyReloadBeacon />
-          <AppRouter />
-          <VercelInsights />
-        </AppErrorBoundary>
-      </PwaInstallProvider>
+      <AppErrorBoundary>
+        <PwaUpdateBanner />
+        <EmergencyReloadBeacon />
+        <AppRouter />
+        <VercelInsights />
+      </AppErrorBoundary>
     </StrictMode>,
   );
 }

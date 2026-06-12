@@ -9,7 +9,6 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 import { hasPlanAccess } from '../../constants/plans';
 import { buildZeladorNavItems, FILHO_NAV, type AppNavItem } from '../../constants/appNav';
-import { PwaInstallTopbarButton } from '../PwaInstallTopbarButton';
 import { performFastLogout } from '../../lib/logout';
 
 type AppTopNavProps = {
@@ -157,7 +156,6 @@ export default function AppTopNav({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 lg:hidden">
-            <PwaInstallTopbarButton />
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
@@ -208,9 +206,6 @@ export default function AppTopNav({
                 onSelect={() => handleSelect(item)}
               />
             ))}
-          </div>
-          <div className="hidden shrink-0 items-center sm:flex">
-            <PwaInstallTopbarButton />
           </div>
         </div>
       </div>

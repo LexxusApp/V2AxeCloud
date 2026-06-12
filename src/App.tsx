@@ -38,7 +38,6 @@ import {
   writeCachedTenantIdForUser,
 } from './lib/tenantCache';
 import { resolveTenantFromSupabase } from './lib/resolveTenantFromSupabase';
-import { PwaInstallTopbarButton } from './components/PwaInstallTopbarButton';
 import LegalTermsModal from './components/LegalTermsModal';
 import AppFooter from './components/AppFooter';
 import { AuthScreenBackground } from './components/AuthScreenBackground';

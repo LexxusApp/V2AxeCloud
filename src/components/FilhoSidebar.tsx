@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { performFastLogout } from '../lib/logout';
-import { PwaInstallSidebarButton } from './PwaInstallSidebarButton';
 import Avatar from './Avatar';
 
 const MOBILE_DRAWER_TRANSITION =
@@ -106,8 +105,7 @@ export default function FilhoSidebar({
         </div>
       </div>
 
-      <div className="pt-6 border-t border-[#1E242B] space-y-2">
-        <PwaInstallSidebarButton onAfterClick={() => setIsMobileOpen?.(false)} />
+      <div className="pt-6 border-t border-[#1E242B]">
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-4 px-6 py-4 text-gray-500 hover:text-red-500 transition-colors duration-200 group rounded-2xl hover:bg-red-500/5"
