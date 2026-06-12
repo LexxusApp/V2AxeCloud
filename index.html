@@ -148,8 +148,9 @@
               }
             }).finally(function () {
               var u = new URL(location.href);
-              u.searchParams.delete('_swfix');
-              u.searchParams.delete('_nocache');
+              ['_reload', '_swfix', '_nocache', '_boot'].forEach(function (k) {
+                while (u.searchParams.has(k)) u.searchParams.delete(k);
+              });
               location.replace(u.pathname + u.search + u.hash);
             });
           }
@@ -169,9 +170,12 @@
           } catch (e) {
             return;
           }
-          var bust = '_boot=' + Date.now();
-          var search = location.search ? location.search + '&' + bust : '?' + bust;
-          location.replace((location.pathname || '/') + search + location.hash);
+          var u = new URL(location.href);
+          ['_reload', '_swfix', '_nocache', '_boot'].forEach(function (k) {
+            while (u.searchParams.has(k)) u.searchParams.delete(k);
+          });
+          u.searchParams.set('_boot', String(Date.now()));
+          location.replace(u.pathname + u.search + u.hash);
         }
 
         window.addEventListener(

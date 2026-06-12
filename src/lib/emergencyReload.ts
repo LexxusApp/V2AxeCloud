@@ -1,3 +1,5 @@
+import { buildEmergencyReloadUrl } from './urlHygiene';
+
 /**
  * Recarga agressiva para PWA preso em bundle/cache antigo ou sessão inconsistente.
  * Não usar reload(true) — depreciado; reload() basta após limpar SW/caches.
@@ -21,8 +23,5 @@ export function performEmergencyHardReload(): void {
     });
   }
 
-  const bust = '_reload=' + Date.now();
-  const path = window.location.pathname || '/';
-  const search = window.location.search ? window.location.search + '&' + bust : '?' + bust;
-  window.location.replace(path + search + window.location.hash);
+  window.location.replace(buildEmergencyReloadUrl());
 }

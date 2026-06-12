@@ -1,5 +1,6 @@
 import { isMarketingSitePath, normalizePath } from './routes';
 import { purgeLegacyAppServiceWorker } from './purgeServiceWorker';
+import { cleanBrowserUrl } from './urlHygiene';
 
 export const MARKETING_SW_FIX_KEY = 'axecloud_app_on_marketing_fix';
 export const MARKETING_REDIRECT_ATTEMPTS_KEY = 'axecloud_marketing_redirect_attempts';
@@ -21,9 +22,7 @@ export async function escapeAppBundleOnMarketingUrl(): Promise<boolean> {
   await purgeLegacyAppServiceWorker();
   await new Promise((r) => window.setTimeout(r, 120));
 
-  const url = new URL(window.location.href);
-  url.searchParams.delete('_swfix');
-  url.searchParams.delete('_nocache');
-  window.location.replace(url.pathname + url.search + url.hash);
+  cleanBrowserUrl();
+  window.location.replace(window.location.pathname + window.location.hash);
   return true;
 }

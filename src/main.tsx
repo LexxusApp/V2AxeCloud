@@ -7,6 +7,7 @@ import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
+import {cleanBrowserUrl} from './lib/urlHygiene';
 import {bindPwaApplyUpdate, markPwaUpdateAvailable} from './lib/pwaUpdate';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
@@ -117,6 +118,7 @@ function bootstrapApp() {
   }
   document.getElementById('axecloud-boot')?.remove();
   document.getElementById('axecloud-seo-static')?.remove();
+  cleanBrowserUrl();
 
   createRoot(rootEl).render(
     <StrictMode>

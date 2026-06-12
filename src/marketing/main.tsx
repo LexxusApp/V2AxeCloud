@@ -7,12 +7,14 @@ import {
   MARKETING_SW_FIX_KEY,
 } from '../lib/marketingDocumentGuard';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
+import { cleanBrowserUrl } from '../lib/urlHygiene';
 import MarketingRouter from './MarketingRouter';
 import '../index.css';
 
 function bootstrapMarketing() {
   document.getElementById('axecloud-seo-static')?.remove();
   document.getElementById('axecloud-boot')?.remove();
+  cleanBrowserUrl();
 
   const rootEl = document.getElementById('root');
   if (!rootEl) {

@@ -8,6 +8,7 @@ import {
 } from '../lib/marketingDocumentGuard';
 import { isMarketingSitePath, ROUTES } from '../lib/routes';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
+import { cleanBrowserUrl } from '../lib/urlHygiene';
 import { applyRouteSeo } from '../lib/seo';
 
 const Register = lazy(() => import('../views/Register'));
@@ -42,9 +43,8 @@ function AppNotFound({ path }: { path: string }) {
       if (escaped) return;
 
       await purgeLegacyAppServiceWorker();
-      const url = new URL(target, window.location.origin);
-      url.searchParams.set('_nocache', String(Date.now()));
-      window.location.replace(url.pathname + url.search);
+      cleanBrowserUrl();
+      window.location.replace(target);
     })();
   }, [path]);
 
