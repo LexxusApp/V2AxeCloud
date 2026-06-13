@@ -3164,6 +3164,24 @@ async function startServer() {
     }
   });
 
+  app.get("/api/v1/app-build", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    const buildInfoPath = path.join(process.cwd(), "dist", "build-info.json");
+    if (!existsSync(buildInfoPath)) {
+      return res.status(503).json({ buildId: null });
+    }
+    try {
+      const data = JSON.parse(readFileSync(buildInfoPath, "utf8")) as {
+        buildId?: string;
+        builtAt?: string;
+      };
+      return res.json({ buildId: data.buildId || null, builtAt: data.builtAt || null });
+    } catch {
+      return res.status(500).json({ buildId: null });
+    }
+  });
+
   // API Route: Manage Tenant (Admin only)
   app.post("/api/admin/manage-tenant", sensitiveActionRateLimit, async (req, res) => {
     const { targetUserId, action, newPlan } = req.body;
@@ -4443,6 +4461,7 @@ async function startServer() {
         if (
           pathOnly === "/sw.js" ||
           pathOnly === "/manifest.webmanifest" ||
+          pathOnly === "/build-info.json" ||
           pathOnly.startsWith("/workbox-")
         ) {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");

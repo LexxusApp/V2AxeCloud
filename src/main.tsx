@@ -8,6 +8,7 @@ import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {cleanBrowserUrl} from './lib/urlHygiene';
+import {startBuildVersionPolling, persistRunningBuildId} from './lib/buildVersionPoll';
 import {
   attachServiceWorkerUpdateProbes,
   bindPwaApplyUpdate,
@@ -131,6 +132,11 @@ function bootstrapApp() {
   document.getElementById('axecloud-boot')?.remove();
   document.getElementById('axecloud-seo-static')?.remove();
   cleanBrowserUrl();
+  persistRunningBuildId();
+
+  if (import.meta.env.PROD && isCanonicalAppOrigin()) {
+    startBuildVersionPolling();
+  }
 
   createRoot(rootEl).render(
     <StrictMode>

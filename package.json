@@ -12,7 +12,7 @@
     "submit:sitemap": "node scripts/submit-sitemap.mjs",
     "generate:favicons": "node scripts/generate-favicons.mjs",
     "capture-screens": "node scripts/capture-axecloud.mjs",
-    "build": "npm run generate:sitemap && vite build",
+    "build": "npm run generate:sitemap && node scripts/write-build-info.mjs && vite build",
     "dev:landing": "vite --config vite.landing.config.ts --port 5174",
     "dev:site": "concurrently -k -n app,landing -c cyan,yellow \"npm run dev\" \"npm run dev:landing\"",
     "build:landing": "vite build --config vite.landing.config.ts",

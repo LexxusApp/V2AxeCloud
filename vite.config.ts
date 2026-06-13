@@ -5,6 +5,7 @@ import type {Plugin} from 'vite';
 import {defineConfig, loadEnv} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 import {prerenderPublicPages} from './scripts/vite-plugin-prerender-public';
+import {buildIdInject} from './scripts/vite-plugin-build-id';
 import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
 import {HOME_SEO} from './src/constants/seoHome';
 import {MARKETING_SITE_PATHS} from './src/lib/routes';
@@ -32,6 +33,7 @@ export default defineConfig(({mode}) => {
       react(),
       tailwindcss(),
       stripCrossoriginFromBuiltHtml(),
+      buildIdInject(),
       seoHomeInject({ preloadTourImage: false }),
       prerenderPublicPages('dist', { excludePaths: MARKETING_SITE_PATHS }),
       VitePWA({

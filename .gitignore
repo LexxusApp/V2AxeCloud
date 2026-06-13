@@ -16,3 +16,4 @@ audit-advisors.json
 .agents/
 .cursor/
 public/screenshots/debug*.png
+public/build-info.json
