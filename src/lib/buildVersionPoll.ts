@@ -1,4 +1,4 @@
-import { markPwaUpdateAvailable } from './pwaUpdate';
+import { markPwaUpdateAvailable, shouldSuppressPwaUpdatePrompt } from './pwaUpdate';
 
 declare const __AXECLOUD_BUILD_ID__: string;
 
@@ -52,6 +52,8 @@ async function fetchRemoteBuildId(): Promise<string | null> {
  * Funciona no PWA e no navegador mesmo quando o SW não detecta update.
  */
 export async function checkRemoteBuildVersion(): Promise<boolean> {
+  if (shouldSuppressPwaUpdatePrompt()) return false;
+
   const remote = await fetchRemoteBuildId();
   if (!remote) return false;
 

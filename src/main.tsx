@@ -49,37 +49,10 @@ async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
   }
 }
 
-function setupServiceWorkerReloadGuard() {
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
-    // Evita reload na primeira instalação do SW; só recarrega após o usuário pedir atualização.
-    try {
-      if (sessionStorage.getItem('axecloud_sw_reload_pending') !== '1') return;
-      sessionStorage.removeItem('axecloud_sw_reload_pending');
-    } catch {
-      return;
-    }
-    refreshing = true;
-    window.location.reload();
-  });
-}
-
 function registerProductionServiceWorker() {
-  try {
-    if (sessionStorage.getItem('axecloud_pwa_update_pending') === '1') {
-      sessionStorage.removeItem('axecloud_pwa_update_pending');
-      markPwaUpdateAvailable();
-    }
-  } catch {
-    /* */
-  }
-
   void resetLegacyServiceWorkerOnce().then((didReset) => {
     if (didReset) window.location.reload();
   });
-
-  setupServiceWorkerReloadGuard();
 
   const applyUpdate = registerSW({
     immediate: true,
