@@ -4,7 +4,8 @@ import type { MetaTemplateComponent } from "../../src/services/evolution.service
 export type { MetaTemplateComponent };
 
 const DEFAULT_LANGUAGE = "pt_BR";
-const DEFAULT_TEMPLATE = "axecloud_notificacao";
+/** Template Meta: aviso_geral_axecloud — corpo: Olá, {{1}}! ... sistema {{2}} ... */
+const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 
 export function resolveMetaTemplateLanguage(): string {
   return String(process.env.WA_META_TEMPLATE_LANGUAGE || DEFAULT_LANGUAGE).trim() || DEFAULT_LANGUAGE;
