@@ -3,12 +3,20 @@ import { RefreshCw, X } from 'lucide-react';
 import { checkRemoteBuildVersion } from '../lib/buildVersionPoll';
 import { applyPwaUpdate, isPwaUpdateAvailable, subscribePwaUpdate } from '../lib/pwaUpdate';
 
-const DISMISS_KEY = 'axecloud_pwa_update_dismissed_at';
 const DISMISS_TTL_MS = 30 * 60 * 1000;
+
+function dismissKeyForBuild(): string {
+  try {
+    const remote = sessionStorage.getItem('axecloud_pwa_remote_build') || 'pending';
+    return `axecloud_pwa_dismiss_${remote}`;
+  } catch {
+    return 'axecloud_pwa_dismiss_pending';
+  }
+}
 
 function isDismissedRecently(): boolean {
   try {
-    const raw = sessionStorage.getItem(DISMISS_KEY);
+    const raw = sessionStorage.getItem(dismissKeyForBuild());
     if (!raw) return false;
     return Date.now() - Number(raw) < DISMISS_TTL_MS;
   } catch {
@@ -33,7 +41,7 @@ export function PwaUpdateBanner() {
 
   const handleDismiss = () => {
     try {
-      sessionStorage.setItem(DISMISS_KEY, String(Date.now()));
+      sessionStorage.setItem(dismissKeyForBuild(), String(Date.now()));
     } catch {
       /* */
     }

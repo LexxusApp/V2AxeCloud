@@ -230,16 +230,19 @@
     </script>
     <script>
       (function () {
-        function mark() {
-          try { sessionStorage.setItem('axecloud_pwa_update_pending', '1'); } catch (e) {}
+        function mark(remote) {
+          try {
+            sessionStorage.setItem('axecloud_pwa_update_pending', '1');
+            if (remote) sessionStorage.setItem('axecloud_pwa_remote_build', remote);
+          } catch (e) {}
         }
         var meta = document.querySelector('meta[name="axecloud-build"]');
-        var local = meta ? (meta.getAttribute('content') || '') : '';
+        var htmlBuild = meta ? (meta.getAttribute('content') || '') : '';
         fetch('/api/v1/app-build?t=' + Date.now(), { cache: 'no-store' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (j) {
             if (!j || !j.buildId) return;
-            if (!local || j.buildId !== local) mark();
+            if (!htmlBuild || j.buildId !== htmlBuild) mark(j.buildId);
           })
           .catch(function () {});
       })();

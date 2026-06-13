@@ -8,7 +8,7 @@ import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {cleanBrowserUrl} from './lib/urlHygiene';
-import {startBuildVersionPolling, persistRunningBuildId} from './lib/buildVersionPoll';
+import {startBuildVersionPolling} from './lib/buildVersionPoll';
 import {
   attachServiceWorkerUpdateProbes,
   bindPwaApplyUpdate,
@@ -53,6 +53,13 @@ function setupServiceWorkerReloadGuard() {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (refreshing) return;
+    // Evita reload na primeira instalação do SW; só recarrega após o usuário pedir atualização.
+    try {
+      if (sessionStorage.getItem('axecloud_sw_reload_pending') !== '1') return;
+      sessionStorage.removeItem('axecloud_sw_reload_pending');
+    } catch {
+      return;
+    }
     refreshing = true;
     window.location.reload();
   });
@@ -132,7 +139,6 @@ function bootstrapApp() {
   document.getElementById('axecloud-boot')?.remove();
   document.getElementById('axecloud-seo-static')?.remove();
   cleanBrowserUrl();
-  persistRunningBuildId();
 
   if (import.meta.env.PROD && isCanonicalAppOrigin()) {
     startBuildVersionPolling();

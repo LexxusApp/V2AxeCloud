@@ -201,6 +201,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   const initializedRef = useRef(false);
   const authFirstEventHandledRef = useRef(false);
+  const tenantLoadInFlightRef = useRef<string | null>(null);
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
 
@@ -218,14 +219,22 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   );
 
   const blockingSpinnerActive = useMemo(() => {
-    if (isInitializing || loading) return true;
+    const hasMinProfile =
+      !!session?.user &&
+      !!userRole &&
+      (!!effectiveTenantId || userRole === 'filho');
+
+    if (isInitializing || loading) {
+      if (hasMinProfile) return false;
+      return true;
+    }
     if (!session?.user) return false;
     if (tenantRecoveryFailed) return false;
     return (
       isSessionHydrating ||
       !userRole ||
       pendingFilhoHydration ||
-      (!!userRole && !effectiveTenantId)
+      (!!userRole && !effectiveTenantId && userRole !== 'filho')
     );
   }, [
     isInitializing,
@@ -468,6 +477,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     authRole?: string,
     accessToken?: string | null
   ) => {
+    if (tenantLoadInFlightRef.current === userId) return;
+    tenantLoadInFlightRef.current = userId;
+
     // Timeouts curtos: melhor cair pro cache+recovery do que travar a UI.
     // Quem ja tem cache hidratado nao ve o spinner — esse fetch e essencialmente
     // "background refresh" da maioria das vezes.
@@ -688,6 +700,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       }
     } finally {
       clearTimeout(safetyTimeout);
+      if (tenantLoadInFlightRef.current === userId) {
+        tenantLoadInFlightRef.current = null;
+      }
       setLoading(false);
     }
   };
@@ -727,6 +742,17 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       if (initialSession?.user) {
         setSession(initialSession);
         lastAuthUserIdRef.current = initialSession.user.id;
+
+        // INITIAL_SESSION (disparado no subscribe) pode já estar carregando tenant — não reabrir spinner.
+        if (
+          initializedRef.current ||
+          tenantLoadInFlightRef.current === initialSession.user.id ||
+          authFirstEventHandledRef.current
+        ) {
+          markAuthInitialized();
+          return;
+        }
+
         // Hidratação otimista: se ja temos cache de tenant + role no localStorage,
         // renderizamos a UI IMEDIATAMENTE com cache e o fetch de /api/tenant-info
         // roda em background. Evita "spinner amarelo" em mobile com rede lenta.
@@ -1126,7 +1152,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     );
   }
 
-  if (isInitializing || loading) {
+  if ((isInitializing || loading) && (!session?.user || blockingSpinnerActive)) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden px-4">
         <AuthScreenBackground className="fixed inset-0" />
@@ -1187,7 +1213,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     return <SubscriptionLock plan={tenantData?.plan} subscriptionStatus={tenantData?.status} />;
   }
 
-  if (loading || isSessionHydrating || !userRole || pendingFilhoHydration) {
+  if (blockingSpinnerActive) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center relative overflow-hidden px-4">
         <AuthScreenBackground className="fixed inset-0" />

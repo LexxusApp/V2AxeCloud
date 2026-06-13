@@ -98,14 +98,17 @@ export function isPwaUpdateAvailable(): boolean {
   return updateAvailable;
 }
 
-export function markPwaUpdateAvailable(): void {
+export function markPwaUpdateAvailable(remoteBuildId?: string): void {
+  if (remoteBuildId) {
+    try {
+      sessionStorage.setItem('axecloud_pwa_remote_build', remoteBuildId);
+      sessionStorage.removeItem(`axecloud_pwa_dismiss_${remoteBuildId}`);
+    } catch {
+      /* */
+    }
+  }
   if (updateAvailable) return;
   updateAvailable = true;
-  try {
-    sessionStorage.removeItem('axecloud_pwa_update_dismissed_at');
-  } catch {
-    /* */
-  }
   listeners.forEach((l) => l());
 }
 
@@ -114,6 +117,12 @@ export function bindPwaApplyUpdate(fn: ApplyUpdateFn): void {
 }
 
 export async function applyPwaUpdate(): Promise<void> {
+  try {
+    sessionStorage.setItem('axecloud_sw_reload_pending', '1');
+  } catch {
+    /* */
+  }
+
   const controllerChanged = waitForControllerChange(CONTROLLER_CHANGE_WAIT_MS);
 
   try {

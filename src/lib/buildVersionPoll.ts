@@ -1,7 +1,15 @@
 import { markPwaUpdateAvailable } from './pwaUpdate';
 
-/** Build embutido no HTML do bundle que está rodando agora. */
+declare const __AXECLOUD_BUILD_ID__: string;
+
+/**
+ * Build do bundle JS em execução (fonte confiável — não muda se só o HTML for atualizado).
+ * Fallback: meta do HTML ou localStorage de sessões antigas.
+ */
 export function getRunningBuildId(): string {
+  if (typeof __AXECLOUD_BUILD_ID__ === 'string' && __AXECLOUD_BUILD_ID__) {
+    return __AXECLOUD_BUILD_ID__;
+  }
   const meta = document.querySelector('meta[name="axecloud-build"]')?.getAttribute('content')?.trim();
   if (meta) return meta;
   try {
@@ -40,18 +48,19 @@ async function fetchRemoteBuildId(): Promise<string | null> {
 }
 
 /**
- * Compara build do servidor com o bundle instalado.
- * Funciona no PWA do celular mesmo quando o Service Worker não detecta update.
+ * Compara build do servidor com o bundle JS instalado.
+ * Funciona no PWA e no navegador mesmo quando o SW não detecta update.
  */
 export async function checkRemoteBuildVersion(): Promise<boolean> {
-  const running = getRunningBuildId();
-  if (!running) return false;
-
   const remote = await fetchRemoteBuildId();
-  if (!remote || remote === running) return false;
+  if (!remote) return false;
 
-  markPwaUpdateAvailable();
-  return true;
+  const running = getRunningBuildId();
+  if (!running || remote !== running) {
+    markPwaUpdateAvailable(remote);
+    return true;
+  }
+  return false;
 }
 
 export function startBuildVersionPolling(): void {
@@ -59,7 +68,6 @@ export function startBuildVersionPolling(): void {
 
   const probe = () => void checkRemoteBuildVersion();
 
-  persistRunningBuildId();
   void probe();
 
   document.addEventListener('visibilitychange', () => {
