@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { format, parseISO } from "date-fns";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   ensureOfficialWhatsAppReady,
@@ -7,7 +8,13 @@ import {
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import {
-  buildMetaTemplateComponents,
+  buildMetaTemplateComponentsForTipo,
+  buildWhatsAppAuditMessage,
+  filhoLoginIdShort,
+  isBoasVindasTemplate,
+  isAvisoGiraTemplate,
+  isConviteEventoTemplate,
+  resolveLoginPublicUrl,
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
 } from "./whatsappMetaCloud.js";
@@ -156,17 +163,87 @@ function pickMemberNameFromVariables(
   return fallback;
 }
 
-function buildExtraMetaParams(
-  tipo: string,
-  message: string,
-  variables?: Record<string, string | number>
-): string[] {
-  if (String(process.env.WA_META_TEMPLATE_INCLUDE_BODY || "").toLowerCase() !== "true") {
-    return [];
+function formatEventDateBr(isoDate: string): string {
+  const raw = String(isoDate || "").trim();
+  if (!raw) return "";
+  try {
+    const normalized = raw.length > 10 ? raw : `${raw}T12:00:00`;
+    return format(parseISO(normalized), "dd/MM/yyyy");
+  } catch {
+    return raw;
   }
-  const summary = message.replace(/\s+/g, " ").trim().slice(0, 900);
-  if (!summary) return [];
-  return [summary];
+}
+
+/** Garante banner e campos do evento a partir do calendário (convite + aviso_gira). */
+async function enrichEventCalendarVariables(
+  sb: SupabaseClient,
+  leaderId: string,
+  variables: Record<string, string | number>
+): Promise<Record<string, string | number>> {
+  const eventId = String(variables.event_id || "").trim();
+  if (!eventId) return variables;
+
+  const { data: event, error } = await sb
+    .from("calendario_axe")
+    .select("titulo, data, hora, descricao, banner_url, tenant_id, lider_id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!event) return variables;
+
+  const eventRef = String(event.tenant_id || event.lider_id || "").trim();
+  if (eventRef) {
+    const eventLeader = await resolveLeaderId(sb, eventRef);
+    if (eventLeader !== leaderId) {
+      throw httpError("Evento não pertence ao seu terreiro", 403);
+    }
+  }
+
+  const bannerFromDb = String(event.banner_url || "").trim();
+  return {
+    ...variables,
+    nome_evento: variables.nome_evento || String(event.titulo || ""),
+    data_evento: variables.data_evento || formatEventDateBr(String(event.data || "")),
+    hora_evento: variables.hora_evento || String(event.hora || ""),
+    local_evento:
+      variables.local_evento ||
+      variables.descricao_evento ||
+      String(event.descricao || "").trim() ||
+      "A confirmar",
+    banner_url: bannerFromDb || String(variables.banner_url || ""),
+  };
+}
+
+/** Dados de acesso do filho para boas-vindas (ID curto + URL /login). */
+async function enrichBoasVindasVariables(
+  sb: SupabaseClient,
+  leaderId: string,
+  filhoId: string | null,
+  variables: Record<string, string | number>
+): Promise<Record<string, string | number>> {
+  const loginUrl = resolveLoginPublicUrl();
+  const base = {
+    ...variables,
+    nome_sistema: variables.nome_sistema || "AxéCloud",
+    login_url: loginUrl,
+  };
+  if (!filhoId) return base;
+
+  const { data: filho, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, nome, tenant_id, lider_id")
+    .eq("id", filhoId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!filho) return base;
+
+  await assertFilhoBelongsToTerreiro(sb, leaderId, filho);
+
+  return {
+    ...base,
+    nome_filho: variables.nome_filho || String(filho.nome || ""),
+    filho_login_id: filhoLoginIdShort(String(filho.id)),
+  };
 }
 
 export async function logAndSendWhatsApp(
@@ -181,14 +258,15 @@ export async function logAndSendWhatsApp(
 ): Promise<{ messageId?: string; externalId: string }> {
   await ensureOfficialWhatsAppReady();
 
-  const { tipo, phone, message, nomeMembro, nomeTerreiro, idTerreiro, filhoId, tenantId } = input;
+  const { tipo, phone, message, nomeMembro, nomeTerreiro, filhoId, tenantId } = input;
 
   const templateName = resolveMetaTemplateName(tipo);
   const language = resolveMetaTemplateLanguage();
-  const components = buildMetaTemplateComponents(
+  const components = buildMetaTemplateComponentsForTipo(
+    tipo,
     nomeMembro,
     nomeTerreiro,
-    buildExtraMetaParams(tipo, message, input.variables)
+    input.variables
   );
 
   const { messageId } = await sendEvolutionTemplateByInstance(
@@ -240,14 +318,23 @@ export async function sendWhatsAppForTenant(
     .eq("tenant_id", input.tenantId)
     .maybeSingle();
 
-  const variables = {
+  let variables: Record<string, string | number> = {
     nome_filho: nomeMembro,
     nome_membro: nomeMembro,
     nome_terreiro: ctx.nomeTerreiro,
     ...(input.variables || {}),
   };
 
-  const message = buildWhatsAppMessage(config?.templates, input.tipo, variables);
+  if (isConviteEventoTemplate(input.tipo) || isAvisoGiraTemplate(input.tipo)) {
+    variables = await enrichEventCalendarVariables(sb, ctx.leaderId, variables);
+  }
+  if (isBoasVindasTemplate(input.tipo)) {
+    variables = await enrichBoasVindasVariables(sb, ctx.leaderId, filhoId, variables);
+  }
+
+  const message =
+    buildWhatsAppAuditMessage(input.tipo, variables, nomeMembro, ctx.nomeTerreiro) ||
+    buildWhatsAppMessage(config?.templates, input.tipo, variables);
   const { externalId } = await logAndSendWhatsApp(sb, {
     ...input,
     filhoId,

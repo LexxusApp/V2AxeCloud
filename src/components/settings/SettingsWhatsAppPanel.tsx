@@ -343,7 +343,7 @@ export function SettingsWhatsAppPanel() {
                     <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — AxéCloud</h6>
                     <p className="text-[9.5px] text-gray-400">
                       {channelMessage ||
-                        'Template Meta aviso_geral_axecloud: {{1}} = membro, {{2}} = terreiro.'}
+                        'Template Meta aviso_geral_axecloud (boas-vindas): {{1}} = membro, {{2}} = AxéCloud. Login em /login com ID + CPF.'}
                     </p>
                   </div>
                 </div>

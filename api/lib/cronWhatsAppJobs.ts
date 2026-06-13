@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
 import { getOfficialWhatsAppStatus } from "../../src/services/evolution.service.js";
 import {
   buildWhatsAppMessage,
@@ -297,6 +297,102 @@ export async function dispatchMuralWhatsApp(
     }
   } catch (err) {
     console.error("[MURAL WA] dispatch:", err);
+    errors++;
+  }
+
+  return { sent, errors };
+}
+
+function formatEventDateBr(isoDate: string): string {
+  const raw = String(isoDate || "").trim();
+  if (!raw) return "";
+  try {
+    return format(parseISO(raw.length > 10 ? raw : `${raw}T12:00:00`), "dd/MM/yyyy");
+  } catch {
+    return raw;
+  }
+}
+
+/** Aviso de nova gira/evento para filhos da corrente (template aviso_gira_axecloud). */
+export async function dispatchGiraWhatsApp(
+  sb: SupabaseClient,
+  tenantId: string,
+  event: {
+    id?: string;
+    titulo: string;
+    data: string;
+    hora: string;
+    banner_url?: string | null;
+  }
+): Promise<{ sent: number; errors: number }> {
+  let sent = 0;
+  let errors = 0;
+
+  try {
+    if (!(await isOfficialChannelReady())) return { sent: 0, errors: 0 };
+
+    const { data: cfg } = await sb
+      .from("whatsapp_config")
+      .select("metadata")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const meta = (cfg?.metadata && typeof cfg.metadata === "object" ? cfg.metadata : {}) as Record<
+      string,
+      unknown
+    >;
+    const prefs = (meta.preferences && typeof meta.preferences === "object"
+      ? meta.preferences
+      : {}) as Record<string, boolean>;
+    if (prefs.notifGiras === false) return { sent: 0, errors: 0 };
+
+    const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+    const dataEvento = formatEventDateBr(event.data);
+    const horaEvento = String(event.hora || "").trim();
+    const bannerUrl = String(event.banner_url || "").trim();
+
+    const { data: children } = await sb
+      .from("filhos_de_santo")
+      .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
+      .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
+
+    for (const child of children || []) {
+      const st = String(child.status || "Ativo").trim().toLowerCase();
+      if (st === "inativo" || st === "desligado" || st === "falecido") continue;
+      if (!child.whatsapp_phone) continue;
+
+      try {
+        await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
+
+        let digits = String(child.whatsapp_phone).replace(/\D/g, "");
+        if (!digits.startsWith("55")) digits = `55${digits}`;
+
+        const nomeMembro = String(child.nome || "Filho");
+        await logAndSendWhatsApp(sb, {
+          tenantId,
+          filhoId: String(child.id),
+          tipo: "aviso_gira",
+          phone: digits,
+          message: `Gira: ${event.titulo} — ${dataEvento} ${horaEvento}`,
+          nomeMembro,
+          nomeTerreiro: ctx.nomeTerreiro,
+          idTerreiro: ctx.idTerreiro,
+          variables: {
+            event_id: event.id || "",
+            nome_evento: event.titulo,
+            data_evento: dataEvento,
+            hora_evento: horaEvento,
+            ...(bannerUrl ? { banner_url: bannerUrl } : {}),
+          },
+        });
+        sent++;
+      } catch (err) {
+        errors++;
+        console.error(`[GIRA WA] filho=${child.id}:`, err);
+      }
+    }
+  } catch (err) {
+    console.error("[GIRA WA] dispatch:", err);
     errors++;
   }
 

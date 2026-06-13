@@ -44,7 +44,7 @@ import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
 import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext } from "./lib/whatsappSendCore.js";
-import { dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
+import { dispatchGiraWhatsApp, dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
@@ -2575,17 +2575,30 @@ async function startServer() {
       }
 
       const safeName = slugifyStoragePath(fileName || "banner.jpg");
-      const storagePath = `${tenantId}/event_banners/${Date.now()}_${safeName}`;
+      const storageKey = `${tenantId}/event_banners/${Date.now()}_${safeName}`;
 
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("biblioteca_estudos")
-        .upload(storagePath, buffer, { contentType: ct, upsert: true });
+      let publicUrl: string;
 
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabaseAdmin.storage.from("biblioteca_estudos").getPublicUrl(storagePath);
+      if (r2Client && R2_BUCKET_NAME) {
+        await r2Client.send(
+          new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: storageKey,
+            Body: buffer,
+            ContentType: ct,
+          })
+        );
+        publicUrl = buildR2PublicUrl(storageKey);
+      } else {
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from("biblioteca_estudos")
+          .upload(storageKey, buffer, { contentType: ct, upsert: true });
+        if (uploadError) throw uploadError;
+        const {
+          data: { publicUrl: supaUrl },
+        } = supabaseAdmin.storage.from("biblioteca_estudos").getPublicUrl(storageKey);
+        publicUrl = supaUrl;
+      }
 
       res.json({ success: true, publicUrl });
     } catch (error: any) {
@@ -3548,6 +3561,20 @@ async function startServer() {
       }
       
       console.log(`[SERVER] POST /api/children success. Inserted child ID: ${data.id}`);
+
+      const phone = String(data.whatsapp_phone || "").replace(/\D/g, "");
+      if (phone.length >= 10) {
+        void sendWhatsAppForTenant(supabaseAdmin, {
+          tenantId: userId,
+          tipo: "boas_vindas",
+          filhoId: String(data.id),
+          variables: {
+            nome_filho: String(data.nome || ""),
+            nome_sistema: "AxéCloud",
+          },
+        }).catch((err) => console.error("[BOAS-VINDAS WA] após cadastrar filho:", err));
+      }
+
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao adicionar filho:", error);
@@ -3642,6 +3669,14 @@ async function startServer() {
         body: `${req.body.data} às ${req.body.hora}`,
         url: '/calendar'
       }).catch((e) => console.error('[PUSH] após criar evento:', e));
+
+      void dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
+        id: String(data?.id || ""),
+        titulo: String(data?.titulo || req.body.titulo || ""),
+        data: String(data?.data || req.body.data || ""),
+        hora: String(data?.hora || req.body.hora || ""),
+        banner_url: data?.banner_url || null,
+      }).catch((e) => console.error("[GIRA WA] após criar evento:", e));
 
       res.json({ success: true, data });
     } catch (error: any) {

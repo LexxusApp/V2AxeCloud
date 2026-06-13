@@ -4,11 +4,15 @@
  */
 import { normalizeBrWhatsAppMsisdn } from "../lib/whatsappPhone";
 
+export type MetaTemplateTextParam = { type: "text"; text: string };
+export type MetaTemplateImageParam = { type: "image"; image: { link: string } };
+export type MetaTemplateParameter = MetaTemplateTextParam | MetaTemplateImageParam;
+
 export type MetaTemplateComponent = {
   type: "body" | "header" | "button";
   sub_type?: string;
   index?: string;
-  parameters?: Array<{ type: "text"; text: string }>;
+  parameters?: MetaTemplateParameter[];
 };
 
 export const WHATSAPP_INITIALIZING_MESSAGE_PT =

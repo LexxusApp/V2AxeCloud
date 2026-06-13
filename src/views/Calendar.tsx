@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, CheckCircle2, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, Sparkles, MapPin } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +18,6 @@ import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton'
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../constants/plans';
-import { eventRsvpPublicUrl } from '../lib/eventRsvp';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
 interface Event {
@@ -84,20 +83,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedEventForGuests, setSelectedEventForGuests] = useState<Event | null>(null);
-  const [activeModalTab, setActiveModalTab] = useState<'guests' | 'preparation'>('guests');
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
   const [newGuestName, setNewGuestName] = useState('');
   const [newGuestPhone, setNewGuestPhone] = useState('');
-  
-  // Ritual Tasks State
-  const [children, setChildren] = useState<any[]>([]);
-  const [ritualTasks, setRitualTasks] = useState<any[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [newTaskName, setNewTaskName] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'event' | 'guest' | 'task', title?: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'event' | 'guest'; title?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -148,111 +140,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       return;
     }
     void fetchEvents();
-    void fetchChildren();
-    // Filho: recarrega ao mudar o mês (faixa de datas). Zelador: lista completa, só refetch ao trocar terreiro/papel.
   }, isFilho ? [currentMonth, effectiveTenantId, isFilho] : [effectiveTenantId, isFilho]);
 
   useEffect(() => {
     if (selectedEventForGuests) {
       fetchGuests(selectedEventForGuests.id);
-      fetchRitualTasks(selectedEventForGuests.id);
-      setActiveModalTab('guests');
     }
   }, [selectedEventForGuests]);
-
-  async function fetchChildren() {
-    if (!effectiveTenantId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('filhos_de_santo')
-        .select('id, nome, orixa_frente')
-        .eq('tenant_id', effectiveTenantId)
-        .order('nome');
-      
-      if (error) throw error;
-      setChildren(data || []);
-    } catch (error) {
-      console.error('Error fetching children:', error);
-    }
-  }
-
-  async function fetchRitualTasks(eventId: string) {
-    setLoadingTasks(true);
-    try {
-      const { data, error } = await supabase
-        .from('ritual_tasks')
-        .select('id, event_id, task_name, is_completed, assigned_to, created_at')
-        .eq('event_id', eventId)
-        .order('created_at');
-      
-      if (error) throw error;
-      setRitualTasks(data || []);
-    } catch (error) {
-      console.error('Error fetching ritual tasks:', error);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }
-
-  async function addRitualTask() {
-    if (!newTaskName.trim() || !selectedEventForGuests) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('ritual_tasks')
-        .insert([{
-          event_id: selectedEventForGuests.id,
-          task_name: newTaskName.trim(),
-          is_completed: false
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      setRitualTasks([...ritualTasks, data]);
-      setNewTaskName('');
-    } catch (error) {
-      console.error('Error adding ritual task:', error);
-    }
-  }
-
-  async function updateRitualTask(taskId: string, updates: any) {
-    try {
-      const { error } = await supabase
-        .from('ritual_tasks')
-        .update(updates)
-        .eq('id', taskId);
-
-      if (error) throw error;
-      setRitualTasks(ritualTasks.map(t => t.id === taskId ? { ...t, ...updates } : t));
-
-      // Simulate Notification
-      if (updates.assigned_to) {
-        const assignedChild = children.find(c => c.id === updates.assigned_to);
-        if (assignedChild) {
-          console.log(`[Notification] Tarefa atribuída a ${assignedChild.nome}`);
-          // In a real app, you would trigger a push notification or save a notification record here
-        }
-      }
-    } catch (error) {
-      console.error('Error updating ritual task:', error);
-    }
-  }
-
-  async function deleteRitualTask(taskId: string) {
-    try {
-      const { error } = await supabase
-        .from('ritual_tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (error) throw error;
-      setRitualTasks(ritualTasks.filter(t => t.id !== taskId));
-    } catch (error) {
-      console.error('Error deleting ritual task:', error);
-    }
-  }
 
   async function fetchEvents() {
     if (!effectiveTenantId) return;
@@ -371,13 +265,15 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 tipo: 'convite_evento',
                 forcePhone: newGuestPhone.trim(),
                 variables: {
+                  event_id: selectedEventForGuests.id,
                   nome_convidado: newGuestName.trim(),
+                  nome_terreiro: tenantData?.nome_terreiro || 'Nosso Terreiro',
                   nome_evento: selectedEventForGuests.titulo,
                   data_evento: format(parseISO(selectedEventForGuests.data), 'dd/MM/yyyy'),
                   hora_evento: selectedEventForGuests.hora,
-                  nome_terreiro: tenantData?.nome_terreiro || 'Nosso Terreiro',
-                  link_confirmar: rsvpToken ? eventRsvpPublicUrl(rsvpToken, 'confirmar') : '',
-                  link_declinar: rsvpToken ? eventRsvpPublicUrl(rsvpToken, 'declinar') : '',
+                  local_evento: selectedEventForGuests.descricao || 'A confirmar',
+                  banner_url: selectedEventForGuests.banner_url || '',
+                  rsvp_token: rsvpToken,
                 }
               })
            });
@@ -1094,299 +990,227 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         </div>
       </AppPageShell>
 
-      {/* Guest Management Modal */}
+      {/* Modal de convidados */}
       <AnimatePresence>
         {selectedEventForGuests && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setSelectedEventForGuests(null)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-2xl"
+              className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:max-w-lg sm:rounded-2xl"
             >
-              <div className="flex shrink-0 flex-col gap-4 border-b border-white/5 px-5 py-4 sm:gap-6 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                      <Ticket className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-black text-white sm:text-xl">{selectedEventForGuests.titulo}</h3>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Detalhes do Evento</p>
+              {selectedEventForGuests.banner_url ? (
+                <div className="relative h-28 w-full shrink-0 overflow-hidden sm:h-32">
+                  <img
+                    src={selectedEventForGuests.banner_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#13171D] via-[#13171D]/40 to-transparent" />
+                </div>
+              ) : null}
+
+              <div className="shrink-0 border-b border-[#1E242B] px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8]">
+                      Lista de convidados
+                    </p>
+                    <h3 className="mt-1 truncate font-display text-lg font-bold text-[#F1F5F9]">
+                      {selectedEventForGuests.titulo}
+                    </h3>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#94A3B8]">
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                        {format(parseISO(selectedEventForGuests.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        {selectedEventForGuests.hora}
+                      </span>
+                      {selectedEventForGuests.descricao ? (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          <span className="max-w-[200px] truncate">{selectedEventForGuests.descricao}</span>
+                        </span>
+                      ) : null}
                     </div>
                   </div>
-                  <button onClick={() => setSelectedEventForGuests(null)} className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEventForGuests(null)}
+                    className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition-colors hover:bg-white/5 hover:text-white"
+                    aria-label="Fechar"
+                  >
                     <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="flex gap-4 border-b border-white/5 pb-2">
-                  <button
-                    onClick={() => setActiveModalTab('guests')}
-                    className={cn(
-                      "pb-2 text-sm font-black uppercase tracking-widest transition-colors relative",
-                      activeModalTab === 'guests' ? "text-primary" : "text-gray-500 hover:text-white"
-                    )}
-                  >
-                    Convidados
-                    {activeModalTab === 'guests' && (
-                      <motion.div layoutId="modalTab" className="absolute -bottom-[9px] left-0 right-0 h-0.5 bg-primary" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setActiveModalTab('preparation')}
-                    className={cn(
-                      "pb-2 text-sm font-black uppercase tracking-widest transition-colors relative",
-                      activeModalTab === 'preparation' ? "text-primary" : "text-gray-500 hover:text-white"
-                    )}
-                  >
-                    Preparação do Ritual
-                    {activeModalTab === 'preparation' && (
-                      <motion.div layoutId="modalTab" className="absolute -bottom-[9px] left-0 right-0 h-0.5 bg-primary" />
-                    )}
                   </button>
                 </div>
               </div>
 
-              <div className="p-8 space-y-6 overflow-y-auto no-scrollbar">
-                {activeModalTab === 'guests' ? (
-                  <>
-                    {/* Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white/5 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-white">{guests.length}</p>
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total</p>
-                  </div>
-                  <div className="bg-primary/10 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-primary">{guests.filter(g => g.status === 'Confirmado' || g.status === 'Check-in').length}</p>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Confirmados</p>
-                  </div>
-                  <div className="bg-red-500/10 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-red-400">{guests.filter(g => g.status === 'Recusado').length}</p>
-                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Não vão</p>
-                  </div>
-                  <div className="bg-amber-500/10 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-amber-400">{guests.filter(g => g.status === 'Pendente').length}</p>
-                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Pendentes</p>
-                  </div>
+              <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 no-scrollbar">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    { label: 'Total', value: guests.length, tone: 'text-[#F1F5F9] border-[#1E242B] bg-[#12161A]' },
+                    {
+                      label: 'Confirmados',
+                      value: guests.filter((g) => g.status === 'Confirmado' || g.status === 'Check-in').length,
+                      tone: 'text-primary border-primary/25 bg-primary/10',
+                    },
+                    {
+                      label: 'Não vão',
+                      value: guests.filter((g) => g.status === 'Recusado').length,
+                      tone: 'text-red-400 border-red-500/20 bg-red-500/10',
+                    },
+                    {
+                      label: 'Pendentes',
+                      value: guests.filter((g) => g.status === 'Pendente').length,
+                      tone: 'text-amber-400 border-amber-500/20 bg-amber-500/10',
+                    },
+                  ].map((stat) => (
+                    <div
+                      key={stat.label}
+                      className={cn('rounded-xl border px-3 py-3 text-center', stat.tone)}
+                    >
+                      <p className="text-xl font-bold tabular-nums">{stat.value}</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Add Guest */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1 relative">
-                      <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                      <UserPlus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
                       <input
                         type="text"
                         value={newGuestName}
-                        onChange={e => setNewGuestName(e.target.value)}
-                        onKeyPress={e => e.key === 'Enter' && addGuest()}
-                        placeholder="Nome do convidado..."
-                        className="w-full bg-background border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:border-primary outline-none transition-all"
+                        onChange={(e) => setNewGuestName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addGuest()}
+                        placeholder="Nome do convidado"
+                        className={cn(appInputClass, 'pl-10')}
                       />
                     </div>
                     {hasPlanAccess(tenantData?.plan, 'whatsapp_invites', isGlobalAdmin) && (
-                      <div className="flex-1 relative">
-                        <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                      <div className="relative flex-1">
+                        <Smartphone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
                         <input
-                          type="text"
+                          type="tel"
                           value={newGuestPhone}
-                          onChange={e => setNewGuestPhone(e.target.value)}
-                          onKeyPress={e => e.key === 'Enter' && addGuest()}
-                          placeholder="WhatsApp (ex: 11999999999)..."
-                          className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-xl pl-12 pr-4 py-3 text-white focus:border-emerald-500 outline-none transition-all placeholder:text-emerald-500/50"
+                          onChange={(e) => setNewGuestPhone(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && addGuest()}
+                          placeholder="WhatsApp (ex: 11999999999)"
+                          className={cn(
+                            appInputClass,
+                            'border-emerald-500/25 bg-emerald-500/5 pl-10 placeholder:text-emerald-500/40'
+                          )}
                         />
                       </div>
                     )}
-                    <button
+                    <AppPrimaryButton
+                      type="button"
                       onClick={addGuest}
-                      className="bg-primary text-background px-6 py-3 rounded-xl font-black hover:scale-105 transition-all whitespace-nowrap self-stretch sm:self-auto"
+                      className="shrink-0 px-5 sm:self-stretch"
                     >
                       Adicionar
-                    </button>
+                    </AppPrimaryButton>
                   </div>
                   {hasPlanAccess(tenantData?.plan, 'whatsapp_invites', isGlobalAdmin) && (
-                    <div className="text-[10px] sm:text-xs text-gray-500 px-2 flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-emerald-500" /> Preencha o WhatsApp para enviar o convite automaticamente</div>
+                    <p className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
+                      <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                      Com WhatsApp preenchido, o convite Meta é enviado automaticamente.
+                    </p>
                   )}
                 </div>
 
-                {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
                   <input
                     type="text"
                     value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder="Buscar na lista..."
-                    className="w-full bg-white/5 border border-white/5 rounded-xl pl-12 pr-4 py-3 text-white focus:border-primary outline-none transition-all"
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar na lista…"
+                    className={cn(appInputClass, 'pl-10')}
                   />
                 </div>
 
-                {/* List */}
                 <div className="space-y-2">
                   {loadingGuests ? (
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
                     </div>
-                  ) : guests.filter(g => g.nome.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+                  ) : guests.filter((g) => g.nome.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
                     guests
-                      .filter(g => g.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(guest => {
-                      const statusMeta = guestStatusMeta(guest.status);
-                      return (
-                      <div key={guest.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                            statusMeta.badge
-                          )}>
-                            <User className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">{guest.nome}</p>
-                            <p className={cn(
-                              "text-[10px] font-black uppercase tracking-widest",
-                              statusMeta.color
-                            )}>
-                              {statusMeta.label}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isAdmin && (
-                            <>
-                              {guest.status !== 'Check-in' ? (
-                                <button
-                                  onClick={() => updateGuestStatus(guest.id, 'Check-in')}
-                                  className="px-4 py-2 bg-emerald-500 text-white text-xs font-black rounded-lg hover:scale-105 transition-all"
-                                >
-                                  Check-in
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => updateGuestStatus(guest.id, 'Confirmado')}
-                                  className="px-4 py-2 bg-white/10 text-gray-400 text-xs font-black rounded-lg hover:bg-white/20 transition-all"
-                                >
-                                  Estornar
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setItemToDelete({ id: guest.id, type: 'guest' })}
-                                className="p-2 text-gray-600 hover:text-red-500 transition-colors"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );})
-                  ) : (
-                    <div className="text-center py-10 text-gray-600 font-medium italic">
-                      Nenhum convidado encontrado.
-                    </div>
-                  )}
-                </div>
-                  </>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Add Task */}
-                    {isAdmin && (
-                      <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                          <Plus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                          <input
-                            type="text"
-                            value={newTaskName}
-                            onChange={e => setNewTaskName(e.target.value)}
-                            onKeyPress={e => e.key === 'Enter' && addRitualTask()}
-                            placeholder="Nova tarefa (ex: Lavar o chão)..."
-                            className="w-full bg-background border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:border-primary outline-none transition-all"
-                          />
-                        </div>
-                        <button
-                          onClick={addRitualTask}
-                          className="bg-primary text-background px-6 py-3 rounded-xl font-black hover:scale-105 transition-all"
-                        >
-                          Adicionar
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Tasks List */}
-                    <div className="space-y-3">
-                      {loadingTasks ? (
-                        <div className="flex justify-center py-10">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        </div>
-                      ) : ritualTasks.length > 0 ? (
-                        ritualTasks.map(task => (
-                          <div 
-                            key={task.id} 
-                            className="bg-black/50 backdrop-blur-[25px] border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all"
+                      .filter((g) => g.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((guest) => {
+                        const statusMeta = guestStatusMeta(guest.status);
+                        return (
+                          <div
+                            key={guest.id}
+                            className="flex items-center justify-between gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3 transition-colors hover:border-[#2F3643]"
                           >
-                            <div className="flex items-center gap-4 flex-1">
-                              <button
-                                onClick={() => updateRitualTask(task.id, { is_completed: !task.is_completed })}
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div
                                 className={cn(
-                                  "w-6 h-6 rounded border flex items-center justify-center transition-colors shrink-0",
-                                  task.is_completed 
-                                    ? "bg-[#FFD700] border-[#FFD700] text-black" 
-                                    : "border-white/20 hover:border-[#FFD700]"
+                                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                                  statusMeta.badge
                                 )}
                               >
-                                {task.is_completed && <CheckCircle2 className="w-4 h-4" />}
-                              </button>
-                              <div className="flex-1">
-                                <p className={cn(
-                                  "font-bold transition-all",
-                                  task.is_completed ? "text-white/40 line-through" : "text-white/85"
-                                )}>
-                                  {task.task_name}
+                                <User className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-[#F1F5F9]">{guest.nome}</p>
+                                <p className={cn('text-[10px] font-bold uppercase tracking-wider', statusMeta.color)}>
+                                  {statusMeta.label}
                                 </p>
                               </div>
                             </div>
-                            
-                            <div className="flex items-center gap-3 shrink-0">
-                              {isAdmin && (
-                                <>
-                                  <select
-                                    value={task.assigned_to || ''}
-                                    onChange={(e) => updateRitualTask(task.id, { assigned_to: e.target.value || null })}
-                                    className="bg-background/50 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white/85 focus:border-primary outline-none [&>option]:bg-[#1B1C1C]"
-                                  >
-                                    <option value="">Atribuir a...</option>
-                                    {children.map(child => (
-                                      <option key={child.id} value={child.id}>
-                                        {child.nome}
-                                      </option>
-                                    ))}
-                                  </select>
+                            {isAdmin ? (
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                {guest.status !== 'Check-in' ? (
                                   <button
-                                    onClick={() => setItemToDelete({ id: task.id, type: 'task' })}
-                                    className="p-2 text-gray-600 hover:text-red-500 transition-colors"
+                                    type="button"
+                                    onClick={() => updateGuestStatus(guest.id, 'Check-in')}
+                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500"
                                   >
-                                    <X className="w-4 h-4" />
+                                    Check-in
                                   </button>
-                                </>
-                              )}
-                            </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateGuestStatus(guest.id, 'Confirmado')}
+                                    className="rounded-lg border border-[#1E242B] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:bg-white/5"
+                                  >
+                                    Estornar
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setItemToDelete({ id: guest.id, type: 'guest' })}
+                                  className="rounded-lg p-2 text-[#64748B] transition hover:bg-red-500/10 hover:text-red-400"
+                                  aria-label="Remover convidado"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-10 text-gray-600 font-medium italic">
-                          Nenhuma tarefa cadastrada.
-                        </div>
-                      )}
+                        );
+                      })
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-[#1E242B] py-12 text-center text-sm text-[#64748B]">
+                      Nenhum convidado na lista.
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
@@ -1414,10 +1238,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-black text-white">Confirmar Exclusão</h3>
-                <p className="text-sm text-gray-400 font-medium">
-                  {itemToDelete.type === 'event' ? `Deseja realmente excluir o evento "${itemToDelete.title}"?` : 
-                   itemToDelete.type === 'guest' ? 'Deseja remover este convidado da lista?' :
-                   'Deseja excluir esta tarefa?'}
+                <p className="text-sm font-medium text-[#94A3B8]">
+                  {itemToDelete.type === 'event'
+                    ? `Deseja realmente excluir o evento "${itemToDelete.title}"?`
+                    : 'Deseja remover este convidado da lista?'}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -1436,8 +1260,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         if (response.ok) fetchEvents();
                       } else if (itemToDelete.type === 'guest') {
                         await removeGuest(itemToDelete.id);
-                      } else if (itemToDelete.type === 'task') {
-                        await deleteRitualTask(itemToDelete.id);
                       }
                       setItemToDelete(null);
                     } catch (err) {

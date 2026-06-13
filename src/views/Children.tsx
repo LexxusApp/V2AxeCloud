@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Info, Plus, Search, Trash2, Phone, Loader2, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { authFetch, getAccessToken } from '../lib/authenticatedFetch';
+import { authFetch } from '../lib/authenticatedFetch';
 import { supabase } from '../lib/supabase';
-import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoCard,
@@ -118,29 +117,6 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
       if (!response.ok) {
         throw new Error(result.error || "Erro ao adicionar filho");
-      }
-      
-      // Trigger WhatsApp Welcome Message
-      if (formData.whatsapp_phone) {
-        try {
-          const token = await getAccessToken();
-          const uid = user.id;
-          if (!token || !uid) return;
-          await fetch(whatsappApiUrl('/whatsapp/send'), {
-            method: 'POST',
-            headers: whatsappRailwayHeaders(token, uid),
-            body: JSON.stringify({
-              tipo: 'boas_vindas',
-              filhoId: result.data.id,
-              variables: {
-                nome_filho: formData.nome,
-                nome_terreiro: tenantData?.nome || 'Nosso Terreiro'
-              }
-            })
-          });
-        } catch (waErr) {
-          console.error('Error sending welcome WhatsApp:', waErr);
-        }
       }
 
       setFormData({

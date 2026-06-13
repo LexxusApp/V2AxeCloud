@@ -3107,6 +3107,21 @@ async function startServer() {
       }
       
       console.log(`[SERVER] POST /api/children success. Inserted child ID: ${data.id}`);
+
+      const phone = String(data.whatsapp_phone || "").replace(/\D/g, "");
+      if (phone.length >= 10) {
+        const { sendWhatsAppForTenant } = await import("./api/lib/whatsappSendCore.js");
+        void sendWhatsAppForTenant(supabaseAdmin, {
+          tenantId: userId,
+          tipo: "boas_vindas",
+          filhoId: String(data.id),
+          variables: {
+            nome_filho: String(data.nome || ""),
+            nome_sistema: "AxéCloud",
+          },
+        }).catch((err) => console.error("[BOAS-VINDAS WA] após cadastrar filho:", err));
+      }
+
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao adicionar filho:", error);
@@ -3211,6 +3226,15 @@ async function startServer() {
       } catch (pushErr: any) {
         console.error('[SERVER] Push após criar evento:', pushErr?.message || pushErr);
       }
+
+      const { dispatchGiraWhatsApp } = await import("./api/lib/cronWhatsAppJobs.js");
+      void dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
+        id: String(data?.id || ""),
+        titulo: String(data?.titulo || req.body.titulo || ""),
+        data: String(data?.data || req.body.data || ""),
+        hora: String(data?.hora || req.body.hora || ""),
+        banner_url: data?.banner_url || null,
+      }).catch((e) => console.error("[GIRA WA] após criar evento:", e));
 
       res.json({ success: true, data });
     } catch (error: any) {
