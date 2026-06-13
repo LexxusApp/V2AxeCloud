@@ -8,24 +8,23 @@ import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {cleanBrowserUrl} from './lib/urlHygiene';
-import {bindPwaApplyUpdate, markPwaUpdateAvailable} from './lib/pwaUpdate';
+import {
+  attachServiceWorkerUpdateProbes,
+  bindPwaApplyUpdate,
+  markPwaUpdateAvailable,
+  probeServiceWorkerUpdate,
+} from './lib/pwaUpdate';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
 
 let swRegistration: ServiceWorkerRegistration | undefined;
-let lastSwCheck = 0;
-const SW_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 min
-
-function checkServiceWorkerUpdate() {
-  const now = Date.now();
-  if (now - lastSwCheck < SW_CHECK_INTERVAL_MS) return;
-  lastSwCheck = now;
-  void swRegistration?.update().catch(() => {
-    /* offline ou SW indisponível */
-  });
-}
 
 const SW_RESET_KEY = 'axecloud-sw-reset-v108';
+const SW_BACKGROUND_PROBE_MS = 3 * 60 * 1000;
+
+function onAppForeground(): void {
+  void probeServiceWorkerUpdate(swRegistration, { force: true });
+}
 
 /** Uma vez: remove SW/cache antigos que serviam bundle desatualizado. */
 async function resetLegacyServiceWorkerOnce(): Promise<boolean> {
@@ -59,6 +58,15 @@ function setupServiceWorkerReloadGuard() {
 }
 
 function registerProductionServiceWorker() {
+  try {
+    if (sessionStorage.getItem('axecloud_pwa_update_pending') === '1') {
+      sessionStorage.removeItem('axecloud_pwa_update_pending');
+      markPwaUpdateAvailable();
+    }
+  } catch {
+    /* */
+  }
+
   void resetLegacyServiceWorkerOnce().then((didReset) => {
     if (didReset) window.location.reload();
   });
@@ -71,7 +79,10 @@ function registerProductionServiceWorker() {
       markPwaUpdateAvailable();
     },
     onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
       swRegistration = registration;
+      attachServiceWorkerUpdateProbes(registration);
+      void probeServiceWorkerUpdate(registration, { force: true });
     },
     onRegisterError(error) {
       console.error('[PWA] Falha ao registrar o Service Worker:', error);
@@ -80,24 +91,25 @@ function registerProductionServiceWorker() {
   bindPwaApplyUpdate(applyUpdate);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      checkServiceWorkerUpdate();
-    }
+    if (document.visibilityState === 'visible') onAppForeground();
   });
 
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) onAppForeground();
+  });
+
+  window.addEventListener('focus', onAppForeground);
+
   window.setInterval(() => {
-    if (document.visibilityState === 'visible') checkServiceWorkerUpdate();
-  }, SW_CHECK_INTERVAL_MS);
+    if (document.visibilityState === 'visible') {
+      void probeServiceWorkerUpdate(swRegistration);
+    }
+  }, SW_BACKGROUND_PROBE_MS);
 }
 
 function bootstrapApp() {
   if (import.meta.env.PROD && isCanonicalAppOrigin()) {
-    const scheduleSw = () => registerProductionServiceWorker();
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(scheduleSw, { timeout: 4000 });
-    } else {
-      window.setTimeout(scheduleSw, 2000);
-    }
+    registerProductionServiceWorker();
   } else if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {

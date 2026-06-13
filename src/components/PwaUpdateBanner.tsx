@@ -52,9 +52,9 @@ export function PwaUpdateBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 top-0 z-[100000] flex items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+      className="fixed inset-x-0 top-0 z-[100000] flex items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none"
     >
-      <div className="flex w-full max-w-lg items-center gap-3 rounded-xl border border-amber-500/30 bg-[#1a1510]/95 px-4 py-3 text-sm text-amber-50 shadow-lg backdrop-blur-md">
+      <div className="pointer-events-auto flex w-full max-w-lg items-center gap-3 rounded-xl border border-amber-500/30 bg-[#1a1510]/95 px-4 py-3 text-sm text-amber-50 shadow-lg backdrop-blur-md">
         <RefreshCw className={`h-5 w-5 shrink-0 text-amber-400 ${applying ? 'animate-spin' : ''}`} aria-hidden />
         <p className="min-w-0 flex-1 leading-snug">
           <span className="font-semibold text-amber-200">Atualização disponível.</span>{' '}

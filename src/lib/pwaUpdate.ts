@@ -8,6 +8,56 @@ let applyUpdateFn: ApplyUpdateFn | null = null;
 const listeners = new Set<Listener>();
 
 const CONTROLLER_CHANGE_WAIT_MS = 2500;
+const UPDATE_PROBE_MIN_MS = 30_000;
+
+let lastProbeAt = 0;
+
+function hasWaitingWorker(registration: ServiceWorkerRegistration): boolean {
+  return Boolean(registration.waiting && navigator.serviceWorker.controller);
+}
+
+/** Detecta SW já em espera ou recém-instalado — essencial no PWA instalado no celular. */
+export function attachServiceWorkerUpdateProbes(registration: ServiceWorkerRegistration): void {
+  if (hasWaitingWorker(registration)) {
+    markPwaUpdateAvailable();
+  }
+
+  registration.addEventListener('updatefound', () => {
+    const worker = registration.installing;
+    if (!worker) return;
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+        markPwaUpdateAvailable();
+      }
+    });
+  });
+}
+
+/** Consulta o servidor por nova versão do SW (com throttle leve). */
+export async function probeServiceWorkerUpdate(
+  registration?: ServiceWorkerRegistration,
+  options?: { force?: boolean },
+): Promise<void> {
+  if (!registration) return;
+  const now = Date.now();
+  if (!options?.force && now - lastProbeAt < UPDATE_PROBE_MIN_MS) return;
+  lastProbeAt = now;
+
+  if (hasWaitingWorker(registration)) {
+    markPwaUpdateAvailable();
+    return;
+  }
+
+  try {
+    await registration.update();
+  } catch {
+    /* offline */
+  }
+
+  if (hasWaitingWorker(registration)) {
+    markPwaUpdateAvailable();
+  }
+}
 
 function waitForControllerChange(timeoutMs: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -51,6 +101,11 @@ export function isPwaUpdateAvailable(): boolean {
 export function markPwaUpdateAvailable(): void {
   if (updateAvailable) return;
   updateAvailable = true;
+  try {
+    sessionStorage.removeItem('axecloud_pwa_update_dismissed_at');
+  } catch {
+    /* */
+  }
   listeners.forEach((l) => l());
 }
 
@@ -73,11 +128,9 @@ export async function applyPwaUpdate(): Promise<void> {
 
   const changed = await controllerChanged;
   if (changed) {
-    // main.tsx também recarrega em controllerchange; garante reload se esse listener falhar.
     window.location.reload();
     return;
   }
 
-  // SW não assumiu controle — limpa caches antigos e puxa bundle novo da rede.
   performEmergencyHardReload();
 }

@@ -87,8 +87,9 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v109',
+          cacheId: 'axecloud-v110',
           cleanupOutdatedCaches: true,
+          clientsClaim: true,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [
             /^\/api\//,
@@ -118,7 +119,7 @@ export default defineConfig(({mode}) => {
               },
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-html-network-first-v109',
+                cacheName: 'axecloud-html-network-first-v110',
                 networkTimeoutSeconds: 8,
                 expiration: { maxEntries: 12, maxAgeSeconds: 3600 },
                 cacheableResponse: { statuses: [0, 200] },
@@ -129,7 +130,7 @@ export default defineConfig(({mode}) => {
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v109',
+                cacheName: 'axecloud-runtime-network-first-v110',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },

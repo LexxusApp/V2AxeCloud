@@ -4440,6 +4440,14 @@ async function startServer() {
         ) {
           res.setHeader("X-Robots-Tag", "noindex, nofollow");
         }
+        if (
+          pathOnly === "/sw.js" ||
+          pathOnly === "/manifest.webmanifest" ||
+          pathOnly.startsWith("/workbox-")
+        ) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("Pragma", "no-cache");
+        }
         next();
       });
       app.use(express.static(distPath));

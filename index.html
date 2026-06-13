@@ -211,6 +211,21 @@
       <p>Ative o JavaScript para acessar a plataforma completa.</p>
       <!-- /SEO_NOSCRIPT_INJECT -->
     </noscript>
+    <script>
+      (function () {
+        if (!('serviceWorker' in navigator)) return;
+        function flagPending(reg) {
+          if (reg && reg.waiting && navigator.serviceWorker.controller) {
+            try { sessionStorage.setItem('axecloud_pwa_update_pending', '1'); } catch (e) {}
+          }
+        }
+        navigator.serviceWorker.getRegistration('/').then(function (reg) {
+          if (!reg) return;
+          flagPending(reg);
+          return reg.update().then(function () { flagPending(reg); });
+        }).catch(function () {});
+      })();
+    </script>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
