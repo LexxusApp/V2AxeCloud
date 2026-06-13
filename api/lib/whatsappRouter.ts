@@ -1,15 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  createInstanceWithQrCode,
-  createInstanceWithPairingCode,
-  evolutionInstanceName,
-  getAxeEvolutionStatusAndQr,
-  logoutEvolutionInstance,
-  sendEvolutionTextMessage,
+  getOfficialWhatsAppStatus,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../../src/services/evolution.service.js";
 import { normalizeWhatsAppTemplates } from "../../src/constants/whatsappTemplates.js";
-import { sendWhatsAppForTenant } from "./whatsappSendCore.js";
+import {
+  broadcastWhatsAppForTenant,
+  buildWhatsAppMessage,
+  logAndSendWhatsApp,
+  resolveTerreiroWhatsAppContext,
+  sendWhatsAppForTenant,
+} from "./whatsappSendCore.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
@@ -96,6 +97,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
             templates: normalizeWhatsAppTemplates(null),
             preferences: defaultPreferences(),
             phoneNumber: null,
+            channel: "official",
             warning: "WHATSAPP_TABLE_NOT_READY",
           });
         }
@@ -108,6 +110,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         templates: normalizeWhatsAppTemplates(data?.templates),
         preferences: { ...defaultPreferences(), ...prefs },
         phoneNumber: data?.phone_number || null,
+        channel: "official",
       });
     }
 
@@ -120,17 +123,16 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         .eq("tenant_id", user.id)
         .maybeSingle();
       const prevMeta = (existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {}) as Record<string, unknown>;
-      const nextMeta = { ...prevMeta };
+      const nextMeta: Record<string, unknown> = { ...prevMeta, channel: "official" };
       if (config?.preferences && typeof config.preferences === "object") {
         nextMeta.preferences = { ...defaultPreferences(), ...config.preferences };
       }
       const { error } = await sb.from("whatsapp_config").upsert({
-        instance_name: config?.instance_name,
-        evolution_api_url: config?.evolution_api_url,
         templates: safeTemplates,
         metadata: nextMeta,
         id: user.id,
         tenant_id: user.id,
+        status: "CONNECTED",
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -157,51 +159,17 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const message = String(body.message || "").trim();
       if (!message) return sendJson(res, 400, { error: "Mensagem obrigatória." });
 
-      const access = await sb.from("perfil_lider").select("tenant_id").eq("id", user.id).maybeSingle();
-      const tenantScope = String(access.data?.tenant_id || user.id);
-
-      const { data: filhos, error: filhosErr } = await sb
-        .from("filhos_de_santo")
-        .select("id, nome, whatsapp_phone")
-        .or(`tenant_id.eq.${tenantScope},lider_id.eq.${user.id}`)
-        .not("whatsapp_phone", "is", null);
-      if (filhosErr) throw filhosErr;
-
-      const targets = (filhos || []).filter((f) => String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10);
-      if (!targets.length) {
+      const { sent, failed, total } = await broadcastWhatsAppForTenant(sb, user.id, message);
+      if (!total) {
         return sendJson(res, 400, { error: "Nenhum filho de santo com WhatsApp cadastrado." });
-      }
-
-      let sent = 0;
-      let failed = 0;
-      for (const filho of targets) {
-        try {
-          let phoneDigits = String(filho.whatsapp_phone).replace(/\D/g, "");
-          if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
-          await sendEvolutionTextMessage(user.id, phoneDigits, message);
-          sent += 1;
-        } catch {
-          failed += 1;
-        }
-      }
-
-      if (sent > 0) {
-        await sb.from("whatsapp_logs").insert({
-          tenant_id: user.id,
-          tipo: "teste",
-          telefone: "corrente_geral",
-          mensagem: message,
-          status: failed > 0 ? "partial" : "sent",
-          external_id: `broadcast_${Date.now()}`,
-        });
       }
 
       return sendJson(res, 200, {
         success: true,
         sent,
         failed,
-        total: targets.length,
-        destino: `Corrente Geral (${targets.length} médiuns)`,
+        total,
+        destino: `Corrente Geral (${total} médiuns)`,
       });
     }
 
@@ -222,53 +190,57 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         });
         return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso", externalId: result.externalId });
       } catch (err: unknown) {
-        const e = err as { statusCode?: number; message?: string };
+        const e = err as { statusCode?: number; message?: string; code?: string };
+        if (e.code === "WHATSAPP_INITIALIZING") {
+          return whatsappInitializingResponse(res, err);
+        }
         const status = e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : 500;
         return sendJson(res, status, { error: e.message || "Erro ao enviar mensagem" });
       }
     }
 
-    if ((act === "start" || act === "connect") && method === "POST") {
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      if (merged.status === "CONNECTED") {
-        return sendJson(res, 200, { message: "WhatsApp já está conectado." });
-      }
-      const phone = String(body.phone || body.number || "").trim();
-      const mode = String(body.mode || "").trim().toLowerCase();
-      if (phone && mode !== "qrcode") {
-        const out = await createInstanceWithPairingCode(evolutionInstanceName(user.id), phone);
-        return sendJson(res, 200, {
-          message: "Use o código ou escaneie o QR no WhatsApp em até 60 segundos.",
-          pairingCode: out.pairingCode,
-          qrcode: out.qrcode,
-          mode: "pairing",
-        });
-      }
-      const qrcode = await createInstanceWithQrCode(user.id);
-      return sendJson(res, 200, { message: "Escaneie o QR Code no WhatsApp.", qrcode, mode: "qrcode" });
+    if ((act === "start" || act === "connect" || act === "logout") && method === "POST") {
+      return sendJson(res, 410, {
+        error: "Conexão por QR/pareamento foi descontinuada. As notificações saem pelo WhatsApp oficial do AxéCloud.",
+        channel: "official",
+      });
     }
 
     if (act === "test-message" && method === "POST") {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { phone } = body;
       if (!phone) return sendJson(res, 400, { error: "Telefone é obrigatório." });
-      const msg =
-        "Axé! Este é um teste de conexão do AxéCloud. Se você recebeu isso, seu terreiro já está automatizado!";
-      let phoneDigits = String(phone).replace(/\D/g, "");
-      if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
-      await sendEvolutionTextMessage(user.id, phoneDigits, msg);
-      return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso!" });
+      const ctx = await resolveTerreiroWhatsAppContext(sb, user.id, user.id);
+      try {
+        const result = await sendWhatsAppForTenant(sb, {
+          tenantId: user.id,
+          tipo: "teste",
+          forcePhone: phone,
+          variables: {
+            nome_filho: "Teste",
+            nome_terreiro: ctx.nomeTerreiro,
+          },
+        });
+        return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
+      } catch (err: unknown) {
+        const e = err as { code?: string; message?: string };
+        if (e.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
+        throw err;
+      }
     }
 
     if (act === "status" && method === "GET") {
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      return sendJson(res, 200, { status: merged.status, qrcode: merged.qrcode });
-    }
-
-    if (act === "logout" && method === "POST") {
-      await logoutEvolutionInstance(user.id);
-      return sendJson(res, 200, { message: "Sessão WhatsApp encerrada na Evolution API." });
+      const official = await getOfficialWhatsAppStatus();
+      return sendJson(res, 200, {
+        status: official.status,
+        qrcode: null,
+        channel: "official",
+        pairingCode: null,
+        message:
+          official.status === "CONNECTED"
+            ? "Canal oficial AxéCloud ativo. Suas notificações serão enviadas pelo número verificado da plataforma."
+            : WHATSAPP_INITIALIZING_MESSAGE_PT,
+      });
     }
 
     sendJson(res, 404, { error: "Ação WhatsApp não encontrada", action: act });

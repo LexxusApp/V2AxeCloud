@@ -23,13 +23,8 @@ import {
   startOfDay,
 } from "date-fns";
 import {
-  createAxeInstance,
-  createInstanceWithQrCode,
-  createInstanceWithPairingCode,
-  evolutionInstanceName,
   CONSOLE_ADMIN_INSTANCE_NAME,
-  getAxeEvolutionStatusAndQr,
-  logoutEvolutionInstance,
+  getOfficialWhatsAppStatus,
   sendEvolutionTextByInstance,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
@@ -2539,12 +2534,8 @@ async function startServer() {
           supabaseAdmin,
           r2:
             r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
-          beforeDbPurge: async (lid) => {
-            try {
-              await logoutEvolutionInstance(lid);
-            } catch (e) {
-              console.warn("[permanent-delete] Evolution:", e);
-            }
+          beforeDbPurge: async () => {
+            /* canal oficial único */
           },
         },
         user.id
@@ -2744,12 +2735,8 @@ async function startServer() {
               supabaseAdmin,
               r2:
                 r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
-              beforeDbPurge: async (lid) => {
-                try {
-                  await logoutEvolutionInstance(lid);
-                } catch (e) {
-                  console.warn("[permanent-delete] Evolution:", e);
-                }
+              beforeDbPurge: async () => {
+                /* canal oficial único */
               },
             },
             targetUserId
@@ -4045,39 +4032,11 @@ async function startServer() {
     res.status(200).send('OK');
   });
 
-  app.post("/api/whatsapp/start", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      if (merged.status === "CONNECTED") {
-        return res.json({ message: "WhatsApp já está conectado." });
-      }
-
-      const phone = String((req.body && (req.body.phone || req.body.number)) || "").trim();
-      const mode = String((req.body && req.body.mode) || "").trim().toLowerCase();
-
-      if (phone && mode !== "qrcode") {
-        const out = await createInstanceWithPairingCode(evolutionInstanceName(user.id), phone);
-        return res.json({
-          message: "Use o código ou escaneie o QR no WhatsApp em até 60 segundos.",
-          pairingCode: out.pairingCode,
-          qrcode: out.qrcode,
-          mode: "pairing",
-        });
-      }
-
-      const qrcode = await createInstanceWithQrCode(user.id);
-      return res.json({ message: "Escaneie o QR Code no WhatsApp.", qrcode, mode: "qrcode" });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Erro ao iniciar" });
-    }
+  app.post("/api/whatsapp/start", async (_req, res) => {
+    res.status(410).json({
+      error: "Conexão por QR/pareamento foi descontinuada. As notificações saem pelo WhatsApp oficial do AxéCloud.",
+      channel: "official",
+    });
   });
 
   app.post("/api/whatsapp/test-message", async (req, res) => {
@@ -4092,51 +4051,44 @@ async function startServer() {
       const { phone } = req.body;
       if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
 
-      const msg = "Axé! Este é um teste de conexão do AxéCloud. Se você recebeu isso, seu terreiro já está automatizado!";
-      let phoneDigits = String(phone).replace(/\D/g, "");
-      if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
-      await sendEvolutionTextMessage(user.id, phoneDigits, msg);
-      return res.json({ success: true, message: "Mensagem enviada com sucesso!" });
+      const { sendWhatsAppForTenant, resolveTerreiroWhatsAppContext } = await import("./api/lib/whatsappSendCore.js");
+      const ctx = await resolveTerreiroWhatsAppContext(supabaseAdmin, user.id, user.id);
+      const result = await sendWhatsAppForTenant(supabaseAdmin, {
+        tenantId: user.id,
+        tipo: "teste",
+        forcePhone: phone,
+        variables: { nome_filho: "Teste", nome_terreiro: ctx.nomeTerreiro },
+      });
+      return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Falha ao enviar." });
     }
   });
 
-  app.get("/api/whatsapp/status", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
+  app.get("/api/whatsapp/status", async (_req, res) => {
     try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      res.json({ status: merged.status, qrcode: merged.qrcode });
+      const official = await getOfficialWhatsAppStatus();
+      res.json({
+        status: official.status,
+        qrcode: null,
+        channel: "official",
+        message:
+          official.status === "CONNECTED"
+            ? "Canal oficial AxéCloud ativo."
+            : WHATSAPP_INITIALIZING_MESSAGE_PT,
+      });
     } catch (err: any) {
       console.error("[WHATSAPP] /api/whatsapp/status:", err?.message || err);
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       return whatsappInitializingResponse(res, new Error(WHATSAPP_INITIALIZING_MESSAGE_PT));
     }
   });
 
-  app.post("/api/whatsapp/logout", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      await logoutEvolutionInstance(user.id);
-
-      res.json({ message: "Sessão WhatsApp encerrada na Evolution API." });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Erro ao deslogar" });
-    }
+  app.post("/api/whatsapp/logout", async (_req, res) => {
+    res.status(410).json({
+      error: "Desconexão por terreiro não se aplica — o canal é o WhatsApp Business oficial do AxéCloud.",
+      channel: "official",
+    });
   });
 
   // Vite middleware setup

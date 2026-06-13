@@ -1,6 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { S3Client } from "@aws-sdk/client-s3";
-import { logoutEvolutionInstance } from "../../src/services/evolution.service.js";
 import { permanentDeleteZeladorAccount } from "../permanentAccountDelete.js";
 import { createAuditLog } from "./createAuditLog.js";
 import { logEvent } from "./auditLog.js";
@@ -50,12 +49,8 @@ export async function runManageTenant(
         {
           supabaseAdmin,
           r2,
-          beforeDbPurge: async (lid) => {
-            try {
-              await logoutEvolutionInstance(lid);
-            } catch (e) {
-              console.warn("[permanent-delete] Evolution:", e);
-            }
+          beforeDbPurge: async () => {
+            /* canal oficial único — sem instância Baileys por terreiro */
           },
         },
         targetUserId

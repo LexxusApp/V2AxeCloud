@@ -86,6 +86,11 @@ axecloud.com.br, www.axecloud.com.br {
 			reverse_proxy app:3000
 		}
 
+		@evolution_webhook path /webhook/*
+		handle @evolution_webhook {
+			reverse_proxy evolution:8080
+		}
+
 		@massets path /m-assets/*
 		handle @massets {
 			reverse_proxy marketing:80

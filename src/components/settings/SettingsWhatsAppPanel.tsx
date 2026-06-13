@@ -2,11 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
   MessageSquare,
-  QrCode,
   Radio,
   Send,
   Settings,
-  Smartphone,
+  Shield,
   Wifi,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -52,14 +51,6 @@ const BADGE_COLORS: Record<WaLogTipo, string> = {
   teste: 'bg-amber-950/40 text-[#FACC15] border-amber-600/10',
 };
 
-function qrImageSrc(src: string | null | undefined): string | null {
-  if (!src) return null;
-  const s = String(src).trim();
-  if (!s) return null;
-  if (s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  return `data:image/png;base64,${s}`;
-}
-
 function mapLogTipo(raw: string | null | undefined): WaLogTipo {
   const t = String(raw || '').toLowerCase();
   if (t.includes('gira') || t.includes('convite') || t.includes('evento')) return 'gira';
@@ -91,10 +82,7 @@ function logDestino(telefone: string | null | undefined, tipo: WaLogTipo): strin
 
 export function SettingsWhatsAppPanel() {
   const [connected, setConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [showQr, setShowQr] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [phone, setPhone] = useState('(11) 99999-8888');
+  const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
   const [testMessage, setTestMessage] = useState(DEFAULT_TEST_MSG);
   const [logs, setLogs] = useState<WaLogUi[]>([]);
@@ -170,16 +158,6 @@ export function SettingsWhatsAppPanel() {
       if (data.preferences) {
         setPreferences({ ...DEFAULT_PREFS, ...data.preferences });
       }
-      if (data.phoneNumber) {
-        const digits = String(data.phoneNumber).replace(/\D/g, '');
-        if (digits.length >= 10) {
-          setPhone(
-            digits.length === 11
-              ? `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-              : String(data.phoneNumber),
-          );
-        }
-      }
     } catch {
       /* silencioso */
     }
@@ -198,17 +176,7 @@ export function SettingsWhatsAppPanel() {
       const st = String(data.status || '').toUpperCase();
       const isConn = st === 'CONNECTED';
       setConnected(isConn);
-      if (isConn) {
-        setShowQr(false);
-        setQrCode(null);
-        setConnecting(false);
-      } else if (data.qrcode) {
-        const qr = qrImageSrc(data.qrcode);
-        if (qr) {
-          setQrCode(qr);
-          setShowQr(true);
-        }
-      }
+      setChannelMessage(String(data.message || ''));
     } catch {
       /* silencioso */
     }
@@ -251,59 +219,9 @@ export function SettingsWhatsAppPanel() {
     notify(`Gatilho de ${label} ${next[key] ? 'ativado' : 'desativado'}!`, 'info');
   };
 
-  const handleGenerateQr = async () => {
-    setConnecting(true);
-    setShowQr(false);
-    setQrCode(null);
-    try {
-      const token = await getAccessToken();
-      const userId = await getSessionUserId();
-      const res = await fetch(whatsappApiUrl('/connect'), {
-        method: 'POST',
-        headers: whatsappRailwayHeaders(token, userId),
-        body: whatsappRailwayJsonBody(userId, { mode: 'qrcode' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(String(data.error || 'Falha ao gerar QR Code'));
-      }
-      const qr = qrImageSrc(typeof data.qrcode === 'string' ? data.qrcode : null);
-      if (qr) {
-        setQrCode(qr);
-        setShowQr(true);
-        notify('QR Code de emparelhamento gerado com sucesso!', 'info');
-      } else {
-        notify('Gerando canais criptografados de sincronização…', 'info');
-        setShowQr(true);
-      }
-    } catch (e: unknown) {
-      notify(e instanceof Error ? e.message : 'Erro ao conectar WhatsApp', 'error');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      const token = await getAccessToken();
-      const userId = await getSessionUserId();
-      await fetch(whatsappApiUrl('/whatsapp/logout'), {
-        method: 'POST',
-        headers: whatsappRailwayHeaders(token, userId),
-        body: whatsappRailwayJsonBody(userId),
-      });
-      setConnected(false);
-      setShowQr(false);
-      setQrCode(null);
-      notify('WhatsApp do Zelador desconectado com sucesso.', 'info');
-    } catch (e: unknown) {
-      notify(e instanceof Error ? e.message : 'Erro ao desconectar', 'error');
-    }
-  };
-
   const handleBroadcast = async () => {
     if (!connected) {
-      notify('Não foi possível enviar: WhatsApp desconectado. Conecte no Passo 1 antes de transmitir.', 'error');
+      notify('Canal oficial indisponível no momento. Tente novamente em instantes.', 'error');
       return;
     }
     if (!testMessage.trim()) {
@@ -384,8 +302,8 @@ export function SettingsWhatsAppPanel() {
             Integração & Configuração do WhatsApp
           </h5>
           <p className="text-xs text-[#94A3B8]">
-            Conecte o seu número para automatizar o envio de notificações, cobranças de mensalidades e avisos de giras
-            para os filhos de santo da corrente.
+            Notificações automáticas para filhos de santo saem pelo WhatsApp Business oficial do AxéCloud, com o nome
+            do membro e do seu terreiro em cada mensagem.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -397,7 +315,7 @@ export function SettingsWhatsAppPanel() {
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${connected ? 'animate-ping bg-emerald-500' : 'bg-gray-500'}`} />
-            {connected ? 'Dispositivo Conectado' : 'Aparelho Desconectado'}
+            {connected ? 'Canal Oficial Ativo' : 'Canal Indisponível'}
           </span>
         </div>
       </div>
@@ -408,129 +326,42 @@ export function SettingsWhatsAppPanel() {
             <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#10B981]/5 blur-xl filter" />
 
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
-              <Smartphone className="h-4 w-4" />
-              1. Conexão do Celular (Zelador)
+              <Shield className="h-4 w-4" />
+              1. Canal Oficial AxéCloud (Meta Cloud API)
             </h6>
 
-            {!connected ? (
-              <div className="space-y-4">
-                <div className="space-y-2.5 rounded-xl border border-[#1E242B] bg-[#12161A]/80 p-4">
-                  <p className="text-[11px] leading-relaxed text-[#94A3B8]">
-                    Siga as instruções abaixo para vincular o WhatsApp oficial do Terreiro à plataforma Axé Cloud:
-                  </p>
-                  <ol className="ml-1 list-inside list-decimal space-y-1.5 text-xs font-light text-gray-300">
-                    <li>Abra o WhatsApp no seu smartphone.</li>
-                    <li>
-                      Vá em <strong className="text-white">Aparelhos Conectados</strong> no menu de configurações.
-                    </li>
-                    <li>
-                      Selecione <strong className="text-[#10B981]">Conectar um aparelho</strong> e aponte para o QR
-                      Code.
-                    </li>
-                  </ol>
-                </div>
-
-                <div className="flex flex-col items-center gap-3 sm:flex-row">
-                  {!showQr && !connecting ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleGenerateQr()}
-                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-[#10B981]/10 transition-all hover:bg-[#059669] sm:w-auto"
-                    >
-                      <QrCode className="h-4 w-4" />
-                      Gerar QR Code de Integração
-                    </button>
-                  ) : connecting ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-emerald-500/10 bg-emerald-950/20 px-4 py-2.5 text-xs font-bold text-emerald-400">
-                      <svg className="h-4 w-4 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Gerando canais criptografados de sincronização...
-                    </div>
-                  ) : (
-                    <div className="animate-fadeIn flex w-full flex-col items-center justify-center space-y-4 rounded-xl border border-[#1E242B] bg-[#12161A] p-5">
-                      <div className="relative overflow-hidden rounded-lg border-2 border-emerald-500 bg-white p-3 shadow-lg">
-                        {qrCode ? (
-                          <img src={qrCode} alt="QR Code WhatsApp" className="h-40 w-40 object-contain" />
-                        ) : (
-                          <>
-                            <div className="grid h-40 w-40 grid-cols-4 gap-1 bg-zinc-100 p-1 opacity-90">
-                              {Array.from({ length: 16 }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`rounded-sm ${(i * 7 + 3) % 2 === 0 ? 'bg-zinc-900' : 'bg-transparent'} ${i === 0 || i === 3 || i === 12 ? 'border-4 border-zinc-900 bg-transparent' : ''}`}
-                                />
-                              ))}
-                            </div>
-                            <div className="pointer-events-none absolute inset-0 flex animate-pulse items-center justify-center bg-emerald-500/10">
-                              <QrCode className="h-12 w-12 text-[#10B981]" />
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 text-center">
-                        <span className="block text-[8.5px] font-black uppercase tracking-widest text-amber-500">
-                          Sincronização Ativa
-                        </span>
-                        <p className="text-[10px] text-gray-400">QR Code expira em 3 minutos. Escaneie-o no celular.</p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQr(false);
-                          setQrCode(null);
-                        }}
-                        className="cursor-pointer rounded-lg border border-white/10 bg-transparent px-4 py-2 text-xs font-bold text-gray-400 transition-colors hover:bg-white/5"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="animate-fadeIn space-y-4">
-                <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-500/15 bg-emerald-950/10 p-4 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-emerald-600 p-3 text-white">
-                      <Wifi className="h-5 w-5 animate-pulse" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
-                        Status: Ativo & Operante
-                      </span>
-                      <h6 className="text-sm font-bold text-[#F1F5F9]">
-                        {phone} (Zelador)
-                      </h6>
-                      <p className="text-[9.5px] text-gray-400">
-                        Vínculo Webhook API • Signal 100% • Bateria: 94% • Versão Node-WS: 2.34.1
-                      </p>
-                    </div>
+            <div className="animate-fadeIn space-y-4">
+              <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-500/15 bg-emerald-950/10 p-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-emerald-600 p-3 text-white">
+                    <Wifi className={`h-5 w-5 ${connected ? 'animate-pulse' : 'opacity-50'}`} />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleDisconnect()}
-                    className="cursor-pointer self-stretch rounded-xl border border-rose-500/20 bg-rose-950/20 px-4 py-2 text-xs font-bold text-rose-400 transition-all hover:bg-rose-900/30 sm:self-auto"
-                  >
-                    Desconectar Aparelho
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
-                  <span>Sincronizando com Giras, Financeiro e Altar Virtual em tempo de execução:</span>
-                  <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
-                    <Radio className="h-3 w-3 shrink-0 animate-ping" /> Webhook Online
-                  </span>
+                  <div className="space-y-0.5">
+                    <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
+                      {connected ? 'Status: Ativo & Operante' : 'Status: Inicializando'}
+                    </span>
+                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — AxéCloud</h6>
+                    <p className="text-[9.5px] text-gray-400">
+                      {channelMessage ||
+                        'Suas notificações usam templates Meta com {{nome do membro}} e {{nome do terreiro}}.'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+
+              <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs leading-relaxed text-[#94A3B8]">
+                Não é necessário escanear QR Code nem parear celular. Cada terreiro envia apenas para os próprios
+                filhos de santo — o isolamento é garantido pelo cadastro no Supabase.
+              </div>
+
+              <div className="flex flex-col gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
+                <span>Sincronizando com Giras, Financeiro e Altar Virtual:</span>
+                <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
+                  <Radio className={`h-3 w-3 shrink-0 ${connected ? 'animate-ping' : ''}`} />
+                  {connected ? 'Webhook Online' : 'Aguardando canal'}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">

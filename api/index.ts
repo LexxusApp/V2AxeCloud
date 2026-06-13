@@ -22,13 +22,8 @@ import {
   startOfDay,
 } from "date-fns";
 import {
-  createAxeInstance,
-  createInstanceWithQrCode,
-  createInstanceWithPairingCode,
-  evolutionInstanceName,
   CONSOLE_ADMIN_INSTANCE_NAME,
-  getAxeEvolutionStatusAndQr,
-  logoutEvolutionInstance,
+  getOfficialWhatsAppStatus,
   sendEvolutionTextByInstance,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
@@ -48,7 +43,7 @@ import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
-import { sendWhatsAppForTenant } from "./lib/whatsappSendCore.js";
+import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext } from "./lib/whatsappSendCore.js";
 import { dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
@@ -3031,12 +3026,8 @@ async function startServer() {
           supabaseAdmin,
           r2:
             r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
-          beforeDbPurge: async (lid) => {
-            try {
-              await logoutEvolutionInstance(lid);
-            } catch (e) {
-              console.warn("[permanent-delete] Evolution:", e);
-            }
+          beforeDbPurge: async () => {
+            /* instâncias Baileys por terreiro descontinuadas — canal oficial único */
           },
         },
         user.id
@@ -3214,12 +3205,8 @@ async function startServer() {
               supabaseAdmin,
               r2:
                 r2Client && R2_BUCKET_NAME ? { client: r2Client, bucket: R2_BUCKET_NAME } : undefined,
-              beforeDbPurge: async (lid) => {
-                try {
-                  await logoutEvolutionInstance(lid);
-                } catch (e) {
-                  console.warn("[permanent-delete] Evolution:", e);
-                }
+              beforeDbPurge: async () => {
+                /* canal oficial único — sem instância Baileys por terreiro */
               },
             },
             targetUserId
@@ -4247,55 +4234,17 @@ async function startServer() {
       const message = String(req.body?.message || "").trim();
       if (!message) return res.status(400).json({ error: "Mensagem obrigatória." });
 
-      const { data: leader } = await supabaseAdmin
-        .from("perfil_lider")
-        .select("tenant_id")
-        .eq("id", user.id)
-        .maybeSingle();
-      const tenantScope = String(leader?.tenant_id || user.id);
-
-      const { data: filhos, error: filhosErr } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id, nome, whatsapp_phone")
-        .or(`tenant_id.eq.${tenantScope},lider_id.eq.${user.id}`)
-        .not("whatsapp_phone", "is", null);
-      if (filhosErr) throw filhosErr;
-
-      const targets = (filhos || []).filter((f) => String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10);
-      if (!targets.length) {
+      const { sent, failed, total } = await broadcastWhatsAppForTenant(supabaseAdmin, user.id, message);
+      if (!total) {
         return res.status(400).json({ error: "Nenhum filho de santo com WhatsApp cadastrado." });
-      }
-
-      let sent = 0;
-      let failed = 0;
-      for (const filho of targets) {
-        try {
-          let phoneDigits = String(filho.whatsapp_phone).replace(/\D/g, "");
-          if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
-          await sendEvolutionTextMessage(user.id, phoneDigits, message);
-          sent += 1;
-        } catch {
-          failed += 1;
-        }
-      }
-
-      if (sent > 0) {
-        await supabaseAdmin.from("whatsapp_logs").insert({
-          tenant_id: user.id,
-          tipo: "teste",
-          telefone: "corrente_geral",
-          mensagem: message,
-          status: failed > 0 ? "partial" : "sent",
-          external_id: `broadcast_${Date.now()}`,
-        });
       }
 
       res.json({
         success: true,
         sent,
         failed,
-        total: targets.length,
-        destino: `Corrente Geral (${targets.length} médiuns)`,
+        total,
+        destino: `Corrente Geral (${total} médiuns)`,
       });
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
@@ -4350,35 +4299,11 @@ async function startServer() {
     res.status(200).send('OK');
   });
 
-  app.post("/api/whatsapp/start", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      if (merged.status === "CONNECTED") {
-        return res.json({ message: "WhatsApp já está conectado." });
-      }
-
-      const phone = String((req.body && (req.body.phone || req.body.number)) || "").trim();
-      const mode = String((req.body && req.body.mode) || "").trim().toLowerCase();
-
-      if (phone && mode !== "qrcode") {
-        const out = await createInstanceWithPairingCode(evolutionInstanceName(user.id), phone);
-        return res.json({
-          message: "Use o código ou escaneie o QR no WhatsApp em até 60 segundos.",
-          pairingCode: out.pairingCode,
-          qrcode: out.qrcode,
-          mode: "pairing",
-        });
-      }
-
-      const qrcode = await createInstanceWithQrCode(user.id);
-      return res.json({ message: "Escaneie o QR Code no WhatsApp.", qrcode, mode: "qrcode" });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Erro ao iniciar" });
-    }
+  app.post("/api/whatsapp/start", async (_req, res) => {
+    res.status(410).json({
+      error: "Conexão por QR/pareamento foi descontinuada. As notificações saem pelo WhatsApp oficial do AxéCloud.",
+      channel: "official",
+    });
   });
 
   app.post("/api/whatsapp/test-message", async (req, res) => {
@@ -4389,43 +4314,43 @@ async function startServer() {
       const { phone } = req.body;
       if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
 
-      const msg = "Axé! Este é um teste de conexão do AxéCloud. Se você recebeu isso, seu terreiro já está automatizado!";
-      let phoneDigits = String(phone).replace(/\D/g, "");
-      if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
-      await sendEvolutionTextMessage(user.id, phoneDigits, msg);
-      return res.json({ success: true, message: "Mensagem enviada com sucesso!" });
+      const ctx = await resolveTerreiroWhatsAppContext(supabaseAdmin, user.id, user.id);
+      const result = await sendWhatsAppForTenant(supabaseAdmin, {
+        tenantId: user.id,
+        tipo: "teste",
+        forcePhone: phone,
+        variables: { nome_filho: "Teste", nome_terreiro: ctx.nomeTerreiro },
+      });
+      return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       res.status(500).json({ error: err?.message || "Falha ao enviar." });
     }
   });
 
-  app.get("/api/whatsapp/status", async (req, res) => {
+  app.get("/api/whatsapp/status", async (_req, res) => {
     try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const merged = await getAxeEvolutionStatusAndQr(user.id);
-      res.json({ status: merged.status, qrcode: merged.qrcode });
+      const official = await getOfficialWhatsAppStatus();
+      res.json({
+        status: official.status,
+        qrcode: null,
+        channel: "official",
+        message:
+          official.status === "CONNECTED"
+            ? "Canal oficial AxéCloud ativo."
+            : WHATSAPP_INITIALIZING_MESSAGE_PT,
+      });
     } catch (err: any) {
       console.error("[WHATSAPP] /api/whatsapp/status:", err?.message || err);
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
       return whatsappInitializingResponse(res, new Error(WHATSAPP_INITIALIZING_MESSAGE_PT));
     }
   });
 
-  app.post("/api/whatsapp/logout", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      await logoutEvolutionInstance(user.id);
-
-      res.json({ message: "Sessão WhatsApp encerrada na Evolution API." });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Erro ao deslogar" });
-    }
+  app.post("/api/whatsapp/logout", async (_req, res) => {
+    res.status(410).json({
+      error: "Desconexão por terreiro não se aplica — o canal é o WhatsApp Business oficial do AxéCloud.",
+      channel: "official",
+    });
   });
 
   // Vite middleware setup

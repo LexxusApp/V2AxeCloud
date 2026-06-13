@@ -1,7 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendEvolutionTextMessage } from "../../src/services/evolution.service.js";
+import {
+  CONSOLE_ADMIN_INSTANCE_NAME,
+  ensureOfficialWhatsAppReady,
+  sendEvolutionTemplateByInstance,
+} from "../../src/services/evolution.service.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
-import { assertZeladorTenantAccess } from "./tenantAccess.js";
+import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
+import {
+  buildMetaTemplateComponents,
+  resolveMetaTemplateLanguage,
+  resolveMetaTemplateName,
+} from "./whatsappMetaCloud.js";
 
 export type WhatsAppSendInput = {
   tenantId: string;
@@ -11,10 +20,97 @@ export type WhatsAppSendInput = {
   variables?: Record<string, string | number>;
 };
 
+export type TerreiroWhatsAppContext = {
+  idTerreiro: string;
+  nomeTerreiro: string;
+  leaderId: string;
+};
+
+export type MemberWhatsAppTarget = TerreiroWhatsAppContext & {
+  phone: string;
+  nomeMembro: string;
+  filhoId: string | null;
+};
+
 function normalizeBrPhone(raw: string): string {
   let digits = String(raw).replace(/\D/g, "");
   if (!digits.startsWith("55")) digits = `55${digits}`;
   return digits;
+}
+
+function httpError(message: string, statusCode: number): Error & { statusCode: number } {
+  const err = new Error(message) as Error & { statusCode: number };
+  err.statusCode = statusCode;
+  return err;
+}
+
+/** Resolve id e nome do terreiro a partir do tenant do zelador (isolamento por tenant_id). */
+export async function resolveTerreiroWhatsAppContext(
+  sb: SupabaseClient,
+  actorUserId: string,
+  tenantId: string
+): Promise<TerreiroWhatsAppContext> {
+  const ok = await assertZeladorTenantAccess(sb, actorUserId, tenantId);
+  if (!ok) throw httpError("Acesso negado ao terreiro solicitado", 403);
+
+  const leaderId = await resolveLeaderId(sb, tenantId);
+  const { data: profile } = await sb
+    .from("perfil_lider")
+    .select("id, tenant_id, nome_terreiro")
+    .eq("id", leaderId)
+    .maybeSingle();
+
+  if (!profile) throw httpError("Terreiro não encontrado", 404);
+
+  const idTerreiro = String(profile.tenant_id || profile.id || leaderId).trim();
+  const nomeTerreiro = String(profile.nome_terreiro || "Terreiro").trim();
+
+  return { idTerreiro, nomeTerreiro, leaderId };
+}
+
+/** Garante que o filho pertence ao terreiro do zelador antes de qualquer envio. */
+export async function assertFilhoBelongsToTerreiro(
+  sb: SupabaseClient,
+  leaderId: string,
+  filho: { tenant_id?: string | null; lider_id?: string | null }
+): Promise<void> {
+  const filhoRef = String(filho.tenant_id || filho.lider_id || "").trim();
+  if (!filhoRef) throw httpError("Membro sem vínculo de terreiro", 403);
+
+  const filhoLeader = await resolveLeaderId(sb, filhoRef);
+  if (filhoLeader !== leaderId) {
+    throw httpError("Filho não pertence ao seu terreiro", 403);
+  }
+}
+
+export async function resolveMemberWhatsAppTarget(
+  sb: SupabaseClient,
+  actorUserId: string,
+  tenantId: string,
+  filhoId: string
+): Promise<MemberWhatsAppTarget> {
+  const ctx = await resolveTerreiroWhatsAppContext(sb, actorUserId, tenantId);
+
+  const { data: filho, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, nome, whatsapp_phone, tenant_id, lider_id")
+    .eq("id", filhoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!filho) throw httpError("Membro não encontrado", 404);
+
+  await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
+
+  const phoneRaw = String(filho.whatsapp_phone || "").trim();
+  if (!phoneRaw) throw httpError("Telefone não encontrado", 400);
+
+  return {
+    ...ctx,
+    filhoId: String(filho.id),
+    nomeMembro: String(filho.nome || "Membro").trim(),
+    phone: normalizeBrPhone(phoneRaw),
+  };
 }
 
 export function buildWhatsAppMessage(
@@ -33,37 +129,76 @@ export function buildWhatsAppMessage(
   return message;
 }
 
+/** @deprecated Use resolveMemberWhatsAppTarget — mantido para compatibilidade interna. */
 export async function resolveWhatsAppDestinationPhone(
   sb: SupabaseClient,
   userId: string,
-  input: Pick<WhatsAppSendInput, "filhoId" | "forcePhone">
+  input: Pick<WhatsAppSendInput, "filhoId" | "forcePhone"> & { tenantId?: string }
 ): Promise<string | null> {
-  let phone = input.forcePhone ? String(input.forcePhone).trim() : undefined;
-  if (!phone && input.filhoId) {
-    const { data: filho } = await sb
-      .from("filhos_de_santo")
-      .select("whatsapp_phone, tenant_id, lider_id")
-      .eq("id", input.filhoId)
-      .single();
-    const tenantRef = String(filho?.tenant_id || filho?.lider_id || userId);
-    const ok = filho && (await assertZeladorTenantAccess(sb, userId, tenantRef));
-    if (!ok) {
-      const err = new Error("Filho não pertence ao seu terreiro") as Error & { statusCode?: number };
-      err.statusCode = 403;
-      throw err;
-    }
-    phone = filho?.whatsapp_phone;
+  const tenantId = String(input.tenantId || userId);
+  if (input.filhoId) {
+    const target = await resolveMemberWhatsAppTarget(sb, userId, tenantId, String(input.filhoId));
+    return target.phone;
   }
-  if (!phone) return null;
-  return normalizeBrPhone(phone);
+  if (input.forcePhone) return normalizeBrPhone(String(input.forcePhone));
+  return null;
+}
+
+function pickMemberNameFromVariables(
+  variables: Record<string, string | number> | undefined,
+  fallback: string
+): string {
+  const candidates = [variables?.nome_filho, variables?.nome_convidado, variables?.nome_membro];
+  for (const c of candidates) {
+    const s = String(c || "").trim();
+    if (s) return s;
+  }
+  return fallback;
+}
+
+function buildExtraMetaParams(
+  tipo: string,
+  message: string,
+  variables?: Record<string, string | number>
+): string[] {
+  if (String(process.env.WA_META_TEMPLATE_INCLUDE_BODY || "").toLowerCase() !== "true") {
+    return [];
+  }
+  const summary = message.replace(/\s+/g, " ").trim().slice(0, 900);
+  if (!summary) return [];
+  return [summary];
 }
 
 export async function logAndSendWhatsApp(
   sb: SupabaseClient,
-  input: WhatsAppSendInput & { phone: string; message: string }
+  input: WhatsAppSendInput & {
+    phone: string;
+    message: string;
+    nomeMembro: string;
+    nomeTerreiro: string;
+    idTerreiro: string;
+  }
 ): Promise<{ messageId?: string; externalId: string }> {
-  const { tenantId, filhoId, tipo, phone, message } = input;
-  const { messageId } = await sendEvolutionTextMessage(tenantId, phone, message);
+  await ensureOfficialWhatsAppReady();
+
+  const { tipo, phone, message, nomeMembro, nomeTerreiro, idTerreiro, filhoId, tenantId } = input;
+
+  const templateName = resolveMetaTemplateName(tipo);
+  const language = resolveMetaTemplateLanguage();
+  const components = buildMetaTemplateComponents(
+    nomeMembro,
+    nomeTerreiro,
+    buildExtraMetaParams(tipo, message, input.variables)
+  );
+
+  const { messageId } = await sendEvolutionTemplateByInstance(
+    CONSOLE_ADMIN_INSTANCE_NAME,
+    phone,
+    templateName,
+    language,
+    components
+  );
+
   const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
   await sb.from("whatsapp_logs").insert({
     tenant_id: tenantId,
@@ -81,18 +216,108 @@ export async function sendWhatsAppForTenant(
   sb: SupabaseClient,
   input: WhatsAppSendInput
 ): Promise<{ success: true; externalId: string }> {
-  const phone = await resolveWhatsAppDestinationPhone(sb, input.tenantId, input);
-  if (!phone) {
-    const err = new Error("Telefone não encontrado") as Error & { statusCode?: number };
-    err.statusCode = 400;
-    throw err;
+  const ctx = await resolveTerreiroWhatsAppContext(sb, input.tenantId, input.tenantId);
+
+  let phone: string;
+  let nomeMembro: string;
+  let filhoId: string | null = input.filhoId ? String(input.filhoId) : null;
+
+  if (input.filhoId) {
+    const target = await resolveMemberWhatsAppTarget(sb, input.tenantId, input.tenantId, String(input.filhoId));
+    phone = target.phone;
+    nomeMembro = target.nomeMembro;
+    filhoId = target.filhoId;
+  } else if (input.forcePhone) {
+    phone = normalizeBrPhone(String(input.forcePhone));
+    nomeMembro = pickMemberNameFromVariables(input.variables, "Membro");
+  } else {
+    throw httpError("Telefone não encontrado", 400);
   }
+
   const { data: config } = await sb
     .from("whatsapp_config")
     .select("templates")
     .eq("tenant_id", input.tenantId)
     .maybeSingle();
-  const message = buildWhatsAppMessage(config?.templates, input.tipo, input.variables);
-  const { externalId } = await logAndSendWhatsApp(sb, { ...input, phone, message });
+
+  const variables = {
+    nome_filho: nomeMembro,
+    nome_membro: nomeMembro,
+    nome_terreiro: ctx.nomeTerreiro,
+    ...(input.variables || {}),
+  };
+
+  const message = buildWhatsAppMessage(config?.templates, input.tipo, variables);
+  const { externalId } = await logAndSendWhatsApp(sb, {
+    ...input,
+    filhoId,
+    phone,
+    message,
+    nomeMembro,
+    nomeTerreiro: ctx.nomeTerreiro,
+    idTerreiro: ctx.idTerreiro,
+    variables,
+  });
   return { success: true, externalId };
+}
+
+/** Transmissão para todos os filhos do terreiro — um envio por membro com isolamento. */
+export async function broadcastWhatsAppForTenant(
+  sb: SupabaseClient,
+  tenantId: string,
+  messageText: string
+): Promise<{ sent: number; failed: number; total: number }> {
+  const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+
+  const { data: filhos, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
+    .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`)
+    .not("whatsapp_phone", "is", null);
+
+  if (error) throw error;
+
+  const targets = (filhos || []).filter((f) => {
+    const st = String(f.status || "Ativo").trim().toLowerCase();
+    if (st === "inativo" || st === "desligado" || st === "falecido") return false;
+    return String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10;
+  });
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const filho of targets) {
+    try {
+      await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
+      const phone = normalizeBrPhone(String(filho.whatsapp_phone));
+      const nomeMembro = String(filho.nome || "Membro");
+      await logAndSendWhatsApp(sb, {
+        tenantId,
+        filhoId: String(filho.id),
+        tipo: "broadcast",
+        phone,
+        message: messageText,
+        nomeMembro,
+        nomeTerreiro: ctx.nomeTerreiro,
+        idTerreiro: ctx.idTerreiro,
+        variables: { nome_filho: nomeMembro, nome_terreiro: ctx.nomeTerreiro },
+      });
+      sent += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+
+  if (sent > 0) {
+    await sb.from("whatsapp_logs").insert({
+      tenant_id: tenantId,
+      tipo: "broadcast",
+      telefone: "corrente_geral",
+      mensagem: messageText,
+      status: failed > 0 ? "partial" : "sent",
+      external_id: `broadcast_${Date.now()}`,
+    });
+  }
+
+  return { sent, failed, total: targets.length };
 }
