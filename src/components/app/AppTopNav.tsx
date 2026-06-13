@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   Flame,
+  Landmark,
   Loader2,
   Lock,
   Menu,
@@ -14,6 +15,7 @@ import {
   buildZeladorNavEntries,
   buildZeladorNavItems,
   FILHO_NAV,
+  ZELADOR_CASA_CHILD_IDS,
   type AppNavItem,
   type ZeladorNavEntry,
 } from '../../constants/appNav';
@@ -98,6 +100,66 @@ function NavTab({
   );
 }
 
+function NavCasaMobileSection({
+  label,
+  icon: CasaIcon,
+  items,
+  activeTab,
+  isItemLocked,
+  onSelect,
+}: {
+  label: string;
+  icon: LucideIcon;
+  items: AppNavItem[];
+  activeTab: string;
+  isItemLocked: (item: AppNavItem) => boolean;
+  onSelect: (item: AppNavItem) => void;
+}) {
+  const isGroupActive = items.some((i) => i.id === activeTab);
+  const [expanded, setExpanded] = useState(isGroupActive);
+
+  useEffect(() => {
+    if (isGroupActive) setExpanded(true);
+  }, [isGroupActive]);
+
+  return (
+    <div className="col-span-2 space-y-2 sm:col-span-3">
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        aria-expanded={expanded}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-all',
+          isGroupActive || expanded
+            ? 'border-primary/40 bg-primary/15 text-primary'
+            : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]',
+        )}
+      >
+        <CasaIcon className="h-4 w-4 shrink-0" aria-hidden />
+        <span className="flex-1">{label}</span>
+        <ChevronDown
+          className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+      {expanded ? (
+        <div className="grid grid-cols-3 gap-2">
+          {items.map((item) => (
+            <NavTab
+              key={item.id}
+              item={item}
+              layout="grid"
+              isActive={activeTab === item.id}
+              isLocked={isItemLocked(item)}
+              onSelect={() => onSelect(item)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function NavCasaDropdown({
   label,
   icon: CasaIcon,
@@ -162,7 +224,7 @@ function NavCasaDropdown({
         <div
           role="menu"
           aria-label="Módulos da casa"
-          className="absolute left-0 top-full z-50 mt-1.5 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-xl shadow-black/40"
+          className="absolute left-0 top-full z-[60] mt-1.5 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-xl shadow-black/40"
         >
           {items.map((item) => (
             <NavTab
@@ -205,6 +267,11 @@ export default function AppTopNav({
   );
 
   const activeItem = navItems.find((item) => item.id === activeTab);
+  const casaChildIds = useMemo(() => new Set<string>(ZELADOR_CASA_CHILD_IDS), []);
+  const activeCasaItem =
+    userRole === 'admin' && casaChildIds.has(activeTab)
+      ? navItems.find((item) => item.id === activeTab)
+      : null;
 
   const isItemLocked = (item: AppNavItem) =>
     userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin);
@@ -242,21 +309,15 @@ export default function AppTopNav({
     }
 
     return (
-      <div key={key} className="col-span-2 space-y-2 sm:col-span-3">
-        <p className="px-1 text-[10px] font-bold uppercase tracking-wider text-primary">{entry.label}</p>
-        <div className="grid grid-cols-3 gap-2">
-          {entry.items.map((item) => (
-            <NavTab
-              key={item.id}
-              item={item}
-              layout="grid"
-              isActive={activeTab === item.id}
-              isLocked={isItemLocked(item)}
-              onSelect={() => handleSelect(item)}
-            />
-          ))}
-        </div>
-      </div>
+      <NavCasaMobileSection
+        key={key}
+        label={entry.label}
+        icon={entry.icon}
+        items={entry.items}
+        activeTab={activeTab}
+        isItemLocked={isItemLocked}
+        onSelect={handleSelect}
+      />
     );
   };
 
@@ -287,8 +348,8 @@ export default function AppTopNav({
   };
 
   return (
-    <header className="shrink-0 border-b border-[#1E242B] bg-[#13171D]">
-      <div className="flex flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+    <header className="relative z-30 shrink-0 overflow-visible border-b border-[#1E242B] bg-[#13171D]">
+      <div className="flex flex-col gap-3 overflow-visible px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
         <div className="flex min-w-0 items-center justify-between gap-3 lg:justify-start">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex shrink-0 flex-col items-center gap-0.5">
@@ -317,11 +378,22 @@ export default function AppTopNav({
                 {terreiroNome}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-medium text-primary">{subtitle}</p>
-              {!mobileOpen && activeItem ? (
+              {!mobileOpen && (activeCasaItem || activeItem) ? (
                 <p className="mt-1.5 flex items-center gap-1 lg:hidden">
                   <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                    <activeItem.icon className="h-3 w-3 shrink-0" aria-hidden />
-                    <span className="truncate">{activeItem.label}</span>
+                    {activeCasaItem ? (
+                      <>
+                        <Landmark className="h-3 w-3 shrink-0" aria-hidden />
+                        <span className="truncate">
+                          Casa · {activeCasaItem.label}
+                        </span>
+                      </>
+                    ) : activeItem ? (
+                      <>
+                        <activeItem.icon className="h-3 w-3 shrink-0" aria-hidden />
+                        <span className="truncate">{activeItem.label}</span>
+                      </>
+                    ) : null}
                   </span>
                 </p>
               ) : null}
@@ -363,9 +435,9 @@ export default function AppTopNav({
           </div>
         ) : null}
 
-        <div className="hidden min-w-0 flex-1 items-center lg:flex">
+        <div className="hidden min-w-0 flex-1 items-center overflow-visible lg:flex">
           <div
-            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
+            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-visible rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
             role="tablist"
             aria-label="Módulos do AxéCloud"
           >

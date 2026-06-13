@@ -436,7 +436,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
         setLegalTermsAccepted(
-          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null) ? true : false
+          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null) ? true : null
         );
         if (isFilhoAuth) {
           setActiveTab((prev) => normalizeFilhoTab(prev));
@@ -458,7 +458,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         });
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
-        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null) ? true : false);
+        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null) ? true : null);
         return true;
       }
 
@@ -1420,7 +1420,11 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     }
   };
 
-  const showLegalTermsModal = userRole === 'admin' && legalTermsAccepted === false;
+  const showLegalTermsModal =
+    !blockingSpinnerActive &&
+    !!effectiveTenantId &&
+    userRole === 'admin' &&
+    legalTermsAccepted === false;
 
   const getPlanColor = (plan: string) => {
     switch (plan.toLowerCase()) {
@@ -1444,7 +1448,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         filhoFotoUrl={filhoFotoUrl}
       />
 
-      <div className="relative z-[1] min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12]">
+      <div className="relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12]">
           <main
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
@@ -1491,11 +1495,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           </main>
       </div>
     </div>
-    <LegalTermsModal
-      open={showLegalTermsModal}
-      onAccept={handleAcceptLegalTerms}
-      accepting={legalTermsAccepting}
-    />
+    {showLegalTermsModal ? (
+      <LegalTermsModal
+        open
+        onAccept={handleAcceptLegalTerms}
+        accepting={legalTermsAccepting}
+      />
+    ) : null}
     </>
   );
 }

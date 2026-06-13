@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Loader2, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -18,8 +18,14 @@ interface LegalTermsModalProps {
 export default function LegalTermsModal({ open, onAccept, accepting = false }: LegalTermsModalProps) {
   const [checked, setChecked] = useState(false);
 
+  useEffect(() => {
+    if (!open) setChecked(false);
+  }, [open]);
+
+  if (!open) return null;
+
   return (
-    <Dialog.Root open={open}>
+    <Dialog.Root open>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
