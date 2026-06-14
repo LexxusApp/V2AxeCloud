@@ -21,7 +21,7 @@ import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
 import CommentSection from '../components/CommentSection';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
+import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 
@@ -119,7 +119,7 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
   }, [url]);
 
   return (
-    <div className={`relative w-full overflow-hidden bg-[#0d0d0d] ${compact ? 'pdf-cover-compact' : 'pdf-cover-normal'}`}>
+    <div className={`relative w-full overflow-hidden bg-[#12161A] ${compact ? 'pdf-cover-compact' : 'pdf-cover-normal'}`}>
       {/* Spinner enquanto processa */}
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -131,7 +131,7 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
       {status === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/5 to-transparent">
           <FileText className="w-14 h-14 text-primary/25" />
-          <span className="text-[10px] text-gray-600 uppercase tracking-widest font-bold">PDF</span>
+          <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">PDF</span>
         </div>
       )}
 
@@ -142,7 +142,7 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
       />
 
       {/* Gradiente inferior */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#111]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#13171D]/95" />
     </div>
   );
 }
@@ -354,19 +354,19 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <button 
                   onClick={() => setSelectedMaterial(null)}
-                  className="shrink-0 rounded-2xl bg-white/5 p-3 transition-all hover:bg-primary hover:text-background group sm:p-4"
+                  className="shrink-0 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-[#94A3B8] transition hover:border-[#2F3643] hover:text-[#F1F5F9] sm:p-3.5"
                 >
                   <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <h1 className="break-words text-xl font-black tracking-tight text-white sm:text-2xl md:text-3xl">{selectedMaterial.titulo}</h1>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">{selectedMaterial.categoria}</p>
+                  <h1 className="break-words text-xl font-bold tracking-tight text-[#F1F5F9] sm:text-2xl md:text-3xl">{selectedMaterial.titulo}</h1>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">{selectedMaterial.categoria}</p>
                 </div>
               </div>
               
               <button 
                 onClick={() => window.open(selectedMaterial.arquivo_url, '_blank')}
-                className="flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-sm font-black text-white transition-all hover:bg-primary hover:text-background sm:w-auto md:gap-3 md:px-8 md:py-4"
+                className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3 text-sm font-bold text-[#F1F5F9] transition hover:border-primary/40 sm:w-auto md:px-6"
               >
                 <Download className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 Baixar PDF
@@ -380,9 +380,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 className="w-full h-full border-none"
                 title={selectedMaterial.titulo}
               />
-              <div className="absolute right-2 top-2 max-w-[calc(100%-1rem)] sm:right-6 sm:top-6">
-                <div className="rounded-xl border border-white/10 bg-background/80 px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md sm:px-4 sm:py-2 sm:text-[10px]">
-                  Modo de Estudo Ativo
+              <div className="absolute right-2 top-2 max-w-[calc(100%-1rem)] sm:right-4 sm:top-4">
+                <div className="rounded-lg border border-[#1E242B] bg-[#13171D]/90 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#94A3B8] backdrop-blur-sm sm:px-3 sm:py-2 sm:text-[10px]">
+                  Modo de estudo
                 </div>
               </div>
             </AppDemoCard>
@@ -406,15 +406,15 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col', embedded && 'min-h-0 flex-1')}
           >
             {embedded ? (
-              <div className="flex shrink-0 items-start justify-between gap-2 border-b border-white/[0.06] pb-3 mb-3">
+              <div className="mb-3 flex shrink-0 items-start justify-between gap-2 border-b border-[#1E242B] pb-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Biblioteca de estudos</p>
-                  <h2 className="text-base font-black text-white tracking-tight mt-0.5">PDFs do terreiro</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-primary">Biblioteca de estudos</p>
+                  <h2 className="mt-0.5 text-base font-bold tracking-tight text-[#F1F5F9]">PDFs do terreiro</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('library')}
-                  className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-primary flex items-center gap-1"
+                  className="flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:text-primary"
                 >
                   Ver tudo
                   <ExternalLink className="w-3 h-3" />
@@ -453,28 +453,25 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               {/* Search & Filters */}
             <div className={cn('flex min-w-0 max-w-full flex-col gap-4 sm:gap-6', embedded && 'shrink-0 gap-2 sm:gap-2')}>
               <div className="relative min-w-0 flex-1 group">
-                <Search className={cn('absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500 transition-colors group-focus-within:text-primary sm:left-5', embedded && 'left-3 h-4 w-4 sm:left-3')} />
+                <Search className={cn('absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-primary sm:left-3.5', embedded && 'left-3 h-3.5 w-3.5')} />
                 <input 
                   type="text"
                   placeholder="Buscar material..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={cn(
-                    'w-full min-w-0 rounded-xl border border-white/10 bg-[#121212] py-3.5 pl-12 pr-4 text-sm font-bold text-white shadow-xl placeholder:text-gray-500 transition-all focus:border-primary/50 focus:outline-none sm:py-4 sm:pl-14 sm:pr-6 md:text-base',
-                    embedded && 'py-2.5 pl-10 text-xs sm:py-2.5 sm:pl-10 sm:pr-3'
-                  )}
+                  className={cn(appInputClass, 'pl-10 sm:pl-10', embedded && 'py-2 text-xs')}
                 />
               </div>
               <div className={cn(
-                'flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-2 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-3',
-                embedded && 'min-h-[36px] gap-1.5 pb-1 sm:gap-1.5'
+                'flex min-h-[40px] min-w-0 w-full max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                embedded && 'min-h-[36px]'
               )}>
                 <button 
                   onClick={() => setSelectedCategory(null)}
                   className={cn(
-                    'shrink-0 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all sm:px-5 sm:py-3 sm:text-xs md:px-6 whitespace-nowrap',
-                    !selectedCategory ? "bg-primary text-background border-primary shadow-lg shadow-primary/20" : "bg-[#121212] text-gray-400 border-white/10 hover:border-white/30 hover:text-white shadow-xl",
-                    embedded && 'px-2.5 py-1.5 text-[8px] sm:px-3 sm:py-2 sm:text-[9px]'
+                    'shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all whitespace-nowrap',
+                    !selectedCategory ? 'bg-primary text-[#080A0D] shadow-sm' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                    embedded && 'px-2.5 py-1.5 text-[10px]'
                   )}
                 >
                   Todos
@@ -484,9 +481,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      'shrink-0 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all sm:px-5 sm:py-3 sm:text-xs md:px-6 whitespace-nowrap',
-                      selectedCategory === cat ? "bg-primary text-background border-primary shadow-lg shadow-primary/20" : "bg-[#121212] text-gray-400 border-white/10 hover:border-white/30 hover:text-white shadow-xl",
-                      embedded && 'px-2.5 py-1.5 text-[8px] sm:px-3 sm:py-2 sm:text-[9px]'
+                      'shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all whitespace-nowrap',
+                      selectedCategory === cat ? 'bg-primary text-[#080A0D] shadow-sm' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                      embedded && 'px-2.5 py-1.5 text-[10px]'
                     )}
                   >
                     {cat}
@@ -510,9 +507,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 {filteredMaterials.map((material) => (
                   <motion.div
                     key={material.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group relative min-w-0 overflow-hidden rounded-xl border border-white/5 bg-[#111] transition-all duration-500 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 flex flex-col"
+                    className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
                   >
                     {/* Capa do PDF */}
                     <div
@@ -523,32 +520,31 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     </div>
 
                     {/* Badge de categoria — sobrepõe a miniatura */}
-                    <span className="absolute top-2 right-2 rounded-md border border-primary/30 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
+                    <span className="absolute right-2 top-2 z-10 rounded-md border border-primary/25 bg-[#13171D]/90 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary backdrop-blur-sm">
                       {material.categoria}
                     </span>
 
-                    {/* Conteúdo inferior */}
                     <div className={cn('flex flex-1 flex-col gap-2 p-3', embedded && 'gap-1 p-2')}>
                       <div className="min-w-0">
                         <h3
                           className={cn(
-                            'line-clamp-2 text-xs font-black leading-snug text-white transition-colors group-hover:text-primary cursor-pointer',
+                            'line-clamp-2 cursor-pointer text-xs font-bold leading-snug text-[#F1F5F9] transition-colors group-hover:text-primary',
                             embedded && 'text-[10px] leading-tight'
                           )}
                           onClick={() => openMaterial(material)}
                         >
                           {material.titulo}
                         </h3>
-                        <p className="mt-0.5 text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+                        <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-[#64748B]">
                           {new Date(material.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
 
-                      <div className="flex min-w-0 items-center gap-1.5 mt-auto">
+                      <div className="mt-auto flex min-w-0 items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => openMaterial(material)}
-                          className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-white/5 py-2 text-[8px] font-black uppercase tracking-widest text-white transition-all hover:bg-primary hover:text-background"
+                          className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] py-2 text-[10px] font-bold text-[#F1F5F9] transition hover:border-primary/40"
                         >
                           <FileText className="h-3 w-3 shrink-0" />
                           <span className="truncate">{embedded ? 'Abrir PDF' : 'Estudar'}</span>
@@ -556,7 +552,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(material.id, (material as any).storage_path)}
-                            className="shrink-0 rounded-lg bg-red-500/10 p-2 text-red-500 transition-all hover:bg-red-500 hover:text-white"
+                            className="shrink-0 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2 text-rose-300 transition hover:bg-rose-950/60"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -567,11 +563,11 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 ))}
               </div>
             ) : (
-              <div className="box-border w-full min-w-0 max-w-full rounded-3xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center sm:py-20">
-                <BookOpen className="w-16 h-16 text-gray-800 mx-auto mb-6" />
-                <h3 className="text-2xl font-black text-white">Nenhum material encontrado</h3>
-                <p className="text-gray-600 mt-2">Tente ajustar sua busca ou filtros.</p>
-              </div>
+              <AppDemoCard className="py-16 text-center sm:py-20">
+                <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/40" />
+                <h3 className="text-lg font-bold text-[#F1F5F9]">Nenhum material encontrado</h3>
+                <p className="mt-2 text-sm text-[#94A3B8]">Tente ajustar sua busca ou filtros.</p>
+              </AppDemoCard>
             )}
           </div>
         </motion.div>
@@ -592,32 +588,32 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#1F1F1F] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:max-w-lg"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#1E242B] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-xl">Subir Material</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-0.5">Gestão de Conhecimento</p>
+                  <h3 className="text-base font-bold text-[#F1F5F9] sm:text-lg">Subir material</h3>
+                  <p className="mt-0.5 text-xs text-[#94A3B8]">PDF para a biblioteca do terreiro</p>
                 </div>
-                <button onClick={() => setIsUploadModalOpen(false)} className="shrink-0 rounded-2xl p-2 text-gray-500 transition-colors hover:bg-white/5">
+                <button onClick={() => setIsUploadModalOpen(false)} className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleUpload} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <form onSubmit={handleUpload} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Título do Material</label>
+                  <label className={appLabelClass}>Título do material</label>
                   <input type="text" value={newMaterial.titulo}
                     onChange={e => setNewMaterial({ ...newMaterial, titulo: e.target.value })}
-                    className="w-full rounded-xl border border-white/5 bg-background px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-primary/50"
+                    className={appInputClass}
                     placeholder="Ex: Cantigas de Oxóssi" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Categoria</label>
+                  <label className={appLabelClass}>Categoria</label>
                   <select value={newMaterial.categoria}
                     onChange={e => setNewMaterial({ ...newMaterial, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-white/5 bg-background px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-primary/50 [&>option]:bg-[#1B1C1C]">
+                    className={cn(appInputClass, '[&>option]:bg-[#13171D]')}>
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
@@ -625,24 +621,23 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Arquivo PDF</label>
+                  <label className={appLabelClass}>Arquivo PDF</label>
                   <div className="relative">
                     <input type="file" accept=".pdf"
                       onChange={e => setNewMaterial({ ...newMaterial, file: e.target.files?.[0] || null })}
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-background px-4 py-6 transition-all">
-                      <Upload className="h-7 w-7 text-gray-600" />
-                      <p className="max-w-full truncate px-2 text-center text-xs font-bold text-gray-500" title={newMaterial.file?.name}>
+                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-4 py-6 transition hover:border-[#2F3643]">
+                      <Upload className="h-7 w-7 text-[#94A3B8]" />
+                      <p className="max-w-full truncate px-2 text-center text-xs font-bold text-[#94A3B8]" title={newMaterial.file?.name}>
                         {newMaterial.file ? newMaterial.file.name : 'Selecione ou arraste o PDF'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <button type="submit" disabled={uploading}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-black uppercase tracking-widest text-background shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
-                  {uploading ? <><Loader2 className="h-5 w-5 animate-spin" />Subindo...</> : <><Upload className="h-5 w-5" />Confirmar Upload</>}
-                </button>
+                <AppPrimaryButton type="submit" disabled={uploading} className="flex w-full items-center justify-center gap-2">
+                  {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Subindo…</> : <><Upload className="h-4 w-4" />Confirmar upload</>}
+                </AppPrimaryButton>
               </form>
             </motion.div>
           </div>
