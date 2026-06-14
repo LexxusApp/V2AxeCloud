@@ -82,6 +82,12 @@ import {
 } from "./lib/tenantAccess.js";
 import { requireAuthOrRespond, getBearerToken } from "./lib/requireAuth.js";
 import { requireApiUser, requireApiTenantRead, requireApiGlobalAdmin } from "./lib/routeAuthHelpers.js";
+import {
+  assertGalleryManager,
+  enrichGalleryMediaRows,
+  ensureMuralAlbum,
+  normalizeGalleryCategory,
+} from "./lib/galleryHelpers.js";
 import { safeErrorMessage } from "./lib/safeError.js";
 import { requireTenantReadAccess, isAllowedPdfProxyUrl, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
 import {
@@ -2364,12 +2370,14 @@ async function startServer() {
         .order("created_at", { ascending: false });
       if (mediaError) throw mediaError;
 
-      const usedBytes = (media || []).reduce((acc: number, item: any) => acc + Number(item.size_bytes || 0), 0);
+      const enrichedMedia = await enrichGalleryMediaRows(supabaseAdmin, media || []);
+      const usedBytes = enrichedMedia.reduce((acc: number, item: any) => acc + Number(item.size_bytes || 0), 0);
       res.json({
         albums: (albums || []).map((album: any) => ({
           ...album,
-          media: (media || []).filter((item: any) => item.album_id === album.id),
+          media: enrichedMedia.filter((item: any) => item.album_id === album.id),
         })),
+        media: enrichedMedia,
         quota: {
           usedBytes,
           limitBytes: GALLERY_QUOTA_BYTES,
@@ -2379,6 +2387,30 @@ async function startServer() {
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar albuns da galeria:", error.message || error);
       res.status(500).json({ error: error.message || "Erro ao buscar galeria" });
+    }
+  });
+
+  app.post("/api/v1/gallery/ensure-mural-album", async (req, res) => {
+    const { tenantId } = req.body;
+    if (!tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+      const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem gerenciar a galeria" });
+      }
+
+      const album = await ensureMuralAlbum(supabaseAdmin, tenantId, user.id);
+      res.json({ album: { ...album, media: [] } });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao garantir álbum do mural:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao preparar mural" });
     }
   });
 
@@ -2491,7 +2523,18 @@ async function startServer() {
   });
 
   app.post("/api/v1/gallery/complete-upload", async (req, res) => {
-    const { tenantId, albumId, storageKey, publicUrl, fileName, contentType, sizeBytes } = req.body;
+    const {
+      tenantId,
+      albumId,
+      storageKey,
+      publicUrl,
+      fileName,
+      contentType,
+      sizeBytes,
+      title,
+      caption,
+      category,
+    } = req.body;
     if (!tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
@@ -2500,6 +2543,13 @@ async function startServer() {
       const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
       if (!access) return;
       const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem publicar na galeria" });
+      }
 
       const normalizedKey = String(storageKey || "").replace(/\\/g, "/");
       const expectedPrefix = `${tenantId}/${albumId}/`;
@@ -2523,6 +2573,9 @@ async function startServer() {
 
       const numericSize = Number(sizeBytes);
       const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
+      const normalizedTitle = String(title || fileName || "").trim() || String(fileName);
+      const normalizedCaption = String(caption || "").trim() || null;
+      const normalizedCategory = normalizeGalleryCategory(category);
       const { data, error } = await supabaseAdmin
         .from("gallery_media")
         .insert([
@@ -2536,16 +2589,96 @@ async function startServer() {
             storage_key: normalizedKey,
             public_url: expectedPublicUrl,
             created_by: user.id,
+            title: normalizedTitle,
+            caption: normalizedCaption,
+            category: normalizedCategory,
           },
         ])
         .select("*")
         .single();
 
       if (error) throw error;
-      res.json({ media: data });
+      const [enriched] = await enrichGalleryMediaRows(supabaseAdmin, [data]);
+      res.json({ media: enriched });
     } catch (error: any) {
       console.error("[SERVER] Erro ao concluir upload da galeria:", error.message || error);
       res.status(500).json({ error: error.message || "Erro ao concluir upload" });
+    }
+  });
+
+  app.delete("/api/v1/gallery/media/:mediaId", async (req, res) => {
+    const mediaId = String(req.params.mediaId || "").trim();
+    const tenantId = String(req.query.tenantId || "").trim();
+    if (!mediaId || !tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+      const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem remover lembranças" });
+      }
+
+      const { data: row, error: findError } = await supabaseAdmin
+        .from("gallery_media")
+        .select("id, tenant_id")
+        .eq("id", mediaId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (!row) return res.status(404).json({ error: "Lembrança não encontrada" });
+
+      const { error: deleteError } = await supabaseAdmin
+        .from("gallery_media")
+        .delete()
+        .eq("id", mediaId)
+        .eq("tenant_id", tenantId);
+      if (deleteError) throw deleteError;
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao remover mídia da galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao remover lembrança" });
+    }
+  });
+
+  app.post("/api/v1/gallery/media/:mediaId/axe", async (req, res) => {
+    const mediaId = String(req.params.mediaId || "").trim();
+    const { tenantId } = req.body;
+    if (!mediaId || !tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+
+      const { data: row, error: findError } = await supabaseAdmin
+        .from("gallery_media")
+        .select("id, tenant_id, likes_count")
+        .eq("id", mediaId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (!row) return res.status(404).json({ error: "Lembrança não encontrada" });
+
+      const nextLikes = Number(row.likes_count || 0) + 1;
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from("gallery_media")
+        .update({ likes_count: nextLikes })
+        .eq("id", mediaId)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      const [enriched] = await enrichGalleryMediaRows(supabaseAdmin, [updated]);
+      res.json({ media: enriched });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao registrar Axé na galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao enviar Axé" });
     }
   });
 

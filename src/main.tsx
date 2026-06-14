@@ -8,11 +8,10 @@ import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {cleanBrowserUrl} from './lib/urlHygiene';
-import {startBuildVersionPolling} from './lib/buildVersionPoll';
+import {signalAppUpdateIfNeeded, startBuildVersionPolling} from './lib/buildVersionPoll';
 import {
   attachServiceWorkerUpdateProbes,
   bindPwaApplyUpdate,
-  markPwaUpdateAvailable,
   probeServiceWorkerUpdate,
 } from './lib/pwaUpdate';
 import AppRouter from './router/AppRouter.tsx';
@@ -23,8 +22,15 @@ let swRegistration: ServiceWorkerRegistration | undefined;
 const SW_RESET_KEY = 'axecloud-sw-reset-v108';
 const SW_BACKGROUND_PROBE_MS = 3 * 60 * 1000;
 
+const requestAppUpdateCheck = (swHint = false) => {
+  void signalAppUpdateIfNeeded({ swHint });
+};
+
 function onAppForeground(): void {
-  void probeServiceWorkerUpdate(swRegistration, { force: true });
+  void probeServiceWorkerUpdate(swRegistration, {
+    force: true,
+    onUpdateHint: () => requestAppUpdateCheck(true),
+  });
 }
 
 /** Uma vez: remove SW/cache antigos que serviam bundle desatualizado. */
@@ -57,13 +63,16 @@ function registerProductionServiceWorker() {
   const applyUpdate = registerSW({
     immediate: true,
     onNeedRefresh() {
-      markPwaUpdateAvailable();
+      requestAppUpdateCheck(true);
     },
     onRegisteredSW(_swUrl, registration) {
       if (!registration) return;
       swRegistration = registration;
-      attachServiceWorkerUpdateProbes(registration);
-      void probeServiceWorkerUpdate(registration, { force: true });
+      attachServiceWorkerUpdateProbes(registration, () => requestAppUpdateCheck(true));
+      void probeServiceWorkerUpdate(registration, {
+        force: true,
+        onUpdateHint: () => requestAppUpdateCheck(true),
+      });
     },
     onRegisterError(error) {
       console.error('[PWA] Falha ao registrar o Service Worker:', error);
@@ -83,7 +92,9 @@ function registerProductionServiceWorker() {
 
   window.setInterval(() => {
     if (document.visibilityState === 'visible') {
-      void probeServiceWorkerUpdate(swRegistration);
+      void probeServiceWorkerUpdate(swRegistration, {
+        onUpdateHint: () => requestAppUpdateCheck(true),
+      });
     }
   }, SW_BACKGROUND_PROBE_MS);
 }

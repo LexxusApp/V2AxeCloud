@@ -8,7 +8,9 @@ let applyUpdateFn: ApplyUpdateFn | null = null;
 const listeners = new Set<Listener>();
 
 const UPDATE_PROBE_MIN_MS = 30_000;
-const UPDATE_APPLIED_KEY = 'axecloud_pwa_update_applied_at';
+const UPDATE_APPLIED_AT_KEY = 'axecloud_pwa_update_applied_at';
+const UPDATE_APPLIED_BUILD_KEY = 'axecloud_pwa_applied_build';
+const REMOTE_BUILD_KEY = 'axecloud_pwa_remote_build';
 const APPLY_GRACE_MS = 120_000;
 
 let lastProbeAt = 0;
@@ -18,9 +20,43 @@ function hasWaitingWorker(registration: ServiceWorkerRegistration): boolean {
   return Boolean(registration.waiting && navigator.serviceWorker.controller);
 }
 
+function readAppliedAt(): number {
+  try {
+    const local = Number(localStorage.getItem(UPDATE_APPLIED_AT_KEY) || '0');
+    const session = Number(sessionStorage.getItem(UPDATE_APPLIED_AT_KEY) || '0');
+    return Math.max(local, session);
+  } catch {
+    return 0;
+  }
+}
+
+export function getAppliedBuildId(): string | null {
+  try {
+    return localStorage.getItem(UPDATE_APPLIED_BUILD_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function isBuildAlreadyApplied(buildId: string): boolean {
+  const applied = getAppliedBuildId();
+  return Boolean(applied && applied === buildId);
+}
+
+export function acknowledgeAppliedBuild(buildId: string): void {
+  try {
+    localStorage.setItem(UPDATE_APPLIED_BUILD_KEY, buildId);
+    localStorage.setItem(UPDATE_APPLIED_AT_KEY, String(Date.now()));
+    sessionStorage.removeItem(REMOTE_BUILD_KEY);
+  } catch {
+    /* */
+  }
+  updateAvailable = false;
+}
+
 export function shouldSuppressPwaUpdatePrompt(): boolean {
   try {
-    const appliedAt = Number(sessionStorage.getItem(UPDATE_APPLIED_KEY) || '0');
+    const appliedAt = readAppliedAt();
     return appliedAt > 0 && Date.now() - appliedAt < APPLY_GRACE_MS;
   } catch {
     return false;
@@ -52,9 +88,22 @@ async function clearAxecloudCaches(): Promise<void> {
   }
 }
 
-function markPwaUpdateApplying(): void {
+function getPendingRemoteBuildId(): string | undefined {
   try {
-    sessionStorage.setItem(UPDATE_APPLIED_KEY, String(Date.now()));
+    return sessionStorage.getItem(REMOTE_BUILD_KEY) || getAppliedBuildId() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function markPwaUpdateApplying(buildId?: string): void {
+  try {
+    const appliedAt = String(Date.now());
+    localStorage.setItem(UPDATE_APPLIED_AT_KEY, appliedAt);
+    sessionStorage.setItem(UPDATE_APPLIED_AT_KEY, appliedAt);
+    if (buildId) {
+      localStorage.setItem(UPDATE_APPLIED_BUILD_KEY, buildId);
+    }
     sessionStorage.removeItem('axecloud_pwa_update_pending');
     sessionStorage.removeItem('axecloud_sw_reload_pending');
   } catch {
@@ -63,10 +112,30 @@ function markPwaUpdateApplying(): void {
   updateAvailable = false;
 }
 
+function waitForServiceWorkerActivation(timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    if (!('serviceWorker' in navigator)) {
+      resolve();
+      return;
+    }
+    const timer = window.setTimeout(resolve, timeoutMs);
+    const done = () => {
+      window.clearTimeout(timer);
+      resolve();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', done, { once: true });
+  });
+}
+
 /** Detecta SW já em espera ou recém-instalado — essencial no PWA instalado no celular. */
-export function attachServiceWorkerUpdateProbes(registration: ServiceWorkerRegistration): void {
+export function attachServiceWorkerUpdateProbes(
+  registration: ServiceWorkerRegistration,
+  onUpdateHint?: () => void,
+): void {
+  const hint = () => onUpdateHint?.();
+
   if (hasWaitingWorker(registration)) {
-    markPwaUpdateAvailable();
+    hint();
   }
 
   registration.addEventListener('updatefound', () => {
@@ -74,7 +143,7 @@ export function attachServiceWorkerUpdateProbes(registration: ServiceWorkerRegis
     if (!worker) return;
     worker.addEventListener('statechange', () => {
       if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-        markPwaUpdateAvailable();
+        hint();
       }
     });
   });
@@ -83,15 +152,17 @@ export function attachServiceWorkerUpdateProbes(registration: ServiceWorkerRegis
 /** Consulta o servidor por nova versão do SW (com throttle leve). */
 export async function probeServiceWorkerUpdate(
   registration?: ServiceWorkerRegistration,
-  options?: { force?: boolean },
+  options?: { force?: boolean; onUpdateHint?: () => void },
 ): Promise<void> {
   if (!registration || shouldSuppressPwaUpdatePrompt()) return;
   const now = Date.now();
   if (!options?.force && now - lastProbeAt < UPDATE_PROBE_MIN_MS) return;
   lastProbeAt = now;
 
+  const hint = () => options?.onUpdateHint?.();
+
   if (hasWaitingWorker(registration)) {
-    markPwaUpdateAvailable();
+    hint();
     return;
   }
 
@@ -102,7 +173,7 @@ export async function probeServiceWorkerUpdate(
   }
 
   if (hasWaitingWorker(registration)) {
-    markPwaUpdateAvailable();
+    hint();
   }
 }
 
@@ -127,8 +198,9 @@ export function markPwaUpdateAvailable(remoteBuildId?: string): void {
   if (shouldSuppressPwaUpdatePrompt()) return;
 
   if (remoteBuildId) {
+    if (isBuildAlreadyApplied(remoteBuildId)) return;
     try {
-      sessionStorage.setItem('axecloud_pwa_remote_build', remoteBuildId);
+      sessionStorage.setItem(REMOTE_BUILD_KEY, remoteBuildId);
       sessionStorage.removeItem(`axecloud_pwa_dismiss_${remoteBuildId}`);
     } catch {
       /* */
@@ -144,16 +216,17 @@ export function bindPwaApplyUpdate(fn: ApplyUpdateFn): void {
 }
 
 /**
- * Uma única recarga com cache limpo — evita precisar tocar em «Atualizar» duas vezes no PWA.
+ * Uma única recarga com cache limpo — aguarda o novo SW assumir controle antes do reload.
  */
 export async function applyPwaUpdate(): Promise<void> {
-  markPwaUpdateApplying();
+  markPwaUpdateApplying(getPendingRemoteBuildId());
 
   try {
     if (applyUpdateFn) {
       await applyUpdateFn(false);
     }
     await postSkipWaitingToWaitingWorker();
+    await waitForServiceWorkerActivation(4000);
     if ('serviceWorker' in navigator) {
       await Promise.race([
         navigator.serviceWorker.ready,
