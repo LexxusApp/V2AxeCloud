@@ -136,7 +136,15 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
         <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
           <div className="lg:col-span-3">
-            <SettingsSubNav active={activeSection} onChange={setActiveSection} />
+            <SettingsSubNav
+              active={activeSection}
+              onChange={setActiveSection}
+              onDeleteAccount={() => {
+                setDeleteConfirmEmail('');
+                setDeleteError(null);
+                setDeleteModalOpen(true);
+              }}
+            />
           </div>
 
           <div className="min-w-0 space-y-10 lg:col-span-9">
@@ -154,23 +162,6 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                 onProfileChange={setProfile}
                 onRefresh={onRefresh}
               />
-              <AppDemoCard className="mx-auto w-full max-w-md border-red-500/20 bg-red-500/5">
-                <h3 className="mb-1 text-xl font-black text-red-500">Zona de Perigo</h3>
-                <p className="mb-6 text-sm font-medium text-gray-400">
-                  Ações irreversíveis que afetam sua conta e dados do terreiro.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteConfirmEmail('');
-                    setDeleteError(null);
-                    setDeleteModalOpen(true);
-                  }}
-                  className="w-full rounded-xl border border-red-500/20 bg-red-500/10 px-6 py-3 text-sm font-black text-red-500 transition-all hover:bg-red-500 hover:text-white"
-                >
-                  Excluir Conta Permanentemente
-                </button>
-              </AppDemoCard>
             </>
           ) : activeSection === 'terreiro' ? (
             <SettingsTerreiroPanel nomeTerreiro={profile?.nome_terreiro} />

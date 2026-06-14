@@ -3,6 +3,7 @@ import {
   Globe,
   MessageSquare,
   Settings,
+  Trash2,
   User,
   type LucideIcon,
 } from 'lucide-react';
@@ -30,7 +31,30 @@ const ITEMS: NavItem[] = [
 type SettingsSubNavProps = {
   active: SettingsSection;
   onChange: (section: SettingsSection) => void;
+  onDeleteAccount?: () => void;
 };
+
+function SettingsDangerZone({ onDeleteAccount }: { onDeleteAccount?: () => void }) {
+  if (!onDeleteAccount) return null;
+  return (
+    <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3">
+      <span className="block text-[10px] font-bold uppercase tracking-wider text-rose-400/90">
+        Zona de perigo
+      </span>
+      <p className="mt-1 text-[9px] leading-normal text-gray-500">
+        Exclusão permanente da conta e de todos os dados do terreiro.
+      </p>
+      <button
+        type="button"
+        onClick={onDeleteAccount}
+        className="mt-3 flex w-full items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-950/25 px-3 py-2.5 text-left text-[11px] font-bold text-rose-400 transition-colors hover:border-rose-500/35 hover:bg-rose-950/45 hover:text-rose-300"
+      >
+        <Trash2 className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        Excluir conta permanentemente
+      </button>
+    </div>
+  );
+}
 
 function NavButton({
   item,
@@ -71,7 +95,7 @@ function NavButton({
   );
 }
 
-export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
+export function SettingsSubNav({ active, onChange, onDeleteAccount }: SettingsSubNavProps) {
   return (
     <>
       <div className="lg:hidden">
@@ -81,13 +105,16 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
             <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} compact />
           ))}
         </div>
-        <div className="mt-3 rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-500">
-            Identidade de Fé
-          </span>
-          <p className="mt-1 text-[9px] leading-normal text-gray-400">
-            As alterações refletem no mural, financeiro e na corrente de filhos de santo.
-          </p>
+        <div className="mt-3 space-y-3">
+          <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-500">
+              Identidade de Fé
+            </span>
+            <p className="mt-1 text-[9px] leading-normal text-gray-400">
+              As alterações refletem no mural, financeiro e na corrente de filhos de santo.
+            </p>
+          </div>
+          <SettingsDangerZone onDeleteAccount={onDeleteAccount} />
         </div>
       </div>
 
@@ -97,8 +124,8 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
           <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} />
         ))}
 
-        <div className="mt-4 border-t border-[#1E242B] px-2 pt-4">
-          <div className="space-y-1 rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
+        <div className="mt-4 space-y-3 border-t border-[#1E242B] px-2 pt-4">
+          <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-500">
               Identidade de Fé
             </span>
@@ -107,6 +134,7 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
               de filhos de santo do terreiro.
             </p>
           </div>
+          <SettingsDangerZone onDeleteAccount={onDeleteAccount} />
         </div>
       </div>
     </>
