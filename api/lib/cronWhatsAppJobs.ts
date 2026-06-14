@@ -141,6 +141,8 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
           variables: {
             nome_filho: nomeMembro,
             nome_terreiro: ctx.nomeTerreiro,
+            valor_mensalidade: valor > 0 ? valor.toFixed(2) : "—",
+            data_vencimento: vencStr,
           },
         });
         sent++;
@@ -221,7 +223,11 @@ async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; ski
           nomeMembro: ctx.nomeTerreiro,
           nomeTerreiro: ctx.nomeTerreiro,
           idTerreiro: ctx.idTerreiro,
-          variables: { nome_terreiro: ctx.nomeTerreiro },
+          variables: {
+            nome_terreiro: ctx.nomeTerreiro,
+            item_nome: String(item.item || ""),
+            quantidade: String(item.quantidade_atual ?? ""),
+          },
         });
         sent++;
       }

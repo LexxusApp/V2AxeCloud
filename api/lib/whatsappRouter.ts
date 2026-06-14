@@ -219,6 +219,8 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
           variables: {
             nome_filho: "Teste",
             nome_terreiro: ctx.nomeTerreiro,
+            comunicado:
+              "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
           },
         });
         return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });

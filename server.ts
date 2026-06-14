@@ -4319,7 +4319,12 @@ async function startServer() {
         tenantId: user.id,
         tipo: "teste",
         forcePhone: phone,
-        variables: { nome_filho: "Teste", nome_terreiro: ctx.nomeTerreiro },
+        variables: {
+          nome_filho: "Teste",
+          nome_terreiro: ctx.nomeTerreiro,
+          comunicado:
+            "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
+        },
       });
       return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
     } catch (err: any) {

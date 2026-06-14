@@ -12,7 +12,24 @@ const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
 const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
+/** Lembrete automático/manual de mensalidade (cron + financeiro) */
+const FINANCEIRO_TEMPLATE = "financeiro_axecloud";
+/** Cobrança manual no painel financeiro */
+const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
+/** Confirmação após pagamento registrado */
+const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
+/** Alerta de estoque crítico para o zelador */
+const ESTOQUE_CRITICO_TEMPLATE = "estoque_critico_axecloud";
+/** Transmissão / teste — corpo inclui texto do comunicado */
+const COMUNICADO_TERREIRO_TEMPLATE = "comunicado_terreiro_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
+
+function normalizeTipo(tipo: string): string {
+  return String(tipo || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_");
+}
 
 export function resolveMetaTemplateLanguage(): string {
   return String(process.env.WA_META_TEMPLATE_LANGUAGE || DEFAULT_LANGUAGE).trim() || DEFAULT_LANGUAGE;
@@ -39,6 +56,32 @@ export function resolveMetaTemplateName(tipo: string): string {
   if (normalized === "boas_vindas") {
     return (
       String(process.env.WA_META_TEMPLATE_BOAS_VINDAS || "").trim() || DEFAULT_TEMPLATE
+    );
+  }
+  if (normalized === "financeiro") {
+    return String(process.env.WA_META_TEMPLATE_FINANCEIRO || "").trim() || FINANCEIRO_TEMPLATE;
+  }
+  if (normalized === "cobranca_mensalidade") {
+    return (
+      String(process.env.WA_META_TEMPLATE_COBRANCA_MENSALIDADE || "").trim() ||
+      COBRANCA_MENSALIDADE_TEMPLATE
+    );
+  }
+  if (normalized === "mensalidade_confirmada") {
+    return (
+      String(process.env.WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA || "").trim() ||
+      MENSALIDADE_CONFIRMADA_TEMPLATE
+    );
+  }
+  if (normalized === "estoque_critico") {
+    return (
+      String(process.env.WA_META_TEMPLATE_ESTOQUE_CRITICO || "").trim() || ESTOQUE_CRITICO_TEMPLATE
+    );
+  }
+  if (normalized === "broadcast" || normalized === "teste") {
+    return (
+      String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_TESTE || "")
+        .trim() || COMUNICADO_TERREIRO_TEMPLATE
     );
   }
 
@@ -239,6 +282,119 @@ export function buildMuralAvisoComponents(
 }
 
 /**
+ * financeiro_axecloud — corpo: {{1}} filho, {{2}} valor, {{3}} vencimento, {{4}} terreiro
+ */
+export function buildFinanceiroComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.valor_mensalidade || v.valor || "—")),
+        textParam(String(v.data_vencimento || "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/**
+ * cobranca_mensalidade_axecloud — corpo: {{1}} filho, {{2}} mês/ano, {{3}} valor, {{4}} terreiro
+ */
+export function buildCobrancaMensalidadeComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.mes_ano || "—")),
+        textParam(String(v.valor || "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/**
+ * mensalidade_confirmada_axecloud — corpo: {{1}} filho, {{2}} competência, {{3}} valor, {{4}} terreiro
+ */
+export function buildMensalidadeConfirmadaComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.competencia || "—")),
+        textParam(String(v.valor || "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/**
+ * estoque_critico_axecloud — corpo: {{1}} item, {{2}} quantidade, {{3}} terreiro
+ */
+export function buildEstoqueCriticoComponents(
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.item_nome || v.item || "Item")),
+        textParam(String(v.quantidade ?? "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/**
+ * comunicado_terreiro_axecloud — corpo: {{1}} membro, {{2}} terreiro, {{3}} mensagem
+ */
+export function buildComunicadoTerreiroComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  const rawMsg = String(
+    v.comunicado || v.mensagem || v.message || v.texto || ""
+  ).trim();
+  const comunicado =
+    rawMsg.replace(/\s+/g, " ").slice(0, 1024) ||
+    "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(nomeMembro || "Membro"),
+        textParam(nomeTerreiro || "Terreiro"),
+        textParam(comunicado, 1024),
+      ],
+    },
+  ];
+}
+
+/**
  * aviso_geral_axecloud (fallback) — corpo: {{1}} membro, {{2}} terreiro ou sistema
  */
 export function buildMetaTemplateComponents(
@@ -260,6 +416,8 @@ export function buildMetaTemplateComponentsForTipo(
   nomeTerreiro: string,
   variables?: Record<string, string | number>
 ): MetaTemplateComponent[] {
+  const t = normalizeTipo(tipo);
+
   if (isConviteEventoTemplate(tipo)) {
     return buildConviteEventoComponents(variables);
   }
@@ -271,6 +429,21 @@ export function buildMetaTemplateComponentsForTipo(
   }
   if (isMuralAvisoTemplate(tipo)) {
     return buildMuralAvisoComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "financeiro") {
+    return buildFinanceiroComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "cobranca_mensalidade") {
+    return buildCobrancaMensalidadeComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "mensalidade_confirmada") {
+    return buildMensalidadeConfirmadaComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "estoque_critico") {
+    return buildEstoqueCriticoComponents(nomeTerreiro, variables);
+  }
+  if (t === "broadcast" || t === "teste") {
+    return buildComunicadoTerreiroComponents(nomeMembro, nomeTerreiro, variables);
   }
   return buildMetaTemplateComponents(nomeMembro, nomeTerreiro);
 }
@@ -316,6 +489,27 @@ export function buildWhatsAppAuditMessage(
   if (normalized === "mural_aviso") {
     const titulo = String(v.titulo_aviso || v.titulo || "Novo aviso");
     return `Mural: ${nomeMembro} · ${nomeTerreiro} · "${titulo}"`;
+  }
+
+  if (normalized === "financeiro") {
+    return `Financeiro: ${v.nome_filho || nomeMembro} · R$ ${v.valor_mensalidade || v.valor || "—"} · venc. ${v.data_vencimento || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "cobranca_mensalidade") {
+    return `Cobrança: ${v.nome_filho || nomeMembro} · ${v.mes_ano || "—"} · R$ ${v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "mensalidade_confirmada") {
+    return `Confirmada: ${v.nome_filho || nomeMembro} · ${v.competencia || "—"} · R$ ${v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "estoque_critico") {
+    return `Estoque: ${v.item_nome || v.item || "—"} · qty ${v.quantidade ?? "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "broadcast" || normalized === "teste") {
+    const msg = String(v.comunicado || v.mensagem || v.message || "").trim();
+    return `Comunicado: ${nomeMembro} · ${nomeTerreiro}${msg ? ` · "${msg.slice(0, 80)}${msg.length > 80 ? "…" : ""}"` : ""}`;
   }
 
   return `[${tipo}] ${nomeMembro} · ${nomeTerreiro}`;

@@ -387,7 +387,11 @@ export async function broadcastWhatsAppForTenant(
         nomeMembro,
         nomeTerreiro: ctx.nomeTerreiro,
         idTerreiro: ctx.idTerreiro,
-        variables: { nome_filho: nomeMembro, nome_terreiro: ctx.nomeTerreiro },
+        variables: {
+          nome_filho: nomeMembro,
+          nome_terreiro: ctx.nomeTerreiro,
+          comunicado: messageText,
+        },
       });
       sent += 1;
     } catch {
