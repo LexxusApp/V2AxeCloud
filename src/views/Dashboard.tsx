@@ -11,6 +11,7 @@ import {
   Cake,
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
+import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
 import {
   format,
   startOfMonth,
@@ -54,11 +55,21 @@ type DashboardBirthday = {
   day: number;
 };
 
+type DashboardNotice = {
+  id: string;
+  titulo: string;
+  categoria?: string | null;
+  data_publicacao?: string | null;
+  created_at?: string | null;
+};
+
 type DashboardBundle = {
   transactions: any[];
   childrenData: any[];
+  allChildren: any[];
   historyData: any[];
   pedidosData: DashboardPedidoReza[];
+  noticesData: DashboardNotice[];
   birthdayData: DashboardBirthday[];
 };
 
@@ -111,7 +122,7 @@ async function fetchDashboardFinanceBundle(
     )}&limit=400`;
 
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
-    const [childrenRes, txRes, lojaRes, pedidosRes] = await Promise.all([
+    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -143,6 +154,11 @@ async function fetchDashboardFinanceBundle(
             r.ok ? r.json() : { items: [] }
           )
         : Promise.resolve({ items: [] }),
+      userRole !== 'filho'
+        ? authFetch(`/api/notices?tenantId=${tidEnc}`).then(async (r) =>
+            r.ok ? r.json() : { data: [] }
+          )
+        : Promise.resolve({ data: [] }),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -210,16 +226,35 @@ async function fetchDashboardFinanceBundle(
       })
       .slice(0, 5);
 
+    const noticesRaw = (noticesRes.data || []) as DashboardNotice[];
+    const noticesData = [...noticesRaw]
+      .sort(
+        (a, b) =>
+          new Date(String(b.data_publicacao || b.created_at || 0)).getTime() -
+          new Date(String(a.data_publicacao || a.created_at || 0)).getTime()
+      )
+      .slice(0, 8);
+
     return {
       transactions: normalized,
       childrenData: children.slice(0, 4),
+      allChildren: children,
       historyData: merged.slice(0, 8),
       pedidosData,
+      noticesData,
       birthdayData: birthdaysThisMonth(children),
     };
   } catch (e) {
     console.error('Error fetching dashboard data:', e);
-    return { transactions: [], childrenData: [], historyData: [], pedidosData: [], birthdayData: [] };
+    return {
+      transactions: [],
+      childrenData: [],
+      allChildren: [],
+      historyData: [],
+      pedidosData: [],
+      noticesData: [],
+      birthdayData: [],
+    };
   }
 }
 
@@ -284,6 +319,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const transactions = resolvedBundle?.transactions ?? [];
   const childrenData = resolvedBundle?.childrenData ?? [];
   const historyData = resolvedBundle?.historyData ?? [];
+  const noticesData = resolvedBundle?.noticesData ?? [];
+  const allChildren = resolvedBundle?.allChildren ?? [];
   const pedidosData = resolvedBundle?.pedidosData ?? [];
   const birthdayData = resolvedBundle?.birthdayData ?? [];
 
@@ -291,6 +328,19 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(new Date(), 'MMMM', { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, []);
+
+  const recentChildrenForActions = useMemo(() => {
+    const cutoff = Date.now() - 90 * 86_400_000;
+    return [...allChildren]
+      .filter((c) => {
+        const raw = String(c?.created_at || '').trim();
+        if (!raw) return false;
+        const t = new Date(raw).getTime();
+        return !Number.isNaN(t) && t >= cutoff;
+      })
+      .sort((a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime())
+      .slice(0, 5);
+  }, [allChildren]);
 
   const { stats, flowChartData, flowYMax, hasMonthFinanceData } = useMemo(() => {
     const anchor = new Date();
@@ -723,92 +773,14 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
              </div>
           </div>
 
-          {/* Card: Resumo Financeiro */}
-          <div className="app-v3-panel p-8 flex flex-col md:flex-row gap-10">
-             <div className="flex-1">
-                <h3 className="text-xl font-bold mb-8">Resumo Financeiro</h3>
-                {!hasMonthFinanceData ? (
-                  <div className="flex min-h-[160px] flex-col items-start justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-6 py-8">
-                    <Wallet className="mb-3 h-9 w-9 text-primary/35" aria-hidden />
-                    <p className="text-sm font-bold text-gray-400">Nenhum dado confirmado</p>
-                    <p className="mt-1 max-w-md text-xs font-medium leading-relaxed text-gray-600">
-                      Receitas, despesas e lucro somam todos os lançamentos confirmados do terreiro, inclusive com data futura.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-y-8 sm:grid-cols-3 sm:gap-x-8">
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Receitas</p>
-                      <p className="mt-1 text-lg font-black tracking-tighter text-emerald-500">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceita)}
-                      </p>
-                      <p className="mt-1 text-[10px] font-medium text-gray-600">Entradas confirmadas (total)</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Despesas</p>
-                      <p className="mt-1 text-lg font-black tracking-tighter text-rose-500">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalDespesa)}
-                      </p>
-                      <p className="mt-1 text-[10px] font-medium text-gray-600">Saídas confirmadas (total)</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Lucro líquido</p>
-                      <p
-                        className={cn(
-                          'mt-1 text-lg font-black tracking-tighter',
-                          stats.lucroLiquido >= 0 ? 'text-white' : 'text-rose-400'
-                        )}
-                      >
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.lucroLiquido)}
-                      </p>
-                      <p className="mt-1 text-[10px] font-medium text-gray-600">Receitas − despesas</p>
-                    </div>
-                  </div>
-                )}
-             </div>
-             
-             <div className="relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-[#1E242B] bg-[#12161A] p-6 md:w-[220px] md:min-w-[220px]">
-                <div className="absolute inset-0 bg-primary/5 opacity-0 transition-opacity hover:opacity-100"></div>
-                <div className="relative z-10 flex min-h-40 w-40 min-w-0 items-center justify-center">
-                  {!hasMonthFinanceData ? (
-                    <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-2 text-center">
-                      <Wallet className="mb-2 h-8 w-8 text-primary/30" aria-hidden />
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Sem dados</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="relative flex h-32 w-32 items-center justify-center">
-                        <div
-                          className="absolute inset-0 rounded-full"
-                          style={{
-                            background: (() => {
-                              const fluxo = stats.totalReceita + stats.totalDespesa;
-                              const pct = fluxo > 0 ? Math.round((stats.totalReceita / fluxo) * 100) : 0;
-                              const clampedPct = Math.min(100, Math.max(0, pct));
-                              return `conic-gradient(#facc15 0% ${clampedPct}%, rgba(255,255,255,0.06) ${clampedPct}% 100%)`;
-                            })(),
-                          }}
-                          aria-hidden
-                        />
-                        <div className="absolute inset-[10px] rounded-full bg-[#0b0b0b]" aria-hidden />
-                        <span className="pointer-events-none relative z-10 text-3xl font-black text-white">
-                            {stats.totalReceita > 0 && stats.marginPct !== null
-                              ? `${stats.marginPct}%`
-                              : `${Math.round(
-                                  (stats.totalReceita / Math.max(stats.totalReceita + stats.totalDespesa, 1)) * 100
-                                )}%`}
-                          </span>
-                      </div>
-                      <div className="pointer-events-none mt-3 text-center">
-                        <span className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] text-gray-500">
-                          {stats.totalReceita > 0 ? 'Lucro ÷ receitas' : 'Receitas no fluxo'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-             </div>
-          </div>
+          <DashboardAcoesAdministrativas
+            transactions={transactions}
+            children={recentChildrenForActions}
+            notices={noticesData}
+            pedidos={pedidosData}
+            onOpenFinancial={() => setActiveTab('financial')}
+            onOpenMural={() => setActiveTab('mural')}
+          />
         </div>
 
         {/* Right Section (35%) */}
