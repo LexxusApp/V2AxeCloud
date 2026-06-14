@@ -2654,6 +2654,46 @@ async function startServer() {
     }
   });
 
+  app.delete("/api/v1/gallery/albums/:albumId", async (req, res) => {
+    const albumId = String(req.params.albumId || "").trim();
+    const tenantId = String(req.query.tenantId || "").trim();
+    if (!albumId || !tenantId) return res.status(400).json({ error: "Dados incompletos" });
+
+    try {
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
+      if (!access) return;
+      const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem remover álbuns" });
+      }
+
+      const { data: row, error: findError } = await supabaseAdmin
+        .from("gallery_albums")
+        .select("id, tenant_id")
+        .eq("id", albumId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (!row) return res.status(404).json({ error: "Álbum não encontrado" });
+
+      const { error: deleteError } = await supabaseAdmin
+        .from("gallery_albums")
+        .delete()
+        .eq("id", albumId)
+        .eq("tenant_id", tenantId);
+      if (deleteError) throw deleteError;
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao remover álbum da galeria:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao remover álbum" });
+    }
+  });
+
   app.post("/api/v1/gallery/media/:mediaId/axe", async (req, res) => {
     const mediaId = String(req.params.mediaId || "").trim();
     const { tenantId } = req.body;

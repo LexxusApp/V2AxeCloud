@@ -350,6 +350,28 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
     }
   };
 
+  const deleteAlbum = async (album: AlbumItem) => {
+    const confirmDel = window.confirm(
+      `Deseja mesmo remover o álbum "${album.name}" e todas as ${album.media.length} foto(s) da corrente?`,
+    );
+    if (!confirmDel) return;
+
+    try {
+      const response = await authFetch(
+        `/api/v1/gallery/albums/${album.id}?tenantId=${encodeURIComponent(tenantId)}`,
+        { method: 'DELETE' },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Erro ao remover álbum');
+
+      setAlbums((prev) => prev.filter((item) => item.id !== album.id));
+      if (selectedAlbumId === album.id) setSelectedAlbumId(null);
+      showToast(setToast, `Álbum "${album.name}" removido.`, 'info');
+    } catch (error: any) {
+      showToast(setToast, error.message || 'Erro ao remover álbum', 'error');
+    }
+  };
+
   const sendAxe = async (photo: MediaItem) => {
     try {
       const response = await authFetch(`/api/v1/gallery/media/${photo.id}/axe`, {
@@ -444,14 +466,22 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </button>
         )}
 
-        <div className="flex flex-grow flex-col justify-between space-y-3 p-4">
-          <p className="line-clamp-2 text-[10.5px] font-light leading-relaxed text-gray-400">
-            {photo.caption || photo.title || photo.file_name}
-          </p>
-          <div className="flex items-center justify-between gap-2 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
-            <span className="truncate font-mono text-[8.5px] text-gray-500">
-              {formatMuralDate(photo.created_at)}
-            </span>
+        <div className="flex flex-grow flex-col justify-between space-y-3.5 p-4">
+          <div className="space-y-1.5">
+            <h6 className="font-display text-xs font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
+              {photo.title || photo.file_name}
+            </h6>
+            <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
+              {photo.caption || 'Memória com boas energias guardadas no mural do terreiro.'}
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-2.5 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
+            <div className="max-w-[60%] space-y-0.5 text-gray-500">
+              <span className="block truncate font-black text-[#F1F5F9]/80">
+                Por: {photo.author_name || zeladorName}
+              </span>
+              <span className="block font-mono text-[8.5px]">{formatMuralDate(photo.created_at)}</span>
+            </div>
             <button
               type="button"
               onClick={() => void sendAxe(photo)}
@@ -466,19 +496,37 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
     );
   };
 
+  const getAlbumAxeTotal = (album: AlbumItem) =>
+    album.media.reduce((sum, item) => sum + Number(item.likes_count || 0), 0);
+
+  const getAlbumAuthor = (album: AlbumItem) =>
+    album.media[0]?.author_name || zeladorName;
+
   const renderAlbumCard = (album: AlbumItem) => {
     const category = getAlbumCategory(album);
     const badgeClass = CATEGORY_BADGE[category];
     const cover = album.media.find((m) => m.media_type === 'image') || album.media[0];
+    const totalAxe = getAlbumAxeTotal(album);
+    const author = getAlbumAuthor(album);
 
     return (
-      <button
+      <motion.div
         key={album.id}
-        type="button"
+        layout
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        role="button"
+        tabIndex={0}
         onClick={() => setSelectedAlbumId(album.id)}
-        className="group flex h-full transform flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setSelectedAlbumId(album.id);
+          }
+        }}
+        className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/40">
+        <div className="relative aspect-video w-full overflow-hidden bg-black/40">
           {cover ? (
             cover.media_type === 'video' ? (
               <>
@@ -489,8 +537,8 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                   playsInline
                   preload="metadata"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Film className="h-10 w-10 text-white/70" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                  <Film className="h-8 w-8 text-white/80" />
                 </div>
               </>
             ) : (
@@ -505,28 +553,61 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
               <ImageIcon className="h-10 w-10 text-gray-600" />
             </div>
           )}
-          <div className="absolute left-2 top-2">
-            <span className={cn('rounded border px-2.5 py-0.5 text-[8.5px] font-black uppercase', badgeClass)}>
+
+          <div className="absolute left-2 top-2 flex items-center gap-1">
+            <span
+              className={cn(
+                'rounded border px-2.5 py-0.5 text-[8.5px] font-black uppercase',
+                badgeClass,
+              )}
+            >
               {CATEGORY_LABEL[category]}
             </span>
           </div>
-          <div className="absolute bottom-2 right-2 rounded-lg bg-black/70 px-2 py-1 text-[10px] font-black text-white">
-            {album.media.length} foto{album.media.length !== 1 ? 's' : ''}
-          </div>
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void deleteAlbum(album);
+              }}
+              className="absolute right-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-[#1E242B] bg-black/60 text-zinc-400 transition-all hover:bg-rose-950 hover:text-rose-400"
+              title="Deletar álbum"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="space-y-2 p-4">
-          <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
-            {album.name}
-          </h6>
-          {album.description && (
-            <p className="line-clamp-2 text-[10.5px] font-light leading-relaxed text-gray-400">
-              {album.description}
+        <div className="flex flex-grow flex-col justify-between space-y-3.5 p-4">
+          <div className="space-y-1.5">
+            <h6 className="font-display text-xs font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
+              {album.name}
+            </h6>
+            <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
+              {album.description ||
+                'Memória com boas energias guardadas no mural do terreiro.'}
             </p>
-          )}
-          <p className="text-[9px] font-mono text-gray-500">{formatMuralDate(album.created_at)}</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-2.5 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
+            <div className="max-w-[60%] space-y-0.5 text-gray-500">
+              <span className="block truncate font-black text-[#F1F5F9]/80">Por: {author}</span>
+              <span className="block font-mono text-[8.5px]">{formatMuralDate(album.created_at)}</span>
+            </div>
+
+            <div
+              className="flex shrink-0 select-none items-center gap-1.5 rounded-xl border border-rose-500/10 bg-rose-950/20 px-2.5 py-1.5 font-bold text-rose-400"
+              onClick={(e) => e.stopPropagation()}
+              title={`${album.media.length} foto(s) · ${totalAxe} Axé no álbum`}
+            >
+              <Heart className="h-3.5 w-3.5 fill-rose-500/20 text-rose-500" />
+              <span>{totalAxe} Axé</span>
+            </div>
+          </div>
         </div>
-      </button>
+      </motion.div>
     );
   };
 
