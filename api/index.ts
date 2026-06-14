@@ -2415,13 +2415,20 @@ async function startServer() {
   });
 
   app.post("/api/v1/gallery/albums", async (req, res) => {
-    const { tenantId, name, description } = req.body;
+    const { tenantId, name, description, category } = req.body;
     if (!tenantId || !name) return res.status(400).json({ error: "Dados incompletos" });
 
     try {
       const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
       if (!access) return;
       const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem criar álbuns" });
+      }
 
       const { data, error } = await supabaseAdmin
         .from("gallery_albums")
@@ -2430,6 +2437,7 @@ async function startServer() {
             tenant_id: tenantId,
             name: String(name).trim(),
             description: String(description || "").trim(),
+            category: normalizeGalleryCategory(category),
             created_by: user.id,
           },
         ])

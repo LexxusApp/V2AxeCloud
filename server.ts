@@ -1910,7 +1910,7 @@ async function startServer() {
 
   app.post("/api/v1/gallery/albums", async (req, res) => {
     const authHeader = req.headers.authorization;
-    const { tenantId, name, description } = req.body;
+    const { tenantId, name, description, category } = req.body;
     if (!authHeader || !tenantId || !name) return res.status(400).json({ error: "Dados incompletos" });
 
     try {
@@ -1923,6 +1923,12 @@ async function startServer() {
         return res.status(403).json({ error: "Sem permissão para este terreiro" });
       }
 
+      const canManage =
+        access.isGlobalAdmin || (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem criar álbuns" });
+      }
+
       const { data, error } = await supabaseAdmin
         .from("gallery_albums")
         .insert([
@@ -1930,6 +1936,7 @@ async function startServer() {
             tenant_id: tenantId,
             name: String(name).trim(),
             description: String(description || "").trim(),
+            category: normalizeGalleryCategory(category),
             created_by: user.id,
           },
         ])
