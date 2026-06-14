@@ -1165,27 +1165,36 @@ export default function Financial({
           {activeView === 'mensalidades' ? (
             <AppDemoCard>
               <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-center gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
+                <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
                   <button
                     type="button"
                     role="switch"
                     aria-checked={mensalidadeAtiva}
+                    aria-busy={isTogglingMensalidade}
                     aria-label="Ativar ou desativar cobrança de mensalidade"
                     disabled={isTogglingMensalidade}
                     onClick={() => void handleToggleMensalidadeAtiva(!mensalidadeAtiva)}
                     className={cn(
-                      'relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60',
+                      'relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-70',
                       mensalidadeAtiva ? 'bg-primary' : 'bg-[#2F3643]',
                     )}
                   >
                     <span
+                      aria-hidden
                       className={cn(
-                        'absolute top-0.5 h-5 w-5 rounded-full bg-[#13171D] shadow-sm transition-transform',
-                        mensalidadeAtiva ? 'translate-x-[1.35rem]' : 'translate-x-0.5',
+                        'pointer-events-none block h-5 w-5 rounded-full bg-[#F1F5F9] shadow-sm transition-transform duration-200 ease-out',
+                        mensalidadeAtiva ? 'translate-x-5' : 'translate-x-0',
+                        isTogglingMensalidade && 'opacity-0',
                       )}
                     />
+                    {isTogglingMensalidade ? (
+                      <Loader2
+                        className="absolute inset-0 m-auto h-3.5 w-3.5 animate-spin text-[#080A0D]"
+                        aria-hidden
+                      />
+                    ) : null}
                   </button>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-[#F1F5F9]">
                       Cobrança de mensalidade {mensalidadeAtiva ? 'ativa' : 'desativada'}
                     </p>
@@ -1195,9 +1204,6 @@ export default function Financial({
                         : 'Nenhuma mensalidade nova será gerada. Ideal para terreiros que não cobram contribuição fixa.'}
                     </p>
                   </div>
-                  {isTogglingMensalidade ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
-                  ) : null}
                 </div>
 
                 {mensalidadeAtiva ? (
