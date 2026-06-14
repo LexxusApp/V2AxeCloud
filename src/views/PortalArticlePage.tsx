@@ -1,26 +1,44 @@
 import MarketingPageShell from '../components/marketing/MarketingPageShell';
-import { PORTAL_ARTICLE } from '../content/portalContent';
+import { getPortalArticleBySlug } from '../content/portalContent';
 import { ROUTES } from '../lib/routes';
 
-export default function PortalArticlePage() {
+type PortalArticlePageProps = {
+  slug: string;
+};
+
+export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
+  const article = getPortalArticleBySlug(slug);
+
+  if (!article) {
+    return (
+      <MarketingPageShell
+        kicker="Conteúdo"
+        title="Artigo não encontrado"
+        summary="Este conteúdo não está disponível."
+        backHref={ROUTES.contentHub}
+        backLabel="Voltar ao conteúdo"
+      />
+    );
+  }
+
   return (
     <MarketingPageShell
       kicker="Conteúdo"
-      title={PORTAL_ARTICLE.title}
-      summary={PORTAL_ARTICLE.summary}
+      title={article.title}
+      summary={article.summary}
       backHref={ROUTES.contentHub}
       backLabel="Voltar ao conteúdo"
     >
       <p className="mb-8 text-[11px] font-bold uppercase tracking-widest text-zinc-600">
-        {PORTAL_ARTICLE.readingMinutes} min de leitura ·{' '}
-        {new Date(PORTAL_ARTICLE.publishedAt).toLocaleDateString('pt-BR', {
+        {article.readingMinutes} min de leitura ·{' '}
+        {new Date(article.publishedAt).toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: 'long',
           year: 'numeric',
         })}
       </p>
       <article className="space-y-8">
-        {PORTAL_ARTICLE.sections.map((section) => (
+        {article.sections.map((section) => (
           <section key={section.title}>
             <h2 className="text-sm font-black uppercase tracking-wider text-primary/90">{section.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">{section.body}</p>

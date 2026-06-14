@@ -1,5 +1,6 @@
 import { metadata as homeMetadata } from '../app/page';
 import { BRAND_NAME, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
+import { getPortalArticleBySlug, parseContentArticleSlug } from '../content/portalContent';
 import { ROUTES, normalizePath } from './routes';
 
 const SITE_ORIGIN = 'https://axecloud.com.br';
@@ -75,17 +76,10 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/conteudo',
     robots: 'index, follow',
   },
-  [ROUTES.contentArticle]: {
-    title: 'Como o AxéCloud ajuda terreiros | Portal AxéCloud',
-    description:
-      'Gestão financeira, galeria de fotos, calendário de giras e portal do filho de santo — como o AxéCloud organiza casas de Umbanda e Candomblé.',
-    canonicalPath: '/conteudo/como-o-axecloud-ajuda-terreiros',
-    robots: 'index, follow',
-  },
   [ROUTES.glossary]: {
-    title: 'Glossário do axé — 10 termos essenciais | AxéCloud',
+    title: 'Glossário do axé — 20 termos essenciais | AxéCloud',
     description:
-      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé e mais — linguagem respeitosa para quem está conhecendo a tradição.',
+      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
     canonicalPath: '/conteudo/glossario',
     robots: 'index, follow',
   },
@@ -156,6 +150,20 @@ function resolveRouteSeo(path: string): RouteSeo {
       robots: 'noindex, follow',
     };
   }
+
+  const articleSlug = parseContentArticleSlug(path);
+  if (articleSlug) {
+    const article = getPortalArticleBySlug(articleSlug);
+    if (article) {
+      return {
+        title: `${article.title} | Portal AxéCloud`,
+        description: article.summary,
+        canonicalPath: path,
+        robots: 'index, follow',
+      };
+    }
+  }
+
   return ROUTE_SEO[path] ?? ROUTE_SEO[ROUTES.home];
 }
 

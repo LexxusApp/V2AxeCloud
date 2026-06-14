@@ -13,7 +13,11 @@ import {
   FOUNDER_PROGRAM,
   FOUNDER_REQUIREMENTS,
 } from './founderProgram';
-import { GLOSSARY_TERMS, PORTAL_ARTICLE } from '../content/portalContent';
+import {
+  GLOSSARY_TERMS,
+  PORTAL_ARTICLES,
+  contentArticlePath,
+} from '../content/portalContent';
 import { ROUTES } from '../lib/routes';
 
 const SITE_ORIGIN = 'https://axecloud.com.br';
@@ -114,13 +118,13 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     intro:
       'Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé.',
     sections: [
-      {
-        heading: PORTAL_ARTICLE.title,
-        body: `${PORTAL_ARTICLE.summary} Leia o artigo completo em ${SITE_ORIGIN}${ROUTES.contentArticle}.`,
-      },
+      ...PORTAL_ARTICLES.map((article) => ({
+        heading: article.title,
+        body: `${article.summary} Leia o artigo completo em ${SITE_ORIGIN}${contentArticlePath(article.slug)}.`,
+      })),
       {
         heading: 'Glossário do axé',
-        body: `10 termos essenciais sobre terreiro, filho de santo, gira, orixá e tradições afro-brasileiras. Acesse em ${SITE_ORIGIN}${ROUTES.glossary}.`,
+        body: `${GLOSSARY_TERMS.length} termos essenciais sobre terreiro, filho de santo, gira, orixá e tradições afro-brasileiras. Acesse em ${SITE_ORIGIN}${ROUTES.glossary}.`,
       },
       {
         heading: 'Programa Fundador',
@@ -128,19 +132,19 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       },
     ],
   },
-  {
-    path: ROUTES.contentArticle,
-    title: 'Como o AxéCloud ajuda terreiros | Portal AxéCloud',
-    description: PORTAL_ARTICLE.summary,
-    h1: PORTAL_ARTICLE.title,
-    intro: PORTAL_ARTICLE.summary,
-    sections: PORTAL_ARTICLE.sections.map((s) => ({ heading: s.title, body: s.body })),
+  ...PORTAL_ARTICLES.map((article) => ({
+    path: contentArticlePath(article.slug),
+    title: `${article.title} | Portal AxéCloud`,
+    description: article.summary,
+    h1: article.title,
+    intro: article.summary,
+    sections: article.sections.map((s) => ({ heading: s.title, body: s.body })),
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: PORTAL_ARTICLE.title,
-      description: PORTAL_ARTICLE.summary,
-      datePublished: PORTAL_ARTICLE.publishedAt,
+      headline: article.title,
+      description: article.summary,
+      datePublished: article.publishedAt,
       inLanguage: 'pt-BR',
       author: { '@type': 'Organization', name: 'AxéCloud', url: SITE_ORIGIN },
       publisher: {
@@ -149,15 +153,15 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
         url: SITE_ORIGIN,
         logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/og-image.png` },
       },
-      mainEntityOfPage: `${SITE_ORIGIN}${ROUTES.contentArticle}`,
+      mainEntityOfPage: `${SITE_ORIGIN}${contentArticlePath(article.slug)}`,
     },
-  },
+  })),
   {
     path: ROUTES.glossary,
-    title: 'Glossário do axé — 10 termos essenciais | AxéCloud',
+    title: 'Glossário do axé — 20 termos essenciais | AxéCloud',
     description:
-      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé e mais — linguagem respeitosa para quem está conhecendo a tradição.',
-    h1: 'Glossário do axé — 10 termos essenciais',
+      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
+    h1: 'Glossário do axé — 20 termos essenciais',
     intro:
       'Termos fundamentais da vida em terreiros de Umbanda e Candomblé, explicados com respeito à tradição afro-brasileira.',
     sections: GLOSSARY_TERMS.map((t) => ({ heading: t.term, body: t.definition })),

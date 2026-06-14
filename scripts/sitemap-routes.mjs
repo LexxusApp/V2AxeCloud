@@ -3,7 +3,16 @@
  * Edite aqui ao adicionar páginas de marketing ou legais com URL própria.
  *
  * Não inclua áreas autenticadas (dashboard, configurações, etc.).
+ * Slugs de artigos: manter em sync com src/content/portalContent.ts
  */
+
+const PORTAL_ARTICLE_PATHS = [
+  '/conteudo/como-o-axecloud-ajuda-terreiros',
+  '/conteudo/o-que-e-um-terreiro-guia-para-iniciantes',
+  '/conteudo/mensalidade-na-casa-de-axe-organizacao',
+  '/conteudo/giras-festas-e-calendario-da-casa',
+  '/conteudo/como-visitar-um-terreiro-com-respeito',
+];
 
 export const SITEMAP_ROUTES = [
   {
@@ -48,16 +57,16 @@ export const SITEMAP_ROUTES = [
     priority: 0.85,
     comment: 'Hub de conteúdo do portal',
   },
-  {
-    path: '/conteudo/como-o-axecloud-ajuda-terreiros',
+  ...PORTAL_ARTICLE_PATHS.map((path) => ({
+    path,
     changeFrequency: 'monthly',
     priority: 0.8,
-    comment: 'Artigo — como o AxéCloud ajuda terreiros',
-  },
+    comment: 'Artigo do portal AxéCloud',
+  })),
   {
     path: '/conteudo/glossario',
     changeFrequency: 'monthly',
     priority: 0.8,
-    comment: 'Glossário do axé',
+    comment: 'Glossário do axé — 20 termos',
   },
 ];

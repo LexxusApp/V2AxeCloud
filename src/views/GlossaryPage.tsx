@@ -6,7 +6,7 @@ export default function GlossaryPage() {
   return (
     <MarketingPageShell
       kicker="Glossário"
-      title="10 termos essenciais do axé"
+      title="Glossário do axé — 20 termos essenciais"
       summary="Referência rápida com linguagem respeitosa para quem está conhecendo terreiros de Umbanda, Candomblé e vertentes afins."
       backHref={ROUTES.contentHub}
       backLabel="Voltar ao conteúdo"

@@ -3,6 +3,7 @@ import { usePathname } from '../hooks/usePathname';
 import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
+import { parseContentArticleSlug } from '../content/portalContent';
 
 const Landing = lazy(() => import('../views/Landing'));
 const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
@@ -18,6 +19,11 @@ function MarketingSectionFallback() {
 }
 
 function RoutedMarketingPage({ path }: { path: string }) {
+  const articleSlug = parseContentArticleSlug(path);
+  if (articleSlug) {
+    return <PortalArticlePage slug={articleSlug} />;
+  }
+
   switch (path) {
     case ROUTES.founderProgram:
       return <FounderProgramPage />;
@@ -27,8 +33,6 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <PrivacyPage />;
     case ROUTES.contentHub:
       return <ContentHubPage />;
-    case ROUTES.contentArticle:
-      return <PortalArticlePage />;
     case ROUTES.glossary:
       return <GlossaryPage />;
     case ROUTES.espacoDoFiel:

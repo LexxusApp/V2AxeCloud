@@ -1,3 +1,5 @@
+import { PORTAL_ARTICLE_PATHS } from '../content/portalContent';
+
 /** Rotas públicas e do app (SPA Vite — equivalente conceitual ao App Router do Next). */
 export function isHomePath(path: string): boolean {
   const p = path.replace(/\/+$/, '') || '/';
@@ -37,8 +39,8 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.founderProgram,
   ROUTES.espacoDoFiel,
   ROUTES.contentHub,
-  ROUTES.contentArticle,
   ROUTES.glossary,
+  ...PORTAL_ARTICLE_PATHS,
 ] as const;
 
 /** Rotas de marketing indexáveis (portal + landing). */
@@ -49,8 +51,8 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.founderProgram,
   ROUTES.espacoDoFiel,
   ROUTES.contentHub,
-  ROUTES.contentArticle,
   ROUTES.glossary,
+  ...PORTAL_ARTICLE_PATHS,
 ] as const;
 
 export function isMarketingSitePath(path: string): boolean {

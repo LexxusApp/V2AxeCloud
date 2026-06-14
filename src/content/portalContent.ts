@@ -3,51 +3,257 @@ export type PortalContentSection = {
   body: string;
 };
 
-export const PORTAL_ARTICLE = {
-  slug: 'como-o-axecloud-ajuda-terreiros',
-  title: 'Como o AxéCloud ajuda terreiros a se organizar',
-  summary:
-    'Gestão financeira, calendário de giras, galeria de fotos, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa.',
-  publishedAt: '2026-05-29',
-  readingMinutes: 6,
-  sections: [
-    {
-      title: 'O desafio da administração na casa de axé',
-      body:
-        'Dirigir um terreiro exige cuidado espiritual e organização prática ao mesmo tempo: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce.',
-    },
-    {
-      title: 'Financeiro com transparência',
-      body:
-        'O AxéCloud registra mensalidades, doações e despesas com histórico claro. Filhos de santo podem pagar via Pix; a diretoria acompanha tudo em tempo real. Menos dúvida sobre quem está em dia, mais confiança na gestão da casa — sem transformar a contribuição em burocracia fria.',
-    },
-    {
-      title: 'Galeria de fotos da casa',
-      body:
-        'Giras, festas de santo, obrigações e momentos da comunidade merecem memória. A galeria do AxéCloud organiza álbuns e fotos do terreiro em um só lugar — a diretoria guarda o registro com respeito, e filhos de santo podem reviver a história da casa sem depender de grupos espalhados no celular.',
-    },
-    {
-      title: 'Calendário e mural integrados',
-      body:
-        'Giras, festas e obrigações ficam no calendário litúrgico da casa. Avisos importantes vão para o mural virtual — filhos de santo veem a agenda e os comunicados no mesmo fluxo, pelo celular ou computador, sem depender só de mensagens avulsas.',
-    },
-    {
-      title: 'Portal do filho de santo',
-      body:
-        'Cada integrante acessa um espaço próprio: biblioteca de estudos, mensalidades, calendário e mural. Quem administra e quem vive a comunidade têm experiências separadas, mas conectadas — a casa gira com mais clareza para todos.',
-    },
-    {
-      title: 'Privacidade e respeito',
-      body:
-        'Cada terreiro tem ambiente isolado na nuvem. Controles de acesso por perfil, criptografia em trânsito e políticas alinhadas à LGPD. O sagrado continua protegido; a organização ganha ferramentas profissionais.',
-    },
-    {
-      title: 'Programa Fundador',
-      body:
-        'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador.',
-    },
-  ] satisfies readonly PortalContentSection[],
-} as const;
+export type PortalArticle = {
+  slug: string;
+  title: string;
+  summary: string;
+  publishedAt: string;
+  readingMinutes: number;
+  sections: readonly PortalContentSection[];
+};
+
+export function contentArticlePath(slug: string): string {
+  return `/conteudo/${slug}`;
+}
+
+export const PORTAL_ARTICLES: readonly PortalArticle[] = [
+  {
+    slug: 'como-o-axecloud-ajuda-terreiros',
+    title: 'Como o AxéCloud ajuda terreiros a se organizar',
+    summary:
+      'Gestão financeira, calendário de giras, galeria de fotos, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa.',
+    publishedAt: '2026-05-29',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'O desafio da administração na casa de axé',
+        body:
+          'Dirigir um terreiro exige cuidado espiritual e organização prática ao mesmo tempo: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce.',
+      },
+      {
+        title: 'Financeiro com transparência',
+        body:
+          'O AxéCloud registra mensalidades, doações e despesas com histórico claro. Filhos de santo podem pagar via Pix; a diretoria acompanha tudo em tempo real. Menos dúvida sobre quem está em dia, mais confiança na gestão da casa — sem transformar a contribuição em burocracia fria.',
+      },
+      {
+        title: 'Galeria de fotos da casa',
+        body:
+          'Giras, festas de santo, obrigações e momentos da comunidade merecem memória. A galeria do AxéCloud organiza álbuns e fotos do terreiro em um só lugar — a diretoria guarda o registro com respeito, e filhos de santo podem reviver a história da casa sem depender de grupos espalhados no celular.',
+      },
+      {
+        title: 'Calendário e mural integrados',
+        body:
+          'Giras, festas e obrigações ficam no calendário litúrgico da casa. Avisos importantes vão para o mural virtual — filhos de santo veem a agenda e os comunicados no mesmo fluxo, pelo celular ou computador, sem depender só de mensagens avulsas.',
+      },
+      {
+        title: 'Portal do filho de santo',
+        body:
+          'Cada integrante acessa um espaço próprio: biblioteca de estudos, mensalidades, calendário e mural. Quem administra e quem vive a comunidade têm experiências separadas, mas conectadas — a casa gira com mais clareza para todos.',
+      },
+      {
+        title: 'Privacidade e respeito',
+        body:
+          'Cada terreiro tem ambiente isolado na nuvem. Controles de acesso por perfil, criptografia em trânsito e políticas alinhadas à LGPD. O sagrado continua protegido; a organização ganha ferramentas profissionais.',
+      },
+      {
+        title: 'Programa Fundador',
+        body:
+          'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador.',
+      },
+    ],
+  },
+  {
+    slug: 'o-que-e-um-terreiro-guia-para-iniciantes',
+    title: 'O que é um terreiro — guia para quem está começando',
+    summary:
+      'Entenda o que é uma casa de axé, quem são os filhos de santo, o papel do zelador e como a comunidade se organiza — com linguagem respeitosa para quem está conhecendo a tradição.',
+    publishedAt: '2026-06-01',
+    readingMinutes: 7,
+    sections: [
+      {
+        title: 'Mais que um endereço',
+        body:
+          'Terreiro, casa de axé ou centro religioso: são nomes para o espaço onde se cultua, se aprende e se vive a comunidade das religiões afro-brasileiras. Não é só o terreno ou o barracão — é a família espiritual formada em torno de uma linha, de uma nação ou de uma tradição específica de Umbanda, Candomblé, Jurema ou vertentes afins.',
+      },
+      {
+        title: 'Quem faz a casa girar',
+        body:
+          'Na liderança espiritual estão o pai ou a mãe de santo (no Candomblé, babalorixá ou ialorixá conforme a nação). O zelador ou a zeladora cuida da parte material: portas, limpeza, estoque, logística das giras. Os filhos de santo são os iniciados que participam dos cultos, das obrigações e da vida comunitária. Consulentes são quem busca orientação espiritual nas giras, sem necessariamente ser iniciado.',
+      },
+      {
+        title: 'Linha, nação e tradição',
+        body:
+          'Cada casa tem sua linha de trabalho — entidades, orixás ou mistérios que guiam o culto. No Candomblé, fala-se em nação (Ketu, Jeje, Angola, etc.). Na Umbanda, as linhas costumam integrar preto velhos, caboclos, exus, orixás e outras entidades conforme a firma do terreiro. Não existe um único modelo: o respeito começa por reconhecer que cada casa tem sua história e suas regras.',
+      },
+      {
+        title: 'O que acontece em uma gira',
+        body:
+          'A gira é o momento coletivo de culto — especialmente na Umbanda — em que médiuns incorporam guias espirituais para passes, consultas e trabalhos. No Candomblé, os rituais públicos podem ser festas de santo, toques e obrigações em datas do calendário sagrado. Em ambos os casos, há preparo, vestimenta adequada, silêncio quando necessário e orientação de quem já está na casa.',
+      },
+      {
+        title: 'Como se aproximar de uma casa',
+        body:
+          'Se você está buscando um terreiro, o caminho costuma ser indicação de alguém da comunidade, visita respeitosa ou contato com a diretoria. Evite comparar casas, fotografar sem permissão ou tratar o espaço como turismo. Pergunte, ouça e observe. A relação com uma casa de axé se constrói com tempo e compromisso — não há atalho.',
+      },
+      {
+        title: 'Organização e espiritualidade',
+        body:
+          'Casas que crescem precisam de registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade.',
+      },
+    ],
+  },
+  {
+    slug: 'mensalidade-na-casa-de-axe-organizacao',
+    title: 'Mensalidade na casa de axé — organização sem perder a fé',
+    summary:
+      'Por que as casas cobram contribuição mensal, como evitar conflitos na cobrança e o que muda quando a gestão financeira fica transparente para filhos de santo e diretoria.',
+    publishedAt: '2026-06-01',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'Para que serve a mensalidade',
+        body:
+          'A mensalidade dos filhos de santo não é “mensalidade de clube” no sentido comercial frio. É a contribuição regular que mantém o terreiro: luz, água, velas, ervas, manutenção do espaço, café da gira, materiais de limpeza e o trabalho invisível do dia a dia. Cada casa define o valor e a forma de cobrança conforme sua realidade e sua orientação espiritual.',
+      },
+      {
+        title: 'Quando a cobrança vira problema',
+        body:
+          'Conflitos aparecem quando não há registro claro: quem pagou, quem está em atraso, quem foi isento por orientação. Planilhas no WhatsApp se perdem; filhos de santo ficam constrangidos; a diretoria gasta energia cobrando manualmente. A falta de transparência não é falta de fé — é falta de ferramenta.',
+      },
+      {
+        title: 'Transparência gera confiança',
+        body:
+          'Quando cada filho de santo vê suas mensalidades no portal, paga via Pix com comprovante registrado e a diretoria acompanha o saldo em tempo real, a conversa muda de “você deve” para “a casa está organizada”. Isso não substitui o diálogo humano — complementa, para que o zelador e a diretoria foquem no cuidado da comunidade.',
+      },
+      {
+        title: 'Casas que não cobram mensalidade',
+        body:
+          'Alguns terreiros funcionam só com doações, rifas, bazares ou contribuições espontâneas. O AxéCloud permite desativar a cobrança de mensalidade para essas casas, mantendo financeiro, calendário e mural ativos. Não há um modelo único de gestão — o sistema se adapta à forma da casa.',
+      },
+      {
+        title: 'Boas práticas na diretoria',
+        body:
+          'Combine valores em assembleia ou com a orientação do pai ou da mãe de santo. Registre isenções e acordos. Não exponha débitos em grupo público. Use canais privados e, quando possível, um sistema que cada filho acesse só o próprio histórico. Respeito e clareza andam juntos.',
+      },
+      {
+        title: 'Tecnologia a serviço da casa',
+        body:
+          'O financeiro do AxéCloud foi pensado para terreiros: mensalidades, Pix, histórico, relatórios e configuração por casa. Menos tempo em cobrança manual, mais tempo para o que importa — girar, acolher e cuidar do axé.',
+      },
+    ],
+  },
+  {
+    slug: 'giras-festas-e-calendario-da-casa',
+    title: 'Giras, festas e calendário da casa — entenda as datas',
+    summary:
+      'Diferença entre gira de consulta, festa de santo e obrigação; como as casas organizam o calendário litúrgico e por que avisar a comunidade com antecedência.',
+    publishedAt: '2026-06-01',
+    readingMinutes: 7,
+    sections: [
+      {
+        title: 'Cada data tem um sentido',
+        body:
+          'No terreiro, nem todo culto é igual. Há a gira semanal ou quinzenal de atendimento, a festa pública de um orixá ou entidade, a obrigação fechada de um filho de santo, o batizado na linha, a lavagem de terreiro. Confundir esses momentos gera desrespeito — quem chega em festa fechada sem convite, ou quem espera consulta em dia só de preparação interna.',
+      },
+      {
+        title: 'Gira de consulta',
+        body:
+          'É o encontro em que consulentes e filhos de santo participam das incorporações, passes e orientações. Costuma ter horário de abertura, fila ou senha, regras de vestimenta e silêncio no salão. Na Umbanda, é o formato mais familiar para quem busca uma primeira orientação espiritual.',
+      },
+      {
+        title: 'Festa de santo e toque',
+        body:
+          'No Candomblé, as festas públicas de orixá seguem o calendário sagrado da casa — com cantigas, oferendas, rodas de dança e, em muitos casos, comunidade ampla. Na Umbanda, festas de linha ou de entidade específica também reúnem a comunidade. São momentos de celebração e renovação do axé da casa.',
+      },
+      {
+        title: 'Obrigações e ritos fechados',
+        body:
+          'Obrigações, iniciações e trabalhos fechados não são abertos ao público geral. Participam quem foi chamado, quem já está na casa e quem tem função naquele ritual. Divulgar data e horário desses eventos exige critério da diretoria — o calendário interno da casa pode ser diferente do que vai para o mural público.',
+      },
+      {
+        title: 'Por que o calendário importa',
+        body:
+          'Filhos de santo precisam saber com antecedência: há gira nesta semana? Preciso de roupa branca? A casa está em festa ou em resguardo? Um calendário centralizado — com mural para avisos — evita que cada informação se perca em dezenas de mensagens de WhatsApp.',
+      },
+      {
+        title: 'Convites e confirmação de presença',
+        body:
+          'Para eventos com convidados, algumas casas enviam link de confirmação por WhatsApp. O AxéCloud permite RSVP de convidados: quem recebe o link confirma ou declina sem precisar entrar no sistema. A diretoria enxerga quem vem e organiza o salão com mais tranquilidade.',
+      },
+      {
+        title: 'Organize sem perder o sagrado',
+        body:
+          'Registrar datas, tipos de evento e avisos no calendário do AxéCloud não “automatiza” o ritual — libera a diretoria do trabalho de repetir a mesma informação dez vezes. O sagrado continua no terreiro; a organização fica na ferramenta certa.',
+      },
+    ],
+  },
+  {
+    slug: 'como-visitar-um-terreiro-com-respeito',
+    title: 'Como visitar um terreiro com respeito — etiqueta para consulentes',
+    summary:
+      'Vestimenta, comportamento, fotos, oferendas e o que evitar na primeira (e nas próximas) visitas a uma casa de axé de Umbanda ou Candomblé.',
+    publishedAt: '2026-06-01',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'Você está entrando em um espaço sagrado',
+        body:
+          'Um terreiro não é ponto turístico nem cenário para redes sociais. É morada de entidades, orixás e da comunidade que cultua ali. Chegar com curiosidade é natural; chegar com humildade e discrição é fundamental. Trate o espaço como trataria a casa de alguém que você respeita profundamente.',
+      },
+      {
+        title: 'Vestimenta e higiene',
+        body:
+          'Na maioria das casas, pede-se roupa clara e comprida — saia longa ou calça clara para mulheres, camisa clara para homens, conforme orientação local. Evite perfume forte, álcool em excesso antes da gira e celular no volume alto. Algumas casas pedem descalço no salão; outras não. Quando em dúvida, pergunte ao zelador ou à recepção.',
+      },
+      {
+        title: 'Fotos, vídeos e redes sociais',
+        body:
+          'Não fotografe ou filme sem permissão explícita. Muitos terreiros proíbem imagens das incorporações, do altar ou de filhos de santo em transe. Respeitar essa regra protege a casa e as pessoas. O que é sagrado não precisa virar conteúdo.',
+      },
+      {
+        title: 'Na fila de atendimento',
+        body:
+          'Aguarde sua vez em silêncio. Não interrompa incorporações nem diálogos entre guia e consulente. Perguntas diretas ao médium em transe costumam ser mediadas por quem está auxiliando na gira. Siga as orientações que receber — inclusive sobre retorno, firma ou trabalho de casa.',
+      },
+      {
+        title: 'Oferendas e contribuições',
+        body:
+          'Muitas casas têm caixa para manutenção do terreiro ou orientação sobre oferendas às entidades. Pergunte onde deixar contribuição; não exponha valores nem compare o que você deu com o que outros deram. A relação espiritual não é competição.',
+      },
+      {
+        title: 'Pedido de reza à distância',
+        body:
+          'Se você não pode ir presencialmente, algumas casas parceiras aceitam pedido de reza pelo portal público do AxéCloud — com vela virtual e acompanhamento do altar. É outro caminho de conexão, sempre com o mesmo respeito à orientação de cada terreiro.',
+      },
+      {
+        title: 'Depois da visita',
+        body:
+          'Se a casa orientou retorno, firma ou mudança de hábito, leve a sério. Se você busca aprofundamento na tradição, converse com a diretoria sobre caminhos de permanência — iniciação e vida de terreiro não se decidem em uma única noite. O respeito se constrói na constância.',
+      },
+    ],
+  },
+] as const;
+
+/** Primeiro artigo — compatibilidade com imports antigos. */
+export const PORTAL_ARTICLE = PORTAL_ARTICLES[0];
+
+export const PORTAL_ARTICLE_PATHS: readonly string[] = PORTAL_ARTICLES.map((a) =>
+  contentArticlePath(a.slug),
+);
+
+export function getPortalArticleBySlug(slug: string): PortalArticle | undefined {
+  return PORTAL_ARTICLES.find((a) => a.slug === slug);
+}
+
+/** Slug do artigo em `/conteudo/{slug}`; null se não for rota de artigo. */
+export function parseContentArticleSlug(path: string): string | null {
+  const normalized = path.replace(/\/+$/, '') || '/';
+  const prefix = '/conteudo/';
+  if (!normalized.startsWith(prefix)) return null;
+  const slug = normalized.slice(prefix.length);
+  if (!slug || slug.includes('/') || slug === 'glossario') return null;
+  return getPortalArticleBySlug(slug) ? slug : null;
+}
 
 export const GLOSSARY_TERMS = [
   {
@@ -96,8 +302,58 @@ export const GLOSSARY_TERMS = [
       'Ritual de consagração, agradecimento ou renovação espiritual a que o filho de santo deve cumprir conforme orientação da casa e do axé recebido.',
   },
   {
-    term: 'Umbanda e Candomblé',
+    term: 'Umbanda',
     definition:
-      'Duas das principais religiões afro-brasileiras. O Candomblé mantém forte vínculo com nações iorubás, jejes e bantos; a Umbanda nasceu no Brasil e integra elementos africanos, indígenes e católicos, conforme cada linha.',
+      'Religião afro-brasileira que integra, conforme cada linha, elementos de cultos africanos, indígenas e católicos. As giras de incorporação e o trabalho com linhas de entidades são marcas centrais.',
+  },
+  {
+    term: 'Candomblé',
+    definition:
+      'Religião de matriz africana com nações (Ketu, Jeje, Angola, etc.), culto aos orixás e ritos transmitidos de geração em geração. Cada nação tem liturgia, língua ritual e calendário próprios.',
+  },
+  {
+    term: 'Preto velho',
+    definition:
+      'Entidade da Umbanda associada à sabedoria, paciência e ancestrality escravizada. Manifesta-se em incorporação com linguagem, postura e conselhos característicos.',
+  },
+  {
+    term: 'Caboclo',
+    definition:
+      'Entidade da Umbanda ligada à força da mata, ao índio e ao caminho de firmeza. Cada caboclo tem nome, cor e características próprias na linha da casa.',
+  },
+  {
+    term: 'Exu',
+    definition:
+      'Entidade mensageira entre mundos, guardião de encruzilhadas e caminhos. Na Umbanda e no Candomblé ocupa papel central — não deve ser confundido com estereótipos de mídia; exige respeito e conhecimento da casa.',
+  },
+  {
+    term: 'Ponto',
+    definition:
+      'Cantiga ou invocação ritmada cantada no início ou durante o culto para chamar entidades, orixás ou linhas. O “ponto riscado” abre a gira em muitas casas de Umbanda.',
+  },
+  {
+    term: 'Firma',
+    definition:
+      'Conjunto de elementos sagrados — guias, colares, ferramentas, roupas e orientações — que identificam a linha e o compromisso de um filho de santo com sua casa e com o axé recebido.',
+  },
+  {
+    term: 'Iniciação',
+    definition:
+      'Rito pelo qual alguém passa a integrar oficialmente a casa como filho de santo, com deveres, obrigações e vínculos espirituais definidos pela diretoria e pela tradição daquele terreiro.',
+  },
+  {
+    term: 'Nação',
+    definition:
+      'No Candomblé, tradição litúrgica de origem (por exemplo Ketu, Jeje, Angola), com repertório de toques, orixás enfatizados e regras ritualísticas próprias.',
+  },
+  {
+    term: 'Ogã',
+    definition:
+      'No Candomblé, iniciado que toca os atabaques e conduz ritmicamente o toque sagrado, com anos de aprendizado. Função essencial nas festas de santo.',
+  },
+  {
+    term: 'Consulente',
+    definition:
+      'Pessoa que busca orientação espiritual em uma gira ou consulta, sem ser necessariamente filho de santo daquela casa. Pode tornar-se integrante com o tempo e a orientação da diretoria.',
   },
 ] as const;
