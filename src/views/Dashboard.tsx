@@ -8,9 +8,9 @@ import {
   ArrowDownRight,
   MoreVertical,
   Wallet,
-  HandHeart,
   Cake,
 } from 'lucide-react';
+import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import {
   format,
   startOfMonth,
@@ -46,14 +46,6 @@ import {
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
 
-type DashboardPedido = {
-  id: string;
-  nome: string;
-  status: string;
-  created_at: string;
-  mensagem?: string;
-};
-
 type DashboardBirthday = {
   id: string;
   nome: string;
@@ -66,17 +58,8 @@ type DashboardBundle = {
   transactions: any[];
   childrenData: any[];
   historyData: any[];
-  pedidosData: DashboardPedido[];
+  pedidosData: DashboardPedidoReza[];
   birthdayData: DashboardBirthday[];
-};
-
-const PEDIDO_STATUS_LABEL: Record<string, string> = {
-  pendente: 'Pendente',
-  aceito: 'Aceito',
-  em_oracao: 'Em prece',
-  em_atendimento: 'Em prece',
-  concluido: 'Concluído',
-  cancelado: 'Cancelado',
 };
 
 function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
@@ -216,7 +199,7 @@ async function fetchDashboardFinanceBundle(
       (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
     );
 
-    const pedidosRaw = (pedidosRes.items || pedidosRes.data || []) as DashboardPedido[];
+    const pedidosRaw = (pedidosRes.items || pedidosRes.data || []) as DashboardPedidoReza[];
     const pedidosData = [...pedidosRaw]
       .sort((a, b) => {
         const rank = (s: string) =>
@@ -680,69 +663,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </div>
           </div>
 
-          {/* Card: Pedidos de reza */}
-          {userRole !== 'filho' && (
-            <div className="app-v3-panel p-8">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-                    <HandHeart className="h-5 w-5 text-primary" aria-hidden />
-                  </div>
-                  <h3 className="text-xl font-bold">Pedidos de reza</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('atendimentos')}
-                  className="text-xs font-bold uppercase tracking-widest text-primary hover:underline"
-                >
-                  Ver todos
-                </button>
-              </div>
-
-              {pedidosData.length > 0 ? (
-                <div className="space-y-4">
-                  {pedidosData.map((pedido) => (
-                    <button
-                      key={pedido.id}
-                      type="button"
-                      onClick={() => setActiveTab('atendimentos')}
-                      className="flex w-full items-start justify-between gap-4 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3 text-left transition-colors hover:border-primary/25 hover:bg-white/[0.03]"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-white">{pedido.nome}</p>
-                        <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-gray-500">
-                          {pedido.mensagem || 'Sem mensagem'}
-                        </p>
-                        <p className="mt-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-                          {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          'shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider',
-                          pedido.status === 'pendente' && 'border-amber-500/25 bg-amber-500/15 text-amber-400',
-                          pedido.status === 'em_atendimento' && 'border-sky-500/25 bg-sky-500/15 text-sky-400',
-                          pedido.status === 'concluido' && 'border-emerald-500/25 bg-emerald-500/15 text-emerald-400',
-                          pedido.status === 'cancelado' && 'border-zinc-500/25 bg-zinc-500/15 text-zinc-400',
-                          !['pendente', 'em_atendimento', 'concluido', 'cancelado'].includes(pedido.status) &&
-                            'border-white/10 bg-white/5 text-gray-400',
-                        )}
-                      >
-                        {PEDIDO_STATUS_LABEL[pedido.status] || pedido.status}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-6 text-center">
-                  <HandHeart className="mb-3 h-9 w-9 text-primary/30" aria-hidden />
-                  <p className="text-sm font-bold text-gray-400">Nenhum pedido de reza</p>
-                  <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-gray-600">
-                    Pedidos enviados pelo portal do consulente aparecem aqui.
-                  </p>
-                </div>
-              )}
-            </div>
+          {userRole !== 'filho' && tenantId && (
+            <DashboardPedidosRezaAltar
+              pedidos={pedidosData}
+              tenantId={tenantId}
+              onRefresh={() => mutate()}
+              onOpenAtendimentos={() => setActiveTab('atendimentos')}
+            />
           )}
 
           {/* Card: Filhos de Santo */}
