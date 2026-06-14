@@ -5,6 +5,7 @@ import {
   Loader2,
   Lock,
   Menu,
+  PieChart,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -15,7 +16,10 @@ import {
   buildZeladorNavEntries,
   buildZeladorNavItems,
   FILHO_NAV,
+  flattenZeladorNavEntries,
+  navItemPlanFeature,
   ZELADOR_CASA_CHILD_IDS,
+  ZELADOR_FINANCIAL_CHILD_IDS,
   type AppNavItem,
   type ZeladorNavEntry,
 } from '../../constants/appNav';
@@ -100,9 +104,9 @@ function NavTab({
   );
 }
 
-function NavCasaMobileSection({
+function NavGroupMobileSection({
   label,
-  icon: CasaIcon,
+  icon: GroupIcon,
   items,
   activeTab,
   isItemLocked,
@@ -135,7 +139,7 @@ function NavCasaMobileSection({
             : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]',
         )}
       >
-        <CasaIcon className="h-4 w-4 shrink-0" aria-hidden />
+        <GroupIcon className="h-4 w-4 shrink-0" aria-hidden />
         <span className="flex-1">{label}</span>
         <ChevronDown
           className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
@@ -160,13 +164,14 @@ function NavCasaMobileSection({
   );
 }
 
-function NavCasaDropdown({
+function NavGroupDropdown({
   label,
-  icon: CasaIcon,
+  icon: GroupIcon,
   items,
   activeTab,
   isItemLocked,
   onSelect,
+  menuLabel,
 }: {
   label: string;
   icon: LucideIcon;
@@ -174,6 +179,7 @@ function NavCasaDropdown({
   activeTab: string;
   isItemLocked: (item: AppNavItem) => boolean;
   onSelect: (item: AppNavItem) => void;
+  menuLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -212,7 +218,7 @@ function NavCasaDropdown({
             : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
         )}
       >
-        <CasaIcon className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={isGroupActive ? 2.25 : 1.75} />
+        <GroupIcon className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={isGroupActive ? 2.25 : 1.75} />
         <span className="whitespace-nowrap">{label}</span>
         <ChevronDown
           className={cn('h-3.5 w-3.5 shrink-0 transition-transform', open && 'rotate-180')}
@@ -223,7 +229,7 @@ function NavCasaDropdown({
       {open ? (
         <div
           role="menu"
-          aria-label="Módulos da casa"
+          aria-label={menuLabel}
           className="absolute left-0 top-full z-[60] mt-1.5 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-xl shadow-black/40"
         >
           {items.map((item) => (
@@ -266,15 +272,25 @@ export default function AppTopNav({
     [userRole, tenantData?.tradicao],
   );
 
-  const activeItem = navItems.find((item) => item.id === activeTab);
+  const zeladorFlatItems = useMemo(
+    () => (zeladorEntries ? flattenZeladorNavEntries(zeladorEntries) : navItems),
+    [zeladorEntries, navItems],
+  );
+
+  const activeItem = zeladorFlatItems.find((item) => item.id === activeTab) ?? navItems.find((item) => item.id === activeTab);
   const casaChildIds = useMemo(() => new Set<string>(ZELADOR_CASA_CHILD_IDS), []);
+  const financialChildIds = useMemo(() => new Set<string>(ZELADOR_FINANCIAL_CHILD_IDS), []);
   const activeCasaItem =
     userRole === 'admin' && casaChildIds.has(activeTab)
-      ? navItems.find((item) => item.id === activeTab)
+      ? zeladorFlatItems.find((item) => item.id === activeTab)
+      : null;
+  const activeFinancialItem =
+    userRole === 'admin' && financialChildIds.has(activeTab)
+      ? zeladorFlatItems.find((item) => item.id === activeTab)
       : null;
 
   const isItemLocked = (item: AppNavItem) =>
-    userRole === 'admin' && !hasPlanAccess(tenantData?.plan, item.id, isAdmin);
+    userRole === 'admin' && !hasPlanAccess(tenantData?.plan, navItemPlanFeature(item.id), isAdmin);
 
   const handleSelect = (item: AppNavItem) => {
     if (isItemLocked(item)) {
@@ -309,7 +325,7 @@ export default function AppTopNav({
     }
 
     return (
-      <NavCasaMobileSection
+      <NavGroupMobileSection
         key={key}
         label={entry.label}
         icon={entry.icon}
@@ -335,7 +351,7 @@ export default function AppTopNav({
     }
 
     return (
-      <NavCasaDropdown
+      <NavGroupDropdown
         key={key}
         label={entry.label}
         icon={entry.icon}
@@ -343,6 +359,7 @@ export default function AppTopNav({
         activeTab={activeTab}
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
+        menuLabel={entry.type === 'casa' ? 'Módulos da casa' : 'Módulos financeiros'}
       />
     );
   };
@@ -378,7 +395,7 @@ export default function AppTopNav({
                 {terreiroNome}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-medium text-primary">{subtitle}</p>
-              {!mobileOpen && (activeCasaItem || activeItem) ? (
+              {!mobileOpen && (activeCasaItem || activeFinancialItem || activeItem) ? (
                 <p className="mt-1.5 flex items-center gap-1 lg:hidden">
                   <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                     {activeCasaItem ? (
@@ -386,6 +403,13 @@ export default function AppTopNav({
                         <Landmark className="h-3 w-3 shrink-0" aria-hidden />
                         <span className="truncate">
                           Casa · {activeCasaItem.label}
+                        </span>
+                      </>
+                    ) : activeFinancialItem ? (
+                      <>
+                        <PieChart className="h-3 w-3 shrink-0" aria-hidden />
+                        <span className="truncate">
+                          Financeiro · {activeFinancialItem.label}
                         </span>
                       </>
                     ) : activeItem ? (

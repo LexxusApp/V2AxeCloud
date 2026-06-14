@@ -8,6 +8,7 @@ import { Session } from '@supabase/supabase-js';
 import { Loader2, ShieldAlert, Bell } from 'lucide-react';
 import { cn } from './lib/utils';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
+import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
 
 // === Fase 2: Code splitting ===
@@ -1320,13 +1321,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       subscription: true
     };
 
-    const isFeatureRestricted = !featureAccess[activeTab as keyof typeof featureAccess];
+    const featureKey = isFinancialNavTab(activeTab) ? 'financial' : activeTab;
+    const isFeatureRestricted = !featureAccess[featureKey as keyof typeof featureAccess];
 
     if (isFeatureRestricted) {
-      const requiredPlan = activeTab === 'financial' || activeTab === 'store' ? 'Fundamento' : 'Orô';
+      const requiredPlan = isFinancialNavTab(activeTab) || activeTab === 'store' ? 'Fundamento' : 'Orô';
       return (
         <Paywall 
-          featureName={activeTab === 'financial' ? 'Financeiro' : activeTab === 'store' ? 'Loja do Axé' : activeTab === 'gallery' ? 'Galeria' : activeTab === 'inventory' ? 'Almoxarifado' : 'Biblioteca'} 
+          featureName={isFinancialNavTab(activeTab) ? 'Financeiro' : activeTab === 'store' ? 'Loja do Axé' : activeTab === 'gallery' ? 'Galeria' : activeTab === 'inventory' ? 'Almoxarifado' : 'Biblioteca'} 
           requiredPlan={requiredPlan}
           onUpgrade={() => navigateToTab('subscription')}
         />
@@ -1351,8 +1353,20 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       case 'mural':
         /* Neste ramo o usuário nunca é filho (filho tem switch próprio acima) — sempre gestão do terreiro */
         return <NoticeBoard isAdmin tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'financial': 
-        return <Financial userRole={userRole} userId={session.user.id} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} isSessionReady={isSessionReady} />;
+      case 'financial':
+      case 'financial-mensalidades':
+      case 'financial-configs':
+        return (
+          <Financial
+            userRole={userRole}
+            userId={session.user.id}
+            tenantData={tenantData}
+            isAdminGlobal={isAdminGlobal}
+            setActiveTab={navigateToTab}
+            isSessionReady={isSessionReady}
+            initialView={financialSubviewFromTab(activeTab)}
+          />
+        );
       case 'settings': 
         return <Settings user={session.user} session={session} onRefresh={refreshAllData} tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'library':

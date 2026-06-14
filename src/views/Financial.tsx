@@ -18,6 +18,7 @@ import {
   appLabelClass,
 } from '../components/ui/appDemoUi';
 import { hasPlanAccess, canonicalPlanSlug } from '../constants/plans';
+import type { FinancialSubview } from '../constants/appNav';
 import {
   countsTowardSaldo,
   normalizeMovimentoTipo,
@@ -167,9 +168,18 @@ interface FinancialProps {
   isAdminGlobal?: boolean;
   setActiveTab: (tab: string) => void;
   isSessionReady?: boolean;
+  initialView?: FinancialSubview;
 }
 
-export default function Financial({ userRole, userId, tenantData, isAdminGlobal, setActiveTab, isSessionReady = false }: FinancialProps) {
+export default function Financial({
+  userRole,
+  userId,
+  tenantData,
+  isAdminGlobal,
+  setActiveTab,
+  isSessionReady = false,
+  initialView = 'overview',
+}: FinancialProps) {
   // Não-filhos são sempre gestores do terreiro (admin, vita, cortesia, premium, oro, axe).
   // O plano controla QUAIS funções de gestão estão disponíveis (via hasPlanAccess), não SE o usuário é gestor.
   const isAdmin = userRole !== 'filho';
@@ -183,7 +193,11 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [children, setChildren] = useState<any[]>([]);
-  const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'caixinha' | 'configs'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'caixinha' | 'configs'>(initialView);
+
+  useEffect(() => {
+    setActiveView(initialView);
+  }, [initialView]);
   const [mensalidadesTab, setMensalidadesTab] = useState<'pendentes' | 'pagas'>('pendentes');
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
@@ -817,17 +831,34 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
     );
   }
 
+  const pageHeader = isAdmin
+    ? activeView === 'mensalidades'
+      ? {
+          title: 'Controle de Mensalidades',
+          description:
+            'Use Pendentes e Pagas. Ao marcar como pago, o item sai de pendentes e aparece em pagas na hora.',
+        }
+      : activeView === 'configs'
+        ? {
+            title: 'Configurações Pix',
+            description: 'Defina chave Pix, valor padrão da mensalidade e dia de vencimento do terreiro.',
+          }
+        : {
+            title: 'Financeiro do terreiro',
+            description: 'Entradas, saídas e saldo em tempo real — com Pix e mensalidades integrados.',
+          }
+    : {
+        title: 'Meu financeiro',
+        description: 'Acompanhe suas contribuições e mensalidades.',
+      };
+
   return (
     <AppPageShell>
       <AppDemoPanelHeader
-        title={isAdmin ? 'Financeiro do terreiro' : 'Meu financeiro'}
-        description={
-          isAdmin
-            ? 'Entradas, saídas e saldo em tempo real — com Pix e mensalidades integrados.'
-            : 'Acompanhe suas contribuições e mensalidades.'
-        }
+        title={pageHeader.title}
+        description={pageHeader.description}
         action={
-          isAdmin ? (
+          isAdmin && activeView === 'overview' ? (
             <button
               type="button"
               onClick={handleDownloadReport}
@@ -842,56 +873,6 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
           ) : null
         }
       />
-
-      {isAdmin ? (
-        <div className="mb-6 flex min-h-[44px] w-full max-w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button"
-            onClick={() => setActiveView('overview')}
-            className={cn(
-              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
-              activeView === 'overview' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
-            )}
-          >
-            Visão geral
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('mensalidades')}
-            className={cn(
-              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
-              activeView === 'mensalidades' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
-            )}
-          >
-            Mensalidades
-          </button>
-          {hasCaixinhaAccess ? (
-            <button
-              type="button"
-              onClick={() => setActiveView('caixinha')}
-              className={cn(
-                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
-                activeView === 'caixinha' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
-              )}
-            >
-              Caixinha do Axé
-              {pendingDonations.length > 0 ? (
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-500" />
-              ) : null}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setActiveView('configs')}
-            className={cn(
-              'shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all sm:px-4 sm:py-2.5',
-              activeView === 'configs' ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
-            )}
-          >
-            Configurações
-          </button>
-        </div>
-      ) : null}
 
       <div className="space-y-6">
         {activeView === 'overview' ? (
@@ -1134,18 +1115,11 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
             <AppDemoCard>
-              <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="text-2xl font-black leading-tight text-white sm:text-2xl">Controle de Mensalidades</h3>
-                  <p className="mt-1 max-w-lg text-sm font-medium leading-relaxed text-gray-400">
-                    Use as abas <span className="text-white/80">Pendentes</span> e <span className="text-white/80">Pagas</span>.
-                    Ao marcar como pago, o item sai de pendentes e aparece em pagas na hora.
-                  </p>
-                </div>
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
                 <div
                   role="tablist"
                   aria-label="Mensalidades por status"
-                  className="flex shrink-0 rounded-xl border border-white/10 bg-black/30 p-1"
+                  className="flex shrink-0 rounded-xl border border-[#1E242B] bg-[#12161A] p-1"
                 >
                   <button
                     type="button"
@@ -1154,10 +1128,10 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                     id="tab-mensalidades-pendentes"
                     onClick={() => setMensalidadesTab('pendentes')}
                     className={cn(
-                      'rounded-lg px-4 py-2 text-xs font-black uppercase tracking-widest transition-all sm:px-5 sm:text-sm',
+                      'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
                       mensalidadesTab === 'pendentes'
-                        ? 'bg-primary text-background shadow-lg'
-                        : 'text-gray-500 hover:text-white'
+                        ? 'bg-primary text-[#080A0D] shadow-sm'
+                        : 'text-[#94A3B8] hover:text-[#F1F5F9]',
                     )}
                   >
                     Pendentes
@@ -1169,10 +1143,10 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                     id="tab-mensalidades-pagas"
                     onClick={() => setMensalidadesTab('pagas')}
                     className={cn(
-                      'rounded-lg px-4 py-2 text-xs font-black uppercase tracking-widest transition-all sm:px-5 sm:text-sm',
+                      'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
                       mensalidadesTab === 'pagas'
-                        ? 'bg-primary text-background shadow-lg'
-                        : 'text-gray-500 hover:text-white'
+                        ? 'bg-primary text-[#080A0D] shadow-sm'
+                        : 'text-[#94A3B8] hover:text-[#F1F5F9]',
                     )}
                   >
                     Pagas
@@ -1181,7 +1155,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               </div>
 
               {mensalidadesLoading && (
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-400">
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#94A3B8]">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   Atualizando lista…
                 </div>
@@ -1190,10 +1164,10 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               {mensalidadesTab === 'pendentes' ? (
                 <div role="tabpanel" aria-labelledby="tab-mensalidades-pendentes">
                   {mensalidadesPendentes.length === 0 && !mensalidadesLoading ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] px-6 py-14 text-center">
-                      <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-500" aria-hidden />
-                      <p className="text-lg font-black text-white">Tudo em dia!</p>
-                      <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-gray-400">
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-950/30 px-6 py-14 text-center">
+                      <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-400" aria-hidden />
+                      <p className="text-lg font-bold text-[#F1F5F9]">Tudo em dia!</p>
+                      <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94A3B8]">
                         Nenhuma mensalidade pendente para este período.
                       </p>
                     </div>
@@ -1206,16 +1180,16 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                           const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
                           const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
                           return (
-                            <div key={row.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
+                            <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
                               <div className="mb-3 flex items-start justify-between gap-3">
-                                <h4 className="min-w-0 flex-1 text-base font-black leading-snug text-white">{nome}</h4>
-                                <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-400">
+                                <h4 className="min-w-0 flex-1 text-base font-bold leading-snug text-[#F1F5F9]">{nome}</h4>
+                                <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-950/50 px-2.5 py-1 text-[10px] font-bold text-amber-300">
                                   Pendente
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                 <label className="space-y-1.5">
-                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Valor (R$)</span>
+                                  <span className={appLabelClass}>Valor (R$)</span>
                                   <input
                                     type="number"
                                     step="0.01"
@@ -1223,12 +1197,12 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                                     onChange={(e) =>
                                       setMensalidadesValorEdits((prev) => ({ ...prev, [row.id]: e.target.value }))
                                     }
-                                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-bold text-white outline-none focus:border-primary"
+                                    className={appInputClass}
                                   />
                                 </label>
                                 <div className="space-y-1.5">
-                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Vencimento</span>
-                                  <p className="flex h-11 items-center rounded-lg border border-white/5 bg-black/30 px-3 text-xs font-bold text-gray-300">
+                                  <span className={appLabelClass}>Vencimento</span>
+                                  <p className="flex h-10 items-center rounded-xl border border-[#1E242B] bg-[#13171D] px-3 text-xs font-bold text-[#94A3B8]">
                                     {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                   </p>
                                 </div>
@@ -1237,7 +1211,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                                 <button
                                   type="button"
                                   onClick={() => void handleMensalidadeLiquidar(row)}
-                                  className="h-10 rounded-lg bg-white/10 text-xs font-black text-white transition-all hover:bg-white/20"
+                                  className="h-10 rounded-xl border border-[#1E242B] bg-[#13171D] text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
                                 >
                                   Pago
                                 </button>
@@ -1261,27 +1235,28 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                         })}
                       </div>
 
-                      <div className="hidden overflow-x-auto sm:block">
-                        <table className="w-full border-collapse text-left">
+                      <div className="hidden sm:block">
+                        <AppDemoTableShell>
+                        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                           <thead>
-                            <tr className="border-b border-white/5">
-                              <th className="pb-4 text-xs font-black uppercase tracking-widest text-gray-500">Filho</th>
-                              <th className="pb-4 text-xs font-black uppercase tracking-widest text-gray-500">Valor (R$)</th>
-                              <th className="pb-4 text-xs font-black uppercase tracking-widest text-gray-500">Vencimento</th>
-                              <th className="pb-4 text-xs font-black uppercase tracking-widest text-gray-500">Status</th>
-                              <th className="pb-4 text-right text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
+                            <tr className="border-b border-[#1E242B] bg-[#12161A]">
+                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Filho</th>
+                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Valor (R$)</th>
+                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Vencimento</th>
+                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Status</th>
+                              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Ações</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5">
+                          <tbody className="divide-y divide-[#1E242B]">
                             {mensalidadesPendentes.map((row) => {
                               const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                               const fid = row.filho_id || '';
                               const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
                               const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
                               return (
-                                <tr key={row.id} className="group transition-colors hover:bg-white/[0.02]">
-                                  <td className="py-4 font-bold text-white">{nome}</td>
-                                  <td className="py-4">
+                                <tr key={row.id} className="transition-colors hover:bg-[#12161A]/60">
+                                  <td className="px-4 py-3 font-bold text-[#F1F5F9]">{nome}</td>
+                                  <td className="px-4 py-3">
                                     <input
                                       type="number"
                                       step="0.01"
@@ -1289,22 +1264,22 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                                       onChange={(e) =>
                                         setMensalidadesValorEdits((prev) => ({ ...prev, [row.id]: e.target.value }))
                                       }
-                                      className="w-28 rounded-lg border border-border bg-background px-3 py-2 text-sm font-bold text-white outline-none focus:border-primary"
+                                      className={cn(appInputClass, 'w-28')}
                                     />
                                   </td>
-                                  <td className="py-4 text-sm font-medium text-gray-300">
+                                  <td className="px-4 py-3 text-sm font-medium text-[#94A3B8]">
                                     {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                   </td>
-                                  <td className="py-4">
-                                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-amber-400">
+                                  <td className="px-4 py-3">
+                                    <span className="rounded-full border border-amber-500/30 bg-amber-950/50 px-3 py-1 text-[10px] font-bold text-amber-300">
                                       Pendente
                                     </span>
                                   </td>
-                                  <td className="space-x-2 py-4 text-right">
+                                  <td className="space-x-2 px-4 py-3 text-right">
                                     <button
                                       type="button"
                                       onClick={() => void handleMensalidadeLiquidar(row)}
-                                      className="rounded-lg bg-white/10 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-white/20"
+                                      className="rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
                                     >
                                       Pago
                                     </button>
@@ -1326,6 +1301,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                             })}
                           </tbody>
                         </table>
+                        </AppDemoTableShell>
                       </div>
                     </>
                   )}
@@ -1333,7 +1309,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               ) : (
                 <div className="space-y-4" role="tabpanel" aria-labelledby="tab-mensalidades-pagas">
                   {mensalidadesPagas.length === 0 && !mensalidadesLoading ? (
-                    <p className="rounded-xl border border-white/5 bg-white/[0.03] py-10 text-center text-sm font-medium text-gray-500">
+                    <p className="rounded-xl border border-[#1E242B] bg-[#12161A] py-10 text-center text-sm text-[#94A3B8]">
                       Nenhuma mensalidade paga registrada no mês atual.
                     </p>
                   ) : (
@@ -1343,25 +1319,25 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                           const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                           const pay = String(row.data || '').slice(0, 10);
                           return (
-                            <div key={row.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
+                            <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
                               <div className="mb-3 flex items-start justify-between gap-3">
-                                <h4 className="min-w-0 flex-1 text-base font-black leading-snug text-white">{nome}</h4>
-                                <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                                <h4 className="min-w-0 flex-1 text-base font-bold leading-snug text-[#F1F5F9]">{nome}</h4>
+                                <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2.5 py-1 text-[10px] font-bold text-emerald-300">
                                   Pago
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Valor</span>
-                                  <p className="mt-1 font-black text-emerald-400">
+                                  <span className={appLabelClass}>Valor</span>
+                                  <p className="mt-1 font-bold text-emerald-400">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                       Number(row.valor) || 0
                                     )}
                                   </p>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Pagamento</span>
-                                  <p className="mt-1 font-bold text-gray-300">
+                                  <span className={appLabelClass}>Pagamento</span>
+                                  <p className="mt-1 font-bold text-[#94A3B8]">
                                     {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                   </p>
                                 </div>
@@ -1369,7 +1345,7 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                               <button
                                 type="button"
                                 onClick={() => void handleMensalidadeEstornar(row)}
-                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs font-black text-rose-400 transition-colors hover:bg-rose-500/20"
+                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60"
                               >
                                 <Undo2 className="h-3.5 w-3.5" />
                                 Estornar pagamento
@@ -1379,46 +1355,48 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                         })}
                       </div>
 
-                      <div className="hidden overflow-x-auto rounded-xl border border-white/5 sm:block">
-                        <table className="w-full border-collapse text-left">
-                          <thead>
-                            <tr className="border-b border-white/5 bg-white/[0.03]">
-                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Filho</th>
-                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Valor</th>
-                              <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Data do pagamento</th>
-                              <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {mensalidadesPagas.map((row) => {
-                              const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                              const pay = String(row.data || '').slice(0, 10);
-                              return (
-                                <tr key={row.id}>
-                                  <td className="px-4 py-3 font-bold text-white">{nome}</td>
-                                  <td className="px-4 py-3 text-sm font-black text-emerald-400">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                      Number(row.valor) || 0
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-300">
-                                    {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                  </td>
-                                  <td className="px-4 py-3 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleMensalidadeEstornar(row)}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-black text-rose-400 transition-colors hover:bg-rose-500/20"
-                                    >
-                                      <Undo2 className="h-3.5 w-3.5" />
-                                      Estornar
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <div className="hidden sm:block">
+                        <AppDemoTableShell>
+                          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-[#1E242B] bg-[#12161A]">
+                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Filho</th>
+                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Valor</th>
+                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Data do pagamento</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#1E242B]">
+                              {mensalidadesPagas.map((row) => {
+                                const nome = row.filhos_de_santo?.nome || 'Filho de santo';
+                                const pay = String(row.data || '').slice(0, 10);
+                                return (
+                                  <tr key={row.id} className="transition-colors hover:bg-[#12161A]/60">
+                                    <td className="px-4 py-3 font-bold text-[#F1F5F9]">{nome}</td>
+                                    <td className="px-4 py-3 text-sm font-bold text-emerald-400">
+                                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                        Number(row.valor) || 0
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-[#94A3B8]">
+                                      {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleMensalidadeEstornar(row)}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60"
+                                      >
+                                        <Undo2 className="h-3.5 w-3.5" />
+                                        Estornar
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </AppDemoTableShell>
                       </div>
                     </>
                   )}
@@ -1529,38 +1507,39 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto space-y-8">
+            <div className="mx-auto max-w-2xl">
               <AppDemoCard className="space-y-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Smartphone className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+                    <Smartphone className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-white leading-tight">Configurações de Recebimento</h3>
-                    <p className="text-xs text-gray-500 font-medium">Defina sua chave Pix para mensalidades e doações.</p>
+                    <h4 className="text-sm font-bold text-[#F1F5F9]">Recebimento via Pix</h4>
+                    <p className="text-xs text-[#94A3B8]">Chave Pix, valor padrão da mensalidade e vencimento mensal.</p>
                   </div>
                 </div>
                 <form onSubmit={handleSavePixConfig} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.15em] ml-0.5">Mensalidade Padrão</label>
+                      <label className={appLabelClass}>Mensalidade padrão</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">R$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#94A3B8]">R$</span>
                         <input
-                          type="number" step="0.01"
+                          type="number"
+                          step="0.01"
                           value={pixConfig.valor_mensalidade}
-                          onChange={(e) => setPixConfig({...pixConfig, valor_mensalidade: e.target.value})}
-                          className="w-full bg-background border border-white/5 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm font-bold focus:border-primary outline-none transition-all"
+                          onChange={(e) => setPixConfig({ ...pixConfig, valor_mensalidade: e.target.value })}
+                          className={cn(appInputClass, 'pl-9')}
                           placeholder="89,90"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.15em] ml-0.5">Tipo de Chave</label>
+                      <label className={appLabelClass}>Tipo de chave</label>
                       <select
                         value={pixConfig.tipo_chave}
-                        onChange={(e) => setPixConfig({...pixConfig, tipo_chave: e.target.value})}
-                        className="w-full bg-background border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm font-bold focus:border-primary outline-none transition-all [&>option]:bg-[#1B1C1C]"
+                        onChange={(e) => setPixConfig({ ...pixConfig, tipo_chave: e.target.value })}
+                        className={cn(appInputClass, '[&>option]:bg-[#13171D]')}
                       >
                         <option value="cpf">CPF</option>
                         <option value="cnpj">CNPJ</option>
@@ -1571,51 +1550,47 @@ export default function Financial({ userRole, userId, tenantData, isAdminGlobal,
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.15em] ml-0.5">Chave Pix</label>
+                    <label className={appLabelClass}>Chave Pix</label>
                     <input
                       type="text"
                       value={pixConfig.chave_pix}
-                      onChange={(e) => setPixConfig({...pixConfig, chave_pix: e.target.value})}
-                      className="w-full bg-background border border-white/5 rounded-xl px-4 py-2.5 text-white text-sm font-bold focus:border-primary outline-none transition-all"
-                      placeholder="Sua chave pix aqui..."
+                      onChange={(e) => setPixConfig({ ...pixConfig, chave_pix: e.target.value })}
+                      className={appInputClass}
+                      placeholder="Sua chave Pix"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.15em] ml-0.5">Nome do Beneficiário</label>
+                      <label className={appLabelClass}>Nome do beneficiário</label>
                       <input
                         type="text"
                         value={pixConfig.nome_beneficiario}
-                        onChange={(e) => setPixConfig({...pixConfig, nome_beneficiario: e.target.value})}
-                        className="w-full bg-background border border-white/5 rounded-xl px-4 py-2.5 text-white text-sm font-bold focus:border-primary outline-none transition-all"
-                        placeholder="Nome completo ou Razão Social"
+                        onChange={(e) => setPixConfig({ ...pixConfig, nome_beneficiario: e.target.value })}
+                        className={appInputClass}
+                        placeholder="Nome completo ou razão social"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.15em] ml-0.5">Dia de Vencimento</label>
+                      <label className={appLabelClass}>Dia de vencimento</label>
                       <div className="relative">
                         <input
                           type="number"
                           min="1"
                           max="31"
                           value={pixConfig.dia_vencimento}
-                          onChange={(e) => setPixConfig({...pixConfig, dia_vencimento: e.target.value})}
-                          className="w-full bg-background border border-white/5 rounded-xl px-4 py-2.5 text-white text-sm font-bold focus:border-primary outline-none transition-all"
+                          onChange={(e) => setPixConfig({ ...pixConfig, dia_vencimento: e.target.value })}
+                          className={appInputClass}
                           placeholder="10"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-600 font-bold">/ mês</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#64748B]">/ mês</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-end pt-1">
-                    <button
-                      type="submit"
-                      disabled={isSavingPix}
-                      className="inline-flex items-center gap-2 bg-primary text-background px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
-                    >
-                      {isSavingPix ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      {isSavingPix ? 'Salvando...' : 'Salvar'}
-                    </button>
+                  <div className="flex justify-end pt-2">
+                    <AppPrimaryButton type="submit" disabled={isSavingPix} className="inline-flex items-center gap-2">
+                      {isSavingPix ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {isSavingPix ? 'Salvando…' : 'Salvar configurações'}
+                    </AppPrimaryButton>
                   </div>
                 </form>
               </AppDemoCard>

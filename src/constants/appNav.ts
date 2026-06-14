@@ -14,6 +14,7 @@ import {
   PieChart,
   Settings as SettingsIcon,
   ShoppingBag,
+  Smartphone,
   User,
   UserCircle,
   Wallet,
@@ -30,9 +31,37 @@ export type AppNavItem = {
 /** Módulos agrupados no menu «Casa» (zelador). */
 export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'mural'] as const;
 
+/** Sub-rotas do menu «Financeiro» (zelador). */
+export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
+
+export const ZELADOR_FINANCIAL_ITEMS: AppNavItem[] = [
+  { id: 'financial', label: 'Visão geral', icon: PieChart },
+  { id: 'financial-mensalidades', label: 'Mensalidades', icon: Wallet },
+  { id: 'financial-configs', label: 'Configurações Pix', icon: Smartphone },
+];
+
 export type ZeladorNavEntry =
   | { type: 'item'; item: AppNavItem }
-  | { type: 'casa'; label: string; icon: LucideIcon; items: AppNavItem[] };
+  | { type: 'casa'; label: string; icon: LucideIcon; items: AppNavItem[] }
+  | { type: 'financial'; label: string; icon: LucideIcon; items: AppNavItem[] };
+
+/** Mapeia id de navegação para feature de plano (sub-rotas do financeiro → `financial`). */
+export function navItemPlanFeature(itemId: string): string {
+  if (itemId === 'financial' || itemId.startsWith('financial-')) return 'financial';
+  return itemId;
+}
+
+export type FinancialSubview = 'overview' | 'mensalidades' | 'configs';
+
+export function isFinancialNavTab(tab: string): boolean {
+  return tab === 'financial' || tab.startsWith('financial-');
+}
+
+export function financialSubviewFromTab(tab: string): FinancialSubview {
+  if (tab === 'financial-mensalidades') return 'mensalidades';
+  if (tab === 'financial-configs') return 'configs';
+  return 'overview';
+}
 
 const ZELADOR_CORE: AppNavItem[] = [
   { id: 'dashboard', label: 'Início', icon: Home, filledWhenActive: true },
@@ -62,7 +91,7 @@ export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {
   return [...beforeStore, ...tradition, ...storeAndAfter];
 }
 
-/** Menu do zelador com grupo «Casa» (Filhos, Giras, Mural) para caber sem scroll horizontal. */
+/** Menu do zelador com grupos «Casa» e «Financeiro» para caber sem scroll horizontal. */
 export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntry[] {
   const items = buildZeladorNavItems(tradicao);
   const casaSet = new Set<string>(ZELADOR_CASA_CHILD_IDS);
@@ -86,10 +115,29 @@ export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntr
       }
       continue;
     }
+    if (item.id === 'financial') {
+      entries.push({
+        type: 'financial',
+        label: 'Financeiro',
+        icon: PieChart,
+        items: ZELADOR_FINANCIAL_ITEMS,
+      });
+      continue;
+    }
     entries.push({ type: 'item', item });
   }
 
   return entries;
+}
+
+/** Todos os itens selecionáveis (inclui filhos de grupos) para breadcrumb e estado ativo. */
+export function flattenZeladorNavEntries(entries: ZeladorNavEntry[]): AppNavItem[] {
+  const flat: AppNavItem[] = [];
+  for (const entry of entries) {
+    if (entry.type === 'item') flat.push(entry.item);
+    else flat.push(...entry.items);
+  }
+  return flat;
 }
 
 export const FILHO_NAV: AppNavItem[] = [
