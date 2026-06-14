@@ -601,6 +601,9 @@ async function syncMensalidadesPendentes(
   userId: string,
   tenantId: string
 ): Promise<{ created: number }> {
+  const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, tenantId);
+  if (!ativa) return { created: 0 };
+
   const resolvedTenant = await resolveLeaderId(tenantId);
   let dia = 10;
   let valorPadrao = 89.9;
@@ -882,11 +885,13 @@ const SUPABASE_SERVER_KEY =
 let supabaseAdmin: any;
 let pixSupportsValorMensalidade = true;
 let pixSupportsDiaVencimento = true;
+let pixSupportsMensalidadeAtiva = true;
 
 function getPixConfigSelectClause() {
   const baseColumns = ['id', 'terreiro_id', 'chave_pix', 'tipo_chave', 'nome_beneficiario'];
   if (pixSupportsValorMensalidade) baseColumns.push('valor_mensalidade');
   if (pixSupportsDiaVencimento) baseColumns.push('dia_vencimento');
+  if (pixSupportsMensalidadeAtiva) baseColumns.push('mensalidade_ativa');
   return baseColumns.join(', ');
 }
 
@@ -894,7 +899,35 @@ function sanitizePixConfigData(configData: any) {
   const sanitized = { ...configData };
   if (!pixSupportsValorMensalidade) delete sanitized.valor_mensalidade;
   if (!pixSupportsDiaVencimento) delete sanitized.dia_vencimento;
+  if (!pixSupportsMensalidadeAtiva) delete sanitized.mensalidade_ativa;
   return sanitized;
+}
+
+async function isMensalidadeAtivaForTenant(
+  supabaseAdmin: any,
+  resolveLeaderId: (id: string) => Promise<string>,
+  tenantId: string,
+): Promise<boolean> {
+  const resolvedTenant = await resolveLeaderId(tenantId);
+  let selectCols = 'mensalidade_ativa';
+  if (pixSupportsMensalidadeAtiva) {
+    const { data: pix, error } = await supabaseAdmin
+      .from('configuracoes_pix')
+      .select(selectCols)
+      .or(`terreiro_id.eq.${resolvedTenant},terreiro_id.eq.${tenantId}`)
+      .maybeSingle();
+    if (error) {
+      const msg = String(error.message || '').toLowerCase();
+      if (msg.includes('mensalidade_ativa') && (msg.includes('does not exist') || msg.includes('schema cache'))) {
+        pixSupportsMensalidadeAtiva = false;
+        return true;
+      }
+      throw error;
+    }
+    if (!pix) return true;
+    return (pix as { mensalidade_ativa?: boolean }).mensalidade_ativa !== false;
+  }
+  return true;
 }
 
 function slugifyStoragePath(str: string) {
@@ -1950,7 +1983,7 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { terreiro_id, chave_pix, tipo_chave, nome_beneficiario, valor_mensalidade, dia_vencimento } = req.body;
+      const { terreiro_id, chave_pix, tipo_chave, nome_beneficiario, valor_mensalidade, dia_vencimento, mensalidade_ativa } = req.body;
       if (!terreiro_id) return res.status(400).json({ error: "terreiro_id required" });
 
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(terreiro_id));
@@ -1963,6 +1996,7 @@ async function startServer() {
         const dia = parseInt(dia_vencimento);
         if (dia >= 1 && dia <= 31) configData.dia_vencimento = dia;
       }
+      if (mensalidade_ativa !== undefined) configData.mensalidade_ativa = mensalidade_ativa !== false;
 
       const sanitizedConfigData = sanitizePixConfigData(configData);
       const { data: existing } = await supabaseAdmin
@@ -2007,9 +2041,6 @@ async function startServer() {
       }
 
       const resolvedTenant = await resolveLeaderId(tenant_id as string);
-      const okTenant = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenant_id));
-      if (!okTenant) return res.status(403).json({ error: "Acesso negado" });
-
       const sameHouse =
         child.tenant_id === tenant_id ||
         child.tenant_id === resolvedTenant ||
@@ -2018,6 +2049,11 @@ async function startServer() {
         child.lider_id === resolvedTenant;
       if (!sameHouse) {
         return res.status(403).json({ error: "Sem permissão para confirmar este pagamento" });
+      }
+
+      const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, String(tenant_id));
+      if (!ativa) {
+        return res.status(403).json({ error: "Cobrança de mensalidade desativada neste terreiro" });
       }
 
       const paymentDate = new Date().toISOString().split("T")[0];
@@ -2089,6 +2125,10 @@ async function startServer() {
       if (!tenant_id) return res.status(400).json({ error: "tenant_id obrigatório" });
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
       if (!ok) return res.status(403).json({ error: "Sem permissão" });
+      const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, tenant_id);
+      if (!ativa) {
+        return res.json({ success: true, created: 0, mensalidade_ativa: false });
+      }
       const { created } = await syncMensalidadesPendentes(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
       console.info("[SERVER] mensalidades/sync-pendentes: created =", created, "tenant =", tenant_id);
       res.json({ success: true, created });

@@ -195,6 +195,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   const [copiedPix, setCopiedPix] = useState(false);
   /** Dia de vencimento configurado pelo zelador (Pix / financeiro). */
   const [diaVencimentoMensalidade, setDiaVencimentoMensalidade] = useState(10);
+  const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
 
   // Fallback para quando os dados do banco ainda estão carregando
   // Priorizamos user_metadata.nome que é onde o servidor salvou o nome oficial do filho
@@ -355,6 +356,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         return;
       }
       const { data } = await res.json();
+      setMensalidadeAtiva(data?.mensalidade_ativa !== false);
       if (data?.dia_vencimento != null && data.dia_vencimento !== '') {
         setDiaVencimentoMensalidade(parseInt(String(data.dia_vencimento), 10) || 10);
       }
@@ -387,6 +389,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       setPixConfig(null);
       setLoadingPix(false);
       setDiaVencimentoMensalidade(10);
+      setMensalidadeAtiva(true);
       return;
     }
     setPixFetched(false);
@@ -555,8 +558,11 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">Mensalidade</p>
-              <h2 className="text-xl font-black text-white mt-1">Pagamento via PIX</h2>
+              <h2 className="text-xl font-black text-white mt-1">
+                {mensalidadeAtiva ? 'Pagamento via PIX' : 'Não habilitada'}
+              </h2>
             </div>
+            {mensalidadeAtiva ? (
             <button
               type="button"
               onClick={() => setActiveTab('financial')}
@@ -565,8 +571,18 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               Detalhes
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
+            ) : null}
           </div>
 
+          {!mensalidadeAtiva && pixFetched ? (
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+              <CheckCircle2 className="mb-3 h-10 w-10 text-primary" aria-hidden />
+              <p className="text-sm font-bold text-white">Seu terreiro não cobra mensalidade fixa</p>
+              <p className="mt-2 max-w-xs text-xs text-gray-500">
+                A zeladoria desativou este módulo. Contribuições podem ser combinadas diretamente com a diretoria.
+              </p>
+            </div>
+          ) : (
           <div className="flex flex-col sm:flex-row gap-6 flex-1">
             <div className="flex flex-col items-center sm:items-start gap-3">
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Valor</p>
@@ -635,6 +651,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               </button>
             </div>
           </div>
+          )}
         </section>
 
         <section className="rounded-[2rem] border border-white/10 bg-[#101010] p-5 sm:p-6 flex flex-col shadow-lg w-full min-h-0 min-w-0">

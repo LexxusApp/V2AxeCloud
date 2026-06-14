@@ -54,6 +54,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   const [loadingPix, setLoadingPix] = useState(false);
   const [pixFetched, setPixFetched] = useState(false);
   const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
 
   const tenantId = tenantData?.tenant_id;
   const userId = user?.id;
@@ -122,8 +123,10 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
         const { data: pixData } = await pixRes.json();
         if (pixData) {
+          const ativa = pixData.mensalidade_ativa !== false;
+          setMensalidadeAtiva(ativa);
           const configuredValue = Number(pixData.valor_mensalidade);
-          if (!Number.isNaN(configuredValue) && configuredValue > 0) {
+          if (!Number.isNaN(configuredValue) && configuredValue > 0 && ativa) {
             snapValor = configuredValue;
             setValorMensalidadeConfig(configuredValue);
             snapPending = {
@@ -133,6 +136,9 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
               status: 'pendente',
             };
             setPendingMensalidade(snapPending);
+          } else if (!ativa) {
+            snapPending = null;
+            setPendingMensalidade(null);
           }
           if (pixData.dia_vencimento) {
             snapDia = Number(pixData.dia_vencimento);
@@ -274,6 +280,24 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   }
 
   const pixNotConfigured = pixFetched && !loadingPix && !pixConfig?.chave_pix;
+
+  if (!loading && pixFetched && !mensalidadeAtiva) {
+    return (
+      <AppPageShell>
+        <AppDemoPanelHeader
+          title="Minhas mensalidades"
+          description="Seu terreiro não utiliza cobrança de mensalidade fixa no momento."
+        />
+        <AppDemoCard className="py-12 text-center">
+          <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-primary" aria-hidden />
+          <p className="text-sm font-bold text-[#F1F5F9]">Mensalidade não habilitada</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[#94A3B8]">
+            A zeladoria desativou a cobrança mensal neste terreiro. Se tiver dúvidas, fale diretamente com a diretoria da casa.
+          </p>
+        </AppDemoCard>
+      </AppPageShell>
+    );
+  }
 
   return (
     <AppPageShell>

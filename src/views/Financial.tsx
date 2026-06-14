@@ -210,9 +210,13 @@ export default function Financial({
     tipo_chave: 'cpf',
     nome_beneficiario: '',
     valor_mensalidade: '89.90',
-    dia_vencimento: '10'
+    dia_vencimento: '10',
+    mensalidade_ativa: true,
   });
   const [isSavingPix, setIsSavingPix] = useState(false);
+  const [isTogglingMensalidade, setIsTogglingMensalidade] = useState(false);
+
+  const mensalidadeAtiva = pixConfig.mensalidade_ativa !== false;
 
   // Caixinha state
   const [metas, setMetas] = useState<any[]>([]);
@@ -317,6 +321,7 @@ export default function Financial({
             nome_beneficiario: data.nome_beneficiario || '',
             valor_mensalidade: valorPadrao,
             dia_vencimento: String(dia),
+            mensalidade_ativa: data.mensalidade_ativa !== false,
           });
         }
       }
@@ -347,7 +352,7 @@ export default function Financial({
     if (!tenantId) return;
     setMensalidadesLoading(true);
     try {
-      const skipSync = opts?.skipSync === true;
+      const skipSync = opts?.skipSync === true || !mensalidadeAtiva;
       if (!skipSync) {
         await authFetch('/api/v1/financial/mensalidades/sync-pendentes', {
           method: 'POST',
@@ -376,7 +381,7 @@ export default function Financial({
     } finally {
       setMensalidadesLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, mensalidadeAtiva]);
 
   const mensalidadesPendentes = useMemo(
     () => mensalidades.filter((r) => mensalidadeRowIsPendenteForTabs(r)),
@@ -459,7 +464,8 @@ export default function Financial({
           tipo_chave: pixConfig.tipo_chave,
           nome_beneficiario: pixConfig.nome_beneficiario,
           valor_mensalidade: parseFloat(pixConfig.valor_mensalidade) || 0,
-          dia_vencimento: parseInt(pixConfig.dia_vencimento) || 10
+          dia_vencimento: parseInt(pixConfig.dia_vencimento) || 10,
+          mensalidade_ativa: pixConfig.mensalidade_ativa !== false,
         })
       });
       const result = await res.json();
@@ -673,7 +679,49 @@ export default function Financial({
     }
   }
 
+  async function handleToggleMensalidadeAtiva(enabled: boolean) {
+    if (!tenantId || isTogglingMensalidade) return;
+    setIsTogglingMensalidade(true);
+    const previous = pixConfig.mensalidade_ativa !== false;
+    setPixConfig((prev) => ({ ...prev, mensalidade_ativa: enabled }));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await authFetch('/api/v1/financial/pix-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          terreiro_id: tenantId,
+          chave_pix: pixConfig.chave_pix,
+          tipo_chave: pixConfig.tipo_chave,
+          nome_beneficiario: pixConfig.nome_beneficiario,
+          valor_mensalidade: parseFloat(pixConfig.valor_mensalidade) || 0,
+          dia_vencimento: parseInt(pixConfig.dia_vencimento) || 10,
+          mensalidade_ativa: enabled,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
+      if (!enabled) {
+        setMensalidades((prev) => prev.filter((r) => !mensalidadeRowIsPendenteForTabs(r)));
+      } else if (activeView === 'mensalidades') {
+        void refreshMensalidades();
+      }
+    } catch (error: any) {
+      setPixConfig((prev) => ({ ...prev, mensalidade_ativa: previous }));
+      alert(error?.message || 'Erro ao atualizar cobrança de mensalidade.');
+    } finally {
+      setIsTogglingMensalidade(false);
+    }
+  }
+
   async function handleGerarCobranca(childId: string, nome: string, competenciaIso: string, valorExibicao: string) {
+    if (!mensalidadeAtiva) {
+      alert('A cobrança de mensalidade está desativada neste terreiro.');
+      return;
+    }
     if (!hasMensalidadesAccess) {
       setIsUpgradeModalOpen(true);
       return;
@@ -835,8 +883,9 @@ export default function Financial({
     ? activeView === 'mensalidades'
       ? {
           title: 'Controle de Mensalidades',
-          description:
-            'Use Pendentes e Pagas. Ao marcar como pago, o item sai de pendentes e aparece em pagas na hora.',
+          description: mensalidadeAtiva
+            ? 'Use Pendentes e Pagas. Ao marcar como pago, o item sai de pendentes e aparece em pagas na hora.'
+            : 'Cobrança desativada — os filhos de santo não veem mensalidade no portal. Ative quando quiser voltar a cobrar.',
         }
       : activeView === 'configs'
         ? {
@@ -1115,7 +1164,43 @@ export default function Financial({
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
             <AppDemoCard>
-              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={mensalidadeAtiva}
+                    aria-label="Ativar ou desativar cobrança de mensalidade"
+                    disabled={isTogglingMensalidade}
+                    onClick={() => void handleToggleMensalidadeAtiva(!mensalidadeAtiva)}
+                    className={cn(
+                      'relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60',
+                      mensalidadeAtiva ? 'bg-primary' : 'bg-[#2F3643]',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 h-5 w-5 rounded-full bg-[#13171D] shadow-sm transition-transform',
+                        mensalidadeAtiva ? 'translate-x-[1.35rem]' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#F1F5F9]">
+                      Cobrança de mensalidade {mensalidadeAtiva ? 'ativa' : 'desativada'}
+                    </p>
+                    <p className="text-xs text-[#94A3B8]">
+                      {mensalidadeAtiva
+                        ? 'O sistema gera pendentes mensais e os filhos veem a cobrança no portal.'
+                        : 'Nenhuma mensalidade nova será gerada. Ideal para terreiros que não cobram contribuição fixa.'}
+                    </p>
+                  </div>
+                  {isTogglingMensalidade ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                  ) : null}
+                </div>
+
+                {mensalidadeAtiva ? (
                 <div
                   role="tablist"
                   aria-label="Mensalidades por status"
@@ -1152,16 +1237,27 @@ export default function Financial({
                     Pagas
                   </button>
                 </div>
+                ) : null}
               </div>
 
-              {mensalidadesLoading && (
+              {!mensalidadeAtiva ? (
+                <div className="rounded-xl border border-[#1E242B] bg-[#12161A] px-6 py-12 text-center">
+                  <p className="text-sm font-bold text-[#F1F5F9]">Mensalidade desativada</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-[#94A3B8]">
+                    Ative o interruptor acima quando quiser voltar a gerar cobranças e exibir o módulo aos filhos de santo.
+                    Pagamentos antigos continuam no financeiro em Visão geral.
+                  </p>
+                </div>
+              ) : null}
+
+              {mensalidadeAtiva && mensalidadesLoading && (
                 <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#94A3B8]">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   Atualizando lista…
                 </div>
               )}
 
-              {mensalidadesTab === 'pendentes' ? (
+              {mensalidadeAtiva && mensalidadesTab === 'pendentes' ? (
                 <div role="tabpanel" aria-labelledby="tab-mensalidades-pendentes">
                   {mensalidadesPendentes.length === 0 && !mensalidadesLoading ? (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-950/30 px-6 py-14 text-center">
@@ -1306,8 +1402,8 @@ export default function Financial({
                     </>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-4" role="tabpanel" aria-labelledby="tab-mensalidades-pagas">
+              ) : mensalidadeAtiva && mensalidadesTab === 'pagas' ? (
+                <div role="tabpanel" aria-labelledby="tab-mensalidades-pagas" className="space-y-4">
                   {mensalidadesPagas.length === 0 && !mensalidadesLoading ? (
                     <p className="rounded-xl border border-[#1E242B] bg-[#12161A] py-10 text-center text-sm text-[#94A3B8]">
                       Nenhuma mensalidade paga registrada no mês atual.
@@ -1401,7 +1497,7 @@ export default function Financial({
                     </>
                   )}
                 </div>
-              )}
+              ) : null}
             </AppDemoCard>
           ) : activeView === 'caixinha' ? (
             <div className="space-y-8">
