@@ -10,6 +10,8 @@ const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
 /** Membros / corrente: aviso de gira ou evento no calendário */
 const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
+/** Mural de avisos: novo comunicado publicado pelo zelador */
+const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
 
 export function resolveMetaTemplateLanguage(): string {
@@ -31,6 +33,9 @@ export function resolveMetaTemplateName(tipo: string): string {
   if (normalized === "aviso_gira") {
     return String(process.env.WA_META_TEMPLATE_AVISO_GIRA || "").trim() || AVISO_GIRA_TEMPLATE;
   }
+  if (normalized === "mural_aviso") {
+    return String(process.env.WA_META_TEMPLATE_MURAL_AVISO || "").trim() || MURAL_AVISO_TEMPLATE;
+  }
   if (normalized === "boas_vindas") {
     return (
       String(process.env.WA_META_TEMPLATE_BOAS_VINDAS || "").trim() || DEFAULT_TEMPLATE
@@ -49,6 +54,10 @@ export function isConviteEventoTemplate(tipo: string): boolean {
 
 export function isAvisoGiraTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo) === AVISO_GIRA_TEMPLATE;
+}
+
+export function isMuralAvisoTemplate(tipo: string): boolean {
+  return resolveMetaTemplateName(tipo) === MURAL_AVISO_TEMPLATE;
 }
 
 export function isBoasVindasTemplate(tipo: string): boolean {
@@ -208,6 +217,28 @@ export function buildBoasVindasComponents(
 }
 
 /**
+ * mural_aviso_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} título do aviso
+ * Botão URL estático (opcional no painel Meta): "Abrir AxéCloud" → https://axecloud.com.br/login
+ */
+export function buildMuralAvisoComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const titulo = String(variables?.titulo_aviso || variables?.titulo || "Novo aviso").trim() || "Novo aviso";
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(nomeMembro || "Membro"),
+        textParam(nomeTerreiro || "Terreiro"),
+        textParam(titulo, 120),
+      ],
+    },
+  ];
+}
+
+/**
  * aviso_geral_axecloud (fallback) — corpo: {{1}} membro, {{2}} terreiro ou sistema
  */
 export function buildMetaTemplateComponents(
@@ -237,6 +268,9 @@ export function buildMetaTemplateComponentsForTipo(
   }
   if (isBoasVindasTemplate(tipo)) {
     return buildBoasVindasComponents(nomeMembro, variables);
+  }
+  if (isMuralAvisoTemplate(tipo)) {
+    return buildMuralAvisoComponents(nomeMembro, nomeTerreiro, variables);
   }
   return buildMetaTemplateComponents(nomeMembro, nomeTerreiro);
 }
@@ -277,6 +311,11 @@ export function buildWhatsAppAuditMessage(
     const loginUrl = String(v.login_url || resolveLoginPublicUrl());
     const idPart = loginId ? ` · ID: ${loginId}` : "";
     return `Boas-vindas: ${nome} · ${loginUrl}${idPart} · CPF: 6 primeiros dígitos`;
+  }
+
+  if (normalized === "mural_aviso") {
+    const titulo = String(v.titulo_aviso || v.titulo || "Novo aviso");
+    return `Mural: ${nomeMembro} · ${nomeTerreiro} · "${titulo}"`;
   }
 
   return `[${tipo}] ${nomeMembro} · ${nomeTerreiro}`;

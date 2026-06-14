@@ -287,7 +287,11 @@ export async function dispatchMuralWhatsApp(
           nomeMembro,
           nomeTerreiro: terreiroNome,
           idTerreiro: ctx.idTerreiro,
-          variables: { nome_filho: nomeMembro, nome_terreiro: terreiroNome },
+          variables: {
+            nome_filho: nomeMembro,
+            nome_terreiro: terreiroNome,
+            titulo_aviso: titulo,
+          },
         });
         sent++;
       } catch (err) {
