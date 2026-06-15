@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Camera, CheckCircle, Loader2 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { TRADICAO_OPTIONS } from '../../lib/tradicaoModules';
 import { FounderHouseBadge } from '../founder/FounderHouseBadge';
 import { useFounderHouseStatus } from '../../hooks/useFounderHouseStatus';
 
@@ -45,6 +46,7 @@ type SettingsProfilePanelProps = {
   profile: Record<string, unknown> | null;
   onProfileChange: (next: Record<string, unknown>) => void;
   onRefresh?: (data?: { nome_terreiro?: string; foto_url?: string; cargo?: string | null }) => void | Promise<void>;
+  onOpenPortal?: () => void;
 };
 
 export function SettingsProfilePanel({
@@ -53,12 +55,14 @@ export function SettingsProfilePanel({
   profile,
   onProfileChange,
   onRefresh,
+  onOpenPortal,
 }: SettingsProfilePanelProps) {
   const { isFounderHouse, status: founderStatus, loading: founderLoading } = useFounderHouseStatus();
   const [profileName, setProfileName] = useState('');
   const [profileTerreiro, setProfileTerreiro] = useState('');
   const [profileCargo, setProfileCargo] = useState<string>(CARGO_OPTIONS[0]);
   const [profileFoto, setProfileFoto] = useState('');
+  const [tradicao, setTradicao] = useState('—');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -72,6 +76,17 @@ export function SettingsProfilePanel({
     setProfileCargo(CARGO_OPTIONS.includes(cargo as (typeof CARGO_OPTIONS)[number]) ? cargo : cargo || CARGO_OPTIONS[0]);
     setProfileFoto(String(profile.foto_url || ''));
   }, [profile]);
+
+  useEffect(() => {
+    void authFetch('/api/v1/settings/portal-consulente')
+      .then((res) => res.json())
+      .then((json) => {
+        const key = String(json.tradicao || 'mista');
+        const label = TRADICAO_OPTIONS.find((o) => o.value === key)?.label ?? 'Mista';
+        setTradicao(label);
+      })
+      .catch(() => setTradicao('Mista'));
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -210,9 +225,9 @@ export function SettingsProfilePanel({
 
       <div className="flex flex-col gap-2 border-b border-[#1E242B] pb-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Editar Perfil de Zeladoria</h6>
+          <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Perfil do Zelador e do Terreiro</h6>
           <p className="mt-0.5 text-[11px] font-light text-gray-400">
-            Altere as credenciais e assinaturas que representam o sacerdote principal da casa de caridade.
+            Nome litúrgico, identidade da casa e foto que aparecem no mural, financeiro e WhatsApp.
           </p>
         </div>
         <span className="shrink-0 rounded border border-[#3B82F6]/20 bg-blue-950/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[#3B82F6]">
@@ -246,6 +261,33 @@ export function SettingsProfilePanel({
               placeholder="Ex: Humaitá Luz do Amanhã"
               className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              Tradição / Linha Dominante
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={tradicao}
+              className="w-full cursor-default rounded-lg border border-[#1E242B] bg-[#12161A]/60 p-2.5 text-xs text-gray-400"
+            />
+            <p className="text-[10px] font-light text-gray-500">
+              Altere em{' '}
+              {onOpenPortal ? (
+                <button
+                  type="button"
+                  onClick={onOpenPortal}
+                  className="font-semibold text-cyan-400 hover:text-cyan-300"
+                >
+                  Portal do Consulente
+                </button>
+              ) : (
+                <span className="font-semibold text-cyan-400">Portal do Consulente</span>
+              )}
+              .
+            </p>
           </div>
 
           <div className="space-y-1">

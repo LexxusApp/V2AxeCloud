@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-export type SettingsSection = 'profile' | 'terreiro' | 'whatsapp' | 'subscription' | 'portal';
+export type SettingsSection = 'profile' | 'whatsapp' | 'subscription' | 'portal';
 
 type NavItem = {
   id: SettingsSection;
@@ -21,8 +21,7 @@ type NavItem = {
 };
 
 const ITEMS: NavItem[] = [
-  { id: 'profile', label: 'Perfil do Zelador', shortLabel: 'Perfil', icon: User, iconClass: 'text-[#3B82F6]', activeBorder: 'border-l-[#3B82F6]' },
-  { id: 'terreiro', label: 'Informações do Terreiro', shortLabel: 'Terreiro', icon: Globe, iconClass: 'text-cyan-400', activeBorder: 'border-l-cyan-400' },
+  { id: 'profile', label: 'Perfil e Terreiro', shortLabel: 'Perfil', icon: User, iconClass: 'text-[#3B82F6]', activeBorder: 'border-l-[#3B82F6]' },
   { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', icon: MessageSquare, iconClass: 'text-[#10B981]', activeBorder: 'border-l-[#10B981]' },
   { id: 'subscription', label: 'Assinatura', shortLabel: 'Plano', icon: CreditCard, iconClass: 'text-primary', activeBorder: 'border-l-primary' },
   { id: 'portal', label: 'Portal do Consulente', shortLabel: 'Portal', icon: Globe, iconClass: 'text-sky-400', activeBorder: 'border-l-sky-400' },

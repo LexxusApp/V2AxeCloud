@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { PortalConsulenteSettings } from '../components/settings/PortalConsulenteSettings';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
 import { SettingsSubNav, SettingsTabHeader, type SettingsSection } from '../components/settings/SettingsSubNav';
-import { SettingsTerreiroPanel } from '../components/settings/SettingsTerreiroPanel';
 import { SettingsWhatsAppPanel } from '../components/settings/SettingsWhatsAppPanel';
 import * as Dialog from '@radix-ui/react-dialog';
 import { supabase } from '../lib/supabase';
@@ -161,10 +160,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                 profile={profile}
                 onProfileChange={setProfile}
                 onRefresh={onRefresh}
+                onOpenPortal={() => setActiveSection('portal')}
               />
             </>
-          ) : activeSection === 'terreiro' ? (
-            <SettingsTerreiroPanel nomeTerreiro={profile?.nome_terreiro} />
           ) : activeSection === 'whatsapp' ? (
             <SettingsWhatsAppPanel />
           ) : activeSection === 'subscription' ? (

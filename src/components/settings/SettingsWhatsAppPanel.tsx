@@ -16,7 +16,7 @@ import {
   whatsappRailwayJsonBody,
 } from '../../lib/whatsappApiUrl';
 
-type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'teste';
+type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'broadcast' | 'teste';
 
 type WaLogUi = {
   id: string;
@@ -42,13 +42,14 @@ const DEFAULT_PREFS: WaPreferences = {
 };
 
 const DEFAULT_TEST_MSG =
-  '⚠️ Comunicado do Terreiro: Salve a Corrente! Lembra-se que hoje nossa sessão inicia às 20:00 com passe e descarrego. Aguardamos todos na curimba!';
+  'Comunicado do Terreiro: Salve a Corrente! Lembra-se que hoje nossa sessão inicia às 20:00 com passe e descarrego. Aguardamos todos na curimba!';
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
   financeiro: 'bg-blue-950/40 text-blue-400 border-blue-600/10',
   reza: 'bg-rose-950/40 text-rose-400 border-rose-600/10',
   teste: 'bg-amber-950/40 text-[#FACC15] border-amber-600/10',
+  broadcast: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
 };
 
 function mapLogTipo(raw: string | null | undefined): WaLogTipo {
@@ -56,6 +57,8 @@ function mapLogTipo(raw: string | null | undefined): WaLogTipo {
   if (t.includes('gira') || t.includes('convite') || t.includes('evento')) return 'gira';
   if (t.includes('financ') || t.includes('mensal') || t.includes('cobran')) return 'financeiro';
   if (t.includes('reza') || t.includes('altar') || t.includes('vela')) return 'reza';
+  if (t === 'broadcast') return 'broadcast';
+  if (t === 'teste') return 'teste';
   return 'teste';
 }
 
@@ -75,7 +78,7 @@ function formatLogDate(iso: string): string {
 
 function logDestino(telefone: string | null | undefined, tipo: WaLogTipo): string {
   const tel = String(telefone || '');
-  if (tel === 'corrente_geral' || tipo === 'teste') return 'Corrente Geral';
+  if (tel === 'corrente_geral') return 'Corrente Geral';
   if (tel.length >= 8) return tel.replace(/(\d{2})(\d{2})(\d{4,5})(\d{4})/, '($2) $3-$4');
   return tel || 'Destinatário';
 }
@@ -85,6 +88,9 @@ export function SettingsWhatsAppPanel() {
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
   const [testMessage, setTestMessage] = useState(DEFAULT_TEST_MSG);
+  const [testPhone, setTestPhone] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [correnteCount, setCorrenteCount] = useState<number | null>(null);
   const [logs, setLogs] = useState<WaLogUi[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -185,13 +191,15 @@ export function SettingsWhatsAppPanel() {
   useEffect(() => {
     void loadConfig();
     void loadLogs();
+    void loadCorrenteCount();
     void checkStatus();
     const id = window.setInterval(() => {
       void checkStatus();
       void loadLogs();
+      void loadCorrenteCount();
     }, 15000);
     return () => window.clearInterval(id);
-  }, [checkStatus, loadConfig, loadLogs]);
+  }, [checkStatus, loadConfig, loadCorrenteCount, loadLogs]);
 
   const persistPreferences = (next: WaPreferences) => {
     if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
@@ -219,6 +227,62 @@ export function SettingsWhatsAppPanel() {
     notify(`Gatilho de ${label} ${next[key] ? 'ativado' : 'desativado'}!`, 'info');
   };
 
+  const loadCorrenteCount = useCallback(async () => {
+    try {
+      const userId = await getSessionUserId();
+      const { data, error } = await supabase
+        .from('filhos_de_santo')
+        .select('id, whatsapp_phone, status')
+        .or(`tenant_id.eq.${userId},lider_id.eq.${userId}`)
+        .not('whatsapp_phone', 'is', null);
+      if (error) return;
+      const total = (data || []).filter((f) => {
+        const st = String(f.status || 'Ativo').trim().toLowerCase();
+        if (st === 'inativo' || st === 'desligado' || st === 'falecido') return false;
+        return String(f.whatsapp_phone || '').replace(/\D/g, '').length >= 10;
+      }).length;
+      setCorrenteCount(total);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  const handleTestToPhone = async () => {
+    if (!connected) {
+      notify('Canal oficial indisponível no momento. Tente novamente em instantes.', 'error');
+      return;
+    }
+    const digits = testPhone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      notify('Informe um celular válido com DDD (ex.: 11999999999).', 'error');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const token = await getAccessToken();
+      const userId = await getSessionUserId();
+      const res = await fetch(whatsappApiUrl('/whatsapp/test-message'), {
+        method: 'POST',
+        headers: whatsappRailwayHeaders(token, userId),
+        body: whatsappRailwayJsonBody(userId, { phone: digits }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(String(data.error || 'Falha no envio de teste'));
+      }
+      notify(
+        'Mensagem de teste enviada! Verifique o WhatsApp do número informado — ela chega pelo canal oficial AxéCloud.',
+        'success',
+      );
+      void loadLogs();
+      void loadCorrenteCount();
+    } catch (e: unknown) {
+      notify(e instanceof Error ? e.message : 'Erro ao enviar teste', 'error');
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   const handleBroadcast = async () => {
     if (!connected) {
       notify('Canal oficial indisponível no momento. Tente novamente em instantes.', 'error');
@@ -242,9 +306,17 @@ export function SettingsWhatsAppPanel() {
         throw new Error(String(data.error || 'Falha na transmissão'));
       }
       const destino = String(data.destino || 'Corrente Geral');
+      const sent = Number(data.sent ?? 0);
+      const failed = Number(data.failed ?? 0);
+      const total = Number(data.total ?? 0);
       setTestMessage('');
-      notify(`Mensagem de teste transmitida com sucesso para ${destino}!`, 'success');
+      if (failed > 0) {
+        notify(`Transmitido para ${sent} de ${total} médiuns (${failed} falha(s)). Confira os logs ao lado.`, 'info');
+      } else {
+        notify(`Mensagem transmitida para ${sent || total} filho(s) com WhatsApp cadastrado (${destino}).`, 'success');
+      }
       void loadLogs();
+      void loadCorrenteCount();
     } catch (e: unknown) {
       notify(e instanceof Error ? e.message : 'Erro ao transmitir', 'error');
     } finally {
@@ -405,9 +477,50 @@ export function SettingsWhatsAppPanel() {
           <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Send className="h-4 w-4" />
-              3. Testar Transmissão Direta (Médiuns)
+              3. Testar no seu celular
+            </h6>
+            <div className="space-y-3">
+              <p className="text-[11px] leading-relaxed text-gray-400">
+                Envie um teste direto para o número que você informar. A mensagem chega pelo{' '}
+                <strong className="text-gray-300">WhatsApp Business oficial do AxéCloud</strong> (não pelo seu número
+                pessoal).
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="tel"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="Seu celular com DDD — ex.: 11999999999"
+                  className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#10B981]"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleTestToPhone()}
+                  disabled={sendingTest || !testPhone.trim()}
+                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {sendingTest ? 'Enviando…' : 'Enviar teste'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400">
+              <Send className="h-4 w-4" />
+              4. Transmissão para a Corrente
             </h6>
             <div className="space-y-4">
+              <p className="text-[11px] leading-relaxed text-gray-400">
+                Dispara o comunicado para cada <strong className="text-gray-300">filho de santo com WhatsApp cadastrado</strong>{' '}
+                na Corrente — não envia automaticamente para o zelador, salvo se o seu número estiver no cadastro de um
+                filho.
+                {correnteCount !== null ? (
+                  <span className="mt-1 block text-violet-300">
+                    Destinatários elegíveis agora: {correnteCount} filho(s).
+                  </span>
+                ) : null}
+              </p>
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">
                   Mensagem de Comunicado Geral da Casa
