@@ -18,6 +18,11 @@ import {
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
 } from "./whatsappMetaCloud.js";
+import { isMetaCloudDirectConfigured, sendMetaCloudTemplate } from "./metaCloudSend.js";
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export type WhatsAppSendInput = {
   tenantId: string;
@@ -269,13 +274,20 @@ export async function logAndSendWhatsApp(
     input.variables
   );
 
-  const { messageId } = await sendEvolutionTemplateByInstance(
-    CONSOLE_ADMIN_INSTANCE_NAME,
-    phone,
-    templateName,
-    language,
-    components
-  );
+  let messageId: string | undefined;
+  if (isMetaCloudDirectConfigured()) {
+    const direct = await sendMetaCloudTemplate(phone, templateName, language, components);
+    messageId = direct.messageId;
+  } else {
+    const evo = await sendEvolutionTemplateByInstance(
+      CONSOLE_ADMIN_INSTANCE_NAME,
+      phone,
+      templateName,
+      language,
+      components
+    );
+    messageId = evo.messageId;
+  }
 
   const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
   await sb.from("whatsapp_logs").insert({
@@ -370,11 +382,21 @@ export async function broadcastWhatsAppForTenant(
     return String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10;
   });
 
+  const seenPhones = new Set<string>();
+  const uniqueTargets = targets.filter((f) => {
+    const phone = normalizeBrPhone(String(f.whatsapp_phone));
+    if (seenPhones.has(phone)) return false;
+    seenPhones.add(phone);
+    return true;
+  });
+
   let sent = 0;
   let failed = 0;
 
-  for (const filho of targets) {
+  for (let i = 0; i < uniqueTargets.length; i++) {
+    const filho = uniqueTargets[i];
     try {
+      if (i > 0) await sleep(2000);
       await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
       const phone = normalizeBrPhone(String(filho.whatsapp_phone));
       const nomeMembro = String(filho.nome || "Membro");
@@ -410,5 +432,5 @@ export async function broadcastWhatsAppForTenant(
     });
   }
 
-  return { sent, failed, total: targets.length };
+  return { sent, failed, total: uniqueTargets.length };
 }

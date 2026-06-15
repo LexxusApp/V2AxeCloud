@@ -197,10 +197,15 @@ export function SettingsWhatsAppPanel() {
         .or(`tenant_id.eq.${userId},lider_id.eq.${userId}`)
         .not('whatsapp_phone', 'is', null);
       if (error) return;
+      const seen = new Set<string>();
       const total = (data || []).filter((f) => {
         const st = String(f.status || 'Ativo').trim().toLowerCase();
         if (st === 'inativo' || st === 'desligado' || st === 'falecido') return false;
-        return String(f.whatsapp_phone || '').replace(/\D/g, '').length >= 10;
+        const phone = String(f.whatsapp_phone || '').replace(/\D/g, '');
+        if (phone.length < 10) return false;
+        if (seen.has(phone)) return false;
+        seen.add(phone);
+        return true;
       }).length;
       setCorrenteCount(total);
     } catch {
@@ -517,7 +522,7 @@ export function SettingsWhatsAppPanel() {
                 filho.
                 {correnteCount !== null ? (
                   <span className="mt-1 block text-violet-300">
-                    Destinatários elegíveis agora: {correnteCount} filho(s).
+                    Destinatários únicos agora: {correnteCount} número(s) com WhatsApp cadastrado.
                   </span>
                 ) : null}
               </p>
