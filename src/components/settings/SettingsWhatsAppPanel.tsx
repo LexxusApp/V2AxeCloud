@@ -188,6 +188,26 @@ export function SettingsWhatsAppPanel() {
     }
   }, []);
 
+  const loadCorrenteCount = useCallback(async () => {
+    try {
+      const userId = await getSessionUserId();
+      const { data, error } = await supabase
+        .from('filhos_de_santo')
+        .select('id, whatsapp_phone, status')
+        .or(`tenant_id.eq.${userId},lider_id.eq.${userId}`)
+        .not('whatsapp_phone', 'is', null);
+      if (error) return;
+      const total = (data || []).filter((f) => {
+        const st = String(f.status || 'Ativo').trim().toLowerCase();
+        if (st === 'inativo' || st === 'desligado' || st === 'falecido') return false;
+        return String(f.whatsapp_phone || '').replace(/\D/g, '').length >= 10;
+      }).length;
+      setCorrenteCount(total);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
   useEffect(() => {
     void loadConfig();
     void loadLogs();
@@ -226,26 +246,6 @@ export function SettingsWhatsAppPanel() {
     persistPreferences(next);
     notify(`Gatilho de ${label} ${next[key] ? 'ativado' : 'desativado'}!`, 'info');
   };
-
-  const loadCorrenteCount = useCallback(async () => {
-    try {
-      const userId = await getSessionUserId();
-      const { data, error } = await supabase
-        .from('filhos_de_santo')
-        .select('id, whatsapp_phone, status')
-        .or(`tenant_id.eq.${userId},lider_id.eq.${userId}`)
-        .not('whatsapp_phone', 'is', null);
-      if (error) return;
-      const total = (data || []).filter((f) => {
-        const st = String(f.status || 'Ativo').trim().toLowerCase();
-        if (st === 'inativo' || st === 'desligado' || st === 'falecido') return false;
-        return String(f.whatsapp_phone || '').replace(/\D/g, '').length >= 10;
-      }).length;
-      setCorrenteCount(total);
-    } catch {
-      /* silencioso */
-    }
-  }, []);
 
   const handleTestToPhone = async () => {
     if (!connected) {
