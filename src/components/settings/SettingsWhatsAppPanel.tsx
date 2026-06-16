@@ -573,8 +573,8 @@ export function SettingsWhatsAppPanel() {
                 </p>
                 <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-gray-300">{messagePreview}</p>
                 <p className="mt-2 text-[10px] leading-relaxed text-gray-500">
-                  A assinatura é adicionada automaticamente. Fora da janela de 24h do WhatsApp, a Meta pode exigir
-                  template — nesse caso usamos um modelo mínimo que preserva seu texto e a assinatura.
+                  A assinatura é adicionada automaticamente. A entrega usa o template aprovado da Meta com seu
+                  texto na mensagem — assim o comunicado chega de forma confiável no WhatsApp de cada filho.
                 </p>
               </div>
               <button

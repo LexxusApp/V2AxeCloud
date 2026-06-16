@@ -307,7 +307,7 @@ async function sendWhatsAppTemplateMessage(
   );
 }
 
-/** Transmissão: texto livre + assinatura; fallback para template se Meta exigir. */
+/** Transmissão: template Meta (entrega garantida); texto livre só se WA_BROADCAST_TRY_FREE_TEXT=1. */
 async function sendBroadcastLikeWhatsApp(
   phone: string,
   tipo: string,
@@ -321,15 +321,22 @@ async function sendBroadcastLikeWhatsApp(
     includeGreeting: false,
   });
 
-  try {
-    const textResult = isMetaCloudDirectConfigured()
-      ? await sendMetaCloudText(phone, signedBody)
-      : await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, signedBody);
-    return { messageId: textResult.messageId, deliveryMode: "text" };
-  } catch (err) {
-    if (!isTemplateRequiredMetaError(err)) throw err;
+  const tryFreeText = String(process.env.WA_BROADCAST_TRY_FREE_TEXT || "").trim() === "1";
+  if (tryFreeText) {
+    try {
+      const textResult = isMetaCloudDirectConfigured()
+        ? await sendMetaCloudText(phone, signedBody)
+        : await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, signedBody);
+      console.log(`[WHATSAPP] broadcast text ok → ${phone.slice(0, 4)}…`);
+      return { messageId: textResult.messageId, deliveryMode: "text" };
+    } catch (err) {
+      if (!isTemplateRequiredMetaError(err)) throw err;
+      console.warn(`[WHATSAPP] broadcast text bloqueado, usando template → ${phone.slice(0, 4)}…`);
+    }
   }
 
+  const templateName = resolveMetaTemplateName(tipo);
+  const language = resolveMetaTemplateLanguage();
   const templateVars = {
     ...(variables || {}),
     comunicado: rawMessage,
@@ -337,23 +344,20 @@ async function sendBroadcastLikeWhatsApp(
     nome_zelador: zelador || "",
   };
 
-  if (isMensagemLivreTemplate(tipo)) {
-    const components = buildMensagemLivreComponents(signedBody);
-    const templateName = resolveMetaTemplateName(tipo);
-    const language = resolveMetaTemplateLanguage();
-    const tpl = isMetaCloudDirectConfigured()
-      ? await sendMetaCloudTemplate(phone, templateName, language, components)
-      : await sendEvolutionTemplateByInstance(
-          CONSOLE_ADMIN_INSTANCE_NAME,
-          phone,
-          templateName,
-          language,
-          components
-        );
-    return { messageId: tpl.messageId, deliveryMode: "template" };
-  }
+  const components = isMensagemLivreTemplate(tipo)
+    ? buildMensagemLivreComponents(signedBody)
+    : buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, templateVars);
 
-  const tpl = await sendWhatsAppTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, templateVars);
+  const tpl = isMetaCloudDirectConfigured()
+    ? await sendMetaCloudTemplate(phone, templateName, language, components)
+    : await sendEvolutionTemplateByInstance(
+        CONSOLE_ADMIN_INSTANCE_NAME,
+        phone,
+        templateName,
+        language,
+        components
+      );
+  console.log(`[WHATSAPP] broadcast template=${templateName} → ${phone.slice(0, 4)}…`);
   return { messageId: tpl.messageId, deliveryMode: "template" };
 }
 
