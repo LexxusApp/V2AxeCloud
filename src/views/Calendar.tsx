@@ -131,7 +131,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     hora: '20:00',
     tipo: 'Gira',
     descricao: '',
-    status_confirmacao: 'Confirmado'
+    status_confirmacao: 'Confirmado',
+    evento_publico: false,
   });
 
   useEffect(() => {
@@ -375,7 +376,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         hora: '20:00',
         tipo: 'Gira',
         descricao: '',
-        status_confirmacao: 'Confirmado'
+        status_confirmacao: 'Confirmado',
+        evento_publico: false,
       });
       fetchEvents();
     } catch (error: any) {
@@ -844,6 +846,17 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   placeholder="Detalhes do evento…"
                 />
               </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked={formData.evento_publico}
+                  onChange={(e) => setFormData({ ...formData, evento_publico: e.target.checked })}
+                  className="h-4 w-4 accent-[#FBBC00]"
+                />
+                <span className="text-xs font-semibold text-[#94A3B8]">
+                  Divulgar no portal público (/eventos)
+                </span>
+              </label>
               <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3">
                 <label className={appLabelClass}>Banner (opcional)</label>
                 <input

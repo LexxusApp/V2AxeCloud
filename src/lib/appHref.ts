@@ -15,6 +15,7 @@ const APP_SPA_PATHS = [
   ROUTES.dashboard,
   ROUTES.consulentePortal,
   ROUTES.eventRsvp,
+  '/widget',
 ] as const;
 
 /** Rotas servidas pelo SPA do app (login, painel, convites, etc.). */

@@ -19,10 +19,15 @@ check() {
 check_contains() {
   local path="$1"
   local needle="$2"
-  curl -sSL "${BASE}${path}" | grep -q "$needle" || {
+  local tmp
+  tmp="$(mktemp)"
+  curl -sSL "${BASE}${path}" -o "$tmp"
+  grep -qi "$needle" "$tmp" || {
+    rm -f "$tmp"
     echo "FAIL ${path} — não contém: ${needle}"
     exit 1
   }
+  rm -f "$tmp"
   echo "OK   ${path} — contém \"${needle}\""
 }
 
@@ -35,12 +40,22 @@ check "/privacidade" "200"
 check "/conteudo" "200"
 check "/conteudo/glossario" "200"
 check "/espaco-do-fiel" "200"
+check "/terreiros" "200"
+check "/eventos" "200"
+check "/conteudo/calendario-liturgico" "200"
 check "/login" "200"
 check "/register" "200"
 check "/api/plans" "200"
+check "/api/v1/public/terreiros" "200"
+check "/api/v1/public/eventos" "200"
+check "/sitemap.xml" "200"
+check "/robots.txt" "200"
 
 check_contains "/" "m-assets/"
-check_contains "/" "Sistema de gestão para terreiros"
+check_contains "/" "Gestão de terreiros"
+check_contains "/programa-fundador" "Programa Fundador"
+check_contains "/terreiros" "Diretório"
+check_contains "/eventos" "Eventos"
 check_contains "/login" "Entrar"
 check_contains "/login" "/assets/"
 curl -sSL "${BASE}/login" | grep -q 'm-assets/' && {
@@ -48,4 +63,4 @@ curl -sSL "${BASE}/login" | grep -q 'm-assets/' && {
   exit 1
 } || echo "OK   /login — sem m-assets (app SPA)"
 
-echo "=== Todos os testes passaram ==="
+echo "=== Rotas OK — rode também: bash deploy/scripts/smoke-seo.sh ==="

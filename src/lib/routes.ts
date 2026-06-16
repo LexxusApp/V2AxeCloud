@@ -20,8 +20,19 @@ export const ROUTES = {
   glossary: '/conteudo/glossario',
   consulentePortal: '/consulente',
   espacoDoFiel: '/espaco-do-fiel',
+  terreiros: '/terreiros',
+  eventosPublicos: '/eventos',
+  liturgicalCalendar: '/conteudo/calendario-liturgico',
   eventRsvp: '/convite',
 } as const;
+
+export function terreiroProfilePath(slug: string): string {
+  return `/terreiros/${encodeURIComponent(slug)}`;
+}
+
+export function terreirosCityPath(citySlug: string): string {
+  return `/terreiros/cidade/${encodeURIComponent(citySlug)}`;
+}
 
 export function eventRsvpPath(token: string, action: 'confirmar' | 'declinar'): string {
   return `/convite/${encodeURIComponent(token)}/${action}`;
@@ -38,6 +49,9 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.privacy,
   ROUTES.founderProgram,
   ROUTES.espacoDoFiel,
+  ROUTES.terreiros,
+  ROUTES.eventosPublicos,
+  ROUTES.liturgicalCalendar,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
@@ -50,6 +64,9 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.checkout,
   ROUTES.founderProgram,
   ROUTES.espacoDoFiel,
+  ROUTES.terreiros,
+  ROUTES.eventosPublicos,
+  ROUTES.liturgicalCalendar,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
@@ -57,7 +74,9 @@ export const PUBLIC_MARKETING_PATHS = [
 
 export function isMarketingSitePath(path: string): boolean {
   const p = normalizePath(path);
-  return (MARKETING_SITE_PATHS as readonly string[]).includes(p);
+  if ((MARKETING_SITE_PATHS as readonly string[]).includes(p)) return true;
+  if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
+  return false;
 }
 
 export function normalizePath(pathname: string): string {

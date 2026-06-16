@@ -17,6 +17,7 @@ const LoginPage = lazy(() => import('../pages/LoginPage'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
+const PortalWidgetPage = lazy(() => import('../views/portal/PortalWidgetPage'));
 
 function AppNotFound({ path }: { path: string }) {
   const started = useRef(false);
@@ -70,6 +71,10 @@ function AppNotFound({ path }: { path: string }) {
 }
 
 function RoutedPage({ path }: { path: string }) {
+  if (path.startsWith('/widget/') && path.length > '/widget/'.length) {
+    return <PortalWidgetPage />;
+  }
+
   if (path.startsWith('/consulente/') && path.length > '/consulente/'.length) {
     return <ConsulentePortalPage />;
   }

@@ -90,6 +90,27 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/espaco-do-fiel',
     robots: 'index, follow',
   },
+  [ROUTES.terreiros]: {
+    title: 'Diretório de terreiros | Portal AxéCloud',
+    description:
+      'Encontre casas de Umbanda, Candomblé e tradições afins com perfil público verificado — por cidade, tradição e pedidos de reza online.',
+    canonicalPath: '/terreiros',
+    robots: 'index, follow',
+  },
+  [ROUTES.eventosPublicos]: {
+    title: 'Eventos públicos — giras e festas | AxéCloud',
+    description:
+      'Agenda de giras e festas públicas divulgadas por terreiros parceiros do portal AxéCloud.',
+    canonicalPath: '/eventos',
+    robots: 'index, follow',
+  },
+  [ROUTES.liturgicalCalendar]: {
+    title: 'Calendário litúrgico de referência | Portal AxéCloud',
+    description:
+      'Datas culturais frequentemente celebradas em casas de axé — referência educativa; cada terreiro tem calendário próprio.',
+    canonicalPath: '/conteudo/calendario-liturgico',
+    robots: 'index, follow',
+  },
 };
 
 function upsertMeta(name: string, content: string) {
@@ -148,6 +169,16 @@ function resolveRouteSeo(path: string): RouteSeo {
       description: DEFAULT_DESCRIPTION,
       canonicalPath: path,
       robots: 'noindex, follow',
+    };
+  }
+
+  if (path.startsWith(`${ROUTES.terreiros}/`)) {
+    return {
+      title: 'Terreiro | Diretório AxéCloud',
+      description:
+        'Perfil público de terreiro de Umbanda ou Candomblé — pedidos de reza, eventos e informações com respeito à tradição.',
+      canonicalPath: path,
+      robots: 'index, follow',
     };
   }
 

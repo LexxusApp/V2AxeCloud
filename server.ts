@@ -53,6 +53,7 @@ import { createAuditLog } from "./api/lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./api/lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
 import { registerConsulentePortalRoutes } from "./api/lib/consulentePortalRoutes.js";
+import { registerPublicPortalRoutes } from "./api/lib/publicPortalRoutes.js";
 import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
@@ -3080,6 +3081,7 @@ async function startServer() {
     supabaseAdmin,
     resolveLeaderId: (tenantId) => resolveLeaderId(tenantId),
   });
+  registerPublicPortalRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
@@ -3442,6 +3444,7 @@ async function startServer() {
         tipo: req.body?.tipo,
         descricao: req.body?.descricao ?? "",
         status_confirmacao: req.body?.status_confirmacao ?? "Confirmado",
+        evento_publico: Boolean(req.body?.evento_publico),
         ...(banner_url ? { banner_url } : {}),
         lider_id: user.id,
         tenant_id,

@@ -34,8 +34,16 @@ axecloud.com.br, www.axecloud.com.br {
 	}
 
 	route {
+		# Typo comum no GSC: sitemap.xm → sitemap.xml (antes de crowdsec/appsec)
+		handle /sitemap.xm {
+			redir * /sitemap.xml permanent
+		}
+
 		crowdsec
 		appsec
+
+		@trailingSlash path_regexp trailing ^(.+)/$
+		redir @trailingSlash {re.trailing.1} permanent
 
 		@scanners {
 			path /.env
@@ -100,12 +108,20 @@ axecloud.com.br, www.axecloud.com.br {
 			path /favicon.ico
 			path /robots.txt
 			path /sitemap.xml
+			path /sitemap.xm
 			path /og-image.png
 			path /screenshots/*
 			path /axecloud_*.png
 		}
 		handle @public_static {
 			reverse_proxy marketing:80
+		}
+
+		@ready_posts path /ready-posts/*
+		handle @ready_posts {
+			uri strip_prefix /ready-posts
+			root * /srv/ready_posts
+			file_server
 		}
 
 		@marketing {
@@ -118,6 +134,10 @@ axecloud.com.br, www.axecloud.com.br {
 			path /programa-fundador/*
 			path /espaco-do-fiel
 			path /espaco-do-fiel/*
+			path /terreiros
+			path /terreiros/*
+			path /eventos
+			path /eventos/*
 			path /conteudo
 			path /conteudo/*
 		}

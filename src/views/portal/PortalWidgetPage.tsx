@@ -1,0 +1,88 @@
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { fetchPublicTerreiro, type PublicTerreiro } from '../../lib/portalPublic';
+import { ROUTES } from '../../lib/routes';
+import { marketingHref } from '../../lib/appHref';
+
+function slugFromPath(): string {
+  const parts = window.location.pathname.replace(/\/+$/, '').split('/');
+  const idx = parts.indexOf('widget');
+  return idx >= 0 ? decodeURIComponent(parts[idx + 1] || '') : '';
+}
+
+/** Widget embebível (iframe) — perfil compacto + link para pedidos. */
+export default function PortalWidgetPage() {
+  const slug = slugFromPath();
+  const [terreiro, setTerreiro] = useState<PublicTerreiro | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+    void fetchPublicTerreiro(slug)
+      .then(setTerreiro)
+      .catch(() => setTerreiro(null))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center bg-[#080A0D]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#FBBC00]" />
+      </div>
+    );
+  }
+
+  if (!terreiro) {
+    return (
+      <div className="bg-[#080A0D] p-4 text-center text-sm text-[#94A3B8]">
+        Terreiro não encontrado.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#080A0D] p-4 font-sans text-[#F1F5F9]">
+      <div className="flex gap-3">
+        {terreiro.fotoUrl ? (
+          <img src={terreiro.fotoUrl} alt="" className="h-14 w-14 rounded-xl object-cover" />
+        ) : null}
+        <div>
+          <p className="font-bold">{terreiro.nome}</p>
+          <p className="text-xs text-[#64748B]">
+            {[terreiro.cidade, terreiro.estado].filter(Boolean).join(' — ')}
+          </p>
+        </div>
+      </div>
+      {terreiro.descricao ? <p className="mt-3 line-clamp-3 text-sm text-[#94A3B8]">{terreiro.descricao}</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href={marketingHref(terreiro.perfilUrl || ROUTES.terreiros)}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg bg-[#FBBC00] px-3 py-1.5 text-xs font-black text-[#080A0D]"
+        >
+          Ver perfil
+        </a>
+        {terreiro.pedidosUrl ? (
+          <a
+            href={marketingHref(terreiro.pedidosUrl)}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-[#e11d48] px-3 py-1.5 text-xs font-black text-white"
+          >
+            Pedir reza
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-3 text-[10px] text-[#64748B]">
+        via{' '}
+        <a href={marketingHref(ROUTES.home)} target="_blank" rel="noreferrer" className="text-[#FBBC00]">
+          AxéCloud
+        </a>
+      </p>
+    </div>
+  );
+}

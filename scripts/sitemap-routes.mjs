@@ -69,4 +69,22 @@ export const SITEMAP_ROUTES = [
     priority: 0.8,
     comment: 'Glossário do axé — 20 termos',
   },
+  {
+    path: '/terreiros',
+    changeFrequency: 'daily',
+    priority: 0.9,
+    comment: 'Diretório público de terreiros',
+  },
+  {
+    path: '/eventos',
+    changeFrequency: 'daily',
+    priority: 0.85,
+    comment: 'Agenda de eventos públicos',
+  },
+  {
+    path: '/conteudo/calendario-liturgico',
+    changeFrequency: 'yearly',
+    priority: 0.75,
+    comment: 'Calendário litúrgico de referência',
+  },
 ];

@@ -410,20 +410,35 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data, error } = await sb
         .from("perfil_lider")
-        .select("tradicao, public_slug, portal_consulente_ativo, portal_consulente_mensagem, nome_terreiro")
+        .select(
+          "tradicao, public_slug, portal_consulente_ativo, portal_consulente_mensagem, nome_terreiro, portal_publico_ativo, cidade_publica, estado_publico, bairro_publico, whatsapp_publico, descricao_publica, casa_verificada",
+        )
         .eq("id", user.id)
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Perfil não encontrado." });
       const slug = data.public_slug ? String(data.public_slug).trim() : "";
       const portalAtivo = Boolean(data.portal_consulente_ativo);
+      const { count: viewCount } = await sb
+        .from("portal_profile_views")
+        .select("id", { count: "exact", head: true })
+        .eq("leader_id", user.id);
       res.json({
         tradicao: data.tradicao || "mista",
         publicSlug: data.public_slug,
         portalAtivo,
         mensagem: data.portal_consulente_mensagem,
         nomeTerreiro: data.nome_terreiro,
+        portalPublicoAtivo: Boolean(data.portal_publico_ativo),
+        cidadePublica: data.cidade_publica,
+        estadoPublico: data.estado_publico,
+        bairroPublico: data.bairro_publico,
+        whatsappPublico: data.whatsapp_publico,
+        descricaoPublica: data.descricao_publica,
+        casaVerificada: Boolean(data.casa_verificada),
+        visualizacoes: viewCount ?? 0,
         portalUrl: slug ? `/consulente/${slug}` : null,
+        terreiroUrl: slug && data.portal_publico_ativo ? `/terreiros/${slug}` : null,
         listagemPedidosUrl: portalAtivo && slug ? `/espaco-do-fiel?casa=${encodeURIComponent(slug)}` : null,
       });
     } catch (e: unknown) {
@@ -440,6 +455,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     const portalAtivo = Boolean(body.portalAtivo);
     const mensagem =
       body.mensagem == null ? null : String(body.mensagem).trim().slice(0, 1200) || null;
+    const portalPublicoAtivo = body.portalPublicoAtivo !== undefined ? Boolean(body.portalPublicoAtivo) : undefined;
     const slugRaw = body.publicSlug != null ? slugifyPublicSlug(String(body.publicSlug)) : undefined;
 
     if (tradicao && !TRADICOES.has(tradicao)) {
@@ -453,11 +469,40 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       if (tradicao) update.tradicao = tradicao;
       if (body.portalAtivo !== undefined) update.portal_consulente_ativo = portalAtivo;
       if (body.mensagem !== undefined) update.portal_consulente_mensagem = mensagem;
+      if (portalPublicoAtivo !== undefined) update.portal_publico_ativo = portalPublicoAtivo;
+      if (body.cidadePublica !== undefined) {
+        update.cidade_publica = String(body.cidadePublica || "").trim().slice(0, 120) || null;
+      }
+      if (body.estadoPublico !== undefined) {
+        update.estado_publico = String(body.estadoPublico || "").trim().slice(0, 2).toUpperCase() || null;
+      }
+      if (body.bairroPublico !== undefined) {
+        update.bairro_publico = String(body.bairroPublico || "").trim().slice(0, 120) || null;
+      }
+      if (body.whatsappPublico !== undefined) {
+        update.whatsapp_publico = String(body.whatsappPublico || "").replace(/\D/g, "").slice(0, 15) || null;
+      }
+      if (body.descricaoPublica !== undefined) {
+        update.descricao_publica = String(body.descricaoPublica || "").trim().slice(0, 2000) || null;
+      }
       if (slugRaw !== undefined) {
-        if (portalAtivo && (!slugRaw || slugRaw.length < 3)) {
+        const needsSlug = portalAtivo || portalPublicoAtivo;
+        if (needsSlug && (!slugRaw || slugRaw.length < 3)) {
           return res.status(400).json({ error: "Defina um endereço público com pelo menos 3 caracteres." });
         }
         update.public_slug = slugRaw || null;
+      }
+
+      if (portalPublicoAtivo && update.cidade_publica === undefined) {
+        const { data: cur } = await sb
+          .from("perfil_lider")
+          .select("cidade_publica")
+          .eq("id", user.id)
+          .maybeSingle();
+        const cidadeOk = cur?.cidade_publica || update.cidade_publica;
+        if (portalPublicoAtivo && !cidadeOk && body.cidadePublica === undefined) {
+          return res.status(400).json({ error: "Informe a cidade para aparecer no diretório público." });
+        }
       }
 
       if (update.public_slug) {
@@ -474,16 +519,25 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const { error } = await sb.from("perfil_lider").update(update).eq("id", user.id);
       if (error) throw error;
 
-      const savedSlug = update.public_slug ? String(update.public_slug).trim() : "";
-      const savedAtivo = Boolean(update.portal_consulente_ativo);
+      const savedSlug = update.public_slug != null ? String(update.public_slug).trim() : slugRaw || "";
+      const { data: saved } = await sb
+        .from("perfil_lider")
+        .select("public_slug, portal_consulente_ativo, portal_publico_ativo")
+        .eq("id", user.id)
+        .maybeSingle();
+      const finalSlug = saved?.public_slug ? String(saved.public_slug).trim() : savedSlug;
+      const savedAtivo = Boolean(saved?.portal_consulente_ativo);
+      const savedPublico = Boolean(saved?.portal_publico_ativo);
       res.json({
         success: true,
         tradicao: update.tradicao,
-        publicSlug: update.public_slug,
+        publicSlug: finalSlug || null,
         portalAtivo: savedAtivo,
-        portalUrl: savedSlug ? `/consulente/${savedSlug}` : null,
+        portalPublicoAtivo: savedPublico,
+        portalUrl: finalSlug ? `/consulente/${finalSlug}` : null,
+        terreiroUrl: finalSlug && savedPublico ? `/terreiros/${finalSlug}` : null,
         listagemPedidosUrl:
-          savedAtivo && savedSlug ? `/espaco-do-fiel?casa=${encodeURIComponent(savedSlug)}` : null,
+          savedAtivo && finalSlug ? `/espaco-do-fiel?casa=${encodeURIComponent(finalSlug)}` : null,
       });
     } catch (e: unknown) {
       console.error("[settings/portal-consulente/post]", e);

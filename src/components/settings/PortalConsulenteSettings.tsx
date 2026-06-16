@@ -10,8 +10,17 @@ type PortalSettings = {
   tradicao: string;
   publicSlug: string | null;
   portalAtivo: boolean;
+  portalPublicoAtivo: boolean;
   mensagem: string | null;
+  cidadePublica: string | null;
+  estadoPublico: string | null;
+  bairroPublico: string | null;
+  whatsappPublico: string | null;
+  descricaoPublica: string | null;
+  casaVerificada: boolean;
+  visualizacoes: number;
   portalUrl: string | null;
+  terreiroUrl: string | null;
   listagemPedidosUrl: string | null;
 };
 
@@ -32,8 +41,17 @@ export function PortalConsulenteSettings() {
           tradicao: json.tradicao || 'mista',
           publicSlug: json.publicSlug || '',
           portalAtivo: Boolean(json.portalAtivo),
+          portalPublicoAtivo: Boolean(json.portalPublicoAtivo),
           mensagem: json.mensagem || '',
+          cidadePublica: json.cidadePublica || '',
+          estadoPublico: json.estadoPublico || '',
+          bairroPublico: json.bairroPublico || '',
+          whatsappPublico: json.whatsappPublico || '',
+          descricaoPublica: json.descricaoPublica || '',
+          casaVerificada: Boolean(json.casaVerificada),
+          visualizacoes: Number(json.visualizacoes) || 0,
           portalUrl: json.portalUrl || null,
+          terreiroUrl: json.terreiroUrl || null,
           listagemPedidosUrl: json.listagemPedidosUrl || null,
         });
       })
@@ -54,7 +72,13 @@ export function PortalConsulenteSettings() {
           tradicao: data.tradicao,
           publicSlug: data.publicSlug,
           portalAtivo: data.portalAtivo,
+          portalPublicoAtivo: data.portalPublicoAtivo,
           mensagem: data.mensagem,
+          cidadePublica: data.cidadePublica,
+          estadoPublico: data.estadoPublico,
+          bairroPublico: data.bairroPublico,
+          whatsappPublico: data.whatsappPublico,
+          descricaoPublica: data.descricaoPublica,
         }),
       });
       const json = await res.json();
@@ -64,8 +88,10 @@ export function PortalConsulenteSettings() {
           ? {
               ...prev,
               portalUrl: json.portalUrl || null,
+              terreiroUrl: json.terreiroUrl || null,
               listagemPedidosUrl: json.listagemPedidosUrl || null,
               publicSlug: json.publicSlug || prev.publicSlug,
+              portalPublicoAtivo: Boolean(json.portalPublicoAtivo),
             }
           : prev,
       );
@@ -153,7 +179,7 @@ export function PortalConsulenteSettings() {
         <div>
           <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Endereço público</label>
           <div className="mt-1.5 flex items-center rounded-xl border border-white/10 bg-black/30">
-            <span className="shrink-0 pl-3 text-xs text-gray-500">/consulente/</span>
+            <span className="shrink-0 pl-3 text-xs text-gray-500">/terreiros/</span>
             <input
               value={data.publicSlug || ''}
               onChange={(e) =>
@@ -168,17 +194,76 @@ export function PortalConsulenteSettings() {
           </div>
         </div>
 
-        <div className="flex items-end">
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 w-full">
+        <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 flex-1">
             <input
               type="checkbox"
               checked={data.portalAtivo}
               onChange={(e) => setData({ ...data, portalAtivo: e.target.checked })}
               className="h-4 w-4 rounded border-white/20 accent-primary"
             />
-            <span className="text-sm font-semibold text-white">Portal activo</span>
+            <span className="text-sm font-semibold text-white">Pedidos de reza activos</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 flex-1">
+            <input
+              type="checkbox"
+              checked={data.portalPublicoAtivo}
+              onChange={(e) => setData({ ...data, portalPublicoAtivo: e.target.checked })}
+              className="h-4 w-4 rounded border-white/20 accent-primary"
+            />
+            <span className="text-sm font-semibold text-white">Perfil no diretório /terreiros</span>
           </label>
         </div>
+
+        {data.portalPublicoAtivo ? (
+          <>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Cidade</label>
+              <input
+                value={data.cidadePublica || ''}
+                onChange={(e) => setData({ ...data, cidadePublica: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                placeholder="Ex: Suzano"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Estado (UF)</label>
+              <input
+                value={data.estadoPublico || ''}
+                onChange={(e) => setData({ ...data, estadoPublico: e.target.value.toUpperCase().slice(0, 2) })}
+                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                placeholder="SP"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Bairro (opcional)</label>
+              <input
+                value={data.bairroPublico || ''}
+                onChange={(e) => setData({ ...data, bairroPublico: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">WhatsApp público (opcional)</label>
+              <input
+                value={data.whatsappPublico || ''}
+                onChange={(e) => setData({ ...data, whatsappPublico: e.target.value.replace(/\D/g, '') })}
+                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
+                placeholder="5511999999999"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Descrição pública</label>
+              <textarea
+                rows={3}
+                value={data.descricaoPublica || ''}
+                onChange={(e) => setData({ ...data, descricaoPublica: e.target.value })}
+                placeholder="Apresentação da casa para visitantes do portal…"
+                className="mt-1.5 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/40"
+              />
+            </div>
+          </>
+        ) : null}
 
         <div className="sm:col-span-2">
           <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Mensagem de boas-vindas</label>
@@ -192,10 +277,26 @@ export function PortalConsulenteSettings() {
         </div>
       </div>
 
-      {data.portalAtivo && (listagemUrl || previewUrl) ? (
+      {data.portalPublicoAtivo || data.portalAtivo ? (
         <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
           <p className="text-[11px] font-bold uppercase tracking-wide text-primary/80">Links públicos</p>
+          {data.casaVerificada ? (
+            <p className="text-xs text-emerald-400">Casa verificada · {data.visualizacoes} visualizações no portal</p>
+          ) : (
+            <p className="text-xs text-gray-500">{data.visualizacoes} visualizações no portal</p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
+            {data.terreiroUrl ? (
+              <a
+                href={marketingHref(data.terreiroUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Perfil no diretório
+              </a>
+            ) : null}
             {listagemUrl ? (
               <a
                 href={marketingHref(listagemUrl)}

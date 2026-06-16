@@ -55,6 +55,7 @@ import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
+import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
@@ -102,6 +103,7 @@ import { handleFilhoLoginRoute } from "./lib/filhoLoginRoute.js";
 import { isSubscriptionAccessActive } from "./lib/subscriptionAccess.js";
 import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
 import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./lib/runtimePublicConfig.js";
+import { PUBLIC_PRERENDER_PATHS } from "../src/constants/seoPublicPages.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -3550,6 +3552,7 @@ async function startServer() {
     supabaseAdmin,
     resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
   });
+  registerPublicPortalRoutes(app, { supabaseAdmin });
   registerEventRsvpRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
@@ -3871,6 +3874,7 @@ async function startServer() {
         tipo: req.body?.tipo,
         descricao: req.body?.descricao ?? "",
         status_confirmacao: req.body?.status_confirmacao ?? "Confirmado",
+        evento_publico: Boolean(req.body?.evento_publico),
         ...(banner_url ? { banner_url } : {}),
         lider_id: user.id,
         tenant_id,
@@ -4666,6 +4670,42 @@ async function startServer() {
         }
         next();
       });
+
+      app.use((req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        if (req.path === "/sitemap.xm") {
+          return res.redirect(301, "/sitemap.xml");
+        }
+        next();
+      });
+
+      app.use((req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        const pathOnly = String(req.path || "");
+        if (pathOnly.length > 1 && /\/+$/.test(pathOnly)) {
+          const trimmed = pathOnly.replace(/\/+$/, "") || "/";
+          const raw = String(req.originalUrl || req.url || "");
+          const qs = raw.includes("?") ? raw.slice(raw.indexOf("?")) : "";
+          return res.redirect(301, trimmed + qs);
+        }
+        next();
+      });
+
+      app.use((req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        const pathOnly = String(req.path || "").replace(/\/+$/, "") || "/";
+        if (pathOnly === "/") return next();
+        if (!PUBLIC_PRERENDER_PATHS.includes(pathOnly)) return next();
+        const pageIndex = path.join(distPath, pathOnly.slice(1), "index.html");
+        if (!existsSync(pageIndex)) return next();
+        try {
+          const html = injectRuntimeConfigHtml(readFileSync(pageIndex, "utf8"));
+          return res.type("html").send(html);
+        } catch {
+          return next();
+        }
+      });
+
       app.use(express.static(distPath));
     } else {
       console.warn(

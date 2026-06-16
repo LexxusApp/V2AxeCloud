@@ -172,6 +172,32 @@ export default function ContentHubPage() {
         className="mt-10 sm:mt-12"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.25 }}
+        aria-labelledby="content-portal-links"
+      >
+        <h2 id="content-portal-links" className="text-sm font-black uppercase tracking-wider text-primary">
+          Portal público
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <a href={ROUTES.terreiros} className="landing-mystic-card block p-5 transition hover:border-primary/30">
+            <p className="font-bold text-white">Diretório de terreiros</p>
+            <p className="mt-1 text-sm text-[#94A3B8]">Casas com perfil público por cidade e tradição.</p>
+          </a>
+          <a href={ROUTES.eventosPublicos} className="landing-mystic-card block p-5 transition hover:border-primary/30">
+            <p className="font-bold text-white">Eventos públicos</p>
+            <p className="mt-1 text-sm text-[#94A3B8]">Giras e festas divulgadas pelas casas.</p>
+          </a>
+          <a href={ROUTES.liturgicalCalendar} className="landing-mystic-card block p-5 transition hover:border-primary/30">
+            <p className="font-bold text-white">Calendário litúrgico</p>
+            <p className="mt-1 text-sm text-[#94A3B8]">Datas culturais de referência — cada casa tem o seu.</p>
+          </a>
+        </div>
+      </motion.section>
+
+      <motion.section
+        className="mt-10 sm:mt-12"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.35 }}
         aria-labelledby="content-founder"
       >

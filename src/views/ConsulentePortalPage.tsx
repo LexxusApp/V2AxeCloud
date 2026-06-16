@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { marketingHref } from '../lib/appHref';
-import { ROUTES } from '../lib/routes';
+import { ROUTES, terreiroProfilePath } from '../lib/routes';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -9,7 +9,7 @@ function slugFromPath(): string {
   return idx >= 0 ? decodeURIComponent(parts[idx + 1] || '') : '';
 }
 
-/** Redireciona o link /consulente/:slug para o Espaço do Fiel com a casa pré-seleccionada. */
+/** Redireciona /consulente/:slug → perfil público ou Espaço do Fiel. */
 export default function ConsulentePortalPage() {
   const slug = useMemo(() => slugFromPath(), []);
 
@@ -18,11 +18,11 @@ export default function ConsulentePortalPage() {
 
     let cancelled = false;
 
-    void fetch(`/api/v1/public/consulente/${encodeURIComponent(slug)}`, { cache: 'no-store' })
+    void fetch(`/api/v1/public/terreiros/${encodeURIComponent(slug)}`, { cache: 'no-store' })
       .then(async (res) => {
         if (cancelled) return;
-        if (!res.ok) {
-          window.location.replace(marketingHref(ROUTES.espacoDoFiel));
+        if (res.ok) {
+          window.location.replace(marketingHref(terreiroProfilePath(slug)));
           return;
         }
         const target = `${marketingHref(ROUTES.espacoDoFiel)}?casa=${encodeURIComponent(slug)}`;
@@ -30,7 +30,7 @@ export default function ConsulentePortalPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          window.location.replace(marketingHref(ROUTES.espacoDoFiel));
+          window.location.replace(`${marketingHref(ROUTES.espacoDoFiel)}?casa=${encodeURIComponent(slug)}`);
         }
       });
 
@@ -55,7 +55,7 @@ export default function ConsulentePortalPage() {
     <div className="grid min-h-screen place-items-center bg-[#0a0a0a] text-primary">
       <div className="text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin" />
-        <p className="mt-4 text-sm text-zinc-400">Abrindo o portal de pedidos de reza…</p>
+        <p className="mt-4 text-sm text-zinc-400">Abrindo o portal…</p>
       </div>
     </div>
   );

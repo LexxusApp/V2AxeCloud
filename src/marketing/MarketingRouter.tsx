@@ -1,9 +1,10 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { usePathname } from '../hooks/usePathname';
 import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
-import { ROUTES } from '../lib/routes';
+import { ROUTES, normalizePath } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
 import { parseContentArticleSlug } from '../content/portalContent';
+import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
 
 const Landing = lazy(() => import('../views/Landing'));
 const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
@@ -13,9 +14,28 @@ const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
 const EspacoDoFielPage = lazy(() => import('../views/EspacoDoFielPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const TerreirosDirectoryPage = lazy(() => import('../views/portal/TerreirosDirectoryPage'));
+const TerreiroProfilePage = lazy(() => import('../views/portal/TerreiroProfilePage'));
+const TerreirosCityPage = lazy(() => import('../views/portal/TerreirosCityPage'));
+const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage'));
+const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 
 function MarketingSectionFallback() {
   return <div aria-hidden className="min-h-[12rem] w-full" />;
+}
+
+function parseTerreirosPath(path: string): 'directory' | { city: string } | { profile: string } | null {
+  const p = normalizePath(path);
+  if (p === ROUTES.terreiros) return 'directory';
+  if (p.startsWith('/terreiros/cidade/')) {
+    const city = p.slice('/terreiros/cidade/'.length);
+    if (city) return { city: decodeURIComponent(city) };
+  }
+  if (p.startsWith('/terreiros/')) {
+    const slug = p.slice('/terreiros/'.length);
+    if (slug && slug !== 'cidade') return { profile: decodeURIComponent(slug) };
+  }
+  return null;
 }
 
 function RoutedMarketingPage({ path }: { path: string }) {
@@ -24,7 +44,16 @@ function RoutedMarketingPage({ path }: { path: string }) {
     return <PortalArticlePage slug={articleSlug} />;
   }
 
-  switch (path) {
+  if (normalizePath(path) === LITURGICAL_CALENDAR_PATH) {
+    return <LiturgicalCalendarPage />;
+  }
+
+  const terreiros = parseTerreirosPath(path);
+  if (terreiros === 'directory') return <TerreirosDirectoryPage />;
+  if (terreiros && 'city' in terreiros) return <TerreirosCityPage />;
+  if (terreiros && 'profile' in terreiros) return <TerreiroProfilePage />;
+
+  switch (normalizePath(path)) {
     case ROUTES.founderProgram:
       return <FounderProgramPage />;
     case ROUTES.terms:
@@ -37,6 +66,8 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <GlossaryPage />;
     case ROUTES.espacoDoFiel:
       return <EspacoDoFielPage />;
+    case ROUTES.eventosPublicos:
+      return <EventosPublicPage />;
     case ROUTES.home:
     default:
       return <Landing />;
