@@ -131,6 +131,42 @@ Acesse o AxéCloud para mais detalhes. Axé!
 
 **Env:** `WA_META_TEMPLATE_BROADCAST=comunicado_terreiro_axecloud`
 
+> **Legado:** o template acima inclui saudação e cabeçalho fixos. Para comunicados com **texto totalmente livre** (só assinatura automática), submeta o template `mensagem_livre_terreiro_axecloud` (seção 6) e configure `WA_META_TEMPLATE_MENSAGEM_LIVRE` ou `WA_META_TEMPLATE_BROADCAST=mensagem_livre_terreiro_axecloud`.
+
+---
+
+## 6. `mensagem_livre_terreiro_axecloud` (recomendado para transmissão)
+
+**Uso:** transmissão manual — o zelador digita livremente; o sistema monta o corpo com assinatura da casa.
+
+**Corpo (única variável):**
+
+```
+{{1}}
+```
+
+**Exemplo de {{1}} (preenchido pelo AxéCloud):**
+
+```
+Salve a Corrente! Hoje nossa sessão inicia às 20:00 com passe e descarrego. Aguardamos todos na curimba!
+
+— Mirian · Kwe Nago Vodun Omin Odolá
+```
+
+| Variável | Conteúdo |
+|----------|----------|
+| {{1}} | Texto digitado pelo zelador + assinatura automática (`— Nome do zelador · Nome do terreiro`) |
+
+**Env (após aprovação):**
+
+```env
+WA_META_TEMPLATE_MENSAGEM_LIVRE=mensagem_livre_terreiro_axecloud
+# ou substitua o broadcast:
+WA_META_TEMPLATE_BROADCAST=mensagem_livre_terreiro_axecloud
+```
+
+O sistema tenta primeiro **texto livre** (quando o filho está na janela de 24h) e usa este template como fallback.
+
 ---
 
 ## Templates já existentes (referência)

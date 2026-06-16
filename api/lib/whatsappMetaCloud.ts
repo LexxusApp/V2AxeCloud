@@ -22,6 +22,8 @@ const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
 const ESTOQUE_CRITICO_TEMPLATE = "estoque_critico_axecloud";
 /** Transmissão / teste — corpo inclui texto do comunicado */
 const COMUNICADO_TERREIRO_TEMPLATE = "comunicado_terreiro_axecloud";
+/** Opcional: mensagem quase livre — corpo só {{1}} (texto + assinatura montados no código) */
+const MENSAGEM_LIVRE_TERREIRO_TEMPLATE = "mensagem_livre_terreiro_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
 
 function normalizeTipo(tipo: string): string {
@@ -79,6 +81,8 @@ export function resolveMetaTemplateName(tipo: string): string {
     );
   }
   if (normalized === "broadcast" || normalized === "teste") {
+    const livre = String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim();
+    if (livre) return livre;
     return (
       String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_TESTE || "")
         .trim() || COMUNICADO_TERREIRO_TEMPLATE
@@ -367,8 +371,55 @@ export function buildEstoqueCriticoComponents(
   ];
 }
 
+export function isMensagemLivreTemplate(tipo: string): boolean {
+  const name = resolveMetaTemplateName(tipo);
+  return name === MENSAGEM_LIVRE_TERREIRO_TEMPLATE;
+}
+
+/** Assinatura automática da casa (única parte fixa além do texto do zelador). */
+export function buildTerreiroAssinatura(
+  zelador: string | undefined,
+  nomeTerreiro: string
+): string {
+  const casa = String(nomeTerreiro || "Terreiro").trim();
+  const lider = String(zelador || "").trim();
+  if (lider) return `— ${lider} · ${casa}`;
+  return `— ${casa}`;
+}
+
+/** Texto que o filho recebe: saudação opcional + mensagem do zelador + assinatura. */
+export function buildSignedWhatsAppBody(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  userText: string,
+  zelador?: string,
+  options?: { includeGreeting?: boolean }
+): string {
+  const msg = String(userText || "").trim().replace(/\s+/g, " ");
+  const assinatura = buildTerreiroAssinatura(zelador, nomeTerreiro);
+  const lines: string[] = [];
+  if (options?.includeGreeting !== false) {
+    lines.push(`Paz e Luz, ${String(nomeMembro || "Membro").trim()}!`, "");
+  }
+  if (msg) lines.push(msg);
+  lines.push("", assinatura);
+  return lines.join("\n").trim().slice(0, 1024);
+}
+
 /**
- * comunicado_terreiro_axecloud — corpo: {{1}} membro, {{2}} terreiro, {{3}} mensagem
+ * mensagem_livre_terreiro_axecloud — corpo: {{1}} texto completo (mensagem + assinatura)
+ */
+export function buildMensagemLivreComponents(signedBody: string): MetaTemplateComponent[] {
+  return [
+    {
+      type: "body",
+      parameters: [textParam(signedBody, 1024)],
+    },
+  ];
+}
+
+/**
+ * comunicado_terreiro_axecloud — corpo: {{1}} membro, {{2}} terreiro, {{3}} mensagem + assinatura
  */
 export function buildComunicadoTerreiroComponents(
   nomeMembro: string,
@@ -379,9 +430,14 @@ export function buildComunicadoTerreiroComponents(
   const rawMsg = String(
     v.comunicado || v.mensagem || v.message || v.texto || ""
   ).trim();
-  const comunicado =
-    rawMsg.replace(/\s+/g, " ").slice(0, 1024) ||
-    "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
+  const zelador = String(v.zelador || v.nome_zelador || "").trim() || undefined;
+  const comunicado = buildSignedWhatsAppBody(
+    nomeMembro,
+    nomeTerreiro,
+    rawMsg,
+    zelador,
+    { includeGreeting: false }
+  ).slice(0, 1024) || "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
   return [
     {
       type: "body",
@@ -443,6 +499,15 @@ export function buildMetaTemplateComponentsForTipo(
     return buildEstoqueCriticoComponents(nomeTerreiro, variables);
   }
   if (t === "broadcast" || t === "teste") {
+    if (isMensagemLivreTemplate(tipo)) {
+      const signed = buildSignedWhatsAppBody(
+        nomeMembro,
+        nomeTerreiro,
+        String(variables?.comunicado || variables?.mensagem || variables?.message || ""),
+        String(variables?.zelador || variables?.nome_zelador || "") || undefined
+      );
+      return buildMensagemLivreComponents(signed);
+    }
     return buildComunicadoTerreiroComponents(nomeMembro, nomeTerreiro, variables);
   }
   return buildMetaTemplateComponents(nomeMembro, nomeTerreiro);

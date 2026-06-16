@@ -41,8 +41,16 @@ const DEFAULT_PREFS: WaPreferences = {
   notifAniversarios: true,
 };
 
-const DEFAULT_TEST_MSG =
-  'Comunicado do Terreiro: Salve a Corrente! Lembra-se que hoje nossa sessão inicia às 20:00 com passe e descarrego. Aguardamos todos na curimba!';
+const DEFAULT_TEST_MSG = '';
+
+function buildComunicadoPreview(text: string, nomeTerreiro: string, zelador: string): string {
+  const msg = text.trim();
+  const casa = nomeTerreiro.trim() || 'Terreiro';
+  const lider = zelador.trim();
+  const assinatura = lider ? `— ${lider} · ${casa}` : `— ${casa}`;
+  if (!msg) return assinatura;
+  return `${msg}\n\n${assinatura}`;
+}
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
@@ -91,6 +99,8 @@ export function SettingsWhatsAppPanel() {
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [correnteCount, setCorrenteCount] = useState<number | null>(null);
+  const [nomeTerreiro, setNomeTerreiro] = useState('');
+  const [zeladorNome, setZeladorNome] = useState('');
   const [logs, setLogs] = useState<WaLogUi[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -213,10 +223,27 @@ export function SettingsWhatsAppPanel() {
     }
   }, []);
 
+  const loadTerreiroContext = useCallback(async () => {
+    try {
+      const userId = await getSessionUserId();
+      const { data, error } = await supabase
+        .from('perfil_lider')
+        .select('nome_terreiro, cargo')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) return;
+      setNomeTerreiro(String(data?.nome_terreiro || '').trim());
+      setZeladorNome(String(data?.cargo || '').trim());
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
   useEffect(() => {
     void loadConfig();
     void loadLogs();
     void loadCorrenteCount();
+    void loadTerreiroContext();
     void checkStatus();
     const id = window.setInterval(() => {
       void checkStatus();
@@ -224,7 +251,9 @@ export function SettingsWhatsAppPanel() {
       void loadCorrenteCount();
     }, 15000);
     return () => window.clearInterval(id);
-  }, [checkStatus, loadConfig, loadCorrenteCount, loadLogs]);
+  }, [checkStatus, loadConfig, loadCorrenteCount, loadLogs, loadTerreiroContext]);
+
+  const messagePreview = buildComunicadoPreview(testMessage, nomeTerreiro, zeladorNome);
 
   const persistPreferences = (next: WaPreferences) => {
     if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
@@ -517,9 +546,9 @@ export function SettingsWhatsAppPanel() {
             </h6>
             <div className="space-y-4">
               <p className="text-[11px] leading-relaxed text-gray-400">
-                Dispara o comunicado para cada <strong className="text-gray-300">filho de santo com WhatsApp cadastrado</strong>{' '}
-                na Corrente — não envia automaticamente para o zelador, salvo se o seu número estiver no cadastro de um
-                filho.
+                Escreva o comunicado livremente — o filho recebe exatamente o que você digitar, com uma{' '}
+                <strong className="text-gray-300">assinatura automática da casa</strong> no final.
+                Dispara para cada filho com WhatsApp cadastrado na Corrente (não inclui o zelador automaticamente).
                 {correnteCount !== null ? (
                   <span className="mt-1 block text-violet-300">
                     Destinatários únicos agora: {correnteCount} número(s) com WhatsApp cadastrado.
@@ -531,12 +560,22 @@ export function SettingsWhatsAppPanel() {
                   Mensagem de Comunicado Geral da Casa
                 </label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
-                  placeholder="Redija uma mensagem rápida para testar a comunicação com todos os filhos de santo cadastrados na corrente."
+                  placeholder="Digite aqui o comunicado da casa — texto livre, sem modelo fixo."
                   className="w-full resize-none rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs leading-relaxed text-[#F1F5F9] placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#10B981]"
                 />
+              </div>
+              <div className="rounded-lg border border-violet-500/15 bg-violet-950/20 p-3">
+                <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-violet-300">
+                  Prévia do que o filho receberá
+                </p>
+                <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-gray-300">{messagePreview}</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-gray-500">
+                  A assinatura é adicionada automaticamente. Fora da janela de 24h do WhatsApp, a Meta pode exigir
+                  template — nesse caso usamos um modelo mínimo que preserva seu texto e a assinatura.
+                </p>
               </div>
               <button
                 type="button"

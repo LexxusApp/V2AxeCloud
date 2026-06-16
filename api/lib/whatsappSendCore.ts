@@ -4,21 +4,30 @@ import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   ensureOfficialWhatsAppReady,
   sendEvolutionTemplateByInstance,
+  sendEvolutionTextByInstance,
 } from "../../src/services/evolution.service.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import {
   buildMetaTemplateComponentsForTipo,
+  buildMensagemLivreComponents,
+  buildSignedWhatsAppBody,
   buildWhatsAppAuditMessage,
   filhoLoginIdShort,
   isBoasVindasTemplate,
   isAvisoGiraTemplate,
   isConviteEventoTemplate,
+  isMensagemLivreTemplate,
   resolveLoginPublicUrl,
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
 } from "./whatsappMetaCloud.js";
-import { isMetaCloudDirectConfigured, sendMetaCloudTemplate } from "./metaCloudSend.js";
+import {
+  isMetaCloudDirectConfigured,
+  isTemplateRequiredMetaError,
+  sendMetaCloudTemplate,
+  sendMetaCloudText,
+} from "./metaCloudSend.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -36,6 +45,7 @@ export type TerreiroWhatsAppContext = {
   idTerreiro: string;
   nomeTerreiro: string;
   leaderId: string;
+  zelador?: string;
 };
 
 export type MemberWhatsAppTarget = TerreiroWhatsAppContext & {
@@ -68,7 +78,7 @@ export async function resolveTerreiroWhatsAppContext(
   const leaderId = await resolveLeaderId(sb, tenantId);
   const { data: profile } = await sb
     .from("perfil_lider")
-    .select("id, tenant_id, nome_terreiro")
+    .select("id, tenant_id, nome_terreiro, cargo")
     .eq("id", leaderId)
     .maybeSingle();
 
@@ -76,8 +86,9 @@ export async function resolveTerreiroWhatsAppContext(
 
   const idTerreiro = String(profile.tenant_id || profile.id || leaderId).trim();
   const nomeTerreiro = String(profile.nome_terreiro || "Terreiro").trim();
+  const zelador = String(profile.cargo || "").trim() || undefined;
 
-  return { idTerreiro, nomeTerreiro, leaderId };
+  return { idTerreiro, nomeTerreiro, leaderId, zelador };
 }
 
 /** Garante que o filho pertence ao terreiro do zelador antes de qualquer envio. */
@@ -251,6 +262,101 @@ async function enrichBoasVindasVariables(
   };
 }
 
+function isBroadcastLikeTipo(tipo: string): boolean {
+  const t = String(tipo || "").toLowerCase();
+  return t === "broadcast" || t === "teste";
+}
+
+function resolveBroadcastRawText(
+  variables: Record<string, string | number> | undefined,
+  fallbackMessage: string
+): string {
+  return String(
+    variables?.comunicado || variables?.mensagem || variables?.message || fallbackMessage || ""
+  ).trim();
+}
+
+function resolveZeladorFromVariables(
+  variables: Record<string, string | number> | undefined,
+  fallback?: string
+): string | undefined {
+  const fromVars = String(variables?.zelador || variables?.nome_zelador || "").trim();
+  return fromVars || fallback;
+}
+
+async function sendWhatsAppTemplateMessage(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): Promise<{ messageId?: string }> {
+  const templateName = resolveMetaTemplateName(tipo);
+  const language = resolveMetaTemplateLanguage();
+  const components = buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, variables);
+
+  if (isMetaCloudDirectConfigured()) {
+    return sendMetaCloudTemplate(phone, templateName, language, components);
+  }
+  return sendEvolutionTemplateByInstance(
+    CONSOLE_ADMIN_INSTANCE_NAME,
+    phone,
+    templateName,
+    language,
+    components
+  );
+}
+
+/** Transmissão: texto livre + assinatura; fallback para template se Meta exigir. */
+async function sendBroadcastLikeWhatsApp(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables: Record<string, string | number> | undefined,
+  rawMessage: string,
+  zelador?: string
+): Promise<{ messageId?: string; deliveryMode: "text" | "template" }> {
+  const signedBody = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
+    includeGreeting: false,
+  });
+
+  try {
+    const textResult = isMetaCloudDirectConfigured()
+      ? await sendMetaCloudText(phone, signedBody)
+      : await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, signedBody);
+    return { messageId: textResult.messageId, deliveryMode: "text" };
+  } catch (err) {
+    if (!isTemplateRequiredMetaError(err)) throw err;
+  }
+
+  const templateVars = {
+    ...(variables || {}),
+    comunicado: rawMessage,
+    zelador: zelador || "",
+    nome_zelador: zelador || "",
+  };
+
+  if (isMensagemLivreTemplate(tipo)) {
+    const components = buildMensagemLivreComponents(signedBody);
+    const templateName = resolveMetaTemplateName(tipo);
+    const language = resolveMetaTemplateLanguage();
+    const tpl = isMetaCloudDirectConfigured()
+      ? await sendMetaCloudTemplate(phone, templateName, language, components)
+      : await sendEvolutionTemplateByInstance(
+          CONSOLE_ADMIN_INSTANCE_NAME,
+          phone,
+          templateName,
+          language,
+          components
+        );
+    return { messageId: tpl.messageId, deliveryMode: "template" };
+  }
+
+  const tpl = await sendWhatsAppTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, templateVars);
+  return { messageId: tpl.messageId, deliveryMode: "template" };
+}
+
 export async function logAndSendWhatsApp(
   sb: SupabaseClient,
   input: WhatsAppSendInput & {
@@ -259,34 +365,35 @@ export async function logAndSendWhatsApp(
     nomeMembro: string;
     nomeTerreiro: string;
     idTerreiro: string;
+    zelador?: string;
   }
 ): Promise<{ messageId?: string; externalId: string }> {
   await ensureOfficialWhatsAppReady();
 
   const { tipo, phone, message, nomeMembro, nomeTerreiro, filhoId, tenantId } = input;
-
-  const templateName = resolveMetaTemplateName(tipo);
-  const language = resolveMetaTemplateLanguage();
-  const components = buildMetaTemplateComponentsForTipo(
-    tipo,
-    nomeMembro,
-    nomeTerreiro,
-    input.variables
-  );
+  const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
 
   let messageId: string | undefined;
-  if (isMetaCloudDirectConfigured()) {
-    const direct = await sendMetaCloudTemplate(phone, templateName, language, components);
-    messageId = direct.messageId;
-  } else {
-    const evo = await sendEvolutionTemplateByInstance(
-      CONSOLE_ADMIN_INSTANCE_NAME,
+  let auditMessage = message;
+
+  if (isBroadcastLikeTipo(tipo)) {
+    const rawMessage = resolveBroadcastRawText(input.variables, message);
+    auditMessage = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
+      includeGreeting: false,
+    });
+    const sent = await sendBroadcastLikeWhatsApp(
       phone,
-      templateName,
-      language,
-      components
+      tipo,
+      nomeMembro,
+      nomeTerreiro,
+      input.variables,
+      rawMessage,
+      zelador
     );
-    messageId = evo.messageId;
+    messageId = sent.messageId;
+  } else {
+    const sent = await sendWhatsAppTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, input.variables);
+    messageId = sent.messageId;
   }
 
   const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
@@ -295,7 +402,7 @@ export async function logAndSendWhatsApp(
     filho_id: filhoId || null,
     tipo,
     telefone: phone,
-    mensagem: message,
+    mensagem: auditMessage,
     status: "sent",
     external_id: externalId,
   });
@@ -334,6 +441,8 @@ export async function sendWhatsAppForTenant(
     nome_filho: nomeMembro,
     nome_membro: nomeMembro,
     nome_terreiro: ctx.nomeTerreiro,
+    zelador: ctx.zelador || "",
+    nome_zelador: ctx.zelador || "",
     ...(input.variables || {}),
   };
 
@@ -355,6 +464,7 @@ export async function sendWhatsAppForTenant(
     nomeMembro,
     nomeTerreiro: ctx.nomeTerreiro,
     idTerreiro: ctx.idTerreiro,
+    zelador: ctx.zelador,
     variables,
   });
   return { success: true, externalId };
@@ -409,9 +519,12 @@ export async function broadcastWhatsAppForTenant(
         nomeMembro,
         nomeTerreiro: ctx.nomeTerreiro,
         idTerreiro: ctx.idTerreiro,
+        zelador: ctx.zelador,
         variables: {
           nome_filho: nomeMembro,
           nome_terreiro: ctx.nomeTerreiro,
+          zelador: ctx.zelador || "",
+          nome_zelador: ctx.zelador || "",
           comunicado: messageText,
         },
       });

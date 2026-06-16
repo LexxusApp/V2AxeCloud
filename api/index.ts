@@ -4578,6 +4578,8 @@ async function startServer() {
         variables: {
           nome_filho: "Teste",
           nome_terreiro: ctx.nomeTerreiro,
+          zelador: ctx.zelador || "",
+          nome_zelador: ctx.zelador || "",
           comunicado:
             "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
         },
