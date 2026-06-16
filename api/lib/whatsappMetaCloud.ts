@@ -136,7 +136,16 @@ function resolveSistemaName(variables?: Record<string, string | number>): string
 }
 
 function textParam(value: string, max = 256): { type: "text"; text: string } {
-  return { type: "text", text: String(value || "").slice(0, max) };
+  const text = sanitizeTemplateParam(String(value || "")).slice(0, max);
+  return { type: "text", text: text || "-" };
+}
+
+/** Meta rejeita quebras de linha e espaços extras nas variáveis de template. */
+export function sanitizeTemplateParam(value: string): string {
+  return String(value || "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 /** Extrai token RSVP (variável direta ou URL legada). */
@@ -406,6 +415,18 @@ export function buildSignedWhatsAppBody(
   return lines.join("\n").trim().slice(0, 1024);
 }
 
+/** Corpo em uma linha para variáveis de template Meta (comunicado / mensagem livre). */
+export function buildSignedWhatsAppTemplateParam(
+  nomeTerreiro: string,
+  userText: string,
+  zelador?: string
+): string {
+  const msg = sanitizeTemplateParam(userText);
+  const assinatura = sanitizeTemplateParam(buildTerreiroAssinatura(zelador, nomeTerreiro));
+  if (!msg) return assinatura.slice(0, 1024) || "Comunicado do terreiro.";
+  return `${msg} ${assinatura}`.slice(0, 1024);
+}
+
 /**
  * mensagem_livre_terreiro_axecloud — corpo: {{1}} texto completo (mensagem + assinatura)
  */
@@ -431,13 +452,9 @@ export function buildComunicadoTerreiroComponents(
     v.comunicado || v.mensagem || v.message || v.texto || ""
   ).trim();
   const zelador = String(v.zelador || v.nome_zelador || "").trim() || undefined;
-  const comunicado = buildSignedWhatsAppBody(
-    nomeMembro,
-    nomeTerreiro,
-    rawMsg,
-    zelador,
-    { includeGreeting: false }
-  ).slice(0, 1024) || "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
+  const comunicado =
+    buildSignedWhatsAppTemplateParam(nomeTerreiro, rawMsg, zelador) ||
+    "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
   return [
     {
       type: "body",
@@ -500,8 +517,7 @@ export function buildMetaTemplateComponentsForTipo(
   }
   if (t === "broadcast" || t === "teste") {
     if (isMensagemLivreTemplate(tipo)) {
-      const signed = buildSignedWhatsAppBody(
-        nomeMembro,
+      const signed = buildSignedWhatsAppTemplateParam(
         nomeTerreiro,
         String(variables?.comunicado || variables?.mensagem || variables?.message || ""),
         String(variables?.zelador || variables?.nome_zelador || "") || undefined

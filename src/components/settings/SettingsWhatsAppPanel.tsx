@@ -24,7 +24,7 @@ type WaLogUi = {
   mensagem: string;
   data: string;
   tipo: WaLogTipo;
-  status: 'Enviado' | 'Falha';
+  status: 'Enviado' | 'Falha' | 'Parcial';
 };
 
 type WaPreferences = {
@@ -153,7 +153,12 @@ export function SettingsWhatsAppPanel() {
             mensagem: String(row.mensagem || ''),
             data: formatLogDate(String(row.created_at || '')),
             tipo,
-            status: st === 'failed' || st === 'falha' ? 'Falha' : 'Enviado',
+            status:
+              st === 'failed' || st === 'falha'
+                ? 'Falha'
+                : st === 'partial'
+                  ? 'Parcial'
+                  : 'Enviado',
           };
         }),
       );
@@ -549,9 +554,15 @@ export function SettingsWhatsAppPanel() {
                 Escreva o comunicado livremente — o filho recebe exatamente o que você digitar, com uma{' '}
                 <strong className="text-gray-300">assinatura automática da casa</strong> no final.
                 Dispara para cada filho com WhatsApp cadastrado na Corrente (não inclui o zelador automaticamente).
-                {correnteCount !== null ? (
+                {correnteCount !== null && correnteCount > 0 ? (
                   <span className="mt-1 block text-violet-300">
                     Destinatários únicos agora: {correnteCount} número(s) com WhatsApp cadastrado.
+                  </span>
+                ) : null}
+                {correnteCount === 0 ? (
+                  <span className="mt-1 block text-amber-300">
+                    Nenhum filho com WhatsApp válido cadastrado — cadastre um número na Corrente para habilitar o
+                    disparo.
                   </span>
                 ) : null}
               </p>
@@ -580,10 +591,10 @@ export function SettingsWhatsAppPanel() {
               <button
                 type="button"
                 onClick={() => void handleBroadcast()}
-                disabled={broadcasting}
+                disabled={broadcasting || !connected || !testMessage.trim() || correnteCount === 0}
                 className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-xs font-bold transition-all ${
-                  connected
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/10 hover:bg-emerald-500'
+                  connected && correnteCount !== 0
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/10 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
                     : 'cursor-not-allowed border border-[#1E242B]/85 bg-[#12161A] text-gray-500 hover:bg-[#12161A]'
                 }`}
               >

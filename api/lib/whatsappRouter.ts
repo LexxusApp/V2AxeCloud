@@ -159,9 +159,17 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const message = String(body.message || "").trim();
       if (!message) return sendJson(res, 400, { error: "Mensagem obrigatória." });
 
-      const { sent, failed, total } = await broadcastWhatsAppForTenant(sb, user.id, message);
+      const { sent, failed, total, lastError } = await broadcastWhatsAppForTenant(sb, user.id, message);
       if (!total) {
         return sendJson(res, 400, { error: "Nenhum filho de santo com WhatsApp cadastrado." });
+      }
+      if (!sent) {
+        return sendJson(res, 502, {
+          error: lastError || "Não foi possível enviar para nenhum destinatário.",
+          sent,
+          failed,
+          total,
+        });
       }
 
       return sendJson(res, 200, {

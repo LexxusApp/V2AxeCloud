@@ -5,6 +5,7 @@ import {
   ensureOfficialWhatsAppReady,
   sendEvolutionTemplateByInstance,
   sendEvolutionTextByInstance,
+  type MetaTemplateComponent,
 } from "../../src/services/evolution.service.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
@@ -12,6 +13,7 @@ import {
   buildMetaTemplateComponentsForTipo,
   buildMensagemLivreComponents,
   buildSignedWhatsAppBody,
+  buildSignedWhatsAppTemplateParam,
   buildWhatsAppAuditMessage,
   filhoLoginIdShort,
   isBoasVindasTemplate,
@@ -295,16 +297,45 @@ async function sendWhatsAppTemplateMessage(
   const language = resolveMetaTemplateLanguage();
   const components = buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, variables);
 
+  return sendTemplateWithFallback(phone, templateName, language, components);
+}
+
+async function sendTemplateWithFallback(
+  phone: string,
+  templateName: string,
+  language: string,
+  components: MetaTemplateComponent[]
+): Promise<{ messageId?: string }> {
+  let metaErr: unknown;
   if (isMetaCloudDirectConfigured()) {
-    return sendMetaCloudTemplate(phone, templateName, language, components);
+    try {
+      return await sendMetaCloudTemplate(phone, templateName, language, components);
+    } catch (err) {
+      metaErr = err;
+      console.warn(
+        `[WHATSAPP] Meta direct falhou (${templateName}):`,
+        err instanceof Error ? err.message : err
+      );
+    }
   }
-  return sendEvolutionTemplateByInstance(
-    CONSOLE_ADMIN_INSTANCE_NAME,
-    phone,
-    templateName,
-    language,
-    components
-  );
+  try {
+    return await sendEvolutionTemplateByInstance(
+      CONSOLE_ADMIN_INSTANCE_NAME,
+      phone,
+      templateName,
+      language,
+      components
+    );
+  } catch (err) {
+    if (metaErr) {
+      throw new Error(
+        `Meta: ${metaErr instanceof Error ? metaErr.message : String(metaErr)} | Evolution: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+    throw err;
+  }
 }
 
 /** Transmissão: template Meta (entrega garantida); texto livre só se WA_BROADCAST_TRY_FREE_TEXT=1. */
@@ -320,6 +351,7 @@ async function sendBroadcastLikeWhatsApp(
   const signedBody = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
     includeGreeting: false,
   });
+  const templateParam = buildSignedWhatsAppTemplateParam(nomeTerreiro, rawMessage, zelador);
 
   const tryFreeText = String(process.env.WA_BROADCAST_TRY_FREE_TEXT || "").trim() === "1";
   if (tryFreeText) {
@@ -345,18 +377,10 @@ async function sendBroadcastLikeWhatsApp(
   };
 
   const components = isMensagemLivreTemplate(tipo)
-    ? buildMensagemLivreComponents(signedBody)
+    ? buildMensagemLivreComponents(templateParam)
     : buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, templateVars);
 
-  const tpl = isMetaCloudDirectConfigured()
-    ? await sendMetaCloudTemplate(phone, templateName, language, components)
-    : await sendEvolutionTemplateByInstance(
-        CONSOLE_ADMIN_INSTANCE_NAME,
-        phone,
-        templateName,
-        language,
-        components
-      );
+  const tpl = await sendTemplateWithFallback(phone, templateName, language, components);
   console.log(`[WHATSAPP] broadcast template=${templateName} → ${phone.slice(0, 4)}…`);
   return { messageId: tpl.messageId, deliveryMode: "template" };
 }
@@ -479,7 +503,7 @@ export async function broadcastWhatsAppForTenant(
   sb: SupabaseClient,
   tenantId: string,
   messageText: string
-): Promise<{ sent: number; failed: number; total: number }> {
+): Promise<{ sent: number; failed: number; total: number; lastError?: string }> {
   const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
 
   const { data: filhos, error } = await sb
@@ -506,13 +530,14 @@ export async function broadcastWhatsAppForTenant(
 
   let sent = 0;
   let failed = 0;
+  let lastError: string | undefined;
 
   for (let i = 0; i < uniqueTargets.length; i++) {
     const filho = uniqueTargets[i];
+    const phone = normalizeBrPhone(String(filho.whatsapp_phone));
     try {
       if (i > 0) await sleep(2000);
       await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
-      const phone = normalizeBrPhone(String(filho.whatsapp_phone));
       const nomeMembro = String(filho.nome || "Membro");
       await logAndSendWhatsApp(sb, {
         tenantId,
@@ -533,21 +558,36 @@ export async function broadcastWhatsAppForTenant(
         },
       });
       sent += 1;
-    } catch {
+    } catch (err) {
       failed += 1;
+      lastError = err instanceof Error ? err.message : String(err);
+      console.error(`[WHATSAPP] broadcast falhou (${phone}):`, lastError);
+      try {
+        await sb.from("whatsapp_logs").insert({
+          tenant_id: tenantId,
+          filho_id: String(filho.id),
+          tipo: "broadcast",
+          telefone: phone,
+          mensagem: messageText,
+          status: "failed",
+          external_id: `failed_${Date.now()}_${i}`,
+        });
+      } catch {
+        /* ok */
+      }
     }
   }
 
-  if (sent > 0) {
+  if (sent > 0 || failed > 0) {
     await sb.from("whatsapp_logs").insert({
       tenant_id: tenantId,
       tipo: "broadcast",
       telefone: "corrente_geral",
       mensagem: messageText,
-      status: failed > 0 ? "partial" : "sent",
+      status: sent > 0 ? (failed > 0 ? "partial" : "sent") : "failed",
       external_id: `broadcast_${Date.now()}`,
     });
   }
 
-  return { sent, failed, total: uniqueTargets.length };
+  return { sent, failed, total: uniqueTargets.length, lastError };
 }

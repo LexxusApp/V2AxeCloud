@@ -4490,9 +4490,17 @@ async function startServer() {
       const message = String(req.body?.message || "").trim();
       if (!message) return res.status(400).json({ error: "Mensagem obrigatória." });
 
-      const { sent, failed, total } = await broadcastWhatsAppForTenant(supabaseAdmin, user.id, message);
+      const { sent, failed, total, lastError } = await broadcastWhatsAppForTenant(supabaseAdmin, user.id, message);
       if (!total) {
         return res.status(400).json({ error: "Nenhum filho de santo com WhatsApp cadastrado." });
+      }
+      if (!sent) {
+        return res.status(502).json({
+          error: lastError || "Não foi possível enviar para nenhum destinatário. Tente novamente em instantes.",
+          sent,
+          failed,
+          total,
+        });
       }
 
       res.json({
