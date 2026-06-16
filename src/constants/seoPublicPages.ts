@@ -204,14 +204,18 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
   },
 ] as const;
 
+/** Paths com HTML pré-renderizado em dist/{path}/index.html (app bundle). */
+export const PUBLIC_PRERENDER_PATHS: readonly string[] = PUBLIC_PRERENDER_PAGES.map((p) => p.path);
+
 export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] = [
   { href: `${SITE_ORIGIN}/`, label: 'Início' },
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
+  { href: `${SITE_ORIGIN}${ROUTES.founderProgram}`, label: 'Programa Fundador' },
+  { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
+  { href: `${SITE_ORIGIN}${ROUTES.glossary}`, label: 'Glossário do axé' },
+  { href: `${SITE_ORIGIN}${ROUTES.espacoDoFiel}`, label: 'Espaço do Fiel' },
   { href: `${SITE_ORIGIN}${ROUTES.terms}`, label: 'Termos de Uso' },
   { href: `${SITE_ORIGIN}${ROUTES.privacy}`, label: 'Política de Privacidade' },
-  { href: `${SITE_ORIGIN}${ROUTES.founderProgram}`, label: 'Programa Fundador' },
-  { href: `${SITE_ORIGIN}${ROUTES.espacoDoFiel}`, label: 'Espaço do Fiel' },
-  { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
 ];
 
 function escapeHtml(value: string): string {
