@@ -388,12 +388,15 @@ export function isMensagemLivreTemplate(tipo: string): boolean {
 /** Assinatura automática da casa (única parte fixa além do texto do zelador). */
 export function buildTerreiroAssinatura(
   zelador: string | undefined,
-  nomeTerreiro: string
+  nomeTerreiro: string,
+  options?: { asciiOnly?: boolean }
 ): string {
   const casa = String(nomeTerreiro || "Terreiro").trim();
   const lider = String(zelador || "").trim();
-  if (lider) return `— ${lider} · ${casa}`;
-  return `— ${casa}`;
+  const sep = options?.asciiOnly ? " - " : " · ";
+  const prefix = options?.asciiOnly ? "- " : "— ";
+  if (lider) return `${prefix}${lider}${sep}${casa}`;
+  return `${prefix}${casa}`;
 }
 
 /** Texto que o filho recebe: saudação opcional + mensagem do zelador + assinatura. */
@@ -422,7 +425,9 @@ export function buildSignedWhatsAppTemplateParam(
   zelador?: string
 ): string {
   const msg = sanitizeTemplateParam(userText);
-  const assinatura = sanitizeTemplateParam(buildTerreiroAssinatura(zelador, nomeTerreiro));
+  const assinatura = sanitizeTemplateParam(
+    buildTerreiroAssinatura(zelador, nomeTerreiro, { asciiOnly: true })
+  );
   if (!msg) return assinatura.slice(0, 1024) || "Comunicado do terreiro.";
   return `${msg} ${assinatura}`.slice(0, 1024);
 }
@@ -451,9 +456,9 @@ export function buildComunicadoTerreiroComponents(
   const rawMsg = String(
     v.comunicado || v.mensagem || v.message || v.texto || ""
   ).trim();
-  const zelador = String(v.zelador || v.nome_zelador || "").trim() || undefined;
+  // {{3}} = só o texto do zelador (sem assinatura) — variáveis com —/· quebravam entrega na Meta.
   const comunicado =
-    buildSignedWhatsAppTemplateParam(nomeTerreiro, rawMsg, zelador) ||
+    sanitizeTemplateParam(rawMsg).slice(0, 1024) ||
     "Comunicado do terreiro. Acesse o AxéCloud para mais detalhes.";
   return [
     {

@@ -305,11 +305,30 @@ async function sendTemplateWithFallback(
   templateName: string,
   language: string,
   components: MetaTemplateComponent[]
-): Promise<{ messageId?: string }> {
+): Promise<{ messageId?: string; channel: "evolution" | "meta" }> {
   let metaErr: unknown;
+  try {
+    const evo = await sendEvolutionTemplateByInstance(
+      CONSOLE_ADMIN_INSTANCE_NAME,
+      phone,
+      templateName,
+      language,
+      components
+    );
+    console.log(`[WHATSAPP] template via Evolution (${templateName}) → ${phone.slice(0, 4)}…`);
+    return { messageId: evo.messageId, channel: "evolution" };
+  } catch (err) {
+    console.warn(
+      `[WHATSAPP] Evolution template falhou (${templateName}):`,
+      err instanceof Error ? err.message : err
+    );
+  }
+
   if (isMetaCloudDirectConfigured()) {
     try {
-      return await sendMetaCloudTemplate(phone, templateName, language, components);
+      const meta = await sendMetaCloudTemplate(phone, templateName, language, components);
+      console.log(`[WHATSAPP] template via Meta direct (${templateName}) → ${phone.slice(0, 4)}…`);
+      return { messageId: meta.messageId, channel: "meta" };
     } catch (err) {
       metaErr = err;
       console.warn(
@@ -318,24 +337,12 @@ async function sendTemplateWithFallback(
       );
     }
   }
-  try {
-    return await sendEvolutionTemplateByInstance(
-      CONSOLE_ADMIN_INSTANCE_NAME,
-      phone,
-      templateName,
-      language,
-      components
-    );
-  } catch (err) {
-    if (metaErr) {
-      throw new Error(
-        `Meta: ${metaErr instanceof Error ? metaErr.message : String(metaErr)} | Evolution: ${
-          err instanceof Error ? err.message : String(err)
-        }`
-      );
-    }
-    throw err;
-  }
+
+  throw new Error(
+    metaErr instanceof Error
+      ? metaErr.message
+      : "Falha ao enviar template pelo canal oficial WhatsApp."
+  );
 }
 
 /** Transmissão: template Meta (entrega garantida); texto livre só se WA_BROADCAST_TRY_FREE_TEXT=1. */
@@ -527,6 +534,31 @@ export async function broadcastWhatsAppForTenant(
     seenPhones.add(phone);
     return true;
   });
+
+  const cooldownMs = Number(process.env.WA_BROADCAST_PHONE_COOLDOWN_MS || 180000);
+  if (cooldownMs > 0 && uniqueTargets.length > 0) {
+    const phone = normalizeBrPhone(String(uniqueTargets[0].whatsapp_phone));
+    const { data: last } = await sb
+      .from("whatsapp_logs")
+      .select("created_at")
+      .eq("tenant_id", tenantId)
+      .eq("telefone", phone)
+      .eq("tipo", "broadcast")
+      .in("status", ["sent", "partial"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (last?.created_at) {
+      const elapsed = Date.now() - new Date(String(last.created_at)).getTime();
+      if (elapsed < cooldownMs) {
+        const waitMin = Math.ceil((cooldownMs - elapsed) / 60000);
+        throw httpError(
+          `Aguarde cerca de ${waitMin} min antes de reenviar para o mesmo número (limite anti-spam do WhatsApp).`,
+          429
+        );
+      }
+    }
+  }
 
   let sent = 0;
   let failed = 0;

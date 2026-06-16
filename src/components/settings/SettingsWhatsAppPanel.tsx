@@ -584,8 +584,8 @@ export function SettingsWhatsAppPanel() {
                 </p>
                 <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-gray-300">{messagePreview}</p>
                 <p className="mt-2 text-[10px] leading-relaxed text-gray-500">
-                  A assinatura é adicionada automaticamente. A entrega usa o template aprovado da Meta com seu
-                  texto na mensagem — assim o comunicado chega de forma confiável no WhatsApp de cada filho.
+                  A assinatura aparece na prévia para você conferir. No WhatsApp, o template da Meta já identifica o
+                  terreiro no cabeçalho — evite disparar várias vezes seguidas para o mesmo número.
                 </p>
               </div>
               <button

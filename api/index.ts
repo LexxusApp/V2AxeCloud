@@ -4512,7 +4512,8 @@ async function startServer() {
       });
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
-      res.status(500).json({ error: error?.message || "Erro na transmissão." });
+      const status = Number(error?.statusCode) || 500;
+      res.status(status).json({ error: error?.message || "Erro na transmissão." });
     }
   });
 
