@@ -142,7 +142,7 @@ function AddAlbumModalPanel({
   zeladorName,
 }: AddAlbumModalPanelProps) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-4 pt-20 sm:p-8 sm:pt-24">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -161,7 +161,7 @@ function AddAlbumModalPanel({
         aria-modal="true"
         aria-labelledby="add-album-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+        className="relative z-[101] flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -187,73 +187,76 @@ function AddAlbumModalPanel({
           </button>
         </div>
 
-        <div className="overflow-y-auto overscroll-y-contain p-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
-            <div>
-              <label className={appLabelClass}>Nome do álbum</label>
-              <input
-                type="text"
-                value={albumName}
-                onChange={(e) => setAlbumName(e.target.value)}
-                placeholder="Ex: Gira de Ogum — Março 2026"
-                className={appInputClass}
-              />
-            </div>
-            <div>
-              <label className={appLabelClass}>Tipo da atividade</label>
-              <select
-                value={albumCategory}
-                onChange={(e) => setAlbumCategory(e.target.value as GalleryCategory)}
-                className={cn(appInputClass, 'cursor-pointer')}
-              >
-                <option value="gira">Gira de Trabalho</option>
-                <option value="evento">Festa / Evento Público</option>
-                <option value="lembranca">Lembrança das Linhagens</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className={appLabelClass}>Legenda do álbum</label>
-              <textarea
-                value={albumDescription}
-                onChange={(e) => setAlbumDescription(e.target.value)}
-                rows={2}
-                placeholder="Breve história sobre a gira, as entidades que trabalharam…"
-                className={cn(appInputClass, 'resize-none')}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={appLabelClass}>Fotos e vídeos (múltiplos)</label>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15 disabled:opacity-60"
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  Selecionar fotos / vídeos
-                </button>
+        <div className="p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:gap-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
+              <div>
+                <label className={appLabelClass}>Nome do álbum</label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  className="hidden"
-                  onChange={onSelectFiles}
-                  disabled={uploading}
+                  type="text"
+                  value={albumName}
+                  onChange={(e) => setAlbumName(e.target.value)}
+                  placeholder="Ex: Gira de Ogum — Março 2026"
+                  className={appInputClass}
                 />
-                {selectedFiles.length > 0 ? (
-                  <span className="text-[11px] text-gray-400">
-                    {selectedFiles.length} arquivo(s) selecionado(s)
-                  </span>
-                ) : null}
+              </div>
+              <div>
+                <label className={appLabelClass}>Tipo da atividade</label>
+                <select
+                  value={albumCategory}
+                  onChange={(e) => setAlbumCategory(e.target.value as GalleryCategory)}
+                  className={cn(appInputClass, 'cursor-pointer')}
+                >
+                  <option value="gira">Gira de Trabalho</option>
+                  <option value="evento">Festa / Evento Público</option>
+                  <option value="lembranca">Lembrança das Linhagens</option>
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={appLabelClass}>Legenda do álbum</label>
+                <textarea
+                  value={albumDescription}
+                  onChange={(e) => setAlbumDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Breve história sobre a gira, as entidades que trabalharam…"
+                  className={cn(appInputClass, 'resize-none')}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={appLabelClass}>Fotos e vídeos (múltiplos)</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15 disabled:opacity-60"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Selecionar fotos / vídeos
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="hidden"
+                    onChange={onSelectFiles}
+                    disabled={uploading}
+                  />
+                  {selectedFiles.length > 0 ? (
+                    <span className="text-[11px] text-gray-400">
+                      {selectedFiles.length} arquivo(s) selecionado(s)
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
-            <div className="space-y-3 rounded-2xl border border-[#1E242B] bg-[#0C0E12]/80 p-4 sm:col-span-2">
+
+            <div className="flex min-h-[10.5rem] flex-col space-y-3 rounded-2xl border border-[#1E242B] bg-[#0C0E12]/80 p-4 lg:min-h-0">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">
                   Pré-visualização
@@ -269,20 +272,20 @@ function AddAlbumModalPanel({
                 ) : null}
               </div>
               {previewUrls.length === 0 ? (
-                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] text-center">
-                  <p className="px-4 text-[10px] text-gray-500">
+                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-4 py-8 text-center">
+                  <p className="text-[10px] text-gray-500">
                     Selecione várias fotos de uma gira — todas ficarão neste álbum.
                   </p>
                 </div>
               ) : (
-                <div className="grid max-h-[180px] grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
+                <div className="flex flex-1 flex-wrap content-start gap-2">
                   {previewUrls.map((url, index) => {
                     const file = selectedFiles[index];
                     const isVideo = file?.type.startsWith('video/');
                     return (
                       <div
                         key={url}
-                        className="relative aspect-square overflow-hidden rounded-lg border border-[#1E242B] bg-black"
+                        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#1E242B] bg-black sm:h-[4.5rem] sm:w-[4.5rem]"
                       >
                         {isVideo ? (
                           <video src={url} className="h-full w-full object-cover" muted playsInline />
@@ -297,31 +300,32 @@ function AddAlbumModalPanel({
             </div>
           </div>
 
-          <p className="mt-4 font-mono text-[9.5px] italic text-gray-500">
-            Assinado por {zeladorName} (Zeladoria)
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 sm:mt-6">
-            {(albumName || selectedFiles.length > 0) && (
-              <button
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4 sm:mt-6">
+            <p className="font-mono text-[9.5px] italic text-gray-500">
+              Assinado por {zeladorName} (Zeladoria)
+            </p>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {(albumName || selectedFiles.length > 0) && (
+                <button
+                  type="button"
+                  onClick={onClear}
+                  disabled={uploading}
+                  className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50"
+                >
+                  Limpar
+                </button>
+              )}
+              <AppPrimaryButton
                 type="button"
-                onClick={onClear}
+                onClick={onPublish}
                 disabled={uploading}
-                className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50"
+                className="inline-flex min-w-[10rem] items-center justify-center"
               >
-                Limpar
-              </button>
-            )}
-            <AppPrimaryButton
-              type="button"
-              onClick={onPublish}
-              disabled={uploading}
-              className="inline-flex min-w-[10rem] items-center justify-center"
-            >
-              {uploading
-                ? `Enviando ${uploadProgress.current}/${uploadProgress.total}…`
-                : 'Publicar álbum'}
-            </AppPrimaryButton>
+                {uploading
+                  ? `Enviando ${uploadProgress.current}/${uploadProgress.total}…`
+                  : 'Publicar álbum'}
+              </AppPrimaryButton>
+            </div>
           </div>
         </div>
       </motion.div>
