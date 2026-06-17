@@ -5,7 +5,8 @@ import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
-import { Loader2, ShieldAlert, Bell } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
+import { FilhoPushPrompt } from './components/filho/FilhoPushPrompt';
 import { cn } from './lib/utils';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
@@ -1467,33 +1468,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
           >
-            {/* Notificações push: apenas filhos — banner só com permissão ainda "default"; granted/denied o navegador já decidiu */}
-            {userRole === 'filho' && permission === 'default' && session && (
-              <div className="mx-4 mb-6 bg-primary/10 border border-primary/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 sm:mx-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Bell className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-bold">Ativar Notificações?</h4>
-                    <p className="text-xs text-gray-400">Receba avisos do mural e eventos em tempo real.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={subscribe}
-                  disabled={pushLoading}
-                  className="w-full md:w-auto bg-primary text-background px-6 py-2 rounded-xl font-black text-sm hover:scale-105 transition-transform disabled:opacity-50"
-                >
-                  {pushLoading ? 'Ativando...' : 'Ativar Agora'}
-                </button>
+            {userRole === 'filho' && session ? (
+              <div className="mx-auto w-full max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
+                <FilhoPushPrompt
+                  permission={permission}
+                  loading={pushLoading}
+                  onSubscribe={() => void subscribe()}
+                />
               </div>
-            )}
-            {userRole === 'filho' && permission === 'denied' && session && (
-              <div className="mx-4 mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-gray-400 sm:mx-6">
-                Notificações estão <span className="font-bold text-white/80">bloqueadas</span> neste navegador. Para receber avisos do terreiro, permita o site em{' '}
-                <span className="text-gray-300">Configurações do site</span> (ícone de cadeado ou informações ao lado do endereço).
-              </div>
-            )}
+            ) : null}
             <div className="flex-1">
               <Suspense
                 fallback={

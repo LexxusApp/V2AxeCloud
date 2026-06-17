@@ -17,7 +17,8 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig } from '../components/PixPaymentModal';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
+import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton } from '../components/ui/appDemoUi';
+import { filhoKickerClass, filhoPanelClass, filhoPanelInsetClass } from '../lib/filhoUiTokens';
 import { MensalidadeCardSkeleton } from '../components/Skeleton';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/staleCache';
@@ -309,117 +310,114 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           {/* Main Payment Section */}
           <div className="lg:col-span-8 space-y-8">
             {/* Status Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                "relative overflow-hidden rounded-[2.5rem] border p-8 shadow-2xl",
-                pendingMensalidade 
-                  ? "border-primary/20 bg-gradient-to-br from-primary/10 via-card to-background"
-                  : "border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-background"
+                filhoPanelClass,
+                'relative overflow-hidden p-6 sm:p-8',
+                pendingMensalidade ? 'border-amber-500/20' : 'border-emerald-500/20',
               )}
             >
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div className="relative z-10 flex flex-col justify-between gap-8 md:flex-row md:items-center">
                 <div className="space-y-4">
-                  <div className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest",
-                    pendingMensalidade ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"
-                  )}>
-                    {pendingMensalidade ? <AlertCircle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
-                    {pendingMensalidade ? "Contribuição Pendente" : "Contribuição em Dia"}
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest',
+                      pendingMensalidade
+                        ? 'border-amber-500/25 bg-amber-500/10 text-amber-400'
+                        : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
+                    )}
+                  >
+                    {pendingMensalidade ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                    {pendingMensalidade ? 'Contribuição pendente' : 'Contribuição em dia'}
                   </div>
-                  <h3 className="text-3xl font-black text-white">
-                    {pendingMensalidade 
+                  <h3 className="text-2xl font-bold text-[#F1F5F9] sm:text-3xl">
+                    {pendingMensalidade
                       ? `R$ ${Number(pendingMensalidade.valor).toFixed(2).replace('.', ',')}`
-                      : "Mensalidade do mês quitada"}
+                      : 'Mensalidade do mês quitada'}
                   </h3>
-                  <p className="text-gray-400 font-medium max-w-sm">
-                    {pendingMensalidade 
-                      ? "A sua contribuição mensal ajuda a manter o axé da nossa casa. Clique no botão ao lado para realizar o pagamento via Pix."
-                      : "Obrigado por sua dedicação! Sua mensalidade está em dia. Que os Orixás continuem te abençoando."}
+                  <p className="max-w-sm text-sm leading-relaxed text-[#94A3B8]">
+                    {pendingMensalidade
+                      ? 'Sua contribuição mensal ajuda a manter o axé da casa. Use o Pix para pagar com segurança.'
+                      : 'Obrigado pela dedicação. Sua mensalidade está em dia — axé!'}
                   </p>
-                  {diaVencimento > 0 && (
-                    <p className="text-[11px] font-black text-primary/80 uppercase tracking-widest flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5" />
+                  {diaVencimento > 0 ? (
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-primary/90">
+                      <CalendarDays className="h-3.5 w-3.5" />
                       Vencimento: dia {diaVencimento} de cada mês
                     </p>
-                  )}
+                  ) : null}
                 </div>
 
-                {pendingMensalidade && (
+                {pendingMensalidade ? (
                   <div className="flex flex-col gap-3">
-                    <button 
+                    <AppPrimaryButton
+                      type="button"
                       onClick={openPixModal}
                       disabled={pixNotConfigured && pixFetched}
                       className={cn(
-                        "px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all",
-                        pixNotConfigured && pixFetched
-                          ? "bg-white/5 text-gray-500 cursor-not-allowed"
-                          : "bg-primary text-background hover:scale-105 active:scale-95 shadow-xl shadow-primary/20"
+                        'inline-flex items-center justify-center gap-2 px-8 py-3.5 text-xs uppercase tracking-widest',
+                        pixNotConfigured && pixFetched && 'cursor-not-allowed opacity-50',
                       )}
                     >
-                      <Zap className="w-5 h-5 fill-current" />
+                      <Zap className="h-4 w-4 fill-current" />
                       Visualizar QR Code Pix
-                    </button>
-                    {pixNotConfigured && (
-                      <p className="text-[10px] text-amber-500 font-bold text-center uppercase tracking-wider">
+                    </AppPrimaryButton>
+                    {pixNotConfigured ? (
+                      <p className="text-center text-[10px] font-bold uppercase tracking-wider text-amber-400">
                         Terreiro ainda não cadastrou chave Pix
                       </p>
-                    )}
+                    ) : null}
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {pendingMensalidade && pixConfig && (
-                <div className="mt-10 pt-8 border-t border-white/5 space-y-6">
-                   <div className="flex items-center gap-2 text-primary">
-                      <DollarSign className="w-5 h-5" />
-                      <h4 className="font-black uppercase tracking-widest text-sm">Dados de Pagamento Direto</h4>
-                   </div>
-                   <div className="bg-black/40 rounded-3xl p-6 border border-white/5 flex flex-col md:flex-row items-center gap-8">
-                      <div className="shrink-0 bg-white p-3 rounded-2xl">
-                         {/* We will rely on the modal for the official QR, but we can hint it here or just open it */}
-                         <div className="w-32 h-32 flex items-center justify-center text-background font-black text-xs text-center p-2 uppercase">
-                            Clique no botão acima para ver o QR Code
-                         </div>
+              {pendingMensalidade && pixConfig ? (
+                <div className="relative z-10 mt-8 space-y-4 border-t border-[#1E242B] pt-8">
+                  <div className="flex items-center gap-2 text-primary">
+                    <DollarSign className="h-5 w-5" />
+                    <h4 className="text-sm font-bold uppercase tracking-widest">Dados de pagamento</h4>
+                  </div>
+                  <div className={cn(filhoPanelInsetClass, 'flex flex-col items-center gap-6 p-5 md:flex-row md:items-start')}>
+                    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl border border-[#1E242B] bg-[#13171D] p-3 text-center text-[10px] font-bold uppercase leading-snug text-[#64748B]">
+                      Use o botão acima para ver o QR Code
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-4">
+                      <div>
+                        <p className={filhoKickerClass}>Favorecido</p>
+                        <p className="mt-1 font-semibold text-[#F1F5F9]">{pixConfig.nome_beneficiario || 'Terreiro'}</p>
                       </div>
-                      <div className="flex-1 space-y-4">
-                         <div className="space-y-1">
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Favorecido</p>
-                            <p className="text-white font-bold">{pixConfig.nome_beneficiario || 'Terreiro'}</p>
-                         </div>
-                         <div className="space-y-1">
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Chave Pix ({pixConfig.tipo_chave})</p>
-                            <div className="flex items-center gap-3">
-                               <code className="text-primary font-mono text-xs bg-primary/5 px-3 py-2 rounded-lg border border-primary/20 break-all">
-                                  {pixConfig.chave_pix}
-                               </code>
-                               <button 
-                                 onClick={() => {
-                                   navigator.clipboard.writeText(pixConfig.chave_pix);
-                                   alert('Chave Pix copiada!');
-                                 }}
-                                 className="p-2 hover:bg-white/5 rounded-lg text-primary transition-colors shrink-0"
-                                 title="Copiar Chave"
-                               >
-                                 <Receipt className="w-4 h-4" />
-                               </button>
-                            </div>
-                         </div>
+                      <div>
+                        <p className={filhoKickerClass}>Chave Pix ({pixConfig.tipo_chave})</p>
+                        <div className="mt-1 flex items-center gap-3">
+                          <code className="break-all rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 font-mono text-xs text-primary">
+                            {pixConfig.chave_pix}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(pixConfig.chave_pix);
+                              alert('Chave Pix copiada!');
+                            }}
+                            className="shrink-0 rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary transition-colors hover:border-primary/30"
+                            title="Copiar chave"
+                          >
+                            <Receipt className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                   </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-
-              {/* Background Accent */}
-              <div className="absolute right-0 top-0 translate-x-1/2 -translate-y-1/3 w-64 h-64 bg-primary/10 blur-[100px] pointer-events-none" />
+              ) : null}
             </motion.div>
 
             {/* History Table */}
             <div className="space-y-6">
-              <h4 className="text-xl font-black text-white flex items-center gap-3">
-                <Receipt className="w-6 h-6 text-primary" />
-                Histórico de Contribuições
+              <h4 className="flex items-center gap-3 text-lg font-bold text-[#F1F5F9]">
+                <Receipt className="h-5 w-5 text-primary" />
+                Histórico de contribuições
               </h4>
               
               <div className="grid gap-4">
@@ -430,7 +428,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-[#2F3643] transition-colors"
+                      className={cn(filhoPanelClass, 'flex flex-col justify-between gap-4 p-5 transition-colors hover:border-[#2F3643] md:flex-row md:items-center')}
                     >
                       <div className="flex items-center gap-5">
                         <div className={cn(
@@ -473,8 +471,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
           {/* Sidebar / Info Section */}
           <div className="lg:col-span-4 space-y-8">
-            <AppDemoCard className="space-y-6 border-primary/20 bg-primary/5">
-              <h4 className="text-lg font-black text-white uppercase tracking-widest">Informações</h4>
+            <AppDemoCard className="space-y-6">
+              <h4 className="text-base font-bold uppercase tracking-widest text-[#F1F5F9]">Informações</h4>
               <div className="space-y-6">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -505,16 +503,19 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
             </AppDemoCard>
 
             {/* Quick Action */}
-            <button 
+            <button
+              type="button"
               onClick={() => setActiveTab('store')}
-              className="w-full group p-6 rounded-[2rem] border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-left flex items-center justify-between overflow-hidden relative"
+              className={cn(
+                filhoPanelClass,
+                'group relative flex w-full items-center justify-between overflow-hidden p-5 text-left transition-colors hover:border-primary/25',
+              )}
             >
               <div className="relative z-10">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Loja do Axé</p>
-                <p className="text-sm font-bold text-white">Precisa de velas ou guias?</p>
+                <p className={filhoKickerClass}>Loja do Axé</p>
+                <p className="mt-1 text-sm font-bold text-[#F1F5F9]">Precisa de velas ou guias?</p>
               </div>
-              <DollarSign className="w-10 h-10 text-white/5 absolute right-4 top-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform" />
-              <ArrowRight className="w-5 h-5 text-primary relative z-10 group-hover:translate-x-2 transition-transform" />
+              <ArrowRight className="relative z-10 h-5 w-5 text-primary transition-transform group-hover:translate-x-1" />
             </button>
           </div>
 

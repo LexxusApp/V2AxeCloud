@@ -29,6 +29,7 @@ import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPa
 import Avatar from '../components/Avatar';
 import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
+import { filhoKickerClass, filhoPanelClass, filhoPanelInsetClass, filhoSectionTitleClass } from '../lib/filhoUiTokens';
 
 type Tenant =
   | { nome?: string; plan?: string; tenant_id?: string; foto_url?: string }
@@ -502,14 +503,14 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     <AppPageShell>
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Topo — nome do terreiro (vínculo) + perfil compacto */}
-      <header className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-black px-6 py-8 sm:px-10 sm:py-10 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+      <header className={cn(filhoPanelClass, 'relative overflow-hidden px-6 py-8 sm:px-10 sm:py-10')}>
         <div className="relative flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-10">
           <div className="flex-1 min-w-0 text-center lg:text-left space-y-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.35em] text-primary/90">Terreiro vinculado</p>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1] break-words">
+            <p className={filhoKickerClass}>Terreiro vinculado</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#F1F5F9] sm:text-4xl lg:text-5xl break-words">
               {tenantData?.nome || 'Terreiro vinculado'}
             </h1>
-            <p className="text-sm text-gray-400 max-w-xl mx-auto lg:mx-0">
+            <p className="text-sm text-[#94A3B8] max-w-xl mx-auto lg:mx-0">
               Portal do filho de santo — mensalidade, giras, mural e loja do Axé em um só lugar.
             </p>
           </div>
@@ -553,11 +554,11 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
       {/* Mensalidade (PIX) | Próximo evento — colunas com mesma fração e min-w-0 para largura estável */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch [&>section]:min-w-0">
-        <section className="rounded-[2rem] border border-white/10 bg-[#101010] p-6 sm:p-8 flex flex-col shadow-lg w-full">
-          <div className="flex items-start justify-between gap-4 mb-6">
+        <section className={cn(filhoPanelClass, 'flex w-full flex-col p-6 sm:p-8')}>
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">Mensalidade</p>
-              <h2 className="text-xl font-black text-white mt-1">
+              <p className={filhoKickerClass}>Mensalidade</p>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-1')}>
                 {mensalidadeAtiva ? 'Pagamento via PIX' : 'Não habilitada'}
               </h2>
             </div>
@@ -653,11 +654,11 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           )}
         </section>
 
-        <section className="rounded-[2rem] border border-white/10 bg-[#101010] p-5 sm:p-6 flex flex-col shadow-lg w-full min-h-0 min-w-0">
-          <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
+        <section className={cn(filhoPanelClass, 'flex min-h-0 min-w-0 w-full flex-col p-5 sm:p-6')}>
+          <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">Giras & eventos</p>
-              <h2 className="text-lg sm:text-xl font-black text-white mt-0.5 tracking-tight">Próximo na agenda</h2>
+              <p className={filhoKickerClass}>Giras & eventos</p>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5 tracking-tight')}>Próximo na agenda</h2>
             </div>
             <button
               type="button"
@@ -670,7 +671,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           </div>
 
           {loadingCal ? (
-            <div className="w-full rounded-xl border border-white/[0.07] bg-black p-4 sm:p-5 min-h-[168px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] p-4 sm:p-5 min-h-[168px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
                 <div className="flex items-center gap-3">
@@ -688,7 +689,10 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               type="button"
               onClick={() => setActiveTab('calendar')}
               aria-label={`Abrir agenda completa: ${proximoEvento.titulo}`}
-              className="w-full text-left rounded-xl border border-white/[0.08] bg-black px-4 py-4 sm:px-5 sm:py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] min-h-[168px] flex flex-col cursor-pointer transition-all hover:border-primary/35 hover:bg-[#0c0c0c] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] group"
+              className={cn(
+                filhoPanelInsetClass,
+                'group flex min-h-[168px] w-full cursor-pointer flex-col px-4 py-4 text-left transition-all hover:border-primary/30 sm:px-5 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
+              )}
             >
               <div className="flex items-start justify-between gap-2 mb-2 shrink-0">
                 <p className="text-[11px] text-white/90 italic tracking-wide">Próximo evento</p>
@@ -744,7 +748,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               </div>
             </button>
           ) : (
-            <div className="w-full rounded-xl border border-dashed border-white/12 bg-black/50 px-4 py-6 sm:py-8 text-center min-h-[168px] flex flex-col items-center justify-center">
+            <div className="flex min-h-[168px] w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-4 py-6 sm:py-8 text-center">
               <CalendarIcon className="w-9 h-9 text-primary/45 mx-auto mb-2.5" />
               <p className="text-xs font-bold text-gray-400 italic">Nenhum evento futuro na agenda</p>
               <p className="text-[11px] text-gray-600 mt-1.5 max-w-xs mx-auto leading-relaxed">
@@ -792,7 +796,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               ))}
             </div>
           ) : sortedNotices.length === 0 ? (
-            <div className="w-full rounded-2xl border border-white/5 bg-black py-10 px-4 text-center space-y-3">
+            <div className="w-full rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-10 px-4 text-center space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto">
                 <Info className="w-7 h-7 text-gray-500" />
               </div>
@@ -813,10 +817,9 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   className={cn(
-                    'rounded-2xl border bg-[#141414] overflow-hidden shadow-md',
-                    notice.categoria === 'Urgente'
-                      ? 'border-red-500/25 shadow-red-500/5'
-                      : 'border-white/10'
+                    filhoPanelClass,
+                    'overflow-hidden',
+                    notice.categoria === 'Urgente' ? 'border-rose-500/25' : '',
                   )}
                 >
                   <header className="flex items-start gap-3 px-4 pt-4 pb-3 border-b border-white/[0.06]">
