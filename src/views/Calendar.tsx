@@ -1015,74 +1015,74 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   Nenhum evento cadastrado.
                 </AppDemoCard>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {upcomingEvents.map((event) => {
                     const passed = isEventPassed(event.data, event.hora);
+                    const horaFmt = formatHoraEvento(event.hora);
+                    const dataCurta = format(parseISO(event.data), "dd/MM", { locale: ptBR });
+                    const dataLonga = format(parseISO(event.data), "EEE, dd MMM", { locale: ptBR });
                     return (
                       <button
                         type="button"
                         key={event.id}
                         onClick={() => setEventDetailModal(event)}
                         className={cn(
-                          "w-full overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left border-l-4 transition-all hover:border-[#2F3643]",
-                          passed ? "border-l-gray-600 opacity-60" : "border-l-primary"
+                          'group flex w-full items-center gap-3 overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-2.5 text-left transition-all hover:border-primary/25 sm:p-3',
+                          passed && 'opacity-60',
+                          !passed && 'border-l-2 border-l-primary pl-2 sm:pl-2.5',
                         )}
                       >
-                        <div className="relative h-28 w-full overflow-hidden bg-[#0d0d0d]">
+                        <div className="relative h-14 w-[3.75rem] shrink-0 overflow-hidden rounded-lg bg-[#0d0d0d] sm:h-16 sm:w-[4.25rem]">
                           {event.banner_url ? (
-                            <img
-                              src={event.banner_url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
+                            <img src={event.banner_url} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                              <CalendarIcon className="h-10 w-10 text-white/15" />
+                              <CalendarIcon className="h-5 w-5 text-white/15" aria-hidden />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-                          <div className="absolute bottom-2 left-2 right-2 flex flex-wrap items-center gap-1.5">
-                            <span className={cn(
-                              "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full backdrop-blur-sm",
-                              passed ? "bg-black/50 text-gray-400" : "bg-primary/90 text-black"
-                            )}>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={cn(
+                                'rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                                passed ? 'bg-[#12161A] text-[#64748B]' : 'bg-primary/15 text-primary',
+                              )}
+                            >
                               {event.tipo}
                             </span>
-                            {passed && (
-                              <span className="text-[10px] font-black text-red-300 uppercase tracking-widest bg-red-500/80 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                            {passed ? (
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-rose-400">
                                 Encerrado
                               </span>
-                            )}
+                            ) : null}
+                          </div>
+                          <h4 className="line-clamp-1 text-sm font-bold leading-tight text-[#F1F5F9]">
+                            {event.titulo}
+                          </h4>
+                          {event.descricao ? (
+                            <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-[#64748B]">
+                              {event.descricao}
+                            </p>
+                          ) : null}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-[#94A3B8]">
+                            <span className="inline-flex items-center gap-1 capitalize">
+                              <CalendarIcon className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                              {dataLonga}
+                            </span>
+                            {horaFmt ? (
+                              <span className="inline-flex items-center gap-1 tabular-nums">
+                                <Clock className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                                {horaFmt}
+                              </span>
+                            ) : null}
+                            <span className="text-[#64748B]">{dataCurta}</span>
                           </div>
                         </div>
-                        <div className="p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-black text-white text-base leading-tight">{event.titulo}</h4>
-                              {event.descricao && (
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{event.descricao}</p>
-                              )}
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <div className="text-xs font-black text-white">
-                                {format(parseISO(event.data), 'dd/MM', { locale: ptBR })}
-                              </div>
-                              <div className="text-[10px] font-bold text-gray-500">{event.hora}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5 text-gray-600 text-[10px] font-bold uppercase tracking-wider flex-wrap">
-                            <div className="flex items-center gap-1">
-                              <CalendarIcon className="w-3 h-3" />
-                              {format(parseISO(event.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                            </div>
-                            <span>·</span>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {event.hora}
-                            </div>
-                          </div>
-                          <p className="text-[10px] font-bold text-primary/80 mt-2 uppercase tracking-widest">Toque para ver detalhes</p>
-                        </div>
+                        <ChevronRight
+                          className="h-4 w-4 shrink-0 text-[#64748B] transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                          aria-hidden
+                        />
                       </button>
                     );
                   })}

@@ -29,17 +29,12 @@ export function LibraryCardSkeleton({ embedded }: { embedded?: boolean }) {
 
 export function CalendarEventRowSkeleton() {
   return (
-    <div className="card-luxury p-5 border-l-4 border-l-white/10 space-y-2">
-      <div className="flex justify-between gap-3">
-        <div className="flex-1 space-y-2">
-          <SkeletonBlock className="h-3 w-20 rounded-full" />
-          <SkeletonBlock className="h-4 w-4/5" />
-          <SkeletonBlock className="h-3 w-full" />
-        </div>
-        <div className="space-y-2 text-right w-16 shrink-0">
-          <SkeletonBlock className="h-3 w-12 ml-auto" />
-          <SkeletonBlock className="h-2 w-10 ml-auto" />
-        </div>
+    <div className="flex items-center gap-3 rounded-xl border border-[#1E242B] bg-[#13171D] p-3">
+      <SkeletonBlock className="h-14 w-[3.75rem] shrink-0 rounded-lg" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <SkeletonBlock className="h-3 w-16 rounded-full" />
+        <SkeletonBlock className="h-4 w-4/5" />
+        <SkeletonBlock className="h-3 w-32" />
       </div>
     </div>
   );
