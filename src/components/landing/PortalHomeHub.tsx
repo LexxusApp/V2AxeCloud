@@ -23,7 +23,6 @@ import {
   type PublicTerreiro,
 } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
-import { FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { cn } from '../../lib/utils';
 
 type PortalTile = {
@@ -170,43 +169,6 @@ function SectionLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function FounderProgramPulseCallout({ className }: { className?: string }) {
-  return (
-    <a
-      href={ROUTES.founderProgram}
-      className={cn(
-        'portal-founder-callout group relative flex flex-col overflow-hidden rounded-2xl border border-[#FBBC00]/45 bg-gradient-to-br from-[#1a1508] via-[#13171D] to-[#0B0D11] p-4 text-left transition hover:border-[#FBBC00]/70 sm:p-5',
-        className,
-      )}
-      aria-label={`Programa Fundador — ${FOUNDER_PROGRAM.freeMonths} meses gratuitos para terreiros`}
-    >
-      <span
-        className="portal-founder-callout-ring pointer-events-none absolute -inset-px rounded-2xl border-2 border-[#FBBC00]/50"
-        aria-hidden
-      />
-      <span
-        className="portal-founder-callout-badge inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FBBC00]/40 bg-[#FBBC00]/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#FBBC00]"
-      >
-        <Sparkles className="h-3 w-3 shrink-0" aria-hidden />
-        Vagas limitadas
-      </span>
-      <p className="mt-3 font-display text-lg font-black leading-tight text-[#F1F5F9] group-hover:text-[#FBBC00] sm:text-xl">
-        Programa Fundador
-      </p>
-      <p className="mt-2 text-sm font-semibold leading-snug text-[#FBBC00]">
-        {FOUNDER_PROGRAM.freeMonths} meses grátis para a sua casa
-      </p>
-      <p className="mt-2 text-xs leading-relaxed text-[#94A3B8]">
-        Onboarding personalizado e selo de Casa Fundadora no portal público.
-      </p>
-      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#FBBC00]">
-        Quero participar
-        <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden />
-      </span>
-    </a>
-  );
-}
-
 export function PortalHomeHub() {
   const [eventos, setEventos] = useState<PublicEvento[]>([]);
   const [terreiros, setTerreiros] = useState<PublicTerreiro[]>([]);
@@ -235,10 +197,7 @@ export function PortalHomeHub() {
           aria-hidden
         />
         <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-8 lg:grid-cols-[minmax(240px,280px)_1fr] lg:gap-10 xl:grid-cols-[280px_minmax(0,1fr)]">
-            <FounderProgramPulseCallout className="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-none lg:sticky lg:top-24" />
-
-            <div className="mx-auto max-w-3xl text-center lg:max-w-none">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
               <Sparkles className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
@@ -258,7 +217,6 @@ export function PortalHomeHub() {
               O AxéCloud reúne terreiros, eventos públicos, pedidos de reza e conteúdo sobre Umbanda, Candomblé e
               Jurema — escolha abaixo o que quer fazer agora.
             </p>
-            </div>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
