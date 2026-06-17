@@ -1,9 +1,11 @@
 import {
   ChevronDown,
+  Download,
   Flame,
   Landmark,
   Loader2,
   Lock,
+  LogOut,
   Menu,
   PieChart,
   X,
@@ -24,6 +26,11 @@ import {
   type ZeladorNavEntry,
 } from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
 
 type AppTopNavProps = {
   activeTab: string;
@@ -261,6 +268,49 @@ export default function AppTopNav({
   filhoFotoUrl,
 }: AppTopNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isStandalonePwa, setIsStandalonePwa] = useState(false);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsStandalonePwa(standalone);
+
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setPwaInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (pwaInstallPrompt) {
+      await pwaInstallPrompt.prompt();
+      await pwaInstallPrompt.userChoice;
+      setPwaInstallPrompt(null);
+      return;
+    }
+
+    const isIos =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as Window & { MSStream?: unknown }).MSStream;
+
+    if (isIos) {
+      alert(
+        'No iPhone ou iPad: toque em Compartilhar (ícone na barra do Safari) e escolha «Adicionar à Tela de Início».',
+      );
+      return;
+    }
+
+    alert(
+      'No Chrome ou Edge: menu do navegador (⋮) → «Instalar aplicativo» ou «Adicionar à tela inicial».',
+    );
+  };
+
+  const showInstallButton = !isStandalonePwa;
 
   const navItems = useMemo(
     () => (userRole === 'filho' ? FILHO_NAV : buildZeladorNavItems(tenantData?.tradicao)),
@@ -309,6 +359,34 @@ export default function AppTopNav({
       ? userDisplayName || 'Filho de Santo'
       : `${tenantData?.plan?.toUpperCase() || 'AXÉ'} · gestão do terreiro`;
   const profileFoto = userRole === 'filho' ? filhoFotoUrl : tenantData?.foto_url;
+
+  const headerActions = (compact?: boolean) => (
+    <>
+      {showInstallButton ? (
+        <button
+          type="button"
+          onClick={() => void handleInstallApp()}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-2.5 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10 sm:px-3"
+          title="Instalar aplicativo"
+        >
+          <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : 'hidden xl:inline'}>
+            Instalar aplicativo
+          </span>
+          <span className={compact ? 'inline sm:hidden' : 'inline xl:hidden'}>Instalar</span>
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => void performFastLogout()}
+        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2 text-xs font-bold text-[#94A3B8] transition-all hover:border-[#2F3643] hover:text-[#F1F5F9] sm:px-3"
+        title="Sair"
+      >
+        <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : undefined}>Sair</span>
+      </button>
+    </>
+  );
 
   const renderMobileEntry = (entry: ZeladorNavEntry, key: string) => {
     if (entry.type === 'item') {
@@ -366,8 +444,8 @@ export default function AppTopNav({
 
   return (
     <header className="relative z-30 shrink-0 overflow-visible border-b border-[#1E242B] bg-[#13171D]">
-      <div className="flex flex-col gap-3 overflow-visible px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-        <div className="flex min-w-0 items-center justify-between gap-3 lg:justify-start">
+      <div className="flex flex-col gap-3 overflow-visible px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-3">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:justify-start">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex shrink-0 flex-col items-center gap-0.5">
               <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10">
@@ -382,13 +460,6 @@ export default function AppTopNav({
                   <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => void performFastLogout()}
-                className="text-[9px] font-medium tracking-wide text-[#4B5563] transition-colors hover:text-[#94A3B8]"
-              >
-                sair
-              </button>
             </div>
             <div className="min-w-0 text-left">
               <p className="truncate font-display text-sm font-bold leading-tight text-[#F1F5F9]">
@@ -423,7 +494,8 @@ export default function AppTopNav({
               ) : null}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2 lg:hidden">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
+            {headerActions(true)}
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
@@ -459,27 +531,27 @@ export default function AppTopNav({
           </div>
         ) : null}
 
-        <div className="hidden min-w-0 flex-1 items-center overflow-visible lg:flex">
-          <div
-            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-visible rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
-            role="tablist"
-            aria-label="Módulos do AxéCloud"
-          >
-            {userRole === 'filho'
-              ? navItems.map((item) => (
-                  <NavTab
-                    key={item.id}
-                    item={item}
-                    isActive={activeTab === item.id}
-                    isLocked={isItemLocked(item)}
-                    onSelect={() => handleSelect(item)}
-                  />
-                ))
-              : zeladorEntries?.map((entry, index) =>
-                  renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-                )}
-          </div>
+        <div
+          className="hidden w-fit max-w-full shrink-0 flex-wrap items-center gap-1 overflow-visible rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5 lg:flex"
+          role="tablist"
+          aria-label="Módulos do AxéCloud"
+        >
+          {userRole === 'filho'
+            ? navItems.map((item) => (
+                <NavTab
+                  key={item.id}
+                  item={item}
+                  isActive={activeTab === item.id}
+                  isLocked={isItemLocked(item)}
+                  onSelect={() => handleSelect(item)}
+                />
+              ))
+            : zeladorEntries?.map((entry, index) =>
+                renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+              )}
         </div>
+
+        <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">{headerActions()}</div>
       </div>
     </header>
   );
