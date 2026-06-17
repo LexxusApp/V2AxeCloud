@@ -3,7 +3,7 @@ import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X } from 'lucide-reac
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
-import { MODAL_TW, DRAWER_PANEL_DONE, DRAWER_PANEL_IN, DRAWER_PANEL_OUT } from '../lib/modalMotion';
+import { MODAL_TW } from '../lib/modalMotion';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoPanelHeader,
@@ -344,60 +344,62 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
       <AnimatePresence>
         {addModalOpen ? (
-          <>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={MODAL_TW}
               onClick={closeAddModal}
-              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
               aria-hidden
             />
             <motion.div
-              initial={DRAWER_PANEL_IN}
-              animate={DRAWER_PANEL_DONE}
-              exit={DRAWER_PANEL_OUT}
+              initial={{ opacity: 0, x: 48 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 32 }}
               transition={MODAL_TW}
               role="dialog"
               aria-modal="true"
               aria-labelledby="add-child-title"
-              className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-white/10 bg-card shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+              className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                      <Plus className="h-5 w-5 text-primary" aria-hidden />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 id="add-child-title" className="text-base font-black text-white sm:text-lg">
-                        Adicionar filho de santo
-                      </h3>
-                      <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
-                        Cadastro litúrgico
-                      </p>
-                    </div>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                    <Plus className="h-5 w-5 text-primary" aria-hidden />
                   </div>
-                  <button
-                    type="button"
-                    onClick={closeAddModal}
-                    className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
-                    aria-label="Fechar"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <form
-                  onSubmit={handleSubmit}
-                  className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 sm:pb-6"
-                >
-                  <div className="flex min-h-0 flex-1 flex-col space-y-3">
-                  {submitError ? (
-                    <p className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
-                      {submitError}
+                  <div className="min-w-0">
+                    <h3 id="add-child-title" className="text-base font-black text-white sm:text-lg">
+                      Adicionar filho de santo
+                    </h3>
+                    <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                      Cadastro litúrgico
                     </p>
-                  ) : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAddModal}
+                  className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleSubmit}
+                className="overflow-y-auto overscroll-y-contain p-5 sm:p-6"
+              >
+                {submitError ? (
+                  <p className="mb-4 rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
+                    {submitError}
+                  </p>
+                ) : null}
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
                   <div>
                     <label className={appLabelClass}>CPF</label>
                     <input
@@ -460,28 +462,6 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                       <option value="Inativo">Inativo</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={appLabelClass}>Nascimento</label>
-                      <input
-                        required
-                        type="date"
-                        className={appInputClass}
-                        value={formData.data_nascimento}
-                        onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={appLabelClass}>Entrada</label>
-                      <input
-                        required
-                        type="date"
-                        className={appInputClass}
-                        value={formData.data_entrada}
-                        onChange={(e) => setFormData({ ...formData, data_entrada: e.target.value })}
-                      />
-                    </div>
-                  </div>
                   <div>
                     <label className={appLabelClass}>WhatsApp</label>
                     <div className="relative">
@@ -495,17 +475,38 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                       />
                     </div>
                   </div>
+                  <div>
+                    <label className={appLabelClass}>Nascimento</label>
+                    <input
+                      required
+                      type="date"
+                      className={appInputClass}
+                      value={formData.data_nascimento}
+                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                    />
                   </div>
-                  <AppPrimaryButton
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="mt-4 inline-flex w-full shrink-0 items-center justify-center"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar filho'}
-                  </AppPrimaryButton>
-                </form>
+                  <div>
+                    <label className={appLabelClass}>Entrada</label>
+                    <input
+                      required
+                      type="date"
+                      className={appInputClass}
+                      value={formData.data_entrada}
+                      onChange={(e) => setFormData({ ...formData, data_entrada: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <AppPrimaryButton
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-5 inline-flex w-full items-center justify-center sm:mt-6"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar filho'}
+                </AppPrimaryButton>
+              </form>
             </motion.div>
-          </>
+          </div>
         ) : null}
       </AnimatePresence>
     </AppPageShell>
