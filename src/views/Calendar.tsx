@@ -17,6 +17,7 @@ import {
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
+import { consumeCalendarFocusEventId } from '../lib/calendarFocus';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
@@ -549,6 +550,14 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     const id = window.setTimeout(() => setToast(null), 5000);
     return () => window.clearTimeout(id);
   }, [toast]);
+
+  useEffect(() => {
+    if (loading || events.length === 0) return;
+    const focusId = consumeCalendarFocusEventId();
+    if (!focusId) return;
+    const ev = events.find((e) => e.id === focusId);
+    if (ev) setEventDetailModal(ev);
+  }, [loading, events]);
 
   async function fetchEvents() {
     if (!effectiveTenantId) return;

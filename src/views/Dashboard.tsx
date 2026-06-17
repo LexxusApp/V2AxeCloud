@@ -4,14 +4,16 @@ import {
   Plus,
   ChevronRight,
   ChevronDown,
-  ArrowUpRight,
-  ArrowDownRight,
-  MoreVertical,
   Wallet,
   Cake,
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
+import {
+  DashboardProximaGira,
+  pickNextUpcomingEvent,
+  type DashboardNextEvent,
+} from '../components/dashboard/DashboardProximaGira';
 import {
   format,
   startOfMonth,
@@ -68,6 +70,7 @@ type DashboardBundle = {
   childrenData: any[];
   allChildren: any[];
   historyData: any[];
+  nextEvent: DashboardNextEvent | null;
   pedidosData: DashboardPedidoReza[];
   noticesData: DashboardNotice[];
   birthdayData: DashboardBirthday[];
@@ -122,7 +125,8 @@ async function fetchDashboardFinanceBundle(
     )}&limit=400`;
 
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
-    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes] = await Promise.all([
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -159,6 +163,9 @@ async function fetchDashboardFinanceBundle(
             r.ok ? r.json() : { data: [] }
           )
         : Promise.resolve({ data: [] }),
+      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}`).then(async (r) =>
+        r.ok ? r.json() : { data: [] }
+      ),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -240,6 +247,7 @@ async function fetchDashboardFinanceBundle(
       childrenData: children.slice(0, 4),
       allChildren: children,
       historyData: merged.slice(0, 8),
+      nextEvent: pickNextUpcomingEvent((eventsRes.data || []) as DashboardNextEvent[]),
       pedidosData,
       noticesData,
       birthdayData: birthdaysThisMonth(children),
@@ -251,6 +259,7 @@ async function fetchDashboardFinanceBundle(
       childrenData: [],
       allChildren: [],
       historyData: [],
+      nextEvent: null,
       pedidosData: [],
       noticesData: [],
       birthdayData: [],
@@ -318,7 +327,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const resolvedBundle = dashboardBundle ?? lastBundleRef.current;
   const transactions = resolvedBundle?.transactions ?? [];
   const childrenData = resolvedBundle?.childrenData ?? [];
-  const historyData = resolvedBundle?.historyData ?? [];
+  const nextEvent = resolvedBundle?.nextEvent ?? null;
   const noticesData = resolvedBundle?.noticesData ?? [];
   const allChildren = resolvedBundle?.allChildren ?? [];
   const pedidosData = resolvedBundle?.pedidosData ?? [];
@@ -824,42 +833,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
              </div>
           </div>
 
-          {/* Card: Histórico */}
-          <div className="app-v3-panel p-8 flex flex-col min-h-[400px]">
-             <div className="flex justify-between items-center mb-8">
-                <h3 className="text-lg font-bold">Histórico</h3>
-                <button aria-label="Mais opções de histórico" className="text-gray-600 hover:text-white transition-colors">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-             </div>
-
-             <div className="space-y-6 flex-1">
-               {historyData.length > 0 ? historyData.map((transaction, idx) => (
-                 <div key={idx} className="flex items-center justify-between group cursor-pointer">
-                    <div className="flex items-center gap-4">
-                       <div className={cn(
-                         "w-10 h-10 rounded-xl flex items-center justify-center border border-white/5 transition-all text-black",
-                         transaction.tipo === 'entrada' ? "bg-emerald-500" : "bg-rose-500"
-                       )}>
-                          {transaction.tipo === 'entrada' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-                       </div>
-                       <div className="flex flex-col">
-                          <span className="text-xs font-bold text-gray-400 group-hover:text-white transition-colors">{transaction.descricao || 'Transação'}</span>
-                          <span className="text-[9px] text-gray-600 uppercase font-bold tracking-widest">{new Date(transaction.data).toLocaleDateString('pt-BR')}</span>
-                       </div>
-                    </div>
-                    <span className={cn(
-                      "text-xs font-black",
-                      transaction.tipo === 'entrada' ? "text-emerald-500" : "text-rose-500"
-                    )}>
-                      {transaction.tipo === 'entrada' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.valor)}
-                    </span>
-                 </div>
-               )) : (
-                 <div className="flex flex-col items-center justify-center h-full opacity-20 italic text-sm text-center">Nenhum histórico disponível.</div>
-               )}
-             </div>
-          </div>
+          <DashboardProximaGira
+            event={nextEvent}
+            onOpenCalendar={() => setActiveTab('calendar')}
+          />
 
           {/* Card: Aniversariantes do mês */}
           <div className="app-v3-panel p-8">
