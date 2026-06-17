@@ -1456,6 +1456,63 @@ html:has(.landing-v3) body {
   }
 }
 
+@keyframes portal-founder-ring-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes portal-founder-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(251, 188, 0, 0.35),
+      0 0 24px rgba(251, 188, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(251, 188, 0, 0.75),
+      0 0 40px rgba(251, 188, 0, 0.45),
+      0 0 72px rgba(251, 188, 0, 0.15);
+  }
+}
+
+@keyframes portal-founder-badge-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.portal-founder-callout {
+  animation: portal-founder-glow 2.2s ease-in-out infinite;
+}
+
+.portal-founder-callout-ring {
+  animation: portal-founder-ring-pulse 1.6s ease-in-out infinite;
+}
+
+.portal-founder-callout-badge {
+  animation: portal-founder-badge-blink 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-founder-callout,
+  .portal-founder-callout-ring,
+  .portal-founder-callout-badge {
+    animation: none;
+  }
+}
+
 .landing-v3 .glow-heavy {
   animation: glowPulse 4s infinite ease-in-out;
 }
