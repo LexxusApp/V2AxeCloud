@@ -11,6 +11,11 @@ export const MODAL_PANEL_IN = { opacity: 0, y: 8 };
 export const MODAL_PANEL_DONE = { opacity: 1, y: 0 };
 export const MODAL_PANEL_OUT = { opacity: 0, y: 6 };
 
+/** Painel lateral (drawer) — entra pela direita. */
+export const DRAWER_PANEL_IN = { x: '100%' };
+export const DRAWER_PANEL_DONE = { x: 0 };
+export const DRAWER_PANEL_OUT = { x: '100%' };
+
 /** Painéis maiores — só fade/slide, sem scale (evita efeito “zoom” ao abrir). */
 export const MODAL_DLG_IN = { opacity: 0, y: 8 };
 export const MODAL_DLG_DONE = { opacity: 1, y: 0 };

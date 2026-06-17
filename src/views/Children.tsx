@@ -3,7 +3,7 @@ import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X } from 'lucide-reac
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
-import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
+import { MODAL_TW, DRAWER_PANEL_DONE, DRAWER_PANEL_IN, DRAWER_PANEL_OUT } from '../lib/modalMotion';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoPanelHeader,
@@ -207,15 +207,24 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           className={cn(appInputClass, 'pl-9')}
         />
       </div>
-      <AppPrimaryButton
+      <button
         type="button"
         onClick={openAddModal}
         disabled={isLimitReached}
-        className="w-full gap-2"
+        className={cn(
+          'inline-flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-all',
+          isLimitReached
+            ? 'cursor-not-allowed border-[#1E242B] bg-[#12161A] text-zinc-600'
+            : 'border-primary/35 bg-[#12161A] text-primary hover:border-primary/50 hover:bg-primary/10',
+        )}
       >
-        {isLimitReached ? <Lock className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+        {isLimitReached ? (
+          <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        ) : (
+          <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        )}
         Adicionar
-      </AppPrimaryButton>
+      </button>
       {isLimitReached ? (
         <p className="text-[10px] leading-snug text-[#94A3B8]">
           Limite de {childLimit} filhos no plano {PLAN_NAMES[currentPlan] || currentPlan}.
@@ -335,32 +344,27 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
       <AnimatePresence>
         {addModalOpen ? (
-          <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-y-contain">
+          <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={MODAL_TW}
               onClick={closeAddModal}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
               aria-hidden
             />
-            <div
-              className="flex min-h-full items-center justify-center p-4 sm:p-6"
-              onClick={closeAddModal}
-              role="presentation"
+            <motion.div
+              initial={DRAWER_PANEL_IN}
+              animate={DRAWER_PANEL_DONE}
+              exit={DRAWER_PANEL_OUT}
+              transition={MODAL_TW}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-child-title"
+              className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-white/10 bg-card shadow-2xl"
             >
-              <motion.div
-                initial={MODAL_PANEL_IN}
-                animate={MODAL_PANEL_DONE}
-                exit={MODAL_PANEL_OUT}
-                transition={MODAL_TW}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="add-child-title"
-                onClick={(e) => e.stopPropagation()}
-                className="relative my-auto flex w-full max-h-[min(92dvh,calc(100dvh-2rem))] max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl"
-              >
-                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
                       <Plus className="h-5 w-5 text-primary" aria-hidden />
@@ -384,7 +388,11 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain p-5 sm:p-6">
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 sm:pb-6"
+                >
+                  <div className="flex min-h-0 flex-1 flex-col space-y-3">
                   {submitError ? (
                     <p className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
                       {submitError}
@@ -487,13 +495,17 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                       />
                     </div>
                   </div>
-                  <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
-                    {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Salvar filho'}
+                  </div>
+                  <AppPrimaryButton
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="mt-4 inline-flex w-full shrink-0 items-center justify-center"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar filho'}
                   </AppPrimaryButton>
                 </form>
-              </motion.div>
-            </div>
-          </div>
+            </motion.div>
+          </>
         ) : null}
       </AnimatePresence>
     </AppPageShell>
