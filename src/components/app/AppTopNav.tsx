@@ -370,10 +370,10 @@ export default function AppTopNav({
           title="Instalar aplicativo"
         >
           <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : 'hidden xl:inline'}>
+          <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : 'hidden 2xl:inline'}>
             Instalar aplicativo
           </span>
-          <span className={compact ? 'inline sm:hidden' : 'inline xl:hidden'}>Instalar</span>
+          <span className={compact ? 'inline sm:hidden' : 'inline 2xl:hidden'}>Instalar</span>
         </button>
       ) : null}
       <button
@@ -443,10 +443,10 @@ export default function AppTopNav({
   };
 
   return (
-    <header className="relative z-30 shrink-0 overflow-visible border-b border-[#1E242B] bg-[#13171D]">
-      <div className="flex flex-col gap-3 overflow-visible px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-3">
-        <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:justify-start">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+    <header className="relative z-30 w-full max-w-full min-w-0 shrink-0 overflow-visible border-b border-[#1E242B] bg-[#13171D]">
+      <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="flex shrink-0 flex-col items-center gap-0.5">
               <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10">
                 {profileFoto ? (
@@ -531,27 +531,29 @@ export default function AppTopNav({
           </div>
         ) : null}
 
-        <div
-          className="hidden w-fit max-w-full shrink-0 flex-wrap items-center gap-1 overflow-visible rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5 lg:flex"
-          role="tablist"
-          aria-label="Módulos do AxéCloud"
-        >
-          {userRole === 'filho'
-            ? navItems.map((item) => (
-                <NavTab
-                  key={item.id}
-                  item={item}
-                  isActive={activeTab === item.id}
-                  isLocked={isItemLocked(item)}
-                  onSelect={() => handleSelect(item)}
-                />
-              ))
-            : zeladorEntries?.map((entry, index) =>
-                renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-              )}
+        <div className="hidden min-w-0 flex-1 overflow-x-auto overscroll-x-contain lg:block [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            className="flex w-max items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
+            role="tablist"
+            aria-label="Módulos do AxéCloud"
+          >
+            {userRole === 'filho'
+              ? navItems.map((item) => (
+                  <NavTab
+                    key={item.id}
+                    item={item}
+                    isActive={activeTab === item.id}
+                    isLocked={isItemLocked(item)}
+                    onSelect={() => handleSelect(item)}
+                  />
+                ))
+              : zeladorEntries?.map((entry, index) =>
+                  renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+                )}
+          </div>
         </div>
 
-        <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">{headerActions()}</div>
+        <div className="hidden shrink-0 items-center gap-2 pl-1 lg:flex">{headerActions()}</div>
       </div>
     </header>
   );
