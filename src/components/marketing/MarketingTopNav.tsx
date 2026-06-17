@@ -47,17 +47,13 @@ type MarketingTopNavProps = {
   logoHref?: string;
   sectionBase?: string;
   active?: 'fiel';
-  /** Home portal: sem âncoras de landing (recursos, demo, planos…). */
-  variant?: 'landing' | 'portal';
 };
 
 export function MarketingTopNav({
   logoHref = ROUTES.home,
   sectionBase = ROUTES.home,
   active,
-  variant = 'landing',
 }: MarketingTopNavProps) {
-  const navItems = variant === 'portal' ? NAV_ITEMS.filter((item) => item.path) : NAV_ITEMS;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -81,8 +77,7 @@ export function MarketingTopNav({
         </a>
 
         <div className="hidden flex-1 items-center justify-center gap-x-3 lg:flex xl:gap-x-5">
-          {variant === 'landing'
-            ? navItems.slice(0, 2).map((item) => (
+          {NAV_ITEMS.slice(0, 2).map((item) => (
                 <a
                   key={item.id}
                   href={item.path ?? sectionHref(sectionBase, item.id)}
@@ -90,8 +85,7 @@ export function MarketingTopNav({
                 >
                   {item.label}
                 </a>
-              ))
-            : null}
+              ))}
 
           <a
             href={ROUTES.espacoDoFiel}
@@ -113,7 +107,7 @@ export function MarketingTopNav({
             Pedir Reza
           </a>
 
-          {(variant === 'landing' ? navItems.slice(2) : navItems).map((item) =>
+          {NAV_ITEMS.slice(2).map((item) =>
             item.highlight ? (
               <a
                 key={item.id}
@@ -163,8 +157,7 @@ export function MarketingTopNav({
       {mobileMenuOpen ? (
         <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[#1E242B] bg-[#0B0D11] lg:hidden">
           <div className="space-y-1 px-4 py-4">
-            {variant === 'landing'
-              ? navItems.slice(0, 2).map((item) => (
+            {NAV_ITEMS.slice(0, 2).map((item) => (
                   <a
                     key={item.id}
                     href={item.path ?? sectionHref(sectionBase, item.id)}
@@ -173,8 +166,7 @@ export function MarketingTopNav({
                   >
                     {item.label}
                   </a>
-                ))
-              : null}
+                ))}
             <a
               href={ROUTES.espacoDoFiel}
               onClick={() => setMobileMenuOpen(false)}
@@ -182,7 +174,7 @@ export function MarketingTopNav({
             >
               Pedir Reza
             </a>
-            {(variant === 'landing' ? navItems.slice(2) : navItems).map((item) => (
+            {NAV_ITEMS.slice(2).map((item) => (
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
@@ -221,7 +213,7 @@ export function MarketingTopNav({
 }
 
 export function LandingTopNav() {
-  return <MarketingTopNav logoHref="#top" sectionBase="" variant="portal" />;
+  return <MarketingTopNav logoHref="#top" sectionBase="" />;
 }
 
 export function MarketingSubpageTopNav({ active }: { active?: 'fiel' }) {
