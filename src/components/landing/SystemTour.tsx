@@ -181,6 +181,7 @@ export function SystemTour() {
                       height={900}
                       loading="lazy"
                       decoding="async"
+                      fetchPriority="low"
                     />
                   </motion.div>
                 </AnimatePresence>

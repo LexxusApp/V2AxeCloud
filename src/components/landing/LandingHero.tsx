@@ -26,7 +26,7 @@ export function LandingHero() {
     >
       <div className="landing-section-inner relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="landing-hero-copy mx-auto max-w-4xl">
-          <div className="mb-6 inline-flex animate-pulse items-center gap-2 rounded-full border border-primary/30 bg-[#13171D] px-3 py-1.5">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-[#13171D] px-3 py-1.5">
             <Flame className="h-3.5 w-3.5 shrink-0 fill-primary/15 text-primary" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
               {HOME_SEO.heroTagline}
@@ -37,9 +37,9 @@ export function LandingHero() {
             id="hero-title"
             className="font-display text-4xl font-black leading-[1.08] tracking-tight text-[#F1F5F9] sm:text-5xl md:text-6xl"
           >
-            Sistema de gestão para terreiros de{' '}
+            Gestão de terreiros para{' '}
             <span className="bg-gradient-to-r from-primary via-amber-400 to-yellow-300 bg-clip-text text-transparent">
-              Umbanda e Candomblé
+              Umbanda, Candomblé e Jurema
             </span>
           </h1>
 

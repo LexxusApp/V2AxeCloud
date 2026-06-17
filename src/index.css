@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 /* Garante utilitÃ¡rios Tailwind no build da landing (vite root = marketing/). */
 @source "./**/*.{tsx,ts,jsx,js}";
@@ -583,6 +582,13 @@
 .landing-section-inner {
   position: relative;
   z-index: 1;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing-faq-inner {
+  width: 100%;
+  max-width: 42rem;
   margin-left: auto;
   margin-right: auto;
 }

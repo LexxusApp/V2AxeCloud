@@ -10,9 +10,9 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-[#1E242B]/50 md:p-6"
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-[#1E242B]/50 sm:px-5 sm:py-4"
       >
-        <span className="text-sm font-bold text-[#F1F5F9] md:text-base">{q}</span>
+        <span className="text-sm font-bold leading-snug text-[#F1F5F9]">{q}</span>
         {open ? (
           <ChevronUp className="h-4 w-4 shrink-0 text-primary" aria-hidden />
         ) : (
@@ -20,7 +20,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
         )}
       </button>
       {open ? (
-        <div className="border-t border-[#1E242B] px-5 pb-5 pt-0 text-sm leading-relaxed text-[#94A3B8] md:px-6 md:pb-6">
+        <div className="border-t border-[#1E242B] px-4 pb-4 pt-0 text-sm leading-relaxed text-[#94A3B8] sm:px-5 sm:pb-5">
           <p className="pt-4">{a}</p>
         </div>
       ) : null}
@@ -33,15 +33,16 @@ export function LandingFaq() {
 
   return (
     <LandingSection id="faq" aria-labelledby="faq-head">
-      <div className="landing-section-inner mx-auto max-w-4xl">
-        <LandingSectionHeader
-          kicker="Dúvidas frequentes"
-          title="Perguntas sobre gestão de terreiros"
-          titleId="faq-head"
-          lead="Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud."
-        />
+      <div className="landing-section-inner">
+        <div className="landing-faq-inner">
+          <LandingSectionHeader
+            kicker="Dúvidas frequentes"
+            title="Perguntas sobre gestão de terreiros"
+            titleId="faq-head"
+            lead="Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud."
+          />
 
-        <div className="relative z-10 mt-10 space-y-3.5">
+          <div className="relative z-10 mt-8 space-y-3 sm:mt-10">
           {HOME_FAQ.map((item, i) => (
             <FaqItem
               key={item.q}
@@ -51,6 +52,7 @@ export function LandingFaq() {
               onToggle={() => setOpenIndex(openIndex === i ? -1 : i)}
             />
           ))}
+          </div>
         </div>
       </div>
     </LandingSection>

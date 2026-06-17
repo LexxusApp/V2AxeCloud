@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
     react(),
     tailwindcss(),
     stripCrossoriginFromBuiltHtml(),
-    seoHomeInject(),
+    seoHomeInject({ preloadTourImage: false }),
     prerenderPublicPages('landing-dist', { excludePaths: [ROUTES.login] }),
   ],
   resolve: {
