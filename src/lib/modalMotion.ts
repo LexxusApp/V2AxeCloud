@@ -11,7 +11,7 @@ export const MODAL_PANEL_IN = { opacity: 0, y: 8 };
 export const MODAL_PANEL_DONE = { opacity: 1, y: 0 };
 export const MODAL_PANEL_OUT = { opacity: 0, y: 6 };
 
-/** Painéis com leve escala (ex.: admin, meta financeira). */
-export const MODAL_DLG_IN = { opacity: 0, scale: 0.98, y: 8 };
-export const MODAL_DLG_DONE = { opacity: 1, scale: 1, y: 0 };
-export const MODAL_DLG_OUT = { opacity: 0, scale: 0.98, y: 6 };
+/** Painéis maiores — só fade/slide, sem scale (evita efeito “zoom” ao abrir). */
+export const MODAL_DLG_IN = { opacity: 0, y: 8 };
+export const MODAL_DLG_DONE = { opacity: 1, y: 0 };
+export const MODAL_DLG_OUT = { opacity: 0, y: 6 };

@@ -504,7 +504,7 @@
 
 @media (min-width: 1024px) {
   .landing-hero-device:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-4px);
     box-shadow:
       0 0 0 1px rgba(251, 188, 0, 0.2),
       0 32px 90px -24px rgba(0, 0, 0, 0.9),
@@ -650,11 +650,10 @@
   font-weight: 800;
   color: #000;
   box-shadow: 0 8px 32px rgba(251, 188, 0, 0.28);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .landing-btn-primary:hover {
-  transform: scale(1.02);
   box-shadow: 0 12px 40px rgba(251, 188, 0, 0.38);
 }
 
@@ -1427,7 +1426,7 @@ html:has(.landing-v3) body {
 
 @media (min-width: 1024px) {
   .landing-v3 .landing-hero-device:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-4px);
     box-shadow:
       0 0 0 1px rgba(250, 204, 21, 0.2),
       0 32px 90px -24px rgba(0, 0, 0, 0.9),
@@ -1636,14 +1635,38 @@ html:has(.app-v3) {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* ——— Sem “zoom” ao clicar / abrir modais ——— */
+.app-v3 button:active:not(:disabled),
+.app-v3 [role='button']:active:not([aria-disabled='true']),
+.app-v3 a:active,
+.landing-v3 button:active:not(:disabled),
+.landing-v3 [role='button']:active:not([aria-disabled='true']),
+.landing-v3 a:active {
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.app-v3 [class*='zoom-in-95'],
+.app-v3 [class*='zoom-out-95'],
+.landing-v3 [class*='zoom-in-95'],
+.landing-v3 [class*='zoom-out-95'] {
+  --tw-enter-scale: 1 !important;
+  --tw-exit-scale: 1 !important;
+}
+
+.app-v3 button,
+.app-v3 [role='button'],
+.landing-v3 button,
+.landing-v3 [role='button'] {
+  transition-property: color, background-color, border-color, opacity, box-shadow, filter !important;
 }

@@ -1,11 +1,13 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 import {registerSW} from 'virtual:pwa-register';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
+import {hideSeoStaticFallbackAfterHydration} from './lib/seoStaticFallback';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
 import {cleanBrowserUrl} from './lib/urlHygiene';
 import {signalAppUpdateIfNeeded, startBuildVersionPolling} from './lib/buildVersionPoll';
@@ -121,7 +123,6 @@ function bootstrapApp() {
     /* */
   }
   document.getElementById('axecloud-boot')?.remove();
-  document.getElementById('axecloud-seo-static')?.remove();
   cleanBrowserUrl();
 
   if (import.meta.env.PROD && isCanonicalAppOrigin()) {
@@ -130,14 +131,17 @@ function bootstrapApp() {
 
   createRoot(rootEl).render(
     <StrictMode>
-      <AppErrorBoundary>
-        <PwaUpdateBanner />
-        <EmergencyReloadBeacon />
-        <AppRouter />
-        <VercelInsights />
-      </AppErrorBoundary>
+      <MotionConfig reducedMotion="always">
+        <AppErrorBoundary>
+          <PwaUpdateBanner />
+          <EmergencyReloadBeacon />
+          <AppRouter />
+          <VercelInsights />
+        </AppErrorBoundary>
+      </MotionConfig>
     </StrictMode>,
   );
+  hideSeoStaticFallbackAfterHydration('axecloud-app-ready');
 }
 
 if (!redirectToCanonicalOriginIfNeeded()) {

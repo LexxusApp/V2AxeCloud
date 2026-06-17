@@ -5,6 +5,7 @@ import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
 import { slugifyPublicSlug } from "./consulentePortalRoutes.js";
 import { parseCitySlug, slugifyCity } from "./portalCitySlug.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
+import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -230,7 +231,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
             hora: ev.hora,
             tipo: ev.tipo,
             descricao: ev.descricao || "",
-            bannerUrl: ev.banner_url || null,
+            bannerUrl: resolvePublicMediaUrl(ev.banner_url) || null,
             terreiro: {
               nome: leader.nome_terreiro,
               slug: leader.public_slug,

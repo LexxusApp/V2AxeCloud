@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 import { AppErrorBoundary } from '../components/AppErrorBoundary';
 import { redirectToCanonicalOriginIfNeeded } from '../lib/canonicalOrigin';
 import {
@@ -7,12 +8,13 @@ import {
   MARKETING_SW_FIX_KEY,
 } from '../lib/marketingDocumentGuard';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
+import { hideSeoStaticFallbackAfterHydration } from '../lib/seoStaticFallback';
 import { cleanBrowserUrl } from '../lib/urlHygiene';
 import MarketingRouter from './MarketingRouter';
 import '../index.css';
 
 function bootstrapMarketing() {
-  document.getElementById('axecloud-seo-static')?.remove();
+  hideSeoStaticFallbackAfterHydration('axecloud-marketing-ready');
   document.getElementById('axecloud-boot')?.remove();
   cleanBrowserUrl();
 
@@ -23,9 +25,11 @@ function bootstrapMarketing() {
 
   createRoot(rootEl).render(
     <StrictMode>
-      <AppErrorBoundary>
-        <MarketingRouter />
-      </AppErrorBoundary>
+      <MotionConfig reducedMotion="always">
+        <AppErrorBoundary>
+          <MarketingRouter />
+        </AppErrorBoundary>
+      </MotionConfig>
     </StrictMode>,
   );
 

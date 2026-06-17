@@ -34,8 +34,8 @@ export function LandingReveal({ children, className, delayMs = 0 }: Props) {
     <div
       ref={ref}
       className={cn(
-        'transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] motion-reduce:transition-none',
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
+        'transition-opacity duration-500 ease-out motion-reduce:transition-none',
+        visible ? 'opacity-100' : 'opacity-0',
         className,
       )}
       style={visible && delayMs > 0 ? { transitionDelay: `${delayMs}ms` } : undefined}

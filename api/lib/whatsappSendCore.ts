@@ -9,6 +9,7 @@ import {
 } from "../../src/services/evolution.service.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
+import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
 import {
   buildMetaTemplateComponentsForTipo,
   buildMensagemLivreComponents,
@@ -193,7 +194,7 @@ function formatEventDateBr(isoDate: string): string {
 }
 
 /** Garante banner e campos do evento a partir do calendário (convite + aviso_gira). */
-async function enrichEventCalendarVariables(
+export async function enrichEventCalendarVariables(
   sb: SupabaseClient,
   leaderId: string,
   variables: Record<string, string | number>
@@ -218,6 +219,7 @@ async function enrichEventCalendarVariables(
   }
 
   const bannerFromDb = String(event.banner_url || "").trim();
+  const publicBanner = resolvePublicMediaUrl(bannerFromDb, { absolute: true }) || bannerFromDb;
   return {
     ...variables,
     nome_evento: variables.nome_evento || String(event.titulo || ""),
@@ -228,7 +230,7 @@ async function enrichEventCalendarVariables(
       variables.descricao_evento ||
       String(event.descricao || "").trim() ||
       "A confirmar",
-    banner_url: bannerFromDb || String(variables.banner_url || ""),
+    banner_url: publicBanner || String(variables.banner_url || ""),
   };
 }
 

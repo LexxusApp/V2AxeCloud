@@ -56,6 +56,7 @@ import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
+import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
@@ -960,10 +961,13 @@ const r2Client =
     : null;
 
 function buildR2PublicUrl(storageKey: string): string {
-  const base =
-    R2_PUBLIC_BASE_URL ||
-    (R2_ENDPOINT && R2_BUCKET_NAME ? `${R2_ENDPOINT.replace(/\/+$/, "")}/${R2_BUCKET_NAME}` : "");
-  return `${String(base).replace(/\/+$/, "")}/${storageKey}`;
+  const base = String(R2_PUBLIC_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+  if (base && !base.includes(".r2.cloudflarestorage.com")) {
+    return `${base}/${storageKey}`;
+  }
+  return buildR2PublicUrlFromKey(storageKey);
 }
 
 async function resolveTenantAccessForUser(userId: string) {
@@ -3553,6 +3557,7 @@ async function startServer() {
     resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
   });
   registerPublicPortalRoutes(app, { supabaseAdmin });
+  registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
@@ -3866,7 +3871,11 @@ async function startServer() {
       
       const { data, error } = await query;
       if (error) throw error;
-      res.json({ data });
+      const mapped = (data || []).map((row: { banner_url?: string | null }) => ({
+        ...row,
+        banner_url: resolvePublicMediaUrl(row.banner_url) || row.banner_url || null,
+      }));
+      res.json({ data: mapped });
     } catch (error: any) {
       console.error("[SERVER] Error fetching events:", error.message || error);
       res.status(500).json({ error: error.message || "Internal Server Error" });

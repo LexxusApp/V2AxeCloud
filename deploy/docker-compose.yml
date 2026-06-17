@@ -3,6 +3,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.landing
+      args:
+        GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+        BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
     restart: unless-stopped
     networks:
       - web
@@ -15,6 +18,8 @@ services:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
         VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY:-}
+        GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+        BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -24,6 +29,8 @@ services:
     depends_on:
       evolution:
         condition: service_started
+    volumes:
+      - ../assets/ready_posts:/app/assets/ready_posts
     networks:
       - web
 
@@ -75,8 +82,8 @@ services:
       QRCODE_LIMIT: "30"
       QRCODE_COLOR: "#175197"
       # Safari costuma parear melhor no fluxo "código no celular" que Chrome/Desktop
-      CONFIG_SESSION_PHONE_CLIENT: Safari
-      CONFIG_SESSION_PHONE_NAME: Safari
+      CONFIG_SESSION_PHONE_CLIENT: Chrome
+      CONFIG_SESSION_PHONE_NAME: Chrome
       # Token de verificação do webhook Meta Cloud API (GET hub.verify_token)
       WA_BUSINESS_TOKEN_WEBHOOK: ${WA_BUSINESS_TOKEN_WEBHOOK:-evolution}
     volumes:
@@ -115,6 +122,7 @@ services:
       CROWDSEC_CADDY_API_KEY: ${CROWDSEC_CADDY_API_KEY}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../assets/ready_posts:/srv/ready_posts:ro
       - caddy_data:/data
       - caddy_config:/config
       - /var/log/caddy:/var/log/caddy

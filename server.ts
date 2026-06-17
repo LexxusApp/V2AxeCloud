@@ -54,6 +54,7 @@ import { registerAuthAuditRoutes } from "./api/lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./api/lib/onboardingRoutes.js";
 import { registerConsulentePortalRoutes } from "./api/lib/consulentePortalRoutes.js";
 import { registerPublicPortalRoutes } from "./api/lib/publicPortalRoutes.js";
+import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./api/lib/r2PublicMedia.js";
 import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
@@ -921,10 +922,13 @@ const r2Client =
     : null;
 
 function buildR2PublicUrl(storageKey: string): string {
-  const base =
-    R2_PUBLIC_BASE_URL ||
-    (R2_ENDPOINT && R2_BUCKET_NAME ? `${R2_ENDPOINT.replace(/\/+$/, "")}/${R2_BUCKET_NAME}` : "");
-  return `${String(base).replace(/\/+$/, "")}/${storageKey}`;
+  const base = String(R2_PUBLIC_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+  if (base && !base.includes(".r2.cloudflarestorage.com")) {
+    return `${base}/${storageKey}`;
+  }
+  return buildR2PublicUrlFromKey(storageKey);
 }
 
 async function resolveTenantAccessForUser(userId: string) {
@@ -3082,6 +3086,7 @@ async function startServer() {
     resolveLeaderId: (tenantId) => resolveLeaderId(tenantId),
   });
   registerPublicPortalRoutes(app, { supabaseAdmin });
+  registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
 
@@ -3448,7 +3453,11 @@ async function startServer() {
       
       const { data, error } = await query;
       if (error) throw error;
-      res.json({ data });
+      const mapped = (data || []).map((row: { banner_url?: string | null }) => ({
+        ...row,
+        banner_url: resolvePublicMediaUrl(row.banner_url) || row.banner_url || null,
+      }));
+      res.json({ data: mapped });
     } catch (error: any) {
       console.error("[SERVER] Error fetching events:", error.message || error);
       res.status(500).json({ error: "Erro ao buscar eventos" });

@@ -3,10 +3,17 @@ import { differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns
 import { getOfficialWhatsAppStatus } from "../../src/services/evolution.service.js";
 import {
   buildWhatsAppMessage,
+  enrichEventCalendarVariables,
   logAndSendWhatsApp,
   resolveTerreiroWhatsAppContext,
   assertFilhoBelongsToTerreiro,
 } from "./whatsappSendCore.js";
+import { resolveLeaderId } from "./tenantAccess.js";
+
+async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
+  const leaderId = await resolveLeaderId(sb, tenantId);
+  return resolveTerreiroWhatsAppContext(sb, leaderId, tenantId);
+}
 const REMINDER_DAYS_BEFORE = 3;
 
 function clampDayInMonth(year: number, month0: number, day: number): Date {
@@ -55,7 +62,7 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
     if (!tenantId) continue;
 
     try {
-      const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+      const ctx = await resolveCronTerreiroContext(sb, tenantId);
 
       let dia = 10;
       let valor = 0;
@@ -184,7 +191,7 @@ async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; ski
 
   for (const [tenantId, items] of byTenant) {
     try {
-      const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+      const ctx = await resolveCronTerreiroContext(sb, tenantId);
 
       const { data: authData } = await sb.auth.admin.getUserById(tenantId);
       const meta = authData?.user?.user_metadata as { whatsapp?: string } | undefined;
@@ -252,7 +259,7 @@ export async function dispatchMuralWhatsApp(
   try {
     if (!(await isOfficialChannelReady())) return { sent: 0, errors: 0 };
 
-    const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+    const ctx = await resolveCronTerreiroContext(sb, tenantId);
     const terreiroNome = nomeTerreiro || ctx.nomeTerreiro;
 
     const { data: cfg } = await sb
@@ -356,10 +363,22 @@ export async function dispatchGiraWhatsApp(
       : {}) as Record<string, boolean>;
     if (prefs.notifGiras === false) return { sent: 0, errors: 0 };
 
-    const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+    const ctx = await resolveCronTerreiroContext(sb, tenantId);
     const dataEvento = formatEventDateBr(event.data);
     const horaEvento = String(event.hora || "").trim();
+
+    let baseVariables: Record<string, string | number> = {
+      event_id: event.id || "",
+      nome_evento: event.titulo,
+      data_evento: dataEvento,
+      hora_evento: horaEvento,
+      nome_terreiro: ctx.nomeTerreiro,
+    };
     const bannerUrl = String(event.banner_url || "").trim();
+    if (bannerUrl) baseVariables.banner_url = bannerUrl;
+    if (event.id) {
+      baseVariables = await enrichEventCalendarVariables(sb, ctx.leaderId, baseVariables);
+    }
 
     const { data: children } = await sb
       .from("filhos_de_santo")
@@ -387,13 +406,7 @@ export async function dispatchGiraWhatsApp(
           nomeMembro,
           nomeTerreiro: ctx.nomeTerreiro,
           idTerreiro: ctx.idTerreiro,
-          variables: {
-            event_id: event.id || "",
-            nome_evento: event.titulo,
-            data_evento: dataEvento,
-            hora_evento: horaEvento,
-            ...(bannerUrl ? { banner_url: bannerUrl } : {}),
-          },
+          variables: { ...baseVariables },
         });
         sent++;
       } catch (err) {
@@ -404,6 +417,12 @@ export async function dispatchGiraWhatsApp(
   } catch (err) {
     console.error("[GIRA WA] dispatch:", err);
     errors++;
+  }
+
+  if (sent === 0 && errors === 0) {
+    console.warn(`[GIRA WA] tenant=${tenantId} evento="${event.titulo}" — nenhum envio (canal, preferências ou filhos sem WhatsApp)`);
+  } else {
+    console.log(`[GIRA WA] tenant=${tenantId} evento="${event.titulo}" sent=${sent} errors=${errors}`);
   }
 
   return { sent, errors };

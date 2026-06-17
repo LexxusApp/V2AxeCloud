@@ -95,7 +95,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [filhoEventDetail, setFilhoEventDetail] = useState<Event | null>(null);
+  const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
 
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
   const effectiveTenantId = tenantData?.tenant_id || (!isFilho ? user?.id : undefined);
@@ -600,16 +600,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 </AppDemoCard>
               ) : (
                 <div className="space-y-3">
-                  {upcomingEvents.map((event, idx) => {
+                  {upcomingEvents.map((event) => {
                     const passed = isEventPassed(event.data, event.hora);
                     return (
-                      <motion.button
+                      <button
                         type="button"
                         key={event.id}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={MODAL_PANEL_DONE}
-                        transition={{ delay: idx * 0.04 }}
-                        onClick={() => setFilhoEventDetail(event)}
+                        onClick={() => setEventDetailModal(event)}
                         className={cn(
                           "w-full overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left border-l-4 transition-all hover:border-[#2F3643]",
                           passed ? "border-l-gray-600 opacity-60" : "border-l-primary"
@@ -670,7 +667,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           </div>
                           <p className="text-[10px] font-bold text-primary/80 mt-2 uppercase tracking-widest">Toque para ver detalhes</p>
                         </div>
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
@@ -680,13 +677,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         </div>
 
         <AnimatePresence>
-          {filhoEventDetail && (
+          {eventDetailModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setFilhoEventDetail(null)}
+                onClick={() => setEventDetailModal(null)}
                 className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
               />
               <motion.div
@@ -702,26 +699,30 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       <CalendarIcon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-base font-black text-white sm:text-lg">{filhoEventDetail.titulo}</h3>
-                      <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{filhoEventDetail.tipo}</p>
+                      <h3 className="truncate text-base font-black text-white sm:text-lg">{eventDetailModal.titulo}</h3>
+                      <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{eventDetailModal.tipo}</p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setFilhoEventDetail(null)}
+                    onClick={() => setEventDetailModal(null)}
                     className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {filhoEventDetail.banner_url && (
+                  {eventDetailModal.banner_url ? (
                     <div className="relative w-full overflow-hidden bg-[#0d0d0d]">
                       <img
-                        src={filhoEventDetail.banner_url}
+                        src={eventDetailModal.banner_url}
                         alt=""
-                        className="max-h-[min(40vh,280px)] w-full object-cover"
+                        className="max-h-[min(50vh,360px)] w-full object-contain bg-black"
                       />
+                    </div>
+                  ) : (
+                    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+                      <CalendarIcon className="h-12 w-12 text-white/15" />
                     </div>
                   )}
                   <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
@@ -729,18 +730,18 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       <div className="flex items-center gap-2 text-white">
                         <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
                         <span className="font-bold">
-                          {format(parseISO(filhoEventDetail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
+                          {format(parseISO(eventDetailModal.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-white">
                         <Clock className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="font-bold">{filhoEventDetail.hora}</span>
+                        <span className="font-bold">{eventDetailModal.hora}</span>
                       </div>
                     </div>
-                    {filhoEventDetail.descricao ? (
+                    {eventDetailModal.descricao ? (
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Descrição</p>
-                        <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">{filhoEventDetail.descricao}</p>
+                        <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">{eventDetailModal.descricao}</p>
                       </div>
                     ) : (
                       <p className="text-sm italic text-gray-600">Sem descrição adicional.</p>
@@ -905,37 +906,41 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 const isEspecial =
                   event.status_confirmacao === 'Especial' || event.tipo === 'Obrigação';
                 return (
-                  <article
+                  <button
+                    type="button"
                     key={event.id}
+                    onClick={() => setEventDetailModal(event)}
                     className={cn(
-                      'flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-4 transition-colors hover:border-[#2F3643]',
+                      'group relative w-full cursor-pointer overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left transition-all hover:border-[#2F3643] hover:shadow-lg',
                       passed && 'opacity-70',
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <span
-                          className={
-                            isEspecial
-                              ? 'rounded-full border border-rose-500/30 bg-rose-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-rose-300'
-                              : 'rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-emerald-300'
-                          }
-                        >
-                          {event.tipo}
-                        </span>
-                        <h4 className="mt-2 text-sm font-bold text-[#F1F5F9]">{event.titulo}</h4>
-                        {event.descricao ? (
-                          <p className="mt-1 line-clamp-2 text-[11px] text-[#94A3B8]">{event.descricao}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex shrink-0 gap-0.5">
+                    <div className="relative h-36 w-full overflow-hidden bg-[#0d0d0d] sm:h-40">
+                      {event.banner_url ? (
+                        <img
+                          src={event.banner_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+                          <CalendarIcon className="h-10 w-10 text-white/15" />
+                        </div>
+                      )}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                      <div
+                        className="absolute right-2 top-2 flex gap-0.5 rounded-lg bg-black/50 p-0.5 backdrop-blur-sm"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        role="presentation"
+                      >
                         {!passed ? (
                           <button
                             type="button"
                             onClick={() => void handleNotifyAll(event)}
                             disabled={isNotifying === event.id}
-                            className="rounded p-1 text-primary hover:bg-white/5 disabled:opacity-50"
-                            title="Notificar filhos"
+                            className="rounded p-1.5 text-primary hover:bg-white/10 disabled:opacity-50"
+                            title="Notificar push no app"
                           >
                             {isNotifying === event.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -948,7 +953,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           type="button"
                           onClick={() => setSelectedEventForGuests(event)}
                           className={cn(
-                            'rounded p-1 hover:bg-white/5',
+                            'rounded p-1.5 hover:bg-white/10',
                             hasAccess ? 'text-primary' : 'text-zinc-600',
                           )}
                           title={hasAccess ? 'Convidados' : 'Plano Oirô'}
@@ -961,24 +966,52 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           onClick={() =>
                             setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
                           }
-                          className="rounded p-1 text-zinc-500 hover:text-rose-400"
+                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-rose-400"
                           aria-label="Remover gira"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
+                      <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm',
+                            isEspecial
+                              ? 'bg-rose-500/90 text-white'
+                              : passed
+                                ? 'bg-black/50 text-gray-400'
+                                : 'bg-primary/90 text-black',
+                          )}
+                        >
+                          {event.tipo}
+                        </span>
+                        {passed ? (
+                          <span className="rounded-full bg-red-500/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-red-100 backdrop-blur-sm">
+                            Encerrado
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between border-t border-[#1E242B] pt-3 text-xs text-[#94A3B8]">
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-                        {format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" aria-hidden />
-                        {event.hora}
-                      </span>
+                    <div className="p-4">
+                      <h4 className="text-base font-black leading-tight text-[#F1F5F9]">{event.titulo}</h4>
+                      {event.descricao ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#94A3B8]">{event.descricao}</p>
+                      ) : null}
+                      <div className="mt-3 flex items-center justify-between border-t border-[#1E242B] pt-3 text-xs text-[#94A3B8]">
+                        <span className="flex items-center gap-1 font-bold">
+                          <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden />
+                          {format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                        <span className="flex items-center gap-1 font-bold">
+                          <Clock className="h-3.5 w-3.5 text-primary" aria-hidden />
+                          {event.hora}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                        Toque para ver detalhes
+                      </p>
                     </div>
-                  </article>
+                  </button>
                 );
               })}
               {eventsNewestFirst.length === 0 ? (
@@ -994,7 +1027,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               <div>
                 <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-[#94A3B8]">
-                  Convidados com telefone recebem o convite ao serem adicionados ao evento — e lembretes
+                  Ao criar uma gira, filhos com WhatsApp cadastrado recebem o aviso automaticamente.
+                  Convidados com telefone também recebem convite ao serem adicionados — e lembretes
                   automáticos antes da gira.
                 </p>
               </div>
@@ -1002,6 +1036,83 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           </div>
         </div>
       </AppPageShell>
+
+      <AnimatePresence>
+        {eventDetailModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEventDetailModal(null)}
+              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+            />
+            <motion.div
+              initial={MODAL_PANEL_IN}
+              animate={MODAL_PANEL_DONE}
+              exit={MODAL_PANEL_OUT}
+              transition={MODAL_TW}
+              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-lg"
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                    <CalendarIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-black text-white sm:text-lg">{eventDetailModal.titulo}</h3>
+                    <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{eventDetailModal.tipo}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEventDetailModal(null)}
+                  className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {eventDetailModal.banner_url ? (
+                  <div className="relative w-full overflow-hidden bg-[#0d0d0d]">
+                    <img
+                      src={eventDetailModal.banner_url}
+                      alt=""
+                      className="max-h-[min(50vh,360px)] w-full object-contain bg-black"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+                    <CalendarIcon className="h-12 w-12 text-white/15" />
+                  </div>
+                )}
+                <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-white">
+                      <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="font-bold">
+                        {format(parseISO(eventDetailModal.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white">
+                      <Clock className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="font-bold">{eventDetailModal.hora}</span>
+                    </div>
+                  </div>
+                  {eventDetailModal.descricao ? (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Descrição</p>
+                      <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">{eventDetailModal.descricao}</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-gray-600">Sem descrição adicional.</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal de convidados */}
       <AnimatePresence>
