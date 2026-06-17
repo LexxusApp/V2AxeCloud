@@ -6,6 +6,7 @@ import {
   Heart,
   Image as ImageIcon,
   Loader2,
+  Plus,
   Trash2,
   Upload,
   X,
@@ -14,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import { appInputClass, appLabelClass } from '../lib/appUiTokens';
+import { AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { authFetch } from '../lib/authenticatedFetch';
 
@@ -103,6 +104,231 @@ function patchAlbumMedia(albums: AlbumItem[], albumId: string, media: MediaItem[
   );
 }
 
+type AddAlbumModalPanelProps = {
+  onClose: () => void;
+  onPublish: () => void;
+  albumName: string;
+  setAlbumName: (value: string) => void;
+  albumCategory: GalleryCategory;
+  setAlbumCategory: (value: GalleryCategory) => void;
+  albumDescription: string;
+  setAlbumDescription: (value: string) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  selectedFiles: File[];
+  previewUrls: string[];
+  onSelectFiles: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+  uploading: boolean;
+  uploadProgress: { current: number; total: number };
+  zeladorName: string;
+};
+
+function AddAlbumModalPanel({
+  onClose,
+  onPublish,
+  albumName,
+  setAlbumName,
+  albumCategory,
+  setAlbumCategory,
+  albumDescription,
+  setAlbumDescription,
+  fileInputRef,
+  selectedFiles,
+  previewUrls,
+  onSelectFiles,
+  onClear,
+  uploading,
+  uploadProgress,
+  zeladorName,
+}: AddAlbumModalPanelProps) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={MODAL_TW}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        aria-hidden
+      />
+      <motion.div
+        initial={{ opacity: 0, x: 48 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 32 }}
+        transition={MODAL_TW}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-album-title"
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <Camera className="h-5 w-5 text-primary" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h3 id="add-album-title" className="text-base font-black text-white sm:text-lg">
+                Novo álbum
+              </h3>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                Criar álbum com fotos da gira ou evento
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto overscroll-y-contain p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
+            <div>
+              <label className={appLabelClass}>Nome do álbum</label>
+              <input
+                type="text"
+                value={albumName}
+                onChange={(e) => setAlbumName(e.target.value)}
+                placeholder="Ex: Gira de Ogum — Março 2026"
+                className={appInputClass}
+              />
+            </div>
+            <div>
+              <label className={appLabelClass}>Tipo da atividade</label>
+              <select
+                value={albumCategory}
+                onChange={(e) => setAlbumCategory(e.target.value as GalleryCategory)}
+                className={cn(appInputClass, 'cursor-pointer')}
+              >
+                <option value="gira">Gira de Trabalho</option>
+                <option value="evento">Festa / Evento Público</option>
+                <option value="lembranca">Lembrança das Linhagens</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={appLabelClass}>Legenda do álbum</label>
+              <textarea
+                value={albumDescription}
+                onChange={(e) => setAlbumDescription(e.target.value)}
+                rows={2}
+                placeholder="Breve história sobre a gira, as entidades que trabalharam…"
+                className={cn(appInputClass, 'resize-none')}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={appLabelClass}>Fotos e vídeos (múltiplos)</label>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15 disabled:opacity-60"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Selecionar fotos / vídeos
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  onChange={onSelectFiles}
+                  disabled={uploading}
+                />
+                {selectedFiles.length > 0 ? (
+                  <span className="text-[11px] text-gray-400">
+                    {selectedFiles.length} arquivo(s) selecionado(s)
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="space-y-3 rounded-2xl border border-[#1E242B] bg-[#0C0E12]/80 p-4 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  Pré-visualização
+                </span>
+                {selectedFiles.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={onClear}
+                    className="text-[9px] font-bold text-gray-500 hover:text-white"
+                  >
+                    Limpar
+                  </button>
+                ) : null}
+              </div>
+              {previewUrls.length === 0 ? (
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] text-center">
+                  <p className="px-4 text-[10px] text-gray-500">
+                    Selecione várias fotos de uma gira — todas ficarão neste álbum.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid max-h-[180px] grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
+                  {previewUrls.map((url, index) => {
+                    const file = selectedFiles[index];
+                    const isVideo = file?.type.startsWith('video/');
+                    return (
+                      <div
+                        key={url}
+                        className="relative aspect-square overflow-hidden rounded-lg border border-[#1E242B] bg-black"
+                      >
+                        {isVideo ? (
+                          <video src={url} className="h-full w-full object-cover" muted playsInline />
+                        ) : (
+                          <img src={url} alt="" className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="mt-4 font-mono text-[9.5px] italic text-gray-500">
+            Assinado por {zeladorName} (Zeladoria)
+          </p>
+
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 sm:mt-6">
+            {(albumName || selectedFiles.length > 0) && (
+              <button
+                type="button"
+                onClick={onClear}
+                disabled={uploading}
+                className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50"
+              >
+                Limpar
+              </button>
+            )}
+            <AppPrimaryButton
+              type="button"
+              onClick={onPublish}
+              disabled={uploading}
+              className="inline-flex min-w-[10rem] items-center justify-center"
+            >
+              {uploading
+                ? `Enviando ${uploadProgress.current}/${uploadProgress.total}…`
+                : 'Publicar álbum'}
+            </AppPrimaryButton>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Gallery({ tenantData, userRole, isAdminGlobal }: GalleryProps) {
   const isAdmin = userRole !== 'filho' || !!isAdminGlobal;
   const tenantId = String(tenantData?.tenant_id || '').trim();
@@ -117,6 +343,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   const [activeFilter, setActiveFilter] = useState<GalleryFilter>('tudo');
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [addAlbumModalOpen, setAddAlbumModalOpen] = useState(false);
 
   const [albumName, setAlbumName] = useState('');
   const [albumCategory, setAlbumCategory] = useState<GalleryCategory>('gira');
@@ -301,6 +528,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
       const newAlbum: AlbumItem = { ...album, media: uploaded };
       setAlbums((prev) => [newAlbum, ...prev]);
       clearPublishForm();
+      setAddAlbumModalOpen(false);
       showToast(
         setToast,
         `Álbum "${title}" criado com ${uploaded.length} foto(s)!`,
@@ -405,10 +633,9 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
     return withMedia.filter((album) => getAlbumCategory(album) === activeFilter);
   }, [albums, activeFilter]);
 
-  const scrollToPublish = () => {
-    const el = document.getElementById('add-photo-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-    else showToast(setToast, 'Preencha os campos abaixo para criar um álbum!', 'info');
+  const closeAddAlbumModal = () => {
+    if (uploading) return;
+    setAddAlbumModalOpen(false);
   };
 
   const renderPhotoCard = (photo: MediaItem) => {
@@ -641,10 +868,10 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           {isAdmin && !selectedAlbumId && (
             <button
               type="button"
-              onClick={scrollToPublish}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-amber-400"
+              onClick={() => setAddAlbumModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
             >
-              <Camera className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Novo Álbum
             </button>
           )}
@@ -698,170 +925,6 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </div>
         ) : (
           <div className="space-y-8">
-            {isAdmin && (
-              <div
-                id="add-photo-section"
-                className="relative space-y-6 overflow-hidden rounded-3xl border border-amber-500/10 bg-[#13171D] p-6 shadow-xl"
-              >
-                <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-gradient-to-bl from-amber-500/5 to-transparent blur-3xl" />
-
-                <div className="border-b border-[#1E242B] pb-4">
-                  <h6 className="flex items-center gap-2 font-display text-sm font-black text-[#FACC15]">
-                    <Camera className="h-4 w-4" />
-                    Criar Álbum com Fotos (Exclusivo Zeladoria)
-                  </h6>
-                  <p className="mt-0.5 text-[11px] text-gray-400">
-                    Dê um nome ao álbum, selecione todas as fotos da gira ou evento e publique de uma vez.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                  <div className="space-y-4 lg:col-span-2">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className={appLabelClass}>Nome do Álbum</label>
-                        <input
-                          type="text"
-                          value={albumName}
-                          onChange={(e) => setAlbumName(e.target.value)}
-                          placeholder="Ex: Gira de Ogum — Março 2026"
-                          className={appInputClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={appLabelClass}>Tipo da Atividade</label>
-                        <select
-                          value={albumCategory}
-                          onChange={(e) => setAlbumCategory(e.target.value as GalleryCategory)}
-                          className={cn(appInputClass, 'cursor-pointer')}
-                        >
-                          <option value="gira">Gira de Trabalho</option>
-                          <option value="evento">Festa / Evento Público</option>
-                          <option value="lembranca">Lembrança das Linhagens</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className={appLabelClass}>Legenda do Álbum</label>
-                      <textarea
-                        value={albumDescription}
-                        onChange={(e) => setAlbumDescription(e.target.value)}
-                        rows={2}
-                        placeholder="Breve história sobre a gira, as entidades que trabalharam..."
-                        className={cn(appInputClass, 'resize-none')}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={appLabelClass}>Fotos e vídeos do dispositivo (múltiplos)</label>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                          className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-60"
-                        >
-                          {uploading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Upload className="h-4 w-4" />
-                          )}
-                          Selecionar fotos / vídeos
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*,video/*"
-                          multiple
-                          className="hidden"
-                          onChange={onSelectFiles}
-                          disabled={uploading}
-                        />
-                        {selectedFiles.length > 0 && (
-                          <span className="text-[11px] text-gray-400">
-                            {selectedFiles.length} arquivo(s) selecionado(s)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 rounded-2xl border border-[#1E242B] bg-[#0C0E12]/80 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#FACC15]">
-                        Pré-visualização
-                      </span>
-                      {selectedFiles.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={clearPublishForm}
-                          className="text-[9px] font-bold text-gray-500 hover:text-white"
-                        >
-                          Limpar
-                        </button>
-                      )}
-                    </div>
-
-                    {previewUrls.length === 0 ? (
-                      <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] text-center">
-                        <p className="px-4 text-[10px] text-gray-500">
-                          Selecione várias fotos de uma gira — todas ficarão neste álbum.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid max-h-[220px] grid-cols-3 gap-2 overflow-y-auto pr-1">
-                        {previewUrls.map((url, index) => {
-                          const file = selectedFiles[index];
-                          const isVideo = file?.type.startsWith('video/');
-                          return (
-                            <div
-                              key={url}
-                              className="relative aspect-square overflow-hidden rounded-lg border border-[#1E242B] bg-black"
-                            >
-                              {isVideo ? (
-                                <video src={url} className="h-full w-full object-cover" muted playsInline />
-                              ) : (
-                                <img src={url} alt="" className="h-full w-full object-cover" />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#1E242B] pt-4">
-                  <span className="font-mono text-[9.5px] italic text-gray-500">
-                    Assinado por {zeladorName} (Zeladoria)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {(albumName || selectedFiles.length > 0) && (
-                      <button
-                        type="button"
-                        onClick={clearPublishForm}
-                        disabled={uploading}
-                        className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void publishAlbum()}
-                      disabled={uploading}
-                      className="cursor-pointer rounded-xl border border-emerald-500/25 bg-[#2E5A44]/60 px-5 py-2 text-xs font-extrabold text-[#10B981] shadow transition-all hover:bg-[#2E5A44] disabled:opacity-60"
-                    >
-                      {uploading
-                        ? `Enviando ${uploadProgress.current}/${uploadProgress.total}…`
-                        : '🌟 Publicar Álbum'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-col gap-4 rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1 text-center sm:text-left">
                 <h6 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Álbuns do Terreiro</h6>
@@ -896,7 +959,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                   <h6 className="font-display text-xs font-bold text-white">Nenhum álbum nesta seção</h6>
                   <p className="mx-auto max-w-sm text-[11px] text-gray-500">
                     {isAdmin
-                      ? 'Crie um álbum acima e envie todas as fotos da gira de uma vez.'
+                      ? 'Clique em Novo Álbum para publicar fotos da gira ou evento.'
                       : 'Ainda não há álbuns publicados para este filtro.'}
                   </p>
                 </div>
@@ -907,6 +970,29 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {addAlbumModalOpen ? (
+          <AddAlbumModalPanel
+            onClose={closeAddAlbumModal}
+            onPublish={() => void publishAlbum()}
+            albumName={albumName}
+            setAlbumName={setAlbumName}
+            albumCategory={albumCategory}
+            setAlbumCategory={setAlbumCategory}
+            albumDescription={albumDescription}
+            setAlbumDescription={setAlbumDescription}
+            fileInputRef={fileInputRef}
+            selectedFiles={selectedFiles}
+            previewUrls={previewUrls}
+            onSelectFiles={onSelectFiles}
+            onClear={clearPublishForm}
+            uploading={uploading}
+            uploadProgress={uploadProgress}
+            zeladorName={zeladorName}
+          />
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {lightboxItem && (
