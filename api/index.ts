@@ -2374,6 +2374,79 @@ async function startServer() {
     }
   });
 
+  /** Atualiza ou remove PDF de obrigação já cadastrada (somente zelador). */
+  app.patch("/api/v1/obrigacao-pdf/:eventId", async (req, res) => {
+    const eventId = String(req.params.eventId || "").trim();
+    const { tenantId, pdfStoragePath, childId } = req.body || {};
+    const tid = normalizeQueryTenantId(tenantId);
+    const cid = String(childId || "").trim();
+
+    if (!eventId || !tid || !cid) {
+      return res.status(400).json({ error: "eventId, tenantId e childId são obrigatórios" });
+    }
+    if (!isValidUuid(eventId) || !isValidUuid(tid) || !isValidUuid(cid)) {
+      return res.status(400).json({ error: "IDs inválidos" });
+    }
+
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tid);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
+      const resolvedTenant = await resolveLeaderId(tid);
+      const { data: eventRow, error: eventErr } = await supabaseAdmin
+        .from("calendario_axe")
+        .select("id, tenant_id, lider_id, tipo, descricao, pdf_storage_path")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (eventErr) throw eventErr;
+      if (!eventRow) return res.status(404).json({ error: "Obrigação não encontrada" });
+
+      const rowTenant = String(eventRow.tenant_id || eventRow.lider_id || "").trim();
+      const resolvedRowTenant = await resolveLeaderId(rowTenant);
+      if (resolvedRowTenant !== resolvedTenant) {
+        return res.status(403).json({ error: "Obrigação não pertence a este terreiro" });
+      }
+      if (String(eventRow.tipo || "") !== "Obrigação") {
+        return res.status(400).json({ error: "Evento não é uma obrigação" });
+      }
+      const desc = String(eventRow.descricao || "");
+      if (!desc.includes(`FILHO_ID:${cid}`)) {
+        return res.status(403).json({ error: "Obrigação não vinculada a este filho" });
+      }
+
+      const nextPathRaw = pdfStoragePath == null ? null : String(pdfStoragePath).replace(/\\/g, "/").trim();
+      if (nextPathRaw) {
+        if (!nextPathRaw.startsWith(`${tid}/obrigacoes/${cid}/`)) {
+          return res.status(400).json({ error: "Caminho do PDF inválido para esta obrigação" });
+        }
+      }
+
+      const oldPath = String(eventRow.pdf_storage_path || "").replace(/\\/g, "/").trim();
+      if (oldPath && oldPath !== nextPathRaw) {
+        await supabaseAdmin.storage.from("biblioteca_estudos").remove([oldPath]);
+      }
+
+      const { data: updated, error: updateErr } = await supabaseAdmin
+        .from("calendario_axe")
+        .update({ pdf_storage_path: nextPathRaw })
+        .eq("id", eventId)
+        .select("id, pdf_storage_path")
+        .single();
+      if (updateErr) throw updateErr;
+
+      res.json({
+        success: true,
+        pdf_storage_path: updated?.pdf_storage_path || null,
+      });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao atualizar PDF de obrigação:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao atualizar PDF" });
+    }
+  });
+
   app.delete("/api/v1/library/material/:id", async (req, res) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;

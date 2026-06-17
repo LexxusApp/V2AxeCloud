@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect } from 'react';
+﻿import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Edit2, Save, X, Trash2, Loader2, ShieldCheck, NotebookPen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -118,6 +118,9 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
   const [isObligationModalOpen, setIsObligationModalOpen] = useState(false);
   const [isSubmittingObligation, setIsSubmittingObligation] = useState(false);
   const [obligationPdfFile, setObligationPdfFile] = useState<File | null>(null);
+  const [updatingPdfEventId, setUpdatingPdfEventId] = useState<string | null>(null);
+  const [pendingPdfReplaceEventId, setPendingPdfReplaceEventId] = useState<string | null>(null);
+  const obligationPdfReplaceRef = useRef<HTMLInputElement>(null);
   const [hasDebt, setHasDebt] = useState(false);
   const [obligationData, setObligationData] = useState({
     titulo: '',
@@ -278,6 +281,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
             pdfViewUrl: ob.pdf_storage_path && tenantId
               ? `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(tenantId)}&path=${encodeURIComponent(ob.pdf_storage_path)}`
               : null,
+            id: ob.id,
           }));
           setChildObligations(cleanedObs);
         }
@@ -365,6 +369,123 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     }
   }
 
+  async function uploadObligationPdfFile(file: File): Promise<string> {
+    if (!child) throw new Error('Filho não carregado');
+    const effectiveTenantId = tenantData?.tenant_id || user?.id;
+    if (!effectiveTenantId) throw new Error('Terreiro não identificado');
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      throw new Error('Selecione um arquivo PDF');
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      throw new Error('PDF muito grande (máx. 15 MB)');
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const uploadUrlResponse = await authFetch('/api/v1/obrigacao-pdf/upload-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: 'application/pdf',
+        tenantId: effectiveTenantId,
+        childId: child.id,
+      }),
+    });
+
+    const uploadUrlResult = await uploadUrlResponse.json();
+    if (!uploadUrlResponse.ok) {
+      throw new Error(uploadUrlResult.error || 'Erro ao preparar upload do PDF');
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('biblioteca_estudos')
+      .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, file, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+    return uploadUrlResult.path as string;
+  }
+
+  function buildObligationPdfViewUrl(storagePath: string | null | undefined): string | null {
+    const effectiveTenantId = tenantData?.tenant_id || user?.id;
+    if (!storagePath || !effectiveTenantId) return null;
+    return `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(effectiveTenantId)}&path=${encodeURIComponent(storagePath)}`;
+  }
+
+  async function patchObligationPdf(eventId: string, pdfStoragePath: string | null) {
+    if (!child) return;
+    const effectiveTenantId = tenantData?.tenant_id || user?.id;
+    if (!effectiveTenantId) throw new Error('Terreiro não identificado');
+
+    const res = await authFetch(`/api/v1/obrigacao-pdf/${encodeURIComponent(eventId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId: effectiveTenantId,
+        childId: child.id,
+        pdfStoragePath,
+      }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Erro ao atualizar PDF');
+
+    const nextPath = json.pdf_storage_path || null;
+    setChildObligations(prev =>
+      prev.map(ob =>
+        ob.id === eventId
+          ? {
+              ...ob,
+              pdf_storage_path: nextPath,
+              pdfViewUrl: buildObligationPdfViewUrl(nextPath),
+            }
+          : ob
+      )
+    );
+  }
+
+  async function handleReplaceObligationPdf(eventId: string, file: File) {
+    if (!child || isSelfView) return;
+    setUpdatingPdfEventId(eventId);
+    try {
+      const path = await uploadObligationPdfFile(file);
+      await patchObligationPdf(eventId, path);
+    } catch (error) {
+      console.error('Error replacing obligation PDF:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao trocar PDF.');
+    } finally {
+      setUpdatingPdfEventId(null);
+      setPendingPdfReplaceEventId(null);
+      if (obligationPdfReplaceRef.current) obligationPdfReplaceRef.current.value = '';
+    }
+  }
+
+  async function handleRemoveObligationPdf(eventId: string) {
+    if (!child || isSelfView) return;
+    if (!confirm('Remover o PDF desta obrigação? Esta ação não pode ser desfeita.')) return;
+    setUpdatingPdfEventId(eventId);
+    try {
+      await patchObligationPdf(eventId, null);
+    } catch (error) {
+      console.error('Error removing obligation PDF:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao remover PDF.');
+    } finally {
+      setUpdatingPdfEventId(null);
+    }
+  }
+
+  function requestObligationPdfReplace(eventId: string) {
+    setPendingPdfReplaceEventId(eventId);
+    obligationPdfReplaceRef.current?.click();
+  }
+
   async function handleAddObligation(e: React.FormEvent) {
     e.preventDefault();
     if (!child || !user || isSubmittingObligation) return;
@@ -376,37 +497,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       let pdfStoragePath: string | null = null;
 
       if (obligationPdfFile) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Sessão expirada. Faça login novamente.');
-
-        const uploadUrlResponse = await authFetch('/api/v1/obrigacao-pdf/upload-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            fileName: obligationPdfFile.name,
-            contentType: 'application/pdf',
-            tenantId: effectiveTenantId,
-            childId: child.id,
-          }),
-        });
-
-        const uploadUrlResult = await uploadUrlResponse.json();
-        if (!uploadUrlResponse.ok) {
-          throw new Error(uploadUrlResult.error || 'Erro ao preparar upload do PDF');
-        }
-
-        const { error: uploadError } = await supabase.storage
-          .from('biblioteca_estudos')
-          .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, obligationPdfFile, {
-            contentType: 'application/pdf',
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-        pdfStoragePath = uploadUrlResult.path;
+        pdfStoragePath = await uploadObligationPdfFile(obligationPdfFile);
       }
 
       const insertPayload: Record<string, unknown> = {
@@ -421,18 +512,21 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       };
       if (pdfStoragePath) insertPayload.pdf_storage_path = pdfStoragePath;
 
-      const { error } = await supabase.from('calendario_axe').insert([insertPayload]);
+      const { data: inserted, error } = await supabase
+        .from('calendario_axe')
+        .insert([insertPayload])
+        .select('id')
+        .single();
 
       if (error) throw error;
 
       const newOb = {
+        id: inserted?.id,
         titulo: obligationData.titulo,
         data: obligationData.data,
         descricao: obligationData.descricao || '',
         pdf_storage_path: pdfStoragePath,
-        pdfViewUrl: pdfStoragePath
-          ? `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(effectiveTenantId)}&path=${encodeURIComponent(pdfStoragePath)}`
-          : null,
+        pdfViewUrl: buildObligationPdfViewUrl(pdfStoragePath),
       };
 
       setChildObligations(prev => [newOb, ...prev].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
@@ -705,6 +799,9 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           valorMensalidade={valorMensalidadeConfig}
           childObligations={childObligations}
           onAddObligation={() => setIsObligationModalOpen(true)}
+          onReplaceObligationPdf={requestObligationPdfReplace}
+          onRemoveObligationPdf={handleRemoveObligationPdf}
+          updatingPdfEventId={updatingPdfEventId}
           sortedZeladorNotes={sortedZeladorNotes}
           onNewNote={openNewNoteModal}
           onOpenNote={openExistingNoteModal}
@@ -720,6 +817,18 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           onPhotoClick={() => fileInputRef.current?.click()}
           onPhotoChange={handlePhotoUpload}
           isUploadingPhoto={isUploadingPhoto}
+        />
+        <input
+          ref={obligationPdfReplaceRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && pendingPdfReplaceEventId) {
+              void handleReplaceObligationPdf(pendingPdfReplaceEventId, file);
+            }
+          }}
         />
       </div>
       {/* Modal: criar / editar nota individual */}

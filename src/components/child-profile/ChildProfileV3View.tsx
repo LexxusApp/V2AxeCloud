@@ -14,6 +14,8 @@ import {
   Phone,
   Plus,
   ShieldCheck,
+  Trash2,
+  Upload,
   Crown,
   StickyNote,
   User,
@@ -43,6 +45,7 @@ type ChildProfileV3ViewProps = {
   hasDebt: boolean;
   valorMensalidade: number;
   childObligations: Array<{
+    id?: string;
     titulo?: string;
     data?: string;
     descricao?: string;
@@ -50,6 +53,9 @@ type ChildProfileV3ViewProps = {
     pdfViewUrl?: string | null;
   }>;
   onAddObligation: () => void;
+  onReplaceObligationPdf: (eventId: string) => void;
+  onRemoveObligationPdf: (eventId: string) => void;
+  updatingPdfEventId: string | null;
   sortedZeladorNotes: ZeladorNoteItem[];
   onNewNote: () => void;
   onOpenNote: (note: ZeladorNoteItem) => void;
@@ -135,6 +141,9 @@ export function ChildProfileV3View({
   valorMensalidade,
   childObligations,
   onAddObligation,
+  onReplaceObligationPdf,
+  onRemoveObligationPdf,
+  updatingPdfEventId,
   sortedZeladorNotes,
   onNewNote,
   onOpenNote,
@@ -505,10 +514,12 @@ export function ChildProfileV3View({
               </div>
             ) : (
               <div className="relative ml-4 space-y-8 border-l-2 border-[#1E242B] py-2 pl-8">
-                {childObligations.map((ob, idx) => {
+                {childObligations.map((ob) => {
                   const done = ob.status_confirmacao === 'Confirmado' || ob.status_confirmacao === 'Concluído';
+                  const eventId = ob.id ? String(ob.id) : '';
+                  const pdfBusy = !!eventId && updatingPdfEventId === eventId;
                   return (
-                    <div key={idx} className="group relative">
+                    <div key={ob.id || `${ob.titulo}-${ob.data}`} className="group relative">
                       <div
                         className={cn(
                           'absolute -left-[41px] top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-[#13171D] transition-colors',
@@ -534,7 +545,7 @@ export function ChildProfileV3View({
                             <button
                               type="button"
                               onClick={() => openObligationPdf(ob.pdfViewUrl!)}
-                              disabled={openingPdfUrl === ob.pdfViewUrl}
+                              disabled={openingPdfUrl === ob.pdfViewUrl || pdfBusy}
                               className="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#FACC15] transition hover:text-[#fde047] disabled:opacity-50"
                             >
                               {openingPdfUrl === ob.pdfViewUrl ? (
@@ -544,6 +555,36 @@ export function ChildProfileV3View({
                               )}
                               Ver PDF da obrigação
                             </button>
+                          ) : null}
+                          {!isSelfView && eventId ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => onReplaceObligationPdf(eventId)}
+                                disabled={pdfBusy}
+                                className="inline-flex items-center gap-1 rounded-lg border border-[#1E242B] bg-[#13171D] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:border-[#FACC15]/30 hover:text-[#FACC15] disabled:opacity-50"
+                              >
+                                {pdfBusy ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : ob.pdfViewUrl ? (
+                                  <Pencil className="h-3 w-3" />
+                                ) : (
+                                  <Upload className="h-3 w-3" />
+                                )}
+                                {ob.pdfViewUrl ? 'Trocar PDF' : 'Anexar PDF'}
+                              </button>
+                              {ob.pdfViewUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onRemoveObligationPdf(eventId)}
+                                  disabled={pdfBusy}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-950/20 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-red-400 transition hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Remover PDF
+                                </button>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
                         <span
