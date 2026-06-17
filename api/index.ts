@@ -3947,15 +3947,15 @@ async function startServer() {
         url: '/calendar'
       }).catch((e) => console.error('[PUSH] após criar evento:', e));
 
-      void dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
+      const whatsapp = await dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
         id: String(data?.id || ""),
         titulo: String(data?.titulo || req.body.titulo || ""),
         data: String(data?.data || req.body.data || ""),
         hora: String(data?.hora || req.body.hora || ""),
         banner_url: data?.banner_url || null,
-      }).catch((e) => console.error("[GIRA WA] após criar evento:", e));
+      });
 
-      res.json({ success: true, data });
+      res.json({ success: true, data, whatsapp });
     } catch (error: any) {
       console.error("[SERVER] Error creating event:", error.message || error);
       res.status(500).json({ error: error.message || "Internal Server Error" });

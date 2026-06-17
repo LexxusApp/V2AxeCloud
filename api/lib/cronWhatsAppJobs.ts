@@ -331,6 +331,13 @@ function formatEventDateBr(isoDate: string): string {
 }
 
 /** Aviso de nova gira/evento para filhos da corrente (template aviso_gira_axecloud). */
+export type GiraWhatsAppDispatchResult = {
+  sent: number;
+  errors: number;
+  eligible: number;
+  status: "sent" | "partial" | "no_recipients" | "channel_offline" | "disabled" | "failed";
+};
+
 export async function dispatchGiraWhatsApp(
   sb: SupabaseClient,
   tenantId: string,
@@ -341,12 +348,15 @@ export async function dispatchGiraWhatsApp(
     hora: string;
     banner_url?: string | null;
   }
-): Promise<{ sent: number; errors: number }> {
+): Promise<GiraWhatsAppDispatchResult> {
   let sent = 0;
   let errors = 0;
+  let eligible = 0;
 
   try {
-    if (!(await isOfficialChannelReady())) return { sent: 0, errors: 0 };
+    if (!(await isOfficialChannelReady())) {
+      return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
+    }
 
     const { data: cfg } = await sb
       .from("whatsapp_config")
@@ -361,7 +371,9 @@ export async function dispatchGiraWhatsApp(
     const prefs = (meta.preferences && typeof meta.preferences === "object"
       ? meta.preferences
       : {}) as Record<string, boolean>;
-    if (prefs.notifGiras === false) return { sent: 0, errors: 0 };
+    if (prefs.notifGiras === false) {
+      return { sent: 0, errors: 0, eligible: 0, status: "disabled" };
+    }
 
     const ctx = await resolveCronTerreiroContext(sb, tenantId);
     const dataEvento = formatEventDateBr(event.data);
@@ -389,6 +401,8 @@ export async function dispatchGiraWhatsApp(
       const st = String(child.status || "Ativo").trim().toLowerCase();
       if (st === "inativo" || st === "desligado" || st === "falecido") continue;
       if (!child.whatsapp_phone) continue;
+
+      eligible++;
 
       try {
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
@@ -419,13 +433,24 @@ export async function dispatchGiraWhatsApp(
     errors++;
   }
 
+  let status: GiraWhatsAppDispatchResult["status"];
+  if (errors > 0 && sent === 0) status = "failed";
+  else if (errors > 0) status = "partial";
+  else if (sent > 0) status = "sent";
+  else if (eligible === 0) status = "no_recipients";
+  else status = "no_recipients";
+
   if (sent === 0 && errors === 0) {
-    console.warn(`[GIRA WA] tenant=${tenantId} evento="${event.titulo}" — nenhum envio (canal, preferências ou filhos sem WhatsApp)`);
+    console.warn(
+      `[GIRA WA] tenant=${tenantId} evento="${event.titulo}" — nenhum envio (${status}, eligible=${eligible})`
+    );
   } else {
-    console.log(`[GIRA WA] tenant=${tenantId} evento="${event.titulo}" sent=${sent} errors=${errors}`);
+    console.log(
+      `[GIRA WA] tenant=${tenantId} evento="${event.titulo}" sent=${sent} errors=${errors} eligible=${eligible}`
+    );
   }
 
-  return { sent, errors };
+  return { sent, errors, eligible, status };
 }
 
 export async function runWhatsAppCronJobs(sb: SupabaseClient) {

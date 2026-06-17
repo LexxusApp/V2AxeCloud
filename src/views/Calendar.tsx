@@ -52,6 +52,56 @@ interface Guest {
   status: 'Confirmado' | 'Pendente' | 'Check-in' | 'Recusado';
 }
 
+type EventWhatsAppFeedback = {
+  sent: number;
+  errors: number;
+  eligible: number;
+  status: 'sent' | 'partial' | 'no_recipients' | 'channel_offline' | 'disabled' | 'failed';
+};
+
+function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
+  message: string;
+  type: 'success' | 'info' | 'error';
+} {
+  if (!whatsapp) {
+    return { message: 'Gira criada com sucesso!', type: 'success' };
+  }
+  switch (whatsapp.status) {
+    case 'sent':
+      return {
+        message: `Gira criada! WhatsApp enviado para ${whatsapp.sent} filho${whatsapp.sent === 1 ? '' : 's'}.`,
+        type: 'success',
+      };
+    case 'partial':
+      return {
+        message: `Gira criada. WhatsApp: ${whatsapp.sent} enviado(s), ${whatsapp.errors} falha(s).`,
+        type: 'info',
+      };
+    case 'no_recipients':
+      return {
+        message: 'Gira criada. Nenhum filho ativo com WhatsApp cadastrado.',
+        type: 'info',
+      };
+    case 'channel_offline':
+      return {
+        message: 'Gira criada. Canal WhatsApp offline — avisos não enviados.',
+        type: 'info',
+      };
+    case 'disabled':
+      return {
+        message: 'Gira criada. Avisos de gira desativados nas configurações do WhatsApp.',
+        type: 'info',
+      };
+    case 'failed':
+      return {
+        message: `Gira criada, mas falhou o envio no WhatsApp (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'}).`,
+        type: 'error',
+      };
+    default:
+      return { message: 'Gira criada com sucesso!', type: 'success' };
+  }
+}
+
 function guestStatusMeta(status: Guest['status']) {
   switch (status) {
     case 'Confirmado':
@@ -63,6 +113,23 @@ function guestStatusMeta(status: Guest['status']) {
     default:
       return { label: 'Pendente', color: 'text-amber-400', badge: 'bg-amber-500/15 text-amber-400' };
   }
+}
+
+function CalendarToast({ toast }: { toast: { message: string; type: 'success' | 'info' | 'error' } | null }) {
+  if (!toast) return null;
+  return (
+    <div
+      className={cn(
+        'fixed right-4 top-20 z-[120] max-w-sm rounded-xl border px-4 py-3 text-sm font-semibold shadow-2xl',
+        toast.type === 'success' && 'border-emerald-500/30 bg-emerald-950/95 text-emerald-100',
+        toast.type === 'info' && 'border-sky-500/30 bg-sky-950/95 text-sky-100',
+        toast.type === 'error' && 'border-rose-500/30 bg-rose-950/95 text-rose-100',
+      )}
+      role="status"
+    >
+      {toast.message}
+    </div>
+  );
 }
 
 interface CalendarProps {
@@ -96,6 +163,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
   const effectiveTenantId = tenantData?.tenant_id || (!isFilho ? user?.id : undefined);
@@ -148,6 +216,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       fetchGuests(selectedEventForGuests.id);
     }
   }, [selectedEventForGuests]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   async function fetchEvents() {
     if (!effectiveTenantId) return;
@@ -364,6 +438,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to create event');
       }
+
+      const result = await response.json();
+      const feedback = formatGiraWhatsAppFeedback(result.whatsapp as EventWhatsAppFeedback | undefined);
+      setToast(feedback);
       
       setBannerFile(null);
       setBannerPreview((prev) => {
@@ -483,6 +561,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
     return (
       <AppPageShell>
+        <CalendarToast toast={toast} />
         <AppDemoPanelHeader
           title="Giras e eventos"
           description="Calendário de obrigações do terreiro."
@@ -758,6 +837,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   return (
     <>
+      <CalendarToast toast={toast} />
       <AppPageShell>
         <AppDemoPanelHeader
           title="Calendário de giras"
