@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Info, Plus, Search, Trash2, Phone, Loader2, Lock } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
+import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
-  AppDemoCard,
   AppDemoPanelHeader,
   AppDemoTableShell,
   AppPrimaryButton,
@@ -34,6 +35,18 @@ interface ChildrenProps {
   setSelectedChildId: (id: string | null) => void;
 }
 
+const EMPTY_CHILD_FORM = {
+  nome: '',
+  orixa_frente: '',
+  cargo: '',
+  cpf: '',
+  data_nascimento: '',
+  data_entrada: new Date().toISOString().split('T')[0],
+  status: 'Ativo' as const,
+  foto_url: '',
+  whatsapp_phone: '',
+};
+
 export default function Children({ setActiveTab, user, tenantData, setSelectedChildId }: ChildrenProps) {
   const tenantId = tenantData?.tenant_id;
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,19 +56,20 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState({
-    nome: '',
-    orixa_frente: '',
-    cargo: '',
-    cpf: '',
-    data_nascimento: '',
-    data_entrada: new Date().toISOString().split('T')[0],
-    status: 'Ativo' as const,
-    foto_url: '',
-    whatsapp_phone: ''
-  });
+  const [formData, setFormData] = useState({ ...EMPTY_CHILD_FORM, data_entrada: new Date().toISOString().split('T')[0] });
+
+  const closeAddModal = useCallback(() => {
+    setAddModalOpen(false);
+    setSubmitError(null);
+  }, []);
+
+  const openAddModal = useCallback(() => {
+    setSubmitError(null);
+    setAddModalOpen(true);
+  }, []);
 
   useEffect(() => {
     fetchChildren();
@@ -123,16 +137,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       }
 
       setFormData({
-        nome: '',
-        orixa_frente: '',
-        cargo: '',
-        cpf: '',
-        data_nascimento: '',
+        ...EMPTY_CHILD_FORM,
         data_entrada: new Date().toISOString().split('T')[0],
-        status: 'Ativo',
-        foto_url: '',
-        whatsapp_phone: ''
       });
+      setAddModalOpen(false);
       fetchChildren();
     } catch (error: any) {
       console.error('[Children] Error adding child:', error);
@@ -188,15 +196,31 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   }
 
   const searchBar = (
-    <div className="relative w-full sm:w-64">
-      <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94A3B8]" aria-hidden />
-      <input
-        type="search"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Buscar por nome..."
-        className={cn(appInputClass, 'pl-9')}
-      />
+    <div className="flex w-full flex-col gap-2 sm:w-64">
+      <div className="relative w-full">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94A3B8]" aria-hidden />
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Buscar por nome..."
+          className={cn(appInputClass, 'pl-9')}
+        />
+      </div>
+      <AppPrimaryButton
+        type="button"
+        onClick={openAddModal}
+        disabled={isLimitReached}
+        className="w-full gap-2"
+      >
+        {isLimitReached ? <Lock className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+        Adicionar
+      </AppPrimaryButton>
+      {isLimitReached ? (
+        <p className="text-[10px] leading-snug text-[#94A3B8]">
+          Limite de {childLimit} filhos no plano {PLAN_NAMES[currentPlan] || currentPlan}.
+        </p>
+      ) : null}
     </div>
   );
 
@@ -226,134 +250,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <AppDemoCard>
-          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-[#F1F5F9]">
-            <Plus className="h-4 w-4 text-primary" aria-hidden />
-            Adicionar filho de santo
-            {isLimitReached ? <Lock className="ml-1 h-3.5 w-3.5 text-primary" title="Limite do plano" /> : null}
-          </h4>
-          {isLimitReached ? (
-            <p className="text-xs text-[#94A3B8]">
-              Limite de {childLimit} filhos no plano {PLAN_NAMES[currentPlan] || currentPlan}. Atualize em Configurações.
-            </p>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {submitError ? (
-                <p className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
-                  {submitError}
-                </p>
-              ) : null}
-              <div>
-                <label className={appLabelClass}>CPF</label>
-                <input
-                  required
-                  className={appInputClass}
-                  inputMode="numeric"
-                  maxLength={11}
-                  value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                  placeholder="Somente números"
-                />
-              </div>
-              <div>
-                <label className={appLabelClass}>Nome</label>
-                <input
-                  required
-                  className={appInputClass}
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Ex: Mariana de Iansã"
-                />
-              </div>
-              <div>
-                <label className={appLabelClass}>Cargo</label>
-                <select
-                  required
-                  className={appInputClass}
-                  value={formData.cargo}
-                  onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                >
-                  <option value="">Selecione...</option>
-                  <option value="Abiã">Abiã</option>
-                  <option value="Iyawó">Iyawó</option>
-                  <option value="Ekeji">Ekeji</option>
-                  <option value="Ogã">Ogã</option>
-                  <option value="Babalaô">Babalaô</option>
-                  <option value="Médium de Desenvolvimento">Médium de Desenvolvimento</option>
-                  <option value="Filho de Santo">Filho de Santo</option>
-                </select>
-              </div>
-              <div>
-                <label className={appLabelClass}>Orixá de frente</label>
-                <input
-                  required
-                  className={appInputClass}
-                  value={formData.orixa_frente}
-                  onChange={(e) => setFormData({ ...formData, orixa_frente: e.target.value })}
-                  placeholder="Ex: Oxum"
-                />
-              </div>
-              <div>
-                <label className={appLabelClass}>Status</label>
-                <select
-                  className={appInputClass}
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as Child['status'] })}
-                >
-                  <option value="Ativo">Ativo</option>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Inativo">Inativo</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={appLabelClass}>Nascimento</label>
-                  <input
-                    required
-                    type="date"
-                    className={appInputClass}
-                    value={formData.data_nascimento}
-                    onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className={appLabelClass}>Entrada</label>
-                  <input
-                    required
-                    type="date"
-                    className={appInputClass}
-                    value={formData.data_entrada}
-                    onChange={(e) => setFormData({ ...formData, data_entrada: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className={appLabelClass}>WhatsApp</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#94A3B8]" />
-                  <input
-                    type="tel"
-                    className={cn(appInputClass, 'pl-9')}
-                    value={formData.whatsapp_phone}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value })}
-                    placeholder="11999999999"
-                  />
-                </div>
-              </div>
-              <AppPrimaryButton
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-2 w-full"
-              >
-                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Salvar filho'}
-              </AppPrimaryButton>
-            </form>
-          )}
-        </AppDemoCard>
-
-        <div className="space-y-3 lg:col-span-2">
-          <AppDemoTableShell>
+      <div className="space-y-3">
+        <AppDemoTableShell>
             <table className="min-w-full divide-y divide-[#1E242B] text-xs">
               <thead className="bg-[#12161A]">
                 <tr>
@@ -434,7 +332,170 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             </span>
           </div>
         </div>
-      </div>
+
+      <AnimatePresence>
+        {addModalOpen ? (
+          <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-y-contain">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeAddModal}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              aria-hidden
+            />
+            <div
+              className="flex min-h-full items-center justify-center p-4 sm:p-6"
+              onClick={closeAddModal}
+              role="presentation"
+            >
+              <motion.div
+                initial={MODAL_PANEL_IN}
+                animate={MODAL_PANEL_DONE}
+                exit={MODAL_PANEL_OUT}
+                transition={MODAL_TW}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="add-child-title"
+                onClick={(e) => e.stopPropagation()}
+                className="relative my-auto flex w-full max-h-[min(92dvh,calc(100dvh-2rem))] max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl"
+              >
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                      <Plus className="h-5 w-5 text-primary" aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 id="add-child-title" className="text-base font-black text-white sm:text-lg">
+                        Adicionar filho de santo
+                      </h3>
+                      <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                        Cadastro litúrgico
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeAddModal}
+                    className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain p-5 sm:p-6">
+                  {submitError ? (
+                    <p className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
+                      {submitError}
+                    </p>
+                  ) : null}
+                  <div>
+                    <label className={appLabelClass}>CPF</label>
+                    <input
+                      required
+                      className={appInputClass}
+                      inputMode="numeric"
+                      maxLength={11}
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
+                      placeholder="Somente números"
+                    />
+                  </div>
+                  <div>
+                    <label className={appLabelClass}>Nome</label>
+                    <input
+                      required
+                      className={appInputClass}
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Ex: Mariana de Iansã"
+                    />
+                  </div>
+                  <div>
+                    <label className={appLabelClass}>Cargo</label>
+                    <select
+                      required
+                      className={appInputClass}
+                      value={formData.cargo}
+                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Abiã">Abiã</option>
+                      <option value="Iyawó">Iyawó</option>
+                      <option value="Ekeji">Ekeji</option>
+                      <option value="Ogã">Ogã</option>
+                      <option value="Babalaô">Babalaô</option>
+                      <option value="Médium de Desenvolvimento">Médium de Desenvolvimento</option>
+                      <option value="Filho de Santo">Filho de Santo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={appLabelClass}>Orixá de frente</label>
+                    <input
+                      required
+                      className={appInputClass}
+                      value={formData.orixa_frente}
+                      onChange={(e) => setFormData({ ...formData, orixa_frente: e.target.value })}
+                      placeholder="Ex: Oxum"
+                    />
+                  </div>
+                  <div>
+                    <label className={appLabelClass}>Status</label>
+                    <select
+                      className={appInputClass}
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as Child['status'] })}
+                    >
+                      <option value="Ativo">Ativo</option>
+                      <option value="Pendente">Pendente</option>
+                      <option value="Inativo">Inativo</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={appLabelClass}>Nascimento</label>
+                      <input
+                        required
+                        type="date"
+                        className={appInputClass}
+                        value={formData.data_nascimento}
+                        onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className={appLabelClass}>Entrada</label>
+                      <input
+                        required
+                        type="date"
+                        className={appInputClass}
+                        value={formData.data_entrada}
+                        onChange={(e) => setFormData({ ...formData, data_entrada: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={appLabelClass}>WhatsApp</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#94A3B8]" />
+                      <input
+                        type="tel"
+                        className={cn(appInputClass, 'pl-9')}
+                        value={formData.whatsapp_phone}
+                        onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value })}
+                        placeholder="11999999999"
+                      />
+                    </div>
+                  </div>
+                  <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
+                    {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Salvar filho'}
+                  </AppPrimaryButton>
+                </form>
+              </motion.div>
+            </div>
+          </div>
+        ) : null}
+      </AnimatePresence>
     </AppPageShell>
   );
 }
