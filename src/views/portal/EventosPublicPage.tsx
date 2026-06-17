@@ -3,6 +3,7 @@ import { Calendar, CalendarDays, Clock, Loader2, MapPin, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
 import { MarketingSubpageTopNav } from '../../components/marketing/MarketingTopNav';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
 import { fetchPublicEventos, terreiroProfilePath, type PublicEvento } from '../../lib/portalPublic';
@@ -142,7 +143,10 @@ export default function EventosPublicPage() {
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] max-w-lg flex-col overflow-hidden rounded-3xl border border-[#1E242B] bg-[#0B0D11] shadow-2xl"
+              className={cn(
+                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#1E242B] bg-[#0B0D11] shadow-2xl',
+                detail.bannerUrl ? 'w-max max-w-[min(96vw,440px)]' : 'w-full max-w-lg',
+              )}
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#1E242B] px-5 py-4">
                 <div className="min-w-0">
@@ -160,7 +164,12 @@ export default function EventosPublicPage() {
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {detail.bannerUrl ? (
-                  <EventBanner url={detail.bannerUrl} alt={detail.titulo} />
+                  <img
+                    src={detail.bannerUrl}
+                    alt={detail.titulo}
+                    className="block h-auto max-h-[min(70dvh,560px)] w-auto max-w-[min(96vw,440px)]"
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent">
                     <CalendarDays className="h-12 w-12 text-white/15" />

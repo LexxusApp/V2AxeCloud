@@ -132,6 +132,87 @@ function CalendarToast({ toast }: { toast: { message: string; type: 'success' | 
   );
 }
 
+function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () => void }) {
+  const hasBanner = Boolean(event.banner_url);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+      />
+      <motion.div
+        initial={MODAL_PANEL_IN}
+        animate={MODAL_PANEL_DONE}
+        exit={MODAL_PANEL_OUT}
+        transition={MODAL_TW}
+        className={cn(
+          'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl',
+          hasBanner ? 'w-max max-w-[min(96vw,440px)]' : 'w-full max-w-sm',
+        )}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="truncate text-base font-black text-white sm:text-lg">{event.titulo}</h3>
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{event.tipo}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {hasBanner ? (
+            <img
+              src={event.banner_url!}
+              alt=""
+              className="block h-auto max-h-[min(70dvh,560px)] w-auto max-w-[min(96vw,440px)]"
+            />
+          ) : (
+            <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+              <CalendarIcon className="h-12 w-12 text-white/15" />
+            </div>
+          )}
+          <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
+            <div className="flex flex-wrap gap-3 text-sm">
+              <div className="flex items-center gap-2 text-white">
+                <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
+                <span className="font-bold">
+                  {format(parseISO(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-white">
+                <Clock className="h-4 w-4 shrink-0 text-primary" />
+                <span className="font-bold">{event.hora}</span>
+              </div>
+            </div>
+            {event.descricao ? (
+              <div>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500">Descrição</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300">{event.descricao}</p>
+              </div>
+            ) : (
+              <p className="text-sm italic text-gray-600">Sem descrição adicional.</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
 interface CalendarProps {
   user?: any;
   userRole?: string;
@@ -758,76 +839,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         <AnimatePresence>
           {eventDetailModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setEventDetailModal(null)}
-                className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
-              />
-              <motion.div
-                initial={MODAL_PANEL_IN}
-                animate={MODAL_PANEL_DONE}
-                exit={MODAL_PANEL_OUT}
-                transition={MODAL_TW}
-                className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-lg"
-              >
-                <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                      <CalendarIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-black text-white sm:text-lg">{eventDetailModal.titulo}</h3>
-                      <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{eventDetailModal.tipo}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEventDetailModal(null)}
-                    className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {eventDetailModal.banner_url ? (
-                    <div className="relative w-full overflow-hidden bg-[#0d0d0d]">
-                      <img
-                        src={eventDetailModal.banner_url}
-                        alt=""
-                        className="max-h-[min(50vh,360px)] w-full object-contain bg-black"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                      <CalendarIcon className="h-12 w-12 text-white/15" />
-                    </div>
-                  )}
-                  <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
-                    <div className="flex flex-wrap gap-3 text-sm">
-                      <div className="flex items-center gap-2 text-white">
-                        <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="font-bold">
-                          {format(parseISO(eventDetailModal.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white">
-                        <Clock className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="font-bold">{eventDetailModal.hora}</span>
-                      </div>
-                    </div>
-                    {eventDetailModal.descricao ? (
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Descrição</p>
-                        <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">{eventDetailModal.descricao}</p>
-                      </div>
-                    ) : (
-                      <p className="text-sm italic text-gray-600">Sem descrição adicional.</p>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
+              <EventDetailModalPanel event={eventDetailModal} onClose={() => setEventDetailModal(null)} />
             </div>
           )}
         </AnimatePresence>
@@ -1120,76 +1132,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       <AnimatePresence>
         {eventDetailModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setEventDetailModal(null)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
-            />
-            <motion.div
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-lg"
-            >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                    <CalendarIcon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-black text-white sm:text-lg">{eventDetailModal.titulo}</h3>
-                    <p className="text-xs font-medium uppercase tracking-widest text-gray-500">{eventDetailModal.tipo}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEventDetailModal(null)}
-                  className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {eventDetailModal.banner_url ? (
-                  <div className="relative w-full overflow-hidden bg-[#0d0d0d]">
-                    <img
-                      src={eventDetailModal.banner_url}
-                      alt=""
-                      className="max-h-[min(50vh,360px)] w-full object-contain bg-black"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                    <CalendarIcon className="h-12 w-12 text-white/15" />
-                  </div>
-                )}
-                <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">
-                  <div className="flex flex-wrap gap-3 text-sm">
-                    <div className="flex items-center gap-2 text-white">
-                      <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="font-bold">
-                        {format(parseISO(eventDetailModal.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white">
-                      <Clock className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="font-bold">{eventDetailModal.hora}</span>
-                    </div>
-                  </div>
-                  {eventDetailModal.descricao ? (
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Descrição</p>
-                      <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">{eventDetailModal.descricao}</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm italic text-gray-600">Sem descrição adicional.</p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+            <EventDetailModalPanel event={eventDetailModal} onClose={() => setEventDetailModal(null)} />
           </div>
         )}
       </AnimatePresence>
