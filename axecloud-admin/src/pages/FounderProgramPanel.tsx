@@ -9,7 +9,7 @@ import {
   MessageCircle,
   PlusCircle,
   RefreshCw,
-  Sparkles,
+  Clock,
 } from "lucide-react";
 import type { FounderPrefillSource } from "@/lib/founderPrefill";
 import { apiJson } from "@/lib/api";
@@ -192,7 +192,7 @@ export function FounderProgramPanel({ onMessage, onCreateTenant, onOpenTerreiro 
 
   const statCards = useMemo(
     () => [
-      { title: "Pendentes", value: stats?.pending ?? "—", icon: Sparkles },
+      { title: "Pendentes", value: stats?.pending ?? "—", icon: Clock },
       { title: "Contactados", value: stats?.contacted ?? "—", icon: MessageCircle },
       { title: "Aceitos", value: stats?.accepted ?? "—", icon: Check },
       { title: "Vagas restantes", value: stats?.remainingSlots ?? "—", icon: Crown },

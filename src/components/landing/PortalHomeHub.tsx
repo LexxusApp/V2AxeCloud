@@ -7,7 +7,7 @@ import {
   Heart,
   Loader2,
   MapPin,
-  Sparkles,
+  Globe,
   Sun,
   Users,
 } from 'lucide-react';
@@ -199,7 +199,7 @@ export function PortalHomeHub() {
         <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
+              <Globe className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
                 Portal da comunidade de terreiros
               </span>

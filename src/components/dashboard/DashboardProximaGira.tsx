@@ -3,7 +3,6 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
-  Sparkles,
   Calendar as CalendarIcon,
 } from 'lucide-react';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
@@ -80,12 +79,12 @@ export function DashboardProximaGira({ event, onOpenCalendar }: DashboardProxima
     return (
       <div className="app-v3-panel overflow-hidden p-0">
         <div className="border-b border-[#1E242B] px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+              <CalendarDays className="h-5 w-5 text-primary" aria-hidden />
             </div>
-            <div>
-              <h3 className="text-lg font-bold">Próxima gira</h3>
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold leading-tight">Próxima gira</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
                 Agenda do terreiro
               </p>
@@ -129,13 +128,13 @@ export function DashboardProximaGira({ event, onOpenCalendar }: DashboardProxima
       onClick={handleOpen}
       className="group app-v3-panel w-full overflow-hidden p-0 text-left transition-all hover:border-primary/25 hover:shadow-[0_0_40px_rgba(250,204,21,0.06)]"
     >
-      <div className="flex items-center justify-between border-b border-[#1E242B] px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-            <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+      <div className="flex items-center justify-between gap-3 border-b border-[#1E242B] px-6 py-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+            <CalendarDays className="h-5 w-5 text-primary" aria-hidden />
           </div>
-          <div>
-            <h3 className="text-lg font-bold">Próxima gira</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold leading-tight">Próxima gira</h3>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
               Toque para ver no calendário
             </p>

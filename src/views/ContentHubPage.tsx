@@ -5,7 +5,7 @@ import {
   Clock,
   FileText,
   Library,
-  Sparkles,
+  Heart,
 } from 'lucide-react';
 import { ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
 import { LandingIconBox, landingIconClass, type LandingIconAccent } from '../components/landing/landingIconAccents';
@@ -43,7 +43,7 @@ function ContentHeroStats() {
       </div>
       <div className="landing-mystic-card flex items-center gap-3 px-4 py-3 sm:min-w-[10rem]">
         <span className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-          <Sparkles className="h-5 w-5" aria-hidden />
+          <Heart className="h-5 w-5" aria-hidden />
         </span>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Tom</p>

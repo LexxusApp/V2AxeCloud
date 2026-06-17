@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BadgeCheck, CheckCircle, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { BadgeCheck, CheckCircle, MessageCircle, ShieldCheck } from 'lucide-react';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection } from './LandingSection';
 
@@ -128,7 +128,7 @@ export function WhatsAppAutomation() {
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400">
-                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 WhatsApp Business oficial
               </div>
               <MetaBadge />

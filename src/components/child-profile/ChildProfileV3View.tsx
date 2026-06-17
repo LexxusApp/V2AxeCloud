@@ -14,7 +14,7 @@ import {
   Phone,
   Plus,
   ShieldCheck,
-  Sparkles,
+  Crown,
   StickyNote,
   User,
   Camera,
@@ -158,7 +158,7 @@ export function ChildProfileV3View({
 
   const tabs: { id: ChildProfileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'info', label: 'Dados Cadastrais', icon: User },
-    { id: 'history', label: 'Evolução Espiritual', icon: Sparkles },
+    { id: 'history', label: 'Evolução Espiritual', icon: Crown },
     { id: 'finance', label: 'Financeiro / Mensalidades', icon: Coins },
     { id: 'notes', label: 'Anotações Sacramentais', icon: FileText },
   ];
@@ -341,7 +341,7 @@ export function ChildProfileV3View({
                 <div>
                   <div className="flex items-center justify-between border-b border-[#222B36] pb-3.5">
                     <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-white">
-                      <Sparkles className="h-4 w-4 text-[#FACC15]" />
+                      <Crown className="h-4 w-4 text-[#FACC15]" />
                       Coroa Espiritual e Sacerdócio
                     </h4>
                     <span className="font-mono text-[10px] uppercase text-gray-500">Liturgia nº {registro}</span>

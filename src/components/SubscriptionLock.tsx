@@ -10,7 +10,7 @@ import {
   MessageCircle,
   QrCode,
   ShieldAlert,
-  Sparkles,
+  CreditCard,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AuthScreenBackground } from './AuthScreenBackground';
@@ -375,7 +375,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               transition={{ delay: 0.4 }}
               className="mt-5 flex items-center justify-center gap-2 border-t border-white/5 pt-4 sm:mt-6 sm:pt-5"
             >
-              <Sparkles className="h-4 w-4 text-primary/40" />
+              <CreditCard className="h-4 w-4 text-primary/40" />
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
                 Pagamento EFI · Liberação automática
               </span>

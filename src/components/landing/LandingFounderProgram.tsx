@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, Crown, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Crown } from 'lucide-react';
 import { FOUNDER_BENEFITS, FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { ROUTES } from '../../lib/routes';
 import { useFounderProgramStats } from '../../hooks/useFounderProgramStats';
@@ -24,7 +24,7 @@ export function LandingFounderProgram() {
             kicker="Programa Fundador"
             title={`12 meses gratuitos para as primeiras ${FOUNDER_PROGRAM.maxSlots} casas`}
             titleId="founder-head"
-            icon={<Sparkles className="h-3.5 w-3.5" aria-hidden />}
+            icon={<Crown className="h-3.5 w-3.5" aria-hidden />}
             lead="Estamos validando o AxéCloud com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
           />
           {!loading ? (

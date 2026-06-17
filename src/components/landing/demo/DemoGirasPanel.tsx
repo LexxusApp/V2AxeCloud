@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Clock, Sparkles, X } from 'lucide-react';
+import { CalendarDays, Clock, MessageSquare, X } from 'lucide-react';
 import { DEMO_GIRAS_INITIAL, formatDemoDate, type DemoGira } from '../../../constants/landingDemo';
 import { DemoCard, demoInputClass, demoLabelClass } from './demoUi';
 
@@ -154,7 +154,7 @@ export function DemoGirasPanel({ onNotify }: Props) {
           </div>
           <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
             <div className="rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary">
-              <Sparkles className="h-5 w-5" aria-hidden />
+              <MessageSquare className="h-5 w-5" aria-hidden />
             </div>
             <div>
               <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>

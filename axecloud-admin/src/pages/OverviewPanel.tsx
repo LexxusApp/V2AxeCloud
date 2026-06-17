@@ -9,7 +9,7 @@ import {
   Gauge,
   MapPin,
   RefreshCw,
-  Sparkles,
+  Crown,
   TrendingUp,
   Users,
   Wallet,
@@ -352,7 +352,7 @@ export function OverviewPanel({
               ? `${founder.remainingSlots} vagas · ${founder.total} inscrições`
               : "migração pendente"
           }
-          icon={Sparkles}
+          icon={Crown}
           tone={(founder?.pending ?? 0) > 0 ? "warn" : "default"}
           onClick={() => onTab("founders")}
         />
@@ -370,7 +370,7 @@ export function OverviewPanel({
         <section className="overview-alerts">
           {(founder?.pending ?? 0) > 0 && (
             <div className="overview-alert overview-alert--warn">
-              <Sparkles className="h-4 w-4 shrink-0" />
+              <Clock className="h-4 w-4 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-sm">
                   {founder!.pending} inscrição(ões) aguardando triagem

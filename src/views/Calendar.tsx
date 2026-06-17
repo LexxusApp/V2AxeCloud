@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, Sparkles, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, MapPin } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1243,7 +1243,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             </div>
             <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
               <div className="rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary">
-                <Sparkles className="h-5 w-5" aria-hidden />
+                <MessageSquare className="h-5 w-5" aria-hidden />
               </div>
               <div>
                 <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>

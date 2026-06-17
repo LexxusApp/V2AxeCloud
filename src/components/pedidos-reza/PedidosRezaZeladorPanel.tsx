@@ -1,4 +1,4 @@
-import { Check, Flame, Heart, Leaf, Sparkles } from 'lucide-react';
+import { Check, Flame, Heart, Leaf } from 'lucide-react';
 import {
   CANDLE_COLOR_HEX,
   CANDLE_DOT_CLASS,
@@ -292,7 +292,7 @@ export function PedidosRezaZeladorPanel({
                       onClick={() => onStartPrayer(currentReq.id)}
                       className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-violet-600 p-2 text-[10.5px] font-extrabold text-white hover:bg-violet-700 disabled:opacity-60"
                     >
-                      <Sparkles className="h-3.5 w-3.5" />
+                      <Flame className="h-3.5 w-3.5" />
                       Começar Vibração Espiritual Ativa
                     </button>
                   </div>

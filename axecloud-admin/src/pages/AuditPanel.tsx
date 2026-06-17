@@ -18,7 +18,6 @@ import {
   Search,
   Shield,
   ShieldAlert,
-  Sparkles,
   XCircle,
   Cpu,
   Image as ImageIcon,
@@ -524,7 +523,7 @@ export function AuditPanel() {
 
       {!result && !busy && (
         <div className="rounded-md border border-neutral-800 bg-neutral-950 px-6 py-16 text-center shadow-xl ring-1 ring-neutral-800">
-          <Sparkles className="mx-auto h-10 w-10 text-neutral-200/40" />
+          <Search className="mx-auto h-10 w-10 text-neutral-200/40" />
           <p className="mt-3 text-sm font-medium text-neutral-300">Audite qualquer URL pública</p>
           <p className="mt-1 text-xs text-neutral-500">
             Veja meta tags, Open Graph, headers de segurança, SSL e mais — em segundos.

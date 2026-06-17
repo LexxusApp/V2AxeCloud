@@ -4,7 +4,7 @@ import {
   Gift,
   MapPin,
   MessageCircle,
-  Sparkles,
+  PenLine,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -104,7 +104,7 @@ export default function FounderProgramPage() {
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {FOUNDER_BENEFITS.map((line, i) => {
-                const Icon = BENEFIT_ICONS[i] ?? Sparkles;
+                const Icon = BENEFIT_ICONS[i] ?? Gift;
                 return (
                   <li
                     key={line}
@@ -160,7 +160,7 @@ export default function FounderProgramPage() {
               id="fp-form"
               className="flex items-center gap-2 text-base font-black uppercase tracking-wider text-white sm:text-lg"
             >
-              <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+              <PenLine className="h-5 w-5 text-primary" aria-hidden />
               Inscreva sua casa
             </h2>
             <p className="mt-2 text-sm text-zinc-400 sm:text-[15px]">

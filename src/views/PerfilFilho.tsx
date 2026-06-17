@@ -9,7 +9,6 @@ import {
   Info,
   Loader2,
   PartyPopper,
-  Sparkles,
   User,
   ShoppingBag,
 } from 'lucide-react';
