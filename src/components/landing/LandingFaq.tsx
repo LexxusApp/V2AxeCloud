@@ -29,7 +29,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 }
 
 export function LandingFaq() {
-  const [openIndex, setOpenIndex] = useState<number>(0);
+  const [openIndex, setOpenIndex] = useState<number>(-1);
 
   return (
     <LandingSection id="faq" aria-labelledby="faq-head">

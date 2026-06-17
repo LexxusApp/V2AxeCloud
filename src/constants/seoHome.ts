@@ -32,10 +32,6 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
     a: 'O AxéCloud é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Conheça o Programa Fundador para testar gratuitamente.',
   },
   {
-    q: 'O que é o AxéCloud (axe cloud / axecloud)?',
-    a: 'O AxéCloud é o sistema oficial de gestão para terreiros de Umbanda e Candomblé em axecloud.com.br. Se você pesquisou por "axe cloud", "Axe Cloud", "axecloud" ou "Axé cloud", encontrou o lugar certo — financeiro, galeria, calendário de giras e portal do filho de santo em um só lugar.',
-  },
-  {
     q: 'O AxéCloud serve para terreiros de Umbanda, Candomblé e Jurema?',
     a: 'Sim. O AxéCloud é flexível para casas de axé de Umbanda, Candomblé, Jurema e outras vertentes. Você personaliza termos, cargos e rotinas conforme a tradição do seu terreiro.',
   },
