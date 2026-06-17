@@ -89,7 +89,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v110',
+          cacheId: 'axecloud-v111',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           importScripts: ['/sw-push.js'],
@@ -117,22 +117,17 @@ export default defineConfig(({mode}) => {
                 if (!sameOrigin || request.mode !== 'navigate') return false;
                 const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
                 if (isMarketingNavigatePath(p)) return false;
+                // App (login, painel, convites): documento sempre da rede — evita HTML em cache com hashes antigos.
                 return true;
               },
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'axecloud-html-network-first-v110',
-                networkTimeoutSeconds: 8,
-                expiration: { maxEntries: 12, maxAgeSeconds: 3600 },
-                cacheableResponse: { statuses: [0, 200] },
-              },
+              handler: 'NetworkOnly',
             },
             {
               urlPattern: ({ request, sameOrigin }) =>
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v110',
+                cacheName: 'axecloud-runtime-network-first-v111',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },

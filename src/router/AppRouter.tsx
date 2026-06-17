@@ -10,10 +10,10 @@ import { isMarketingSitePath, ROUTES } from '../lib/routes';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import { cleanBrowserUrl } from '../lib/urlHygiene';
 import { applyRouteSeo } from '../lib/seo';
+import LoginPage from '../pages/LoginPage';
 
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
-const LoginPage = lazy(() => import('../pages/LoginPage'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
