@@ -8,6 +8,7 @@ import { AppPageShell } from '../components/app/AppTopNav';
 import { hasPlanAccess } from '../constants/plans';
 import { ChildProfileV3View } from '../components/child-profile/ChildProfileV3View';
 import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
+import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -941,116 +942,20 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         )}
       </AnimatePresence>
 
-      {/* Modal: Editar Perfil */}
+      {/* Modal: Editar prontuário */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsEditModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
-            />
-            <motion.div 
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#FBBC00]/20 bg-[#1F1F1F] shadow-2xl sm:max-h-[90dvh] sm:max-w-2xl"
-            >
-              {/* Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-xl">Editar Perfil</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-0.5">Atualização de Prontuário</p>
-                </div>
-                <button onClick={() => setIsEditModalOpen(false)} className="shrink-0 rounded-2xl p-2 text-gray-500 transition-colors hover:bg-white/5">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Nome Completo</label>
-                    <input type="text" value={editData.nome} onChange={e => handleChange('nome', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Nascimento</label>
-                    <input type="date" value={editData.data_nascimento} onChange={e => handleChange('data_nascimento', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">CPF</label>
-                    <input type="text" value={editData.cpf || ''} onChange={e => handleChange('cpf', e.target.value)} placeholder="000.000.000-00"
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Endereço</label>
-                    <input type="text" value={editData.endereco || ''} onChange={e => handleChange('endereco', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Contato</label>
-                    <input type="text" value={editData.contato || ''} onChange={e => handleChange('contato', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Orixá Frente</label>
-                    <select value={editData.orixa_frente || ''} onChange={e => handleChange('orixa_frente', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50 [&>option]:bg-[#1B1C1C]">
-                      <option value="">Selecione...</option>
-                      {['Oxalá', 'Iemanjá', 'Ogum', 'Oxóssi', 'Xangô', 'Iansã', 'Oxum', 'Nanã', 'Obaluaê', 'Exu', 'Pombagira'].map(o => (
-                        <option key={o} value={o}>{o}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Adjuntó</label>
-                    <input type="text" value={editData.adjunto || ''} onChange={e => handleChange('adjunto', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Entrada</label>
-                    <input type="date" value={editData.data_entrada} onChange={e => handleChange('data_entrada', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Feitura</label>
-                    <input type="date" value={editData.data_feitura || ''} onChange={e => handleChange('data_feitura', e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Quizilas</label>
-                    <textarea value={Array.isArray(editData.quizilas) ? editData.quizilas.join(', ') : editData.quizilas || ''}
-                      onChange={e => handleChange('quizilas', e.target.value)} rows={3}
-                      className="w-full resize-none rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/5 px-5 py-4 sm:px-6">
-                {!isSelfView && (
-                  <button onClick={handleDelete} disabled={isDeleting}
-                    className="shrink-0 text-xs font-black uppercase tracking-widest text-red-500 transition-colors hover:text-red-400 disabled:opacity-50">
-                    {isDeleting ? 'Excluindo...' : 'Excluir'}
-                  </button>
-                )}
-                <div className="ml-auto flex items-center gap-3">
-                  <button onClick={() => setIsEditModalOpen(false)}
-                    className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-white/10 sm:px-6">
-                    Cancelar
-                  </button>
-                  <button onClick={async () => { await handleSave(); setIsEditModalOpen(false); }} disabled={isSaving}
-                    className="rounded-2xl bg-[#FBBC00] px-4 py-2.5 text-xs font-black uppercase tracking-widest text-black shadow-xl shadow-[#FBBC00]/20 transition-transform hover:scale-105 disabled:opacity-50 sm:px-6">
-                    {isSaving ? 'Salvando...' : 'Salvar'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <ChildProfileEditModal
+            open={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            editData={editData}
+            onChange={handleChange}
+            onSave={handleSave}
+            onDelete={handleDelete}
+            isSaving={isSaving}
+            isDeleting={isDeleting}
+            showDelete={!isSelfView}
+          />
         )}
       </AnimatePresence>
 
