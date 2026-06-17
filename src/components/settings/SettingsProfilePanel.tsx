@@ -14,29 +14,6 @@ const CARGO_OPTIONS = [
   'Zelador Geral da Corrente',
 ] as const;
 
-const PHOTO_PRESETS = [
-  {
-    name: 'Sacerdote Elder',
-    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-    label: '👴 Sábio',
-  },
-  {
-    name: 'Sacerdotisa Velha',
-    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256',
-    label: '👵 Guia',
-  },
-  {
-    name: 'Luz Estrela',
-    url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=256',
-    label: '✨ Congá',
-  },
-  {
-    name: 'Sacerdotisa Jovem',
-    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
-    label: '👩 Mãe',
-  },
-] as const;
-
 const FALLBACK_PHOTO =
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256';
 
@@ -350,34 +327,6 @@ export function SettingsProfilePanel({
             </p>
           </div>
 
-          <div className="space-y-2 pt-1">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-500">
-              Predefinições de Foto Rápidas
-            </span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {PHOTO_PRESETS.map((preset) => (
-                <button
-                  key={preset.url}
-                  type="button"
-                  onClick={() => {
-                    setProfileFoto(preset.url);
-                    notify(`Foto de perfil "${preset.name}" selecionada!`, 'info');
-                  }}
-                  className={`rounded-lg border p-1.5 text-center transition-all ${
-                    profileFoto === preset.url
-                      ? 'scale-105 border-blue-500 bg-blue-950/40 font-extrabold text-blue-400'
-                      : 'border-[#1E242B] bg-[#12161A] text-gray-400 hover:border-gray-500'
-                  }`}
-                >
-                  <div className="mx-auto mb-1 h-8 w-8 overflow-hidden rounded-full border border-white/5 bg-zinc-900">
-                    <img src={preset.url} alt={preset.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                  </div>
-                  <span className="block text-[9px] leading-none">{preset.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="pt-2">
             <button
               type="button"
@@ -409,7 +358,7 @@ export function SettingsProfilePanel({
                     className="h-full w-full object-cover"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = PHOTO_PRESETS[0].url;
+                      (e.target as HTMLImageElement).src = FALLBACK_PHOTO;
                     }}
                   />
                 </div>
