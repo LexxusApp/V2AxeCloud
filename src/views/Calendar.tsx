@@ -1112,7 +1112,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         />
 
         <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(17.5rem,20rem))] gap-3">
               {eventsNewestFirst.map((event) => {
                 const passed = isEventPassed(event.data, event.hora);
                 const isEspecial =
@@ -1227,7 +1227,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 );
               })}
               {eventsNewestFirst.length === 0 ? (
-                <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8] sm:col-span-2">
+                <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
                 </div>
               ) : null}
