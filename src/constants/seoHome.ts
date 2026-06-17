@@ -12,21 +12,25 @@ import { SOCIAL_SAME_AS } from './socialLinks';
 export const SITE_ORIGIN = 'https://axecloud.com.br';
 
 export const HOME_SEO = {
-  title: `${BRAND_NAME} | Sistema de Gestão para Terreiros de Umbanda e Candomblé`,
+  title: `${BRAND_NAME} | Gestão de Terreiros — Software para Umbanda, Candomblé e Jurema`,
   description:
-    `${BRAND_NAME} é o software de gestão para terreiros de Umbanda e Candomblé: financeiro, mensalidades Pix, galeria de fotos, calendário de giras e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
-  h1: `${BRAND_NAME} — sistema de gestão para terreiros de Umbanda e Candomblé`,
-  heroTagline: 'Tecnologia a serviço do sagrado.',
+    `${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria de fotos e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
+  h1: `${BRAND_NAME} — software de gestão de terreiros para Umbanda, Candomblé e Jurema`,
+  heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
   keywords: buildBrandKeywordsMeta(),
   brandRecognition: buildBrandRecognitionParagraph(),
-  ogImageAlt: `${BRAND_NAME} — Sistema de gestão para terreiros de Umbanda e Candomblé`,
+  ogImageAlt: `${BRAND_NAME} — Software de gestão de terreiros de Umbanda e Candomblé`,
   manifestDescription:
-    'Gestão para terreiros de Umbanda e Candomblé: financeiro, galeria de fotos, giras e portal do filho de santo.',
+    'Software de gestão de terreiros: financeiro, galeria de fotos, giras e portal do filho de santo.',
 } as const;
 
 export type HomeFaqItem = { q: string; a: string };
 
 export const HOME_FAQ: readonly HomeFaqItem[] = [
+  {
+    q: 'Qual o melhor software de gestão de terreiros para Umbanda e Candomblé?',
+    a: 'O AxéCloud é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Conheça o Programa Fundador para testar gratuitamente.',
+  },
   {
     q: 'O que é o AxéCloud (axe cloud / axecloud)?',
     a: 'O AxéCloud é o sistema oficial de gestão para terreiros de Umbanda e Candomblé em axecloud.com.br. Se você pesquisou por "axe cloud", "Axe Cloud", "axecloud" ou "Axé cloud", encontrou o lugar certo — financeiro, galeria, calendário de giras e portal do filho de santo em um só lugar.',
@@ -226,7 +230,7 @@ export function buildHomeBodyInject(): string {
 
   return [
     `    <article id="axecloud-seo-static" aria-label="Sobre o ${escapeHtml(BRAND_NAME)}">`,
-    `      <h1>${escapeHtml(HOME_SEO.h1)}</h1>`,
+    `      <h2>${escapeHtml(HOME_SEO.h1)}</h2>`,
     `      <p>${escapeHtml(HOME_SEO.description)}</p>`,
     `      <p>${escapeHtml(HOME_SEO.brandRecognition)}</p>`,
     '',
