@@ -88,7 +88,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full border border-primary/50 bg-primary text-[#080A0D] shadow-[0_0_28px_rgba(250,204,21,0.35)] transition-all duration-300 hover:scale-105 active:scale-95 sm:bottom-8 sm:right-6',
+        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full border border-primary/50 bg-primary text-[#080A0D] shadow-[0_0_28px_rgba(250,204,21,0.35)] transition-opacity duration-300 hover:opacity-90 sm:bottom-8 sm:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
@@ -116,17 +116,18 @@ export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
 
   return (
-    <div className="landing-v3 axecloud-landing-enter relative min-h-dvh overflow-x-hidden bg-[#080A0D] text-[#F1F5F9]">
+    <>
+      <span id="top" className="sr-only" aria-hidden />
+
+      <LandingTopNav />
+
+      <div className="landing-v3 relative min-h-dvh overflow-x-hidden bg-[#080A0D] text-[#F1F5F9]">
       <div
         className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[650px] bg-gradient-to-b from-[#0D0F12] to-[#080A0D]"
         aria-hidden
       />
 
-      <span id="top" className="sr-only" aria-hidden />
-
-      <LandingTopNav />
-
-      <main className="relative z-[1] selection:bg-[#1E293B] selection:text-white">
+      <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <PortalHomeHub />
 
         <LandingSoftwareDivider />
@@ -399,6 +400,7 @@ export default function Landing() {
       </footer>
 
       <ScrollToTopButton />
-    </div>
+      </div>
+    </>
   );
 }

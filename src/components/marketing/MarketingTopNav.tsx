@@ -66,7 +66,7 @@ export function MarketingTopNav({
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#1E242B] bg-[#0B0D11]/90 backdrop-blur-md">
+    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-[#1E242B] bg-[#0B0D11]/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <a
           href={logoHref}
@@ -81,7 +81,7 @@ export function MarketingTopNav({
                 <a
                   key={item.id}
                   href={item.path ?? sectionHref(sectionBase, item.id)}
-                  className="inline-flex h-9 shrink-0 items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
+                  className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
                 >
                   {item.label}
                 </a>
@@ -91,17 +91,14 @@ export function MarketingTopNav({
             href={ROUTES.espacoDoFiel}
             aria-current={active === 'fiel' ? 'page' : undefined}
             className={cn(
-              'inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-semibold leading-none transition-all',
+              'inline-flex h-9 shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-semibold leading-none transition-colors',
               active === 'fiel'
                 ? 'border-rose-500 bg-rose-600 text-white shadow-md shadow-rose-950/40'
-                : 'animate-pulse border-rose-500/20 bg-rose-500/10 text-rose-400 shadow-sm shadow-rose-950/20 hover:text-rose-300',
+                : 'border-rose-500/25 bg-rose-500/10 text-rose-400 hover:border-rose-500/40 hover:text-rose-300',
             )}
           >
             <Heart
-              className={cn(
-                'h-3.5 w-3.5 shrink-0 fill-current',
-                active === 'fiel' ? 'text-rose-500' : 'animate-pulse text-rose-500',
-              )}
+              className={cn('h-3.5 w-3.5 shrink-0 fill-current', active === 'fiel' ? 'text-rose-500' : 'text-rose-500')}
               aria-hidden
             />
             Pedir Reza
@@ -112,7 +109,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg border border-[#2F3643] bg-[#1E242B]/80 px-3 text-sm font-semibold leading-none text-[#F1F5F9] transition-colors"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-lg border border-[#2F3643] bg-[#1E242B]/80 px-3 text-sm font-semibold leading-none text-[#F1F5F9] transition-colors"
               >
                 {item.label}
               </a>
@@ -120,7 +117,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
               >
                 {item.label}
               </a>
@@ -131,13 +128,13 @@ export function MarketingTopNav({
         <div className="hidden shrink-0 items-center gap-4 border-l border-[#1E242B] pl-6 lg:flex lg:pl-8">
           <a
             href={appHref(ROUTES.login)}
-            className="inline-flex h-9 items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-[#94A3B8] transition-colors hover:text-primary"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-[#94A3B8] transition-colors hover:text-primary"
           >
             Entrar
           </a>
           <a
             href={appHref(ROUTES.register)}
-            className="inline-flex h-9 items-center whitespace-nowrap rounded-xl border border-primary/20 bg-primary px-4 text-xs font-bold uppercase leading-none tracking-wider text-[#080A0D] shadow-md shadow-black/20 transition-colors hover:bg-[#FDE047]"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap rounded-xl border border-primary/20 bg-primary px-4 text-xs font-bold uppercase leading-none tracking-wider text-[#080A0D] shadow-md shadow-black/20 transition-colors hover:bg-[#FDE047]"
           >
             Cadastrar
           </a>
@@ -145,7 +142,7 @@ export function MarketingTopNav({
 
         <button
           type="button"
-          className="rounded-lg p-2 text-[#F1F5F9] transition-colors hover:text-primary lg:hidden"
+          className="touch-manipulation rounded-lg p-2 text-[#F1F5F9] transition-colors hover:text-primary lg:hidden"
           onClick={() => setMobileMenuOpen((open) => !open)}
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -162,7 +159,7 @@ export function MarketingTopNav({
                     key={item.id}
                     href={item.path ?? sectionHref(sectionBase, item.id)}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-lg px-3 py-2.5 text-base font-medium text-[#94A3B8] hover:bg-[#12161A] hover:text-[#F1F5F9]"
+                    className="block touch-manipulation rounded-lg px-3 py-2.5 text-base font-medium text-[#94A3B8] hover:bg-[#12161A] hover:text-[#F1F5F9]"
                   >
                     {item.label}
                   </a>

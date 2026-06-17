@@ -1646,6 +1646,32 @@ html:has(.app-v3) {
 }
 
 /* ——— Sem “zoom” ao clicar / abrir modais ——— */
+.marketing-top-nav a,
+.marketing-top-nav button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transform: none !important;
+  scale: 1 !important;
+  transition-property: color, background-color, border-color, opacity, box-shadow !important;
+}
+
+.marketing-top-nav a:hover,
+.marketing-top-nav a:active,
+.marketing-top-nav a:focus,
+.marketing-top-nav a:focus-visible,
+.marketing-top-nav button:hover,
+.marketing-top-nav button:active,
+.marketing-top-nav button:focus,
+.marketing-top-nav button:focus-visible {
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.marketing-top-nav img {
+  transform: none !important;
+  scale: 1 !important;
+}
+
 .app-v3 button:active:not(:disabled),
 .app-v3 [role='button']:active:not([aria-disabled='true']),
 .app-v3 a:active,
