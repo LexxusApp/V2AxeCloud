@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowLeft,
   Calendar,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../Avatar';
 import { cn } from '../../lib/utils';
+import { authFetch } from '../../lib/authenticatedFetch';
 
 export type ChildProfileTab = 'info' | 'history' | 'finance' | 'notes';
 
@@ -41,7 +42,13 @@ type ChildProfileV3ViewProps = {
   onEditOpen: () => void;
   hasDebt: boolean;
   valorMensalidade: number;
-  childObligations: Array<{ titulo?: string; data?: string; descricao?: string; status_confirmacao?: string }>;
+  childObligations: Array<{
+    titulo?: string;
+    data?: string;
+    descricao?: string;
+    status_confirmacao?: string;
+    pdfViewUrl?: string | null;
+  }>;
   onAddObligation: () => void;
   sortedZeladorNotes: ZeladorNoteItem[];
   onNewNote: () => void;
@@ -144,6 +151,7 @@ export function ChildProfileV3View({
   onPhotoChange,
   isUploadingPhoto,
 }: ChildProfileV3ViewProps) {
+  const [openingPdfUrl, setOpeningPdfUrl] = useState<string | null>(null);
   const nome = String(child.nome || 'Filho de Santo');
   const cargo = String(child.cargo || 'Filho de Santo');
   const orixaFrente = String(child.orixa_frente || '');
@@ -155,6 +163,22 @@ export function ChildProfileV3View({
   const registro = matricula(child);
   const maturity = maturityPercent(anosDeCasa);
   const initials = nome.substring(0, 2).toUpperCase();
+
+  async function openObligationPdf(url: string) {
+    try {
+      setOpeningPdfUrl(url);
+      const res = await authFetch(url);
+      if (!res.ok) throw new Error('Não foi possível abrir o PDF');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao abrir PDF');
+    } finally {
+      setOpeningPdfUrl(null);
+    }
+  }
 
   const tabs: { id: ChildProfileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'info', label: 'Dados Cadastrais', icon: User },
@@ -505,6 +529,21 @@ export function ChildProfileV3View({
                           </p>
                           {ob.descricao ? (
                             <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-400">{ob.descricao}</p>
+                          ) : null}
+                          {ob.pdfViewUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => openObligationPdf(ob.pdfViewUrl!)}
+                              disabled={openingPdfUrl === ob.pdfViewUrl}
+                              className="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#FACC15] transition hover:text-[#fde047] disabled:opacity-50"
+                            >
+                              {openingPdfUrl === ob.pdfViewUrl ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <FileText className="h-3 w-3" />
+                              )}
+                              Ver PDF da obrigação
+                            </button>
                           ) : null}
                         </div>
                         <span

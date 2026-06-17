@@ -2315,6 +2315,65 @@ async function startServer() {
     }
   });
 
+  /** URL assinada para PDF privado de obrigação (zelador → pasta por filho). */
+  app.post("/api/v1/obrigacao-pdf/upload-url", async (req, res) => {
+    const { fileName, contentType, tenantId, childId } = req.body || {};
+    if (!fileName || !tenantId || !childId) {
+      return res.status(400).json({ error: "fileName, tenantId e childId são obrigatórios" });
+    }
+
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const tid = String(tenantId).trim();
+      const cid = String(childId).trim();
+      if (!isValidUuid(tid) || !isValidUuid(cid)) {
+        return res.status(400).json({ error: "tenantId ou childId inválido" });
+      }
+
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tid);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
+      const { data: filhoRow, error: filhoErr } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .select("id, tenant_id, lider_id")
+        .eq("id", cid)
+        .maybeSingle();
+      if (filhoErr) throw filhoErr;
+      if (!filhoRow) return res.status(404).json({ error: "Filho de santo não encontrado" });
+
+      const filhoTenant = String(filhoRow.tenant_id || filhoRow.lider_id || "").trim();
+      const resolvedFilhoTenant = await resolveLeaderId(filhoTenant);
+      const resolvedRequest = await resolveLeaderId(tid);
+      if (resolvedFilhoTenant !== resolvedRequest) {
+        return res.status(403).json({ error: "Filho não pertence a este terreiro" });
+      }
+
+      const ct = String(contentType || "application/pdf").toLowerCase();
+      if (ct !== "application/pdf") {
+        return res.status(400).json({ error: "Apenas PDF é permitido" });
+      }
+
+      const safeFileName = slugifyStoragePath(String(fileName).replace(/\.pdf$/i, "") + ".pdf");
+      const storagePath = `${tid}/obrigacoes/${cid}/${Date.now()}_${safeFileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from("biblioteca_estudos")
+        .createSignedUploadUrl(storagePath);
+
+      if (error) throw error;
+      res.json({
+        path: storagePath,
+        token: data.token,
+        contentType: "application/pdf",
+      });
+    } catch (error: any) {
+      console.error("[SERVER] Erro ao criar URL de upload de obrigação:", error.message || error);
+      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+    }
+  });
+
   app.delete("/api/v1/library/material/:id", async (req, res) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
@@ -2850,6 +2909,21 @@ async function startServer() {
       const normalizedPath = pathRaw.replace(/\\/g, "/");
       if (!normalizedPath.startsWith(`${tenantIdRaw}/`)) {
         return res.status(403).json({ error: "Caminho inválido" });
+      }
+
+      const isObrigacaoPdf = normalizedPath.includes("/obrigacoes/");
+      if (isObrigacaoPdf) {
+        const { assertObrigacaoPdfStorageAccess } = await import("./lib/tenantAccess.js");
+        const obrigacaoOk = await assertObrigacaoPdfStorageAccess(
+          supabaseAdmin,
+          user,
+          tenantIdRaw,
+          normalizedPath
+        );
+        if (!obrigacaoOk) return res.status(403).json({ error: "Acesso negado" });
+      } else {
+        const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
+        if (!ok) return res.status(403).json({ error: "Acesso negado" });
       }
 
       try {

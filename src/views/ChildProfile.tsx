@@ -1,5 +1,5 @@
 ﻿import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, Edit2, Save, X, Trash2, Loader2, CheckCircle2, ShieldCheck, NotebookPen } from 'lucide-react';
+import { AlertTriangle, Edit2, Save, X, Trash2, Loader2, ShieldCheck, NotebookPen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -7,6 +7,7 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import { AppPageShell } from '../components/app/AppTopNav';
 import { hasPlanAccess } from '../constants/plans';
 import { ChildProfileV3View } from '../components/child-profile/ChildProfileV3View';
+import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -115,6 +116,8 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isObligationModalOpen, setIsObligationModalOpen] = useState(false);
+  const [isSubmittingObligation, setIsSubmittingObligation] = useState(false);
+  const [obligationPdfFile, setObligationPdfFile] = useState<File | null>(null);
   const [hasDebt, setHasDebt] = useState(false);
   const [obligationData, setObligationData] = useState({
     titulo: '',
@@ -266,12 +269,15 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         const { data: obsData } = await obsQuery;
         
         if (obsData) {
-          // Clean up the description for display
           const cleanedObs = obsData.map(ob => ({
             ...ob,
             titulo: ob.titulo,
             data: ob.data,
-            descricao: ob.descricao.split('\n\n=== METADADOS ===')[0]
+            descricao: ob.descricao.split('\n\n=== METADADOS ===')[0],
+            pdf_storage_path: ob.pdf_storage_path || null,
+            pdfViewUrl: ob.pdf_storage_path && tenantId
+              ? `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(tenantId)}&path=${encodeURIComponent(ob.pdf_storage_path)}`
+              : null,
           }));
           setChildObligations(cleanedObs);
         }
@@ -361,31 +367,76 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   async function handleAddObligation(e: React.FormEvent) {
     e.preventDefault();
-    if (!child || !user) return;
+    if (!child || !user || isSubmittingObligation) return;
+
+    const effectiveTenantId = tenantData?.tenant_id || user.id;
+    setIsSubmittingObligation(true);
 
     try {
-      const { error } = await supabase
-        .from('calendario_axe')
-        .insert([{
-          ...obligationData,
-          descricao: `${obligationData.descricao || ''}`.trim() + `\n\n=== METADADOS ===\nFILHO_ID:${child.id}`,
-          tipo: 'Obrigação',
-          lider_id: user.id,
-          tenant_id: tenantData?.tenant_id,
-          status_confirmacao: 'Pendente'
-        }]);
+      let pdfStoragePath: string | null = null;
+
+      if (obligationPdfFile) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+        const uploadUrlResponse = await authFetch('/api/v1/obrigacao-pdf/upload-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            fileName: obligationPdfFile.name,
+            contentType: 'application/pdf',
+            tenantId: effectiveTenantId,
+            childId: child.id,
+          }),
+        });
+
+        const uploadUrlResult = await uploadUrlResponse.json();
+        if (!uploadUrlResponse.ok) {
+          throw new Error(uploadUrlResult.error || 'Erro ao preparar upload do PDF');
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from('biblioteca_estudos')
+          .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, obligationPdfFile, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+        pdfStoragePath = uploadUrlResult.path;
+      }
+
+      const insertPayload: Record<string, unknown> = {
+        titulo: obligationData.titulo,
+        data: obligationData.data,
+        hora: obligationData.hora,
+        descricao: `${obligationData.descricao || ''}`.trim() + `\n\n=== METADADOS ===\nFILHO_ID:${child.id}`,
+        tipo: 'Obrigação',
+        lider_id: user.id,
+        tenant_id: effectiveTenantId,
+        status_confirmacao: 'Pendente',
+      };
+      if (pdfStoragePath) insertPayload.pdf_storage_path = pdfStoragePath;
+
+      const { error } = await supabase.from('calendario_axe').insert([insertPayload]);
 
       if (error) throw error;
-      
+
       const newOb = {
         titulo: obligationData.titulo,
         data: obligationData.data,
-        descricao: obligationData.descricao || ''
+        descricao: obligationData.descricao || '',
+        pdf_storage_path: pdfStoragePath,
+        pdfViewUrl: pdfStoragePath
+          ? `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(effectiveTenantId)}&path=${encodeURIComponent(pdfStoragePath)}`
+          : null,
       };
-      
-      setChildObligations(prev => [newOb, ...prev].sort((a,b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
 
-      // Envia notificação push direta para o filho se selecionado e se não for visão própria
+      setChildObligations(prev => [newOb, ...prev].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
+
       if (obligationData.notifyChild && !isSelfView) {
         try {
           await authFetch('/api/push-direct', {
@@ -395,27 +446,34 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               childId: child.id,
               title: '🌿 Obrigação de Axé',
               body: `Olá ${child.nome}, a obrigação "${obligationData.titulo}" foi cadastrada no seu perfil.`,
-              url: '/'
-            })
+              url: '/',
+            }),
           });
         } catch (pushErr) {
-          console.error("Push direct error:", pushErr);
+          console.error('Push direct error:', pushErr);
         }
       }
 
-      setIsObligationModalOpen(false);
-      setObligationData({
-        titulo: '',
-        data: new Date().toISOString().split('T')[0],
-        hora: '00:00',
-        descricao: '',
-        notifyChild: true
-      });
+      closeObligationModal();
       alert('Obrigação agendada com sucesso no calendário!');
     } catch (error) {
       console.error('Error adding obligation:', error);
-      alert('Erro ao agendar obrigação.');
+      alert(error instanceof Error ? error.message : 'Erro ao agendar obrigação.');
+    } finally {
+      setIsSubmittingObligation(false);
     }
+  }
+
+  function closeObligationModal() {
+    setIsObligationModalOpen(false);
+    setObligationPdfFile(null);
+    setObligationData({
+      titulo: '',
+      data: new Date().toISOString().split('T')[0],
+      hora: '00:00',
+      descricao: '',
+      notifyChild: true,
+    });
   }
 
   /**
@@ -887,87 +945,20 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         )}
       </AnimatePresence>
 
-      {/* Modal: Adicionar Obrigação */}
+      {/* Modal: Agendar Obrigação */}
       <AnimatePresence>
         {isObligationModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsObligationModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
-            />
-            <motion.div 
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-3xl border border-[#FBBC00]/20 bg-[#1F1F1F] shadow-2xl sm:max-h-[85dvh] sm:max-w-lg"
-            >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-xl">Agendar Obrigação</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-0.5">Calendário do Axé</p>
-                </div>
-                <button onClick={() => setIsObligationModalOpen(false)} className="shrink-0 rounded-2xl p-2 text-gray-500 transition-colors hover:bg-white/5">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddObligation} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Título da Obrigação</label>
-                  <input required type="text" value={obligationData.titulo}
-                    onChange={e => setObligationData({ ...obligationData, titulo: e.target.value })}
-                    className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50"
-                    placeholder="Ex: Obrigação de 7 Anos" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Data Prevista</label>
-                    <input required type="date" value={obligationData.data}
-                      onChange={e => setObligationData({ ...obligationData, data: e.target.value })}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Hora</label>
-                    <input required type="time" value={obligationData.hora}
-                      onChange={e => setObligationData({ ...obligationData, hora: e.target.value })}
-                      className="w-full rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-0.5">Observações</label>
-                  <textarea value={obligationData.descricao} rows={3}
-                    onChange={e => setObligationData({ ...obligationData, descricao: e.target.value })}
-                    className="w-full resize-none rounded-xl border border-white/5 bg-[#121212] px-4 py-2.5 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50"
-                    placeholder="Detalhes sobre a obrigação..." />
-                </div>
-
-                {!isSelfView && (
-                  <label className="flex cursor-pointer items-center gap-3 group">
-                    <div className="relative flex items-center justify-center">
-                      <input type="checkbox" checked={obligationData.notifyChild}
-                        onChange={e => setObligationData({ ...obligationData, notifyChild: e.target.checked })}
-                        className="peer sr-only" />
-                      <div className="flex h-5 w-5 items-center justify-center rounded border border-white/20 bg-black/40 transition-all peer-checked:border-[#FBBC00] peer-checked:bg-[#FBBC00]">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-black opacity-0 transition-opacity peer-checked:opacity-100" />
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-400 transition-colors group-hover:text-white">
-                      Enviar aviso para o filho
-                    </span>
-                  </label>
-                )}
-
-                <button type="submit"
-                  className="w-full rounded-2xl bg-[#FBBC00] py-3 text-xs font-black uppercase tracking-widest text-black shadow-xl shadow-[#FBBC00]/20 transition-all hover:scale-[1.02] active:scale-95">
-                  Confirmar Agendamento
-                </button>
-              </form>
-            </motion.div>
-          </div>
+          <ObligationScheduleModal
+            open={isObligationModalOpen}
+            onClose={closeObligationModal}
+            onSubmit={handleAddObligation}
+            formData={obligationData}
+            setFormData={setObligationData}
+            pdfFile={obligationPdfFile}
+            setPdfFile={setObligationPdfFile}
+            isSubmitting={isSubmittingObligation}
+            showNotifyCheckbox={!isSelfView}
+          />
         )}
       </AnimatePresence>
     </AppPageShell>

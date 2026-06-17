@@ -230,3 +230,35 @@ export function pickAllowedChildFields(body: Record<string, unknown>): Record<st
   }
   return out;
 }
+
+const OBRIGACAO_PDF_PATH_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/obrigacoes\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/.+/i;
+
+/** Valida acesso a PDFs privados de obrigação (zelador do tenant ou o próprio filho). */
+export async function assertObrigacaoPdfStorageAccess(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null },
+  tenantId: string,
+  normalizedPath: string
+): Promise<boolean> {
+  const tid = normalizeQueryTenantId(tenantId);
+  const path = String(normalizedPath || "").replace(/\\/g, "/");
+  if (!tid || !path.startsWith(`${tid}/`) || !OBRIGACAO_PDF_PATH_RE.test(path)) {
+    return false;
+  }
+
+  const childIdMatch = path.match(/\/obrigacoes\/([^/]+)\//i);
+  const pathChildId = childIdMatch?.[1];
+  if (!pathChildId || !isValidUuid(pathChildId)) return false;
+
+  if (await assertZeladorTenantAccess(supabaseAdmin, user.id, tid)) return true;
+
+  const { data: filho } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("id, tenant_id, lider_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!filho?.id || String(filho.id) !== pathChildId) return false;
+
+  return filhoCanAccessTenant(supabaseAdmin, filho, tid);
+}
