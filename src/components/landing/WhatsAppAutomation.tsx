@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bell, CheckCircle, MessageSquare, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, CheckCircle, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection } from './LandingSection';
 
@@ -12,18 +12,113 @@ const fade = {
 
 const benefits = [
   {
-    title: 'Convites de eventos pelo calendário',
-    desc: 'Convidados com telefone recebem o convite no WhatsApp ao serem adicionados ao evento.',
+    title: 'Avisos de giras e convites',
+    desc: 'Filhos com WhatsApp cadastrado recebem lembrete quando uma gira é criada ou quando são convidados.',
   },
   {
-    title: 'Lembrete automático de mensalidade',
-    desc: 'Três dias antes (e no dia) do vencimento configurado, filhos com WhatsApp cadastrado recebem lembrete.',
+    title: 'Lembrete de mensalidade',
+    desc: 'Templates aprovados pela Meta — aviso antes do vencimento e confirmação quando o pagamento é registrado.',
   },
   {
-    title: 'Comprovante ao confirmar pagamento',
-    desc: 'Quando o zelador confirma a mensalidade no financeiro, o filho recebe a confirmação no WhatsApp.',
+    title: 'Nome do terreiro em cada mensagem',
+    desc: 'A mensagem chega pelo canal oficial AxéCloud personalizada com o membro e a casa — sem spam genérico.',
   },
 ] as const;
+
+const trustBadges = [
+  'API oficial Meta',
+  'WhatsApp Business',
+  'Templates aprovados',
+  'Sem QR Code',
+] as const;
+
+function MetaBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1877F2]/35 bg-[#1877F2]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#6BA3FF]">
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M12 2C6.48 2 2 6.15 2 11.25c0 2.91 1.45 5.5 3.72 7.2V22l3.4-1.87c.91.25 1.87.39 2.88.39 5.52 0 10-4.15 10-9.25S17.52 2 12 2z"
+        />
+      </svg>
+      Meta Cloud API
+    </span>
+  );
+}
+
+function WhatsAppPhoneMock() {
+  return (
+    <div className="relative mx-auto w-full max-w-sm">
+      <div
+        className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-emerald-500/10 blur-2xl"
+        aria-hidden
+      />
+      <div className="landing-device-frame relative overflow-hidden">
+        <div className="landing-device-chrome">
+          <span className="landing-device-dot bg-red-500/90" aria-hidden />
+          <span className="landing-device-dot bg-amber-400/90" aria-hidden />
+          <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
+          <span className="landing-device-url flex items-center gap-1.5">
+            <MessageCircle className="h-3 w-3 text-emerald-400" aria-hidden />
+            WhatsApp Business · AxéCloud
+          </span>
+        </div>
+
+        <div className="relative bg-[#0b141a] p-4 sm:p-5">
+          <div className="mb-4 flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
+              AC
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1 truncate text-sm font-bold text-white">
+                AxéCloud
+                <BadgeCheck className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />
+              </p>
+              <p className="text-[10px] text-emerald-400/90">Conta comercial verificada</p>
+            </div>
+            <MetaBadge />
+          </div>
+
+          <div className="space-y-3 rounded-xl bg-[#1f2c34]/80 p-3">
+            <div className="max-w-[92%] rounded-lg rounded-tl-none bg-[#005c4b] px-3 py-2.5 text-left shadow-lg">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200/80">Aviso de gira</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#e9edef]">
+                Olá, <span className="font-semibold text-white">Maria</span>! A casa{' '}
+                <span className="font-semibold text-white">Terreiro Oxum</span> informa: gira de caboclo no domingo,
+                14h. Axé!
+              </p>
+              <p className="mt-2 text-[9px] text-emerald-200/60">Template aprovado · Meta WhatsApp Business</p>
+            </div>
+
+            <div className="max-w-[88%] rounded-lg rounded-tl-none bg-[#005c4b] px-3 py-2.5 text-left opacity-90">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200/80">Mensalidade</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#e9edef]">
+                Lembrete: mensalidade de R$ 49,90 vence em 05/06. Sua contribuição sustenta a casa. Axé!
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {trustBadges.map((label) => (
+              <span
+                key={label}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-400"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-500">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+            Envio via <strong className="font-semibold text-zinc-300">WhatsApp Cloud API (Meta)</strong> — o mesmo
+            padrão usado por empresas verificadas. Sem parear celular do zelador.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function WhatsAppAutomation() {
   return (
@@ -31,22 +126,28 @@ export function WhatsAppAutomation() {
       <motion.div className="landing-section-inner" {...fade}>
         <div className="relative z-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400">
-              <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Integração automatizada
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400">
+                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                WhatsApp Business oficial
+              </div>
+              <MetaBadge />
             </div>
 
             <h2
               id="whatsapp-head"
               className="mb-4 text-2xl font-extrabold leading-tight text-white sm:text-3xl lg:text-4xl"
             >
-              Conecte o WhatsApp do terreiro e{' '}
-              <span className="text-primary">automatize a rotina</span>
+              Mensagens automáticas pela{' '}
+              <span className="bg-gradient-to-r from-[#25D366] via-emerald-400 to-primary bg-clip-text text-transparent">
+                API oficial da Meta
+              </span>
             </h2>
 
             <p className="landing-lead !mt-0 !text-left">
-              Chega de perder tempo digitando mensagens de cobrança ou lembretes uma por uma. Conecte o número da casa
-              via QR Code e deixe o AxéCloud informar a comunidade com respeito.
+              Filhos de santo recebem avisos de gira, lembretes de mensalidade e confirmações pelo canal{' '}
+              <strong className="font-semibold text-[#F1F5F9]">WhatsApp Business verificado do AxéCloud</strong> —
+              templates aprovados, entrega confiável e a cara profissional que a casa merece.
             </p>
 
             <ul className="mt-8 space-y-4" role="list">
@@ -76,45 +177,8 @@ export function WhatsAppAutomation() {
             whileInView={fade.whileInView}
             viewport={fade.viewport}
             transition={{ ...fade.transition, delay: 0.1 }}
-            className="landing-device-frame mx-auto w-full max-w-md"
           >
-            <div className="landing-device-chrome">
-              <span className="landing-device-dot bg-red-500/90" aria-hidden />
-              <span className="landing-device-dot bg-amber-400/90" aria-hidden />
-              <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
-              <span className="landing-device-url">WhatsApp · módulo de mensagens</span>
-            </div>
-            <div className="relative p-6">
-              <div className="pointer-events-none absolute top-2 right-2 text-emerald-500/15" aria-hidden>
-                <MessageSquare className="h-28 w-28" />
-              </div>
-              <div className="mb-5 flex items-center gap-2 border-b border-white/10 pb-4">
-                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                  Pronto para conectar
-                </span>
-              </div>
-              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/40 p-6 text-center">
-                <div className="mb-4 rounded-full border border-white/10 bg-white/[0.04] p-4 text-zinc-400">
-                  <Bell className="h-8 w-8" aria-hidden />
-                </div>
-                <h3 className="text-sm font-bold text-white">QR Code no painel</h3>
-                <p className="mx-auto mt-2 max-w-[240px] text-xs leading-relaxed text-zinc-500">
-                  Abra o WhatsApp no celular, vá em Aparelhos conectados e aponte a câmera para o zelador.
-                </p>
-                <button
-                  type="button"
-                  disabled
-                  className="mt-4 cursor-not-allowed rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-zinc-500"
-                >
-                  Gerar QR Code de conexão
-                </button>
-              </div>
-              <p className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-primary/70" aria-hidden />
-                Conexão criptografada via API dedicada.
-              </p>
-            </div>
+            <WhatsAppPhoneMock />
           </motion.div>
         </div>
       </motion.div>

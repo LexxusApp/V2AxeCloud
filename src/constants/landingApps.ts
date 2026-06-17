@@ -1,19 +1,16 @@
-import { landingScreenshot } from './landingScreenshots';
-
 export type LandingAppCard = {
   id: string;
   badge: string;
   title: string;
   description: string;
+  who: string;
   features: readonly string[];
-  screenshot: string;
-  screenshotAlt: string;
 };
 
 export const LANDING_APPS_HEADING = {
   kicker: 'Apps & PWA',
-  title: 'Apps para aproximar sua casa dos filhos de santo e da diretoria',
-  lead: 'Além da gestão interna, o AxéCloud oferece acesso online para que filhos de santo e zeladores acompanhem giras, avisos e mensalidades com mais praticidade — direto no celular, sem instalar pela loja.',
+  title: 'Dois acessos para a casa — portal da comunidade e painel da diretoria',
+  lead: 'O AxéCloud funciona no navegador do celular ou do computador. Filhos de santo acompanham a casa pelo portal; zeladores e diretoria administram tudo pelo painel. Nos dois casos, dá para fixar na tela inicial como um app (PWA) — sem baixar na App Store ou Google Play.',
 } as const;
 
 export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
@@ -21,30 +18,46 @@ export const LANDING_APP_CARDS: readonly LandingAppCard[] = [
     id: 'filho',
     badge: 'Para filhos de santo',
     title: 'Portal do Filho de Santo',
+    who: 'Quem já é cadastrado na casa entra com login e senha.',
     description:
-      'A casa compartilha agenda, comunicados e informações importantes com a comunidade em um acesso simples, organizado e respeitoso.',
+      'Acesso respeitoso e organizado: agenda de giras, mural da casa, mensalidades com Pix e avisos importantes — tudo num só lugar, no celular ou no computador.',
     features: [
-      'Calendário de giras e obrigações',
-      'Comunicados do mural da casa',
-      'Mensalidades e Pix integrado',
-      'Acesso simples pelo celular (PWA)',
+      'Calendário de giras, obrigações e eventos da casa',
+      'Mural com comunicados e avisos da diretoria',
+      'Mensalidades, histórico e pagamento via Pix',
+      'Fixa na tela inicial do celular (PWA) em segundos',
     ],
-    screenshot: landingScreenshot('portal-filho-home.png'),
-    screenshotAlt: 'Tela inicial do portal do filho de santo no celular',
   },
   {
     id: 'zelador',
     badge: 'Para zelador e diretoria',
     title: 'Painel do Zelador',
+    who: 'Zeladores e diretoria entram com e-mail e senha do terreiro.',
     description:
-      'A diretoria administra filhos de santo, finanças, giras e galeria em um painel completo — no computador ou no celular.',
+      'Gestão completa da casa: filhos de santo, financeiro, giras, galeria, mural, biblioteca e loja do axé — no desktop ou no celular, com a mesma conta.',
     features: [
-      'Cadastro e gestão de filhos de santo',
-      'Financeiro transparente com Pix',
-      'Galeria de fotos e calendário de giras',
-      'Mural, biblioteca e loja do axé',
+      'Cadastro, perfis e documentos dos filhos de santo',
+      'Financeiro transparente com Pix e relatórios',
+      'Calendário, galeria, mural e biblioteca de estudo',
+      'Painel responsivo — use no celular como app (PWA)',
     ],
-    screenshot: landingScreenshot('painel-zelador-home.png'),
-    screenshotAlt: 'Dashboard do zelador do AxéCloud no celular',
+  },
+] as const;
+
+export const LANDING_PWA_STEPS = [
+  {
+    step: '1',
+    title: 'Abre no navegador',
+    desc: 'Acesse axecloud.com.br pelo Chrome ou Safari — no celular ou no PC.',
+  },
+  {
+    step: '2',
+    title: 'Entra com sua conta',
+    desc: 'Filho de santo: login da casa. Zelador: e-mail cadastrado no terreiro.',
+  },
+  {
+    step: '3',
+    title: 'Fixa na tela inicial',
+    desc: 'No celular, use “Adicionar à tela inicial”. Vira ícone como app, sem loja.',
   },
 ] as const;
