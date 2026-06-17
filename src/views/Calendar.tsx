@@ -250,6 +250,214 @@ function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () =
   );
 }
 
+type EventFormData = {
+  titulo: string;
+  data: string;
+  hora: string;
+  tipo: string;
+  descricao: string;
+  status_confirmacao: string;
+  evento_publico: boolean;
+};
+
+type AddEventModalPanelProps = {
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  formData: EventFormData;
+  setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
+  isSubmitting: boolean;
+  bannerInputRef: React.RefObject<HTMLInputElement | null>;
+  bannerPreview: string | null;
+  onBannerFile: (file: File) => void;
+};
+
+function AddEventModalPanel({
+  onClose,
+  onSubmit,
+  formData,
+  setFormData,
+  isSubmitting,
+  bannerInputRef,
+  bannerPreview,
+  onBannerFile,
+}: AddEventModalPanelProps) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={MODAL_TW}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        aria-hidden
+      />
+      <motion.div
+        initial={{ opacity: 0, x: 48 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 32 }}
+        transition={MODAL_TW}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-event-title"
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <CalendarDays className="h-5 w-5 text-primary" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h3 id="add-event-title" className="text-base font-black text-white sm:text-lg">
+                Nova gira / evento
+              </h3>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                Agendar no calendário do terreiro
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="overflow-y-auto overscroll-y-contain p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
+            <div className="sm:col-span-2">
+              <label className={appLabelClass}>Nome</label>
+              <input
+                required
+                className={appInputClass}
+                value={formData.titulo}
+                onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                placeholder="Ex: Gira Caboclos Penacho"
+              />
+            </div>
+            <div>
+              <label className={appLabelClass}>Tipo de trabalho</label>
+              <select
+                required
+                className={appInputClass}
+                value={formData.tipo}
+                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+              >
+                <option value="Gira">Normal</option>
+                <option value="Festa">Festa pública</option>
+                <option value="Obrigação">Trabalho interno</option>
+                <option value="Manutenção">Caridade</option>
+                <option value="Reunião">Reunião</option>
+              </select>
+            </div>
+            <div>
+              <label className={appLabelClass}>Destaque</label>
+              <select
+                className={appInputClass}
+                value={formData.status_confirmacao}
+                onChange={(e) => setFormData({ ...formData, status_confirmacao: e.target.value })}
+              >
+                <option value="Confirmado">Confirmada</option>
+                <option value="Especial">Especial / obrigação</option>
+              </select>
+            </div>
+            <div>
+              <label className={appLabelClass}>Data</label>
+              <input
+                required
+                type="date"
+                className={appInputClass}
+                value={formData.data}
+                onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={appLabelClass}>Horário</label>
+              <input
+                required
+                type="time"
+                className={appInputClass}
+                value={formData.hora}
+                onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={appLabelClass}>Descrição (opcional)</label>
+              <textarea
+                rows={2}
+                className={cn(appInputClass, 'resize-none')}
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                placeholder="Detalhes do evento…"
+              />
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={formData.evento_publico}
+                onChange={(e) => setFormData({ ...formData, evento_publico: e.target.checked })}
+                className="h-4 w-4 accent-[#FBBC00]"
+              />
+              <span className="text-xs font-semibold text-[#94A3B8]">
+                Divulgar no portal público (/eventos)
+              </span>
+            </label>
+            <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 sm:col-span-2">
+              <label className={appLabelClass}>Banner (opcional)</label>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (!f.type.startsWith('image/')) {
+                    alert('Selecione um arquivo de imagem.');
+                    return;
+                  }
+                  if (f.size > 4.5 * 1024 * 1024) {
+                    alert('Imagem muito grande (máx. 4,5 MB).');
+                    return;
+                  }
+                  onBannerFile(f);
+                  e.target.value = '';
+                }}
+              />
+              {bannerPreview ? (
+                <img
+                  src={bannerPreview}
+                  alt="Prévia do banner"
+                  className="mt-2 max-h-28 w-full rounded-lg object-contain"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
+              >
+                <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
+              </button>
+            </div>
+          </div>
+          <AppPrimaryButton
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-5 inline-flex w-full items-center justify-center sm:mt-6"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Marcar na agenda'}
+          </AppPrimaryButton>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
 interface CalendarProps {
   user?: any;
   userRole?: string;
@@ -281,6 +489,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
+  const [addEventModalOpen, setAddEventModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
@@ -575,6 +784,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         status_confirmacao: 'Confirmado',
         evento_publico: false,
       });
+      setAddEventModalOpen(false);
       fetchEvents();
     } catch (error: any) {
       console.error('Error adding event:', error);
@@ -892,142 +1102,17 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           action={
             <button
               type="button"
-              onClick={() => void fetchEvents()}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
-              title="Atualizar"
+              onClick={() => setAddEventModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
             >
-              <Loader2 className={cn('h-4 w-4', loading && 'animate-spin')} />
-              Atualizar
+              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Adicionar
             </button>
           }
         />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <AppDemoCard>
-            <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Nova gira / evento</h4>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className={appLabelClass}>Nome</label>
-                <input
-                  required
-                  className={appInputClass}
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  placeholder="Ex: Gira Caboclos Penacho"
-                />
-              </div>
-              <div>
-                <label className={appLabelClass}>Tipo de trabalho</label>
-                <select
-                  required
-                  className={appInputClass}
-                  value={formData.tipo}
-                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                >
-                  <option value="Gira">Normal</option>
-                  <option value="Festa">Festa pública</option>
-                  <option value="Obrigação">Trabalho interno</option>
-                  <option value="Manutenção">Caridade</option>
-                  <option value="Reunião">Reunião</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={appLabelClass}>Data</label>
-                  <input
-                    required
-                    type="date"
-                    className={appInputClass}
-                    value={formData.data}
-                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className={appLabelClass}>Horário</label>
-                  <input
-                    required
-                    type="time"
-                    className={appInputClass}
-                    value={formData.hora}
-                    onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className={appLabelClass}>Destaque</label>
-                <select
-                  className={appInputClass}
-                  value={formData.status_confirmacao}
-                  onChange={(e) => setFormData({ ...formData, status_confirmacao: e.target.value })}
-                >
-                  <option value="Confirmado">Confirmada</option>
-                  <option value="Especial">Especial / obrigação</option>
-                </select>
-              </div>
-              <div>
-                <label className={appLabelClass}>Descrição (opcional)</label>
-                <textarea
-                  rows={2}
-                  className={cn(appInputClass, 'resize-none')}
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  placeholder="Detalhes do evento…"
-                />
-              </div>
-              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={formData.evento_publico}
-                  onChange={(e) => setFormData({ ...formData, evento_publico: e.target.checked })}
-                  className="h-4 w-4 accent-[#FBBC00]"
-                />
-                <span className="text-xs font-semibold text-[#94A3B8]">
-                  Divulgar no portal público (/eventos)
-                </span>
-              </label>
-              <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3">
-                <label className={appLabelClass}>Banner (opcional)</label>
-                <input
-                  ref={bannerInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (!f.type.startsWith('image/')) {
-                      alert('Selecione um arquivo de imagem.');
-                      return;
-                    }
-                    if (f.size > 4.5 * 1024 * 1024) {
-                      alert('Imagem muito grande (máx. 4,5 MB).');
-                      return;
-                    }
-                    setBannerFile(f);
-                    setBannerPreview((prev) => {
-                      if (prev) URL.revokeObjectURL(prev);
-                      return URL.createObjectURL(f);
-                    });
-                    e.target.value = '';
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => bannerInputRef.current?.click()}
-                  className="mt-1 inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
-                >
-                  <ImagePlus className="h-3.5 w-3.5 text-primary" />
-                  {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
-                </button>
-              </div>
-              <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
-                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Marcar na agenda'}
-              </AppPrimaryButton>
-            </form>
-          </AppDemoCard>
-
-          <div className="space-y-3 lg:col-span-2">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {eventsNewestFirst.map((event) => {
                 const passed = isEventPassed(event.data, event.hora);
                 const isEspecial =
@@ -1161,10 +1246,27 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               </div>
             </div>
           </div>
-        </div>
       </AppPageShell>
 
       <AnimatePresence>
+        {addEventModalOpen ? (
+          <AddEventModalPanel
+            onClose={() => setAddEventModalOpen(false)}
+            onSubmit={handleSubmit}
+            formData={formData}
+            setFormData={setFormData}
+            isSubmitting={isSubmitting}
+            bannerInputRef={bannerInputRef}
+            bannerPreview={bannerPreview}
+            onBannerFile={(f) => {
+              setBannerFile(f);
+              setBannerPreview((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return URL.createObjectURL(f);
+              });
+            }}
+          />
+        ) : null}
         {eventDetailModal && (
           <EventDetailModalPanel event={eventDetailModal} onClose={() => setEventDetailModal(null)} />
         )}
