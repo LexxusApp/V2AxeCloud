@@ -335,21 +335,25 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
   };
 
   async function handleDelete() {
-    if (!child) return;
+    if (!child || !user) return;
     if (!confirm(`Deseja realmente excluir o perfil de ${child.nome}? Esta ação é irreversível.`)) return;
-    
+
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('filhos_de_santo')
-        .delete()
-        .eq('id', child.id);
-
-      if (error) throw error;
+      const tenantId = tenantData?.tenant_id || user.id;
+      const qs = new URLSearchParams({ userId: user.id, tenantId });
+      const response = await authFetch(`/api/children/${encodeURIComponent(child.id)}?${qs}`, {
+        method: 'DELETE',
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao excluir filho de santo');
+      }
       setActiveTab('children');
     } catch (error) {
       console.error('Error deleting child:', error);
-      alert('Erro ao excluir filho de santo.');
+      alert(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.');
     } finally {
       setIsDeleting(false);
     }

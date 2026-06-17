@@ -3695,6 +3695,49 @@ async function startServer() {
     }
   });
 
+  // API Route: Delete Single Child (Bypasses RLS)
+  app.delete("/api/children/:id", async (req, res) => {
+    const childId = req.params.id;
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    const userId = user.id;
+    const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+    const userRoleQ = String(req.query.userRole || "");
+
+    try {
+      const tenantId = await resolveFinanceiroTenantScope(
+        supabaseAdmin,
+        userId,
+        userRoleQ,
+        tenantIdFromQuery
+      );
+      if (!tenantId) return res.status(403).json({ error: "Acesso negado" });
+
+      let query = supabaseAdmin.from("filhos_de_santo").select("id").eq("id", childId);
+      if (tenantId) {
+        query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
+      } else {
+        query = query.eq("lider_id", userId);
+      }
+      const { data: existingChild, error: verifyError } = await query.maybeSingle();
+      if (verifyError || !existingChild) {
+        return res.status(404).json({ error: "Filho não encontrado ou acesso negado" });
+      }
+
+      const { error } = await supabaseAdmin.from("filhos_de_santo").delete().eq("id", childId);
+      if (error) {
+        console.error("[SERVER] Error deleting child:", error);
+        return res.status(500).json({ error: "Erro ao excluir filho de santo" });
+      }
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[SERVER] Unexpected error in DELETE /api/children/:id:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // API Route: Get Children (Bypasses RLS)
   app.get("/api/children", async (req, res) => {
     try {

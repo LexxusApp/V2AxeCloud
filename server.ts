@@ -3243,6 +3243,64 @@ async function startServer() {
     }
   });
 
+  // API Route: Delete Single Child (Bypasses RLS)
+  app.delete("/api/children/:id", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Não autorizado" });
+
+    const childId = req.params.id;
+    const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { user, error: authError } = await verifyUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Sessão inválida" });
+      }
+      const userId = user.id;
+      if (req.query.userId && String(req.query.userId) !== userId) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      let tenantId = tenantIdFromQuery;
+      if (!tenantId) {
+        const { data: profile, error: profileError } = await supabaseAdmin
+          .from("perfil_lider")
+          .select("tenant_id")
+          .eq("id", userId)
+          .single();
+        if (profileError) {
+          console.error("[SERVER] Error fetching profile for tenant_id:", profileError);
+          return res.status(500).json({ error: "Failed to verify user tenant" });
+        }
+        tenantId = profile?.tenant_id;
+      }
+
+      let query = supabaseAdmin.from("filhos_de_santo").select("id").eq("id", childId);
+      if (tenantId) {
+        query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
+      } else {
+        query = query.eq("lider_id", userId);
+      }
+      const { data: existingChild, error: verifyError } = await query.maybeSingle();
+      if (verifyError || !existingChild) {
+        return res.status(404).json({ error: "Filho não encontrado ou acesso negado" });
+      }
+
+      const { error } = await supabaseAdmin.from("filhos_de_santo").delete().eq("id", childId);
+      if (error) {
+        console.error("[SERVER] Error deleting child:", error);
+        return res.status(500).json({ error: "Erro ao excluir filho de santo" });
+      }
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[SERVER] Unexpected error in DELETE /api/children/:id:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // API Route: Get Children (Bypasses RLS)
   app.get("/api/children", async (req, res) => {
     const authHeader = req.headers.authorization;

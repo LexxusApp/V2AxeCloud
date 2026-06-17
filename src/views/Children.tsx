@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Info, Plus, Search, Trash2, Phone, Loader2, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
-import { supabase } from '../lib/supabase';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoCard,
@@ -42,6 +41,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Form state
@@ -75,7 +75,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     try {
       if (!user) throw new Error("Usuário não autenticado");
       
-      const response = await authFetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
+      const response = await authFetch(
+        `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
+        { cache: 'no-store' },
+      );
       const result = await response.json();
 
       if (!response.ok) {
@@ -141,18 +144,30 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Deseja realmente excluir o perfil de ${name}? Esta ação é irreversível.`)) return;
-    
-    try {
-      const { error } = await supabase
-        .from('filhos_de_santo')
-        .delete()
-        .eq('id', id);
 
-      if (error) throw error;
-      fetchChildren();
+    const snapshot = children;
+    setChildren((prev) => prev.filter((c) => c.id !== id));
+    setDeletingId(id);
+
+    try {
+      const qs = new URLSearchParams({
+        userId: user.id,
+        ...(tenantId ? { tenantId } : {}),
+      });
+      const response = await authFetch(`/api/children/${encodeURIComponent(id)}?${qs}`, {
+        method: 'DELETE',
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao excluir filho de santo');
+      }
     } catch (error) {
       console.error('Error deleting child:', error);
-      alert('Erro ao excluir filho de santo.');
+      setChildren(snapshot);
+      alert(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -389,10 +404,15 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                           e.stopPropagation();
                           void handleDelete(child.id, child.nome);
                         }}
-                        className="rounded p-1 text-rose-400 hover:bg-white/5 hover:text-rose-300"
+                        disabled={deletingId === child.id}
+                        className="rounded p-1 text-rose-400 hover:bg-white/5 hover:text-rose-300 disabled:opacity-50"
                         aria-label={`Remover ${child.nome}`}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {deletingId === child.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     </td>
                   </tr>
