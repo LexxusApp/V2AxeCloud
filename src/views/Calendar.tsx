@@ -145,6 +145,31 @@ function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () =
   const descricao = (event.descricao || '').trim();
   const horaFmt = formatHoraEvento(event.hora);
 
+  const detailsBlock = (
+    <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
+      <div className="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
+        <div className="flex items-center gap-2 text-white">
+          <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
+          <span className="font-bold">
+            {format(parseISO(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
+          </span>
+        </div>
+        {horaFmt ? (
+          <div className="flex items-center gap-2 text-white">
+            <Clock className="h-4 w-4 shrink-0 text-primary" />
+            <span className="font-bold">{horaFmt}</span>
+          </div>
+        ) : null}
+      </div>
+      {descricao ? (
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500">Descrição</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300">{descricao}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <>
       <motion.div
@@ -155,20 +180,26 @@ function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () =
         className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
         aria-hidden
       />
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-6 pointer-events-none">
-        <motion.div
-          initial={MODAL_PANEL_IN}
-          animate={MODAL_PANEL_DONE}
-          exit={MODAL_PANEL_OUT}
-          transition={MODAL_TW}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="event-detail-title"
-          className={cn(
-            'pointer-events-auto flex w-full max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl',
-            hasBanner ? 'max-w-[min(96vw,440px)]' : 'max-w-sm',
-          )}
-        >
+      <div
+        className="fixed inset-0 z-[101] overflow-y-auto overscroll-y-contain"
+        onClick={onClose}
+        role="presentation"
+      >
+        <div className="flex min-h-full items-center justify-center p-4 sm:p-6 pointer-events-none">
+          <motion.div
+            initial={MODAL_PANEL_IN}
+            animate={MODAL_PANEL_DONE}
+            exit={MODAL_PANEL_OUT}
+            transition={MODAL_TW}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-detail-title"
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'pointer-events-auto my-auto flex w-full max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl',
+              hasBanner ? 'max-w-[min(96vw,52rem)]' : 'max-w-sm',
+            )}
+          >
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
@@ -190,44 +221,30 @@ function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () =
               <X className="h-5 w-5" />
             </button>
           </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
             {hasBanner ? (
-              <div className="flex justify-center bg-[#0a0c0f] px-2 pt-2 sm:px-3 sm:pt-3">
-                <img
-                  src={event.banner_url!}
-                  alt={event.titulo}
-                  className="block max-h-[min(52dvh,480px)] w-auto max-w-full rounded-xl object-contain"
-                />
+              <div className="flex min-h-0 flex-col sm:flex-row sm:items-stretch">
+                <div className="flex shrink-0 items-center justify-center border-b border-white/5 bg-[#0a0c0f] p-3 sm:w-[min(44%,18rem)] sm:border-b-0 sm:border-r sm:p-4">
+                  <img
+                    src={event.banner_url!}
+                    alt={event.titulo}
+                    className="block max-h-[min(38dvh,360px)] w-auto max-w-full rounded-xl object-contain sm:max-h-[min(68dvh,520px)] sm:w-full"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 px-5 py-5 sm:px-6 sm:py-6">{detailsBlock}</div>
               </div>
             ) : (
-              <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                <CalendarIcon className="h-12 w-12 text-white/15" />
-              </div>
+              <>
+                <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+                  <CalendarIcon className="h-12 w-12 text-white/15" />
+                </div>
+                <div className="px-5 py-5 sm:px-6">{detailsBlock}</div>
+              </>
             )}
-            <div className="space-y-4 px-5 py-5 sm:px-6">
-              <div className="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
-                <div className="flex items-center gap-2 text-white">
-                  <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="font-bold">
-                    {format(parseISO(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
-                  </span>
-                </div>
-                {horaFmt ? (
-                  <div className="flex items-center gap-2 text-white">
-                    <Clock className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="font-bold">{horaFmt}</span>
-                  </div>
-                ) : null}
-              </div>
-              {descricao ? (
-                <div>
-                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500">Descrição</p>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300">{descricao}</p>
-                </div>
-              ) : null}
-            </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     </>
   );
