@@ -89,7 +89,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v111',
+          cacheId: 'axecloud-v112',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           importScripts: ['/sw-push.js'],
