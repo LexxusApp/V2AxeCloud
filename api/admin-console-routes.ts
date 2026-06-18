@@ -3,7 +3,9 @@ import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
 import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
+  createInstanceWithPairingCode,
   getConsoleInstanceStatus,
+  logoutEvolutionInstanceByName,
   sendEvolutionTextByInstance,
 } from "../src/services/evolution.service.js";
 import {
@@ -683,7 +685,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
-  // WhatsApp oficial AxéCloud (Meta Cloud API) — instância única axecloud_console_admin
+  // WhatsApp compartilhado AxéCloud (Evolution Baileys) — instância única axecloud_console_admin
   app.get("/api/admin-console/whatsapp/status", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
@@ -692,7 +694,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({
         instanceName: CONSOLE_ADMIN_INSTANCE_NAME,
         channel: "official",
-        integration: "WHATSAPP-BUSINESS",
+        integration: "WHATSAPP-BAILEYS",
         ...out,
       });
     } catch (e: any) {
@@ -701,18 +703,60 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
-  app.post("/api/admin-console/whatsapp/connect", async (_req, res) => {
-    res.status(410).json({
-      error: "Pareamento Baileys descontinuado. A instância oficial usa Meta Cloud API (token permanente).",
-      channel: "official",
-    });
+  app.post("/api/admin-console/whatsapp/connect", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const phone = String((req.body || {}).phone || "").trim();
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
+      return res.status(400).json({ error: "Informe o número com DDD (ex.: 11 91234-5678)." });
+    }
+    try {
+      const current = await getConsoleInstanceStatus(CONSOLE_ADMIN_INSTANCE_NAME);
+      if (current.status === "CONNECTED") {
+        return res.json({
+          alreadyConnected: true,
+          instanceName: CONSOLE_ADMIN_INSTANCE_NAME,
+          number: current.number,
+          message: "WhatsApp do console já está conectado.",
+        });
+      }
+      const out = await createInstanceWithPairingCode(CONSOLE_ADMIN_INSTANCE_NAME, phone);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.connect-requested",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp",
+        targetId: CONSOLE_ADMIN_INSTANCE_NAME,
+        description: `Admin solicitou pareamento do WhatsApp para ${phone}.`,
+        metadata: { phone },
+        req,
+      });
+      res.json({ ...out, message: "Use o código abaixo no WhatsApp do dispositivo." });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/connect]", e);
+      res.status(500).json({ error: e?.message || "Erro ao gerar pairing code" });
+    }
   });
 
-  app.post("/api/admin-console/whatsapp/logout", async (_req, res) => {
-    res.status(410).json({
-      error: "A instância oficial não pode ser desconectada pelo painel — gerenciada via Meta Business Manager.",
-      channel: "official",
-    });
+  app.post("/api/admin-console/whatsapp/logout", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      await logoutEvolutionInstanceByName(CONSOLE_ADMIN_INSTANCE_NAME);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.disconnect",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp",
+        targetId: CONSOLE_ADMIN_INSTANCE_NAME,
+        description: "Admin desconectou o WhatsApp do console.",
+        req,
+      });
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp/logout]", e);
+      res.status(500).json({ error: e?.message || "Erro ao desconectar" });
+    }
   });
 
   // -------------- Boas-vindas automáticas (criar terreiro) --------------------

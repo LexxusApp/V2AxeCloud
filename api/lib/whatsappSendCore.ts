@@ -3,34 +3,21 @@ import { format, parseISO } from "date-fns";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   ensureOfficialWhatsAppReady,
-  sendEvolutionTemplateByInstance,
   sendEvolutionTextByInstance,
-  type MetaTemplateComponent,
 } from "../../src/services/evolution.service.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
 import {
-  buildMetaTemplateComponentsForTipo,
-  buildMensagemLivreComponents,
   buildSignedWhatsAppBody,
-  buildSignedWhatsAppTemplateParam,
   buildWhatsAppAuditMessage,
+  extractRsvpToken,
   filhoLoginIdShort,
-  isBoasVindasTemplate,
   isAvisoGiraTemplate,
+  isBoasVindasTemplate,
   isConviteEventoTemplate,
-  isMensagemLivreTemplate,
   resolveLoginPublicUrl,
-  resolveMetaTemplateLanguage,
-  resolveMetaTemplateName,
 } from "./whatsappMetaCloud.js";
-import {
-  isMetaCloudDirectConfigured,
-  isTemplateRequiredMetaError,
-  sendMetaCloudTemplate,
-  sendMetaCloudText,
-} from "./metaCloudSend.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -288,110 +275,58 @@ function resolveZeladorFromVariables(
   return fromVars || fallback;
 }
 
-async function sendWhatsAppTemplateMessage(
-  phone: string,
+function buildConviteRsvpLinks(variables?: Record<string, string | number>): string {
+  const token = extractRsvpToken(variables);
+  if (!token) return "";
+  const base = String(process.env.VITE_APP_URL || process.env.WA_APP_LOGIN_URL || "https://axecloud.com.br")
+    .trim()
+    .replace(/\/$/, "");
+  const origin = base.startsWith("http") ? base : "https://axecloud.com.br";
+  return `\n\nConfirmar presença: ${origin}/convite/${token}/confirmar\nNão poderei ir: ${origin}/convite/${token}/declinar`;
+}
+
+/** Monta o texto completo enviado via Baileys (Evolution sendText). */
+export function buildWhatsAppDeliverableText(
+  templates: unknown,
   tipo: string,
   nomeMembro: string,
   nomeTerreiro: string,
-  variables?: Record<string, string | number>
-): Promise<{ messageId?: string }> {
-  const templateName = resolveMetaTemplateName(tipo);
-  const language = resolveMetaTemplateLanguage();
-  const components = buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, variables);
-
-  return sendTemplateWithFallback(phone, templateName, language, components);
-}
-
-async function sendTemplateWithFallback(
-  phone: string,
-  templateName: string,
-  language: string,
-  components: MetaTemplateComponent[]
-): Promise<{ messageId?: string; channel: "evolution" | "meta" }> {
-  let metaErr: unknown;
-  try {
-    const evo = await sendEvolutionTemplateByInstance(
-      CONSOLE_ADMIN_INSTANCE_NAME,
-      phone,
-      templateName,
-      language,
-      components
-    );
-    console.log(`[WHATSAPP] template via Evolution (${templateName}) → ${phone.slice(0, 4)}…`);
-    return { messageId: evo.messageId, channel: "evolution" };
-  } catch (err) {
-    console.warn(
-      `[WHATSAPP] Evolution template falhou (${templateName}):`,
-      err instanceof Error ? err.message : err
-    );
-  }
-
-  if (isMetaCloudDirectConfigured()) {
-    try {
-      const meta = await sendMetaCloudTemplate(phone, templateName, language, components);
-      console.log(`[WHATSAPP] template via Meta direct (${templateName}) → ${phone.slice(0, 4)}…`);
-      return { messageId: meta.messageId, channel: "meta" };
-    } catch (err) {
-      metaErr = err;
-      console.warn(
-        `[WHATSAPP] Meta direct falhou (${templateName}):`,
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
-
-  throw new Error(
-    metaErr instanceof Error
-      ? metaErr.message
-      : "Falha ao enviar template pelo canal oficial WhatsApp."
-  );
-}
-
-/** Transmissão: template Meta (entrega garantida); texto livre só se WA_BROADCAST_TRY_FREE_TEXT=1. */
-async function sendBroadcastLikeWhatsApp(
-  phone: string,
-  tipo: string,
-  nomeMembro: string,
-  nomeTerreiro: string,
-  variables: Record<string, string | number> | undefined,
-  rawMessage: string,
+  variables?: Record<string, string | number>,
   zelador?: string
-): Promise<{ messageId?: string; deliveryMode: "text" | "template" }> {
-  const signedBody = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
-    includeGreeting: false,
-  });
-  const templateParam = buildSignedWhatsAppTemplateParam(nomeTerreiro, rawMessage, zelador);
-
-  const tryFreeText = String(process.env.WA_BROADCAST_TRY_FREE_TEXT || "").trim() === "1";
-  if (tryFreeText) {
-    try {
-      const textResult = isMetaCloudDirectConfigured()
-        ? await sendMetaCloudText(phone, signedBody)
-        : await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, signedBody);
-      console.log(`[WHATSAPP] broadcast text ok → ${phone.slice(0, 4)}…`);
-      return { messageId: textResult.messageId, deliveryMode: "text" };
-    } catch (err) {
-      if (!isTemplateRequiredMetaError(err)) throw err;
-      console.warn(`[WHATSAPP] broadcast text bloqueado, usando template → ${phone.slice(0, 4)}…`);
-    }
+): string {
+  if (isBroadcastLikeTipo(tipo)) {
+    const rawMessage = resolveBroadcastRawText(variables, "");
+    return buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
+      includeGreeting: false,
+    });
   }
 
-  const templateName = resolveMetaTemplateName(tipo);
-  const language = resolveMetaTemplateLanguage();
-  const templateVars = {
+  const mergedVars: Record<string, string | number> = {
     ...(variables || {}),
-    comunicado: rawMessage,
-    zelador: zelador || "",
-    nome_zelador: zelador || "",
+    nome_filho: variables?.nome_filho || nomeMembro,
+    nome_membro: variables?.nome_membro || nomeMembro,
+    nome_terreiro: variables?.nome_terreiro || nomeTerreiro,
   };
 
-  const components = isMensagemLivreTemplate(tipo)
-    ? buildMensagemLivreComponents(templateParam)
-    : buildMetaTemplateComponentsForTipo(tipo, nomeMembro, nomeTerreiro, templateVars);
+  let body = buildWhatsAppMessage(templates, tipo, mergedVars);
+  const normalized = String(tipo || "").toLowerCase();
 
-  const tpl = await sendTemplateWithFallback(phone, templateName, language, components);
-  console.log(`[WHATSAPP] broadcast template=${templateName} → ${phone.slice(0, 4)}…`);
-  return { messageId: tpl.messageId, deliveryMode: "template" };
+  if (normalized === "convite_evento") {
+    body += buildConviteRsvpLinks(variables);
+  }
+
+  if (normalized === "aviso_gira") {
+    const banner = String(variables?.banner_url || "").trim();
+    if (banner) body += `\n\n${banner}`;
+  }
+
+  return body.slice(0, 4096);
+}
+
+async function sendWhatsAppTextMessage(phone: string, text: string): Promise<{ messageId?: string }> {
+  const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, text);
+  console.log(`[WHATSAPP] text via Evolution → ${phone.slice(0, 4)}…`);
+  return out;
 }
 
 export async function logAndSendWhatsApp(
@@ -399,6 +334,7 @@ export async function logAndSendWhatsApp(
   input: WhatsAppSendInput & {
     phone: string;
     message: string;
+    deliverableText?: string;
     nomeMembro: string;
     nomeTerreiro: string;
     idTerreiro: string;
@@ -407,31 +343,25 @@ export async function logAndSendWhatsApp(
 ): Promise<{ messageId?: string; externalId: string }> {
   await ensureOfficialWhatsAppReady();
 
-  const { tipo, phone, message, nomeMembro, nomeTerreiro, filhoId, tenantId } = input;
+  const { tipo, phone, message, deliverableText, filhoId, tenantId } = input;
   const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
+  const textToSend =
+    deliverableText ||
+    (isBroadcastLikeTipo(tipo)
+      ? buildSignedWhatsAppBody(
+          input.nomeMembro,
+          input.nomeTerreiro,
+          resolveBroadcastRawText(input.variables, message),
+          zelador,
+          { includeGreeting: false }
+        )
+      : message);
 
-  let messageId: string | undefined;
-  let auditMessage = message;
-
-  if (isBroadcastLikeTipo(tipo)) {
-    const rawMessage = resolveBroadcastRawText(input.variables, message);
-    auditMessage = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
-      includeGreeting: false,
-    });
-    const sent = await sendBroadcastLikeWhatsApp(
-      phone,
-      tipo,
-      nomeMembro,
-      nomeTerreiro,
-      input.variables,
-      rawMessage,
-      zelador
-    );
-    messageId = sent.messageId;
-  } else {
-    const sent = await sendWhatsAppTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, input.variables);
-    messageId = sent.messageId;
-  }
+  const sent = await sendWhatsAppTextMessage(phone, textToSend);
+  const messageId = sent.messageId;
+  const auditMessage = isBroadcastLikeTipo(tipo)
+    ? textToSend
+    : buildWhatsAppAuditMessage(tipo, input.variables, input.nomeMembro, input.nomeTerreiro) || textToSend;
 
   const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
   await sb.from("whatsapp_logs").insert({
@@ -490,14 +420,22 @@ export async function sendWhatsAppForTenant(
     variables = await enrichBoasVindasVariables(sb, ctx.leaderId, filhoId, variables);
   }
 
-  const message =
-    buildWhatsAppAuditMessage(input.tipo, variables, nomeMembro, ctx.nomeTerreiro) ||
-    buildWhatsAppMessage(config?.templates, input.tipo, variables);
+  const deliverableText = buildWhatsAppDeliverableText(
+    config?.templates,
+    input.tipo,
+    nomeMembro,
+    ctx.nomeTerreiro,
+    variables,
+    ctx.zelador
+  );
+  const auditMessage =
+    buildWhatsAppAuditMessage(input.tipo, variables, nomeMembro, ctx.nomeTerreiro) || deliverableText;
   const { externalId } = await logAndSendWhatsApp(sb, {
     ...input,
     filhoId,
     phone,
-    message,
+    message: auditMessage,
+    deliverableText,
     nomeMembro,
     nomeTerreiro: ctx.nomeTerreiro,
     idTerreiro: ctx.idTerreiro,
