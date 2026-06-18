@@ -65,7 +65,7 @@ export default defineConfig(({mode}) => {
           theme_color: '#000000',
           background_color: '#000000',
           display: 'standalone',
-          display_override: ['window-controls-overlay', 'standalone'],
+          display_override: ['standalone'],
           icons: [
             {
               src: '/axecloud_48.png',
@@ -77,19 +77,31 @@ export default defineConfig(({mode}) => {
               src: '/axecloud_192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'any',
+            },
+            {
+              src: '/axecloud_192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable',
             },
             {
               src: '/axecloud_512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'any',
+            },
+            {
+              src: '/axecloud_512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
             },
           ],
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v112',
+          cacheId: 'axecloud-v113',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           importScripts: ['/sw-push.js'],
@@ -127,7 +139,7 @@ export default defineConfig(({mode}) => {
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v111',
+                cacheName: 'axecloud-runtime-network-first-v113',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },

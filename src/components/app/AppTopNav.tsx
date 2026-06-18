@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { isInstalledRelatedWebApp, isStandalonePwa as detectStandalonePwa } from '../../lib/pwaInstall';
 import { cn } from '../../lib/utils';
 import { hasPlanAccess } from '../../constants/plans';
 import {
@@ -48,6 +49,22 @@ type AppTopNavProps = {
   filhoFotoUrl?: string | null;
 };
 
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const onChange = () => setMatches(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, [query]);
+
+  return matches;
+}
+
 function NavTab({
   item,
   isActive,
@@ -69,7 +86,7 @@ function NavTab({
       aria-selected={layout === 'dropdown' ? undefined : isActive}
       onClick={onSelect}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 font-bold transition-all',
+        'inline-flex shrink-0 items-center gap-1.5 font-bold transition-colors',
         layout === 'grid'
           ? 'w-full rounded-xl border px-3 py-2.5 text-[11px]'
           : layout === 'dropdown'
@@ -140,7 +157,7 @@ function NavGroupMobileSection({
         onClick={() => setExpanded((o) => !o)}
         aria-expanded={expanded}
         className={cn(
-          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-all',
+          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-colors',
           isGroupActive || expanded
             ? 'border-primary/40 bg-primary/15 text-primary'
             : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]',
@@ -189,22 +206,43 @@ function NavGroupDropdown({
   menuLabel: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isGroupActive = items.some((i) => i.id === activeTab);
+
+  const syncMenuPosition = () => {
+    const button = buttonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 6,
+      left: rect.left,
+    });
+  };
 
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
+    syncMenuPosition();
+    const onScrollOrResize = () => syncMenuPosition();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
       setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
-    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+      document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
@@ -212,6 +250,7 @@ function NavGroupDropdown({
   return (
     <div ref={rootRef} className="relative shrink-0">
       <button
+        ref={buttonRef}
         type="button"
         role="tab"
         aria-selected={isGroupActive}
@@ -219,7 +258,7 @@ function NavGroupDropdown({
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+          'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors',
           isGroupActive || open
             ? 'bg-primary text-[#080A0D] shadow-sm'
             : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
@@ -228,16 +267,18 @@ function NavGroupDropdown({
         <GroupIcon className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={isGroupActive ? 2.25 : 1.75} />
         <span className="whitespace-nowrap">{label}</span>
         <ChevronDown
-          className={cn('h-3.5 w-3.5 shrink-0 transition-transform', open && 'rotate-180')}
+          className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-200', open && 'rotate-180')}
           aria-hidden
         />
       </button>
 
       {open ? (
         <div
+          ref={menuRef}
           role="menu"
           aria-label={menuLabel}
-          className="absolute left-0 top-full z-[60] mt-1.5 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-xl shadow-black/40"
+          style={{ top: menuPos.top, left: menuPos.left }}
+          className="fixed z-[80] min-w-[12.5rem] rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-lg"
         >
           {items.map((item) => (
             <NavTab
@@ -267,15 +308,26 @@ export default function AppTopNav({
   userDisplayName,
   filhoFotoUrl,
 }: AppTopNavProps) {
+  const isLgDesktop = useMediaQuery('(min-width: 1024px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalonePwa, setIsStandalonePwa] = useState(false);
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIsStandalonePwa(standalone);
+    const syncStandalone = () => {
+      setIsStandalonePwa(detectStandalonePwa());
+    };
+
+    syncStandalone();
+
+    void isInstalledRelatedWebApp().then((installed) => {
+      if (installed) setIsStandalonePwa(true);
+    });
+
+    const displayMq = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'] as const;
+    const mqls = displayMq.map((mode) => window.matchMedia(`(display-mode: ${mode})`));
+    const onDisplayChange = () => syncStandalone();
+    mqls.forEach((mql) => mql.addEventListener('change', onDisplayChange));
 
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -283,8 +335,15 @@ export default function AppTopNav({
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+    return () => {
+      mqls.forEach((mql) => mql.removeEventListener('change', onDisplayChange));
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+    };
   }, []);
+
+  useEffect(() => {
+    if (isLgDesktop) setMobileOpen(false);
+  }, [isLgDesktop]);
 
   const handleInstallApp = async () => {
     if (pwaInstallPrompt) {
@@ -531,27 +590,29 @@ export default function AppTopNav({
           </div>
         ) : null}
 
-        <div className="hidden min-w-0 flex-1 overflow-x-auto overscroll-x-contain lg:block [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div
-            className="flex w-max items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
-            role="tablist"
-            aria-label="Módulos do AxéCloud"
-          >
-            {userRole === 'filho'
-              ? navItems.map((item) => (
-                  <NavTab
-                    key={item.id}
-                    item={item}
-                    isActive={activeTab === item.id}
-                    isLocked={isItemLocked(item)}
-                    onSelect={() => handleSelect(item)}
-                  />
-                ))
-              : zeladorEntries?.map((entry, index) =>
-                  renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-                )}
+        {isLgDesktop ? (
+          <div className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div
+              className="flex w-max items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
+              role="tablist"
+              aria-label="Módulos do AxéCloud"
+            >
+              {userRole === 'filho'
+                ? navItems.map((item) => (
+                    <NavTab
+                      key={item.id}
+                      item={item}
+                      isActive={activeTab === item.id}
+                      isLocked={isItemLocked(item)}
+                      onSelect={() => handleSelect(item)}
+                    />
+                  ))
+                : zeladorEntries?.map((entry, index) =>
+                    renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+                  )}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="hidden shrink-0 items-center gap-2 pl-1 lg:flex">{headerActions()}</div>
       </div>

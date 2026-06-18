@@ -1,3 +1,4 @@
+import { getRunningBuildId } from './buildId';
 import { buildEmergencyReloadUrl } from './urlHygiene';
 
 type ApplyUpdateFn = (reloadPage?: boolean) => Promise<void>;
@@ -40,7 +41,22 @@ export function getAppliedBuildId(): string | null {
 
 export function isBuildAlreadyApplied(buildId: string): boolean {
   const applied = getAppliedBuildId();
-  return Boolean(applied && applied === buildId);
+  if (!applied || applied !== buildId) return false;
+  const running = getRunningBuildId();
+  return Boolean(running && running === buildId);
+}
+
+/** Remove marca de build aplicado quando o bundle em execução ficou desatualizado. */
+export function reconcileStaleAppliedBuild(): void {
+  const applied = getAppliedBuildId();
+  const running = getRunningBuildId();
+  if (!applied || !running || applied === running) return;
+  try {
+    localStorage.removeItem(UPDATE_APPLIED_BUILD_KEY);
+    localStorage.removeItem(UPDATE_APPLIED_AT_KEY);
+  } catch {
+    /* */
+  }
 }
 
 export function acknowledgeAppliedBuild(buildId: string): void {
