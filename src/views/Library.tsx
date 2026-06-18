@@ -406,15 +406,15 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col', embedded && 'min-h-0 flex-1')}
           >
             {embedded ? (
-              <div className="mb-3 flex shrink-0 items-start justify-between gap-2 border-b border-[#1E242B] pb-3">
+              <div className="mb-4 flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-primary">Biblioteca de estudos</p>
-                  <h2 className="mt-0.5 text-base font-bold tracking-tight text-[#F1F5F9]">PDFs do terreiro</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Biblioteca de estudos</p>
+                  <h2 className="mt-0.5 text-lg font-bold tracking-tight text-[#F1F5F9] sm:text-xl">PDFs do terreiro</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('library')}
-                  className="flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:text-primary"
+                  className="flex shrink-0 items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 transition hover:text-primary"
                 >
                   Ver tudo
                   <ExternalLink className="w-3 h-3" />
@@ -502,7 +502,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             ) : filteredMaterials.length > 0 ? (
               <div className={cn(
                 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4',
-                embedded && 'min-h-0 max-h-[min(520px,55vh)] flex-1 grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 [scrollbar-width:thin]'
+                embedded && 'min-h-0 max-h-[min(340px,40vh)] flex-1 grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 [scrollbar-width:thin]'
               )}>
                 {filteredMaterials.map((material) => (
                   <motion.div
@@ -563,11 +563,19 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 ))}
               </div>
             ) : (
+              embedded ? (
+                <div className="rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-10 px-4 text-center">
+                  <BookOpen className="mx-auto mb-2 h-8 w-8 text-primary/40" />
+                  <h3 className="text-sm font-bold text-[#F1F5F9]">Nenhum material encontrado</h3>
+                  <p className="mt-1 text-xs text-[#94A3B8]">Tente ajustar a busca ou veja a biblioteca completa.</p>
+                </div>
+              ) : (
               <AppDemoCard className="py-16 text-center sm:py-20">
                 <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/40" />
                 <h3 className="text-lg font-bold text-[#F1F5F9]">Nenhum material encontrado</h3>
                 <p className="mt-2 text-sm text-[#94A3B8]">Tente ajustar sua busca ou filtros.</p>
               </AppDemoCard>
+              )
             )}
           </div>
         </motion.div>

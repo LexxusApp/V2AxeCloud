@@ -763,20 +763,18 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         </section>
       </div>
 
-      {/* Mural (coluna estreita) + Biblioteca PDFs (coluna larga) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
-        <section className="lg:col-span-4 min-w-0 space-y-4 flex flex-col">
-          <div className="flex items-end justify-between gap-2 px-1">
+      {/* Mural + Biblioteca — colunas iguais, painéis alinhados */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+        <section className={cn(filhoPanelClass, 'flex min-w-0 flex-col p-5 sm:p-6')}>
+          <div className="mb-4 flex items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
-                Mural do terreiro
-              </p>
-              <h2 className="text-xl font-black text-white tracking-tight">Últimos avisos</h2>
+              <p className={filhoKickerClass}>Mural do terreiro</p>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Últimos avisos</h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('mural')}
-              className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors flex items-center gap-1"
+              className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1"
             >
               Ver mural
               <ArrowRight className="w-3 h-3" />
@@ -788,14 +786,14 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               {[0, 1].map((i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-white/5 bg-white/[0.02] h-36 animate-pulse"
+                  className="rounded-xl border border-[#1E242B] bg-[#12161A] h-28 animate-pulse"
                 />
               ))}
             </div>
           ) : sortedNotices.length === 0 ? (
             <div className="w-full rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-10 px-4 text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto">
-                <Info className="w-7 h-7 text-gray-500" />
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mx-auto">
+                <Info className="w-6 h-6 text-gray-500" />
               </div>
               <p className="text-sm font-bold text-gray-300">Nenhum aviso por aqui ainda</p>
               <p className="text-xs text-gray-500 max-w-xs mx-auto">
@@ -804,46 +802,46 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
             </div>
           ) : (
             <div className="space-y-3 w-full min-w-0">
-            {sortedNotices.map((notice, idx) => {
+            {sortedNotices.slice(0, 2).map((notice, idx) => {
               const cfg = categoryConfig[notice.categoria] || categoryConfig.Geral;
               const Icon = cfg.icon;
               return (
                 <motion.article
                   key={notice.id}
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   className={cn(
-                    filhoPanelClass,
+                    filhoPanelInsetClass,
                     'overflow-hidden',
                     notice.categoria === 'Urgente' ? 'border-rose-500/25' : '',
                   )}
                 >
-                  <header className="flex items-start gap-3 px-4 pt-4 pb-3 border-b border-white/[0.06]">
+                  <header className="flex items-start gap-2.5 px-3.5 pt-3.5 pb-2.5 border-b border-white/[0.06]">
                     <div
                       className={cn(
-                        'w-9 h-9 rounded-xl border flex items-center justify-center shrink-0',
+                        'w-8 h-8 rounded-lg border flex items-center justify-center shrink-0',
                         cfg.bg,
                         cfg.border
                       )}
                     >
-                      <Icon className={cn('w-4 h-4', cfg.color)} />
+                      <Icon className={cn('w-3.5 h-3.5', cfg.color)} />
                     </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <p className="text-sm font-black text-white leading-tight">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <p className="text-xs font-black text-white leading-tight truncate">
                           {tenantData?.nome || 'Terreiro'}
                         </p>
                         <span
                           className={cn(
-                            'inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest',
+                            'inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest',
                             cfg.badge
                           )}
                         >
                           {cfg.label}
                         </span>
                       </div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
                         {format(new Date(notice.data_publicacao), "dd 'de' MMM • HH:mm", {
                           locale: ptBR,
                         })}
@@ -851,22 +849,31 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                     </div>
                   </header>
 
-                  <div className="px-4 py-4 space-y-2">
-                    <h3 className="text-base font-black text-white tracking-tight leading-snug">
+                  <div className="px-3.5 py-3 space-y-1">
+                    <h3 className="text-sm font-black text-white tracking-tight leading-snug line-clamp-2">
                       {notice.titulo}
                     </h3>
-                    <div className="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed [&>*:first-child]:mt-0">
+                    <div className="prose prose-invert prose-sm max-w-none text-gray-400 text-xs leading-relaxed line-clamp-3 [&>*:first-child]:mt-0">
                       <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
                     </div>
                   </div>
                 </motion.article>
               );
             })}
+            {sortedNotices.length > 2 ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab('mural')}
+                className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+              >
+                + {sortedNotices.length - 2} aviso(s) no mural
+              </button>
+            ) : null}
             </div>
           )}
         </section>
 
-        <section className="lg:col-span-8 min-w-0 min-h-0 flex flex-col rounded-[2rem] border border-white/10 bg-[#101010] p-4 sm:p-5 shadow-lg lg:min-h-[min(560px,62vh)]">
+        <section className={cn(filhoPanelClass, 'flex min-w-0 min-h-0 flex-col p-5 sm:p-6')}>
           <Library
             user={user}
             userRole="filho"
@@ -878,31 +885,31 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         </section>
       </div>
 
-      {/* Loja do Axé — produtos do pai de santo */}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3 px-1">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Loja do Axé</p>
-            <h2 className="text-xl font-black text-white tracking-tight">Produtos do terreiro</h2>
-            <p className="text-xs text-gray-500 mt-1 max-w-md">Itens cadastrados pelo zelador para a comunidade.</p>
+      {/* Loja do Axé */}
+      <section className={cn(filhoPanelClass, 'p-5 sm:p-6 space-y-4')}>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
+          <div className="min-w-0">
+            <p className={filhoKickerClass}>Loja do Axé</p>
+            <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Produtos do terreiro</h2>
+            <p className="text-xs text-gray-500 mt-1">Itens cadastrados pelo zelador para a comunidade.</p>
           </div>
           <button
             type="button"
             onClick={() => setActiveTab('store')}
-            className="text-[11px] font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors flex items-center gap-1"
+            className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1"
           >
             Ir para a loja
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {loadingProducts ? (
             [1, 2, 3, 4].map((i) => (
               <div key={i} className="aspect-[4/5] rounded-2xl bg-white/5 border border-white/5 animate-pulse" />
             ))
           ) : products.length === 0 ? (
-            <div className="col-span-full py-12 text-center rounded-[2rem] border border-white/10 bg-black/30">
-              <ShoppingBag className="w-10 h-10 text-gray-600 mx-auto mb-3 opacity-40" />
+            <div className="col-span-full py-10 text-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A]">
+              <ShoppingBag className="w-9 h-9 text-gray-600 mx-auto mb-2 opacity-40" />
               <p className="text-sm font-bold text-gray-400">Nenhum produto na vitrine ainda</p>
             </div>
           ) : (
@@ -913,7 +920,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab('store')}
-                className="group text-left rounded-2xl border border-primary/20 bg-[#0d0d0d] overflow-hidden shadow-lg hover:border-primary/40 transition-colors"
+                className="group text-left rounded-xl border border-[#1E242B] bg-[#12161A] overflow-hidden transition-colors hover:border-primary/30"
               >
                 <div className="aspect-square bg-black/50 relative">
                   {product.imagem_url ? (
