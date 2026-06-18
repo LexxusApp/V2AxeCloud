@@ -541,7 +541,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               childId: child.id,
               title: '🌿 Obrigação de Axé',
               body: `Olá ${child.nome}, a obrigação "${obligationData.titulo}" foi cadastrada no seu perfil.`,
-              url: '/',
+              url: '/?tab=obrigacoes',
             }),
           });
         } catch (pushErr) {

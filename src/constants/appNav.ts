@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BookOpen,
   CalendarDays,
+  Flame,
   Flower2,
   HandHeart,
   Home,
@@ -142,6 +143,7 @@ export function flattenZeladorNavEntries(entries: ZeladorNavEntry[]): AppNavItem
 
 export const FILHO_NAV: AppNavItem[] = [
   { id: 'profile', label: 'Meu Perfil', icon: UserCircle },
+  { id: 'obrigacoes', label: 'Obrigações', icon: Flame },
   { id: 'financial', label: 'Mensalidade', icon: Wallet },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'library', label: 'Biblioteca', icon: BookOpen },

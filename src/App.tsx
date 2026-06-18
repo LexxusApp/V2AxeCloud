@@ -25,6 +25,7 @@ const NoticeBoard = lazy(() => import('./views/NoticeBoard'));
 const Settings = lazy(() => import('./views/Settings'));
 const ChildProfile = lazy(() => import('./views/ChildProfile'));
 const PerfilFilho = lazy(() => import('./views/PerfilFilho'));
+const ObrigacoesFilho = lazy(() => import('./views/ObrigacoesFilho'));
 const Library = lazy(() => import('./views/Library'));
 const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
@@ -56,7 +57,7 @@ import {
 } from './lib/logout';
 import { goToLogin } from './lib/navigation';
 
-const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'financial', 'calendar', 'library', 'store', 'mural']);
+const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural']);
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 const TENANT_ANCHOR_KEY = 'tenant_id';
@@ -1088,6 +1089,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     }
   }, [userRole, activeTab]);
 
+  useEffect(() => {
+    if (userRole !== 'filho' || typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab && FILHO_ALLOWED_TABS.has(tab)) {
+      setActiveTab(tab);
+    }
+  }, [userRole]);
+
   /** Loading prolongado: evita recarga automática para não entrar em loop no mobile. */
   useEffect(() => {
     if (!loading) return;
@@ -1294,6 +1303,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       switch (activeTab) {
         case 'profile':
         case 'perfil': return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
+        case 'obrigacoes':
+          return <ObrigacoesFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'financial': return <MensalidadeFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'calendar': return <Calendar user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} userRole={userRole} />;
         case 'library': return <Library user={session.user} userRole={userRole} tenantData={hijoTenantData} isAdminGlobal={false} setActiveTab={navigateToTab} />;
