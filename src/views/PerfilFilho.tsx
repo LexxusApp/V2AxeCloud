@@ -552,8 +552,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         </div>
       </header>
 
-      {/* Mensalidade (PIX) | Próximo evento — colunas com mesma fração e min-w-0 para largura estável */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch [&>section]:min-w-0">
+      {/* Mensalidade (PIX) | Próximo evento — altura independente por coluna */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start [&>section]:min-w-0">
         <section className={cn(filhoPanelClass, 'flex w-full flex-col p-6 sm:p-8')}>
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
@@ -654,7 +654,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           )}
         </section>
 
-        <section className={cn(filhoPanelClass, 'flex min-h-0 min-w-0 w-full flex-col p-5 sm:p-6')}>
+        <section className={cn(filhoPanelClass, 'flex w-full flex-col self-start p-5 sm:p-6')}>
           <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
             <div>
               <p className={filhoKickerClass}>Giras & eventos</p>
@@ -671,7 +671,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           </div>
 
           {loadingCal ? (
-            <div className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] p-4 sm:p-5 min-h-[168px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
                 <div className="flex items-center gap-3">
@@ -691,10 +691,10 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               aria-label={`Abrir agenda completa: ${proximoEvento.titulo}`}
               className={cn(
                 filhoPanelInsetClass,
-                'group flex min-h-[168px] w-full cursor-pointer flex-col px-4 py-4 text-left transition-all hover:border-primary/30 sm:px-5 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
+                'group flex w-full cursor-pointer flex-col px-4 py-3.5 text-left transition-all hover:border-primary/30 sm:px-5 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
               )}
             >
-              <div className="flex items-start justify-between gap-2 mb-2 shrink-0">
+              <div className="flex items-start justify-between gap-2 mb-1.5 shrink-0">
                 <p className="text-[11px] text-white/90 italic tracking-wide">Próximo evento</p>
                 {proximoEvento.tipo ? (
                   <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-primary">
@@ -703,44 +703,41 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 ) : null}
               </div>
               {formatDataPorExtenso(proximoEvento.data) ? (
-                <p className="text-[10px] font-semibold text-gray-500 mb-3 leading-snug pr-6">
+                <p className="text-[10px] font-semibold text-gray-500 mb-2 leading-snug pr-6">
                   {formatDataPorExtenso(proximoEvento.data)}
                 </p>
               ) : null}
-              <div className="flex flex-1 flex-col sm:flex-row sm:items-stretch sm:justify-between gap-4 min-h-0 min-w-0">
-                <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                  <CalendarIcon className="w-9 h-9 text-primary shrink-0 stroke-[1.25] group-hover:scale-105 transition-transform" aria-hidden />
-                  <div className="flex items-end gap-2.5">
-                    <span className="text-4xl sm:text-[2.35rem] font-black text-primary tabular-nums leading-none tracking-tight">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 min-w-0">
+                <div className="flex items-center gap-3 shrink-0">
+                  <CalendarIcon className="w-8 h-8 text-primary shrink-0 stroke-[1.25] group-hover:scale-105 transition-transform" aria-hidden />
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl sm:text-4xl font-black text-primary tabular-nums leading-none tracking-tight">
                       {proximoEventoLabels.dia}
                     </span>
-                    <span className="text-xs font-black text-white uppercase tracking-[0.16em] pb-1">
+                    <span className="text-xs font-black text-white uppercase tracking-[0.16em] pb-0.5">
                       {proximoEventoLabels.mes}
                     </span>
                   </div>
                 </div>
-                <div className="min-w-0 flex flex-1 flex-col justify-center border-t border-white/10 pt-3 sm:border-t-0 sm:border-l sm:border-white/10 sm:pl-6 sm:pt-0">
-                  <p className="text-sm sm:text-base text-white font-bold leading-snug line-clamp-2">{proximoEvento.titulo}</p>
+                <div className="min-w-0 flex flex-col gap-1 border-t border-white/10 pt-3 sm:border-t-0 sm:border-l sm:border-white/10 sm:pl-5 sm:pt-0 sm:flex-1">
+                  <p className="text-sm text-white font-bold leading-snug line-clamp-2">{proximoEvento.titulo}</p>
                   {formatHoraEvento(proximoEvento.hora) ? (
-                    <p className="text-sm text-primary italic mt-1 font-semibold tabular-nums">
+                    <p className="text-sm text-primary italic font-semibold tabular-nums">
                       {formatHoraEvento(proximoEvento.hora)}
                     </p>
                   ) : null}
                   {proximoEvento.local?.trim() ? (
-                    <p className="text-[11px] text-gray-400 mt-2 leading-snug line-clamp-2">
+                    <p className="text-[11px] text-gray-400 leading-snug line-clamp-2">
                       <span className="font-black text-gray-500 uppercase tracking-wider">Local: </span>
                       {proximoEvento.local.trim()}
                     </p>
                   ) : null}
-                  {proximoEvento.descricao?.trim() ? (
-                    <p className="text-[11px] text-gray-400 mt-2 leading-relaxed line-clamp-3">{proximoEvento.descricao.trim()}</p>
-                  ) : null}
                   {textoPresenca(proximoEvento.status_confirmacao) ? (
-                    <p className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wide mt-2">
+                    <p className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wide">
                       {textoPresenca(proximoEvento.status_confirmacao)}
                     </p>
                   ) : null}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/80 mt-3 flex items-center gap-1 sm:justify-end">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/80 mt-1 flex items-center gap-1">
                     Ver na agenda
                     <ArrowRight className="w-3 h-3 inline group-hover:translate-x-0.5 transition-transform" />
                   </p>
@@ -748,7 +745,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               </div>
             </button>
           ) : (
-            <div className="flex min-h-[168px] w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-4 py-6 sm:py-8 text-center">
+            <div className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-4 py-8 text-center">
               <CalendarIcon className="w-9 h-9 text-primary/45 mx-auto mb-2.5" />
               <p className="text-xs font-bold text-gray-400 italic">Nenhum evento futuro na agenda</p>
               <p className="text-[11px] text-gray-600 mt-1.5 max-w-xs mx-auto leading-relaxed">
