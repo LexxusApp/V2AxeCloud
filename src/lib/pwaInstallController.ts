@@ -12,7 +12,18 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let installedHint = false;
 const listeners = new Set<Listener>();
 
+/** Referência estável — useSyncExternalStore exige igualdade por referência entre renders. */
+let snapshot = { canInstall: false, isInstalled: false };
+
+function syncSnapshot(): void {
+  const canInstall = Boolean(deferredPrompt) && !installedHint && !isStandalonePwa();
+  const isInstalled = installedHint || isStandalonePwa();
+  if (snapshot.canInstall === canInstall && snapshot.isInstalled === isInstalled) return;
+  snapshot = { canInstall, isInstalled };
+}
+
 function notify(): void {
+  syncSnapshot();
   listeners.forEach((listener) => listener());
 }
 
@@ -65,12 +76,17 @@ export function subscribePwaInstallState(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+export function getPwaInstallSnapshot(): typeof snapshot {
+  syncSnapshot();
+  return snapshot;
+}
+
 export function canShowPwaInstallPrompt(): boolean {
-  return Boolean(deferredPrompt) && !installedHint && !isStandalonePwa();
+  return getPwaInstallSnapshot().canInstall;
 }
 
 export function isPwaInstalled(): boolean {
-  return installedHint || isStandalonePwa();
+  return getPwaInstallSnapshot().isInstalled;
 }
 
 export async function triggerPwaInstall(): Promise<'accepted' | 'dismissed' | 'unavailable' | 'ios'> {

@@ -1,6 +1,6 @@
 import { Download } from 'lucide-react';
 import { useState } from 'react';
-import { usePwaInstallHydrated } from '../hooks/usePwaInstall';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 type Props = {
   className?: string;
@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function PwaInstallPrompt({ className, variant = 'banner' }: Props) {
-  const { canInstall, isInstalled, install } = usePwaInstallHydrated();
+  const { canInstall, isInstalled, install } = usePwaInstall();
   const [busy, setBusy] = useState(false);
 
   if (isInstalled || !canInstall) return null;
