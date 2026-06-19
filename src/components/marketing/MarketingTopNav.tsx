@@ -25,7 +25,7 @@ function sectionHref(sectionBase: string, id: string) {
   return sectionBase ? `${sectionBase}#${id}` : `#${id}`;
 }
 
-const LOGO_SRC = '/logo-axecloud.png?v=4';
+const LOGO_SRC = '/logo-axecloud.png?v=6';
 
 export function LogoMark({ compact = false }: { compact?: boolean }) {
   return (

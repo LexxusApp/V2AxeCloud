@@ -20,8 +20,9 @@ import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
-import { AxeCloudLogoMark } from '../components/AxeCloudLogoMark';
 import { ROUTES } from '../lib/routes';
+
+const LOGIN_LOGO_SRC = '/logo-axecloud.png?v=6';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -347,8 +348,14 @@ export default function Login() {
 
         <header className="space-y-4 text-center">
           <div className="flex justify-center py-1">
-            <AxeCloudLogoMark size="default" className="max-w-full sm:hidden" />
-            <AxeCloudLogoMark size="large" className="hidden max-w-full sm:flex" />
+            <img
+              src={LOGIN_LOGO_SRC}
+              alt="AxéCloud — Gestão Sagrada"
+              width={560}
+              height={181}
+              decoding="async"
+              className="h-auto w-full max-w-[260px] object-contain sm:max-w-[300px]"
+            />
           </div>
           <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">

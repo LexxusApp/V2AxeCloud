@@ -4869,6 +4869,7 @@ async function startServer() {
           pathOnly === "/manifest.webmanifest" ||
           pathOnly === "/build-info.json" ||
           pathOnly === "/favicon.ico" ||
+          pathOnly === "/logo-axecloud.png" ||
           pathOnly.startsWith("/workbox-") ||
           /^\/axecloud_\d+\.png$/.test(pathOnly) ||
           /^\/pwa-\d+\.png$/.test(pathOnly)
