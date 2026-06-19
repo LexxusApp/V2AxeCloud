@@ -2,12 +2,10 @@ import {
   ChevronDown,
   Download,
   Flame,
-  Landmark,
   Loader2,
   Lock,
   LogOut,
   Menu,
-  PieChart,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -19,10 +17,7 @@ import {
   buildZeladorNavEntries,
   buildZeladorNavItems,
   FILHO_NAV,
-  flattenZeladorNavEntries,
   navItemPlanFeature,
-  ZELADOR_CASA_CHILD_IDS,
-  ZELADOR_FINANCIAL_CHILD_IDS,
   type AppNavItem,
   type ZeladorNavEntry,
 } from '../../constants/appNav';
@@ -408,23 +403,6 @@ export default function AppTopNav({
     [userRole, tenantData?.tradicao],
   );
 
-  const zeladorFlatItems = useMemo(
-    () => (zeladorEntries ? flattenZeladorNavEntries(zeladorEntries) : navItems),
-    [zeladorEntries, navItems],
-  );
-
-  const activeItem = zeladorFlatItems.find((item) => item.id === activeTab) ?? navItems.find((item) => item.id === activeTab);
-  const casaChildIds = useMemo(() => new Set<string>(ZELADOR_CASA_CHILD_IDS), []);
-  const financialChildIds = useMemo(() => new Set<string>(ZELADOR_FINANCIAL_CHILD_IDS), []);
-  const activeCasaItem =
-    userRole === 'admin' && casaChildIds.has(activeTab)
-      ? zeladorFlatItems.find((item) => item.id === activeTab)
-      : null;
-  const activeFinancialItem =
-    userRole === 'admin' && financialChildIds.has(activeTab)
-      ? zeladorFlatItems.find((item) => item.id === activeTab)
-      : null;
-
   const isItemLocked = (item: AppNavItem) =>
     userRole === 'admin' && !hasPlanAccess(tenantData?.plan, navItemPlanFeature(item.id), isAdmin);
 
@@ -632,36 +610,9 @@ export default function AppTopNav({
                 {terreiroNome}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-medium text-primary">{subtitle}</p>
-              {!mobileOpen && (activeCasaItem || activeFinancialItem || activeItem) ? (
-                <p className="mt-1.5 flex items-center gap-1 lg:hidden">
-                  <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                    {activeCasaItem ? (
-                      <>
-                        <Landmark className="h-3 w-3 shrink-0" aria-hidden />
-                        <span className="truncate">
-                          Casa · {activeCasaItem.label}
-                        </span>
-                      </>
-                    ) : activeFinancialItem ? (
-                      <>
-                        <PieChart className="h-3 w-3 shrink-0" aria-hidden />
-                        <span className="truncate">
-                          Financeiro · {activeFinancialItem.label}
-                        </span>
-                      </>
-                    ) : activeItem ? (
-                      <>
-                        <activeItem.icon className="h-3 w-3 shrink-0" aria-hidden />
-                        <span className="truncate">{activeItem.label}</span>
-                      </>
-                    ) : null}
-                  </span>
-                </p>
-              ) : null}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
-            {headerActions(true)}
+          <div className="flex shrink-0 items-center lg:hidden">
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
