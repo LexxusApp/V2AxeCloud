@@ -340,8 +340,8 @@ export function ChildProfileV3View({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5">
+      {/* Tabs — flex-wrap no mobile evita barra de rolagem horizontal */}
+      <div className="flex flex-wrap gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
           const Icon = tab.icon;
@@ -352,7 +352,7 @@ export function ChildProfileV3View({
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-5 py-2.5 text-xs font-bold transition-all',
+                'relative flex min-w-[calc(50%-0.25rem)] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-[11px] font-bold transition-all touch-manipulation sm:min-w-0 sm:shrink-0 sm:justify-start sm:px-5 sm:py-2.5 sm:text-xs',
                 active ? 'bg-[#FACC15] font-black text-[#080A0D] shadow-md' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white',
                 locked && !active && 'opacity-50',
               )}
