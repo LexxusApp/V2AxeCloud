@@ -42,8 +42,8 @@ PAYLOAD=$(cat <<EOF
   "description": "${RULESET_DESC}",
   "rules": [
     {
-      "description": "Bypass cache — API e painel",
-      "expression": "(http.request.uri.path starts_with \"/api/\") or (http.request.uri.path starts_with \"/login\") or (http.request.uri.path starts_with \"/dashboard\") or (http.request.uri.path starts_with \"/webhook/\")",
+      "description": "Bypass cache — API, painel e ícones PWA",
+      "expression": "(http.request.uri.path starts_with \"/api/\") or (http.request.uri.path starts_with \"/login\") or (http.request.uri.path starts_with \"/dashboard\") or (http.request.uri.path starts_with \"/webhook/\") or (http.request.uri.path starts_with \"/pwa-\") or (http.request.uri.path starts_with \"/axecloud_\") or (http.request.uri.path eq \"/favicon.ico\") or (http.request.uri.path eq \"/manifest.webmanifest\") or (http.request.uri.path eq \"/sw.js\")",
       "action": "set_cache_settings",
       "action_parameters": {
         "cache": false

@@ -79,7 +79,7 @@ import {
   assertZeladorTenantAccess as assertZeladorTenantAccessLib,
   resolveFinanceiroTenantScope as resolveFinanceiroTenantScopeLib,
   assertUserCanAccessTenant,
-  pickAllowedChildFields,
+  normalizeChildPayload,
   isValidUuid,
 } from "./lib/tenantAccess.js";
 import { requireAuthOrRespond, getBearerToken } from "./lib/requireAuth.js";
@@ -3804,7 +3804,10 @@ async function startServer() {
     const userId = user.id;
     const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
     const userRoleQ = String(req.query.userRole || "");
-    const updateData = pickAllowedChildFields(req.body || {});
+    const updateData = normalizeChildPayload((req.body || {}) as Record<string, unknown>);
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "Nenhum campo válido para atualizar" });
+    }
 
     try {
       const tenantId = await resolveFinanceiroTenantScope(
@@ -3837,7 +3840,10 @@ async function startServer() {
 
       if (error) {
         console.error("[SERVER] Error updating child:", error);
-        return res.status(500).json({ error: "Erro ao atualizar filho de santo" });
+        const hint = String(error.message || "").trim();
+        return res.status(500).json({
+          error: hint ? `Erro ao atualizar filho de santo: ${hint}` : "Erro ao atualizar filho de santo",
+        });
       }
 
       res.json({ success: true, data });
@@ -3954,7 +3960,7 @@ async function startServer() {
       const tenantId = userProfile?.tenant_id;
       if (!tenantId) return res.status(403).json({ error: "Tenant não configurado" });
 
-      const allowed = pickAllowedChildFields((childData || {}) as Record<string, unknown>);
+      const allowed = normalizeChildPayload((childData || {}) as Record<string, unknown>);
       const dataToInsert: Record<string, unknown> = {
         ...allowed,
         lider_id: userId,
@@ -4862,7 +4868,10 @@ async function startServer() {
           pathOnly === "/sw.js" ||
           pathOnly === "/manifest.webmanifest" ||
           pathOnly === "/build-info.json" ||
-          pathOnly.startsWith("/workbox-")
+          pathOnly === "/favicon.ico" ||
+          pathOnly.startsWith("/workbox-") ||
+          /^\/axecloud_\d+\.png$/.test(pathOnly) ||
+          /^\/pwa-\d+\.png$/.test(pathOnly)
         ) {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
           res.setHeader("Pragma", "no-cache");

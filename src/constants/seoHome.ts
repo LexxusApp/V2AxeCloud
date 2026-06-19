@@ -124,7 +124,7 @@ export function buildHomeJsonLd(): string {
       name: BRAND_NAME,
       alternateName: buildBrandAlternateNamesJsonLd(),
       url: `${SITE_ORIGIN}/`,
-      logo: `${SITE_ORIGIN}/axecloud_512.png`,
+      logo: `${SITE_ORIGIN}/pwa-512.png`,
       description: HOME_SEO.description,
       sameAs: [...SOCIAL_SAME_AS],
     },

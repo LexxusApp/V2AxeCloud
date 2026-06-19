@@ -6,8 +6,8 @@ self.addEventListener('push', function(event) {
       const title = payload.title || 'AxéCloud';
       const options = {
         body: payload.body || 'Você tem uma nova notificação.',
-        icon: '/axecloud_192.png',
-        badge: '/axecloud_192.png',
+        icon: '/pwa-192.png',
+        badge: '/pwa-192.png',
         data: {
           url: payload.url || '/'
         },

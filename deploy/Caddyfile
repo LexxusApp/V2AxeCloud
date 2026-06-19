@@ -105,13 +105,20 @@ axecloud.com.br, www.axecloud.com.br {
 		}
 
 		@public_static {
-			path /favicon.ico
 			path /robots.txt
 			path /sitemap.xml
 			path /sitemap.xm
 			path /og-image.png
 			path /screenshots/*
+		}
+		# Ícones PWA/favicon: sempre do container app (dist atualizado no deploy)
+		@pwa_icons {
+			path /favicon.ico
 			path /axecloud_*.png
+			path /pwa-*.png
+		}
+		handle @pwa_icons {
+			reverse_proxy app:3000
 		}
 		handle @public_static {
 			reverse_proxy marketing:80

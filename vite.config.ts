@@ -46,6 +46,10 @@ export default defineConfig(({mode}) => {
           'axecloud_96.png',
           'axecloud_192.png',
           'axecloud_512.png',
+          'pwa-48.png',
+          'pwa-96.png',
+          'pwa-192.png',
+          'pwa-512.png',
           'login-bg.png',
           'login-bg-premium.png',
           'login-bg-desktop.png',
@@ -68,31 +72,31 @@ export default defineConfig(({mode}) => {
           display_override: ['standalone'],
           icons: [
             {
-              src: '/axecloud_48.png',
+              src: '/pwa-48.png',
               sizes: '48x48',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/axecloud_192.png',
+              src: '/pwa-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/axecloud_192.png',
+              src: '/pwa-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable',
             },
             {
-              src: '/axecloud_512.png',
+              src: '/pwa-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/axecloud_512.png',
+              src: '/pwa-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -101,7 +105,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v113',
+          cacheId: 'axecloud-v114',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           importScripts: ['/sw-push.js'],
