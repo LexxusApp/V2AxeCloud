@@ -200,7 +200,7 @@ export function PortalHomeHub() {
         <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="relative">
             <aside
-              className="pointer-events-auto absolute left-0 top-6 z-20 hidden xl:block"
+              className="pointer-events-auto absolute -left-2 top-4 z-30 hidden xl:block"
               aria-label="Chamada Programa Fundador"
             >
               <FounderHeroCallout variant="sidebar" />
