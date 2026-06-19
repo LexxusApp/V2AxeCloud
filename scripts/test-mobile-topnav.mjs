@@ -18,8 +18,10 @@ function assertSourceGuards() {
     ['isLgDesktop', 'guard de desktop'],
     ['isLgDesktop ? (', 'nav desktop condicional'],
     ['lg:hidden', 'menu mobile exclusivo'],
-    ['fixed inset-0 z-[46]', 'backdrop opaco mobile (sem blur GPU)'],
-    ['fixed left-0 right-0 bottom-0 z-[47]', 'menu mobile em overlay fixo'],
+    ['fixed inset-0 z-[60]', 'backdrop mobile sem blur'],
+    ['fixed left-0 top-0 bottom-0 z-[70]', 'drawer lateral mobile'],
+    ['min-h-[48px]', 'alvos de toque amplos no drawer'],
+    ['layout="drawer"', 'itens do menu lateral'],
   ];
   for (const [needle, label] of checks) {
     if (!source.includes(needle)) {

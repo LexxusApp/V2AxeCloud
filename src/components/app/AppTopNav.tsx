@@ -71,7 +71,7 @@ function NavTab({
   isActive: boolean;
   isLocked: boolean;
   onSelect: () => void;
-  layout?: 'inline' | 'grid' | 'dropdown';
+  layout?: 'inline' | 'grid' | 'dropdown' | 'drawer';
 }) {
   const Icon = item.icon;
   return (
@@ -81,28 +81,37 @@ function NavTab({
       aria-selected={layout === 'dropdown' ? undefined : isActive}
       onClick={onSelect}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 font-bold transition-colors',
-        layout === 'grid'
-          ? 'w-full rounded-xl border px-3 py-2.5 text-[11px]'
-          : layout === 'dropdown'
-            ? 'w-full rounded-lg px-3 py-2.5 text-left text-xs'
-            : 'rounded-lg px-3 py-2 text-xs',
+        'inline-flex shrink-0 items-center font-bold transition-colors touch-manipulation',
+        layout === 'drawer'
+          ? 'w-full min-h-[48px] gap-3 rounded-xl px-4 py-3 text-left text-sm'
+          : layout === 'grid'
+            ? 'w-full min-h-[44px] gap-1.5 rounded-xl border px-3 py-3 text-xs'
+            : layout === 'dropdown'
+              ? 'w-full min-h-[44px] gap-1.5 rounded-lg px-3 py-3 text-left text-sm'
+              : 'gap-1.5 rounded-lg px-3 py-2 text-xs',
         isActive
           ? layout === 'grid'
             ? 'border-primary/40 bg-primary text-[#080A0D] shadow-sm'
-            : layout === 'dropdown'
-              ? 'bg-primary/15 text-primary'
-              : 'bg-primary text-[#080A0D] shadow-sm'
+            : layout === 'drawer'
+              ? 'bg-primary text-[#080A0D] shadow-sm'
+              : layout === 'dropdown'
+                ? 'bg-primary/15 text-primary'
+                : 'bg-primary text-[#080A0D] shadow-sm'
           : layout === 'grid'
             ? 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]'
-            : layout === 'dropdown'
+            : layout === 'drawer'
               ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
-              : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+              : layout === 'dropdown'
+                ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
+                : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
         isLocked && 'opacity-50',
       )}
     >
       <Icon
-        className={cn('shrink-0', layout === 'grid' || layout === 'dropdown' ? 'h-4 w-4' : 'h-3.5 w-3.5')}
+        className={cn(
+          'shrink-0',
+          layout === 'drawer' ? 'h-5 w-5' : layout === 'grid' || layout === 'dropdown' ? 'h-4 w-4' : 'h-3.5 w-3.5',
+        )}
         aria-hidden
         strokeWidth={isActive ? 2.25 : 1.75}
         fill={isActive && item.filledWhenActive ? 'currentColor' : 'none'}
@@ -111,14 +120,14 @@ function NavTab({
         className={
           layout === 'grid'
             ? 'line-clamp-2 text-left leading-tight'
-            : layout === 'dropdown'
-              ? 'flex-1'
+            : layout === 'dropdown' || layout === 'drawer'
+              ? 'min-w-0 flex-1 leading-snug'
               : 'whitespace-nowrap'
         }
       >
         {item.label}
       </span>
-      {isLocked ? <Lock className="h-3 w-3 shrink-0 text-primary" aria-hidden /> : null}
+      {isLocked ? <Lock className="h-4 w-4 shrink-0 text-primary" aria-hidden /> : null}
     </button>
   );
 }
@@ -130,6 +139,7 @@ function NavGroupMobileSection({
   activeTab,
   isItemLocked,
   onSelect,
+  variant = 'grid',
 }: {
   label: string;
   icon: LucideIcon;
@@ -137,6 +147,7 @@ function NavGroupMobileSection({
   activeTab: string;
   isItemLocked: (item: AppNavItem) => boolean;
   onSelect: (item: AppNavItem) => void;
+  variant?: 'grid' | 'drawer';
 }) {
   const isGroupActive = items.some((i) => i.id === activeTab);
   const [expanded, setExpanded] = useState(isGroupActive);
@@ -144,6 +155,45 @@ function NavGroupMobileSection({
   useEffect(() => {
     if (isGroupActive) setExpanded(true);
   }, [isGroupActive]);
+
+  if (variant === 'drawer') {
+    return (
+      <div className="space-y-1.5">
+        <button
+          type="button"
+          onClick={() => setExpanded((o) => !o)}
+          aria-expanded={expanded}
+          className={cn(
+            'flex w-full min-h-[48px] items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition-colors touch-manipulation',
+            isGroupActive || expanded
+              ? 'bg-primary/15 text-primary'
+              : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+          )}
+        >
+          <GroupIcon className="h-5 w-5 shrink-0" aria-hidden />
+          <span className="flex-1">{label}</span>
+          <ChevronDown
+            className={cn('h-5 w-5 shrink-0 transition-transform', expanded && 'rotate-180')}
+            aria-hidden
+          />
+        </button>
+        {expanded ? (
+          <div className="flex flex-col gap-1.5 pl-2">
+            {items.map((item) => (
+              <NavTab
+                key={item.id}
+                item={item}
+                layout="drawer"
+                isActive={activeTab === item.id}
+                isLocked={isItemLocked(item)}
+                onSelect={() => onSelect(item)}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="col-span-2 space-y-2 sm:col-span-3">
@@ -312,26 +362,22 @@ export default function AppTopNav({
   }, [isLgDesktop]);
 
   const headerRef = useRef<HTMLElement>(null);
-  const [mobileMenuTop, setMobileMenuTop] = useState(0);
 
   useEffect(() => {
     if (!mobileOpen || isLgDesktop) return;
-
-    const syncMenuTop = () => {
-      const bottom = headerRef.current?.getBoundingClientRect().bottom;
-      setMobileMenuTop(bottom ?? 0);
-    };
-
-    syncMenuTop();
-    window.addEventListener('resize', syncMenuTop);
 
     const scrollRoot = headerRef.current?.parentElement?.querySelector(':scope > .app-v3-scroll');
     const prevOverflow = scrollRoot instanceof HTMLElement ? scrollRoot.style.overflow : '';
     if (scrollRoot instanceof HTMLElement) scrollRoot.style.overflow = 'hidden';
 
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+
     return () => {
-      window.removeEventListener('resize', syncMenuTop);
       if (scrollRoot instanceof HTMLElement) scrollRoot.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
     };
   }, [mobileOpen, isLgDesktop]);
 
@@ -428,13 +474,13 @@ export default function AppTopNav({
     </>
   );
 
-  const renderMobileEntry = (entry: ZeladorNavEntry, key: string) => {
+  const renderMobileDrawerEntry = (entry: ZeladorNavEntry, key: string) => {
     if (entry.type === 'item') {
       return (
         <NavTab
           key={key}
           item={entry.item}
-          layout="grid"
+          layout="drawer"
           isActive={activeTab === entry.item.id}
           isLocked={isItemLocked(entry.item)}
           onSelect={() => handleSelect(entry.item)}
@@ -445,6 +491,7 @@ export default function AppTopNav({
     return (
       <NavGroupMobileSection
         key={key}
+        variant="drawer"
         label={entry.label}
         icon={entry.icon}
         items={entry.items}
@@ -486,15 +533,82 @@ export default function AppTopNav({
     <>
       {mobileOpen && !isLgDesktop ? (
         <div
-          className="fixed inset-0 z-[46] bg-[#0B0D11] lg:hidden"
+          className="fixed inset-0 z-[60] bg-black/65 lg:hidden"
           aria-hidden
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
 
+      <aside
+        className={cn(
+          'fixed left-0 top-0 bottom-0 z-[70] w-[min(88vw,19.75rem)] flex-col border-r border-[#1E242B] bg-[#0B0D11] lg:hidden',
+          mobileOpen ? 'flex' : 'hidden',
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de módulos do AxéCloud"
+      >
+        <div className="flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-[#1E242B] px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate font-display text-sm font-bold text-[#F1F5F9]">{terreiroNome}</p>
+            <p className="truncate text-[11px] font-medium text-primary">{subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9] touch-manipulation"
+            aria-label="Fechar menu"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+
+        <nav
+          className="flex flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-4 no-scrollbar"
+          role="tablist"
+          aria-label="Módulos do AxéCloud"
+        >
+          {userRole === 'filho'
+            ? navItems.map((item) => (
+                <NavTab
+                  key={item.id}
+                  item={item}
+                  layout="drawer"
+                  isActive={activeTab === item.id}
+                  isLocked={isItemLocked(item)}
+                  onSelect={() => handleSelect(item)}
+                />
+              ))
+            : zeladorEntries?.map((entry, index) =>
+                renderMobileDrawerEntry(entry, entry.type === 'item' ? entry.item.id : `drawer-${index}`),
+              )}
+        </nav>
+
+        <div className="shrink-0 space-y-2 border-t border-[#1E242B] px-3 py-4">
+          {showInstallButton ? (
+            <button
+              type="button"
+              onClick={() => void handleInstallApp()}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-primary/35 bg-[#12161A] px-4 text-sm font-bold text-primary touch-manipulation"
+            >
+              <Download className="h-5 w-5 shrink-0" aria-hidden />
+              Instalar aplicativo
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void performFastLogout()}
+            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 text-sm font-bold text-[#94A3B8] touch-manipulation hover:border-[#2F3643] hover:text-[#F1F5F9]"
+          >
+            <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+            Sair
+          </button>
+        </div>
+      </aside>
+
       <header
         ref={headerRef}
-        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D] isolate"
+        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D]"
       >
         <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
@@ -551,7 +665,7 @@ export default function AppTopNav({
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
-              className="rounded-lg p-2 text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9] touch-manipulation"
               aria-expanded={mobileOpen}
               aria-label={mobileOpen ? 'Fechar menu de módulos' : 'Abrir menu de módulos'}
             >
@@ -587,32 +701,6 @@ export default function AppTopNav({
         <div className="hidden shrink-0 items-center gap-2 pl-1 lg:flex">{headerActions()}</div>
       </div>
     </header>
-
-      {mobileOpen && !isLgDesktop ? (
-        <div
-          className="fixed left-0 right-0 bottom-0 z-[47] overflow-y-auto overscroll-contain border-b border-[#1E242B] bg-[#13171D] px-4 py-3 lg:hidden"
-          style={{ top: mobileMenuTop }}
-          role="tablist"
-          aria-label="Módulos do AxéCloud"
-        >
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {userRole === 'filho'
-              ? navItems.map((item) => (
-                  <NavTab
-                    key={item.id}
-                    item={item}
-                    layout="grid"
-                    isActive={activeTab === item.id}
-                    isLocked={isItemLocked(item)}
-                    onSelect={() => handleSelect(item)}
-                  />
-                ))
-              : zeladorEntries?.map((entry, index) =>
-                  renderMobileEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-                )}
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }
