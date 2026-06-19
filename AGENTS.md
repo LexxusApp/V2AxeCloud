@@ -6,3 +6,4 @@
 - **Language Preference**: All responses from the AI must be in Portuguese (PT-BR), as requested by the user.
 - **Git (branch padrão)**: commits e `git push` somente na branch **`main`**. Não enviar para `dev` salvo pedido explícito do usuário.
 - **Supabase (projeto remoto)**: o CLI está ligado ao project **`vlaojhfwhqmwudqsumpi`** (AxeCloud). Para migrations, SQL, diagnóstico e alterações de schema/dados, **executar directamente** via `npx supabase` (`db push`, `db query --linked`, `migration list`, etc.) — não pedir ao utilizador para aplicar SQL manualmente no dashboard, salvo bloqueio real de credenciais.
+- **Deploy VPS (automático)**: após commit + push de mudanças para produção, **deploy na VPS sem perguntar** — `66.94.103.197`, `/opt/axecloud`, `git pull` + `docker compose -f deploy/docker-compose.yml --env-file .env build/up` nos serviços afetados (`marketing` para landing/portal, `app` para painel/API). Ver `.cursor/rules/vps-auto-deploy.mdc`.
