@@ -10,6 +10,7 @@ import { isMarketingSitePath, ROUTES } from '../lib/routes';
 import { purgeLegacyAppServiceWorker } from '../lib/purgeServiceWorker';
 import { cleanBrowserUrl } from '../lib/urlHygiene';
 import { applyRouteSeo } from '../lib/seo';
+import { trackPublicVisit } from '../lib/trackPublicVisit';
 import LoginPage from '../pages/LoginPage';
 
 const Register = lazy(() => import('../views/Register'));
@@ -105,6 +106,10 @@ export default function AppRouter() {
 
   useEffect(() => {
     applyRouteSeo(path);
+  }, [path]);
+
+  useEffect(() => {
+    void trackPublicVisit(path);
   }, [path]);
 
   return (

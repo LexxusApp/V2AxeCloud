@@ -10,6 +10,13 @@ export type AdminActivityStats = {
   accessLogsError?: string;
   totalEvents30d: number;
   trafficSource: "access_logs" | "audit_logs" | "both" | "none";
+  publicSiteVisitorsAvailable: boolean;
+  publicSitePageViewsAvailable: boolean;
+  publicSiteDailyVisitors: Record<string, number>;
+  publicSiteVisitorsLast7Days: number;
+  publicSiteVisitorsLast30Days: number;
+  publicSiteVisitorsToday: number;
+  publicSiteTopPages: { bucket: string; label: string; visitors: number; sharePct: number }[];
 };
 
 function bumpDaily(bucket: Record<string, number>, createdAt: string | null | undefined) {
@@ -128,6 +135,9 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
 
   const totalEvents30d = fromAccess + fromAudit;
 
+  const { fetchPublicSiteTrafficStats } = await import("./publicSiteTraffic.js");
+  const publicTraffic = await fetchPublicSiteTrafficStats(sb);
+
   return {
     childrenPerTenant,
     dailyAccess,
@@ -137,5 +147,12 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
     accessLogsError: accessResult.ok ? undefined : ("message" in accessResult ? accessResult.message : undefined),
     totalEvents30d,
     trafficSource,
+    publicSiteVisitorsAvailable: publicTraffic.available,
+    publicSitePageViewsAvailable: publicTraffic.pageViewsAvailable,
+    publicSiteDailyVisitors: publicTraffic.dailyVisitors,
+    publicSiteVisitorsLast7Days: publicTraffic.visitorsLast7Days,
+    publicSiteVisitorsLast30Days: publicTraffic.visitorsLast30Days,
+    publicSiteVisitorsToday: publicTraffic.visitorsToday,
+    publicSiteTopPages: publicTraffic.topPages,
   };
 }

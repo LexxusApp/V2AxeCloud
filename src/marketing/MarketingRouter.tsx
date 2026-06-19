@@ -3,6 +3,7 @@ import { usePathname } from '../hooks/usePathname';
 import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { ROUTES, normalizePath } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
+import { trackPublicVisit } from '../lib/trackPublicVisit';
 import { parseContentArticleSlug } from '../content/portalContent';
 import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
 
@@ -92,6 +93,10 @@ export default function MarketingRouter() {
 
   useEffect(() => {
     applyRouteSeo(path);
+  }, [path]);
+
+  useEffect(() => {
+    void trackPublicVisit(path);
   }, [path]);
 
   if (import.meta.env.DEV && isAppSpaPath(path)) {

@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarDays,
   Gauge,
+  Globe,
   MapPin,
   RefreshCw,
   Crown,
@@ -67,6 +68,13 @@ type OverviewPanelProps = {
     auditLogsAvailable?: boolean;
     totalEvents30d?: number;
     trafficSource?: "access_logs" | "audit_logs" | "both" | "none";
+    publicSiteVisitorsAvailable?: boolean;
+    publicSitePageViewsAvailable?: boolean;
+    publicSiteDailyVisitors?: Record<string, number>;
+    publicSiteVisitorsLast7Days?: number;
+    publicSiteVisitorsLast30Days?: number;
+    publicSiteVisitorsToday?: number;
+    publicSiteTopPages?: { bucket: string; label: string; visitors: number; sharePct: number }[];
   } | null;
   plansCatalog: Record<string, unknown>;
   busy: boolean;
@@ -229,7 +237,21 @@ export function OverviewPanel({
       .slice(-14);
   }, [activity]);
 
+  const publicTopPages = useMemo(() => activity?.publicSiteTopPages ?? [], [activity]);
+
+  const publicDailySeries = useMemo(() => {
+    const d = activity?.publicSiteDailyVisitors;
+    if (!d) return [];
+    return Object.entries(d)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-14);
+  }, [activity]);
+
   const maxDaily = useMemo(() => Math.max(1, ...dailySeries.map(([, c]) => c)), [dailySeries]);
+  const maxPublicDaily = useMemo(
+    () => Math.max(1, ...publicDailySeries.map(([, c]) => c)),
+    [publicDailySeries]
+  );
 
   const topCities = useMemo(() => {
     const geo = activity?.geoActivity;
@@ -304,7 +326,7 @@ export function OverviewPanel({
         </button>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3">
         <KpiCard
           label="Terreiros activos"
           value={statLoading ? "…" : formatStatNumber(activeCount)}
@@ -325,7 +347,24 @@ export function OverviewPanel({
           icon={Wallet}
         />
         <KpiCard
-          label="Acessos (7 dias)"
+          label="Visitantes públicos (7d)"
+          value={
+            statLoading
+              ? "…"
+              : activity?.publicSiteVisitorsAvailable === false
+                ? "N/D"
+                : formatStatNumber(activity?.publicSiteVisitorsLast7Days)
+          }
+          sub={
+            activity?.publicSiteVisitorsAvailable
+              ? `hoje: ${formatStatNumber(activity?.publicSiteVisitorsToday)} · 30d: ${formatStatNumber(activity?.publicSiteVisitorsLast30Days)}`
+              : "aplique migration public_site_visitors"
+          }
+          icon={Globe}
+          tone="accent"
+        />
+        <KpiCard
+          label="Uso logado (7d)"
           value={
             statLoading
               ? "…"
@@ -336,11 +375,9 @@ export function OverviewPanel({
           sub={
             activity?.trafficSource === "none"
               ? "sem eventos (30d)"
-              : activity?.trafficSource === "audit_logs"
-                ? "via audit_logs"
-                : activity?.totalEvents30d
-                  ? `${activity.totalEvents30d} eventos (30d)`
-                  : "eventos registados"
+              : activity?.totalEvents30d
+                ? `${activity.totalEvents30d} eventos (30d)`
+                : "logins e sessões"
           }
           icon={CalendarDays}
         />
@@ -420,8 +457,99 @@ export function OverviewPanel({
       <section className="grid xl:grid-cols-12 gap-5">
         <div className="xl:col-span-8 space-y-5">
           <AdminPanel
-            kicker="Tráfego"
-            title="Acessos por dia"
+            kicker="Site público"
+            title="Visitantes por dia"
+            action={
+              <span className="text-xs text-[var(--ac-text-faint)]">
+                {publicDailySeries.length
+                  ? `${activity?.publicSiteVisitorsLast30Days ?? 0} visitantes · ${publicDailySeries.length} dias`
+                  : activity?.publicSiteVisitorsAvailable
+                    ? "0 visitantes nos últimos 30 dias"
+                    : "tabela ausente"}
+              </span>
+            }
+          >
+            {publicDailySeries.length ? (
+              <div className="overview-chart">
+                <div className="overview-chart-bars">
+                  {publicDailySeries.map(([day, count]) => {
+                    const h = 12 + Math.round((count / maxPublicDaily) * 148);
+                    const label = day.length >= 10 ? format(parseISO(day), "dd/MM") : day;
+                    return (
+                      <div key={day} className="overview-chart-col" title={`${day}: ${count} visitante(s)`}>
+                        <span className="overview-chart-val admin-mono">{count}</span>
+                        <div
+                          className="overview-chart-bar bg-[var(--ac-accent)]"
+                          style={{ height: `${h}px` }}
+                        />
+                        <span className="overview-chart-day">{label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-sm text-[var(--ac-text-muted)] max-w-md mx-auto">
+                <Globe className="mx-auto h-8 w-8 text-[var(--ac-text-faint)] mb-2" />
+                {!activity?.publicSiteVisitorsAvailable ? (
+                  <>
+                    Tabela <code className="text-[var(--ac-accent)]">public_site_visitors</code> não encontrada.
+                    Aplique <code className="text-[var(--ac-accent)]">supabase/migrations/20260619120000_public_site_visitors.sql</code>.
+                  </>
+                ) : (
+                  <>
+                    Nenhum visitante registado nos últimos 30 dias. O contador inicia quando alguém abre páginas
+                    públicas (landing, terreiros, cadastro, etc.) sem estar logado.
+                  </>
+                )}
+              </div>
+            )}
+          </AdminPanel>
+
+          {publicTopPages.length > 0 ? (
+            <AdminPanel
+              kicker="Site público"
+              title="Páginas mais visitadas (30 dias)"
+              action={
+                <span className="text-xs text-[var(--ac-text-faint)]">
+                  visitantes únicos por secção
+                </span>
+              }
+            >
+              <ul className="space-y-2">
+                {publicTopPages.slice(0, 10).map((row) => (
+                  <li
+                    key={row.bucket}
+                    className="flex items-center gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] px-3 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--ac-text)] truncate">{row.label}</p>
+                      <p className="text-[10px] text-[var(--ac-text-faint)] admin-mono truncate">{row.bucket}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="admin-mono text-sm font-semibold text-[var(--ac-accent)]">{row.visitors}</p>
+                      <p className="text-[10px] text-[var(--ac-text-muted)]">{row.sharePct}%</p>
+                    </div>
+                    <div className="hidden sm:block w-24 h-1.5 rounded-full bg-[var(--ac-paper-border)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[var(--ac-accent)]"
+                        style={{ width: `${Math.max(4, row.sharePct)}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </AdminPanel>
+          ) : activity?.publicSiteVisitorsAvailable && activity?.publicSitePageViewsAvailable === false ? (
+            <div className="admin-alert-info text-sm">
+              Breakdown por página disponível após aplicar{" "}
+              <code className="admin-mono text-[var(--ac-accent)]">20260619143000_public_site_page_views.sql</code>.
+            </div>
+          ) : null}
+
+          <AdminPanel
+            kicker="Sistema logado"
+            title="Eventos por dia"
             action={
               <span className="text-xs text-[var(--ac-text-faint)]">
                 {dailySeries.length

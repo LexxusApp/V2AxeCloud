@@ -1,13 +1,40 @@
 import type { Express } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import geoip from "geoip-lite";
+import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { requireApiUser, requireApiGlobalAdmin } from "./routeAuthHelpers.js";
-import { sensitiveActionRateLimit } from "./rateLimit.js";
+import { consumeRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
+import { trackPublicSiteVisit } from "./publicSiteTraffic.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
 /** B1: rotas admin/metrics partilhadas entre api/index.ts (prod) e server.ts (dev). */
 export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.post("/api/metrics/public-visit", async (req, res) => {
+    if (applyDiscreteRouteCors(req, res)) return;
+
+    const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 120, keyPrefix: "public-visit" });
+    if (!rl.allowed) {
+      return res.status(429).json({ error: "Limite de registos excedido." });
+    }
+
+    try {
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const visitorId = String(body.visitorId || "").trim();
+      const path = String(body.path || "/").trim();
+      const referrer = body.referrer != null ? String(body.referrer) : null;
+
+      const result = await trackPublicSiteVisit(supabaseAdmin, req, { visitorId, path, referrer });
+      if (!result.ok) {
+        return res.status(400).json({ error: "Dados de visita inválidos." });
+      }
+      res.json({ success: true, duplicate: result.duplicate === true });
+    } catch (error) {
+      console.error("[METRICS] Error tracking public visit:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   app.post("/api/metrics/track-activity", async (req, res) => {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
