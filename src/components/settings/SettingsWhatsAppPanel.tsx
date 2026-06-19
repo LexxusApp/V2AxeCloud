@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
   MessageSquare,
-  Radio,
   Send,
   Settings,
   Shield,
   Wifi,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { cn } from '../../lib/utils';
 import {
   whatsappApiUrl,
   whatsappRailwayAuthHeaders,
@@ -89,6 +89,15 @@ function logDestino(telefone: string | null | undefined, tipo: WaLogTipo): strin
   if (tel === 'corrente_geral') return 'Corrente Geral';
   if (tel.length >= 8) return tel.replace(/(\d{2})(\d{2})(\d{4,5})(\d{4})/, '($2) $3-$4');
   return tel || 'Destinatário';
+}
+
+function WaLiveDot({ active, className }: { active: boolean; className?: string }) {
+  return (
+    <span className={cn('relative inline-flex shrink-0 items-center justify-center', className)} aria-hidden>
+      {active ? <span className="wa-live-dot__halo absolute inset-0 rounded-full bg-emerald-500/60" /> : null}
+      <span className={cn('relative h-full w-full rounded-full', active ? 'bg-emerald-500' : 'bg-gray-500')} />
+    </span>
+  );
 }
 
 export function SettingsWhatsAppPanel() {
@@ -391,7 +400,7 @@ export function SettingsWhatsAppPanel() {
   ];
 
   return (
-    <div className="animate-fadeIn space-y-6">
+    <div className="wa-settings-panel space-y-6">
       {toast && (
         <div
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
@@ -418,14 +427,14 @@ export function SettingsWhatsAppPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span
-            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase transition-all ${
-              connected
-                ? 'border-[#10B981]/20 bg-emerald-950/20 text-[#10B981]'
-                : 'border-[#1E242B] bg-[#1E252E] text-[#94A3B8]'
-            }`}
-          >
-            <span className={`h-2 w-2 rounded-full ${connected ? 'animate-ping bg-emerald-500' : 'bg-gray-500'}`} />
+            <span
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase ${
+                connected
+                  ? 'border-[#10B981]/20 bg-emerald-950/20 text-[#10B981]'
+                  : 'border-[#1E242B] bg-[#1E252E] text-[#94A3B8]'
+              }`}
+            >
+              <WaLiveDot active={connected} className="h-2 w-2" />
             {connected ? 'Canal Oficial Ativo' : 'Canal Indisponível'}
           </span>
         </div>
@@ -433,19 +442,19 @@ export function SettingsWhatsAppPanel() {
 
       <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-7">
-          <div className="relative overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#10B981]/5 blur-xl filter" />
+          <div className="wa-settings-panel__card relative rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#10B981]/10" aria-hidden />
 
-            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
+            <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Shield className="h-4 w-4" />
               1. Canal Oficial AxéCloud (Meta Cloud API)
             </h6>
 
-            <div className="animate-fadeIn space-y-4">
+            <div className="relative space-y-4">
               <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-500/15 bg-emerald-950/10 p-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg bg-emerald-600 p-3 text-white">
-                    <Wifi className={`h-5 w-5 ${connected ? 'animate-pulse' : 'opacity-50'}`} />
+                    <Wifi className={cn('h-5 w-5', !connected && 'opacity-50')} />
                   </div>
                   <div className="space-y-0.5">
                     <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
@@ -467,15 +476,15 @@ export function SettingsWhatsAppPanel() {
 
               <div className="flex flex-col gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
                 <span>Sincronizando com Giras, Financeiro e Altar Virtual:</span>
-                <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
-                  <Radio className={`h-3 w-3 shrink-0 ${connected ? 'animate-ping' : ''}`} />
+                <span className="flex shrink-0 items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
+                  <WaLiveDot active={connected} className="h-2 w-2" />
                   {connected ? 'Webhook Online' : 'Aguardando canal'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+          <div className="wa-settings-panel__card rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
               <Settings className="h-4 w-4" />
               2. Filhos de Santo & Fiel: Preferências de Gatilho
@@ -484,7 +493,7 @@ export function SettingsWhatsAppPanel() {
               Escolha quais acontecimentos administrativos ou religiosos gerarão mensagens automáticas enviadas para os
               respectivos celulares dos filhos de santo ou fiéis:
             </p>
-            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
               {prefCards.map((card) => (
                 <div
                   key={card.key}
@@ -492,11 +501,12 @@ export function SettingsWhatsAppPanel() {
                   tabIndex={0}
                   onClick={() => togglePref(card.key, card.toastLabel)}
                   onKeyDown={(e) => e.key === 'Enter' && togglePref(card.key, card.toastLabel)}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
+                  className={cn(
+                    'wa-settings-pref-card flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors',
                     preferences[card.key]
                       ? 'border-emerald-500/30 bg-[#1E252E]'
-                      : 'border-[#1E242B] bg-[#0F1216] opacity-60'
-                  }`}
+                      : 'border-[#1E242B] bg-[#0F1216] opacity-60',
+                  )}
                 >
                   <input
                     type="checkbox"
@@ -536,7 +546,7 @@ export function SettingsWhatsAppPanel() {
                   type="button"
                   onClick={() => void handleTestToPhone()}
                   disabled={sendingTest || !testPhone.trim()}
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {sendingTest ? 'Enviando…' : 'Enviar teste'}
                 </button>
@@ -592,9 +602,9 @@ export function SettingsWhatsAppPanel() {
                 type="button"
                 onClick={() => void handleBroadcast()}
                 disabled={broadcasting || !connected || !testMessage.trim() || correnteCount === 0}
-                className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-xs font-bold transition-all ${
+                className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-xs font-bold transition-colors ${
                   connected && correnteCount !== 0
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/10 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
                     : 'cursor-not-allowed border border-[#1E242B]/85 bg-[#12161A] text-gray-500 hover:bg-[#12161A]'
                 }`}
               >
@@ -609,7 +619,7 @@ export function SettingsWhatsAppPanel() {
           <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-500" />
+                <WaLiveDot active className="h-1.5 w-1.5" />
                 <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Painel de Transmissões Recentes</h6>
               </div>
               <span className="rounded border border-emerald-500/20 bg-[#12161A] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-[#10B981]">
@@ -631,7 +641,7 @@ export function SettingsWhatsAppPanel() {
                 logs.map((log) => (
                   <div
                     key={log.id}
-                    className="animate-fadeIn space-y-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 transition-colors hover:bg-[#1E242B]/20"
+                    className="space-y-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 transition-colors hover:bg-[#1E242B]/20"
                   >
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex shrink-0 items-center gap-1.5">

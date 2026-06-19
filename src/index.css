@@ -1778,4 +1778,42 @@ html:has(.app-v3) {
   .app-v3 .app-v3-scroll {
     -webkit-overflow-scrolling: touch;
   }
+
+  .app-v3 .wa-settings-panel [class*='blur-'],
+  .app-v3 .wa-settings-panel [class*='filter'] {
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .app-v3 .wa-settings-panel .wa-live-dot__halo {
+    animation: none;
+    opacity: 0.45;
+  }
+}
+
+@keyframes wa-live-dot-opacity {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.app-v3 .wa-live-dot__halo {
+  animation: wa-live-dot-opacity 2.2s ease-in-out infinite;
+}
+
+.app-v3 .wa-settings-panel__card,
+.app-v3 .wa-settings-pref-card {
+  contain: layout paint;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-v3 .wa-live-dot__halo {
+    animation: none;
+    opacity: 0.5;
+  }
 }
