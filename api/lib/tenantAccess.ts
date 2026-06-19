@@ -203,7 +203,7 @@ export async function resolveFinanceiroTenantScope(
   return ownTenant;
 }
 
-/** Campos permitidos em PUT /api/children/:id */
+/** Campos persistíveis em filhos_de_santo (POST/PUT /api/children). */
 export const ALLOWED_CHILD_UPDATE_FIELDS = new Set([
   "nome",
   "email",
@@ -211,24 +211,68 @@ export const ALLOWED_CHILD_UPDATE_FIELDS = new Set([
   "cpf",
   "data_nascimento",
   "data_entrada",
-  "grau",
-  "orixa",
+  "data_feitura",
+  "orixa_frente",
   "cargo",
-  "observacoes",
   "foto_url",
   "endereco",
-  "cidade",
-  "estado",
-  "cep",
+  "adjunto",
   "status",
+  "quizilas",
+  "notas_sigilosas",
 ]);
 
-export function pickAllowedChildFields(body: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(body || {})) {
-    if (ALLOWED_CHILD_UPDATE_FIELDS.has(k)) out[k] = v;
+const CHILD_DATE_FIELDS = new Set(["data_nascimento", "data_entrada", "data_feitura"]);
+
+/** Normaliza payload do prontuário (aliases da UI + tipos para Postgres). */
+export function normalizeChildPayload(body: Record<string, unknown>): Record<string, unknown> {
+  const raw: Record<string, unknown> = { ...(body || {}) };
+
+  if (raw.contato != null && raw.whatsapp_phone == null) {
+    raw.whatsapp_phone = raw.contato;
   }
+  if (raw.orixa != null && raw.orixa_frente == null) {
+    raw.orixa_frente = raw.orixa;
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!ALLOWED_CHILD_UPDATE_FIELDS.has(key)) continue;
+
+    if (CHILD_DATE_FIELDS.has(key)) {
+      out[key] = value === "" || value == null ? null : value;
+      continue;
+    }
+
+    if (key === "quizilas") {
+      if (Array.isArray(value)) {
+        out[key] = value.map((q) => String(q).trim()).filter(Boolean);
+      } else if (typeof value === "string") {
+        out[key] = value
+          .split(",")
+          .map((q) => q.trim())
+          .filter(Boolean);
+      } else if (value == null) {
+        out[key] = null;
+      }
+      continue;
+    }
+
+    if (key === "whatsapp_phone" && typeof value === "string") {
+      const digits = value.replace(/\D/g, "");
+      out[key] = digits.length > 0 ? digits : null;
+      continue;
+    }
+
+    out[key] = value;
+  }
+
   return out;
+}
+
+/** @deprecated Use normalizeChildPayload */
+export function pickAllowedChildFields(body: Record<string, unknown>): Record<string, unknown> {
+  return normalizeChildPayload(body);
 }
 
 const OBRIGACAO_PDF_PATH_RE =
