@@ -24,6 +24,7 @@ import {
 } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
+import { FounderHeroCallout } from './FounderHeroCallout';
 
 type PortalTile = {
   id: string;
@@ -197,7 +198,19 @@ export function PortalHomeHub() {
           aria-hidden
         />
         <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="relative">
+            <aside
+              className="pointer-events-auto absolute left-0 top-6 z-20 hidden xl:block"
+              aria-label="Chamada Programa Fundador"
+            >
+              <FounderHeroCallout variant="sidebar" />
+            </aside>
+
+            <div className="mb-6 flex justify-center xl:hidden">
+              <FounderHeroCallout variant="banner" />
+            </div>
+
+            <div className="mx-auto max-w-3xl text-center">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
               <Globe className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
@@ -217,6 +230,7 @@ export function PortalHomeHub() {
               O AxéCloud reúne terreiros, eventos públicos, pedidos de reza e conteúdo sobre Umbanda, Candomblé e
               Jurema — escolha abaixo o que quer fazer agora.
             </p>
+            </div>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
