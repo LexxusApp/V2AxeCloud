@@ -267,6 +267,24 @@ async function fetchDashboardFinanceBundle(
   }
 }
 
+function useCoarsePointerOrMobile(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 1023px), (pointer: coarse)').matches
+      : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px), (pointer: coarse)');
+    const onChange = () => setMatches(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  return matches;
+}
+
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
   user: any;
@@ -283,6 +301,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     ? String(localStorage.getItem('tenant_id') || '').trim()
     : '';
   const [authLoading, setAuthLoading] = useState(true);
+  const reduceChartGpu = useCoarsePointerOrMobile();
   const tenantId = useMemo(
     () => resolveTenantIdForFinance(tenantData?.tenant_id || initialTenantFromStorage, user?.id),
     [tenantData?.tenant_id, user?.id, initialTenantFromStorage]
@@ -714,7 +733,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       fillOpacity={1}
                       dot={{ r: 4, fill: '#FF9F0A', strokeWidth: 0 }}
                       activeDot={{ r: 5, fill: '#FF9F0A', stroke: '#121212', strokeWidth: 2 }}
-                      animationDuration={800}
+                      isAnimationActive={!reduceChartGpu}
+                      animationDuration={reduceChartGpu ? 0 : 800}
                     />
                   </AreaChart>
                 </ResponsiveContainer>

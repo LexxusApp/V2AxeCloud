@@ -1500,8 +1500,9 @@ html:has(.app-v3) {
 }
 
 .app-v3 .glass-panel {
-  background: rgba(19, 23, 29, 0.85);
-  backdrop-filter: blur(16px);
+  background: rgba(19, 23, 29, 0.98);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid #1e242b;
 }
 
@@ -1705,4 +1706,15 @@ html:has(.app-v3) {
 .landing-v3 button,
 .landing-v3 [role='button'] {
   transition-property: color, background-color, border-color, opacity, box-shadow, filter !important;
+}
+
+/* Android/Chrome: evita corrupção de camadas GPU com gráficos sob o menu mobile */
+@media (max-width: 1023px) {
+  .app-v3 .recharts-responsive-container {
+    contain: layout paint;
+  }
+
+  .app-v3 .app-v3-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
 }

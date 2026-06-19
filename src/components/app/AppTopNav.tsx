@@ -311,6 +311,30 @@ export default function AppTopNav({
     if (isLgDesktop) setMobileOpen(false);
   }, [isLgDesktop]);
 
+  const headerRef = useRef<HTMLElement>(null);
+  const [mobileMenuTop, setMobileMenuTop] = useState(0);
+
+  useEffect(() => {
+    if (!mobileOpen || isLgDesktop) return;
+
+    const syncMenuTop = () => {
+      const bottom = headerRef.current?.getBoundingClientRect().bottom;
+      setMobileMenuTop(bottom ?? 0);
+    };
+
+    syncMenuTop();
+    window.addEventListener('resize', syncMenuTop);
+
+    const scrollRoot = headerRef.current?.parentElement?.querySelector(':scope > .app-v3-scroll');
+    const prevOverflow = scrollRoot instanceof HTMLElement ? scrollRoot.style.overflow : '';
+    if (scrollRoot instanceof HTMLElement) scrollRoot.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('resize', syncMenuTop);
+      if (scrollRoot instanceof HTMLElement) scrollRoot.style.overflow = prevOverflow;
+    };
+  }, [mobileOpen, isLgDesktop]);
+
   const handleInstallApp = async () => {
     const outcome = await install();
     if (outcome === 'ios') {
@@ -459,8 +483,20 @@ export default function AppTopNav({
   };
 
   return (
-    <header className="relative z-30 w-full max-w-full min-w-0 shrink-0 overflow-visible border-b border-[#1E242B] bg-[#13171D]">
-      <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
+    <>
+      {mobileOpen && !isLgDesktop ? (
+        <div
+          className="fixed inset-0 z-[46] bg-[#0B0D11] lg:hidden"
+          aria-hidden
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+
+      <header
+        ref={headerRef}
+        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D] isolate"
+      >
+        <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex shrink-0 flex-col items-center gap-0.5">
@@ -524,29 +560,6 @@ export default function AppTopNav({
           </div>
         </div>
 
-        {mobileOpen ? (
-          <div
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:hidden"
-            role="tablist"
-            aria-label="Módulos do AxéCloud"
-          >
-            {userRole === 'filho'
-              ? navItems.map((item) => (
-                  <NavTab
-                    key={item.id}
-                    item={item}
-                    layout="grid"
-                    isActive={activeTab === item.id}
-                    isLocked={isItemLocked(item)}
-                    onSelect={() => handleSelect(item)}
-                  />
-                ))
-              : zeladorEntries?.map((entry, index) =>
-                  renderMobileEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-                )}
-          </div>
-        ) : null}
-
         {isLgDesktop ? (
           <div className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div
@@ -574,6 +587,33 @@ export default function AppTopNav({
         <div className="hidden shrink-0 items-center gap-2 pl-1 lg:flex">{headerActions()}</div>
       </div>
     </header>
+
+      {mobileOpen && !isLgDesktop ? (
+        <div
+          className="fixed left-0 right-0 bottom-0 z-[47] overflow-y-auto overscroll-contain border-b border-[#1E242B] bg-[#13171D] px-4 py-3 lg:hidden"
+          style={{ top: mobileMenuTop }}
+          role="tablist"
+          aria-label="Módulos do AxéCloud"
+        >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {userRole === 'filho'
+              ? navItems.map((item) => (
+                  <NavTab
+                    key={item.id}
+                    item={item}
+                    layout="grid"
+                    isActive={activeTab === item.id}
+                    isLocked={isItemLocked(item)}
+                    onSelect={() => handleSelect(item)}
+                  />
+                ))
+              : zeladorEntries?.map((entry, index) =>
+                  renderMobileEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
+                )}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
