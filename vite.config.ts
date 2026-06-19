@@ -63,9 +63,10 @@ export default defineConfig(({mode}) => {
           name: 'AxéCloud',
           short_name: 'AxéCloud',
           description: HOME_SEO.manifestDescription,
-          start_url: 'https://axecloud.com.br/login',
-          scope: 'https://axecloud.com.br/',
+          start_url: '/login',
+          scope: '/',
           lang: 'pt-BR',
+          prefer_related_applications: false,
           theme_color: '#000000',
           background_color: '#000000',
           display: 'standalone',
@@ -105,7 +106,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v114',
+          cacheId: 'axecloud-v115',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           importScripts: ['/sw-push.js'],

@@ -17,6 +17,7 @@ import {
   probeServiceWorkerUpdate,
   reconcileStaleAppliedBuild,
 } from './lib/pwaUpdate';
+import { initPwaInstallController } from './lib/pwaInstallController';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';
 
@@ -105,6 +106,7 @@ function registerProductionServiceWorker() {
 function bootstrapApp() {
   if (import.meta.env.PROD && isCanonicalAppOrigin()) {
     reconcileStaleAppliedBuild();
+    initPwaInstallController();
     registerProductionServiceWorker();
   } else if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {

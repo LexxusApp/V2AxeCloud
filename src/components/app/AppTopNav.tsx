@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { isInstalledRelatedWebApp, isStandalonePwa as detectStandalonePwa } from '../../lib/pwaInstall';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { cn } from '../../lib/utils';
 import { hasPlanAccess } from '../../constants/plans';
 import {
@@ -27,11 +27,6 @@ import {
   type ZeladorNavEntry,
 } from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
 
 type AppTopNavProps = {
   activeTab: string;
@@ -310,63 +305,25 @@ export default function AppTopNav({
 }: AppTopNavProps) {
   const isLgDesktop = useMediaQuery('(min-width: 1024px)');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isStandalonePwa, setIsStandalonePwa] = useState(false);
-
-  useEffect(() => {
-    const syncStandalone = () => {
-      setIsStandalonePwa(detectStandalonePwa());
-    };
-
-    syncStandalone();
-
-    void isInstalledRelatedWebApp().then((installed) => {
-      if (installed) setIsStandalonePwa(true);
-    });
-
-    const displayMq = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'] as const;
-    const mqls = displayMq.map((mode) => window.matchMedia(`(display-mode: ${mode})`));
-    const onDisplayChange = () => syncStandalone();
-    mqls.forEach((mql) => mql.addEventListener('change', onDisplayChange));
-
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setPwaInstallPrompt(event as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    return () => {
-      mqls.forEach((mql) => mql.removeEventListener('change', onDisplayChange));
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-    };
-  }, []);
+  const { isInstalled: isStandalonePwa, install } = usePwaInstall();
 
   useEffect(() => {
     if (isLgDesktop) setMobileOpen(false);
   }, [isLgDesktop]);
 
   const handleInstallApp = async () => {
-    if (pwaInstallPrompt) {
-      await pwaInstallPrompt.prompt();
-      await pwaInstallPrompt.userChoice;
-      setPwaInstallPrompt(null);
-      return;
-    }
-
-    const isIos =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(window as Window & { MSStream?: unknown }).MSStream;
-
-    if (isIos) {
+    const outcome = await install();
+    if (outcome === 'ios') {
       alert(
         'No iPhone ou iPad: toque em Compartilhar (ícone na barra do Safari) e escolha «Adicionar à Tela de Início».',
       );
       return;
     }
-
-    alert(
-      'No Chrome ou Edge: menu do navegador (⋮) → «Instalar aplicativo» ou «Adicionar à tela inicial».',
-    );
+    if (outcome === 'unavailable') {
+      alert(
+        'No Chrome ou Edge: menu do navegador (⋮) → «Instalar aplicativo» ou «Adicionar à tela inicial».',
+      );
+    }
   };
 
   const showInstallButton = !isStandalonePwa;

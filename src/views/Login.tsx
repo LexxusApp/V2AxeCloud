@@ -20,6 +20,7 @@ import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { PwaInstallPrompt } from '../components/PwaInstallPrompt';
 import { ROUTES } from '../lib/routes';
 
 const LOGIN_LOGO_SRC = '/logo-axecloud.png?v=6';
@@ -365,6 +366,8 @@ export default function Login() {
             </p>
           </div>
         </header>
+
+        <PwaInstallPrompt />
 
         <div className="space-y-3">
           <form onSubmit={handleAuth} className="space-y-[8px]">
