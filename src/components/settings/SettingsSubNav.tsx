@@ -75,7 +75,7 @@ function NavButton({
         'flex items-center gap-2 font-bold transition-all',
         compact
           ? cn(
-              'shrink-0 rounded-full border px-3 py-2 text-[11px] whitespace-nowrap',
+              'min-h-[44px] min-w-[calc(50%-0.25rem)] flex-1 items-center justify-center rounded-xl border px-3 py-3 text-xs touch-manipulation',
               isActive
                 ? 'border-primary/40 bg-primary/15 text-primary'
                 : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:text-white',
@@ -99,7 +99,7 @@ export function SettingsSubNav({ active, onChange, onDeleteAccount }: SettingsSu
     <>
       <div className="lg:hidden">
         <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Sub-Menus</p>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#334155]">
+        <div className="flex flex-wrap gap-2 px-1">
           {ITEMS.map((item) => (
             <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} compact />
           ))}
