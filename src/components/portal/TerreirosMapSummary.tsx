@@ -1,10 +1,12 @@
 import { MapPin } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { landingMockupCardClass } from '../landing/landingMockupUi';
 import { terreirosCityPath, type PublicCidade } from '../../lib/portalPublic';
 
 export function TerreirosMapSummary({ cidades }: { cidades: PublicCidade[] }) {
   if (cidades.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-[#1E242B] px-4 py-8 text-center text-sm text-[#64748B]">
+      <p className={cn('px-4 py-8 text-center text-sm text-[#1b1813]/65', landingMockupCardClass, 'rounded-2xl border-dashed')}>
         Ainda não há cidades com terreiros no diretório. As primeiras casas do Programa Fundador aparecem aqui em breve.
       </p>
     );
@@ -16,14 +18,18 @@ export function TerreirosMapSummary({ cidades }: { cidades: PublicCidade[] }) {
         <a
           key={c.slug}
           href={terreirosCityPath(c.slug)}
-          className="flex items-center justify-between rounded-xl border border-[#1E242B] bg-[#0B0D11] px-4 py-3 transition hover:border-[#FBBC00]/30"
+          className={cn(
+            'flex items-center justify-between px-4 py-3 transition hover:-translate-y-0.5 hover:border-[#FFC107]/45',
+            landingMockupCardClass,
+            'rounded-xl',
+          )}
         >
-          <span className="flex items-center gap-2 text-sm font-semibold text-[#F1F5F9]">
-            <MapPin className="h-4 w-4 text-[#FBBC00]" />
+          <span className="flex items-center gap-2 text-sm font-semibold text-[#1b1813]">
+            <MapPin className="h-4 w-4 text-[#FFC107]" />
             {c.cidade}
             {c.estado ? `, ${c.estado}` : ''}
           </span>
-          <span className="rounded-full bg-[#12161A] px-2 py-0.5 text-xs font-bold text-[#94A3B8]">
+          <span className="rounded-full bg-[#FFC107]/15 px-2 py-0.5 text-xs font-bold text-[#1b1813]">
             {c.count}
           </span>
         </a>

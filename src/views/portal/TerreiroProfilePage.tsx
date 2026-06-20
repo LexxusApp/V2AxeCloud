@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Calendar, Heart, Loader2, MapPin, MessageCircle } from 'lucide-react';
-import { MarketingSubpageTopNav } from '../../components/marketing/MarketingTopNav';
+import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
+import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
+import { cn } from '../../lib/utils';
 import { VerifiedBadge } from '../../components/portal/VerifiedBadge';
 import { PortalDenunciaForm } from '../../components/portal/PortalDenunciaForm';
 import { fetchPublicTerreiro, tradicaoLabel, type PublicTerreiro } from '../../lib/portalPublic';
@@ -35,96 +37,103 @@ export default function TerreiroProfilePage() {
 
   if (loading) {
     return (
-      <div className="landing-v3 grid min-h-screen place-items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-      </div>
+      <MarketingMockupLayout showFooter={false}>
+        <div className="relative z-[1] grid min-h-[50vh] place-items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#FFC107]" />
+        </div>
+      </MarketingMockupLayout>
     );
   }
 
   if (error || !terreiro) {
     return (
-      <div className="landing-v3 min-h-screen px-4 py-20 text-center">
-        <p className="text-lg font-bold text-[#1b1813]">{error || 'Terreiro não encontrado'}</p>
-        <a href={ROUTES.terreiros} className="mt-4 inline-block text-sm font-bold text-amber-600 hover:underline">
-          Voltar ao diretório
-        </a>
-      </div>
+      <MarketingMockupLayout>
+        <div className={cn('relative z-[1] px-4 py-20 text-center', landingMockupShellClass)}>
+          <p className="text-lg font-bold text-[#1b1813]">{error || 'Terreiro não encontrado'}</p>
+          <a href={ROUTES.terreiros} className="mt-4 inline-block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
+            Voltar ao diretório
+          </a>
+        </div>
+      </MarketingMockupLayout>
     );
   }
 
   const location = [terreiro.bairro, terreiro.cidade, terreiro.estado].filter(Boolean).join(' · ');
 
   return (
-    <div className="landing-v3 min-h-screen">
-      <MarketingSubpageTopNav />
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <div className="overflow-hidden rounded-3xl border border-[#ece4d2] bg-[#0B0D11]">
-          {terreiro.fotoUrl ? (
-            <div className="aspect-[21/9] bg-white">
-              <img src={terreiro.fotoUrl} alt="" className="h-full w-full object-cover" />
-            </div>
-          ) : null}
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-wrap items-start gap-3">
-              <h1 className="text-2xl font-black sm:text-3xl">{terreiro.nome}</h1>
-              {terreiro.verificada ? <VerifiedBadge /> : null}
-            </div>
-            <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-              {tradicaoLabel(terreiro.tradicao)}
-            </p>
-            {location ? (
-              <p className="mt-3 flex items-center gap-2 text-neutral-600">
-                <MapPin className="h-4 w-4 text-amber-600" />
-                {location}
+    <MarketingMockupLayout>
+      <main className="relative z-[1] px-4 py-8 sm:py-10">
+        <div className="mx-auto w-full max-w-lg">
+          <div className={cn('overflow-hidden rounded-2xl', landingMockupCardClass)}>
+            {terreiro.fotoUrl ? (
+              <div className="aspect-[16/9] max-h-44 overflow-hidden bg-[#f3ebe0] sm:max-h-48">
+                <img src={terreiro.fotoUrl} alt="" className="h-full w-full object-cover object-center" />
+              </div>
+            ) : null}
+            <div className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-start gap-2">
+                <h1 className="text-lg font-black leading-snug text-[#1b1813] sm:text-xl">{terreiro.nome}</h1>
+                {terreiro.verificada ? <VerifiedBadge /> : null}
+              </div>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/66">
+                {tradicaoLabel(terreiro.tradicao)}
               </p>
-            ) : null}
-            {terreiro.descricao ? <p className="mt-6 leading-relaxed text-[#CBD5E1]">{terreiro.descricao}</p> : null}
-            {terreiro.mensagemPedidos ? (
-              <blockquote className="mt-6 border-l-2 border-[#FBBC00]/50 pl-4 text-sm italic text-neutral-600">
-                {terreiro.mensagemPedidos}
-              </blockquote>
-            ) : null}
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              {terreiro.pedidosUrl ? (
-                <a
-                  href={marketingHref(terreiro.pedidosUrl)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#e11d48] px-5 py-3 text-sm font-black text-white"
-                >
-                  <Heart className="h-4 w-4" />
-                  Pedir reza
-                </a>
+              {location ? (
+                <p className="mt-2 flex items-center gap-1.5 text-sm text-[#1b1813]/65">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[#FFC107]" />
+                  {location}
+                </p>
               ) : null}
-              <a
-                href={ROUTES.eventosPublicos}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#ece4d2] px-5 py-3 text-sm font-bold text-[#1b1813]"
-              >
-                <Calendar className="h-4 w-4" />
-                Eventos públicos
-              </a>
-              {terreiro.whatsapp ? (
+              {terreiro.descricao ? (
+                <p className="mt-3 text-sm leading-relaxed text-[#1b1813]/75">{terreiro.descricao}</p>
+              ) : null}
+              {terreiro.mensagemPedidos ? (
+                <blockquote className="mt-3 border-l-2 border-[#FFC107]/50 pl-3 text-sm italic text-[#1b1813]/65">
+                  {terreiro.mensagemPedidos}
+                </blockquote>
+              ) : null}
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {terreiro.pedidosUrl ? (
+                  <a
+                    href={marketingHref(terreiro.pedidosUrl)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#e11d48] px-4 py-2.5 text-sm font-black text-white"
+                  >
+                    <Heart className="h-4 w-4" />
+                    Pedir reza
+                  </a>
+                ) : null}
                 <a
-                  href={`https://wa.me/55${terreiro.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 px-5 py-3 text-sm font-bold text-amber-400"
+                  href={ROUTES.eventosPublicos}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--mockup-card-border,#cfc0a8)] bg-white px-4 py-2.5 text-sm font-bold text-[#1b1813] transition hover:border-[#FFC107]/45"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                  <Calendar className="h-4 w-4" />
+                  Eventos públicos
                 </a>
+                {terreiro.whatsapp ? (
+                  <a
+                    href={`https://wa.me/55${terreiro.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#FFC107]/40 bg-[#FFC107]/10 px-4 py-2.5 text-sm font-bold text-[#1b1813] transition hover:bg-[#FFC107]/20"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                ) : null}
+              </div>
+
+              {typeof terreiro.visualizacoes === 'number' ? (
+                <p className="mt-3 text-xs text-[#1b1813]/62">{terreiro.visualizacoes} visualizações no portal</p>
               ) : null}
             </div>
+          </div>
 
-            {typeof terreiro.visualizacoes === 'number' ? (
-              <p className="mt-6 text-xs text-neutral-500">{terreiro.visualizacoes} visualizações no portal</p>
-            ) : null}
+          <div className={cn('mt-5 p-4 sm:p-5', landingMockupCardClass, 'rounded-2xl')}>
+            <PortalDenunciaForm slug={terreiro.slug} />
           </div>
         </div>
-
-        <div className="mt-8 rounded-2xl border border-[#ece4d2] bg-[#0B0D11] p-6">
-          <PortalDenunciaForm slug={terreiro.slug} />
-        </div>
       </main>
-    </div>
+    </MarketingMockupLayout>
   );
 }

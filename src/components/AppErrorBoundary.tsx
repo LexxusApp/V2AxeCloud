@@ -33,7 +33,7 @@ export class AppErrorBoundary extends React.Component<Props, State> {
             className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-amber-500/20 border-t-amber-500"
             aria-hidden
           />
-          <p className="text-sm font-medium tracking-wide text-neutral-400">Atualizando AxéCloud…</p>
+          <p className="text-sm font-medium tracking-wide text-neutral-400">Atualizando Ilê Asé…</p>
         </div>
       );
     }

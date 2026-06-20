@@ -40,7 +40,7 @@ export default function Paywall({ featureName, requiredPlan, onUpgrade }: Paywal
           </button>
           
           <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-            AxéCloud • Gestão com Fundamento
+            Ilê Asé • Gestão Sagrada
           </p>
         </div>
       </motion.div>

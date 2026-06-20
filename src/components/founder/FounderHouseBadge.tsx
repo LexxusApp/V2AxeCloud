@@ -16,7 +16,7 @@ export function FounderHouseBadge({ className, variant = 'full' }: FounderHouseB
           'inline-flex shrink-0 items-center gap-1 rounded-[4px] border border-[#FBBC00]/30 bg-[#FBBC00]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#FBBC00]',
           className
         )}
-        title="Casa Fundadora AxéCloud — Programa Fundador"
+        title="Casa Fundadora Ilê Asé — Programa Fundador"
       >
         <Award className="h-3 w-3" aria-hidden />
         FUNDADOR
@@ -32,7 +32,7 @@ export function FounderHouseBadge({ className, variant = 'full' }: FounderHouseB
           className
         )}
         role="status"
-        aria-label="Casa Fundadora do Programa Fundador AxéCloud"
+        aria-label="Casa Fundadora do Programa Fundador Ilê Asé"
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FBBC00]/35 bg-[#FBBC00]/20 text-[#FBBC00]">
           <Award className="h-6 w-6" aria-hidden />
@@ -57,7 +57,7 @@ export function FounderHouseBadge({ className, variant = 'full' }: FounderHouseB
         className
       )}
       role="status"
-      aria-label="Casa Fundadora do Programa Fundador AxéCloud"
+      aria-label="Casa Fundadora do Programa Fundador Ilê Asé"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#FBBC00]/30 bg-[#FBBC00]/15 text-[#FBBC00]">
         <Award className="h-5 w-5" aria-hidden />
@@ -66,7 +66,7 @@ export function FounderHouseBadge({ className, variant = 'full' }: FounderHouseB
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FBBC00]/80">
           Programa Fundador
         </p>
-        <p className="text-sm font-bold text-white">Casa Fundadora AxéCloud</p>
+        <p className="text-sm font-bold text-white">Casa Fundadora Ilê Asé</p>
         <p className="text-xs text-zinc-500">Selo no perfil da casa · prioridade no portal público</p>
       </div>
     </div>

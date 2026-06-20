@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => {
   base: '/',
   server: {
     port: 5174,
+    host: true,
+    strictPort: true,
     // Código-fonte em ../src — necessário para `npm run dev:landing`
     fs: {
       allow: [path.resolve(__dirname)],

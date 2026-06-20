@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { MarketingSubpageTopNav } from '../../components/marketing/MarketingTopNav';
 import { TerreiroCard } from '../../components/portal/TerreiroCard';
+import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
+import { landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { fetchPublicTerreiros, type PublicTerreiro } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
+import { cn } from '../../lib/utils';
 
 function citySlugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -36,25 +38,24 @@ export default function TerreirosCityPage() {
   }, [citySlug]);
 
   return (
-    <div className="landing-v3 min-h-screen">
-      <MarketingSubpageTopNav />
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <a href={ROUTES.terreiros} className="text-sm font-bold text-amber-600 hover:underline">
+    <MarketingMockupLayout>
+      <main className={cn('relative z-[1] py-10 sm:py-14', landingMockupShellClass, 'max-w-7xl')}>
+        <a href={ROUTES.terreiros} className="text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]">
           ← Diretório
         </a>
-        <h1 className="mt-4 text-3xl font-black">
+        <h1 className="mt-4 font-display text-3xl font-black text-[#1b1813] sm:text-4xl">
           Terreiros em {meta?.cidade || citySlug.replace(/-/g, ' ')}
           {meta?.estado ? `, ${meta.estado}` : ''}
         </h1>
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#FFC107]" />
           </div>
         ) : error ? (
-          <p className="py-10 text-red-400">{error}</p>
+          <p className="py-10 text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="py-10 text-neutral-600">Nenhum terreiro público nesta cidade ainda.</p>
+          <p className="py-10 text-[#1b1813]/65">Nenhum terreiro público nesta cidade ainda.</p>
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((t) => (
@@ -63,6 +64,6 @@ export default function TerreirosCityPage() {
           </div>
         )}
       </main>
-    </div>
+    </MarketingMockupLayout>
   );
 }

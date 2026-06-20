@@ -10,7 +10,7 @@ export type LandingAppCard = {
 export const LANDING_APPS_HEADING = {
   kicker: 'Apps & PWA',
   title: 'Dois acessos para a casa — portal da comunidade e painel da diretoria',
-  lead: 'O AxéCloud funciona no navegador do celular ou do computador. Filhos de santo acompanham a casa pelo portal; zeladores e diretoria administram tudo pelo painel. Nos dois casos, dá para fixar na tela inicial como um app (PWA) — sem baixar na App Store ou Google Play.',
+  lead: 'O Ilê Asé funciona no navegador do celular ou do computador. Filhos de santo acompanham a casa pelo portal; zeladores e diretoria administram tudo pelo painel. Nos dois casos, dá para fixar na tela inicial como um app (PWA) — sem baixar na App Store ou Google Play.',
 } as const;
 
 export const LANDING_APP_CARDS: readonly LandingAppCard[] = [

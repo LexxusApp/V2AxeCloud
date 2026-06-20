@@ -18,10 +18,10 @@ export const FOUNDER_PROGRAM = {
 } as const;
 
 export const FOUNDER_BENEFITS = [
-  'Uso gratuito do AxéCloud por 12 meses (todas as funcionalidades do plano Premium)',
+  'Uso gratuito do Ilê Asé por 12 meses (todas as funcionalidades do plano Premium)',
   'Onboarding personalizado — configuramos a casa junto com você',
   'Prioridade no perfil público quando o diretório do portal estiver no ar',
-  'Selo de Casa Fundadora AxéCloud no perfil da casa',
+  'Selo de Casa Fundadora Ilê Asé no perfil da casa',
   'Canal direto com a equipe para sugerir melhorias ao sistema',
 ] as const;
 

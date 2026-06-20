@@ -1,5 +1,7 @@
 import {
   BRAND_NAME,
+  BRAND_TAGLINE,
+  SITE_TITLE,
   buildBrandAlternateNamesJsonLd,
   buildBrandKeywordsMeta,
   buildBrandRecognitionParagraph,
@@ -12,10 +14,10 @@ import { SOCIAL_SAME_AS } from './socialLinks';
 export const SITE_ORIGIN = 'https://axecloud.com.br';
 
 export const HOME_SEO = {
-  title: `${BRAND_NAME} | Gestão de Terreiros — Software para Umbanda, Candomblé e Jurema`,
+  title: SITE_TITLE,
   description:
-    `${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria de fotos e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
-  h1: `${BRAND_NAME} — software de gestão de terreiros para Umbanda, Candomblé e Jurema`,
+    `${BRAND_NAME} (${BRAND_TAGLINE}) é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria de fotos e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
+  h1: `${SITE_TITLE} — software de gestão de terreiros para Umbanda, Candomblé e Jurema`,
   heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
   keywords: buildBrandKeywordsMeta(),
   brandRecognition: buildBrandRecognitionParagraph(),
@@ -29,11 +31,11 @@ export type HomeFaqItem = { q: string; a: string };
 export const HOME_FAQ: readonly HomeFaqItem[] = [
   {
     q: 'Qual o melhor software de gestão de terreiros para Umbanda e Candomblé?',
-    a: 'O AxéCloud é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Conheça o Programa Fundador para testar gratuitamente.',
+    a: `O ${BRAND_NAME} é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Conheça o Programa Fundador para testar gratuitamente.`,
   },
   {
-    q: 'O AxéCloud serve para terreiros de Umbanda, Candomblé e Jurema?',
-    a: 'Sim. O AxéCloud é flexível para casas de axé de Umbanda, Candomblé, Jurema e outras vertentes. Você personaliza termos, cargos e rotinas conforme a tradição do seu terreiro.',
+    q: `O ${BRAND_NAME} serve para terreiros de Umbanda, Candomblé e Jurema?`,
+    a: `Sim. O ${BRAND_NAME} é flexível para casas de axé de Umbanda, Candomblé, Jurema e outras vertentes. Você personaliza termos, cargos e rotinas conforme a tradição do seu terreiro.`,
   },
   {
     q: 'Como funciona a gestão financeira do terreiro?',
@@ -61,7 +63,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
   {
     q: 'Preciso instalar alguma coisa no computador ou celular?',
-    a: 'Não. O AxéCloud funciona 100% na nuvem pelo navegador — computador, tablet ou celular — sem instalação.',
+    a: `Não. O ${BRAND_NAME} funciona 100% na nuvem pelo navegador — computador, tablet ou celular — sem instalação.`,
   },
   {
     q: 'Meus dados e da comunidade ficam seguros?',
@@ -73,7 +75,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
 export const HOME_PLATAFORMA = {
   titleBefore: 'Uma ferramenta ungida com',
   titleHighlight: 'Respeito e Tradição',
-  lead: 'Diferente de sistemas de e-commerce ou gerências de escritório frias, as funcionalidades do Axé Cloud foram esculpidas ouvindo zeladores, mães e pais de santo, ogãs e médiuns da corrente.',
+  lead: `Diferente de sistemas de e-commerce ou gerências de escritório frias, as funcionalidades do ${BRAND_NAME} foram esculpidas ouvindo zeladores, mães e pais de santo, ogãs e médiuns da corrente.`,
 } as const;
 
 export const HOME_STATIC_SECTIONS: readonly { heading: string; body: string }[] = [
@@ -172,12 +174,12 @@ export function buildHomeHeadInject(options: BuildHomeHeadInjectOptions = {}): s
     '',
     `<meta name="description" content="${escapeHtml(d)}" />`,
     `<meta name="keywords" content="${escapeHtml(HOME_SEO.keywords)}" />`,
-    `<meta name="author" content="AxéCloud" />`,
+    `<meta name="author" content="${escapeHtml(BRAND_NAME)}" />`,
     `<meta name="robots" content="index, follow" />`,
     `<link rel="canonical" href="${url}" />`,
     '',
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="AxéCloud" />`,
+    `<meta property="og:site_name" content="${escapeHtml(BRAND_NAME)}" />`,
     `<meta property="og:url" content="${url}" />`,
     `<meta property="og:title" content="${escapeHtml(t)}" />`,
     `<meta property="og:description" content="${escapeHtml(d)}" />`,

@@ -4,7 +4,9 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
-import { MarketingSubpageTopNav } from '../../components/marketing/MarketingTopNav';
+import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
+import { MarketingMockupPageHeader } from '../../components/marketing/MarketingMockupPageHeader';
+import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
 import { fetchPublicEventos, terreiroProfilePath, type PublicEvento } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
@@ -44,17 +46,13 @@ export default function EventosPublicPage() {
   }, []);
 
   return (
-    <div className="landing-v3 min-h-screen">
-      <MarketingSubpageTopNav />
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <header>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Agenda cultural</p>
-          <h1 className="mt-2 text-3xl font-black">Eventos públicos</h1>
-          <p className="mt-3 text-neutral-600">
-            Giras e festas que as casas optaram por divulgar no portal — confirme horário e endereço directamente com o
-            terreiro.
-          </p>
-        </header>
+    <MarketingMockupLayout>
+      <main className={cn('relative z-[1] py-10 sm:py-14', landingMockupShellClass, 'max-w-4xl')}>
+        <MarketingMockupPageHeader
+          kicker="Agenda cultural"
+          title="Eventos públicos"
+          summary="Giras e festas que as casas optaram por divulgar no portal — confirme horário e endereço directamente com o terreiro."
+        />
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -63,9 +61,9 @@ export default function EventosPublicPage() {
         ) : error ? (
           <p className="py-10 text-red-400">{error}</p>
         ) : items.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-[#ece4d2] px-6 py-12 text-center text-neutral-600">
+          <div className={cn('mt-10 px-6 py-12 text-center text-[#1b1813]/70', landingMockupCardClass, 'rounded-2xl border-dashed')}>
             Nenhum evento público agendado no momento.
-            <a href={ROUTES.terreiros} className="mt-4 block text-sm font-bold text-amber-600 hover:underline">
+            <a href={ROUTES.terreiros} className="mt-4 block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
               Explorar terreiros
             </a>
           </div>
@@ -83,7 +81,11 @@ export default function EventosPublicPage() {
                   <button
                     type="button"
                     onClick={() => setDetail(ev)}
-                    className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-[#ece4d2] bg-[#0B0D11] text-left transition hover:border-[#2F3643]"
+                    className={cn(
+                      'group w-full cursor-pointer overflow-hidden text-left transition hover:-translate-y-0.5',
+                      landingMockupCardClass,
+                      'rounded-2xl',
+                    )}
                   >
                     {ev.bannerUrl ? (
                       <div className="overflow-hidden bg-white">
@@ -95,21 +97,21 @@ export default function EventosPublicPage() {
                       </div>
                     )}
                     <div className="flex flex-col gap-2 p-5">
-                      <span className="text-xs font-bold uppercase tracking-wide text-amber-600">{ev.tipo}</span>
-                      <h2 className="text-lg font-bold">{ev.titulo}</h2>
-                      <p className="flex items-center gap-2 text-sm text-neutral-600">
+                      <span className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{ev.tipo}</span>
+                      <h2 className="text-lg font-bold text-[#1b1813]">{ev.titulo}</h2>
+                      <p className="flex items-center gap-2 text-sm text-[#1b1813]/65">
                         <Calendar className="h-4 w-4 shrink-0" />
                         {dataFmt} · {ev.hora}
                       </p>
-                      <span className="flex items-center gap-1 text-sm font-semibold text-[#CBD5E1] group-hover:text-amber-600">
+                      <span className="flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {ev.terreiro.nome}
                         {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
                       </span>
                       {ev.descricao ? (
-                        <p className="line-clamp-2 text-sm text-neutral-500">{ev.descricao}</p>
+                        <p className="line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
                       ) : null}
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600/70">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
                         Toque para ver detalhes
                       </p>
                     </div>
@@ -120,8 +122,8 @@ export default function EventosPublicPage() {
           </ul>
         )}
 
-        <section className="mt-16 rounded-2xl border border-[#ece4d2] bg-[#0B0D11] p-6">
-          <h2 className="font-bold">Receber a agenda por e-mail</h2>
+        <section className={cn('mt-16 p-6', landingMockupCardClass, 'rounded-2xl')}>
+          <h2 className="font-bold text-[#1b1813]">Receber a agenda por e-mail</h2>
           <div className="mt-4">
             <PortalNewsletterForm />
           </div>
@@ -144,19 +146,20 @@ export default function EventosPublicPage() {
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
               className={cn(
-                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#ece4d2] bg-[#0B0D11] shadow-2xl',
+                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl',
+                landingMockupCardClass,
                 detail.bannerUrl ? 'w-max max-w-[min(96vw,440px)]' : 'w-full max-w-lg',
               )}
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-[#ece4d2] px-5 py-4">
+              <div className="flex shrink-0 items-center justify-between border-b border-[var(--mockup-card-border,#cfc0a8)] px-5 py-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-amber-600">{detail.tipo}</p>
-                  <h3 className="truncate text-lg font-black">{detail.titulo}</h3>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{detail.tipo}</p>
+                  <h3 className="truncate text-lg font-black text-[#1b1813]">{detail.titulo}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDetail(null)}
-                  className="shrink-0 rounded-lg p-2 text-neutral-600 hover:bg-white/5"
+                  className="shrink-0 rounded-lg p-2 text-[#1b1813]/68 hover:bg-[#1b1813]/5"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -176,9 +179,9 @@ export default function EventosPublicPage() {
                   </div>
                 )}
                 <div className="space-y-4 p-5">
-                  <div className="flex flex-wrap gap-3 text-sm">
+                  <div className="flex flex-wrap gap-3 text-sm text-[#1b1813]">
                     <span className="flex items-center gap-2 font-bold">
-                      <Calendar className="h-4 w-4 text-amber-600" />
+                      <Calendar className="h-4 w-4 text-[#FFC107]" />
                       {(() => {
                         try {
                           return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR });
@@ -188,20 +191,20 @@ export default function EventosPublicPage() {
                       })()}
                     </span>
                     <span className="flex items-center gap-2 font-bold">
-                      <Clock className="h-4 w-4 text-amber-600" />
+                      <Clock className="h-4 w-4 text-[#FFC107]" />
                       {detail.hora}
                     </span>
                   </div>
                   <a
                     href={terreiroProfilePath(detail.terreiro.slug)}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#CBD5E1] hover:text-amber-600"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#1b1813]/75 hover:text-[#FFC107]"
                   >
                     <MapPin className="h-4 w-4" />
                     {detail.terreiro.nome}
                     {detail.terreiro.cidade ? ` — ${detail.terreiro.cidade}` : ''}
                   </a>
                   {detail.descricao ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-600">{detail.descricao}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1b1813]/65">{detail.descricao}</p>
                   ) : null}
                 </div>
               </div>
@@ -209,6 +212,6 @@ export default function EventosPublicPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </MarketingMockupLayout>
   );
 }

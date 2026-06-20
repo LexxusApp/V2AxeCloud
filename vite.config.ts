@@ -8,6 +8,7 @@ import {prerenderPublicPages} from './scripts/vite-plugin-prerender-public';
 import {buildIdInject} from './scripts/vite-plugin-build-id';
 import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
 import {HOME_SEO} from './src/constants/seoHome';
+import {BRAND_NAME} from './src/constants/seoBrandKeywords';
 import {MARKETING_SITE_PATHS} from './src/lib/routes';
 
 function isMarketingNavigatePath(pathname: string): boolean {
@@ -60,8 +61,8 @@ export default defineConfig(({mode}) => {
         },
         manifest: {
           id: 'https://axecloud.com.br/',
-          name: 'AxéCloud',
-          short_name: 'AxéCloud',
+          name: BRAND_NAME,
+          short_name: BRAND_NAME,
           description: HOME_SEO.manifestDescription,
           start_url: '/login',
           scope: '/',
@@ -182,6 +183,7 @@ export default defineConfig(({mode}) => {
       },
     },
     server: {
+      host: true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

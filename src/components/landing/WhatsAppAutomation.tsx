@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { BadgeCheck, CheckCircle, MessageCircle, ShieldCheck } from 'lucide-react';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection } from './LandingSection';
@@ -21,7 +21,7 @@ const benefits = [
   },
   {
     title: 'Nome do terreiro em cada mensagem',
-    desc: 'A mensagem chega pelo canal oficial AxéCloud personalizada com o membro e a casa — sem spam genérico.',
+    desc: 'A mensagem chega pelo canal oficial Ilê Asé personalizada com o membro e a casa — sem spam genérico.',
   },
 ] as const;
 
@@ -60,7 +60,7 @@ function WhatsAppPhoneMock() {
           <span className="landing-device-dot bg-amber-500/70" aria-hidden />
           <span className="landing-device-url flex items-center gap-1.5">
             <MessageCircle className="h-3 w-3 text-amber-400" aria-hidden />
-            WhatsApp Business · AxéCloud
+            WhatsApp Business · Ilê Asé
           </span>
         </div>
 
@@ -71,7 +71,7 @@ function WhatsAppPhoneMock() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1 truncate text-sm font-bold text-white">
-                AxéCloud
+                Ilê Asé
                 <BadgeCheck className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />
               </p>
               <p className="text-[10px] text-amber-400/90">Conta comercial verificada</p>
@@ -146,7 +146,7 @@ export function WhatsAppAutomation() {
 
             <p className="landing-lead !mt-0 !text-left">
               Filhos de santo recebem avisos de gira, lembretes de mensalidade e confirmações pelo canal{' '}
-              <strong className="font-semibold text-slate-900">WhatsApp Business verificado do AxéCloud</strong> —
+              <strong className="font-semibold text-slate-900">WhatsApp Business verificado do Ilê Asé</strong> —
               templates aprovados, entrega confiável e a cara profissional que a casa merece.
             </p>
 

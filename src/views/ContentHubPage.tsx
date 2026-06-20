@@ -8,9 +8,11 @@ import {
   Heart,
 } from 'lucide-react';
 import { ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
+import { landingMockupCardClass, landingMockupKickerClass } from '../components/landing/landingMockupUi';
 import { LandingIconBox, landingIconClass, type LandingIconAccent } from '../components/landing/landingIconAccents';
 import { GLOSSARY_TERMS, PORTAL_ARTICLES, contentArticlePath } from '../content/portalContent';
 import { ROUTES } from '../lib/routes';
+import { cn } from '../lib/utils';
 
 const fade = {
   initial: { opacity: 0, y: 16 },
@@ -37,7 +39,7 @@ function ContentHeroStats() {
           <BookOpen className="h-5 w-5" aria-hidden />
         </span>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Glossário</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/65">Glossário</p>
           <p className="text-base font-bold text-[#1b1813]">{GLOSSARY_TERMS.length} termos</p>
         </div>
       </div>
@@ -46,7 +48,7 @@ function ContentHeroStats() {
           <Heart className="h-5 w-5" aria-hidden />
         </span>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Tom</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/65">Tom</p>
           <p className="text-base font-bold text-[#1b1813]">Respeitoso</p>
         </div>
       </div>
@@ -57,7 +59,7 @@ function ContentHeroStats() {
 export default function ContentHubPage() {
   return (
     <ContentMarketingLayout
-      kicker="Portal AxéCloud"
+      kicker="Portal de Gestão Ilê Asé"
       title="Conteúdo para quem busca entender a tradição"
       summary="Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé."
       heroExtra={<ContentHeroStats />}
@@ -65,12 +67,12 @@ export default function ContentHubPage() {
       <motion.section {...fade} aria-labelledby="content-articles">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <h2 id="content-articles" className="text-sm font-black uppercase tracking-wider text-amber-600">
+            <h2 id="content-articles" className={landingMockupKickerClass}>
               Artigos
             </h2>
-            <p className="mt-1 text-sm text-neutral-500">Leituras para zeladores, filhos de santo e quem está chegando.</p>
+            <p className="mt-1 text-sm text-[#1b1813]/65">Leituras para zeladores, filhos de santo e quem está chegando.</p>
           </div>
-          <span className="hidden shrink-0 rounded-full border border-[#ece4d2] bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-600 sm:inline">
+          <span className="hidden shrink-0 rounded-full border border-[var(--mockup-card-border,#cfc0a8)] bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1b1813]/70 sm:inline">
             {PORTAL_ARTICLES.length} textos
           </span>
         </div>
@@ -87,7 +89,7 @@ export default function ContentHubPage() {
                 className="h-full"
               >
                 <a href={contentArticlePath(article.slug)} className="group block h-full">
-                  <article className="landing-resource-card relative flex h-full flex-col p-6 sm:p-7">
+                  <article className={cn('relative flex h-full flex-col p-6 sm:p-7', landingMockupCardClass, 'rounded-[1.75rem]')}>
                     <div className="mb-5 flex items-start justify-between gap-3">
                       <LandingIconBox accent={accent}>
                         <FileText
@@ -96,16 +98,16 @@ export default function ContentHubPage() {
                           aria-hidden
                         />
                       </LandingIconBox>
-                      <span className="rounded-full border border-[#ece4d2] bg-white px-2.5 py-1 text-[10px] font-bold tabular-nums text-neutral-500">
+                      <span className="rounded-full border border-[#ece4d2] bg-white px-2.5 py-1 text-[10px] font-bold tabular-nums text-[#1b1813]/65">
                         {String(index + 1).padStart(2, '0')}
                       </span>
                     </div>
                     <h3 className="text-base font-bold leading-snug text-[#1b1813] transition-colors group-hover:text-amber-700 sm:text-lg">
                       {article.title}
                     </h3>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-neutral-600">{article.summary}</p>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-[#1b1813]/72">{article.summary}</p>
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#ece4d2] pt-4">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#1b1813]/65">
                         <Clock className="h-3.5 w-3.5" aria-hidden />
                         {article.readingMinutes} min
                       </span>
@@ -129,10 +131,10 @@ export default function ContentHubPage() {
         transition={{ duration: 0.45, delay: 0.25 }}
         aria-labelledby="content-glossary"
       >
-        <h2 id="content-glossary" className="text-sm font-black uppercase tracking-wider text-amber-600">
+        <h2 id="content-glossary" className={landingMockupKickerClass}>
           Referência rápida
         </h2>
-        <p className="mt-1 text-sm text-neutral-500">Termos fundamentais explicados com cuidado cultural.</p>
+        <p className="mt-1 text-sm text-[#1b1813]/65">Termos fundamentais explicados com cuidado cultural.</p>
 
         <a href={ROUTES.glossary} className="group mt-5 block">
           <article className="landing-mystic-card flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
@@ -144,7 +146,7 @@ export default function ContentHubPage() {
                 <h3 className="text-xl font-bold text-[#1b1813] transition-colors group-hover:text-amber-700 sm:text-2xl">
                   Glossário do axé
                 </h3>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#1b1813]/72 sm:text-base">
                   {GLOSSARY_TERMS.length} termos sobre terreiro, filho de santo, gira, orixá, entidades e tradições
                   afro-brasileiras — para consulta e compartilhamento.
                 </p>
@@ -152,7 +154,7 @@ export default function ContentHubPage() {
                   {['Axé', 'Gira', 'Orixá', 'Firma', 'Consulente'].map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-md border border-[#ece4d2] bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-600"
+                      className="rounded-md border border-[#ece4d2] bg-white px-2 py-0.5 text-[10px] font-bold text-[#1b1813]/72"
                     >
                       {tag}
                     </span>
@@ -175,21 +177,21 @@ export default function ContentHubPage() {
         transition={{ duration: 0.45, delay: 0.25 }}
         aria-labelledby="content-portal-links"
       >
-        <h2 id="content-portal-links" className="text-sm font-black uppercase tracking-wider text-amber-600">
+        <h2 id="content-portal-links" className={landingMockupKickerClass}>
           Portal público
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <a href={ROUTES.terreiros} className="landing-mystic-card block p-5 transition hover:border-amber-300/40">
+          <a href={ROUTES.terreiros} className={cn('block p-5 transition hover:-translate-y-0.5', landingMockupCardClass, 'rounded-2xl')}>
             <p className="font-bold text-[#1b1813]">Diretório de terreiros</p>
-            <p className="mt-1 text-sm text-neutral-600">Casas com perfil público por cidade e tradição.</p>
+            <p className="mt-1 text-sm text-[#1b1813]/65">Casas com perfil público por cidade e tradição.</p>
           </a>
-          <a href={ROUTES.eventosPublicos} className="landing-mystic-card block p-5 transition hover:border-amber-300/40">
+          <a href={ROUTES.eventosPublicos} className={cn('block p-5 transition hover:-translate-y-0.5', landingMockupCardClass, 'rounded-2xl')}>
             <p className="font-bold text-[#1b1813]">Eventos públicos</p>
-            <p className="mt-1 text-sm text-neutral-600">Giras e festas divulgadas pelas casas.</p>
+            <p className="mt-1 text-sm text-[#1b1813]/65">Giras e festas divulgadas pelas casas.</p>
           </a>
-          <a href={ROUTES.liturgicalCalendar} className="landing-mystic-card block p-5 transition hover:border-amber-300/40">
+          <a href={ROUTES.liturgicalCalendar} className={cn('block p-5 transition hover:-translate-y-0.5', landingMockupCardClass, 'rounded-2xl')}>
             <p className="font-bold text-[#1b1813]">Calendário litúrgico</p>
-            <p className="mt-1 text-sm text-neutral-600">Datas culturais de referência — cada casa tem o seu.</p>
+            <p className="mt-1 text-sm text-[#1b1813]/65">Datas culturais de referência — cada casa tem o seu.</p>
           </a>
         </div>
       </motion.section>
@@ -201,16 +203,16 @@ export default function ContentHubPage() {
         transition={{ duration: 0.45, delay: 0.35 }}
         aria-labelledby="content-founder"
       >
-        <article className="landing-mystic-card border-amber-300/20 p-6 sm:p-8">
+        <article className={cn('border-amber-300/20 p-6 sm:p-8', landingMockupCardClass, 'rounded-2xl')}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p id="content-founder" className="text-xs font-bold uppercase tracking-wider text-amber-600">
+              <p id="content-founder" className={landingMockupKickerClass}>
                 Programa Fundador
               </p>
               <h3 className="mt-2 text-lg font-bold text-[#1b1813] sm:text-xl">
-                Sua casa quer usar o AxéCloud e aparecer no portal?
+                Sua casa quer usar o Ilê Asé e aparecer no portal?
               </h3>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600">
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#1b1813]/65">
                 12 meses gratuitos, onboarding personalizado e prioridade quando o diretório público estiver no ar.
               </p>
             </div>

@@ -152,7 +152,7 @@ export default function Register() {
     >
       <aside
         className="relative hidden w-full shrink-0 flex-col justify-between overflow-hidden bg-black lg:flex lg:h-screen lg:min-h-0 lg:w-[52%] xl:w-[55%]"
-        aria-label="Sobre o AxéCloud"
+        aria-label="Sobre o Ilê Asé"
       >
         <AuthScreenBackground className="absolute inset-0" />
         <motion.div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/35 to-black/65" aria-hidden />
@@ -168,7 +168,7 @@ export default function Register() {
 
           <motion.div className="max-w-xl space-y-5 py-6 max-lg:py-4 lg:my-auto lg:py-10">
             <motion.div>
-              <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">Ilê Asé</p>
               <h1 className="mt-3 text-[clamp(1.35rem,3vw,1.85rem)] font-extrabold leading-[1.15] tracking-tight text-white">
                 A casa organizada.
                 <span className="block text-white/90">O axé em primeiro lugar.</span>
@@ -234,7 +234,7 @@ export default function Register() {
                 transition={{ duration: 0.25 }}
               >
                 <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 lg:hidden">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">AxéCloud</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Ilê Asé</p>
                   <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
                   <p className="mt-1 text-xs leading-relaxed text-zinc-600">
                     {checkoutPriceLabel}

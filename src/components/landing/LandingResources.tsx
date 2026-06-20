@@ -36,13 +36,13 @@ export function LandingResources() {
                 transition={{ ...fade.transition, delay: 0.05 * i }}
                 className="h-full"
               >
-                <article className="group flex h-full items-start gap-5 rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-7">
+                <article className="landing-mockup-card group flex h-full items-start gap-5 p-6 transition duration-200 hover:-translate-y-0.5 sm:p-7">
                   <LandingIconBox accent={item.iconAccent} className="shrink-0">
                     <Icon className={landingIconClass(item.iconAccent, 'h-6 w-6')} strokeWidth={1.5} aria-hidden />
                   </LandingIconBox>
                   <div className="min-w-0">
-                    <h3 className="text-base font-extrabold leading-tight text-slate-900 sm:text-lg">{item.title}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                    <h3 className="text-base font-extrabold leading-tight text-[#1b1813] sm:text-lg">{item.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[#1b1813]/65">{item.description}</p>
                   </div>
                 </article>
               </motion.li>

@@ -42,22 +42,22 @@ function FounderHeroStats() {
         </div>
       </div>
       <div className="landing-mystic-card flex w-full items-center gap-3 px-4 py-3 sm:w-auto sm:min-w-[11rem]">
-        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-neutral-600">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-[#1b1813]/72">
           <Users className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Vagas</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#1b1813]/65">Vagas</p>
           <p className="text-base font-bold text-[#1b1813]">
             {loading ? '…' : `${stats.remainingSlots} de ${stats.maxSlots}`}
           </p>
         </div>
       </div>
       <div className="landing-mystic-card flex w-full items-center gap-3 px-4 py-3 sm:w-auto sm:min-w-[11rem]">
-        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-neutral-600">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-[#1b1813]/72">
           <MapPin className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Prioridade</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#1b1813]/65">Prioridade</p>
           <p className="text-base font-bold text-[#1b1813]">{FOUNDER_PROGRAM.pilotCity}</p>
         </div>
       </div>
@@ -71,11 +71,11 @@ export default function FounderProgramPage() {
       variant="founder"
       kicker="Programa Fundador"
       title="12 meses gratuitos para as primeiras casas de axé"
-      summary={`Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros para validar o AxéCloud e construir o portal público do axé no Brasil. Você usa o sistema completo, ajuda a moldar o produto e entra como Casa Fundadora quando o diretório estiver no ar.`}
+      summary={`Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros para validar o Ilê Asé e construir o portal público do axé no Brasil. Você usa o sistema completo, ajuda a moldar o produto e entra como Casa Fundadora quando o diretório estiver no ar.`}
       heroExtra={<FounderHeroStats />}
     >
       <section aria-labelledby="fp-steps" className="mb-10 sm:mb-12">
-        <h2 id="fp-steps" className="landing-kicker !justify-start !text-xs">
+        <h2 id="fp-steps" className="landing-mockup-kicker inline-flex">
           Como funciona
         </h2>
         <ol className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -89,7 +89,7 @@ export default function FounderProgramPage() {
               </span>
               <div>
                 <p className="text-base font-bold text-[#1b1813]">{step.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-600">{step.desc}</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#1b1813]/72">{step.desc}</p>
               </div>
             </li>
           ))}
@@ -99,7 +99,7 @@ export default function FounderProgramPage() {
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-12">
         <div className="space-y-8">
           <section aria-labelledby="fp-benefits">
-            <h2 id="fp-benefits" className="text-sm font-black uppercase tracking-wider text-amber-600 sm:text-base">
+            <h2 id="fp-benefits" className="landing-mockup-kicker inline-flex">
               O que você recebe
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -113,7 +113,7 @@ export default function FounderProgramPage() {
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-amber-300/25 bg-amber-50 text-amber-600">
                       <Icon className="h-4 w-4" aria-hidden />
                     </span>
-                    <p className="text-sm leading-relaxed text-neutral-700 sm:text-[15px]">{line}</p>
+                    <p className="text-sm leading-relaxed text-[#1b1813]/82 sm:text-[15px]">{line}</p>
                   </li>
                 );
               })}
@@ -133,20 +133,20 @@ export default function FounderProgramPage() {
             </h2>
             <ul className="mt-4 space-y-3">
               {FOUNDER_REQUIREMENTS.map((line) => (
-                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-[#1b1813]/72 sm:text-[15px]">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.2} aria-hidden />
                   {line}
                 </li>
               ))}
             </ul>
-            <p className="mt-5 rounded-lg border border-[#ece4d2] bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-neutral-500">
+            <p className="mt-5 rounded-lg border border-[#ece4d2] bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-[#1b1813]/65">
               {FOUNDER_PROGRAM.pilotRegionNote}
             </p>
           </section>
 
-          <p className="text-sm text-neutral-500 sm:text-[15px]">
+          <p className="text-sm text-[#1b1813]/65 sm:text-[15px]">
             Depois do período fundador:{' '}
-            <strong className="text-neutral-700">{FOUNDER_PROGRAM.futurePriceLabel}</strong>. Transparência
+            <strong className="text-[#1b1813]/82">{FOUNDER_PROGRAM.futurePriceLabel}</strong>. Transparência
             desde o início — sem cartão nesta inscrição.
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function FounderProgramPage() {
               <PenLine className="h-5 w-5 text-amber-600" aria-hidden />
               Inscreva sua casa
             </h2>
-            <p className="mt-2 text-sm text-neutral-600 sm:text-[15px]">
+            <p className="mt-2 text-sm text-[#1b1813]/72 sm:text-[15px]">
               Preencha abaixo. Respondemos pelo WhatsApp em até alguns dias úteis.
             </p>
             <div className="mt-5">
@@ -177,7 +177,7 @@ export default function FounderProgramPage() {
             rel="noreferrer"
             className={cn(
               'mt-4 flex items-center justify-center gap-2 rounded-xl border border-[#ece4d2]',
-              'bg-white px-4 py-3.5 text-sm font-bold text-neutral-700 transition hover:border-amber-300/40 hover:text-[#1b1813]',
+              'bg-white px-4 py-3.5 text-sm font-bold text-[#1b1813]/82 transition hover:border-amber-300/40 hover:text-[#1b1813]',
             )}
           >
             <MessageCircle className="h-4 w-4 text-amber-600" aria-hidden />
@@ -187,10 +187,10 @@ export default function FounderProgramPage() {
       </div>
 
       <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#ece4d2] pt-8 text-sm sm:text-[15px]">
-        <a href={ROUTES.contentHub} className="text-neutral-500 transition hover:text-amber-700">
+        <a href={ROUTES.contentHub} className="text-[#1b1813]/65 transition hover:text-amber-700">
           Conteúdo e glossário
         </a>
-        <a href={ROUTES.register} className="text-neutral-500 transition hover:text-amber-700">
+        <a href={ROUTES.register} className="text-[#1b1813]/65 transition hover:text-amber-700">
           Cadastro com pagamento
         </a>
         <a href={ROUTES.home} className="font-bold text-amber-600">

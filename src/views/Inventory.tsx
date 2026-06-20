@@ -199,7 +199,7 @@ export default function Inventory({
 
   const generateShoppingListText = () => {
     const list = lowStockItems.map(p => `• ${p.item}: Repor ${p.quantidade_minima * 2} un.`).join('\n');
-    return `*LISTA DE COMPRAS - AXÉCLOUD*\n\nOlá, gostaria de solicitar os seguintes itens para reposição:\n\n${list}\n\nAguardo retorno com orçamento.`;
+    return `*LISTA DE COMPRAS - ILÊ ASÉ*\n\nOlá, gostaria de solicitar os seguintes itens para reposição:\n\n${list}\n\nAguardo retorno com orçamento.`;
   };
 
   const copyToClipboard = () => {

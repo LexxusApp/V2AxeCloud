@@ -417,7 +417,7 @@ export default function AppTopNav({
     setMobileOpen(false);
   };
 
-  const terreiroNome = tenantData?.nome || 'AXÉCLOUD';
+  const terreiroNome = tenantData?.nome || 'ILÊ ASÉ';
   const subtitle =
     userRole === 'filho'
       ? userDisplayName || 'Filho de Santo'
@@ -524,7 +524,7 @@ export default function AppTopNav({
         )}
         role="dialog"
         aria-modal="true"
-        aria-label="Menu de módulos do AxéCloud"
+        aria-label="Menu de módulos do Ilê Asé"
       >
         <div className="flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-[#1E242B] px-4 py-3">
           <div className="min-w-0">
@@ -544,7 +544,7 @@ export default function AppTopNav({
         <nav
           className="flex flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-4 no-scrollbar"
           role="tablist"
-          aria-label="Módulos do AxéCloud"
+          aria-label="Módulos do Ilê Asé"
         >
           {userRole === 'filho'
             ? navItems.map((item) => (
@@ -630,7 +630,7 @@ export default function AppTopNav({
             <div
               className="flex w-max items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
               role="tablist"
-              aria-label="Módulos do AxéCloud"
+              aria-label="Módulos do Ilê Asé"
             >
               {userRole === 'filho'
                 ? navItems.map((item) => (

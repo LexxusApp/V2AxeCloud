@@ -43,7 +43,7 @@ const sizeStyles: Record<
   },
 };
 
-/** Marca Axé Cloud em CSS — mesma identidade da landing (`Landing.tsx`). */
+/** Marca Ilê Asé em CSS — mesma identidade da landing (`Landing.tsx`). */
 export function AxeCloudLogoMark({
   className,
   size = 'default',
@@ -76,9 +76,8 @@ export function AxeCloudLogoMark({
       </div>
       <div className="min-w-0 leading-none">
         <div className="flex items-center gap-[3px]">
-          <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>AX</span>
-          <span className={cn('font-black text-[#f2b90f]', s.word)}>É</span>
-          <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>CLOUD</span>
+          <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>ILÊ</span>
+          <span className={cn('font-black uppercase tracking-[0.22em] text-[#f2b90f]', s.word)}>ASÉ</span>
         </div>
         <p className={cn('text-center font-black uppercase text-[#d99c0a]', s.tagline)}>Gestão Sagrada</p>
       </div>

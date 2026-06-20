@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Images, LayoutDashboard, Megaphone, Package, Users, Wallet, BookOpen, type LucideIcon } from 'lucide-react';
 import { landingScreenshot } from '../../constants/landingScreenshots';
@@ -175,7 +175,7 @@ export function SystemTour() {
                   >
                     <img
                       src={active.src}
-                      alt={`${active.label} — gestão de terreiro AxéCloud`}
+                      alt={`${active.label} — gestão de terreiro Ilê Asé`}
                       className="block h-auto max-h-[min(70vh,520px)] w-auto max-w-[min(100vw-2.5rem,960px)]"
                       width={1400}
                       height={900}

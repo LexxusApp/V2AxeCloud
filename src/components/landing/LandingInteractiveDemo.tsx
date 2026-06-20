@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CalendarDays,
@@ -54,22 +54,22 @@ export function LandingInteractiveDemo() {
     <LandingSection id="demonstracao" variant="default" aria-labelledby="demo-head">
       <motion.div className="landing-section-inner mx-auto max-w-7xl" {...fade}>
         <div className="relative z-10 mx-auto mb-12 max-w-3xl text-center">
-          <span className="mb-3 inline-block rounded-full border border-amber-500/20 bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-600">
+          <span className="landing-mockup-kicker mb-3 inline-flex">
             Simulador interativo
           </span>
-          <h2 id="demo-head" className="landing-title font-display font-black tracking-tight text-slate-900">
+          <h2 id="demo-head" className="landing-title font-display font-black tracking-tight text-[#1b1813]">
             Painel de gestão: experimente agora
           </h2>
-          <p className="landing-lead mx-auto mt-4 max-w-2xl">
-            Simulador <strong className="font-semibold text-slate-900">100% funcional no navegador</strong> com
-            módulos reais do AxéCloud. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
+          <p className="landing-lead mx-auto mt-4 max-w-2xl text-[#1b1813]/70">
+            Simulador <strong className="font-semibold text-[#1b1813]">100% funcional no navegador</strong> com
+            módulos reais do Ilê Asé. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
             sem criar conta. Os dados ficam só nesta página.
           </p>
         </div>
 
         <div
           id="demo-dashboard"
-          className="relative z-10 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-xl transition-shadow duration-300 hover:shadow-2xl"
+          className="landing-mockup-demo-frame relative z-10 overflow-hidden rounded-[1.75rem] border transition-shadow duration-300 hover:shadow-[var(--mockup-card-shadow-hover)]"
         >
           <div className="flex flex-col items-center justify-between gap-4 border-b border-slate-200 bg-white p-5 sm:flex-row">
             <div className="flex items-center gap-3">
@@ -88,7 +88,7 @@ export function LandingInteractiveDemo() {
             </div>
 
             <div
-              className="flex flex-wrap items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1.5"
+              className="-mx-1 flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5 scrollbar-none sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible"
               role="tablist"
               aria-label="Módulos da demo"
             >
@@ -103,7 +103,7 @@ export function LandingInteractiveDemo() {
                     aria-selected={isActive}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                      'inline-flex shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-all',
                       isActive
                         ? 'bg-amber-500 text-white shadow-sm'
                         : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900',

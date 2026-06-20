@@ -47,5 +47,5 @@ export function normalizeWhatsAppTemplates(input: unknown): Record<WhatsAppTempl
 export function resolveWhatsAppTemplate(templates: unknown, tipo: string): string {
   const merged = normalizeWhatsAppTemplates(templates);
   if (tipo in merged) return merged[tipo as WhatsAppTemplateType];
-  return 'Mensagem do AxéCloud';
+  return 'Mensagem do Ilê Asé';
 }

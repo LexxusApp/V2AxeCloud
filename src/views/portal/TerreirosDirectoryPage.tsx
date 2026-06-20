@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
-import { MarketingSubpageTopNav } from '../../components/marketing/MarketingTopNav';
 import { TerreiroCard } from '../../components/portal/TerreiroCard';
 import { TerreirosMapSummary } from '../../components/portal/TerreirosMapSummary';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
+import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
+import { MarketingMockupPageHeader } from '../../components/marketing/MarketingMockupPageHeader';
+import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { fetchPublicCidades, fetchPublicTerreiros, type PublicTerreiro } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
+import { cn } from '../../lib/utils';
 
 export default function TerreirosDirectoryPage() {
   const [items, setItems] = useState<PublicTerreiro[]>([]);
@@ -32,20 +35,16 @@ export default function TerreirosDirectoryPage() {
   const totalLabel = useMemo(() => `${items.length} casa${items.length === 1 ? '' : 's'}`, [items.length]);
 
   return (
-    <div className="landing-v3 relative min-h-screen overflow-x-hidden font-sans antialiased">
-      <MarketingSubpageTopNav />
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Portal AxéCloud</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Diretório de terreiros</h1>
-          <p className="mt-4 text-neutral-600">
-            Casas de Umbanda, Candomblé e tradições afins que optaram por perfil público — com respeito, privacidade e
-            moderação.
-          </p>
-        </header>
+    <MarketingMockupLayout>
+      <main className={cn('relative z-[1] py-10 sm:py-14', landingMockupShellClass, 'max-w-7xl')}>
+        <MarketingMockupPageHeader
+          kicker="Portal de Gestão Ilê Asé"
+          title="Diretório de terreiros"
+          summary="Casas de Umbanda, Candomblé e tradições afins que optaram por perfil público — com respeito, privacidade e moderação."
+        />
 
-        <section className="mt-10">
-          <h2 className="text-lg font-bold">Por cidade</h2>
+        <section className="mt-12">
+          <h2 className="text-lg font-bold text-[#1b1813]">Por cidade</h2>
           <div className="mt-4">
             <TerreirosMapSummary cidades={cidades} />
           </div>
@@ -53,21 +52,21 @@ export default function TerreirosDirectoryPage() {
 
         <section className="mt-12">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold">{totalLabel}</h2>
+            <h2 className="text-lg font-bold text-[#1b1813]">{totalLabel}</h2>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1b1813]/62" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Buscar por nome ou cidade…"
-                  className="w-full rounded-xl border border-[#ece4d2] bg-white py-2.5 pl-10 pr-4 text-sm outline-none sm:w-64"
+                  className="w-full rounded-xl border border-[var(--mockup-card-border,#cfc0a8)] bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#FFC107]/50 sm:w-64"
                 />
               </div>
               <select
                 value={tradicao}
                 onChange={(e) => setTradicao(e.target.value)}
-                className="rounded-xl border border-[#ece4d2] bg-white px-3 py-2.5 text-sm"
+                className="rounded-xl border border-[var(--mockup-card-border,#cfc0a8)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#FFC107]/50"
               >
                 <option value="todas">Todas as tradições</option>
                 <option value="umbanda">Umbanda</option>
@@ -80,14 +79,14 @@ export default function TerreirosDirectoryPage() {
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#FFC107]" />
             </div>
           ) : error ? (
-            <p className="py-10 text-center text-red-400">{error}</p>
+            <p className="py-10 text-center text-red-600">{error}</p>
           ) : items.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-[#ece4d2] px-6 py-12 text-center">
-              <p className="text-neutral-600">Nenhum terreiro encontrado com estes filtros.</p>
-              <a href={ROUTES.founderProgram} className="mt-4 inline-block text-sm font-bold text-amber-600 hover:underline">
+            <div className={cn('mt-8 px-6 py-12 text-center', landingMockupCardClass, 'rounded-2xl border-dashed')}>
+              <p className="text-[#1b1813]/70">Nenhum terreiro encontrado com estes filtros.</p>
+              <a href={ROUTES.founderProgram} className="mt-4 inline-block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
                 Inscrever minha casa no Programa Fundador
               </a>
             </div>
@@ -100,20 +99,20 @@ export default function TerreirosDirectoryPage() {
           )}
         </section>
 
-        <section className="mt-16 rounded-2xl border border-[#ece4d2] bg-[#0B0D11] p-6 sm:p-8">
-          <h2 className="text-lg font-bold">Agenda da semana por e-mail</h2>
-          <p className="mt-2 text-sm text-neutral-600">Giras e festas públicas na sua região — sem spam, só o essencial.</p>
+        <section className={cn('mt-16 p-6 sm:p-8', landingMockupCardClass, 'rounded-2xl')}>
+          <h2 className="text-lg font-bold text-[#1b1813]">Agenda da semana por e-mail</h2>
+          <p className="mt-2 text-sm text-[#1b1813]/65">Giras e festas públicas na sua região — sem spam, só o essencial.</p>
           <div className="mt-4">
             <PortalNewsletterForm />
           </div>
         </section>
 
-        <p className="mt-10 text-center text-xs text-neutral-500">
-          <a href={ROUTES.eventosPublicos} className="font-semibold text-amber-600 hover:underline">
+        <p className="mt-10 text-center text-xs text-[#1b1813]/66">
+          <a href={ROUTES.eventosPublicos} className="font-semibold text-[#1b1813] hover:text-[#FFC107]">
             Ver agenda de eventos públicos
           </a>
         </p>
       </main>
-    </div>
+    </MarketingMockupLayout>
   );
 }

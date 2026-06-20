@@ -1,5 +1,5 @@
 import { metadata as homeMetadata } from '../app/page';
-import { BRAND_NAME, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
+import { BRAND_NAME, PORTAL_BRAND, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
 import { getPortalArticleBySlug, parseContentArticleSlug } from '../content/portalContent';
 import { ROUTES, normalizePath } from './routes';
 
@@ -23,89 +23,89 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     robots: 'index, follow',
   },
   [ROUTES.login]: {
-    title: 'Entrar | AxéCloud',
+    title: `Entrar | ${BRAND_NAME}`,
     description:
-      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.',
+      `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
     canonicalPath: '/login',
     robots: 'index, follow',
   },
   [ROUTES.terms]: {
-    title: 'Termos de Uso | AxéCloud',
+    title: `Termos de Uso | ${BRAND_NAME}`,
     description:
-      'Termos de Uso do AxéCloud — regras de utilização da plataforma de gestão para terreiros de Umbanda e Candomblé.',
+      `Termos de Uso do ${BRAND_NAME} — regras de utilização da plataforma de gestão para terreiros de Umbanda e Candomblé.`,
     canonicalPath: '/termos',
     robots: 'index, follow',
   },
   [ROUTES.privacy]: {
-    title: 'Política de Privacidade | AxéCloud',
+    title: `Política de Privacidade | ${BRAND_NAME}`,
     description:
-      'Política de Privacidade do AxéCloud — como tratamos seus dados em conformidade com a LGPD.',
+      `Política de Privacidade do ${BRAND_NAME} — como tratamos seus dados em conformidade com a LGPD.`,
     canonicalPath: '/privacidade',
     robots: 'index, follow',
   },
   [ROUTES.register]: {
-    title: 'Cadastrar terreiro | AxéCloud',
+    title: `Cadastrar terreiro | ${BRAND_NAME}`,
     description:
-      'Cadastre seu terreiro de Umbanda ou Candomblé no AxéCloud e organize financeiro, galeria de fotos e portal do filho de santo.',
+      `Cadastre seu terreiro de Umbanda ou Candomblé no ${BRAND_NAME} e organize financeiro, galeria de fotos e portal do filho de santo.`,
     canonicalPath: '/register',
     robots: 'noindex, follow',
   },
   [ROUTES.checkout]: {
-    title: 'Checkout | AxéCloud',
+    title: `Checkout | ${BRAND_NAME}`,
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/checkout',
     robots: 'noindex, nofollow',
   },
   [ROUTES.dashboard]: {
-    title: 'Painel | AxéCloud',
+    title: `Painel | ${BRAND_NAME}`,
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/dashboard',
     robots: 'noindex, nofollow',
   },
   [ROUTES.founderProgram]: {
-    title: 'Programa Fundador | AxéCloud — 12 meses gratuitos para terreiros',
+    title: `Programa Fundador | ${BRAND_NAME} — 12 meses gratuitos para terreiros`,
     description:
-      'Inscreva sua casa de axé no Programa Fundador AxéCloud: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.',
+      `Inscreva sua casa de axé no Programa Fundador ${BRAND_NAME}: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.`,
     canonicalPath: '/programa-fundador',
     robots: 'index, follow',
   },
   [ROUTES.contentHub]: {
-    title: 'Conteúdo | Portal AxéCloud — Umbanda e Candomblé',
+    title: `Conteúdo | ${PORTAL_BRAND} — Umbanda e Candomblé`,
     description:
-      'Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do portal AxéCloud.',
+      `Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do ${PORTAL_BRAND}.`,
     canonicalPath: '/conteudo',
     robots: 'index, follow',
   },
   [ROUTES.glossary]: {
-    title: 'Glossário do axé — 20 termos essenciais | AxéCloud',
+    title: `Glossário do axé — 20 termos essenciais | ${BRAND_NAME}`,
     description:
       'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
     canonicalPath: '/conteudo/glossario',
     robots: 'index, follow',
   },
   [ROUTES.espacoDoFiel]: {
-    title: 'Espaço do Fiel — Pedir Reza | AxéCloud',
+    title: `Espaço do Fiel — Pedir Reza | ${BRAND_NAME}`,
     description:
       'Portal público de pedidos de reza: selecione um terreiro parceiro por cidade, acenda sua vela virtual e acompanhe o altar com respeito e privacidade.',
     canonicalPath: '/espaco-do-fiel',
     robots: 'index, follow',
   },
   [ROUTES.terreiros]: {
-    title: 'Diretório de terreiros | Portal AxéCloud',
+    title: `Diretório de terreiros | ${PORTAL_BRAND}`,
     description:
       'Encontre casas de Umbanda, Candomblé e tradições afins com perfil público verificado — por cidade, tradição e pedidos de reza online.',
     canonicalPath: '/terreiros',
     robots: 'index, follow',
   },
   [ROUTES.eventosPublicos]: {
-    title: 'Eventos públicos — giras e festas | AxéCloud',
+    title: `Eventos públicos — giras e festas | ${BRAND_NAME}`,
     description:
-      'Agenda de giras e festas públicas divulgadas por terreiros parceiros do portal AxéCloud.',
+      `Agenda de giras e festas públicas divulgadas por terreiros parceiros do ${PORTAL_BRAND}.`,
     canonicalPath: '/eventos',
     robots: 'index, follow',
   },
   [ROUTES.liturgicalCalendar]: {
-    title: 'Calendário litúrgico de referência | Portal AxéCloud',
+    title: `Calendário litúrgico de referência | ${PORTAL_BRAND}`,
     description:
       'Datas culturais frequentemente celebradas em casas de axé — referência educativa; cada terreiro tem calendário próprio.',
     canonicalPath: '/conteudo/calendario-liturgico',
@@ -156,7 +156,7 @@ function upsertTwitter(name: string, content: string) {
 function resolveRouteSeo(path: string): RouteSeo {
   if (path.startsWith(`${ROUTES.eventRsvp}/`)) {
     return {
-      title: 'Confirmação de presença | AxéCloud',
+      title: `Confirmação de presença | ${BRAND_NAME}`,
       description: 'Confirme ou decline seu convite para o evento do terreiro.',
       canonicalPath: path,
       robots: 'noindex, nofollow',
@@ -165,7 +165,7 @@ function resolveRouteSeo(path: string): RouteSeo {
 
   if (path.startsWith(`${ROUTES.consulentePortal}/`)) {
     return {
-      title: 'Portal do consulente | AxéCloud',
+      title: `Portal do consulente | ${BRAND_NAME}`,
       description: DEFAULT_DESCRIPTION,
       canonicalPath: path,
       robots: 'noindex, follow',
@@ -174,7 +174,7 @@ function resolveRouteSeo(path: string): RouteSeo {
 
   if (path.startsWith(`${ROUTES.terreiros}/`)) {
     return {
-      title: 'Terreiro | Diretório AxéCloud',
+      title: `Terreiro | ${PORTAL_BRAND}`,
       description:
         'Perfil público de terreiro de Umbanda ou Candomblé — pedidos de reza, eventos e informações com respeito à tradição.',
       canonicalPath: path,
@@ -187,7 +187,7 @@ function resolveRouteSeo(path: string): RouteSeo {
     const article = getPortalArticleBySlug(articleSlug);
     if (article) {
       return {
-        title: `${article.title} | Portal AxéCloud`,
+        title: `${article.title} | ${PORTAL_BRAND}`,
         description: article.summary,
         canonicalPath: path,
         robots: 'index, follow',

@@ -20,14 +20,14 @@ export default function GlossaryPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: Math.min(index * 0.03, 0.45) }}
-            className="landing-resource-card p-5 sm:p-6"
+            className="landing-mockup-card p-5 sm:p-6"
           >
-            <dt className="text-base font-bold text-primary sm:text-lg">{term}</dt>
-            <dd className="mt-2 text-sm leading-relaxed text-[#94A3B8]">{definition}</dd>
+            <dt className="text-base font-bold text-[#1b1813] sm:text-lg">{term}</dt>
+            <dd className="mt-2 text-sm leading-relaxed text-[#1b1813]/65">{definition}</dd>
           </motion.div>
         ))}
       </dl>
-      <p className="mt-8 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3 text-xs leading-relaxed text-[#64748B]">
+      <p className="landing-mockup-inset-card mt-8 rounded-xl px-4 py-3 text-xs leading-relaxed text-[#1b1813]/65">
         Este glossário é introdutório. Tradições, nações e linhas têm variações — consulte sempre a orientação da sua
         casa ou de lideranças da sua região.
       </p>

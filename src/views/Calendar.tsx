@@ -774,7 +774,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to create event');
       }
-
+      
       const result = await response.json();
       const feedback = formatGiraWhatsAppFeedback(result.whatsapp as EventWhatsAppFeedback | undefined);
       setToast(feedback);
@@ -1077,8 +1077,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                               </span>
                             ) : null}
                             <span className="text-[#64748B]">{dataCurta}</span>
-                          </div>
                         </div>
+                            </div>
                         <ChevronRight
                           className="h-4 w-4 shrink-0 text-[#64748B] transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
                           aria-hidden
@@ -1109,14 +1109,14 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           title="Calendário de giras"
           description="Agende trabalhos espirituais, festas e giras — com lembretes automáticos no WhatsApp."
           action={
-            <button
+                <button 
               type="button"
               onClick={() => setAddEventModalOpen(true)}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
-            >
+                >
               <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Adicionar
-            </button>
+                </button>
           }
         />
 
@@ -1137,17 +1137,17 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     )}
                   >
                     <div className="relative h-36 w-full overflow-hidden bg-[#0d0d0d] sm:h-40">
-                      {event.banner_url ? (
+                    {event.banner_url ? (
                         <img
                           src={event.banner_url}
                           alt=""
                           className="h-full w-full object-cover"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
                           <CalendarIcon className="h-10 w-10 text-white/15" />
-                        </div>
-                      )}
+                      </div>
+                    )}
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
                       <div
                         className="absolute right-2 top-2 flex gap-0.5 rounded-lg bg-black/50 p-0.5 backdrop-blur-sm"
@@ -1156,10 +1156,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         role="presentation"
                       >
                         {!passed ? (
-                          <button
-                            type="button"
+                            <button 
+                              type="button"
                             onClick={() => void handleNotifyAll(event)}
-                            disabled={isNotifying === event.id}
+                              disabled={isNotifying === event.id}
                             className="rounded p-1.5 text-primary hover:bg-white/10 disabled:opacity-50"
                             title="Notificar push no app"
                           >
@@ -1170,8 +1170,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                             )}
                           </button>
                         ) : null}
-                        <button
-                          type="button"
+                          <button 
+                            type="button"
                           onClick={() => setSelectedEventForGuests(event)}
                           className={cn(
                             'rounded p-1.5 hover:bg-white/10',
@@ -1181,9 +1181,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           disabled={!hasAccess}
                         >
                           <Ticket className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
+                          </button>
+                          <button 
+                            type="button"
                           onClick={() =>
                             setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
                           }
@@ -1191,8 +1191,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           aria-label="Remover gira"
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                          </button>
+                        </div>
                       <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-1.5">
                         <span
                           className={cn(
@@ -1211,8 +1211,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                             Encerrado
                           </span>
                         ) : null}
-                      </div>
                     </div>
+                      </div>
                     <div className="p-4">
                       <h4 className="text-base font-black leading-tight text-[#F1F5F9]">{event.titulo}</h4>
                       {event.descricao ? (
@@ -1225,26 +1225,26 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         </span>
                         <span className="flex items-center gap-1 font-bold">
                           <Clock className="h-3.5 w-3.5 text-primary" aria-hidden />
-                          {event.hora}
+                        {event.hora}
                         </span>
                       </div>
                       <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary/70">
                         Toque para ver detalhes
                       </p>
                     </div>
-                  </button>
+                </button>
                 );
               })}
               {eventsNewestFirst.length === 0 ? (
                 <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
-                </div>
+              </div>
               ) : null}
-            </div>
+                </div>
             <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
               <div className="rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary">
                 <MessageSquare className="h-5 w-5" aria-hidden />
-              </div>
+                  </div>
               <div>
                 <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-[#94A3B8]">
@@ -1252,9 +1252,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   Convidados com telefone também recebem convite ao serem adicionados — e lembretes
                   automáticos antes da gira.
                 </p>
-              </div>
-            </div>
-          </div>
+                  </div>
+                </div>
+                </div>
       </AppPageShell>
 
       <AnimatePresence>
@@ -1268,11 +1268,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             bannerInputRef={bannerInputRef}
             bannerPreview={bannerPreview}
             onBannerFile={(f) => {
-              setBannerFile(f);
-              setBannerPreview((prev) => {
-                if (prev) URL.revokeObjectURL(prev);
-                return URL.createObjectURL(f);
-              });
+                      setBannerFile(f);
+                      setBannerPreview((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return URL.createObjectURL(f);
+                      });
             }}
           />
         ) : null}
@@ -1307,7 +1307,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#13171D] via-[#13171D]/40 to-transparent" />
-                </div>
+                    </div>
               ) : null}
 
               <div className="shrink-0 border-b border-[#1E242B] px-5 py-4">
@@ -1373,7 +1373,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     >
                       <p className="text-xl font-bold tabular-nums">{stat.value}</p>
                       <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">{stat.label}</p>
-                    </div>
+                  </div>
                   ))}
                 </div>
 
@@ -1456,44 +1456,44 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                                 )}
                               >
                                 <User className="h-4 w-4" />
-                              </div>
+                          </div>
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-[#F1F5F9]">{guest.nome}</p>
                                 <p className={cn('text-[10px] font-bold uppercase tracking-wider', statusMeta.color)}>
                                   {statusMeta.label}
-                                </p>
-                              </div>
-                            </div>
+                            </p>
+                          </div>
+                        </div>
                             {isAdmin ? (
                               <div className="flex shrink-0 items-center gap-1.5">
-                                {guest.status !== 'Check-in' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => updateGuestStatus(guest.id, 'Check-in')}
-                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500"
-                                  >
-                                    Check-in
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => updateGuestStatus(guest.id, 'Confirmado')}
-                                    className="rounded-lg border border-[#1E242B] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:bg-white/5"
-                                  >
-                                    Estornar
-                                  </button>
-                                )}
+                              {guest.status !== 'Check-in' ? (
                                 <button
+                                    type="button"
+                                  onClick={() => updateGuestStatus(guest.id, 'Check-in')}
+                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500"
+                                >
+                                  Check-in
+                                </button>
+                              ) : (
+                                <button
+                                    type="button"
+                                  onClick={() => updateGuestStatus(guest.id, 'Confirmado')}
+                                    className="rounded-lg border border-[#1E242B] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:bg-white/5"
+                                >
+                                  Estornar
+                                </button>
+                              )}
+                              <button
                                   type="button"
-                                  onClick={() => setItemToDelete({ id: guest.id, type: 'guest' })}
+                                onClick={() => setItemToDelete({ id: guest.id, type: 'guest' })}
                                   className="rounded-lg p-2 text-[#64748B] transition hover:bg-red-500/10 hover:text-red-400"
                                   aria-label="Remover convidado"
-                                >
+                              >
                                   <X className="h-4 w-4" />
-                                </button>
-                              </div>
+                              </button>
+                        </div>
                             ) : null}
-                          </div>
+                      </div>
                         );
                       })
                   ) : (

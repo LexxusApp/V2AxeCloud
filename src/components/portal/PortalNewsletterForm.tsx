@@ -30,7 +30,7 @@ export function PortalNewsletterForm({ cidade, estado }: { cidade?: string; esta
 
   if (done) {
     return (
-      <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+      <p className="rounded-xl border border-emerald-500/35 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
         Inscrição confirmada. Em breve enviaremos a agenda da semana na sua região.
       </p>
     );
@@ -38,26 +38,26 @@ export function PortalNewsletterForm({ cidade, estado }: { cidade?: string; esta
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative flex-1">
-        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+      <div className="relative min-w-0 flex-1">
+        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1b1813]/45" />
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="seu@email.com"
-          className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] py-3 pl-10 pr-4 text-sm text-white outline-none focus:border-[#FBBC00]/40"
+          className="w-full rounded-xl border border-[var(--mockup-card-border,#cfc0a8)] bg-white py-3 pl-10 pr-4 text-sm text-[#1b1813] outline-none placeholder:text-[#1b1813]/40 focus:border-[#FFC107]/55 focus:ring-1 focus:ring-[#FFC107]/25"
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FBBC00] px-5 py-3 text-sm font-black text-[#080A0D] disabled:opacity-60"
+        className="inline-flex shrink-0 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-5 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38] disabled:opacity-60"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Receber agenda
       </button>
-      {error ? <p className="text-sm text-red-400 sm:basis-full">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600 sm:basis-full">{error}</p> : null}
     </form>
   );
 }

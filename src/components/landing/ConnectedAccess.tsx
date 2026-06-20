@@ -5,8 +5,10 @@ import {
   LANDING_APPS_HEADING,
   LANDING_PWA_STEPS,
 } from '../../constants/landingApps';
+import { cn } from '../../lib/utils';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
+import { landingMockupCardClass, landingMockupInsetCardClass } from './landingMockupUi';
 
 const fade = {
   initial: { opacity: 0, y: 20 },
@@ -54,18 +56,18 @@ export function ConnectedAccess() {
                     </LandingIconBox>
                     <div className="min-w-0 flex-1">
                       <span className="landing-app-badge">{card.badge}</span>
-                      <h3 className="landing-app-card__title">{card.title}</h3>
-                      <p className="mt-2 text-xs font-medium text-slate-500">{card.who}</p>
+                      <h3 className="landing-app-card__title text-[#1b1813]">{card.title}</h3>
+                      <p className="mt-2 text-xs font-semibold text-[#1b1813]/60">{card.who}</p>
                     </div>
                   </div>
 
-                  <p className="landing-app-card__desc">{card.description}</p>
+                  <p className="landing-app-card__desc text-[#1b1813]/75">{card.description}</p>
 
                   <ul className="landing-app-card__list" role="list">
                     {card.features.map((feature) => (
                       <li key={feature}>
-                        <Check className="h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.5} aria-hidden />
-                        <span>{feature}</span>
+                        <Check className="h-4 w-4 shrink-0 text-[#FFC107]" strokeWidth={2.5} aria-hidden />
+                        <span className="text-[#334155]">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -76,7 +78,7 @@ export function ConnectedAccess() {
         </div>
 
         <motion.div
-          className="relative z-10 mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8"
+          className={cn('relative z-10 mt-10 p-6 sm:p-8', landingMockupCardClass)}
           initial={fade.initial}
           whileInView={fade.whileInView}
           viewport={fade.viewport}
@@ -88,8 +90,8 @@ export function ConnectedAccess() {
                 <Smartphone className={landingIconClass('emerald', 'h-5 w-5')} aria-hidden />
               </LandingIconBox>
               <div>
-                <h3 className="text-base font-bold text-slate-900 sm:text-lg">Como funciona o PWA</h3>
-                <p className="text-xs text-slate-500 sm:text-sm">
+                <h3 className="text-base font-bold text-[#1b1813] sm:text-lg">Como funciona o PWA</h3>
+                <p className="text-xs text-[#1b1813]/65 sm:text-sm">
                   Progressive Web App — app na tela inicial, sem instalar pela loja.
                 </p>
               </div>
@@ -100,13 +102,13 @@ export function ConnectedAccess() {
             {LANDING_PWA_STEPS.map((item) => (
               <li
                 key={item.step}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-4"
+                className={cn('px-4 py-4', landingMockupInsetCardClass, 'rounded-2xl')}
               >
-                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-xs font-black text-amber-600">
+                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#FFC107]/20 text-xs font-black text-[#1b1813]">
                   {item.step}
                 </span>
-                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.desc}</p>
+                <p className="text-sm font-semibold text-[#1b1813]">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#334155]">{item.desc}</p>
               </li>
             ))}
           </ol>

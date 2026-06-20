@@ -23,13 +23,13 @@ function sectionHref(sectionBase: string, id: string) {
   return sectionBase ? `${sectionBase}#${id}` : `#${id}`;
 }
 
-const LOGO_SRC = '/logo-axecloud.png?v=6';
+const LOGO_SRC = '/ile-ase-logo.png';
 
 export function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
     <img
       src={LOGO_SRC}
-      alt="AxéCloud"
+      alt="Ilê Asé — Gestão Sagrada"
       width={950}
       height={316}
       decoding="async"
@@ -69,7 +69,7 @@ export function MarketingTopNav({
         <a
           href={logoHref}
           className="mr-1 flex shrink-0 items-center sm:mr-3"
-          aria-label="AxéCloud — início"
+          aria-label="Ilê Asé — início"
         >
           <LogoMark compact />
         </a>
@@ -207,10 +207,198 @@ export function MarketingTopNav({
   );
 }
 
+const LANDING_MOCKUP_SECTION_IDS = ['recursos', 'mensalidade', 'plataforma'] as const;
+
+function useLandingMockupNavActive() {
+  const [activeHash, setActiveHash] = useState(() =>
+    typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : '',
+  );
+
+  useEffect(() => {
+    const syncHash = () => setActiveHash(window.location.hash.replace(/^#/, ''));
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+
+    const observers: IntersectionObserver[] = [];
+
+    for (const id of LANDING_MOCKUP_SECTION_IDS) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) setActiveHash(id);
+          }
+        },
+        { rootMargin: '-42% 0px -48% 0px', threshold: 0 },
+      );
+
+      observer.observe(el);
+      observers.push(observer);
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', syncHash);
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, []);
+
+  return activeHash;
+}
+
+function isLandingMockupNavItemActive(href: string, activeHash: string) {
+  if (href === ROUTES.home || href === `${ROUTES.home}#top`) {
+    if (typeof window === 'undefined') return false;
+    const onHome = window.location.pathname.replace(/\/+$/, '') === '' || window.location.pathname === '/';
+    return onHome && !activeHash;
+  }
+
+  const hashIndex = href.indexOf('#');
+  if (hashIndex === -1) return false;
+  return activeHash === href.slice(hashIndex + 1);
+}
+
+const LANDING_MOCKUP_NAV = [
+  { label: 'Início', href: ROUTES.home, desktop: 'always' as const },
+  { label: 'Recursos', href: `${ROUTES.home}#recursos`, desktop: 'always' as const },
+  { label: 'Terreiros', href: ROUTES.terreiros, desktop: 'always' as const },
+  { label: 'Agenda', href: ROUTES.eventosPublicos, desktop: 'always' as const },
+  { label: 'Conteúdos', href: ROUTES.contentHub, desktop: 'wide' as const },
+  { label: 'Planos', href: `${ROUTES.home}#mensalidade`, desktop: 'always' as const },
+  { label: 'Sobre', href: `${ROUTES.home}#plataforma`, desktop: 'wide' as const },
+] as const;
+
+function landingMockupNavLinkClass(desktop: 'always' | 'wide') {
+  if (desktop === 'wide') return 'hidden 2xl:inline-flex';
+  return 'inline-flex';
+}
+
+export function LandingMockupLogo({ variant = 'nav' }: { variant?: 'nav' | 'footer' }) {
+  return (
+    <img
+      src="/ile-ase-logo.png"
+      alt="ILÊ ASÉ — Gestão Sagrada"
+      width={560}
+      height={112}
+      decoding="async"
+      className={
+        variant === 'footer'
+          ? 'landing-mockup-logo h-11 w-auto max-w-[14rem] object-contain object-left sm:h-12 sm:max-w-[16rem]'
+          : 'landing-mockup-logo h-12 w-auto max-w-[14rem] object-contain object-left sm:h-[4.75rem] sm:max-w-[18rem] md:h-[5.25rem] md:max-w-[20rem] lg:h-[5.75rem] lg:max-w-[22rem] xl:h-[6.25rem] xl:max-w-[24rem]'
+      }
+    />
+  );
+}
+
 export function LandingTopNav() {
-  return <MarketingTopNav logoHref="#top" sectionBase="" />;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeHash = useLandingMockupNavActive();
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen]);
+
+  return (
+    <nav className="landing-mockup-nav sticky top-0 z-50 bg-black">
+      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 pt-1.5 pb-0 md:pt-2 md:pb-0 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
+        <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="ILÊ ASÉ — início">
+          <LandingMockupLogo />
+        </a>
+
+        <div className="landing-mockup-nav__links hidden min-w-0 items-center justify-center gap-x-2 xl:flex 2xl:gap-x-3">
+          {LANDING_MOCKUP_NAV.map((item) => {
+            const isActive = isLandingMockupNavItemActive(item.href, activeHash);
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'landing-mockup-nav__link text-[15px] font-semibold tracking-wide 2xl:text-base',
+                  landingMockupNavLinkClass(item.desktop),
+                  isActive && 'landing-mockup-nav__link--active',
+                )}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
+
+        <div className="landing-mockup-nav__actions flex shrink-0 items-center justify-end gap-2 xl:col-start-3 xl:gap-3">
+          <a
+            href={appHref(ROUTES.login)}
+            className="landing-mockup-nav__ghost hidden rounded-lg px-3.5 py-2 text-sm font-semibold xl:inline-flex"
+          >
+            Entrar
+          </a>
+          <a
+            href={appHref(ROUTES.register)}
+            className="landing-mockup-nav__cta hidden rounded-xl bg-[#FFC107] px-4 py-2 text-sm font-bold text-[#1b1813] xl:inline-flex"
+          >
+            Comece agora
+          </a>
+
+          <button
+            type="button"
+            className="rounded-lg p-2 text-white transition-colors hover:text-[#FFC107] xl:hidden"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
+
+      {mobileMenuOpen ? (
+        <div className="max-h-[calc(100dvh-var(--landing-mockup-nav-height))] overflow-y-auto border-t border-white/10 bg-black xl:hidden">
+          <div className="space-y-1 px-4 py-4">
+            {LANDING_MOCKUP_NAV.map((item) => {
+              const isActive = isLandingMockupNavItemActive(item.href, activeHash);
+              return (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'landing-mockup-nav__link block rounded-lg px-3 py-3 text-lg font-semibold',
+                    isActive && 'landing-mockup-nav__link--active',
+                  )}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+            <a
+              href={appHref(ROUTES.login)}
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-3 block rounded-lg px-3 py-3 text-center text-lg font-semibold text-white hover:bg-white/5 hover:text-[#FFC107]"
+            >
+              Entrar
+            </a>
+            <a
+              href={appHref(ROUTES.register)}
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-2 block rounded-xl bg-[#FFC107] py-3 text-center text-base font-bold text-[#1b1813]"
+            >
+              Comece agora
+            </a>
+          </div>
+        </div>
+      ) : null}
+    </nav>
+  );
 }
 
 export function MarketingSubpageTopNav({ active }: { active?: 'fiel' }) {
-  return <MarketingTopNav logoHref={ROUTES.home} sectionBase={ROUTES.home} active={active} />;
+  void active;
+  return <LandingTopNav />;
 }

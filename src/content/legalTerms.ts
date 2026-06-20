@@ -1,27 +1,27 @@
 export type LegalSection = { title: string; body: string };
 
-export const LEGAL_CONTROLLER = 'AxéCloud — CNPJ 66.335.964/0001-07';
+export const LEGAL_CONTROLLER = 'Ilê Asé — CNPJ 66.335.964/0001-07';
 
 export const LEGAL_TERMS_TITLE = 'Termos de Uso e Política de Privacidade';
 
 export const LEGAL_TERMS_SUMMARY =
-  'O AxéCloud é uma plataforma SaaS para gestão de terreiros de Umbanda e Candomblé. Ao continuar, você declara ter lido e concordado com os termos abaixo.';
+  'O Ilê Asé é uma plataforma SaaS para gestão de terreiros de Umbanda e Candomblé. Ao continuar, você declara ter lido e concordado com os termos abaixo.';
 
 export const TERMS_OF_USE_TITLE = 'Termos de Uso';
 
 export const TERMS_OF_USE_SUMMARY =
-  'Regras de utilização da plataforma AxéCloud para zeladores e integrantes de terreiros de Umbanda e Candomblé.';
+  'Regras de utilização da plataforma Ilê Asé para zeladores e integrantes de terreiros de Umbanda e Candomblé.';
 
 export const PRIVACY_POLICY_TITLE = 'Política de Privacidade';
 
 export const PRIVACY_POLICY_SUMMARY =
-  'Como o AxéCloud coleta, usa, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a LGPD.';
+  'Como o Ilê Asé coleta, usa, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a LGPD.';
 
 export const LEGAL_TERMS_SECTIONS: LegalSection[] = [
   {
     title: '1. Objeto do serviço',
     body:
-      'O AxéCloud oferece ferramentas digitais para o zelador(a) administrar o terreiro: cadastro de filhos de santo, calendário, mural, financeiro, biblioteca, galeria e demais módulos conforme o plano contratado. O uso deve respeitar a legislação brasileira e a finalidade religiosa e comunitária do terreiro.',
+      'O Ilê Asé oferece ferramentas digitais para o zelador(a) administrar o terreiro: cadastro de filhos de santo, calendário, mural, financeiro, biblioteca, galeria e demais módulos conforme o plano contratado. O uso deve respeitar a legislação brasileira e a finalidade religiosa e comunitária do terreiro.',
   },
   {
     title: '2. Dados que tratamos',
@@ -46,7 +46,7 @@ export const LEGAL_TERMS_SECTIONS: LegalSection[] = [
   {
     title: '6. Responsabilidades',
     body:
-      'O AxéCloud é disponibilizado “como está”. Você mantém a confidencialidade das credenciais de acesso. Podemos suspender contas em caso de uso abusivo, fraude ou violação destes termos. Planos pagos seguem as condições informadas na contratação.',
+      'O Ilê Asé é disponibilizado “como está”. Você mantém a confidencialidade das credenciais de acesso. Podemos suspender contas em caso de uso abusivo, fraude ou violação destes termos. Planos pagos seguem as condições informadas na contratação.',
   },
   {
     title: '7. Contato',

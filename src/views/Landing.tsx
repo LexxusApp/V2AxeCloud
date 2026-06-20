@@ -1,15 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { ArrowUp, Check, Instagram, MessageCircle } from 'lucide-react';
-import { TikTokIcon } from '../components/icons/TikTokIcon';
-import { LandingTopNav, LogoMark } from '../components/marketing/MarketingTopNav';
+import { ArrowUp, Check, MessageCircle } from 'lucide-react';
+import { LandingTopNav } from '../components/marketing/MarketingTopNav';
+import { MarketingMockupFooter } from '../components/marketing/MarketingMockupFooter';
 import { PortalHomeHub } from '../components/landing/PortalHomeHub';
 import { LandingReveal } from '../components/landing/LandingReveal';
 import { LandingSection, LandingSectionHeader } from '../components/landing/LandingSection';
-import { SOCIAL_LINKS } from '../constants/socialLinks';
-import { cn } from '../lib/utils';
 import { appHref } from '../lib/appHref';
+import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
+import { landingMockupShellClass } from '../components/landing/landingMockupUi';
+import { LandingMockupSideRails } from '../components/landing/LandingMockupSideRails';
 
 const LandingPhilosophy = lazy(() =>
   import('../components/landing/LandingPhilosophy').then((m) => ({ default: m.LandingPhilosophy }))
@@ -55,7 +56,6 @@ function LandingSectionFallback({ minHeight = '16rem' }: { minHeight?: string })
 }
 
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
-const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
   'Painel completo para zelador e diretoria',
@@ -88,7 +88,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-amber-400 text-neutral-900 shadow-lg shadow-amber-500/30 transition-opacity duration-300 hover:bg-amber-300 sm:bottom-8 sm:right-6',
+        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-[#FFC107] text-[#1b1813] shadow-lg shadow-[#FFC107]/30 transition-opacity duration-300 hover:bg-[#ffcd38] sm:bottom-8 sm:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
@@ -99,16 +99,16 @@ function ScrollToTopButton() {
 
 function LandingSoftwareDivider() {
   return (
-    <LandingSection aria-label="Transição para o software">
-      <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative flex items-center justify-center py-2">
-          <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[#E2E8F0] to-transparent" aria-hidden />
-          <p className="relative bg-[#F8FAFC] px-4 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-[#64748B] sm:text-xs">
+    <section className="landing-mockup-divider border-y border-[#e8dfd0] bg-[#fdf8f0] py-10" aria-label="Transição para o software">
+      <div className={landingMockupShellClass}>
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-x-0 top-1/2 h-px bg-[#e8dfd0]" aria-hidden />
+          <p className="relative bg-[#fdf8f0] px-4 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[#1b1813]/62 sm:text-xs">
             Software de gestão para o seu terreiro
           </p>
         </div>
       </div>
-    </LandingSection>
+    </section>
   );
 }
 
@@ -121,11 +121,9 @@ export default function Landing() {
 
       <LandingTopNav />
 
-      <div className="landing-v3 relative min-h-dvh overflow-x-hidden bg-[#F8FAFC] text-[#334155]">
-      <div
-        className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[650px] bg-gradient-to-b from-[#F1F5F9] to-[#F8FAFC]"
-        aria-hidden
-      />
+      <LandingMockupSideRails />
+
+      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-hidden bg-[#fdf8f0] text-[#1b1813]">
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <PortalHomeHub />
@@ -177,30 +175,30 @@ export default function Landing() {
         </Suspense>
 
         <LandingSection id="mensalidade" variant="alt" aria-labelledby="mensalidade-head">
-          <div className="landing-section-inner mx-auto max-w-7xl">
+          <div className="landing-section-inner mx-auto">
             <LandingReveal>
               <LandingSectionHeader
                 kicker="Mensalidade"
-                title="Um valor. Todo o AxéCloud."
+                title="Um valor. Todo o Ilê Asé."
                 titleId="mensalidade-head"
                 lead={landingPrice.description}
               />
             </LandingReveal>
             <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-12 max-w-4xl">
-              <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 md:grid-cols-[0.9fr_1.1fr]">
-                <div className="flex flex-col justify-between bg-[#161310] p-8 text-white sm:p-10">
+              <div className="landing-mockup-card grid overflow-hidden md:grid-cols-[0.9fr_1.1fr]">
+                <div className="flex flex-col justify-between bg-black p-8 text-white sm:p-10">
                   <div>
-                    <span className="inline-flex w-max rounded-full bg-amber-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-300">
-                      Plano Premium
-                    </span>
-                    <h3 className="mt-5 text-lg font-bold text-neutral-300">Mensalidade do terreiro</h3>
+                    <span className="landing-mockup-kicker inline-flex w-max">
+                  Plano Premium
+                </span>
+                    <h3 className="mt-5 text-lg font-bold text-white/80">Mensalidade do terreiro</h3>
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="font-display text-5xl font-black tracking-tight text-amber-400">{landingPrice.label}</span>
-                      <span className="text-lg text-neutral-400">{landingPrice.period}</span>
+                      <span className="font-display text-5xl font-black tracking-tight text-[#FFC107]">{landingPrice.label}</span>
+                      <span className="text-lg text-white/50">{landingPrice.period}</span>
                     </div>
-                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-neutral-300">
+                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
                       Tudo incluso, sem taxa por filho de santo. Ou comece pelo{' '}
-                      <a href={ROUTES.founderProgram} className="font-bold text-amber-400 underline decoration-amber-400/50 underline-offset-2">
+                      <a href={ROUTES.founderProgram} className="font-bold text-[#FFC107] underline decoration-[#FFC107]/50 underline-offset-2">
                         Programa Fundador
                       </a>{' '}
                       — 12 meses grátis.
@@ -208,35 +206,35 @@ export default function Landing() {
                   </div>
                   <a
                     href={appHref(ROUTES.register)}
-                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-neutral-900 transition hover:bg-amber-300"
+                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]"
                   >
                     Cadastrar
                   </a>
                 </div>
 
-                <div className="p-8 sm:p-10">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">O que está incluso</p>
-                  <ul className="mt-5 space-y-3.5 text-left text-sm text-slate-700" role="list">
-                    {premiumFeatures.map((line) => (
+                <div className="bg-white p-8 sm:p-10">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/62">O que está incluso</p>
+                  <ul className="mt-5 space-y-3.5 text-left text-sm text-[#1b1813]/75" role="list">
+                  {premiumFeatures.map((line) => (
                       <li key={line} className="flex gap-3">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-100">
-                          <Check className="h-3.5 w-3.5 text-amber-700" strokeWidth={2.5} />
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FFC107]/20">
+                          <Check className="h-3.5 w-3.5 text-[#1b1813]" strokeWidth={2.5} />
                         </span>
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-7 border-t border-slate-200 pt-5 text-[11px] text-slate-500">
-                    Dúvidas?{' '}
-                    <a
-                      href={WA_COMERCIAL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-bold text-amber-700 hover:text-amber-800"
-                    >
-                      Fale com o comercial
-                    </a>
-                  </p>
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+                  <p className="mt-7 border-t border-[#e8dfd0] pt-5 text-[11px] text-[#1b1813]/66">
+                  Dúvidas?{' '}
+                  <a
+                    href={WA_COMERCIAL}
+                    target="_blank"
+                    rel="noreferrer"
+                      className="font-bold text-[#1b1813] hover:text-[#FFC107]"
+                  >
+                    Fale com o comercial
+                  </a>
+                </p>
                 </div>
               </div>
             </LandingReveal>
@@ -248,184 +246,47 @@ export default function Landing() {
         </Suspense>
 
         <LandingSection aria-label="Fechamento">
-          <div className="landing-section-inner mx-auto max-w-7xl">
-            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1c1813] to-[#0e0c0a] p-10 text-center md:p-16">
-              <div
-                className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-400/15 blur-2xl"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-amber-400/15 blur-3xl"
-                aria-hidden
-              />
-              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-amber-400">Que o axé acompanhe</p>
+          <div className="landing-section-inner mx-auto">
+            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-black p-10 text-center md:rounded-[2.25rem] md:p-16">
+              <p className="relative z-10 text-xs font-black uppercase tracking-[0.2em] text-[#FFC107]">Que o axé acompanhe</p>
               <p className="relative z-10 mx-auto mt-4 max-w-2xl font-display text-3xl font-black leading-tight text-white md:text-4xl">
                 Paz na casa, luz no caminho e organização no que é sagrado
               </p>
-              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-neutral-300">
+              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-white/70">
                 Leve transparência financeira, portal do filho de santo e memória da casa para o seu terreiro.
               </p>
               <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <a
                   href={ROUTES.founderProgram}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-black text-neutral-900 transition hover:bg-amber-300 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38] sm:w-auto"
                 >
                   Programa Fundador
                 </a>
                 <a
                   href={appHref(ROUTES.register)}
-                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto"
                 >
                   Cadastrar com PIX
-                </a>
-                <a
-                  href={WA_COMERCIAL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white/90 transition hover:text-white"
-                >
+              </a>
+              <a
+                href={WA_COMERCIAL}
+                target="_blank"
+                rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white/80 transition hover:text-[#FFC107]"
+              >
                   <MessageCircle className="h-4 w-4" aria-hidden />
-                  Falar com o comercial
-                </a>
+                Falar com o comercial
+              </a>
               </div>
             </LandingReveal>
           </div>
         </LandingSection>
       </main>
 
-      <footer className="relative z-[1] border-t border-white/10 bg-[#161310] py-16 text-neutral-400" role="contentinfo">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
-          <div className="space-y-4">
-            <LogoMark compact />
-            <p className="text-xs leading-relaxed">
-              Portal e software para terreiros de Umbanda, Candomblé e Jurema — casas, eventos públicos, pedidos de reza
-              e gestão da casa.
-            </p>
-            <ul className="flex items-center gap-2" aria-label="Redes sociais oficiais">
-              {SOCIAL_LINKS.map(({ id, href, label, rel }) => (
-                <li key={id}>
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel={rel}
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 text-neutral-300 transition hover:border-amber-400/40 hover:text-amber-400"
-                    aria-label={`${label} @axecloudoficial`}
-                  >
-                    {id === 'instagram' ? <Instagram className="h-4 w-4" /> : <TikTokIcon className="h-4 w-4" />}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Portal</h6>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <a href={ROUTES.terreiros} className="text-neutral-400 hover:text-amber-400">
-                  Terreiros
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.eventosPublicos} className="text-neutral-400 hover:text-amber-400">
-                  Eventos públicos
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.espacoDoFiel} className="text-neutral-400 hover:text-amber-400">
-                  Pedir reza
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.liturgicalCalendar} className="text-neutral-400 hover:text-amber-400">
-                  Calendário litúrgico
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Plataforma</h6>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <a href="#recursos" className="text-neutral-400 hover:text-amber-400">
-                  Recursos
-                </a>
-              </li>
-              <li>
-                <a href="#demonstracao" className="text-neutral-400 hover:text-amber-400">
-                  Demo interativa
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.founderProgram} className="text-neutral-400 hover:text-amber-400">
-                  Programa Fundador
-                </a>
-              </li>
-              <li>
-                <a href="#mensalidade" className="text-neutral-400 hover:text-amber-400">
-                  Planos
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Conta</h6>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <a href={appHref(ROUTES.login)} className="text-neutral-400 hover:text-amber-400">
-                  Entrar
-                </a>
-              </li>
-              <li>
-                <a href={appHref(ROUTES.register)} className="text-neutral-400 hover:text-amber-400">
-                  Cadastrar terreiro
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.contentHub} className="text-neutral-400 hover:text-amber-400">
-                  Conteúdo
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.glossary} className="text-neutral-400 hover:text-amber-400">
-                  Glossário do axé
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Legal</h6>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <a href="#seguranca" className="text-neutral-400 hover:text-amber-400">
-                  Segurança e LGPD
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.terms} className="text-neutral-400 hover:text-amber-400">
-                  Termos de Uso
-                </a>
-              </li>
-              <li>
-                <a href={ROUTES.privacy} className="text-neutral-400 hover:text-amber-400">
-                  Política de Privacidade
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/15 px-4 pt-6 text-center text-xs sm:flex-row sm:px-6 lg:px-8">
-          <p>© {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}</p>
-          <p className="italic">Axé — com respeito às tradições de matriz africana.</p>
-        </div>
-      </footer>
+      <MarketingMockupFooter />
 
       <ScrollToTopButton />
-      </div>
+    </div>
     </>
   );
 }

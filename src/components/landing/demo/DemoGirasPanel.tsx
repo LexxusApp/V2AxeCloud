@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { CalendarDays, Clock, MessageSquare, X } from 'lucide-react';
 import { DEMO_GIRAS_INITIAL, formatDemoDate, type DemoGira } from '../../../constants/landingDemo';
 import { DemoCard, demoInputClass, demoLabelClass } from './demoUi';
@@ -159,7 +159,7 @@ export function DemoGirasPanel({ onNotify }: Props) {
             <div>
               <p className="text-xs font-bold text-slate-900">Convites e lembretes no WhatsApp</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
-                No AxéCloud real, convidados com telefone recebem o convite ao serem adicionados ao evento — e lembretes
+                No Ilê Asé real, convidados com telefone recebem o convite ao serem adicionados ao evento — e lembretes
                 automáticos antes da gira.
               </p>
             </div>

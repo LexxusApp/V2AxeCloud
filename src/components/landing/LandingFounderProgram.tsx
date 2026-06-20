@@ -1,10 +1,12 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { ArrowRight, Check, Crown } from 'lucide-react';
 import { FOUNDER_BENEFITS, FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { ROUTES } from '../../lib/routes';
+import { cn } from '../../lib/utils';
 import { useFounderProgramStats } from '../../hooks/useFounderProgramStats';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
+import { landingMockupCardClass } from './landingMockupUi';
 
 const fade = {
   initial: { opacity: 0, y: 20 },
@@ -25,10 +27,10 @@ export function LandingFounderProgram() {
             title={`12 meses gratuitos para as primeiras ${FOUNDER_PROGRAM.maxSlots} casas`}
             titleId="founder-head"
             icon={<Crown className="h-3.5 w-3.5" aria-hidden />}
-            lead="Estamos validando o AxéCloud com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
+            lead="Estamos validando o Ilê Asé com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
           />
           {!loading ? (
-            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-amber-600">
+            <p className="mt-4 text-center text-xs font-black uppercase tracking-widest text-[#FFC107]">
               {[
                 stats.acceptedHouses > 0
                   ? `${stats.acceptedHouses} casa${stats.acceptedHouses === 1 ? '' : 's'} fundadora${stats.acceptedHouses === 1 ? '' : 's'} ativa${stats.acceptedHouses === 1 ? '' : 's'}`
@@ -54,12 +56,12 @@ export function LandingFounderProgram() {
           {FOUNDER_BENEFITS.slice(0, 4).map((line) => (
             <li
               key={line}
-              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left"
+              className={cn('flex items-start gap-3 px-4 py-3.5 text-left', landingMockupCardClass, 'rounded-2xl')}
             >
               <LandingIconBox accent="emerald" className="shrink-0 !h-8 !w-8">
                 <Check className={landingIconClass('emerald', 'h-4 w-4')} strokeWidth={2.2} aria-hidden />
               </LandingIconBox>
-              <p className="pt-0.5 text-sm leading-relaxed text-slate-700 sm:text-base">{line}</p>
+              <p className="pt-0.5 text-sm leading-relaxed text-[#1b1813]/70 sm:text-base">{line}</p>
             </li>
           ))}
         </motion.ul>

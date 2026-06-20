@@ -1,4 +1,4 @@
-import { buildBrandKeywordsMeta } from './seoBrandKeywords';
+import { BRAND_NAME, PORTAL_BRAND, buildBrandKeywordsMeta } from './seoBrandKeywords';
 import {
   PRIVACY_POLICY_SECTIONS,
   PRIVACY_POLICY_SUMMARY,
@@ -41,10 +41,10 @@ function legalSectionsToStatic(sections: readonly LegalSection[]): { heading: st
 export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
   {
     path: ROUTES.login,
-    title: 'Entrar | AxéCloud',
+    title: `Entrar | ${BRAND_NAME}`,
     description:
-      'Acesse o AxéCloud — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.',
-    h1: 'Entrar no AxéCloud',
+      `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
+    h1: `Entrar no ${BRAND_NAME}`,
     intro:
       'Faça login como zelador(a) ou filho de santo para acessar o painel do terreiro, mensalidades, mural, calendário de giras e galeria de fotos.',
     sections: [
@@ -60,29 +60,29 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
   },
   {
     path: ROUTES.terms,
-    title: 'Termos de Uso | AxéCloud',
+    title: `Termos de Uso | ${BRAND_NAME}`,
     description:
-      'Termos de Uso do AxéCloud — regras de utilização da plataforma de gestão para terreiros de Umbanda e Candomblé.',
+      `Termos de Uso do ${BRAND_NAME} — regras de utilização da plataforma de gestão para terreiros de Umbanda e Candomblé.`,
     h1: TERMS_OF_USE_TITLE,
     intro: TERMS_OF_USE_SUMMARY,
     sections: legalSectionsToStatic(TERMS_OF_USE_SECTIONS),
   },
   {
     path: ROUTES.privacy,
-    title: 'Política de Privacidade | AxéCloud',
+    title: `Política de Privacidade | ${BRAND_NAME}`,
     description:
-      'Política de Privacidade do AxéCloud — como tratamos seus dados em conformidade com a LGPD.',
+      `Política de Privacidade do ${BRAND_NAME} — como tratamos seus dados em conformidade com a LGPD.`,
     h1: PRIVACY_POLICY_TITLE,
     intro: PRIVACY_POLICY_SUMMARY,
     sections: legalSectionsToStatic(PRIVACY_POLICY_SECTIONS),
   },
   {
     path: ROUTES.founderProgram,
-    title: 'Programa Fundador | AxéCloud — 12 meses gratuitos para terreiros',
+    title: `Programa Fundador | ${BRAND_NAME} — 12 meses gratuitos para terreiros`,
     description:
-      'Inscreva sua casa de axé no Programa Fundador AxéCloud: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.',
+      `Inscreva sua casa de axé no Programa Fundador ${BRAND_NAME}: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.`,
     h1: 'Programa Fundador — 12 meses gratuitos para terreiros',
-    intro: `Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros de Umbanda, Candomblé e Jurema para validar o AxéCloud. Uso completo gratuito por ${FOUNDER_PROGRAM.freeMonths} meses, onboarding personalizado e selo de Casa Fundadora no futuro diretório público.`,
+    intro: `Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros de Umbanda, Candomblé e Jurema para validar o ${BRAND_NAME}. Uso completo gratuito por ${FOUNDER_PROGRAM.freeMonths} meses, onboarding personalizado e selo de Casa Fundadora no futuro diretório público.`,
     sections: [
       ...FOUNDER_BENEFITS.map((body, i) => ({
         heading: `Benefício ${i + 1}`,
@@ -100,20 +100,20 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'Offer',
-      name: 'Programa Fundador AxéCloud',
-      description: `Uso gratuito do AxéCloud por ${FOUNDER_PROGRAM.freeMonths} meses para terreiros selecionados`,
+      name: `Programa Fundador ${BRAND_NAME}`,
+      description: `Uso gratuito do ${BRAND_NAME} por ${FOUNDER_PROGRAM.freeMonths} meses para terreiros selecionados`,
       price: '0',
       priceCurrency: 'BRL',
       url: `${SITE_ORIGIN}${ROUTES.founderProgram}`,
-      seller: { '@type': 'Organization', name: 'AxéCloud', url: SITE_ORIGIN },
+      seller: { '@type': 'Organization', name: BRAND_NAME, url: SITE_ORIGIN },
       eligibleRegion: { '@type': 'Country', name: 'Brasil' },
     },
   },
   {
     path: ROUTES.contentHub,
-    title: 'Conteúdo | Portal AxéCloud — Umbanda e Candomblé',
+    title: `Conteúdo | ${PORTAL_BRAND} — Umbanda e Candomblé`,
     description:
-      'Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do portal AxéCloud.',
+      `Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do ${PORTAL_BRAND}.`,
     h1: 'Conteúdo para quem busca entender a tradição',
     intro:
       'Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé.',
@@ -128,13 +128,13 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       },
       {
         heading: 'Programa Fundador',
-        body: `Casas de axé podem se inscrever para usar o AxéCloud gratuitamente por ${FOUNDER_PROGRAM.freeMonths} meses em ${SITE_ORIGIN}${ROUTES.founderProgram}.`,
+        body: `Casas de axé podem se inscrever para usar o ${BRAND_NAME} gratuitamente por ${FOUNDER_PROGRAM.freeMonths} meses em ${SITE_ORIGIN}${ROUTES.founderProgram}.`,
       },
     ],
   },
   ...PORTAL_ARTICLES.map((article) => ({
     path: contentArticlePath(article.slug),
-    title: `${article.title} | Portal AxéCloud`,
+    title: `${article.title} | ${PORTAL_BRAND}`,
     description: article.summary,
     h1: article.title,
     intro: article.summary,
@@ -146,10 +146,10 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       description: article.summary,
       datePublished: article.publishedAt,
       inLanguage: 'pt-BR',
-      author: { '@type': 'Organization', name: 'AxéCloud', url: SITE_ORIGIN },
+      author: { '@type': 'Organization', name: BRAND_NAME, url: SITE_ORIGIN },
       publisher: {
         '@type': 'Organization',
-        name: 'AxéCloud',
+        name: BRAND_NAME,
         url: SITE_ORIGIN,
         logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/og-image.png` },
       },
@@ -158,7 +158,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
   })),
   {
     path: ROUTES.glossary,
-    title: 'Glossário do axé — 20 termos essenciais | AxéCloud',
+    title: `Glossário do axé — 20 termos essenciais | ${BRAND_NAME}`,
     description:
       'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
     h1: 'Glossário do axé — 20 termos essenciais',
@@ -168,7 +168,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'DefinedTermSet',
-      name: 'Glossário do axé — AxéCloud',
+      name: `Glossário do axé — ${BRAND_NAME}`,
       description:
         'Glossário introdutório de termos de terreiros de Umbanda e Candomblé',
       inLanguage: 'pt-BR',
@@ -181,7 +181,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
   },
   {
     path: ROUTES.espacoDoFiel,
-    title: 'Espaço do Fiel — Pedir Reza | AxéCloud',
+    title: `Espaço do Fiel — Pedir Reza | ${BRAND_NAME}`,
     description:
       'Portal público de pedidos de reza: selecione um terreiro parceiro por cidade, acenda sua vela virtual e acompanhe o altar com respeito e privacidade.',
     h1: 'Portal Público de Pedidos de Reza',
@@ -270,7 +270,7 @@ export function buildPublicPageHeadInject(page: PublicPrerenderPage): string {
     `<link rel="canonical" href="${url}" />`,
     '',
     `<meta property="og:type" content="${ogType}" />`,
-    `<meta property="og:site_name" content="AxéCloud" />`,
+    `<meta property="og:site_name" content="${escapeHtml(BRAND_NAME)}" />`,
     `<meta property="og:url" content="${url}" />`,
     `<meta property="og:title" content="${escapeHtml(t)}" />`,
     `<meta property="og:description" content="${escapeHtml(d)}" />`,

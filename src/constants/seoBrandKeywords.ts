@@ -1,11 +1,24 @@
 /** Nome canônico da marca (com acento). */
-export const BRAND_NAME = 'AxéCloud' as const;
+export const BRAND_NAME = 'Ilê Asé' as const;
+
+/** Slogan principal da marca. */
+export const BRAND_TAGLINE = 'Gestão Sagrada' as const;
+
+/** Título do site para `<title>`, PWA e Open Graph. */
+export const SITE_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}` as const;
+
+/** Nome público do portal (diretório, conteúdo, terreiros). */
+export const PORTAL_BRAND = 'Portal de Gestão Ilê Asé' as const;
 
 /**
  * Variações de escrita que as pessoas digitam no Google.
  * Fonte única para meta keywords, JSON-LD alternateName e texto estático.
  */
 export const BRAND_ALTERNATE_NAMES = [
+  'Ilê Ase',
+  'Ile Ase',
+  'ile ase',
+  'AxéCloud',
   'axecloud',
   'AxeCloud',
   'axe cloud',
@@ -30,6 +43,7 @@ export const BRAND_TOPIC_KEYWORDS = [
   'umbanda',
   'jurema',
   'gestão mística',
+  'gestão sagrada',
   'financeiro de terreiro',
   'mensalidade terreiro',
   'galeria de fotos terreiro',
@@ -62,7 +76,7 @@ export function buildBrandAlternateNamesJsonLd(): string[] {
 /** Parágrafo natural para HTML estático e crawlers — sem keyword stuffing. */
 export function buildBrandRecognitionParagraph(): string {
   const spoken =
-    BRAND_ALTERNATE_NAMES.slice(0, 4).join(', ') +
-    ' e outras grafias sem acento';
-  return `${BRAND_NAME} é o sistema de gestão para terreiros de Umbanda e Candomblé. Se você buscou por ${spoken}, este é o site oficial em axecloud.com.br.`;
+    BRAND_ALTERNATE_NAMES.slice(0, 5).join(', ') +
+    ' e outras grafias';
+  return `${BRAND_NAME} (${BRAND_TAGLINE}) é o sistema de gestão para terreiros de Umbanda e Candomblé. Se você buscou por ${spoken}, este é o site oficial em axecloud.com.br.`;
 }

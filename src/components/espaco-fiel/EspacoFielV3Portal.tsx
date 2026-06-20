@@ -9,6 +9,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import { ROUTES } from '../../lib/routes';
+import { cn } from '../../lib/utils';
+import { espacoFielInsetClass, espacoFielPanelClass, landingMockupKickerClass } from '../landing/landingMockupUi';
 import { CANDLE_COLOR_HEX, VELA_OPTIONS, type VelaCor } from './espacoFielV3Data';
 import { useEspacoFielPedidos } from '../../hooks/useEspacoFielPedidos';
 
@@ -143,12 +145,10 @@ export function EspacoFielV3Portal() {
 
       <div
         id="portal-do-fiel"
-        className="mx-auto max-w-7xl animate-fadeIn px-4 py-12 sm:px-6 md:py-16 lg:px-8"
+        className="espaco-fiel-portal relative z-[1] mx-auto max-w-7xl animate-fadeIn px-4 py-12 sm:px-6 md:py-16 lg:px-8"
       >
         <div className="relative mx-auto mb-16 max-w-3xl text-center">
-          <span className="mb-3 inline-block animate-pulse rounded-full border border-amber-300/40 bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-800">
-            ❤️ Espaço do Fiel & Caridade Litúrgica
-          </span>
+          <span className={cn('mb-3 inline-flex', landingMockupKickerClass)}>❤️ Espaço do Fiel & Caridade Litúrgica</span>
           <h2 className="font-display text-4xl font-black tracking-tight text-[#1b1813] md:text-5xl">
             Portal Público de Pedidos de Reza
           </h2>
@@ -159,10 +159,10 @@ export function EspacoFielV3Portal() {
           </p>
         </div>
 
-        <div className="relative mb-8 overflow-hidden rounded-3xl border border-[#ece4d2] bg-white p-6 shadow-sm">
+        <div className={cn('relative mb-8 overflow-hidden p-6', espacoFielPanelClass, 'rounded-3xl')}>
           <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-amber-400/10 blur-2xl filter" />
 
-          <div className="mb-6 flex flex-col gap-6 border-b border-[#ece4d2] pb-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-6 flex flex-col gap-6 border-b border-[#cfc0a8] pb-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700">
                 Passo 1 • Localização da Fé
@@ -187,7 +187,7 @@ export function EspacoFielV3Portal() {
                     className={`cursor-pointer rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-[#FACC15] font-bold text-[#080A0D] shadow-md shadow-[#FACC15]/20'
-                        : 'border border-[#ece4d2] bg-white text-neutral-600 hover:bg-amber-50 hover:text-[#1b1813]'
+                        : 'border border-[#cfc0a8] bg-white text-neutral-600 hover:border-amber-400/60 hover:bg-amber-50 hover:text-[#1b1813]'
                     }`}
                   >
                     {city === 'Todas' ? '📍 Todas as Cidades' : city}
@@ -230,11 +230,12 @@ export function EspacoFielV3Portal() {
                       showNotification(`Terreiro "${casa.nome}" selecionado!`);
                     }
                   }}
-                  className={`flex cursor-pointer flex-col justify-between rounded-2xl border p-4 transition-all ${
+                  className={cn(
+                    'flex cursor-pointer flex-col justify-between rounded-2xl p-4 transition-all',
                     isSelected
-                      ? 'scale-[1.02] border-[#FACC15] bg-amber-50 shadow-lg shadow-[#FACC15]/5'
-                      : 'border-[#ece4d2] bg-[#faf6ee] hover:border-amber-300/50 hover:bg-amber-50'
-                  }`}
+                      ? 'scale-[1.02] border-2 border-[#FACC15] bg-amber-50 shadow-lg shadow-[#FACC15]/10'
+                      : cn(espacoFielInsetClass, 'hover:border-amber-400/55 hover:bg-amber-50/60'),
+                  )}
                 >
                   <div>
                     <div className="mb-3 flex items-center justify-between">
@@ -249,7 +250,7 @@ export function EspacoFielV3Portal() {
                       <span className="line-clamp-2">{casa.cidade}{casa.estado ? ` — ${casa.estado}` : ''}</span>
                     </p>
                   </div>
-                  <div className="flex items-center justify-between border-t border-[#ece4d2]/80 pt-3 text-[10px]">
+                  <div className="flex items-center justify-between border-t border-[#cfc0a8]/80 pt-3 text-[10px]">
                     <span className="font-mono italic text-neutral-500">{casa.cidade}</span>
                     <span
                       className={`font-bold uppercase tracking-wider transition-all ${
@@ -265,18 +266,18 @@ export function EspacoFielV3Portal() {
           </div>
 
           {!terreirosLoading && terreirosFiltrados.length === 0 ? (
-            <div className="my-2 rounded-2xl border border-dashed border-[#ece4d2] bg-[#faf6ee] p-8 text-center text-neutral-500">
+            <div className="my-2 rounded-2xl border border-dashed border-[#cfc0a8] bg-[#fffdf9] p-8 text-center text-neutral-500">
               {terreiros.length === 0
-                ? 'Nenhum terreiro com portal de pedidos activo no momento. As casas podem activar o portal em Configurações no app AxéCloud.'
+                ? 'Nenhum terreiro com portal de pedidos activo no momento. As casas podem activar o portal em Configurações no app Ilê Asé.'
                 : 'Nenhum terreiro cadastrado nesta cidade ainda. Experimente selecionar "Todas as Cidades" ou escolher uma cidade vizinha.'}
             </div>
           ) : null}
         </div>
 
         <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-          <div className="flex flex-col justify-between rounded-3xl border border-[#ece4d2] bg-white p-6 shadow-sm lg:col-span-5">
+          <div className={cn('flex flex-col justify-between p-6 lg:col-span-5', espacoFielPanelClass, 'rounded-3xl')}>
             <div>
-              <div className="mb-4 flex items-center gap-2.5 border-b border-[#ece4d2] pb-3">
+              <div className="mb-4 flex items-center gap-2.5 border-b border-[#cfc0a8] pb-3">
                 <Flame className="h-5 w-5 animate-pulse fill-amber-500/10 text-amber-600" />
                 <h3 className="font-display text-base font-bold text-[#1b1813]">Formulário Oficial de Amparo</h3>
               </div>
@@ -286,7 +287,7 @@ export function EspacoFielV3Portal() {
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-neutral-600">
                     Terreiro de Destino Selecionado
                   </label>
-                  <div className="flex items-center justify-between rounded-lg border border-[#ece4d2] bg-white p-3">
+                  <div className="espaco-fiel-field flex items-center justify-between rounded-lg border p-3">
                     <span className="text-xs font-bold text-amber-400">
                       {publicPrayerRequest.casa || 'Selecione um terreiro acima'}
                     </span>
@@ -305,7 +306,7 @@ export function EspacoFielV3Portal() {
                     placeholder="Ex: Carlos de Souza"
                     value={publicPrayerRequest.solicitante}
                     onChange={(e) => setPublicPrayerRequest({ ...publicPrayerRequest, solicitante: e.target.value })}
-                    className="w-full rounded-lg border border-[#ece4d2] bg-white p-2.5 text-xs text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                    className="w-full rounded-lg border border-[#cfc0a8] bg-white p-2.5 text-xs text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
                   />
                 </div>
 
@@ -317,7 +318,7 @@ export function EspacoFielV3Portal() {
                     <select
                       value={publicPrayerRequest.categoria}
                       onChange={(e) => setPublicPrayerRequest({ ...publicPrayerRequest, categoria: e.target.value })}
-                      className="w-full rounded-lg border border-[#ece4d2] bg-white p-2 text-xs text-[#1b1813] focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                      className="w-full rounded-lg border border-[#cfc0a8] bg-white p-2 text-xs text-[#1b1813] focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
                     >
                       <option value="Proteção / Defesa Espiritual">Proteção / Defesa</option>
                       <option value="Saúde / Restabelecimento">Saúde / Cura</option>
@@ -333,7 +334,7 @@ export function EspacoFielV3Portal() {
                     <select
                       value={publicPrayerRequest.linha}
                       onChange={(e) => setPublicPrayerRequest({ ...publicPrayerRequest, linha: e.target.value })}
-                      className="w-full rounded-lg border border-[#ece4d2] bg-white p-2 text-xs text-[#1b1813] focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                      className="w-full rounded-lg border border-[#cfc0a8] bg-white p-2 text-xs text-[#1b1813] focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
                     >
                       <option value="Caboclos">Caboclos (Força)</option>
                       <option value="Pretos Velhos / Almas">Pretos Velhos (Sabedoria)</option>
@@ -359,7 +360,7 @@ export function EspacoFielV3Portal() {
                           className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-1.5 text-center transition-all ${
                             isSelected
                               ? 'border-[#FACC15] bg-white'
-                              : 'border-[#ece4d2] bg-amber-50/40 hover:bg-amber-50'
+                              : 'border-[#cfc0a8] bg-amber-50/40 hover:bg-amber-50'
                           }`}
                         >
                           <span className={`flex h-3 w-3 items-center justify-center rounded-full border shadow ${v.bg}`}>
@@ -381,7 +382,7 @@ export function EspacoFielV3Portal() {
                     placeholder="Escreva com sinceridade suas aflições ou dificuldades... Suas palavras serão enviadas com total privacidade diretamente ao Congá da casa."
                     value={publicPrayerRequest.intencao}
                     onChange={(e) => setPublicPrayerRequest({ ...publicPrayerRequest, intencao: e.target.value })}
-                    className="w-full resize-none rounded-lg border border-[#ece4d2] bg-white p-2.5 text-xs text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                    className="w-full resize-none rounded-lg border border-[#cfc0a8] bg-white p-2.5 text-xs text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
                   />
                 </div>
 
@@ -406,14 +407,16 @@ export function EspacoFielV3Portal() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-3xl border border-[#ece4d2] bg-white p-6 shadow-sm lg:col-span-7">
+          <div className={cn('flex flex-col justify-between p-6 lg:col-span-7', espacoFielPanelClass, 'rounded-3xl')}>
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#ece4d2] pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-amber-400" />
-                  <h3 className="font-display text-base font-bold text-[#1b1813]">Altar Virtual & Seus Pedidos Ativos</h3>
+              <div className="flex flex-col gap-2 border-b border-[#cfc0a8] pb-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 animate-ping rounded-full bg-amber-400" />
+                  <h3 className="font-display text-base font-bold leading-snug text-[#1b1813]">
+                    Altar Virtual & Seus Pedidos Ativos
+                  </h3>
                 </div>
-                <span className="rounded border border-[#ece4d2] bg-white px-2 py-1 text-[10px] text-neutral-600">
+                <span className="w-max shrink-0 self-start rounded border border-[#cfc0a8] bg-white px-2 py-1 text-[10px] text-neutral-600 sm:self-auto">
                   Dispositivo Autenticado
                 </span>
               </div>
@@ -424,7 +427,7 @@ export function EspacoFielV3Portal() {
                 </p>
                 <div className="grid max-h-[140px] grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-2">
                   {prayerRequests.length === 0 ? (
-                    <p className="col-span-full rounded-lg border border-dashed border-[#ece4d2] p-3 text-center text-[10px] text-neutral-500">
+                    <p className="col-span-full rounded-lg border border-dashed border-[#cfc0a8] bg-[#fffdf9] p-3 text-center text-[10px] text-neutral-500">
                       Nenhum pedido neste dispositivo. Envie um pedido no formulário ao lado para acompanhar aqui.
                     </p>
                   ) : null}
@@ -445,11 +448,12 @@ export function EspacoFielV3Portal() {
                           if (e.key === 'Enter' || e.key === ' ') setPublicSelectedId(req.id);
                         }}
                         aria-pressed={isSelected}
-                        className={`cursor-pointer rounded-xl border p-2.5 transition-all ${
+                        className={cn(
+                          'cursor-pointer rounded-xl border p-2.5 transition-all',
                           isSelected
-                            ? 'border-[#FACC15] bg-amber-50'
-                            : 'border-[#ece4d2] bg-white hover:bg-amber-50/80'
-                        }`}
+                            ? 'border-2 border-[#FACC15] bg-amber-50 shadow-sm'
+                            : cn(espacoFielInsetClass, 'hover:border-amber-400/50 hover:bg-amber-50/70'),
+                        )}
                       >
                         <div className="flex items-center justify-between gap-1">
                           <span className="truncate text-[11px] font-bold text-[#1b1813]">{req.solicitante}</span>
@@ -470,13 +474,13 @@ export function EspacoFielV3Portal() {
               </div>
 
               {!selectedReq ? (
-                <div className="rounded-2xl border border-dashed border-[#ece4d2] bg-amber-50/50 p-8 text-center text-neutral-500">
+                <div className={cn('rounded-2xl border border-dashed border-[#cfc0a8] bg-[#fffdf9] p-8 text-center text-neutral-500', espacoFielInsetClass)}>
                   Nenhum pedido de oração selecionado para acompanhamento. Clique em um pedido acima ou adicione um no
                   formulário.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-                  <div className="relative flex h-[180px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#ece4d2] bg-white p-4 md:col-span-4">
+                  <div className={cn('relative flex h-[180px] flex-col items-center justify-center overflow-hidden rounded-2xl p-4 md:col-span-4', espacoFielInsetClass)}>
                     <div className="absolute left-1/2 top-1.5 -translate-x-1/2 text-center text-[7.5px] font-bold uppercase tracking-wider text-neutral-500">
                       Vela de Amparo
                     </div>
@@ -520,7 +524,7 @@ export function EspacoFielV3Portal() {
                     )}
                   </div>
 
-                  <div className="flex flex-col justify-between rounded-2xl border border-[#ece4d2] bg-amber-50/40 p-3.5 md:col-span-8">
+                  <div className={cn('flex flex-col justify-between rounded-2xl p-3.5 md:col-span-8', espacoFielInsetClass, 'bg-amber-50/80')}>
                     <div>
                       <div className="mb-1 flex items-center justify-between text-[11px]">
                         <span className="font-bold uppercase text-neutral-500">
@@ -528,12 +532,12 @@ export function EspacoFielV3Portal() {
                         </span>
                         <span className="text-neutral-600">{selectedReq.data}</span>
                       </div>
-                      <p className="mb-1 line-clamp-3 text-xs italic leading-relaxed text-gray-300">
+                      <p className="mb-1 line-clamp-3 text-xs italic leading-relaxed text-[#1b1813]/65">
                         &quot;{selectedReq.intencao}&quot;
                       </p>
                     </div>
 
-                    <div className="mt-1 space-y-1 border-t border-[#ece4d2] pt-2">
+                    <div className="mt-1 space-y-1 border-t border-[#cfc0a8] pt-2">
                       <span className="block text-[8px] font-bold uppercase text-neutral-600">Estado Litúrgico Atual:</span>
                       {selectedReq.status === 'Pendente' ? (
                         <div className="flex items-center gap-1.5 rounded border border-amber-500/10 bg-amber-500/5 p-1 text-[10px] font-bold text-amber-400">
@@ -557,8 +561,8 @@ export function EspacoFielV3Portal() {
               )}
 
               {selectedReq ? (
-                <div className="flex max-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border border-[#ece4d2] bg-white/95">
-                  <div className="flex flex-wrap items-center justify-between gap-1 border-b border-[#ece4d2] bg-white px-3 py-1.5 text-[9px] font-black uppercase text-neutral-600">
+                <div className={cn('flex max-h-[190px] flex-col justify-between overflow-hidden rounded-2xl', espacoFielPanelClass)}>
+                  <div className="flex flex-wrap items-center justify-between gap-1 border-b border-[#cfc0a8] bg-white px-3 py-1.5 text-[9px] font-black uppercase text-neutral-600">
                     <span className="flex items-center gap-1">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
                       Linha de Contato com o Altar
@@ -576,7 +580,7 @@ export function EspacoFielV3Portal() {
                       if (isSystem) {
                         return (
                           <div key={msg.id} className="my-0.5 text-center">
-                            <span className="rounded-full border border-[#ece4d2] bg-amber-50 px-1.5 py-0.5 text-[8px] text-[#FACC15]">
+                            <span className="rounded-full border border-[#cfc0a8] bg-amber-50 px-1.5 py-0.5 text-[8px] text-[#FACC15]">
                               {msg.text}
                             </span>
                           </div>
@@ -596,7 +600,7 @@ export function EspacoFielV3Portal() {
                           <div
                             className={`rounded-lg p-2 text-[10.5px] leading-tight ${
                               isZelador
-                                ? 'rounded-tl-none border border-[#ece4d2] bg-amber-50 text-[#1b1813]'
+                                ? 'rounded-tl-none border border-[#cfc0a8] bg-amber-50 text-[#1b1813]'
                                 : 'rounded-tr-none bg-[#FBEFDB] text-[#292523]'
                             }`}
                           >
@@ -607,7 +611,7 @@ export function EspacoFielV3Portal() {
                     })}
                   </div>
 
-                  <div className="flex items-center gap-1.5 border-t border-[#ece4d2] bg-white p-1.5">
+                  <div className="flex items-center gap-1.5 border-t border-[#cfc0a8] bg-white p-1.5">
                     <input
                       type="text"
                       placeholder="Fale com o Zelador sobre banhos de ervas, preces ou agradecimentos..."
@@ -616,7 +620,7 @@ export function EspacoFielV3Portal() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSendPublicChatMessage();
                       }}
-                      className="flex-grow rounded-md border border-[#ece4d2] bg-white px-2.5 py-1.5 text-[11px] text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                      className="flex-grow rounded-md border border-[#cfc0a8] bg-white px-2.5 py-1.5 text-[11px] text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
                     />
                     <button
                       type="button"
@@ -630,9 +634,9 @@ export function EspacoFielV3Portal() {
               ) : null}
             </div>
 
-            <div className="mt-4 rounded-xl border border-dashed border-[#ece4d2] bg-amber-50/70 p-2.5 text-center text-[10px] text-neutral-600">
+            <div className="mt-4 rounded-xl border border-dashed border-[#cfc0a8] bg-amber-50/70 p-2.5 text-center text-[10px] text-neutral-600">
               💡 <strong>Comunicação real com o terreiro:</strong> ao enviar um pedido, o zelador recebe no painel{' '}
-              <strong>Atendimentos</strong> do AxéCloud. Quando ele aceitar, iniciar a prece ou responder no chat, você
+              <strong>Atendimentos</strong> do Ilê Asé. Quando ele aceitar, iniciar a prece ou responder no chat, você
               acompanha aqui no Altar Virtual (atualização automática a cada poucos segundos). Veja também a{' '}
               <a href={`${ROUTES.home}#demonstracao`} className="font-semibold text-[#FACC15] hover:underline">
                 Demo Interativa

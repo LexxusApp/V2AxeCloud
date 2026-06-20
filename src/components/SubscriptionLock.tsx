@@ -187,7 +187,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
 
   const handleSupport = () => {
     window.open(
-      'https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Ax%C3%A9Cloud',
+      'https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Il%C3%AA%20As%C3%A9',
       '_blank'
     );
   };
@@ -235,7 +235,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
                 </>
               ) : (
                 <>
-                  Seu acesso ao <span className="text-primary">AxéCloud</span> está suspenso
+                  Seu acesso ao <span className="text-primary">Ilê Asé</span> está suspenso
                 </>
               )}
             </h2>

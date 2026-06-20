@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Info, Plus, Search, Trash2 } from 'lucide-react';
 import {
   DEMO_AVATAR_TONES,
@@ -59,7 +59,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
         <div>
           <h3 className="font-display text-lg font-bold text-slate-900">Filhos de Santo</h3>
           <p className="text-xs text-slate-600">
-            Cadastro litúrgico com cargo, orixá de frente e status — como no módulo real do AxéCloud.
+            Cadastro litúrgico com cargo, orixá de frente e status — como no módulo real do Ilê Asé.
           </p>
         </div>
         <div className="relative w-full sm:w-64">
@@ -217,7 +217,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
           <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[11px] text-slate-600">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
             <span>
-              No AxéCloud real, cada terreiro tem ambiente isolado (RLS), perfis de acesso e histórico completo do
+              No Ilê Asé real, cada terreiro tem ambiente isolado (RLS), perfis de acesso e histórico completo do
               filho — esta demo roda só no seu navegador.
             </span>
           </div>

@@ -15,7 +15,7 @@ export default function Loading() {
         aria-hidden
       />
       <p className="animate-pulse text-sm font-medium tracking-wide text-neutral-400">
-        Carregando AxéCloud...
+        Carregando Ilê Asé...
       </p>
     </div>
   );

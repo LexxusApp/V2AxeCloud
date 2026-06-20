@@ -37,7 +37,7 @@ export default function PortalWidgetPage() {
 
   if (!terreiro) {
     return (
-      <div className="bg-[#f6f1e6] p-4 text-center text-sm text-neutral-600">
+      <div className="bg-[#f6f1e6] p-4 text-center text-sm text-[#1b1813]/72">
         Terreiro não encontrado.
       </div>
     );
@@ -51,13 +51,13 @@ export default function PortalWidgetPage() {
         ) : null}
         <div>
           <p className="font-bold">{terreiro.nome}</p>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-[#1b1813]/65">
             {[terreiro.cidade, terreiro.estado].filter(Boolean).join(' — ')}
           </p>
         </div>
       </div>
       {terreiro.descricao ? (
-        <p className="mt-3 line-clamp-3 text-sm text-neutral-600">{terreiro.descricao}</p>
+        <p className="mt-3 line-clamp-3 text-sm text-[#1b1813]/72">{terreiro.descricao}</p>
       ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
         <a
@@ -79,10 +79,10 @@ export default function PortalWidgetPage() {
           </a>
         ) : null}
       </div>
-      <p className="mt-3 text-[10px] text-neutral-500">
+      <p className="mt-3 text-[10px] text-[#1b1813]/65">
         via{' '}
         <a href={marketingHref(ROUTES.home)} target="_blank" rel="noreferrer" className="font-bold text-amber-700">
-          AxéCloud
+          Ilê Asé
         </a>
       </p>
     </div>

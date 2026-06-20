@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 import {
   LANDING_AFTER_ITEMS,
@@ -16,7 +16,7 @@ const fade = {
 
 export function LandingBeforeAfter() {
   return (
-    <LandingSection id="antes-depois" aria-labelledby="antes-depois-head">
+    <LandingSection id="antes-depois" variant="dark" aria-labelledby="antes-depois-head">
       <div className="landing-section-inner">
         <motion.div {...fade}>
           <LandingSectionHeader
@@ -33,7 +33,7 @@ export function LandingBeforeAfter() {
             transition={{ ...fade.transition, delay: 0.05 }}
             className="landing-before-after-card landing-before-after-card--before"
           >
-            <p className="landing-before-after-card__label">Antes do AxéCloud</p>
+            <p className="landing-before-after-card__label">Antes do Ilê Asé</p>
             <h3 className="landing-before-after-card__title">Gestão espalhada</h3>
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_BEFORE_ITEMS.map((item) => (
@@ -50,12 +50,12 @@ export function LandingBeforeAfter() {
             transition={{ ...fade.transition, delay: 0.12 }}
             className="landing-before-after-card landing-before-after-card--after"
           >
-            <p className="landing-before-after-card__label">Com o AxéCloud</p>
+            <p className="landing-before-after-card__label">Com o Ilê Asé</p>
             <h3 className="landing-before-after-card__title">Gestão centralizada</h3>
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_AFTER_ITEMS.map((item) => (
                 <li key={item}>
-                  <Check className="h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.5} aria-hidden />
+                  <Check className="h-4 w-4 shrink-0 text-[#FFC107]" strokeWidth={2.5} aria-hidden />
                   <span>{item}</span>
                 </li>
               ))}

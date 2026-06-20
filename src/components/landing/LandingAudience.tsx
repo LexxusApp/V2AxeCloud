@@ -69,8 +69,8 @@ export function LandingAudience() {
                   {...fade}
                   transition={{ ...fade.transition, delay: 0.06 * i }}
                   className={cn(
-                    'group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6',
-                    item.featured && 'border-amber-300 ring-1 ring-amber-100'
+                    'landing-mockup-card group flex gap-4 p-5 transition duration-200 hover:-translate-y-0.5 sm:p-6',
+                    item.featured && 'border-[#FFC107]/55 ring-1 ring-[#FFC107]/25',
                   )}
                 >
                   <LandingIconBox accent={item.accent} className="shrink-0">

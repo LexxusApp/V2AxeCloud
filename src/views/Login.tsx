@@ -23,7 +23,7 @@ import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { PwaInstallPrompt } from '../components/PwaInstallPrompt';
 import { ROUTES } from '../lib/routes';
 
-const LOGIN_LOGO_SRC = '/logo-axecloud.png?v=6';
+const LOGIN_LOGO_SRC = '/ile-ase-logo.png';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -316,7 +316,7 @@ export default function Login() {
         className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.5rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Conhecer o AxéCloud
+        Conhecer o Ilê Asé
       </a>
 
       <motion.div
@@ -351,14 +351,14 @@ export default function Login() {
           <div className="flex justify-center py-1">
             <img
               src={LOGIN_LOGO_SRC}
-              alt="AxéCloud — Gestão Sagrada"
+              alt="Ilê Asé — Gestão Sagrada"
               width={560}
               height={181}
               decoding="async"
               className="h-auto w-full max-w-[260px] object-contain sm:max-w-[300px]"
             />
           </div>
-          <h1 className="sr-only">Axé Cloud — Gestão sagrada para terreiros</h1>
+          <h1 className="sr-only">Ilê Asé — Gestão Sagrada para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
             <p className="mx-auto max-w-[260px] text-gray-400">

@@ -954,7 +954,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       <footer className="text-center pt-2 pb-2">
         <div className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-700 flex items-center justify-center gap-1.5">
           <User className="w-3 h-3" />
-          AxéCloud — Portal do Filho de Santo
+          Ilê Asé — Portal do Filho de Santo
         </div>
       </footer>
 
@@ -964,7 +964,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         loading={loadingPix}
         pixConfig={pixConfig}
         valor={valorMensalidade}
-        descricao="Mensalidade AxeCloud"
+        descricao="Mensalidade Ilê Asé"
         txid={(filho?.id || user.id).replace(/-/g, '').slice(0, 25).padEnd(5, '0')}
       />
     </div>

@@ -1,5 +1,7 @@
 import { Check, Lock } from 'lucide-react';
 
+import { landingMockupShellClass } from './landingMockupUi';
+
 const SECURITY_POINTS = [
   {
     title: 'Sem publicidade ou cookies rastreadores',
@@ -19,15 +21,15 @@ const SECURITY_POINTS = [
 
 export function LandingSecurity() {
   return (
-    <section id="seguranca" className="border-y border-slate-200 bg-slate-50 py-20 md:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="seguranca" className="landing-section landing-section--dark border-y border-black py-20 md:py-24">
+      <div className={landingMockupShellClass}>
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative order-2 lg:order-1">
-            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
-              <div className="w-full rounded-2xl border border-slate-700/60 bg-slate-800/60 p-6">
-                <div className="mb-4 flex items-center gap-2 border-b border-slate-700/60 pb-3.5">
-                  <Lock className="h-4 w-4 text-amber-400" aria-hidden />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-black p-8 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+              <div className="w-full rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="mb-4 flex items-center gap-2 border-b border-white/10 pb-3.5">
+                  <Lock className="h-4 w-4 text-[#FFC107]" aria-hidden />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">
                     Protocolo de Sigilo Religioso Axé-Lock
                   </span>
                 </div>
@@ -60,29 +62,27 @@ export function LandingSecurity() {
           </div>
 
           <div className="order-1 space-y-6 lg:order-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-              Inviolabilidade Histórica
-            </span>
+            <span className="landing-mockup-kicker inline-flex">Inviolabilidade Histórica</span>
 
-            <h2 className="font-display text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
+            <h2 className="font-display text-3xl font-black tracking-tight text-white md:text-4xl">
               Seus dados preservados com o máximo sigilo profissional
             </h2>
 
-            <p className="text-sm leading-relaxed text-slate-600 md:text-base">
+            <p className="text-sm leading-relaxed text-white/70 md:text-base">
               Reconhecemos a extrema seriedade que envolve os nomes ritualísticos e preparos internos de terreiros
-              tradicionais de matriz africana. O Axé Cloud segue rigorosamente as leis civis de dados (LGPD) sob a
+              tradicionais de matriz africana. O Ilê Asé segue rigorosamente as leis civis de dados (LGPD) sob a
               tutela de dados religiosos extremamente sensíveis.
             </p>
 
             <div className="space-y-3">
               {SECURITY_POINTS.map((point) => (
-                <div key={point.title} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                <div key={point.title} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FFC107]/20 text-[#FFC107]">
                     <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">{point.title}</h3>
-                    <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{point.detail}</p>
+                    <h3 className="text-sm font-bold text-[#FFC107]">{point.title}</h3>
+                    <p className="mt-0.5 text-xs leading-relaxed text-white/65">{point.detail}</p>
                   </div>
                 </div>
               ))}

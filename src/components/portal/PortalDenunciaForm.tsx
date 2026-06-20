@@ -32,7 +32,7 @@ export function PortalDenunciaForm({ slug }: { slug?: string }) {
   if (done) {
     return (
       <p className="text-sm text-[#94A3B8]">
-        Denúncia registada. A equipa AxéCloud analisará o conteúdo em conformidade com as nossas políticas.
+        Denúncia registada. A equipa Ilê Asé analisará o conteúdo em conformidade com as nossas políticas.
       </p>
     );
   }
