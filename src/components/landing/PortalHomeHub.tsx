@@ -28,6 +28,7 @@ import { FounderHeroCallout } from './FounderHeroCallout';
 
 type PortalTile = {
   id: string;
+  eyebrow: string;
   title: string;
   description: string;
   href: string;
@@ -40,8 +41,9 @@ type PortalTile = {
 const EXPLORAR_TILES: PortalTile[] = [
   {
     id: 'terreiros',
+    eyebrow: 'Diretório público',
     title: 'Terreiros',
-    description: 'Casas de axé com perfil público — tradição, cidade e contacto.',
+    description: 'Encontre casas de axé por tradição, cidade e perfil público.',
     href: ROUTES.terreiros,
     icon: Building2,
     accent: 'text-amber-400',
@@ -50,8 +52,9 @@ const EXPLORAR_TILES: PortalTile[] = [
   },
   {
     id: 'eventos',
+    eyebrow: 'Agenda aberta',
     title: 'Eventos públicos',
-    description: 'Giras e festas abertas divulgadas pelas casas no portal.',
+    description: 'Veja giras, festas e encontros divulgados pelas casas.',
     href: ROUTES.eventosPublicos,
     icon: CalendarDays,
     accent: 'text-rose-400',
@@ -60,8 +63,9 @@ const EXPLORAR_TILES: PortalTile[] = [
   },
   {
     id: 'reza',
+    eyebrow: 'Atendimento online',
     title: 'Pedir reza',
-    description: 'Envie pedidos de reza às casas que activaram atendimento online.',
+    description: 'Envie seu pedido às casas que ativaram o acolhimento online.',
     href: ROUTES.espacoDoFiel,
     icon: Heart,
     accent: 'text-pink-400',
@@ -69,8 +73,9 @@ const EXPLORAR_TILES: PortalTile[] = [
   },
   {
     id: 'calendario',
+    eyebrow: 'Cultura & tradição',
     title: 'Calendário litúrgico',
-    description: 'Datas sagradas, festas de orixás e observâncias da tradição.',
+    description: 'Consulte datas sagradas, festas de orixás e observâncias.',
     href: ROUTES.liturgicalCalendar,
     icon: Sun,
     accent: 'text-orange-400',
@@ -78,6 +83,7 @@ const EXPLORAR_TILES: PortalTile[] = [
   },
   {
     id: 'conteudo',
+    eyebrow: 'Conhecimento',
     title: 'Conteúdo e glossário',
     description: 'Artigos, trilhas e termos do axé para filhos e consulentes.',
     href: ROUTES.contentHub,
@@ -93,23 +99,37 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
     <a
       href={tile.href}
       className={cn(
-        'group flex h-full flex-col rounded-2xl border bg-[#0B0D11] p-5 transition sm:p-6',
+        'portal-action-card group relative flex h-full min-h-[164px] flex-col overflow-hidden rounded-[1.35rem] border p-5 transition sm:p-6',
         tile.featured
-          ? 'border-[#FBBC00]/25 hover:border-[#FBBC00]/45 hover:shadow-[0_0_32px_rgba(251,188,0,0.1)]'
-          : 'border-[#1E242B] hover:border-[#2F3643] hover:bg-[#0D1015]',
+          ? 'portal-action-card--featured border-[#FBBC00]/30'
+          : 'border-white/[0.08]',
       )}
     >
-      <div
-        className={cn(
-          'mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border',
-          tile.iconBg,
-        )}
-      >
-        <Icon className={cn('h-5 w-5', tile.accent)} aria-hidden />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="flex items-start justify-between gap-4">
+        <div
+          className={cn(
+            'inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+            tile.iconBg,
+          )}
+        >
+          <Icon className={cn('h-5 w-5', tile.accent)} aria-hidden />
+        </div>
+        {tile.featured ? (
+          <span className="rounded-full border border-[#FBBC00]/25 bg-[#FBBC00]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#FBBC00]">
+            Destaque
+          </span>
+        ) : null}
       </div>
-      <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-[#FBBC00]">{tile.title}</h3>
+
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] group-hover:text-[#FBBC00]">
+        {tile.eyebrow}
+      </p>
+      <h3 className="mt-2 font-display text-xl font-black tracking-tight text-[#F1F5F9] group-hover:text-white">
+        {tile.title}
+      </h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-[#94A3B8]">{tile.description}</p>
-      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#FBBC00]">
+      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FBBC00]/20 bg-[#FBBC00]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#FBBC00] transition group-hover:border-[#FBBC00]/45 group-hover:bg-[#FBBC00]/15">
         Acessar
         <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden />
       </span>
@@ -211,32 +231,51 @@ export function PortalHomeHub() {
             </div>
 
             <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
-              <Globe className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
-                Portal da comunidade de terreiros
-              </span>
-            </div>
-            <h1
-              id="portal-hero-title"
-              className="font-display text-3xl font-black leading-tight tracking-tight text-[#F1F5F9] sm:text-4xl md:text-5xl"
-            >
-              Encontre casas, veja giras e{' '}
-              <span className="bg-gradient-to-r from-[#FBBC00] via-amber-400 to-yellow-300 bg-clip-text text-transparent">
-                participe do axé
-              </span>
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#94A3B8] md:text-lg">
-              O AxéCloud reúne terreiros, eventos públicos, pedidos de reza e conteúdo sobre Umbanda, Candomblé e
-              Jurema — escolha abaixo o que quer fazer agora.
-            </p>
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
+                <Globe className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
+                  Portal da comunidade de terreiros
+                </span>
+              </div>
+              <h1
+                id="portal-hero-title"
+                className="font-display text-3xl font-black leading-tight tracking-tight text-[#F1F5F9] sm:text-4xl md:text-5xl"
+              >
+                Encontre casas, veja giras e{' '}
+                <span className="bg-gradient-to-r from-[#FBBC00] via-amber-400 to-yellow-300 bg-clip-text text-transparent">
+                  participe do axé
+                </span>
+              </h1>
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#94A3B8] md:text-lg">
+                O AxéCloud reúne terreiros, eventos públicos, pedidos de reza e conteúdo sobre Umbanda, Candomblé e
+                Jurema — escolha abaixo o que quer fazer agora.
+              </p>
             </div>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 rounded-[2rem] border border-white/[0.07] bg-[#090B0F]/70 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 sm:px-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#FBBC00]">Portal AxéCloud</p>
+                <p className="mt-1 text-sm text-[#94A3B8]">Escolha o caminho que quer acessar agora.</p>
+              </div>
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300">
+                Comunidade ativa
+              </span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             {EXPLORAR_TILES.map((tile) => (
-              <PortalTileCard key={tile.id} tile={tile} />
+              <div
+                key={tile.id}
+                className={cn(
+                  'xl:col-span-2',
+                  (tile.id === 'calendario' || tile.id === 'conteudo') && 'xl:col-span-3',
+                )}
+              >
+                <PortalTileCard tile={tile} />
+              </div>
             ))}
+            </div>
           </div>
         </div>
       </section>
