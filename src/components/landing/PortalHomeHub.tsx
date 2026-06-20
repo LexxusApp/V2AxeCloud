@@ -190,6 +190,81 @@ function SectionLink({ href, label }: { href: string; label: string }) {
   );
 }
 
+function PortalTerreirosShowcase({
+  terreiros,
+}: {
+  terreiros: PublicTerreiro[];
+}) {
+  const [principal, ...outros] = terreiros;
+  const totalLabel = terreiros.length === 1 ? '1 casa publicada' : `${terreiros.length} casas publicadas`;
+
+  return (
+    <div className="portal-terreiros-showcase overflow-hidden rounded-[2.25rem] border border-white/[0.08] p-4 sm:p-5 lg:p-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,1fr)] lg:items-stretch">
+        <div className="min-w-0">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <span className="rounded-full border border-[#FBBC00]/25 bg-[#FBBC00]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#FBBC00]">
+              Casa em destaque
+            </span>
+            <span className="text-xs font-bold text-[#64748B]">{totalLabel}</span>
+          </div>
+          <TerreiroCard terreiro={principal} href={terreiroProfilePath(principal.slug)} />
+        </div>
+
+        <div className="portal-terreiros-showcase__info flex min-w-0 flex-col justify-between rounded-[1.75rem] border border-white/[0.08] p-5 sm:p-6">
+          <div>
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FBBC00]/25 bg-[#FBBC00]/10">
+              <Building2 className="h-6 w-6 text-[#FBBC00]" aria-hidden />
+            </div>
+            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#FBBC00]">
+              Diretório em expansão
+            </p>
+            <h3 className="mt-3 font-display text-2xl font-black leading-tight text-[#F1F5F9] sm:text-3xl">
+              Casas de axé ganhando presença pública com mais cuidado.
+            </h3>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#94A3B8]">
+              Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com as
+              primeiras casas fundadoras e novos cadastros entram em destaque.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+              <p className="text-2xl font-black text-[#F1F5F9]">{terreiros.length}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#94A3B8]">no portal</p>
+            </div>
+            <a
+              href={ROUTES.founderProgram}
+              className="group rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-300">Cadastre sua casa</p>
+              <span className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-[#F1F5F9]">
+                Programa Fundador
+                <ArrowRight className="h-4 w-4 text-emerald-300 transition group-hover:translate-x-0.5" aria-hidden />
+              </span>
+            </a>
+          </div>
+
+          {outros.length > 0 ? (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {outros.map((t) => (
+                <TerreiroCard key={t.slug} terreiro={t} href={terreiroProfilePath(t.slug)} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-[#FBBC00]/20 bg-[#FBBC00]/[0.04] p-4">
+              <p className="text-sm font-bold text-[#F1F5F9]">Sua casa pode aparecer aqui.</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#94A3B8]">
+                O Programa Fundador libera o AxéCloud por 12 meses e prioriza o perfil público da casa no portal.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PortalHomeHub() {
   const [eventos, setEventos] = useState<PublicEvento[]>([]);
   const [terreiros, setTerreiros] = useState<PublicTerreiro[]>([]);
@@ -351,11 +426,7 @@ export function PortalHomeHub() {
                 </a>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {terreiros.map((t) => (
-                  <TerreiroCard key={t.slug} terreiro={t} href={terreiroProfilePath(t.slug)} />
-                ))}
-              </div>
+              <PortalTerreirosShowcase terreiros={terreiros} />
             )}
           </div>
         </div>

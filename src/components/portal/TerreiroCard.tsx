@@ -14,9 +14,9 @@ export function TerreiroCard({ terreiro, href }: Props) {
   return (
     <a
       href={link}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#0B0D11] transition hover:border-[#FBBC00]/30 hover:shadow-[0_0_24px_rgba(251,188,0,0.08)]"
+      className="portal-terreiro-card group flex flex-col overflow-hidden rounded-[1.35rem] border border-[#1E242B] bg-[#0B0D11] transition hover:border-[#FBBC00]/30"
     >
-      <div className="relative aspect-[16/10] bg-[#12161A]">
+      <div className="relative aspect-[16/10] overflow-hidden bg-[#12161A]">
         {terreiro.fotoUrl ? (
           <img
             src={terreiro.fotoUrl}
@@ -32,10 +32,13 @@ export function TerreiroCard({ terreiro, href }: Props) {
             Destaque
           </span>
         ) : null}
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#080A0D]/70 to-transparent" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold leading-snug text-[#F1F5F9] group-hover:text-[#FBBC00]">{terreiro.nome}</h3>
+          <h3 className="font-display font-black leading-snug text-[#F1F5F9] group-hover:text-[#FBBC00]">
+            {terreiro.nome}
+          </h3>
           {terreiro.verificada ? <VerifiedBadge compact /> : null}
         </div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">{tradicaoLabel(terreiro.tradicao)}</p>
