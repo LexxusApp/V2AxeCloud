@@ -1213,6 +1213,7 @@ html:has(.landing-v3) body {
 
 .landing-v3 .landing-title {
   font-size: 2rem;
+  color: #0f172a;
 }
 
 @media (min-width: 640px) {
