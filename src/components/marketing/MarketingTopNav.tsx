@@ -64,7 +64,7 @@ export function MarketingTopNav({
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md">
+    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-emerald-700/60 bg-emerald-600/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <a
           href={logoHref}
@@ -79,7 +79,7 @@ export function MarketingTopNav({
                 <a
                   key={item.id}
                   href={item.path ?? sectionHref(sectionBase, item.id)}
-                  className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-slate-600 transition-colors hover:text-slate-900"
+                  className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-emerald-50 transition-colors hover:text-white"
                 >
                   {item.label}
                 </a>
@@ -91,8 +91,8 @@ export function MarketingTopNav({
             className={cn(
               'inline-flex h-9 shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-semibold leading-none transition-colors',
               active === 'fiel'
-                ? 'border-rose-500 bg-rose-600 text-white shadow-md shadow-rose-950/40'
-                : 'border-rose-500/25 bg-rose-50 text-rose-600 hover:border-rose-500/40 hover:bg-rose-100',
+                ? 'border-rose-300 bg-rose-600 text-white shadow-md shadow-rose-950/40'
+                : 'border-white/40 bg-white text-rose-600 hover:bg-rose-50',
             )}
           >
             <Heart
@@ -107,7 +107,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold leading-none text-slate-900 transition-colors hover:bg-slate-100"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-lg border border-white/30 bg-white px-3 text-sm font-semibold leading-none text-emerald-700 transition-colors hover:bg-emerald-50"
               >
                 {item.label}
               </a>
@@ -115,7 +115,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-slate-600 transition-colors hover:text-slate-900"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-emerald-50 transition-colors hover:text-white"
               >
                 {item.label}
               </a>
@@ -123,16 +123,16 @@ export function MarketingTopNav({
           )}
         </div>
 
-        <div className="hidden shrink-0 items-center gap-4 border-l border-slate-200 pl-6 lg:flex lg:pl-8">
+        <div className="hidden shrink-0 items-center gap-4 border-l border-emerald-500/40 pl-6 lg:flex lg:pl-8">
           <a
             href={appHref(ROUTES.login)}
-            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-slate-600 transition-colors hover:text-emerald-600"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-emerald-50 transition-colors hover:text-white"
           >
             Entrar
           </a>
           <a
             href={appHref(ROUTES.register)}
-            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap rounded-xl border border-emerald-500/20 bg-emerald-500 px-4 text-xs font-bold uppercase leading-none tracking-wider text-white shadow-md shadow-emerald-500/20 transition-colors hover:bg-emerald-600"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap rounded-xl border border-white/30 bg-white px-4 text-xs font-bold uppercase leading-none tracking-wider text-emerald-700 shadow-md shadow-emerald-900/20 transition-colors hover:bg-emerald-50"
           >
             Cadastrar
           </a>
@@ -140,7 +140,7 @@ export function MarketingTopNav({
 
         <button
           type="button"
-          className="touch-manipulation rounded-lg p-2 text-slate-600 transition-colors hover:text-emerald-600 lg:hidden"
+          className="touch-manipulation rounded-lg p-2 text-emerald-50 transition-colors hover:text-white lg:hidden"
           onClick={() => setMobileMenuOpen((open) => !open)}
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
