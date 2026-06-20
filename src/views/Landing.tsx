@@ -293,7 +293,7 @@ export default function Landing() {
         </LandingSection>
       </main>
 
-      <footer className="relative z-[1] border-t border-slate-200 bg-white py-16 text-slate-600" role="contentinfo">
+      <footer className="relative z-[1] border-t border-emerald-800/40 bg-emerald-700 py-16 text-emerald-100" role="contentinfo">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
           <div className="space-y-4">
             <LogoMark compact />
@@ -308,7 +308,7 @@ export default function Landing() {
                     href={href}
                     target="_blank"
                     rel={rel}
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-emerald-500/30 hover:text-emerald-600"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-emerald-100 transition hover:border-white/40 hover:text-white"
                     aria-label={`${label} @axecloudoficial`}
                   >
                     {id === 'instagram' ? <Instagram className="h-4 w-4" /> : <TikTokIcon className="h-4 w-4" />}
@@ -319,25 +319,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Portal</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Portal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={ROUTES.terreiros} className="hover:text-emerald-600">
+                <a href={ROUTES.terreiros} className="text-emerald-100 hover:text-white">
                   Terreiros
                 </a>
               </li>
               <li>
-                <a href={ROUTES.eventosPublicos} className="hover:text-emerald-600">
+                <a href={ROUTES.eventosPublicos} className="text-emerald-100 hover:text-white">
                   Eventos públicos
                 </a>
               </li>
               <li>
-                <a href={ROUTES.espacoDoFiel} className="hover:text-emerald-600">
+                <a href={ROUTES.espacoDoFiel} className="text-emerald-100 hover:text-white">
                   Pedir reza
                 </a>
               </li>
               <li>
-                <a href={ROUTES.liturgicalCalendar} className="hover:text-emerald-600">
+                <a href={ROUTES.liturgicalCalendar} className="text-emerald-100 hover:text-white">
                   Calendário litúrgico
                 </a>
               </li>
@@ -345,25 +345,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Plataforma</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Plataforma</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#recursos" className="hover:text-emerald-600">
+                <a href="#recursos" className="text-emerald-100 hover:text-white">
                   Recursos
                 </a>
               </li>
               <li>
-                <a href="#demonstracao" className="hover:text-emerald-600">
+                <a href="#demonstracao" className="text-emerald-100 hover:text-white">
                   Demo interativa
                 </a>
               </li>
               <li>
-                <a href={ROUTES.founderProgram} className="hover:text-emerald-600">
+                <a href={ROUTES.founderProgram} className="text-emerald-100 hover:text-white">
                   Programa Fundador
                 </a>
               </li>
               <li>
-                <a href="#mensalidade" className="hover:text-emerald-600">
+                <a href="#mensalidade" className="text-emerald-100 hover:text-white">
                   Planos
                 </a>
               </li>
@@ -371,25 +371,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Conta</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Conta</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={appHref(ROUTES.login)} className="hover:text-emerald-600">
+                <a href={appHref(ROUTES.login)} className="text-emerald-100 hover:text-white">
                   Entrar
                 </a>
               </li>
               <li>
-                <a href={appHref(ROUTES.register)} className="hover:text-emerald-600">
+                <a href={appHref(ROUTES.register)} className="text-emerald-100 hover:text-white">
                   Cadastrar terreiro
                 </a>
               </li>
               <li>
-                <a href={ROUTES.contentHub} className="hover:text-emerald-600">
+                <a href={ROUTES.contentHub} className="text-emerald-100 hover:text-white">
                   Conteúdo
                 </a>
               </li>
               <li>
-                <a href={ROUTES.glossary} className="hover:text-emerald-600">
+                <a href={ROUTES.glossary} className="text-emerald-100 hover:text-white">
                   Glossário do axé
                 </a>
               </li>
@@ -397,20 +397,20 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Legal</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Legal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#seguranca" className="hover:text-emerald-600">
+                <a href="#seguranca" className="text-emerald-100 hover:text-white">
                   Segurança e LGPD
                 </a>
               </li>
               <li>
-                <a href={ROUTES.terms} className="hover:text-emerald-600">
+                <a href={ROUTES.terms} className="text-emerald-100 hover:text-white">
                   Termos de Uso
                 </a>
               </li>
               <li>
-                <a href={ROUTES.privacy} className="hover:text-emerald-600">
+                <a href={ROUTES.privacy} className="text-emerald-100 hover:text-white">
                   Política de Privacidade
                 </a>
               </li>
@@ -418,7 +418,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 pt-6 text-center text-xs sm:flex-row sm:px-6 lg:px-8">
+        <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/15 px-4 pt-6 text-center text-xs sm:flex-row sm:px-6 lg:px-8">
           <p>© {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}</p>
           <p className="italic">Axé — com respeito às tradições de matriz africana.</p>
         </div>
