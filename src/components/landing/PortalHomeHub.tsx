@@ -46,8 +46,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Encontre casas de axé por tradição, cidade e perfil público.',
     href: ROUTES.terreiros,
     icon: Building2,
-    accent: 'text-[#D6A72A]',
-    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
+    accent: 'text-emerald-600',
+    iconBg: 'bg-emerald-50 border-emerald-200',
     featured: true,
   },
   {
@@ -57,8 +57,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Veja giras, festas e encontros divulgados pelas casas.',
     href: ROUTES.eventosPublicos,
     icon: CalendarDays,
-    accent: 'text-[#D6A72A]',
-    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
+    accent: 'text-emerald-600',
+    iconBg: 'bg-emerald-50 border-emerald-200',
     featured: true,
   },
   {
@@ -68,8 +68,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Envie seu pedido às casas que ativaram o acolhimento online.',
     href: ROUTES.espacoDoFiel,
     icon: Heart,
-    accent: 'text-[#D6A72A]',
-    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
+    accent: 'text-emerald-600',
+    iconBg: 'bg-emerald-50 border-emerald-200',
   },
   {
     id: 'calendario',
@@ -78,8 +78,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Consulte datas sagradas, festas de orixás e observâncias.',
     href: ROUTES.liturgicalCalendar,
     icon: Sun,
-    accent: 'text-[#D6A72A]',
-    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
+    accent: 'text-emerald-600',
+    iconBg: 'bg-emerald-50 border-emerald-200',
   },
   {
     id: 'conteudo',
@@ -88,8 +88,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Artigos, trilhas e termos do axé para filhos e consulentes.',
     href: ROUTES.contentHub,
     icon: BookOpen,
-    accent: 'text-[#D6A72A]',
-    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
+    accent: 'text-emerald-600',
+    iconBg: 'bg-emerald-50 border-emerald-200',
   },
 ];
 
@@ -100,14 +100,14 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
       href={tile.href}
       className={cn(
         'portal-action-card group relative flex h-full min-h-[164px] flex-col overflow-hidden rounded-[1.35rem] border p-5 transition sm:p-6',
-        tile.featured ? 'portal-action-card--featured border-[#D6A72A]/22' : 'border-white/[0.08]',
+        tile.featured ? 'portal-action-card--featured border-emerald-500/20' : 'border-slate-200',
       )}
     >
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
       <div className="flex items-start justify-between gap-4">
         <div
           className={cn(
-            'inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+            'inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm',
             tile.iconBg,
           )}
         >
@@ -115,14 +115,14 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
         </div>
       </div>
 
-      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#6F7785] group-hover:text-[#D6A72A]">
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-emerald-600">
         {tile.eyebrow}
       </p>
-      <h3 className="mt-2 font-display text-xl font-black tracking-tight text-[#F1F5F9] group-hover:text-white">
+      <h3 className="mt-2 font-display text-xl font-black tracking-tight text-slate-900 group-hover:text-emerald-700">
         {tile.title}
       </h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#94A3B8]">{tile.description}</p>
-      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#D6A72A]/20 bg-[#D6A72A]/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#D6A72A] transition group-hover:border-[#D6A72A]/40 group-hover:bg-[#D6A72A]/[0.12]">
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{tile.description}</p>
+      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600 transition group-hover:border-emerald-500/40 group-hover:bg-emerald-100">
         Acessar
         <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden />
       </span>
@@ -143,23 +143,23 @@ function EventPreviewCard({ event }: { event: PublicEvento }) {
   return (
     <a
       href={ROUTES.eventosPublicos}
-      className="group flex gap-4 rounded-2xl border border-[#1E242B] bg-[#0B0D11] p-4 transition hover:border-[#FBBC00]/30 sm:p-5"
+      className="group flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-emerald-500/30 sm:p-5 shadow-sm"
     >
-      <div className="hidden h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-[#12161A] sm:block">
+      <div className="hidden h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:block">
         {event.bannerUrl ? (
           <img src={event.bannerUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <CalendarDays className="h-8 w-8 text-white/10" aria-hidden />
+            <CalendarDays className="h-8 w-8 text-slate-300" aria-hidden />
           </div>
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#FBBC00]">{event.tipo}</p>
-        <h3 className="mt-1 truncate font-bold text-[#F1F5F9] group-hover:text-[#FBBC00]">{event.titulo}</h3>
-        <p className="mt-1 text-sm text-[#94A3B8]">{formatEventDate(event.data)}</p>
-        {event.hora ? <p className="text-xs text-[#64748B]">{event.hora}</p> : null}
-        <p className="mt-2 flex items-center gap-1 text-xs text-[#94A3B8]">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">{event.tipo}</p>
+        <h3 className="mt-1 truncate font-bold text-slate-900 group-hover:text-emerald-600">{event.titulo}</h3>
+        <p className="mt-1 text-sm text-slate-600">{formatEventDate(event.data)}</p>
+        {event.hora ? <p className="text-xs text-slate-500">{event.hora}</p> : null}
+        <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
           <MapPin className="h-3 w-3 shrink-0" aria-hidden />
           <span className="truncate">
             {event.terreiro.nome}
@@ -175,7 +175,7 @@ function SectionLink({ href, label }: { href: string; label: string }) {
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-1.5 text-sm font-bold text-[#FBBC00] transition hover:text-[#FDE047]"
+      className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 transition hover:text-emerald-500"
     >
       {label}
       <ArrowRight className="h-4 w-4" aria-hidden />
@@ -366,13 +366,13 @@ export function PortalHomeHub() {
           <div className="mt-8">
             {loadingEventos ? (
               <div className="flex justify-center py-12" aria-busy="true">
-                <Loader2 className="h-7 w-7 animate-spin text-[#FBBC00]" />
+                <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
               </div>
             ) : eventos.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#1E242B] px-6 py-10 text-center">
-                <CalendarDays className="mx-auto h-10 w-10 text-[#64748B]" aria-hidden />
-                <p className="mt-3 text-[#94A3B8]">Ainda não há eventos públicos agendados.</p>
-                <p className="mt-1 text-sm text-[#64748B]">
+              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
+                <CalendarDays className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
+                <p className="mt-3 text-slate-600">Ainda não há eventos públicos agendados.</p>
+                <p className="mt-1 text-sm text-slate-500">
                   Explore os terreiros — quando uma casa publicar uma gira, ela aparece aqui.
                 </p>
                 <a href={ROUTES.terreiros} className="landing-btn-secondary mt-5 inline-flex text-sm">
@@ -408,12 +408,12 @@ export function PortalHomeHub() {
           <div className="mt-8">
             {loadingTerreiros ? (
               <div className="flex justify-center py-12" aria-busy="true">
-                <Loader2 className="h-7 w-7 animate-spin text-[#FBBC00]" />
+                <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
               </div>
             ) : terreiros.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#1E242B] px-6 py-10 text-center">
-                <Building2 className="mx-auto h-10 w-10 text-[#64748B]" aria-hidden />
-                <p className="mt-3 text-[#94A3B8]">As primeiras casas estão a activar o perfil público.</p>
+              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
+                <Building2 className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
+                <p className="mt-3 text-slate-600">As primeiras casas estão a activar o perfil público.</p>
                 <a href={ROUTES.founderProgram} className="landing-btn-secondary mt-5 inline-flex text-sm">
                   Programa Fundador
                 </a>
@@ -427,17 +427,17 @@ export function PortalHomeHub() {
 
       <section className="landing-section landing-section--highlight pb-16" aria-labelledby="gestor-strip-title">
         <div className="landing-section-inner mx-auto max-w-7xl">
-          <div className="rounded-[2rem] border border-[#1E242B] bg-[#0B0D11] p-6 sm:p-8 md:flex md:items-center md:justify-between md:gap-8">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8 md:flex md:items-center md:justify-between md:gap-8 shadow-sm">
             <div className="flex items-start gap-4">
-              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 sm:flex">
-                <Users className="h-6 w-6 text-emerald-400" aria-hidden />
+              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-50 sm:flex">
+                <Users className="h-6 w-6 text-emerald-600" aria-hidden />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">Para zeladores e diretoria</p>
-                <h2 id="gestor-strip-title" className="mt-2 font-display text-xl font-black text-[#F1F5F9] md:text-2xl">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Para zeladores e diretoria</p>
+                <h2 id="gestor-strip-title" className="mt-2 font-display text-xl font-black text-slate-900 md:text-2xl">
                   Gerencia o seu terreiro no AxéCloud
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#94A3B8]">
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
                   Painel completo: filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho —
                   além de publicar eventos e perfil da casa neste portal.
                 </p>

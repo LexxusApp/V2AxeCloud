@@ -4,11 +4,14 @@ import { cn } from '../../../lib/utils';
 
 export type DemoToast = { message: string; type: 'success' | 'info' | 'error' } | null;
 
-export const demoInputClass = appInputClass;
-export const demoLabelClass = appLabelClass;
+export const demoInputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/30';
+
+export const demoLabelClass =
+  'mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500';
 
 export function DemoCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(appCardClass, className)}>{children}</div>;
+  return <div className={cn('rounded-2xl border border-slate-200 bg-white shadow-sm p-5', className)}>{children}</div>;
 }
 
 export function DemoToastBar({ toast }: { toast: DemoToast }) {

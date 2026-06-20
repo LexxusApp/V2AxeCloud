@@ -21,17 +21,17 @@ export function LandingPhilosophy() {
   return (
     <LandingSection id="plataforma" variant="alt" aria-labelledby="plataforma-head">
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0E1116]"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-50"
         aria-hidden
       />
       <div className="landing-section-inner mx-auto max-w-7xl">
         <motion.div {...fade} className="relative z-10 mx-auto mb-14 max-w-3xl text-center md:mb-16">
           <h2
             id="plataforma-head"
-            className="landing-title font-display font-extrabold tracking-tight text-[#F1F5F9]"
+            className="landing-title font-display font-extrabold tracking-tight text-slate-900"
           >
             {HOME_PLATAFORMA.titleBefore}{' '}
-            <span className="text-primary">{HOME_PLATAFORMA.titleHighlight}</span>
+            <span className="text-emerald-600">{HOME_PLATAFORMA.titleHighlight}</span>
           </h2>
           <p className="landing-lead mx-auto mt-4 max-w-3xl text-base md:text-lg">
             {HOME_PLATAFORMA.lead}
@@ -47,8 +47,8 @@ export function LandingPhilosophy() {
                   <LandingIconBox accent={accent} className="mb-6">
                     <Icon className={landingIconClass(accent, 'h-5 w-5')} aria-hidden />
                   </LandingIconBox>
-                  <h3 className="text-lg font-bold text-[#F1F5F9]">{section.heading}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">{section.body}</p>
+                  <h3 className="text-lg font-bold text-slate-900">{section.heading}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{section.body}</p>
                 </article>
               </motion.li>
             );

@@ -733,14 +733,14 @@
   font-size: 1.0625rem;
   font-weight: 800;
   line-height: 1.25;
-  color: #fff;
+  color: #0f172a;
 }
 
 .landing-resource-card__desc {
   margin-top: 0.55rem;
   font-size: 0.875rem;
   line-height: 1.6;
-  color: #a3a3a3;
+  color: #475569;
 }
 
 /* Depoimentos â€” grade estilo mercado */
@@ -749,22 +749,22 @@
   height: 100%;
   flex-direction: column;
   border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(8, 8, 8, 0.92) 100%);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   padding: 1.5rem 1.5rem 1.35rem;
-  box-shadow: 0 20px 48px -28px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .landing-testimonial-card:hover {
-  border-color: rgba(251, 188, 0, 0.2);
+  border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-2px);
 }
 
 .landing-testimonial-card__icon {
   height: 1.75rem;
   width: 1.75rem;
-  color: rgba(251, 188, 0, 0.55);
+  color: rgba(16, 185, 129, 0.55);
 }
 
 .landing-testimonial-card__quote {
@@ -775,26 +775,26 @@
 .landing-testimonial-card__quote p {
   font-size: 0.875rem;
   line-height: 1.7;
-  color: #d4d4d4;
+  color: #334155;
 }
 
 .landing-testimonial-card__footer {
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #e2e8f0;
 }
 
 .landing-testimonial-card__author {
   font-size: 0.875rem;
   font-weight: 800;
-  color: #fff;
+  color: #0f172a;
 }
 
 .landing-testimonial-card__house {
   margin-top: 0.2rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(251, 188, 0, 0.9);
+  color: #10b981;
 }
 
 .landing-testimonial-card__role {
@@ -803,7 +803,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #737373;
+  color: #64748b;
 }
 
 .landing-testimonial-card__location {
@@ -812,19 +812,16 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #525252;
+  color: #94a3b8;
 }
 
 /* Antes e Depois */
 .landing-before-after-card {
   border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #e2e8f0;
   padding: 1.5rem 1.5rem 1.35rem;
-  box-shadow: 0 20px 48px -28px rgba(0, 0, 0, 0.85);
-}
-
-.landing-before-after-card--before {
-  background: linear-gradient(165deg, rgba(239, 68, 68, 0.06) 0%, rgba(8, 8, 8, 0.95) 100%);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
 }
 
 .landing-before-after-card--after {
@@ -1143,13 +1140,13 @@ html:has(.landing-v3) {
 }
 
 html:has(.landing-v3) body {
-  background-color: #080a0d;
+  background-color: #f8fafc;
 }
 
 .landing-v3 {
-  color: #f1f5f9;
+  color: #334155;
   font-family: Inter, var(--font-sans);
-  background-color: #080a0d;
+  background-color: #f8fafc;
 }
 
 .landing-v3 .rounded-sm { border-radius: 0.125rem; }
@@ -1167,14 +1164,14 @@ html:has(.landing-v3) body {
   height: 8px;
 }
 .landing-v3 ::-webkit-scrollbar-track {
-  background: #080a0c;
+  background: #f1f5f9;
 }
 .landing-v3 ::-webkit-scrollbar-thumb {
-  background: #1f252d;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 .landing-v3 ::-webkit-scrollbar-thumb:hover {
-  background: #2a333f;
+  background: #94a3b8;
 }
 
 .landing-v3 .font-display,
@@ -1200,9 +1197,9 @@ html:has(.landing-v3) body {
 
 .landing-v3 .landing-section--alt,
 .landing-v3 .landing-section--highlight {
-  background: #0b0d11;
-  border-top: 1px solid #1e242b;
-  border-bottom: 1px solid #1e242b;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .landing-v3 .landing-section--highlight::after {
@@ -1231,12 +1228,12 @@ html:has(.landing-v3) body {
 }
 
 .landing-v3 .landing-kicker {
-  color: #facc15;
+  color: #10b981;
   letter-spacing: 0.28em;
 }
 
 .landing-v3 .landing-lead {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 1rem;
 }
 
@@ -1253,9 +1250,9 @@ html:has(.landing-v3) body {
   height: 3rem;
   width: 3rem;
   border-radius: 0.75rem;
-  border: 1px solid #2f3643;
-  background: #1e252e;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition:
     background-color 0.25s ease,
     border-color 0.25s ease,
@@ -1263,17 +1260,17 @@ html:has(.landing-v3) body {
 }
 
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='gold'] {
-  background: #facc15;
-  border-color: #facc15;
-  color: #080a0d;
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
 }
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='gold'] svg {
-  color: #080a0d !important;
+  color: #ffffff !important;
 }
 
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='emerald'] {
-  background: #2e5a44;
-  border-color: #2e5a44;
+  background: #10b981;
+  border-color: #10b981;
   color: #fff;
 }
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='emerald'] svg {
@@ -1281,12 +1278,12 @@ html:has(.landing-v3) body {
 }
 
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='amber'] {
-  background: #c5a059;
-  border-color: #c5a059;
-  color: #080a0d;
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
 }
 .landing-v3 .group:hover .landing-v3-icon-box[data-accent='amber'] svg {
-  color: #080a0d !important;
+  color: #ffffff !important;
 }
 
 .landing-v3-icon-box--lg {
@@ -1333,9 +1330,9 @@ html:has(.landing-v3) body {
 
 .landing-v3-card {
   border-radius: 1rem;
-  border: 1px solid #1e242b;
-  background: #13171d;
-  box-shadow: 0 12px 40px -24px rgba(0, 0, 0, 0.65);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   transition:
     border-color 0.25s ease,
     transform 0.25s ease,
@@ -1344,22 +1341,22 @@ html:has(.landing-v3) body {
 
 .landing-v3-card:hover,
 .landing-v3 .group:hover .landing-v3-card {
-  border-color: rgba(250, 204, 21, 0.4);
+  border-color: rgba(16, 185, 129, 0.4);
   transform: translateY(-4px);
-  box-shadow: 0 20px 48px -24px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
 }
 
 .landing-v3 .landing-mystic-card {
   border-radius: 1rem;
-  border-color: #1e242b;
-  background: #13171d;
+  border-color: #e2e8f0;
+  background: #ffffff;
 }
 
 .landing-v3 .landing-resource-card {
   border-radius: 1.5rem;
-  border: 1px solid #1e242b;
-  background: #13171d;
-  box-shadow: 0 12px 40px -24px rgba(0, 0, 0, 0.65);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition:
     border-color 0.3s ease,
     transform 0.3s ease,
@@ -1368,16 +1365,17 @@ html:has(.landing-v3) body {
 
 .landing-v3 .landing-resource-card:hover,
 .landing-v3 .group:hover .landing-resource-card {
-  border-color: rgba(250, 204, 21, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 20px 48px -28px rgba(0, 0, 0, 0.85), 0 0 40px -20px rgba(250, 204, 21, 0.12);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
 .landing-v3 .landing-btn-primary {
   border-radius: 1rem;
-  background: #facc15;
-  border: 1px solid rgba(250, 204, 21, 0.1);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
   transition:
     background-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -1385,28 +1383,29 @@ html:has(.landing-v3) body {
 }
 
 .landing-v3 .landing-btn-primary:hover {
-  background: #fde047;
-  box-shadow: 0 12px 40px rgba(250, 204, 21, 0.15);
+  background: #059669;
+  box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
   transform: translateY(-1px);
 }
 
 .landing-v3 .landing-btn-secondary {
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease;
 }
 
 .landing-v3 .landing-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .landing-v3-cta {
-  background: linear-gradient(135deg, #13171d 0%, #1e2530 100%);
-  box-shadow: 0 24px 64px -32px rgba(0, 0, 0, 0.8);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 .landing-v3 .landing-pricing-card {
@@ -1416,8 +1415,8 @@ html:has(.landing-v3) body {
 .landing-v3 .landing-testimonial-card,
 .landing-v3 .landing-before-after-card,
 .landing-v3 .landing-app-card {
-  border-color: #1e242b;
-  background: #13171d;
+  border-color: #e2e8f0;
+  background: #ffffff;
 }
 
 .landing-v3 .landing-hero-orb,
@@ -1461,10 +1460,10 @@ html:has(.landing-v3) body {
 }
 
 .portal-action-card {
-  background: linear-gradient(180deg, rgba(13, 16, 22, 0.98), rgba(8, 10, 13, 0.98));
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.035),
-    0 14px 36px rgba(0, 0, 0, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .portal-action-card::after {
@@ -1472,18 +1471,18 @@ html:has(.landing-v3) body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 42%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 42%);
   opacity: 0;
   transition: opacity 180ms ease;
   pointer-events: none;
 }
 
 .portal-action-card:hover {
-  border-color: rgba(214, 167, 42, 0.28);
-  background: linear-gradient(180deg, rgba(15, 18, 24, 0.99), rgba(9, 11, 15, 0.99));
+  border-color: rgba(16, 185, 129, 0.28);
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 18px 46px rgba(0, 0, 0, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 15px rgba(0, 0, 0, 0.08);
 }
 
 .portal-action-card:hover::after {
@@ -1491,7 +1490,7 @@ html:has(.landing-v3) body {
 }
 
 .portal-action-card--featured {
-  background: linear-gradient(180deg, rgba(15, 17, 20, 0.99), rgba(8, 10, 13, 0.99));
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
 }
 
 .founder-soft-wrap {
@@ -1507,12 +1506,12 @@ html:has(.landing-v3) body {
   display: block;
   width: 245px;
   border-radius: 1.25rem;
-  border: 1px solid rgba(214, 167, 42, 0.26);
-  background: linear-gradient(180deg, rgba(13, 16, 22, 0.98), rgba(8, 10, 13, 0.98));
+  border: 1px solid rgba(16, 185, 129, 0.26);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 14px 38px rgba(0, 0, 0, 0.24);
-  color: #f1f5f9;
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 6px rgba(0, 0, 0, 0.05);
+  color: #334155;
   padding: 1rem;
   text-decoration: none;
   transition:
@@ -1522,11 +1521,11 @@ html:has(.landing-v3) body {
 }
 
 .founder-soft-cta:hover {
-  border-color: rgba(214, 167, 42, 0.42);
-  background: linear-gradient(180deg, rgba(15, 18, 24, 0.99), rgba(9, 11, 15, 0.99));
+  border-color: rgba(16, 185, 129, 0.42);
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 18px 46px rgba(0, 0, 0, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 15px rgba(0, 0, 0, 0.08);
 }
 
 .founder-soft-cta--banner {
@@ -1551,14 +1550,14 @@ html:has(.landing-v3) body {
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-  border: 1px solid rgba(214, 167, 42, 0.26);
-  background: rgba(214, 167, 42, 0.09);
-  color: #d6a72a;
+  border: 1px solid rgba(16, 185, 129, 0.26);
+  background: rgba(16, 185, 129, 0.09);
+  color: #10b981;
 }
 
 .founder-soft-cta__label {
   display: block;
-  color: #d6a72a;
+  color: #10b981;
   font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.18em;
@@ -1568,7 +1567,7 @@ html:has(.landing-v3) body {
 .founder-soft-cta__headline {
   display: block;
   margin-top: 0.35rem;
-  color: #f8fafc;
+  color: #0f172a;
   font-family: Outfit, Inter, var(--font-sans);
   font-size: 1.05rem;
   font-weight: 900;
@@ -1578,7 +1577,7 @@ html:has(.landing-v3) body {
 .founder-soft-cta__slots {
   display: block;
   margin-top: 0.35rem;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -1588,7 +1587,7 @@ html:has(.landing-v3) body {
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.75rem;
-  color: #d6a72a;
+  color: #10b981;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -1596,28 +1595,28 @@ html:has(.landing-v3) body {
 }
 
 .portal-terreiros-showcase {
-  background: linear-gradient(180deg, rgba(10, 13, 18, 0.98), rgba(7, 9, 12, 0.99));
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 22px 72px rgba(0, 0, 0, 0.26);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 10px 25px rgba(0, 0, 0, 0.05);
 }
 
 .portal-terreiros-showcase__info {
-  background: linear-gradient(180deg, rgba(13, 16, 22, 0.92), rgba(8, 10, 13, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .portal-terreiro-card {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.035),
-    0 18px 50px rgba(0, 0, 0, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .portal-terreiro-card:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 60px rgba(0, 0, 0, 0.34),
-    0 0 32px rgba(251, 188, 0, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 15px rgba(0, 0, 0, 0.08),
+    0 0 20px rgba(16, 185, 129, 0.08);
 }
 
 @keyframes founder-sticker-wobble {

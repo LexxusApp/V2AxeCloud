@@ -54,14 +54,14 @@ export function LandingInteractiveDemo() {
     <LandingSection id="demonstracao" variant="default" aria-labelledby="demo-head">
       <motion.div className="landing-section-inner mx-auto max-w-7xl" {...fade}>
         <div className="relative z-10 mx-auto mb-12 max-w-3xl text-center">
-          <span className="mb-3 inline-block rounded-full border border-primary/20 bg-[#1E252E] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+          <span className="mb-3 inline-block rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600">
             Simulador interativo
           </span>
-          <h2 id="demo-head" className="landing-title font-display font-black tracking-tight text-[#F1F5F9]">
+          <h2 id="demo-head" className="landing-title font-display font-black tracking-tight text-slate-900">
             Painel de gestão: experimente agora
           </h2>
           <p className="landing-lead mx-auto mt-4 max-w-2xl">
-            Simulador <strong className="font-semibold text-[#F1F5F9]">100% funcional no navegador</strong> com
+            Simulador <strong className="font-semibold text-slate-900">100% funcional no navegador</strong> com
             módulos reais do AxéCloud. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
             sem criar conta. Os dados ficam só nesta página.
           </p>
@@ -69,26 +69,26 @@ export function LandingInteractiveDemo() {
 
         <div
           id="demo-dashboard"
-          className="relative z-10 overflow-hidden rounded-3xl border border-[#1E242B] bg-[#0B0D11] shadow-xl transition-shadow duration-300 hover:shadow-2xl"
+          className="relative z-10 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-xl transition-shadow duration-300 hover:shadow-2xl"
         >
-          <div className="flex flex-col items-center justify-between gap-4 border-b border-[#1E242B] bg-[#13171D] p-5 sm:flex-row">
+          <div className="flex flex-col items-center justify-between gap-4 border-b border-slate-200 bg-white p-5 sm:flex-row">
             <div className="flex items-center gap-3">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-amber-500">
-                <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-400">
+                <Flame className="h-4 w-4 text-white" aria-hidden />
               </div>
               <div className="text-left">
-                <p className="flex items-center gap-1.5 text-sm font-bold leading-none text-[#F1F5F9]">
+                <p className="flex items-center gap-1.5 text-sm font-bold leading-none text-slate-900">
                   {DEMO_HOUSE_NAME}
-                  <span className="rounded border border-teal-500/20 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                  <span className="rounded border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
                     Demo ativa
                   </span>
                 </p>
-                <p className="mt-1 text-[10px] text-primary">Ambiente de testes · modo interativo</p>
+                <p className="mt-1 text-[10px] text-emerald-600">Ambiente de testes · modo interativo</p>
               </div>
             </div>
 
             <div
-              className="flex flex-wrap items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
+              className="flex flex-wrap items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1.5"
               role="tablist"
               aria-label="Módulos da demo"
             >
@@ -105,8 +105,8 @@ export function LandingInteractiveDemo() {
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
                       isActive
-                        ? 'bg-primary text-[#080A0D] shadow-sm'
-                        : 'text-[#94A3B8] hover:bg-white/5 hover:text-white',
+                        ? 'bg-emerald-500 text-white shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900',
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -117,7 +117,7 @@ export function LandingInteractiveDemo() {
             </div>
           </div>
 
-          <div className="bg-[#0D0F12] p-6 md:p-8">
+          <div className="bg-white p-6 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

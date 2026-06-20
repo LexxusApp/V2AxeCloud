@@ -102,8 +102,8 @@ function LandingSoftwareDivider() {
     <LandingSection aria-label="Transição para o software">
       <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-center py-2">
-          <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[#1E242B] to-transparent" aria-hidden />
-          <p className="relative bg-[#080A0D] px-4 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-[#64748B] sm:text-xs">
+          <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[#E2E8F0] to-transparent" aria-hidden />
+          <p className="relative bg-[#F8FAFC] px-4 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-[#64748B] sm:text-xs">
             Software de gestão para o seu terreiro
           </p>
         </div>
@@ -121,9 +121,9 @@ export default function Landing() {
 
       <LandingTopNav />
 
-      <div className="landing-v3 relative min-h-dvh overflow-x-hidden bg-[#080A0D] text-[#F1F5F9]">
+      <div className="landing-v3 relative min-h-dvh overflow-x-hidden bg-[#F8FAFC] text-[#334155]">
       <div
-        className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[650px] bg-gradient-to-b from-[#0D0F12] to-[#080A0D]"
+        className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[650px] bg-gradient-to-b from-[#F1F5F9] to-[#F8FAFC]"
         aria-hidden
       />
 
@@ -188,27 +188,27 @@ export default function Landing() {
             </LandingReveal>
             <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-10 max-w-lg">
               <div className="landing-v3-card landing-pricing-card relative flex flex-col p-6 sm:p-8">
-                <span className="relative z-10 mb-3 inline-flex w-max rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                <span className="relative z-10 mb-3 inline-flex w-max rounded-full border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-[#10B981]">
                   Plano Premium
                 </span>
-                <h3 className="relative z-10 text-lg font-bold text-[#F1F5F9]">Mensalidade do terreiro</h3>
-                <p className="relative z-10 mt-1 text-sm text-[#94A3B8]">
+                <h3 className="relative z-10 text-lg font-bold text-[#0F172A]">Mensalidade do terreiro</h3>
+                <p className="relative z-10 mt-1 text-sm text-[#475569]">
                   Ou participe do{' '}
-                  <a href={ROUTES.founderProgram} className="font-bold text-primary hover:underline">
+                  <a href={ROUTES.founderProgram} className="font-bold text-[#10B981] hover:underline">
                     Programa Fundador
                   </a>{' '}
                   — 12 meses grátis
                 </p>
-                <div className="relative z-10 mt-6 flex items-baseline gap-2 text-[#F1F5F9]">
+                <div className="relative z-10 mt-6 flex items-baseline gap-2 text-[#0F172A]">
                   <span className="font-display text-4xl font-black tracking-tight sm:text-5xl">
                     {landingPrice.label}
                   </span>
-                  <span className="text-lg text-[#94A3B8]">{landingPrice.period}</span>
+                  <span className="text-lg text-[#64748B]">{landingPrice.period}</span>
                 </div>
-                <ul className="relative z-10 mt-6 space-y-2.5 text-left text-sm text-[#94A3B8]" role="list">
+                <ul className="relative z-10 mt-6 space-y-2.5 text-left text-sm text-[#475569]" role="list">
                   {premiumFeatures.map((line) => (
                     <li key={line} className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#10B981]" strokeWidth={2.2} />
                       {line}
                     </li>
                   ))}
@@ -222,7 +222,7 @@ export default function Landing() {
                     href={WA_COMERCIAL}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-bold text-primary hover:text-primary/85"
+                    className="font-bold text-[#10B981] hover:text-[#10B981]/85"
                   >
                     Fale com o comercial
                   </a>
@@ -238,12 +238,12 @@ export default function Landing() {
 
         <LandingSection aria-label="Fechamento">
           <div className="landing-section-inner mx-auto max-w-7xl">
-            <LandingReveal className="landing-v3-cta relative z-10 mx-auto max-w-3xl overflow-hidden rounded-[2.5rem] border border-primary/30 p-8 text-center md:p-12">
-              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-primary">Que o axé acompanhe</p>
-              <p className="relative z-10 mt-3 font-display text-2xl font-black text-[#F1F5F9] md:text-3xl">
+            <LandingReveal className="landing-v3-cta relative z-10 mx-auto max-w-3xl overflow-hidden rounded-[2.5rem] border border-[#10B981]/30 p-8 text-center md:p-12">
+              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-[#10B981]">Que o axé acompanhe</p>
+              <p className="relative z-10 mt-3 font-display text-2xl font-black text-[#0F172A] md:text-3xl">
                 Paz na casa, luz no caminho e organização no que é sagrado
               </p>
-              <p className="relative z-10 mx-auto mt-3 max-w-lg text-sm font-light text-[#94A3B8]">
+              <p className="relative z-10 mx-auto mt-3 max-w-lg text-sm font-light text-[#475569]">
                 Leve transparência financeira, portal do filho de santo e memória da casa para o seu terreiro.
               </p>
               <div className="relative z-10 mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -257,7 +257,7 @@ export default function Landing() {
                   href={WA_COMERCIAL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-primary transition hover:text-primary/85"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-[#10B981] transition hover:text-[#10B981]/85"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden />
                   Falar com o comercial
@@ -268,7 +268,7 @@ export default function Landing() {
         </LandingSection>
       </main>
 
-      <footer className="relative z-[1] border-t border-[#13171D] bg-[#07090C] py-16 text-[#94A3B8]" role="contentinfo">
+      <footer className="relative z-[1] border-t border-slate-200 bg-white py-16 text-slate-600" role="contentinfo">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
           <div className="space-y-4">
             <LogoMark compact />
@@ -283,7 +283,7 @@ export default function Landing() {
                     href={href}
                     target="_blank"
                     rel={rel}
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-[#1E242B] text-[#94A3B8] transition hover:border-primary/30 hover:text-primary"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-emerald-500/30 hover:text-emerald-600"
                     aria-label={`${label} @axecloudoficial`}
                   >
                     {id === 'instagram' ? <Instagram className="h-4 w-4" /> : <TikTokIcon className="h-4 w-4" />}
@@ -294,25 +294,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#F1F5F9]">Portal</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Portal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={ROUTES.terreiros} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.terreiros} className="hover:text-emerald-600">
                   Terreiros
                 </a>
               </li>
               <li>
-                <a href={ROUTES.eventosPublicos} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.eventosPublicos} className="hover:text-emerald-600">
                   Eventos públicos
                 </a>
               </li>
               <li>
-                <a href={ROUTES.espacoDoFiel} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.espacoDoFiel} className="hover:text-emerald-600">
                   Pedir reza
                 </a>
               </li>
               <li>
-                <a href={ROUTES.liturgicalCalendar} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.liturgicalCalendar} className="hover:text-emerald-600">
                   Calendário litúrgico
                 </a>
               </li>
@@ -320,25 +320,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#F1F5F9]">Plataforma</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Plataforma</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#recursos" className="hover:text-[#F1F5F9]">
+                <a href="#recursos" className="hover:text-emerald-600">
                   Recursos
                 </a>
               </li>
               <li>
-                <a href="#demonstracao" className="hover:text-[#F1F5F9]">
+                <a href="#demonstracao" className="hover:text-emerald-600">
                   Demo interativa
                 </a>
               </li>
               <li>
-                <a href={ROUTES.founderProgram} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.founderProgram} className="hover:text-emerald-600">
                   Programa Fundador
                 </a>
               </li>
               <li>
-                <a href="#mensalidade" className="hover:text-[#F1F5F9]">
+                <a href="#mensalidade" className="hover:text-emerald-600">
                   Planos
                 </a>
               </li>
@@ -346,25 +346,25 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#F1F5F9]">Conta</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Conta</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={appHref(ROUTES.login)} className="hover:text-[#F1F5F9]">
+                <a href={appHref(ROUTES.login)} className="hover:text-emerald-600">
                   Entrar
                 </a>
               </li>
               <li>
-                <a href={appHref(ROUTES.register)} className="hover:text-[#F1F5F9]">
+                <a href={appHref(ROUTES.register)} className="hover:text-emerald-600">
                   Cadastrar terreiro
                 </a>
               </li>
               <li>
-                <a href={ROUTES.contentHub} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.contentHub} className="hover:text-emerald-600">
                   Conteúdo
                 </a>
               </li>
               <li>
-                <a href={ROUTES.glossary} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.glossary} className="hover:text-emerald-600">
                   Glossário do axé
                 </a>
               </li>
@@ -372,20 +372,20 @@ export default function Landing() {
           </div>
 
           <div>
-            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#F1F5F9]">Legal</h6>
+            <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-900">Legal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#seguranca" className="hover:text-[#F1F5F9]">
+                <a href="#seguranca" className="hover:text-emerald-600">
                   Segurança e LGPD
                 </a>
               </li>
               <li>
-                <a href={ROUTES.terms} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.terms} className="hover:text-emerald-600">
                   Termos de Uso
                 </a>
               </li>
               <li>
-                <a href={ROUTES.privacy} className="hover:text-[#F1F5F9]">
+                <a href={ROUTES.privacy} className="hover:text-emerald-600">
                   Política de Privacidade
                 </a>
               </li>
@@ -393,7 +393,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#13171D] px-4 pt-6 text-center text-xs sm:flex-row sm:px-6 lg:px-8">
+        <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 pt-6 text-center text-xs sm:flex-row sm:px-6 lg:px-8">
           <p>© {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}</p>
           <p className="italic">Axé — com respeito às tradições de matriz africana.</p>
         </div>

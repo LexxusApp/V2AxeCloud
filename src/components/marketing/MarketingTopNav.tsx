@@ -66,7 +66,7 @@ export function MarketingTopNav({
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-[#1E242B] bg-[#0B0D11]/90 backdrop-blur-md">
+    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <a
           href={logoHref}
@@ -81,7 +81,7 @@ export function MarketingTopNav({
                 <a
                   key={item.id}
                   href={item.path ?? sectionHref(sectionBase, item.id)}
-                  className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
+                  className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-slate-600 transition-colors hover:text-slate-900"
                 >
                   {item.label}
                 </a>
@@ -94,11 +94,11 @@ export function MarketingTopNav({
               'inline-flex h-9 shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-semibold leading-none transition-colors',
               active === 'fiel'
                 ? 'border-rose-500 bg-rose-600 text-white shadow-md shadow-rose-950/40'
-                : 'border-rose-500/25 bg-rose-500/10 text-rose-400 hover:border-rose-500/40 hover:text-rose-300',
+                : 'border-rose-500/25 bg-rose-50 text-rose-600 hover:border-rose-500/40 hover:bg-rose-100',
             )}
           >
             <Heart
-              className={cn('h-3.5 w-3.5 shrink-0 fill-current', active === 'fiel' ? 'text-rose-500' : 'text-rose-500')}
+              className={cn('h-3.5 w-3.5 shrink-0 fill-current', active === 'fiel' ? 'text-rose-200' : 'text-rose-500')}
               aria-hidden
             />
             Pedir Reza
@@ -109,7 +109,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-lg border border-[#2F3643] bg-[#1E242B]/80 px-3 text-sm font-semibold leading-none text-[#F1F5F9] transition-colors"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold leading-none text-slate-900 transition-colors hover:bg-slate-100"
               >
                 {item.label}
               </a>
@@ -117,7 +117,7 @@ export function MarketingTopNav({
               <a
                 key={item.id}
                 href={item.path ?? sectionHref(sectionBase, item.id)}
-                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-[#94A3B8] transition-colors hover:text-[#F1F5F9]"
+                className="inline-flex h-9 shrink-0 touch-manipulation items-center whitespace-nowrap px-1 text-sm font-medium leading-none text-slate-600 transition-colors hover:text-slate-900"
               >
                 {item.label}
               </a>
@@ -125,16 +125,16 @@ export function MarketingTopNav({
           )}
         </div>
 
-        <div className="hidden shrink-0 items-center gap-4 border-l border-[#1E242B] pl-6 lg:flex lg:pl-8">
+        <div className="hidden shrink-0 items-center gap-4 border-l border-slate-200 pl-6 lg:flex lg:pl-8">
           <a
             href={appHref(ROUTES.login)}
-            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-[#94A3B8] transition-colors hover:text-primary"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap px-3 text-sm font-semibold leading-none text-slate-600 transition-colors hover:text-emerald-600"
           >
             Entrar
           </a>
           <a
             href={appHref(ROUTES.register)}
-            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap rounded-xl border border-primary/20 bg-primary px-4 text-xs font-bold uppercase leading-none tracking-wider text-[#080A0D] shadow-md shadow-black/20 transition-colors hover:bg-[#FDE047]"
+            className="inline-flex h-9 touch-manipulation items-center whitespace-nowrap rounded-xl border border-emerald-500/20 bg-emerald-500 px-4 text-xs font-bold uppercase leading-none tracking-wider text-white shadow-md shadow-emerald-500/20 transition-colors hover:bg-emerald-600"
           >
             Cadastrar
           </a>
@@ -142,7 +142,7 @@ export function MarketingTopNav({
 
         <button
           type="button"
-          className="touch-manipulation rounded-lg p-2 text-[#F1F5F9] transition-colors hover:text-primary lg:hidden"
+          className="touch-manipulation rounded-lg p-2 text-slate-600 transition-colors hover:text-emerald-600 lg:hidden"
           onClick={() => setMobileMenuOpen((open) => !open)}
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -152,14 +152,14 @@ export function MarketingTopNav({
       </div>
 
       {mobileMenuOpen ? (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[#1E242B] bg-[#0B0D11] lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-slate-200 bg-white lg:hidden">
           <div className="space-y-1 px-4 py-4">
             {NAV_ITEMS.slice(0, 2).map((item) => (
                   <a
                     key={item.id}
                     href={item.path ?? sectionHref(sectionBase, item.id)}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block touch-manipulation rounded-lg px-3 py-2.5 text-base font-medium text-[#94A3B8] hover:bg-[#12161A] hover:text-[#F1F5F9]"
+                    className="block touch-manipulation rounded-lg px-3 py-2.5 text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   >
                     {item.label}
                   </a>
@@ -167,7 +167,7 @@ export function MarketingTopNav({
             <a
               href={ROUTES.espacoDoFiel}
               onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-lg bg-[#e11d48] px-3 py-2.5 text-base font-semibold text-white"
+              className="block rounded-lg bg-rose-600 px-3 py-2.5 text-base font-semibold text-white"
             >
               Pedir Reza
             </a>
@@ -179,25 +179,25 @@ export function MarketingTopNav({
                 className={cn(
                   'block rounded-lg px-3 py-2.5 text-base font-medium transition-colors',
                   item.highlight
-                    ? 'bg-[#1E242B]/80 font-semibold text-primary'
-                    : 'text-[#94A3B8] hover:bg-[#12161A] hover:text-[#F1F5F9]',
+                    ? 'bg-slate-50 font-semibold text-emerald-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                 )}
               >
                 {item.label}
               </a>
             ))}
-            <div className="mt-4 space-y-2 border-t border-[#1E242B] pt-4">
+            <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
               <a
                 href={appHref(ROUTES.login)}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#94A3B8]"
+                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600"
               >
                 Entrar
               </a>
               <a
                 href={appHref(ROUTES.register)}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-[#080A0D]"
+                className="block rounded-xl bg-emerald-500 py-2.5 text-center text-sm font-bold text-white"
               >
                 Cadastrar
               </a>
