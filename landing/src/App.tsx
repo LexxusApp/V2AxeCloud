@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { cn } from './lib/utils';
+import { BRAND_TAGLINE } from '../../src/constants/seoBrandKeywords';
 
 /** Mesmo contato comercial do Login (`Login.tsx`) */
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
@@ -160,7 +161,7 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
             compact ? 'text-[7px]' : 'text-[9px]',
           )}
         >
-          Gestão Sagrada
+          {BRAND_TAGLINE}
         </p>
       </div>
     </div>

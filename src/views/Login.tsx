@@ -21,6 +21,7 @@ import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { ROUTES } from '../lib/routes';
+import { SITE_TITLE } from '../constants/seoBrandKeywords';
 
 const LOGIN_LOGO_SRC = '/ile-ase-logo.png';
 
@@ -351,14 +352,14 @@ export default function Login() {
           <div className="flex justify-center">
             <img
               src={LOGIN_LOGO_SRC}
-              alt="Ilê Asé — Gestão Sagrada"
+              alt={SITE_TITLE}
               width={560}
               height={181}
               decoding="async"
               className="login-card-logo h-auto w-full max-w-[250px] object-contain object-top sm:max-w-[280px] [@media(max-height:700px)]:max-w-[210px]"
             />
           </div>
-          <h1 className="sr-only">Ilê Asé — Gestão Sagrada para terreiros</h1>
+          <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
           <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
             <p className="mx-auto max-w-[260px] text-gray-400">

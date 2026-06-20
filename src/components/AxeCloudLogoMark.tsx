@@ -1,4 +1,5 @@
 import { cn } from '../lib/utils';
+import { BRAND_TAGLINE } from '../constants/seoBrandKeywords';
 
 export type AxeCloudLogoMarkSize = 'compact' | 'default' | 'large';
 
@@ -79,7 +80,7 @@ export function AxeCloudLogoMark({
           <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>ILÊ</span>
           <span className={cn('font-black uppercase tracking-[0.22em] text-[#f2b90f]', s.word)}>ASÉ</span>
         </div>
-        <p className={cn('text-center font-black uppercase text-[#d99c0a]', s.tagline)}>Gestão Sagrada</p>
+        <p className={cn('text-center font-black uppercase text-[#d99c0a]', s.tagline)}>{BRAND_TAGLINE}</p>
       </div>
     </div>
   );

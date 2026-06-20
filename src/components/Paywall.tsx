@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock, Crown, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { BRAND_NAME, BRAND_TAGLINE } from '../constants/seoBrandKeywords';
 
 interface PaywallProps {
   featureName: string;
@@ -40,7 +41,7 @@ export default function Paywall({ featureName, requiredPlan, onUpgrade }: Paywal
           </button>
           
           <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-            Ilê Asé • Gestão Sagrada
+            {BRAND_NAME} • {BRAND_TAGLINE}
           </p>
         </div>
       </motion.div>

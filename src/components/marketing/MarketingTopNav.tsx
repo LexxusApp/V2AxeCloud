@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
+import { SITE_TITLE } from '../../constants/seoBrandKeywords';
 
 type NavItem = {
   id: string;
@@ -29,7 +30,7 @@ export function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
     <img
       src={LOGO_SRC}
-      alt="Ilê Asé — Gestão Sagrada"
+      alt={SITE_TITLE}
       width={950}
       height={316}
       decoding="async"
@@ -278,7 +279,7 @@ export function LandingMockupLogo({ variant = 'nav' }: { variant?: 'nav' | 'foot
   return (
     <img
       src="/ile-ase-logo.png"
-      alt="ILÊ ASÉ — Gestão Sagrada"
+      alt={SITE_TITLE}
       width={560}
       height={112}
       decoding="async"

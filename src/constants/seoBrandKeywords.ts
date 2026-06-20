@@ -2,7 +2,7 @@
 export const BRAND_NAME = 'Ilê Asé' as const;
 
 /** Slogan principal da marca. */
-export const BRAND_TAGLINE = 'Gestão Sagrada' as const;
+export const BRAND_TAGLINE = 'Gestão de Terreiros de Umbanda e Candomblé' as const;
 
 /** Título do site para `<title>`, PWA e Open Graph. */
 export const SITE_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}` as const;

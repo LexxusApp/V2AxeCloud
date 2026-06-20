@@ -26,7 +26,6 @@ export const ROUTES = {
   eventRsvp: '/convite',
   giraCheckin: '/checkin',
   giraSenhas: '/senhas',
-  previewPainel: '/preview-painel',
 } as const;
 
 export function terreiroProfilePath(slug: string): string {
@@ -57,7 +56,6 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.liturgicalCalendar,
   ROUTES.contentHub,
   ROUTES.glossary,
-  ROUTES.previewPainel,
   ...PORTAL_ARTICLE_PATHS,
 ] as const;
 
