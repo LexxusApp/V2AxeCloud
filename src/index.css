@@ -2920,6 +2920,597 @@ html:has(.landing-mockup-nav) {
   color: #1b1813;
 }
 
+/* Adesivo pulsante — Programa Fundador no hero */
+.founder-sticker-anchor {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .founder-sticker-anchor {
+    position: absolute;
+    top: 1.5rem;
+    left: auto;
+    right: -1.75rem;
+    transform: none;
+    margin-bottom: 0;
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 1280px) {
+  .founder-sticker-anchor {
+    top: 1.75rem;
+    right: -2.75rem;
+  }
+}
+
+.founder-sticker {
+  position: relative;
+  display: block;
+  width: 8.75rem;
+  height: 8.75rem;
+  pointer-events: auto;
+  text-decoration: none;
+  filter: drop-shadow(0 10px 18px rgba(27, 24, 19, 0.28));
+  transition: filter 0.2s ease;
+}
+
+.founder-sticker:hover {
+  filter: drop-shadow(0 14px 24px rgba(27, 24, 19, 0.34));
+}
+
+@media (min-width: 640px) {
+  .founder-sticker {
+    width: 9.75rem;
+    height: 9.75rem;
+  }
+}
+
+.founder-sticker__body {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-7deg);
+  transform-origin: center center;
+}
+
+.founder-sticker__halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.55) 0%, rgba(255, 193, 7, 0) 68%);
+  pointer-events: none;
+}
+
+.founder-sticker__burst {
+  position: absolute;
+  inset: -6%;
+  background: linear-gradient(180deg, #ffe066 0%, #ffc107 48%, #e6a800 100%);
+  clip-path: polygon(
+    50% 0%,
+    61% 28%,
+    92% 18%,
+    74% 44%,
+    98% 68%,
+    68% 68%,
+    62% 98%,
+    50% 78%,
+    38% 98%,
+    32% 68%,
+    2% 68%,
+    26% 44%,
+    8% 18%,
+    39% 28%
+  );
+  pointer-events: none;
+}
+
+.founder-sticker__ring {
+  position: absolute;
+  inset: 4%;
+  border-radius: 9999px;
+  border: 3px dashed rgba(27, 24, 19, 0.22);
+  pointer-events: none;
+}
+
+.founder-sticker__face {
+  position: absolute;
+  inset: 14%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 3px solid #ffffff;
+  background: radial-gradient(circle at 35% 25%, #fff9e6 0%, #ffc107 42%, #f5a700 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -4px 10px rgba(168, 116, 0, 0.25);
+  text-align: center;
+  color: #1b1813;
+  padding: 0.35rem;
+}
+
+.founder-sticker__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1b1813;
+}
+
+.founder-sticker__label {
+  margin-top: 0.1rem;
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.founder-sticker__title {
+  font-family: Outfit, Inter, var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker__title {
+    font-size: 0.92rem;
+  }
+}
+
+.founder-sticker__divider {
+  display: block;
+  width: 2rem;
+  height: 2px;
+  margin: 0.28rem 0 0.22rem;
+  border-radius: 9999px;
+  background: rgba(27, 24, 19, 0.28);
+}
+
+.founder-sticker__hot {
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1b1813;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker__hot {
+    font-size: 0.62rem;
+  }
+}
+
+.founder-sticker__slots {
+  margin-top: 0.18rem;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(27, 24, 19, 0.72);
+}
+
+.founder-sticker__tap {
+  margin-top: 0.12rem;
+  font-size: 0.44rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(27, 24, 19, 0.55);
+}
+
+.founder-sticker__peel {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  z-index: 2;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 0 0 0.55rem 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 236, 179, 0.35));
+  box-shadow: -2px -2px 4px rgba(27, 24, 19, 0.12);
+  transform: rotate(8deg);
+  pointer-events: none;
+}
+
+/* Variante: atabaque estilizado */
+.founder-sticker--atabaque {
+  width: 7.85rem;
+  height: 9rem;
+  filter: drop-shadow(0 10px 20px rgba(27, 24, 19, 0.28));
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--atabaque {
+    width: 8.5rem;
+    height: 9.65rem;
+  }
+}
+
+.founder-sticker--atabaque:hover {
+  filter: drop-shadow(0 14px 26px rgba(27, 24, 19, 0.34));
+}
+
+.founder-sticker--atabaque .founder-sticker__halo {
+  inset: -10% -14%;
+  border-radius: 1.1rem;
+  background: radial-gradient(
+    circle,
+    rgba(255, 193, 7, 0.42) 0%,
+    rgba(124, 69, 34, 0.1) 45%,
+    transparent 68%
+  );
+}
+
+.founder-sticker--atabaque .founder-sticker__burst {
+  inset: 0;
+  clip-path: none;
+  border-radius: 1rem;
+  border: 2.5px solid #1b1813;
+  background: linear-gradient(165deg, #fffef8 0%, #ffe566 28%, #ffc107 62%, #f0b400 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -5px 12px rgba(168, 116, 0, 0.18);
+}
+
+.founder-sticker--atabaque .founder-sticker__ring {
+  inset: 6% 8%;
+  border-radius: 0.75rem;
+  border: 2px dashed rgba(27, 24, 19, 0.22);
+}
+
+.founder-sticker--atabaque .founder-sticker__face {
+  inset: 0;
+  border-radius: 1rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.45rem 0.35rem 0.55rem;
+}
+
+.founder-sticker--atabaque .founder-sticker__icon--drum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center bottom;
+}
+
+.founder-sticker--atabaque .founder-sticker__atabaque-art {
+  display: block;
+  width: 2.35rem;
+  height: auto;
+  filter: drop-shadow(0 2px 3px rgba(27, 24, 19, 0.22));
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--atabaque .founder-sticker__atabaque-art {
+    width: 2.55rem;
+  }
+}
+
+.founder-sticker--atabaque .founder-sticker__label {
+  margin-top: 0.06rem;
+  font-size: 0.44rem;
+  letter-spacing: 0.18em;
+}
+
+.founder-sticker--atabaque .founder-sticker__title {
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--atabaque .founder-sticker__title {
+    font-size: 0.84rem;
+  }
+}
+
+.founder-sticker--atabaque .founder-sticker__divider {
+  width: 2.5rem;
+  height: 1px;
+  margin: 0.2rem 0 0.14rem;
+  background: rgba(27, 24, 19, 0.28);
+}
+
+.founder-sticker--atabaque .founder-sticker__hot {
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--atabaque .founder-sticker__hot {
+    font-size: 0.56rem;
+  }
+}
+
+.founder-sticker--atabaque .founder-sticker__slots {
+  font-size: 0.42rem;
+  margin-top: 0.1rem;
+}
+
+.founder-sticker--atabaque .founder-sticker__tap {
+  font-size: 0.38rem;
+  margin-top: 0.06rem;
+}
+
+.founder-sticker--atabaque .founder-sticker__peel,
+.founder-sticker--atabaque .founder-sticker__peel-fold,
+.founder-sticker--atabaque .founder-sticker__garland-wrap,
+.founder-sticker--atabaque .founder-sticker__drip,
+.founder-sticker--atabaque .founder-sticker__wax-shine {
+  display: none;
+}
+
+/* Variante: coroa + guirlanda de folhas sagradas */
+.founder-sticker--folhas {
+  width: 8.25rem;
+  height: 8.25rem;
+  filter: drop-shadow(0 10px 20px rgba(27, 24, 19, 0.28));
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--folhas {
+    width: 9rem;
+    height: 9rem;
+  }
+}
+
+.founder-sticker--folhas:hover {
+  filter: drop-shadow(0 14px 26px rgba(27, 24, 19, 0.34));
+}
+
+.founder-sticker--folhas .founder-sticker__halo {
+  inset: -14%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 193, 7, 0.45) 0%,
+    rgba(82, 183, 136, 0.12) 42%,
+    transparent 68%
+  );
+}
+
+.founder-sticker--folhas .founder-sticker__garland-wrap {
+  position: absolute;
+  inset: -4%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.founder-sticker--folhas .founder-sticker__garland {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(27, 60, 40, 0.35));
+}
+
+.founder-sticker--folhas .founder-sticker__burst {
+  inset: 10%;
+  clip-path: none;
+  border-radius: 9999px;
+  border: 2.5px solid #1b1813;
+  background: linear-gradient(155deg, #fffef8 0%, #ffe566 30%, #ffc107 65%, #f0b400 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -5px 12px rgba(168, 116, 0, 0.2);
+}
+
+.founder-sticker--folhas .founder-sticker__ring {
+  inset: 18%;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(27, 24, 19, 0.15);
+}
+
+.founder-sticker--folhas .founder-sticker__face {
+  inset: 20%;
+  border-radius: 9999px;
+  border: none;
+  background: radial-gradient(
+    circle at 40% 30%,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 248, 220, 0.08) 55%,
+    transparent 100%
+  );
+  box-shadow: none;
+  padding: 0.28rem 0.25rem 0.35rem;
+}
+
+.founder-sticker--folhas .founder-sticker__icon--crown {
+  color: #1b1813;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.65));
+}
+
+.founder-sticker--folhas .founder-sticker__label {
+  margin-top: 0.08rem;
+  font-size: 0.44rem;
+  letter-spacing: 0.18em;
+  color: rgba(27, 24, 19, 0.78);
+}
+
+.founder-sticker--folhas .founder-sticker__title {
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--folhas .founder-sticker__title {
+    font-size: 0.86rem;
+  }
+}
+
+.founder-sticker--folhas .founder-sticker__divider {
+  width: 2.35rem;
+  height: 1px;
+  margin: 0.22rem 0 0.16rem;
+  background: rgba(27, 24, 19, 0.28);
+}
+
+.founder-sticker--folhas .founder-sticker__hot {
+  font-size: 0.52rem;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--folhas .founder-sticker__hot {
+    font-size: 0.58rem;
+  }
+}
+
+.founder-sticker--folhas .founder-sticker__slots {
+  font-size: 0.44rem;
+  margin-top: 0.12rem;
+  color: rgba(27, 24, 19, 0.68);
+}
+
+.founder-sticker--folhas .founder-sticker__tap {
+  font-size: 0.4rem;
+  margin-top: 0.08rem;
+}
+
+.founder-sticker--folhas .founder-sticker__peel,
+.founder-sticker--folhas .founder-sticker__peel-fold,
+.founder-sticker--folhas .founder-sticker__drip,
+.founder-sticker--folhas .founder-sticker__wax-shine {
+  display: none;
+}
+
+/* Variante legada: etiqueta quadrada */
+.founder-sticker--tag {
+  width: 7.65rem;
+  height: 7.65rem;
+  filter: drop-shadow(0 10px 20px rgba(27, 24, 19, 0.28));
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--tag {
+    width: 8.35rem;
+    height: 8.35rem;
+  }
+}
+
+.founder-sticker--tag:hover {
+  filter: drop-shadow(0 14px 26px rgba(27, 24, 19, 0.34));
+}
+
+.founder-sticker--tag .founder-sticker__halo {
+  inset: -12%;
+  border-radius: 1rem;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.48) 0%, rgba(255, 193, 7, 0) 68%);
+}
+
+.founder-sticker--tag .founder-sticker__burst {
+  inset: 0;
+  clip-path: none;
+  border-radius: 0.85rem;
+  border: 2.5px solid #1b1813;
+  background: linear-gradient(155deg, #fffef8 0%, #ffe566 32%, #ffc107 68%, #f0b400 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -5px 12px rgba(168, 116, 0, 0.18);
+}
+
+.founder-sticker--tag .founder-sticker__ring {
+  inset: 7%;
+  border-radius: 0.55rem;
+  border: 2px dashed rgba(27, 24, 19, 0.24);
+}
+
+.founder-sticker--tag .founder-sticker__face {
+  inset: 0;
+  border-radius: 0.85rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.5rem 0.4rem 0.85rem;
+}
+
+.founder-sticker--tag .founder-sticker__label {
+  margin-top: 0.1rem;
+  font-size: 0.46rem;
+  letter-spacing: 0.18em;
+}
+
+.founder-sticker--tag .founder-sticker__title {
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--tag .founder-sticker__title {
+    font-size: 0.9rem;
+  }
+}
+
+.founder-sticker--tag .founder-sticker__divider {
+  width: 2.75rem;
+  height: 2px;
+  margin: 0.26rem 0 0.2rem;
+}
+
+.founder-sticker--tag .founder-sticker__hot {
+  font-size: 0.54rem;
+}
+
+@media (min-width: 640px) {
+  .founder-sticker--tag .founder-sticker__hot {
+    font-size: 0.6rem;
+  }
+}
+
+.founder-sticker--tag .founder-sticker__slots {
+  font-size: 0.46rem;
+  margin-top: 0.14rem;
+}
+
+.founder-sticker--tag .founder-sticker__tap {
+  font-size: 0.42rem;
+  margin-top: 0.1rem;
+}
+
+.founder-sticker--tag .founder-sticker__peel {
+  display: block;
+  right: 0;
+  bottom: 0;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0;
+  background: linear-gradient(145deg, #fffdf5 0%, #ffeaa7 45%, #f0c040 100%);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  box-shadow: -4px -4px 8px rgba(27, 24, 19, 0.14);
+  transform: none;
+}
+
+.founder-sticker--tag .founder-sticker__peel-fold {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0 0 0.85rem 0;
+  pointer-events: none;
+  background: linear-gradient(315deg, rgba(27, 24, 19, 0.14) 0%, transparent 52%);
+}
+
+.founder-sticker--tag .founder-sticker__drip,
+.founder-sticker--tag .founder-sticker__wax-shine {
+  display: none;
+}
+
 .landing-mockup-hero__watermark {
   top: 12%;
   left: max(
@@ -2967,22 +3558,26 @@ html:has(.landing-mockup-nav) {
 }
 
 .landing-mockup-hero__card {
-  border-radius: 2rem;
-  border-color: var(--mockup-card-border, #cfc0a8);
-  background: var(--mockup-card-bg, #ffffff);
-  box-shadow: var(--mockup-card-shadow);
+  width: 100%;
+  border-radius: 1.5rem;
+  border: 1.5px solid rgba(27, 24, 19, 0.2);
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(27, 24, 19, 0.05),
+    0 6px 18px rgba(27, 24, 19, 0.1),
+    0 16px 36px rgba(27, 24, 19, 0.12);
+}
+
+@media (min-width: 640px) {
+  .landing-mockup-hero__card {
+    border-radius: 1.65rem;
+  }
 }
 
 .landing-mockup-demo-frame {
   border-color: var(--mockup-card-border, #cfc0a8);
   background: var(--mockup-card-bg, #ffffff);
   box-shadow: var(--mockup-card-shadow);
-}
-
-@media (min-width: 640px) {
-  .landing-mockup-hero__card {
-    border-radius: 2.25rem;
-  }
 }
 
 .landing-mockup-hero__card-media {

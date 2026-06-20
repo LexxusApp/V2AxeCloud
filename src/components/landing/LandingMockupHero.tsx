@@ -8,6 +8,7 @@ import {
   type PublicTerreiro,
 } from '../../lib/portalPublic';
 import { landingMockupShellClass } from './landingMockupUi';
+import { FounderProgramHeroSeal } from './FounderProgramHeroSeal';
 import { ROUTES } from '../../lib/routes';
 
 function AcolhimentoIcon({ className }: { className?: string }) {
@@ -118,7 +119,7 @@ function HeroTerreiroCard() {
         </span>
       </div>
 
-      <div className="relative p-5 sm:p-6">
+      <div className="relative p-4 sm:p-5">
         {loading ? (
           <div className="space-y-3" aria-busy="true">
             <div className="h-6 w-2/3 animate-pulse rounded-full bg-[#1b1813]/10" />
@@ -129,19 +130,19 @@ function HeroTerreiroCard() {
           <>
             <div className="flex items-start gap-4">
               <div className="min-w-0 flex-1">
-                <h2 className="font-display text-xl font-black text-[#1b1813]">{terreiro.nome}</h2>
+                <h2 className="font-display text-lg font-black text-[#1b1813] sm:text-xl">{terreiro.nome}</h2>
                 {location ? (
                   <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[#1b1813]">
                     <MapPin className="h-3.5 w-3.5 shrink-0 text-[#FFC107]" aria-hidden />
                     {location}
                   </p>
                 ) : null}
-                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[#1b1813]">
+                <p className="mt-2.5 line-clamp-2 text-[13px] leading-relaxed text-[#1b1813]/88 sm:text-sm">
                   {terreiroCardDescription(terreiro)}
                 </p>
               </div>
               <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FFC107] text-[#1b1813]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC107] text-[#1b1813] sm:h-11 sm:w-11"
                 aria-hidden
               >
                 <OxeIcon className="h-5 w-5" />
@@ -179,7 +180,7 @@ function HeroTerreiroCard() {
 export function LandingMockupHero() {
   return (
     <>
-      <section className="landing-mockup-hero relative overflow-hidden" aria-labelledby="portal-hero-title">
+      <section className="landing-mockup-hero relative overflow-visible" aria-labelledby="portal-hero-title">
         <div className="landing-mockup-hero__watermark pointer-events-none absolute z-0 hidden lg:block" aria-hidden>
           <svg width="280" height="280" viewBox="0 0 280 280" fill="none">
             <circle cx="140" cy="140" r="120" stroke="#1b1813" strokeOpacity="0.04" strokeWidth="28" />
@@ -193,7 +194,9 @@ export function LandingMockupHero() {
           </svg>
         </div>
 
-        <div className={`landing-mockup-hero__inner relative z-[2] ${landingMockupShellClass} pb-16 pt-10 sm:pb-20 sm:pt-12`}>
+        <div className={`landing-mockup-hero__inner relative z-[2] ${landingMockupShellClass} pb-16 pt-8 sm:pb-20 sm:pt-10`}>
+          <FounderProgramHeroSeal />
+
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 xl:gap-20">
             <div className="max-w-xl">
               <span className="landing-mockup-hero__badge inline-flex items-center gap-2 rounded-full bg-[#FFC107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#1b1813] md:text-[11px]">
@@ -233,7 +236,7 @@ export function LandingMockupHero() {
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            <div className="relative mx-auto w-full max-w-[17.5rem] overflow-visible sm:max-w-[18.5rem] lg:ml-auto lg:mr-7 lg:max-w-[19rem] xl:mr-10">
               <HeroTerreiroCard />
             </div>
           </div>

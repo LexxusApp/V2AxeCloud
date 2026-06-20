@@ -123,7 +123,7 @@ export default function Landing() {
 
       <LandingMockupSideRails />
 
-      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-hidden bg-[#fdf8f0] text-[#1b1813]">
+      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] text-[#1b1813]">
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <PortalHomeHub />
