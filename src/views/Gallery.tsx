@@ -403,18 +403,18 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   }, [tenantId]);
 
   const createAlbum = async (): Promise<AlbumItem> => {
-    const response = await authFetch('/api/v1/gallery/albums', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenantId,
+      const response = await authFetch('/api/v1/gallery/albums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
         name: albumName.trim(),
-        description: albumDescription.trim(),
+          description: albumDescription.trim(),
         category: albumCategory,
-      }),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'Erro ao criar álbum');
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Erro ao criar álbum');
     return { ...payload.album, media: [] } as AlbumItem;
   };
 
@@ -427,47 +427,47 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
     index: number,
     total: number,
   ) => {
-    const uploadPrep = await authFetch('/api/v1/gallery/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenantId,
+        const uploadPrep = await authFetch('/api/v1/gallery/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId,
         albumId,
-        fileName: file.name,
-        contentType: file.type,
-        sizeBytes: file.size,
-      }),
-    });
-    const uploadPrepJson = await uploadPrep.json();
-    if (!uploadPrep.ok) throw new Error(uploadPrepJson.error || 'Erro ao preparar upload');
+            fileName: file.name,
+            contentType: file.type,
+            sizeBytes: file.size,
+          }),
+        });
+        const uploadPrepJson = await uploadPrep.json();
+        if (!uploadPrep.ok) throw new Error(uploadPrepJson.error || 'Erro ao preparar upload');
 
-    const uploadToR2 = await fetch(uploadPrepJson.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      body: file,
-    });
-    if (!uploadToR2.ok) throw new Error(`Falha ao enviar arquivo ${file.name}`);
+        const uploadToR2 = await fetch(uploadPrepJson.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file,
+        });
+        if (!uploadToR2.ok) throw new Error(`Falha ao enviar arquivo ${file.name}`);
 
     const photoTitle = total > 1 ? `${albumTitle} — foto ${index + 1}` : albumTitle;
 
-    const completeResponse = await authFetch('/api/v1/gallery/complete-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenantId,
+        const completeResponse = await authFetch('/api/v1/gallery/complete-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId,
         albumId,
-        storageKey: uploadPrepJson.storageKey,
-        publicUrl: uploadPrepJson.publicUrl,
-        fileName: file.name,
-        contentType: file.type,
-        sizeBytes: file.size,
+            storageKey: uploadPrepJson.storageKey,
+            publicUrl: uploadPrepJson.publicUrl,
+            fileName: file.name,
+            contentType: file.type,
+            sizeBytes: file.size,
         title: photoTitle,
         caption: albumCaption,
         category,
-      }),
-    });
-    const completeJson = await completeResponse.json();
-    if (!completeResponse.ok) throw new Error(completeJson.error || 'Erro ao finalizar upload');
+          }),
+        });
+        const completeJson = await completeResponse.json();
+        if (!completeResponse.ok) throw new Error(completeJson.error || 'Erro ao finalizar upload');
     return completeJson.media as MediaItem;
   };
 
@@ -646,7 +646,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
     const category = (photo.category || 'lembranca') as GalleryCategory;
     const badgeClass = CATEGORY_BADGE[category] || CATEGORY_BADGE.lembranca;
 
-    return (
+  return (
       <motion.div
         key={photo.id}
         layout
@@ -742,13 +742,13 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
     return (
       <motion.div
-        key={album.id}
+                key={album.id}
         layout
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         role="button"
         tabIndex={0}
-        onClick={() => setSelectedAlbumId(album.id)}
+                onClick={() => setSelectedAlbumId(album.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -794,7 +794,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             >
               {CATEGORY_LABEL[category]}
             </span>
-          </div>
+                </div>
 
           {isAdmin && (
             <button
@@ -807,7 +807,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
               title="Deletar álbum"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+              </button>
           )}
         </div>
 
@@ -837,7 +837,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
               <span>{totalAxe} Axé</span>
             </div>
           </div>
-        </div>
+              </div>
       </motion.div>
     );
   };
@@ -885,14 +885,14 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           <AppPanelLoading />
         ) : selectedAlbum ? (
           <div className="space-y-6">
-            <button
+              <button
               type="button"
-              onClick={() => setSelectedAlbumId(null)}
+                onClick={() => setSelectedAlbumId(null)}
               className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#94A3B8] transition hover:border-amber-500/30 hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
+              >
+                <ArrowLeft className="h-4 w-4" />
               Voltar aos álbuns
-            </button>
+              </button>
 
             <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -933,7 +933,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
               <div className="space-y-1 text-center sm:text-left">
                 <h6 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Álbuns do Terreiro</h6>
                 <p className="text-[10px] text-gray-500">Clique em um álbum para ver todas as fotos.</p>
-              </div>
+            </div>
 
               <div className="flex flex-wrap items-center justify-center gap-1.5">
                 {FILTER_CHIPS.map((chip) => (

@@ -48,6 +48,7 @@ function printSearchConsoleGuide(siteUrl, sitemapUrl) {
   console.log('5. Faça deploy (ou reinicie o app na VPS) e clique "Verificar" no Search Console');
   console.log('6. Em "Sitemaps", envie manualmente: sitemap.xml');
   console.log('   URL do sitemap: ' + sitemapUrl);
+  console.log('   ⚠ NÃO use sitemap.xm (sem o l) — o Google rejeita como HTML');
   console.log('');
   console.log('Dica: após verificar, use este script após cada deploy: npm run submit:sitemap');
   console.log('');

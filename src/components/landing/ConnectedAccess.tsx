@@ -55,7 +55,7 @@ export function ConnectedAccess() {
                     <div className="min-w-0 flex-1">
                       <span className="landing-app-badge">{card.badge}</span>
                       <h3 className="landing-app-card__title">{card.title}</h3>
-                      <p className="mt-2 text-xs font-medium text-zinc-400">{card.who}</p>
+                      <p className="mt-2 text-xs font-medium text-slate-500">{card.who}</p>
                     </div>
                   </div>
 
@@ -64,7 +64,7 @@ export function ConnectedAccess() {
                   <ul className="landing-app-card__list" role="list">
                     {card.features.map((feature) => (
                       <li key={feature}>
-                        <Check className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} aria-hidden />
+                        <Check className="h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2.5} aria-hidden />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -76,7 +76,7 @@ export function ConnectedAccess() {
         </div>
 
         <motion.div
-          className="relative z-10 mt-10 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 sm:p-8"
+          className="relative z-10 mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8"
           initial={fade.initial}
           whileInView={fade.whileInView}
           viewport={fade.viewport}
@@ -88,8 +88,8 @@ export function ConnectedAccess() {
                 <Smartphone className={landingIconClass('emerald', 'h-5 w-5')} aria-hidden />
               </LandingIconBox>
               <div>
-                <h3 className="text-base font-bold text-white sm:text-lg">Como funciona o PWA</h3>
-                <p className="text-xs text-zinc-500 sm:text-sm">
+                <h3 className="text-base font-bold text-slate-900 sm:text-lg">Como funciona o PWA</h3>
+                <p className="text-xs text-slate-500 sm:text-sm">
                   Progressive Web App — app na tela inicial, sem instalar pela loja.
                 </p>
               </div>
@@ -100,13 +100,13 @@ export function ConnectedAccess() {
             {LANDING_PWA_STEPS.map((item) => (
               <li
                 key={item.step}
-                className="rounded-xl border border-white/[0.06] bg-black/30 px-4 py-4"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-4"
               >
-                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-xs font-black text-primary">
+                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-600">
                   {item.step}
                 </span>
-                <p className="text-sm font-semibold text-white">{item.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-500">{item.desc}</p>
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.desc}</p>
               </li>
             ))}
           </ol>

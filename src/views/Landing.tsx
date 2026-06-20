@@ -88,7 +88,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full border border-primary/50 bg-primary text-[#080A0D] shadow-[0_0_28px_rgba(250,204,21,0.35)] transition-opacity duration-300 hover:opacity-90 sm:bottom-8 sm:right-6',
+        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition-opacity duration-300 hover:bg-emerald-700 sm:bottom-8 sm:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
@@ -186,47 +186,58 @@ export default function Landing() {
                 lead={landingPrice.description}
               />
             </LandingReveal>
-            <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-10 max-w-lg">
-              <div className="landing-v3-card landing-pricing-card relative flex flex-col p-6 sm:p-8">
-                <span className="relative z-10 mb-3 inline-flex w-max rounded-full border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-[#10B981]">
-                  Plano Premium
-                </span>
-                <h3 className="relative z-10 text-lg font-bold text-[#0F172A]">Mensalidade do terreiro</h3>
-                <p className="relative z-10 mt-1 text-sm text-[#475569]">
-                  Ou participe do{' '}
-                  <a href={ROUTES.founderProgram} className="font-bold text-[#10B981] hover:underline">
-                    Programa Fundador
-                  </a>{' '}
-                  — 12 meses grátis
-                </p>
-                <div className="relative z-10 mt-6 flex items-baseline gap-2 text-[#0F172A]">
-                  <span className="font-display text-4xl font-black tracking-tight sm:text-5xl">
-                    {landingPrice.label}
-                  </span>
-                  <span className="text-lg text-[#64748B]">{landingPrice.period}</span>
-                </div>
-                <ul className="relative z-10 mt-6 space-y-2.5 text-left text-sm text-[#475569]" role="list">
-                  {premiumFeatures.map((line) => (
-                    <li key={line} className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#10B981]" strokeWidth={2.2} />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-                <a href={appHref(ROUTES.register)} className="landing-btn-primary relative z-10 mt-8 w-full uppercase tracking-widest">
-                  Cadastrar
-                </a>
-                <p className="relative z-10 mt-4 text-center text-[11px] text-[#64748B]">
-                  Dúvidas?{' '}
+            <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-12 max-w-4xl">
+              <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 md:grid-cols-[0.9fr_1.1fr]">
+                <div className="flex flex-col justify-between bg-emerald-600 p-8 text-white sm:p-10">
+                  <div>
+                    <span className="inline-flex w-max rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                      Plano Premium
+                    </span>
+                    <h3 className="mt-5 text-lg font-bold text-emerald-50">Mensalidade do terreiro</h3>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="font-display text-5xl font-black tracking-tight">{landingPrice.label}</span>
+                      <span className="text-lg text-emerald-100">{landingPrice.period}</span>
+                    </div>
+                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-emerald-50/90">
+                      Tudo incluso, sem taxa por filho de santo. Ou comece pelo{' '}
+                      <a href={ROUTES.founderProgram} className="font-bold text-white underline decoration-emerald-200 underline-offset-2">
+                        Programa Fundador
+                      </a>{' '}
+                      — 12 meses grátis.
+                    </p>
+                  </div>
                   <a
-                    href={WA_COMERCIAL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-bold text-[#10B981] hover:text-[#10B981]/85"
+                    href={appHref(ROUTES.register)}
+                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-emerald-700 transition hover:bg-emerald-50"
                   >
-                    Fale com o comercial
+                    Cadastrar
                   </a>
-                </p>
+                </div>
+
+                <div className="p-8 sm:p-10">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">O que está incluso</p>
+                  <ul className="mt-5 space-y-3.5 text-left text-sm text-slate-700" role="list">
+                    {premiumFeatures.map((line) => (
+                      <li key={line} className="flex gap-3">
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-50">
+                          <Check className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                        </span>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-7 border-t border-slate-200 pt-5 text-[11px] text-slate-500">
+                    Dúvidas?{' '}
+                    <a
+                      href={WA_COMERCIAL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-emerald-600 hover:text-emerald-700"
+                    >
+                      Fale com o comercial
+                    </a>
+                  </p>
+                </div>
               </div>
             </LandingReveal>
           </div>
@@ -238,26 +249,40 @@ export default function Landing() {
 
         <LandingSection aria-label="Fechamento">
           <div className="landing-section-inner mx-auto max-w-7xl">
-            <LandingReveal className="landing-v3-cta relative z-10 mx-auto max-w-3xl overflow-hidden rounded-[2.5rem] border border-[#10B981]/30 p-8 text-center md:p-12">
-              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-[#10B981]">Que o axé acompanhe</p>
-              <p className="relative z-10 mt-3 font-display text-2xl font-black text-[#0F172A] md:text-3xl">
+            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-emerald-700 p-10 text-center md:p-16">
+              <div
+                className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
+                aria-hidden
+              />
+              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Que o axé acompanhe</p>
+              <p className="relative z-10 mx-auto mt-4 max-w-2xl font-display text-3xl font-black leading-tight text-white md:text-4xl">
                 Paz na casa, luz no caminho e organização no que é sagrado
               </p>
-              <p className="relative z-10 mx-auto mt-3 max-w-lg text-sm font-light text-[#475569]">
+              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-emerald-50/90">
                 Leve transparência financeira, portal do filho de santo e memória da casa para o seu terreiro.
               </p>
-              <div className="relative z-10 mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <a href={ROUTES.founderProgram} className="landing-btn-primary text-sm">
+              <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <a
+                  href={ROUTES.founderProgram}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-black text-emerald-700 transition hover:bg-emerald-50 sm:w-auto"
+                >
                   Programa Fundador
                 </a>
-                <a href={appHref(ROUTES.register)} className="landing-btn-secondary text-sm">
+                <a
+                  href={appHref(ROUTES.register)}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20 sm:w-auto"
+                >
                   Cadastrar com PIX
                 </a>
                 <a
                   href={WA_COMERCIAL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-[#10B981] transition hover:text-[#10B981]/85"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white/90 transition hover:text-white"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden />
                   Falar com o comercial

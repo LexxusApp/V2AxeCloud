@@ -24,7 +24,7 @@ export function LandingResources() {
         </motion.div>
 
         <ul
-          className="relative z-10 mt-14 grid list-none grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
+          className="relative z-10 mt-14 grid list-none grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5"
           role="list"
         >
           {LANDING_RESOURCES.map((item, i) => {
@@ -36,12 +36,14 @@ export function LandingResources() {
                 transition={{ ...fade.transition, delay: 0.05 * i }}
                 className="h-full"
               >
-                <article className="landing-resource-card group h-full p-8">
-                  <LandingIconBox accent={item.iconAccent} className="mb-6">
+                <article className="group flex h-full items-start gap-5 rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-7">
+                  <LandingIconBox accent={item.iconAccent} className="shrink-0">
                     <Icon className={landingIconClass(item.iconAccent, 'h-6 w-6')} strokeWidth={1.5} aria-hidden />
                   </LandingIconBox>
-                  <h3 className="landing-resource-card__title">{item.title}</h3>
-                  <p className="landing-resource-card__desc">{item.description}</p>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-extrabold leading-tight text-slate-900 sm:text-lg">{item.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                  </div>
                 </article>
               </motion.li>
             );

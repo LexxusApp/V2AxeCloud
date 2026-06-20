@@ -1419,6 +1419,58 @@ html:has(.landing-v3) body {
   background: #ffffff;
 }
 
+/* v3 light overrides — títulos/labels que ainda nasceram do tema escuro */
+.landing-v3 .landing-app-card__title,
+.landing-v3 .landing-before-after-card__title {
+  color: #0f172a;
+}
+
+.landing-v3 .landing-app-card__desc {
+  color: #475569;
+}
+
+.landing-v3 .landing-before-after-card__label {
+  color: #64748b;
+}
+
+.landing-v3 .landing-before-after-card__list li {
+  color: #475569;
+}
+
+.landing-v3 .landing-before-after-card--before {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.landing-v3 .landing-before-after-card--after {
+  background: linear-gradient(165deg, rgba(16, 185, 129, 0.08) 0%, #ffffff 55%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.landing-v3 .landing-app-badge {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+/* device-frame vira claro no tema v3 (mockups de portal/loading) */
+.landing-v3 .landing-device-frame {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 24px 60px -28px rgba(15, 23, 42, 0.25);
+}
+
+.landing-v3 .landing-device-chrome {
+  border-bottom-color: #e2e8f0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.landing-v3 .landing-device-url {
+  color: #64748b;
+}
+
 .landing-v3 .landing-hero-orb,
 .landing-v3 .landing-hero-glow {
   display: none;

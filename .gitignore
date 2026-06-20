@@ -13,7 +13,8 @@ certs/
 .vercel
 advisors-output.json
 audit-advisors.json
-.agents/
+assets/ready_posts/*
+!assets/ready_posts/.gitkeep
 .cursor/
 public/screenshots/debug*.png
 public/build-info.json

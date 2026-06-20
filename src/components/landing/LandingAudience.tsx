@@ -69,16 +69,16 @@ export function LandingAudience() {
                   {...fade}
                   transition={{ ...fade.transition, delay: 0.06 * i }}
                   className={cn(
-                    'landing-mystic-card flex gap-4 !rounded-2xl p-4 sm:p-5',
-                    item.featured && 'border-primary/30'
+                    'group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6',
+                    item.featured && 'border-emerald-300 ring-1 ring-emerald-100'
                   )}
                 >
                   <LandingIconBox accent={item.accent} className="shrink-0">
                     <Icon className={landingIconClass(item.accent, 'h-5 w-5')} strokeWidth={1.5} aria-hidden />
                   </LandingIconBox>
                   <div className="min-w-0">
-                    <h3 className="text-base font-bold text-white sm:text-lg">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-zinc-400 sm:text-base">{item.text}</p>
+                    <h3 className="text-base font-bold text-slate-900 sm:text-lg">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600 sm:text-base">{item.text}</p>
                   </div>
                 </motion.li>
               );

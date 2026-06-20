@@ -38,7 +38,7 @@ export function LandingBeforeAfter() {
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_BEFORE_ITEMS.map((item) => (
                 <li key={item}>
-                  <X className="h-4 w-4 shrink-0 text-red-400/90" strokeWidth={2.5} aria-hidden />
+                  <X className="h-4 w-4 shrink-0 text-rose-500" strokeWidth={2.5} aria-hidden />
                   <span>{item}</span>
                 </li>
               ))}
@@ -55,7 +55,7 @@ export function LandingBeforeAfter() {
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_AFTER_ITEMS.map((item) => (
                 <li key={item}>
-                  <Check className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} aria-hidden />
+                  <Check className="h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2.5} aria-hidden />
                   <span>{item}</span>
                 </li>
               ))}

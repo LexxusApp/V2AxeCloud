@@ -2,6 +2,7 @@
 export const STATIC_ALLOWED_ORIGINS: readonly string[] = [
   "https://axecloud.com.br",
   "https://www.axecloud.com.br",
+  "https://admin.axecloud.com.br",
   "https://axecloud.app",
   "https://www.axecloud.app",
   "https://axecloud-app.vercel.app",

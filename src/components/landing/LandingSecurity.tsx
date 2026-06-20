@@ -19,33 +19,33 @@ const SECURITY_POINTS = [
 
 export function LandingSecurity() {
   return (
-    <section id="seguranca" className="border-t border-[#1E242B] bg-[#0B0F13] py-20 md:py-24">
+    <section id="seguranca" className="border-y border-slate-200 bg-slate-50 py-20 md:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative order-2 lg:order-1">
-            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl border border-[#1E242B] bg-[#13171D] p-8">
-              <div className="w-full rounded-2xl border border-[#1E242B] bg-[#12161A] p-6 shadow-xl">
-                <div className="mb-4 flex items-center gap-2 border-b border-[#1E242B] pb-3.5">
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
+              <div className="w-full rounded-2xl border border-slate-700/60 bg-slate-800/60 p-6">
+                <div className="mb-4 flex items-center gap-2 border-b border-slate-700/60 pb-3.5">
                   <Lock className="h-4 w-4 text-emerald-400" aria-hidden />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                     Protocolo de Sigilo Religioso Axé-Lock
                   </span>
                 </div>
 
-                <div className="space-y-3 font-mono text-[10px] text-[#94A3B8]">
+                <div className="space-y-3 font-mono text-[10px] text-slate-400">
                   <p className="flex justify-between gap-4">
                     <span>{'>'} ESTADO DO BANCO:</span>
                     <span className="font-bold text-emerald-400">100% ENCRIPTADO</span>
                   </p>
                   <p className="flex justify-between gap-4">
                     <span>{'>'} DIRETRIZ LGPD:</span>
-                    <span className="text-right text-[#F1F5F9]">DADOS SENSÍVEIS (ALTA SEGURANÇA)</span>
+                    <span className="text-right text-slate-100">DADOS SENSÍVEIS (ALTA SEGURANÇA)</span>
                   </p>
                   <p className="flex justify-between gap-4">
                     <span>{'>'} BACKUP AUTOMÁTICO:</span>
                     <span className="font-bold text-sky-400">DE HORA EM HORA</span>
                   </p>
-                  <div className="rounded-lg border border-emerald-950 bg-emerald-950/40 p-2.5 font-sans text-[10px] text-emerald-300">
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 font-sans text-[10px] text-emerald-200">
                     Diferente de redes sociais públicas, os dados de assentamentos, obrigações espirituais e
                     fichas litúrgicas nunca são monitorados por sistemas de anúncio ou buscadores como o Google.
                   </div>
@@ -53,36 +53,36 @@ export function LandingSecurity() {
               </div>
 
               <div
-                className="pointer-events-none absolute -bottom-4 -right-4 -z-10 h-28 w-28 rounded-full bg-[#FACC15]/10 blur-2xl"
+                className="pointer-events-none absolute -bottom-4 -right-4 -z-10 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl"
                 aria-hidden
               />
             </div>
           </div>
 
           <div className="order-1 space-y-6 lg:order-2">
-            <span className="block text-xs font-bold uppercase tracking-widest text-[#FACC15]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
               Inviolabilidade Histórica
             </span>
 
-            <h2 className="font-display text-3xl font-black tracking-tight text-[#F1F5F9] md:text-4xl">
+            <h2 className="font-display text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
               Seus dados preservados com o máximo sigilo profissional
             </h2>
 
-            <p className="text-sm font-light leading-relaxed text-[#94A3B8] md:text-base">
+            <p className="text-sm leading-relaxed text-slate-600 md:text-base">
               Reconhecemos a extrema seriedade que envolve os nomes ritualísticos e preparos internos de terreiros
               tradicionais de matriz africana. O Axé Cloud segue rigorosamente as leis civis de dados (LGPD) sob a
               tutela de dados religiosos extremamente sensíveis.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {SECURITY_POINTS.map((point) => (
-                <div key={point.title} className="flex gap-3">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-800/50 bg-emerald-950/60 text-emerald-300">
-                    <Check className="h-3 w-3" aria-hidden />
+                <div key={point.title} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                    <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-[#F1F5F9]">{point.title}</h3>
-                    <p className="text-xs text-[#94A3B8]">{point.detail}</p>
+                    <h3 className="text-sm font-bold text-slate-900">{point.title}</h3>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{point.detail}</p>
                   </div>
                 </div>
               ))}

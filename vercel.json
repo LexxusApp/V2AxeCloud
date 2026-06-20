@@ -4,6 +4,11 @@
   },
   "redirects": [
     {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "www.axecloud.com.br" }],
       "destination": "https://axecloud.com.br/:path*",

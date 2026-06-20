@@ -28,7 +28,7 @@ export function LandingFounderProgram() {
             lead="Estamos validando o AxéCloud com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
           />
           {!loading ? (
-            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-primary">
+            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-emerald-600">
               {[
                 stats.acceptedHouses > 0
                   ? `${stats.acceptedHouses} casa${stats.acceptedHouses === 1 ? '' : 's'} fundadora${stats.acceptedHouses === 1 ? '' : 's'} ativa${stats.acceptedHouses === 1 ? '' : 's'}`
@@ -54,12 +54,12 @@ export function LandingFounderProgram() {
           {FOUNDER_BENEFITS.slice(0, 4).map((line) => (
             <li
               key={line}
-              className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3.5 text-left"
+              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left"
             >
               <LandingIconBox accent="emerald" className="shrink-0 !h-8 !w-8">
                 <Check className={landingIconClass('emerald', 'h-4 w-4')} strokeWidth={2.2} aria-hidden />
               </LandingIconBox>
-              <p className="pt-0.5 text-sm leading-relaxed text-zinc-300 sm:text-base">{line}</p>
+              <p className="pt-0.5 text-sm leading-relaxed text-slate-700 sm:text-base">{line}</p>
             </li>
           ))}
         </motion.ul>
@@ -84,7 +84,7 @@ export function LandingFounderProgram() {
           </a>
         </motion.div>
 
-        <p className="relative z-10 mx-auto mt-6 max-w-xl text-center text-[11px] text-zinc-600">
+        <p className="relative z-10 mx-auto mt-6 max-w-xl text-center text-[11px] text-slate-500">
           Depois do período fundador: {FOUNDER_PROGRAM.futurePriceLabel}. Transparência desde o início.
         </p>
       </div>

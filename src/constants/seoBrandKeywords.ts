@@ -16,9 +16,13 @@ export const BRAND_ALTERNATE_NAMES = [
 
 /** Termos de produto e nicho — complementam as variações da marca. */
 export const BRAND_TOPIC_KEYWORDS = [
+  'gestão de terreiros',
   'gestão de terreiro',
+  'software de gestão de terreiros',
+  'sistema de gestão para terreiros',
   'software para terreiro',
   'sistema para terreiro',
+  'terreiro digital',
   'casa de axé',
   'zelador',
   'filhos de santo',

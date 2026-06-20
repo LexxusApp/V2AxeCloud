@@ -136,17 +136,17 @@ export function WhatsAppAutomation() {
 
             <h2
               id="whatsapp-head"
-              className="mb-4 text-2xl font-extrabold leading-tight text-white sm:text-3xl lg:text-4xl"
+              className="mb-4 text-2xl font-extrabold leading-tight text-slate-900 sm:text-3xl lg:text-4xl"
             >
               Mensagens automáticas pela{' '}
-              <span className="bg-gradient-to-r from-[#25D366] via-emerald-400 to-primary bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#25D366] via-emerald-500 to-emerald-600 bg-clip-text text-transparent">
                 API oficial da Meta
               </span>
             </h2>
 
             <p className="landing-lead !mt-0 !text-left">
               Filhos de santo recebem avisos de gira, lembretes de mensalidade e confirmações pelo canal{' '}
-              <strong className="font-semibold text-[#F1F5F9]">WhatsApp Business verificado do AxéCloud</strong> —
+              <strong className="font-semibold text-slate-900">WhatsApp Business verificado do AxéCloud</strong> —
               templates aprovados, entrega confiável e a cara profissional que a casa merece.
             </p>
 
@@ -164,8 +164,8 @@ export function WhatsAppAutomation() {
                     <CheckCircle className={landingIconClass('emerald', 'h-4 w-4')} strokeWidth={2} aria-hidden />
                   </LandingIconBox>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">{item.title}</h3>
-                    <p className="text-xs leading-relaxed text-zinc-500">{item.desc}</p>
+                    <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
+                    <p className="text-xs leading-relaxed text-slate-600">{item.desc}</p>
                   </div>
                 </motion.li>
               ))}

@@ -20,7 +20,7 @@ function FounderHouseAvatar({ houseName, fotoUrl }: { houseName: string; fotoUrl
       <img
         src={fotoUrl}
         alt=""
-        className="h-12 w-12 shrink-0 rounded-full border border-[#2F3643] object-cover sm:h-14 sm:w-14"
+        className="h-12 w-12 shrink-0 rounded-full border border-slate-200 object-cover sm:h-14 sm:w-14"
       />
     );
   }
@@ -29,7 +29,7 @@ function FounderHouseAvatar({ houseName, fotoUrl }: { houseName: string; fotoUrl
   return (
     <span
       aria-hidden
-      className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#2F3643] bg-[#1E252E] text-sm font-black text-violet-400 sm:h-14 sm:w-14 sm:text-base"
+      className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-slate-200 bg-violet-50 text-sm font-black text-violet-600 sm:h-14 sm:w-14 sm:text-base"
     >
       {initial}
     </span>
@@ -54,28 +54,28 @@ function FounderHouseCard({
   fotoUrl?: string;
 }) {
   return (
-    <article className="landing-mystic-card flex h-full flex-col p-5 text-left sm:p-6">
+    <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-400">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
           <Award className="h-3.5 w-3.5" aria-hidden />
           Casa fundadora
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">{tradition}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tradition}</span>
       </div>
       <div className="flex items-center gap-3">
         <FounderHouseAvatar houseName={houseName} fotoUrl={fotoUrl} />
-        <h3 className="min-w-0 flex-1 text-base font-bold leading-snug text-white sm:text-lg">{houseName}</h3>
+        <h3 className="min-w-0 flex-1 text-base font-bold leading-snug text-slate-900 sm:text-lg">{houseName}</h3>
       </div>
-      <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-500">
-        <MapPin className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />
+      <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
+        <MapPin className="h-4 w-4 shrink-0 text-rose-500" aria-hidden />
         {city} — {state}
       </p>
       {quote ? (
-        <blockquote className="mt-4 border-l-2 border-primary/30 pl-3 text-sm italic leading-relaxed text-zinc-400">
+        <blockquote className="mt-4 border-l-2 border-emerald-300 pl-3 text-sm italic leading-relaxed text-slate-600">
           &ldquo;{quote}&rdquo;
         </blockquote>
       ) : (
-        <p className="mt-4 text-sm leading-relaxed text-zinc-500">
+        <p className="mt-4 text-sm leading-relaxed text-slate-600">
           Primeira casa validando o AxéCloud no Programa Fundador — organização digital com respeito à tradição.
         </p>
       )}
@@ -88,7 +88,7 @@ function FounderHouseCard({
           Pedir reza nesta casa
         </a>
       ) : (
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-600">
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-slate-500">
           Pedidos de reza online quando a casa activar o portal do consulente.
         </p>
       )}
@@ -115,7 +115,7 @@ export function LandingPortalPreview() {
             }
           />
           {hasHouses ? (
-            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-primary">
+            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-emerald-600">
               {count} casa{count === 1 ? '' : 's'} fundadora{count === 1 ? '' : 's'} · {FOUNDER_PROGRAM.pilotCity}
             </p>
           ) : null}
@@ -127,7 +127,7 @@ export function LandingPortalPreview() {
           className={cn('relative z-10 mx-auto mt-10', hasHouses ? 'max-w-4xl' : 'max-w-2xl')}
         >
           {loading ? (
-            <div className="landing-device-frame p-10 text-center text-sm text-zinc-500" aria-busy="true">
+            <div className="landing-device-frame p-10 text-center text-sm text-slate-500" aria-busy="true">
               Carregando casas fundadoras…
             </div>
           ) : hasHouses ? (
@@ -151,9 +151,9 @@ export function LandingPortalPreview() {
                   />
                 ))}
               </div>
-              <p className="text-center text-sm leading-relaxed text-zinc-500">
+              <p className="text-center text-sm leading-relaxed text-slate-600">
                 Cada casa com portal activo recebe pedidos em{' '}
-                <span className="font-mono text-xs text-zinc-400">axecloud.com.br/consulente/nome-da-casa</span>.
+                <span className="font-mono text-xs text-slate-500">axecloud.com.br/consulente/nome-da-casa</span>.
                 O zelador acompanha em Atendimentos, dentro do terreiro.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -177,9 +177,9 @@ export function LandingPortalPreview() {
                 <LandingIconBox accent="sky" size="lg" className="mx-auto mb-5">
                   <Search className={landingIconClass('sky', 'h-7 w-7')} aria-hidden />
                 </LandingIconBox>
-                <p className="text-base font-semibold text-white">Casas fundadoras em breve</p>
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-zinc-500">
-                  <MapPin className="h-4 w-4 text-rose-400" aria-hidden />
+                <p className="text-base font-semibold text-slate-900">Casas fundadoras em breve</p>
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-slate-500">
+                  <MapPin className="h-4 w-4 text-rose-500" aria-hidden />
                   Começando pela Grande São Paulo e região
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">

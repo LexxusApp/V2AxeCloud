@@ -158,3 +158,36 @@ axecloud.com.br, www.axecloud.com.br {
 		}
 	}
 }
+
+admin.axecloud.com.br {
+	log {
+		output file /var/log/caddy/admin-access.log {
+			roll_size 10MiB
+			roll_keep 5
+			mode 0644
+		}
+		format json
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	route {
+		crowdsec
+		appsec
+
+		@api path /api/*
+		handle @api {
+			reverse_proxy app:3000
+		}
+
+		handle {
+			reverse_proxy admin:80
+		}
+	}
+}
