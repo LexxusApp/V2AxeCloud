@@ -44,7 +44,7 @@ export function DemoMuralPanel({ onNotify }: Props) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DemoCard>
           <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900">
-            <Megaphone className="h-4 w-4 text-emerald-600" aria-hidden />
+            <Megaphone className="h-4 w-4 text-amber-600" aria-hidden />
             Novo aviso
           </h4>
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -93,13 +93,13 @@ export function DemoMuralPanel({ onNotify }: Props) {
           {sorted.map((a) => (
             <li
               key={a.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-emerald-300"
+              className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-amber-300"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     {a.fixado ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-600">
                         <Pin className="h-3 w-3" aria-hidden />
                         Fixado
                       </span>

@@ -14,7 +14,7 @@ function EventBanner({ url, alt }: { url: string; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className="flex aspect-[16/9] w-full items-center justify-center bg-[#12161A]">
+      <div className="flex aspect-[16/9] w-full items-center justify-center bg-white">
         <CalendarDays className="h-10 w-10 text-white/15" />
       </div>
     );
@@ -44,13 +44,13 @@ export default function EventosPublicPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#080A0D] text-[#F1F5F9]">
+    <div className="landing-v3 min-h-screen">
       <MarketingSubpageTopNav />
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#FBBC00]">Agenda cultural</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Agenda cultural</p>
           <h1 className="mt-2 text-3xl font-black">Eventos públicos</h1>
-          <p className="mt-3 text-[#94A3B8]">
+          <p className="mt-3 text-neutral-600">
             Giras e festas que as casas optaram por divulgar no portal — confirme horário e endereço directamente com o
             terreiro.
           </p>
@@ -58,14 +58,14 @@ export default function EventosPublicPage() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#FBBC00]" />
+            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
           </div>
         ) : error ? (
           <p className="py-10 text-red-400">{error}</p>
         ) : items.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-[#1E242B] px-6 py-12 text-center text-[#94A3B8]">
+          <div className="mt-10 rounded-2xl border border-dashed border-[#ece4d2] px-6 py-12 text-center text-neutral-600">
             Nenhum evento público agendado no momento.
-            <a href={ROUTES.terreiros} className="mt-4 block text-sm font-bold text-[#FBBC00] hover:underline">
+            <a href={ROUTES.terreiros} className="mt-4 block text-sm font-bold text-amber-600 hover:underline">
               Explorar terreiros
             </a>
           </div>
@@ -83,10 +83,10 @@ export default function EventosPublicPage() {
                   <button
                     type="button"
                     onClick={() => setDetail(ev)}
-                    className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-[#1E242B] bg-[#0B0D11] text-left transition hover:border-[#2F3643]"
+                    className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-[#ece4d2] bg-[#0B0D11] text-left transition hover:border-[#2F3643]"
                   >
                     {ev.bannerUrl ? (
-                      <div className="overflow-hidden bg-[#12161A]">
+                      <div className="overflow-hidden bg-white">
                         <EventBanner url={ev.bannerUrl} alt={ev.titulo} />
                       </div>
                     ) : (
@@ -95,21 +95,21 @@ export default function EventosPublicPage() {
                       </div>
                     )}
                     <div className="flex flex-col gap-2 p-5">
-                      <span className="text-xs font-bold uppercase tracking-wide text-[#FBBC00]">{ev.tipo}</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-amber-600">{ev.tipo}</span>
                       <h2 className="text-lg font-bold">{ev.titulo}</h2>
-                      <p className="flex items-center gap-2 text-sm text-[#94A3B8]">
+                      <p className="flex items-center gap-2 text-sm text-neutral-600">
                         <Calendar className="h-4 w-4 shrink-0" />
                         {dataFmt} · {ev.hora}
                       </p>
-                      <span className="flex items-center gap-1 text-sm font-semibold text-[#CBD5E1] group-hover:text-[#FBBC00]">
+                      <span className="flex items-center gap-1 text-sm font-semibold text-[#CBD5E1] group-hover:text-amber-600">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {ev.terreiro.nome}
                         {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
                       </span>
                       {ev.descricao ? (
-                        <p className="line-clamp-2 text-sm text-[#64748B]">{ev.descricao}</p>
+                        <p className="line-clamp-2 text-sm text-neutral-500">{ev.descricao}</p>
                       ) : null}
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#FBBC00]/70">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600/70">
                         Toque para ver detalhes
                       </p>
                     </div>
@@ -120,7 +120,7 @@ export default function EventosPublicPage() {
           </ul>
         )}
 
-        <section className="mt-16 rounded-2xl border border-[#1E242B] bg-[#0B0D11] p-6">
+        <section className="mt-16 rounded-2xl border border-[#ece4d2] bg-[#0B0D11] p-6">
           <h2 className="font-bold">Receber a agenda por e-mail</h2>
           <div className="mt-4">
             <PortalNewsletterForm />
@@ -144,19 +144,19 @@ export default function EventosPublicPage() {
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
               className={cn(
-                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#1E242B] bg-[#0B0D11] shadow-2xl',
+                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#ece4d2] bg-[#0B0D11] shadow-2xl',
                 detail.bannerUrl ? 'w-max max-w-[min(96vw,440px)]' : 'w-full max-w-lg',
               )}
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-[#1E242B] px-5 py-4">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#ece4d2] px-5 py-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#FBBC00]">{detail.tipo}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber-600">{detail.tipo}</p>
                   <h3 className="truncate text-lg font-black">{detail.titulo}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDetail(null)}
-                  className="shrink-0 rounded-lg p-2 text-[#94A3B8] hover:bg-white/5"
+                  className="shrink-0 rounded-lg p-2 text-neutral-600 hover:bg-white/5"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function EventosPublicPage() {
                 <div className="space-y-4 p-5">
                   <div className="flex flex-wrap gap-3 text-sm">
                     <span className="flex items-center gap-2 font-bold">
-                      <Calendar className="h-4 w-4 text-[#FBBC00]" />
+                      <Calendar className="h-4 w-4 text-amber-600" />
                       {(() => {
                         try {
                           return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR });
@@ -188,20 +188,20 @@ export default function EventosPublicPage() {
                       })()}
                     </span>
                     <span className="flex items-center gap-2 font-bold">
-                      <Clock className="h-4 w-4 text-[#FBBC00]" />
+                      <Clock className="h-4 w-4 text-amber-600" />
                       {detail.hora}
                     </span>
                   </div>
                   <a
                     href={terreiroProfilePath(detail.terreiro.slug)}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#CBD5E1] hover:text-[#FBBC00]"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#CBD5E1] hover:text-amber-600"
                   >
                     <MapPin className="h-4 w-4" />
                     {detail.terreiro.nome}
                     {detail.terreiro.cidade ? ` — ${detail.terreiro.cidade}` : ''}
                   </a>
                   {detail.descricao ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#94A3B8]">{detail.descricao}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-600">{detail.descricao}</p>
                   ) : null}
                 </div>
               </div>

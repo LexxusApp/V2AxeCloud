@@ -40,11 +40,11 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
       wide={false}
       heroExtra={
         <div className="flex flex-wrap gap-3">
-          <span className="landing-mystic-card inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#94A3B8]">
-            <Clock className="h-4 w-4 text-primary" aria-hidden />
+          <span className="landing-mystic-card inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-neutral-600">
+            <Clock className="h-4 w-4 text-amber-600" aria-hidden />
             {article.readingMinutes} min de leitura
           </span>
-          <span className="landing-mystic-card inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#94A3B8]">
+          <span className="landing-mystic-card inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-neutral-600">
             <Calendar className="h-4 w-4 text-violet-400" aria-hidden />
             {publishedLabel}
           </span>
@@ -60,15 +60,15 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
             transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.4) }}
             className="landing-resource-card p-5 sm:p-6"
           >
-            <h2 className="text-sm font-black uppercase tracking-wider text-primary">{section.title}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#94A3B8] sm:text-[15px]">{section.body}</p>
+            <h2 className="text-sm font-black uppercase tracking-wider text-amber-600">{section.title}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">{section.body}</p>
           </motion.section>
         ))}
       </article>
 
-      <div className="landing-mystic-card mt-8 border-primary/25 p-6 sm:p-7">
-        <p className="text-base font-bold text-[#F1F5F9]">Sua casa quer participar?</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#94A3B8]">
+      <div className="landing-mystic-card mt-8 border-amber-300/40 p-6 sm:p-7">
+        <p className="text-base font-bold text-[#1b1813]">Sua casa quer participar?</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           Inscreva-se no Programa Fundador e use o AxéCloud gratuitamente por 12 meses enquanto construímos o portal.
         </p>
         <a

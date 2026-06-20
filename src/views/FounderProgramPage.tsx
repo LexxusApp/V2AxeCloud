@@ -33,32 +33,32 @@ function FounderHeroStats() {
   return (
     <div className="grid gap-3 sm:flex sm:flex-wrap">
       <div className="landing-mystic-card flex w-full items-center gap-3 px-4 py-3 sm:w-auto sm:min-w-[11rem]">
-        <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-amber-300/40 bg-amber-50 text-amber-600">
           <Gift className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-primary">Grátis</p>
-          <p className="text-base font-bold text-white">{FOUNDER_PROGRAM.freeMonths} meses Premium</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Grátis</p>
+          <p className="text-base font-bold text-[#1b1813]">{FOUNDER_PROGRAM.freeMonths} meses Premium</p>
         </div>
       </div>
       <div className="landing-mystic-card flex w-full items-center gap-3 px-4 py-3 sm:w-auto sm:min-w-[11rem]">
-        <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-zinc-400">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-neutral-600">
           <Users className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Vagas</p>
-          <p className="text-base font-bold text-white">
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Vagas</p>
+          <p className="text-base font-bold text-[#1b1813]">
             {loading ? '…' : `${stats.remainingSlots} de ${stats.maxSlots}`}
           </p>
         </div>
       </div>
       <div className="landing-mystic-card flex w-full items-center gap-3 px-4 py-3 sm:w-auto sm:min-w-[11rem]">
-        <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-zinc-400">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ece4d2] bg-amber-50/60 text-neutral-600">
           <MapPin className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Prioridade</p>
-          <p className="text-base font-bold text-white">{FOUNDER_PROGRAM.pilotCity}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Prioridade</p>
+          <p className="text-base font-bold text-[#1b1813]">{FOUNDER_PROGRAM.pilotCity}</p>
         </div>
       </div>
     </div>
@@ -84,12 +84,12 @@ export default function FounderProgramPage() {
               key={step.n}
               className="landing-mystic-card flex gap-3 p-4 sm:p-5"
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/10 text-sm font-black text-primary">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-amber-300/35 bg-amber-50 text-sm font-black text-amber-600">
                 {step.n}
               </span>
               <div>
-                <p className="text-base font-bold text-white">{step.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-zinc-400">{step.desc}</p>
+                <p className="text-base font-bold text-[#1b1813]">{step.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-600">{step.desc}</p>
               </div>
             </li>
           ))}
@@ -99,7 +99,7 @@ export default function FounderProgramPage() {
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-12">
         <div className="space-y-8">
           <section aria-labelledby="fp-benefits">
-            <h2 id="fp-benefits" className="text-sm font-black uppercase tracking-wider text-primary sm:text-base">
+            <h2 id="fp-benefits" className="text-sm font-black uppercase tracking-wider text-amber-600 sm:text-base">
               O que você recebe
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -110,10 +110,10 @@ export default function FounderProgramPage() {
                     key={line}
                     className="landing-mystic-card flex gap-3 p-4"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-amber-300/25 bg-amber-50 text-amber-600">
                       <Icon className="h-4 w-4" aria-hidden />
                     </span>
-                    <p className="text-sm leading-relaxed text-zinc-300 sm:text-[15px]">{line}</p>
+                    <p className="text-sm leading-relaxed text-neutral-700 sm:text-[15px]">{line}</p>
                   </li>
                 );
               })}
@@ -121,32 +121,32 @@ export default function FounderProgramPage() {
           </section>
 
           <section
-            className="landing-mystic-card border-primary/20 p-5 sm:p-6"
+            className="landing-mystic-card border-amber-300/20 p-5 sm:p-6"
             aria-labelledby="fp-requirements"
           >
             <h2
               id="fp-requirements"
-              className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-white sm:text-base"
+              className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#1b1813] sm:text-base"
             >
-              <Crown className="h-5 w-5 text-primary" aria-hidden />
+              <Crown className="h-5 w-5 text-amber-600" aria-hidden />
               Quem pode participar
             </h2>
             <ul className="mt-4 space-y-3">
               {FOUNDER_REQUIREMENTS.map((line) => (
-                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} aria-hidden />
+                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.2} aria-hidden />
                   {line}
                 </li>
               ))}
             </ul>
-            <p className="mt-5 rounded-lg border border-white/5 bg-black/30 px-3 py-2.5 text-sm leading-relaxed text-zinc-500">
+            <p className="mt-5 rounded-lg border border-[#ece4d2] bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-neutral-500">
               {FOUNDER_PROGRAM.pilotRegionNote}
             </p>
           </section>
 
-          <p className="text-sm text-zinc-500 sm:text-[15px]">
+          <p className="text-sm text-neutral-500 sm:text-[15px]">
             Depois do período fundador:{' '}
-            <strong className="text-zinc-300">{FOUNDER_PROGRAM.futurePriceLabel}</strong>. Transparência
+            <strong className="text-neutral-700">{FOUNDER_PROGRAM.futurePriceLabel}</strong>. Transparência
             desde o início — sem cartão nesta inscrição.
           </p>
         </div>
@@ -155,15 +155,15 @@ export default function FounderProgramPage() {
           aria-labelledby="fp-form"
           className="lg:sticky lg:top-6"
         >
-          <div className="landing-mystic-card border-primary/25 p-5 sm:p-6 lg:p-7">
+          <div className="landing-mystic-card border-amber-300/25 p-5 sm:p-6 lg:p-7">
             <h2
               id="fp-form"
-              className="flex items-center gap-2 text-base font-black uppercase tracking-wider text-white sm:text-lg"
+              className="flex items-center gap-2 text-base font-black uppercase tracking-wider text-[#1b1813] sm:text-lg"
             >
-              <PenLine className="h-5 w-5 text-primary" aria-hidden />
+              <PenLine className="h-5 w-5 text-amber-600" aria-hidden />
               Inscreva sua casa
             </h2>
-            <p className="mt-2 text-sm text-zinc-400 sm:text-[15px]">
+            <p className="mt-2 text-sm text-neutral-600 sm:text-[15px]">
               Preencha abaixo. Respondemos pelo WhatsApp em até alguns dias úteis.
             </p>
             <div className="mt-5">
@@ -176,24 +176,24 @@ export default function FounderProgramPage() {
             target="_blank"
             rel="noreferrer"
             className={cn(
-              'mt-4 flex items-center justify-center gap-2 rounded-xl border border-white/10',
-              'bg-white/[0.03] px-4 py-3.5 text-sm font-bold text-zinc-300 transition hover:border-primary/30 hover:text-white',
+              'mt-4 flex items-center justify-center gap-2 rounded-xl border border-[#ece4d2]',
+              'bg-white px-4 py-3.5 text-sm font-bold text-neutral-700 transition hover:border-amber-300/40 hover:text-[#1b1813]',
             )}
           >
-            <MessageCircle className="h-4 w-4 text-primary" aria-hidden />
+            <MessageCircle className="h-4 w-4 text-amber-600" aria-hidden />
             {FOUNDER_PROGRAM.waComercialLabel}
           </a>
         </section>
       </div>
 
-      <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#2a2108] pt-8 text-sm sm:text-[15px]">
-        <a href={ROUTES.contentHub} className="text-zinc-500 transition hover:text-primary">
+      <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#ece4d2] pt-8 text-sm sm:text-[15px]">
+        <a href={ROUTES.contentHub} className="text-neutral-500 transition hover:text-amber-700">
           Conteúdo e glossário
         </a>
-        <a href={ROUTES.register} className="text-zinc-500 transition hover:text-primary">
+        <a href={ROUTES.register} className="text-neutral-500 transition hover:text-amber-700">
           Cadastro com pagamento
         </a>
-        <a href={ROUTES.home} className="font-bold text-primary">
+        <a href={ROUTES.home} className="font-bold text-amber-600">
           Página inicial
         </a>
       </nav>

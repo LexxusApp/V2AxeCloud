@@ -77,7 +77,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DemoCard>
           <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900">
-            <Plus className="h-4 w-4 text-emerald-600" aria-hidden />
+            <Plus className="h-4 w-4 text-amber-600" aria-hidden />
             Adicionar filho de santo
           </h4>
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -173,13 +173,13 @@ export function DemoFilhosPanel({ onNotify }: Props) {
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-slate-600">{f.cargo}</td>
-                      <td className="px-4 py-3.5 font-semibold text-emerald-600">{f.orixaFrente}</td>
+                      <td className="px-4 py-3.5 font-semibold text-amber-600">{f.orixaFrente}</td>
                       <td className="px-4 py-3.5 italic text-slate-500">{f.guiaEspiritual}</td>
                       <td className="px-4 py-3.5">
                         <span
                           className={
                             f.status === 'Ativo'
-                              ? 'rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600'
+                              ? 'rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600'
                               : f.status === 'Pendente'
                                 ? 'rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600'
                                 : 'rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500'
@@ -215,7 +215,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
             </div>
           </div>
           <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[11px] text-slate-600">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
             <span>
               No AxéCloud real, cada terreiro tem ambiente isolado (RLS), perfis de acesso e histórico completo do
               filho — esta demo roda só no seu navegador.

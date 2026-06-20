@@ -48,7 +48,7 @@ export function LandingSectionHeader({
 }: LandingSectionHeaderProps) {
   return (
     <div className={cn(center && 'flex w-full flex-col items-center text-center', !center && 'w-full', className)}>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-800">
         {icon}
         {kicker}
       </span>
@@ -56,7 +56,7 @@ export function LandingSectionHeader({
         {title}
       </h2>
       <span
-        className={cn('mt-4 block h-1 w-12 rounded-full bg-emerald-500/70', center ? 'mx-auto' : '')}
+        className={cn('mt-4 block h-1 w-12 rounded-full bg-amber-400/80', center ? 'mx-auto' : '')}
         aria-hidden
       />
       {lead ? <p className={cn('landing-lead mt-4', center && 'mx-auto max-w-2xl')}>{lead}</p> : null}

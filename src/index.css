@@ -794,7 +794,7 @@
   margin-top: 0.2rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #10b981;
+  color: #d97706;
 }
 
 .landing-testimonial-card__role {
@@ -1433,18 +1433,18 @@ html:has(.landing-v3) body {
 
 .landing-v3 .landing-before-after-card--before {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border-color: #ece4d2;
 }
 
 .landing-v3 .landing-before-after-card--after {
-  background: linear-gradient(165deg, rgba(16, 185, 129, 0.08) 0%, #ffffff 55%);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(165deg, rgba(245, 180, 0, 0.1) 0%, #ffffff 55%);
+  border-color: rgba(245, 180, 0, 0.35);
 }
 
 .landing-v3 .landing-app-badge {
-  border-color: rgba(16, 185, 129, 0.25);
-  background: rgba(16, 185, 129, 0.1);
-  color: #047857;
+  border-color: rgba(245, 180, 0, 0.3);
+  background: rgba(245, 180, 0, 0.12);
+  color: #a16207;
 }
 
 /* device-frame vira claro no tema v3 (mockups de portal/loading) */
@@ -1596,14 +1596,14 @@ html:has(.landing-v3) body {
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-  border: 1px solid rgba(16, 185, 129, 0.26);
-  background: rgba(16, 185, 129, 0.09);
-  color: #10b981;
+  border: 1px solid rgba(245, 180, 0, 0.3);
+  background: rgba(245, 180, 0, 0.1);
+  color: #d97706;
 }
 
 .founder-soft-cta__label {
   display: block;
-  color: #10b981;
+  color: #d97706;
   font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.18em;
@@ -1633,7 +1633,7 @@ html:has(.landing-v3) body {
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.75rem;
-  color: #10b981;
+  color: #d97706;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -1641,28 +1641,28 @@ html:has(.landing-v3) body {
 }
 
 .portal-terreiros-showcase {
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  background: linear-gradient(180deg, #ffffff, #faf6ee);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 10px 25px rgba(0, 0, 0, 0.05);
+    0 10px 25px rgba(40, 33, 12, 0.06);
 }
 
 .portal-terreiros-showcase__info {
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  background: linear-gradient(180deg, #faf6ee, #f6f1e6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .portal-terreiro-card {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 4px 6px rgba(0, 0, 0, 0.05);
+    0 4px 6px rgba(40, 33, 12, 0.06);
 }
 
 .portal-terreiro-card:hover {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 10px 15px rgba(0, 0, 0, 0.08),
-    0 0 20px rgba(16, 185, 129, 0.08);
+    0 10px 15px rgba(40, 33, 12, 0.1),
+    0 0 20px rgba(245, 180, 0, 0.12);
 }
 
 @keyframes founder-sticker-wobble {

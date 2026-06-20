@@ -54,7 +54,7 @@ export function LandingInteractiveDemo() {
     <LandingSection id="demonstracao" variant="default" aria-labelledby="demo-head">
       <motion.div className="landing-section-inner mx-auto max-w-7xl" {...fade}>
         <div className="relative z-10 mx-auto mb-12 max-w-3xl text-center">
-          <span className="mb-3 inline-block rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600">
+          <span className="mb-3 inline-block rounded-full border border-amber-500/20 bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-600">
             Simulador interativo
           </span>
           <h2 id="demo-head" className="landing-title font-display font-black tracking-tight text-slate-900">
@@ -73,17 +73,17 @@ export function LandingInteractiveDemo() {
         >
           <div className="flex flex-col items-center justify-between gap-4 border-b border-slate-200 bg-white p-5 sm:flex-row">
             <div className="flex items-center gap-3">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-400">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-400">
                 <Flame className="h-4 w-4 text-white" aria-hidden />
               </div>
               <div className="text-left">
                 <p className="flex items-center gap-1.5 text-sm font-bold leading-none text-slate-900">
                   {DEMO_HOUSE_NAME}
-                  <span className="rounded border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                  <span className="rounded border border-amber-500/20 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
                     Demo ativa
                   </span>
                 </p>
-                <p className="mt-1 text-[10px] text-emerald-600">Ambiente de testes · modo interativo</p>
+                <p className="mt-1 text-[10px] text-amber-600">Ambiente de testes · modo interativo</p>
               </div>
             </div>
 
@@ -105,7 +105,7 @@ export function LandingInteractiveDemo() {
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
                       isActive
-                        ? 'bg-emerald-500 text-white shadow-sm'
+                        ? 'bg-amber-500 text-white shadow-sm'
                         : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900',
                     )}
                   >

@@ -6,7 +6,7 @@ export type LandingIconAccent = 'gold' | 'emerald' | 'rose' | 'sky' | 'violet' |
 
 const ICON_CLASS: Record<LandingIconAccent, string> = {
   gold: 'text-primary',
-  emerald: 'text-emerald-400',
+  emerald: 'text-amber-500',
   rose: 'text-rose-400',
   sky: 'text-sky-400',
   violet: 'text-violet-400',

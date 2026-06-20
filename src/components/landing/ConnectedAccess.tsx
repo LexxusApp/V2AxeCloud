@@ -64,7 +64,7 @@ export function ConnectedAccess() {
                   <ul className="landing-app-card__list" role="list">
                     {card.features.map((feature) => (
                       <li key={feature}>
-                        <Check className="h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2.5} aria-hidden />
+                        <Check className="h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.5} aria-hidden />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -102,7 +102,7 @@ export function ConnectedAccess() {
                 key={item.step}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-4"
               >
-                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-600">
+                <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-xs font-black text-amber-600">
                   {item.step}
                 </span>
                 <p className="text-sm font-semibold text-slate-900">{item.title}</p>

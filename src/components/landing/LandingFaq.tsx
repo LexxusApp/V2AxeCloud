@@ -5,7 +5,7 @@ import { LandingSection, LandingSectionHeader } from './LandingSection';
 
 function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-emerald-200">
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-amber-200">
       <button
         type="button"
         onClick={onToggle}
@@ -14,7 +14,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
       >
         <span className="text-sm font-bold leading-snug text-slate-900">{q}</span>
         {open ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+          <ChevronUp className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
         ) : (
           <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
         )}

@@ -54,9 +54,9 @@ function FounderHouseCard({
   fotoUrl?: string;
 }) {
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6">
+    <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-amber-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
           <Award className="h-3.5 w-3.5" aria-hidden />
           Casa fundadora
         </span>
@@ -71,7 +71,7 @@ function FounderHouseCard({
         {city} — {state}
       </p>
       {quote ? (
-        <blockquote className="mt-4 border-l-2 border-emerald-300 pl-3 text-sm italic leading-relaxed text-slate-600">
+        <blockquote className="mt-4 border-l-2 border-amber-300 pl-3 text-sm italic leading-relaxed text-slate-600">
           &ldquo;{quote}&rdquo;
         </blockquote>
       ) : (
@@ -115,7 +115,7 @@ export function LandingPortalPreview() {
             }
           />
           {hasHouses ? (
-            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-emerald-600">
+            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-amber-600">
               {count} casa{count === 1 ? '' : 's'} fundadora{count === 1 ? '' : 's'} · {FOUNDER_PROGRAM.pilotCity}
             </p>
           ) : null}
@@ -170,7 +170,7 @@ export function LandingPortalPreview() {
               <div className="landing-device-chrome">
                 <span className="landing-device-dot bg-red-500/90" aria-hidden />
                 <span className="landing-device-dot bg-amber-400/90" aria-hidden />
-                <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
+                <span className="landing-device-dot bg-amber-500/70" aria-hidden />
                 <span className="landing-device-url">portal.axecloud.com.br — diretório</span>
               </div>
               <div className="p-8 text-center sm:p-10">

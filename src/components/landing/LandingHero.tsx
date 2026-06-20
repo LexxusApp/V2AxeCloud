@@ -12,10 +12,10 @@ import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 
 const highlights = [
-  { icon: Wallet, label: 'Financeiro + Pix', accent: 'text-emerald-400' },
+  { icon: Wallet, label: 'Financeiro + Pix', accent: 'text-amber-400' },
   { icon: CalendarDays, label: 'Calendário de giras', accent: 'text-rose-400' },
   { icon: Users, label: 'Portal do filho', accent: 'text-sky-400' },
-  { icon: ShieldCheck, label: 'Dados protegidos', accent: 'text-emerald-400' },
+  { icon: ShieldCheck, label: 'Dados protegidos', accent: 'text-amber-400' },
 ] as const;
 
 export function LandingHero() {

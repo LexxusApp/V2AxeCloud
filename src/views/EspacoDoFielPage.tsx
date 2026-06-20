@@ -3,9 +3,9 @@ import { EspacoFielV3Portal } from '../components/espaco-fiel/EspacoFielV3Portal
 
 export default function EspacoDoFielPage() {
   return (
-    <div className="landing-v3 relative min-h-screen overflow-x-hidden bg-[#080A0D] font-sans text-[#F1F5F9] antialiased selection:bg-[#1E293B] selection:text-[#FFFFFF]">
+    <div className="landing-v3 relative min-h-screen overflow-x-hidden font-sans antialiased">
       <div
-        className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[650px] bg-gradient-to-b from-[#0D0F12] to-[#080A0D]"
+        className="pointer-events-none absolute -right-24 top-0 -z-10 h-[420px] w-[420px] rounded-full bg-amber-300/15 blur-3xl"
         aria-hidden
       />
 

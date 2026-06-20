@@ -160,7 +160,7 @@ export function SystemTour() {
               <div className="landing-device-chrome">
                 <span className="landing-device-dot bg-red-500/90" aria-hidden />
                 <span className="landing-device-dot bg-amber-400/90" aria-hidden />
-                <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
+                <span className="landing-device-dot bg-amber-500/70" aria-hidden />
                 <span className="landing-device-url">app.axecloud.com.br — {active.label}</span>
               </div>
               <div className="leading-[0]">

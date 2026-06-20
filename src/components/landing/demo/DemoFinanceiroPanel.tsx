@@ -59,9 +59,9 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
         <DemoCard className="flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase text-slate-500">Entradas</span>
-            <p className="mt-1 text-xl font-bold text-emerald-600">{formatDemoMoney(entradas)}</p>
+            <p className="mt-1 text-xl font-bold text-amber-600">{formatDemoMoney(entradas)}</p>
           </div>
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 p-2.5 text-emerald-600">
+          <div className="rounded-xl border border-amber-500/20 bg-amber-50 p-2.5 text-amber-600">
             <Plus className="h-5 w-5" />
           </div>
         </DemoCard>
@@ -74,14 +74,14 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
             <Trash2 className="h-5 w-5" />
           </div>
         </DemoCard>
-        <DemoCard className="flex items-center justify-between border-emerald-500/25">
+        <DemoCard className="flex items-center justify-between border-amber-500/25">
           <div>
-            <span className="text-[10px] font-bold uppercase text-emerald-600">Saldo</span>
+            <span className="text-[10px] font-bold uppercase text-amber-600">Saldo</span>
             <p className={`mt-1 text-xl font-bold ${saldo >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
               {formatDemoMoney(saldo)}
             </p>
           </div>
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 p-2.5 text-emerald-600">
+          <div className="rounded-xl border border-amber-500/20 bg-amber-50 p-2.5 text-amber-600">
             <DollarSign className="h-5 w-5" />
           </div>
         </DemoCard>
@@ -168,7 +168,7 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
                       <span
                         className={
                           l.tipo === 'Entrada'
-                            ? 'rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600'
+                            ? 'rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600'
                             : 'rounded-full border border-rose-500/30 bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-600'
                         }
                       >
@@ -176,7 +176,7 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
                       </span>
                     </td>
                     <td
-                      className={`px-4 py-3.5 text-right font-bold ${l.tipo === 'Entrada' ? 'text-emerald-600' : 'text-rose-500'}`}
+                      className={`px-4 py-3.5 text-right font-bold ${l.tipo === 'Entrada' ? 'text-amber-600' : 'text-rose-500'}`}
                     >
                       {l.tipo === 'Entrada' ? '+' : '−'} {formatDemoMoney(l.valor)}
                     </td>

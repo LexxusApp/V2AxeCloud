@@ -50,23 +50,23 @@ function WhatsAppPhoneMock() {
   return (
     <div className="relative mx-auto w-full max-w-sm">
       <div
-        className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-emerald-500/10 blur-2xl"
+        className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-amber-500/10 blur-2xl"
         aria-hidden
       />
       <div className="landing-device-frame relative overflow-hidden">
         <div className="landing-device-chrome">
           <span className="landing-device-dot bg-red-500/90" aria-hidden />
           <span className="landing-device-dot bg-amber-400/90" aria-hidden />
-          <span className="landing-device-dot bg-emerald-500/70" aria-hidden />
+          <span className="landing-device-dot bg-amber-500/70" aria-hidden />
           <span className="landing-device-url flex items-center gap-1.5">
-            <MessageCircle className="h-3 w-3 text-emerald-400" aria-hidden />
+            <MessageCircle className="h-3 w-3 text-amber-400" aria-hidden />
             WhatsApp Business · AxéCloud
           </span>
         </div>
 
         <div className="relative bg-[#0b141a] p-4 sm:p-5">
           <div className="mb-4 flex items-center gap-3 border-b border-white/5 pb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-xs font-black text-white">
               AC
             </div>
             <div className="min-w-0 flex-1">
@@ -74,24 +74,24 @@ function WhatsAppPhoneMock() {
                 AxéCloud
                 <BadgeCheck className="h-4 w-4 shrink-0 text-[#25D366]" aria-hidden />
               </p>
-              <p className="text-[10px] text-emerald-400/90">Conta comercial verificada</p>
+              <p className="text-[10px] text-amber-400/90">Conta comercial verificada</p>
             </div>
             <MetaBadge />
           </div>
 
           <div className="space-y-3 rounded-xl bg-[#1f2c34]/80 p-3">
             <div className="max-w-[92%] rounded-lg rounded-tl-none bg-[#005c4b] px-3 py-2.5 text-left shadow-lg">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200/80">Aviso de gira</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200/80">Aviso de gira</p>
               <p className="mt-1 text-xs leading-relaxed text-[#e9edef]">
                 Olá, <span className="font-semibold text-white">Maria</span>! A casa{' '}
                 <span className="font-semibold text-white">Terreiro Oxum</span> informa: gira de caboclo no domingo,
                 14h. Axé!
               </p>
-              <p className="mt-2 text-[9px] text-emerald-200/60">Template aprovado · Meta WhatsApp Business</p>
+              <p className="mt-2 text-[9px] text-amber-200/60">Template aprovado · Meta WhatsApp Business</p>
             </div>
 
             <div className="max-w-[88%] rounded-lg rounded-tl-none bg-[#005c4b] px-3 py-2.5 text-left opacity-90">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200/80">Mensalidade</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200/80">Mensalidade</p>
               <p className="mt-1 text-xs leading-relaxed text-[#e9edef]">
                 Lembrete: mensalidade de R$ 49,90 vence em 05/06. Sua contribuição sustenta a casa. Axé!
               </p>
@@ -127,7 +127,7 @@ export function WhatsAppAutomation() {
         <div className="relative z-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400">
                 <BadgeCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 WhatsApp Business oficial
               </div>
@@ -139,7 +139,7 @@ export function WhatsAppAutomation() {
               className="mb-4 text-2xl font-extrabold leading-tight text-slate-900 sm:text-3xl lg:text-4xl"
             >
               Mensagens automáticas pela{' '}
-              <span className="bg-gradient-to-r from-[#25D366] via-emerald-500 to-emerald-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#25D366] via-amber-500 to-amber-600 bg-clip-text text-transparent">
                 API oficial da Meta
               </span>
             </h2>

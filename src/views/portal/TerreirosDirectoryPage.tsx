@@ -32,13 +32,13 @@ export default function TerreirosDirectoryPage() {
   const totalLabel = useMemo(() => `${items.length} casa${items.length === 1 ? '' : 's'}`, [items.length]);
 
   return (
-    <div className="landing-v3 relative min-h-screen overflow-x-hidden bg-[#080A0D] font-sans text-[#F1F5F9] antialiased">
+    <div className="landing-v3 relative min-h-screen overflow-x-hidden font-sans antialiased">
       <MarketingSubpageTopNav />
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#FBBC00]">Portal AxéCloud</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Portal AxéCloud</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Diretório de terreiros</h1>
-          <p className="mt-4 text-[#94A3B8]">
+          <p className="mt-4 text-neutral-600">
             Casas de Umbanda, Candomblé e tradições afins que optaram por perfil público — com respeito, privacidade e
             moderação.
           </p>
@@ -56,18 +56,18 @@ export default function TerreirosDirectoryPage() {
             <h2 className="text-lg font-bold">{totalLabel}</h2>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Buscar por nome ou cidade…"
-                  className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] py-2.5 pl-10 pr-4 text-sm outline-none sm:w-64"
+                  className="w-full rounded-xl border border-[#ece4d2] bg-white py-2.5 pl-10 pr-4 text-sm outline-none sm:w-64"
                 />
               </div>
               <select
                 value={tradicao}
                 onChange={(e) => setTradicao(e.target.value)}
-                className="rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 text-sm"
+                className="rounded-xl border border-[#ece4d2] bg-white px-3 py-2.5 text-sm"
               >
                 <option value="todas">Todas as tradições</option>
                 <option value="umbanda">Umbanda</option>
@@ -80,14 +80,14 @@ export default function TerreirosDirectoryPage() {
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-[#FBBC00]" />
+              <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
             </div>
           ) : error ? (
             <p className="py-10 text-center text-red-400">{error}</p>
           ) : items.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-[#1E242B] px-6 py-12 text-center">
-              <p className="text-[#94A3B8]">Nenhum terreiro encontrado com estes filtros.</p>
-              <a href={ROUTES.founderProgram} className="mt-4 inline-block text-sm font-bold text-[#FBBC00] hover:underline">
+            <div className="mt-8 rounded-2xl border border-dashed border-[#ece4d2] px-6 py-12 text-center">
+              <p className="text-neutral-600">Nenhum terreiro encontrado com estes filtros.</p>
+              <a href={ROUTES.founderProgram} className="mt-4 inline-block text-sm font-bold text-amber-600 hover:underline">
                 Inscrever minha casa no Programa Fundador
               </a>
             </div>
@@ -100,16 +100,16 @@ export default function TerreirosDirectoryPage() {
           )}
         </section>
 
-        <section className="mt-16 rounded-2xl border border-[#1E242B] bg-[#0B0D11] p-6 sm:p-8">
+        <section className="mt-16 rounded-2xl border border-[#ece4d2] bg-[#0B0D11] p-6 sm:p-8">
           <h2 className="text-lg font-bold">Agenda da semana por e-mail</h2>
-          <p className="mt-2 text-sm text-[#94A3B8]">Giras e festas públicas na sua região — sem spam, só o essencial.</p>
+          <p className="mt-2 text-sm text-neutral-600">Giras e festas públicas na sua região — sem spam, só o essencial.</p>
           <div className="mt-4">
             <PortalNewsletterForm />
           </div>
         </section>
 
-        <p className="mt-10 text-center text-xs text-[#64748B]">
-          <a href={ROUTES.eventosPublicos} className="font-semibold text-[#FBBC00] hover:underline">
+        <p className="mt-10 text-center text-xs text-neutral-500">
+          <a href={ROUTES.eventosPublicos} className="font-semibold text-amber-600 hover:underline">
             Ver agenda de eventos públicos
           </a>
         </p>

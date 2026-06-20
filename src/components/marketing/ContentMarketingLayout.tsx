@@ -26,20 +26,7 @@ export function ContentMarketingLayout({
   wide = true,
 }: ContentMarketingLayoutProps) {
   return (
-    <div className="landing-v3 relative min-h-screen overflow-x-hidden bg-[#080A0D] font-sans text-[#F1F5F9] antialiased selection:bg-[#1E293B] selection:text-white">
-      <div
-        className="pointer-events-none absolute left-0 right-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-[#10141A] via-[#0A0C10] to-[#080A0D]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-32 top-24 -z-10 h-72 w-72 rounded-full bg-primary/5 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 top-48 -z-10 h-64 w-64 rounded-full bg-violet-500/5 blur-3xl"
-        aria-hidden
-      />
-
+    <div className="landing-v3 relative min-h-screen overflow-x-hidden font-sans antialiased">
       <MarketingSubpageTopNav />
 
       <main
@@ -51,7 +38,7 @@ export function ContentMarketingLayout({
         {backHref ? (
           <a
             href={backHref}
-            className="mb-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#94A3B8] transition hover:text-primary"
+            className="mb-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-500 transition hover:text-amber-700"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -60,26 +47,26 @@ export function ContentMarketingLayout({
 
         <header className="max-w-3xl">
           <p className="landing-kicker !justify-start !text-xs !tracking-[0.35em]">{kicker}</p>
-          <h1 className="mt-3 font-display text-3xl font-extrabold leading-tight text-[#F1F5F9] sm:text-4xl lg:text-[2.65rem]">
+          <h1 className="mt-3 font-display text-3xl font-extrabold leading-tight text-[#1b1813] sm:text-4xl lg:text-[2.65rem]">
             {title}
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#94A3B8] sm:text-lg">{summary}</p>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-600 sm:text-lg">{summary}</p>
           {heroExtra ? <div className="mt-6">{heroExtra}</div> : null}
         </header>
 
         <div className="mt-10 sm:mt-12">{children}</div>
       </main>
 
-      <footer className="relative z-10 border-t border-[#1E242B] py-8 text-center text-xs text-[#64748B]">
-        <a href={ROUTES.home} className="font-semibold text-[#94A3B8] transition hover:text-primary">
+      <footer className="relative z-10 border-t border-[#ece4d2] bg-[#161310] py-8 text-center text-xs text-neutral-400">
+        <a href={ROUTES.home} className="font-semibold text-neutral-300 transition hover:text-amber-400">
           AxéCloud
         </a>
         <span className="mx-2">·</span>
-        <a href={ROUTES.contentHub} className="transition hover:text-[#94A3B8]">
+        <a href={ROUTES.contentHub} className="transition hover:text-amber-400">
           Conteúdo
         </a>
         <span className="mx-2">·</span>
-        <a href={ROUTES.founderProgram} className="transition hover:text-[#94A3B8]">
+        <a href={ROUTES.founderProgram} className="transition hover:text-amber-400">
           Programa Fundador
         </a>
       </footer>
