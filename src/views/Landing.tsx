@@ -88,7 +88,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition-opacity duration-300 hover:bg-emerald-700 sm:bottom-8 sm:right-6',
+        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-amber-400 text-neutral-900 shadow-lg shadow-amber-500/30 transition-opacity duration-300 hover:bg-amber-300 sm:bottom-8 sm:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
@@ -188,19 +188,19 @@ export default function Landing() {
             </LandingReveal>
             <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-12 max-w-4xl">
               <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 md:grid-cols-[0.9fr_1.1fr]">
-                <div className="flex flex-col justify-between bg-emerald-600 p-8 text-white sm:p-10">
+                <div className="flex flex-col justify-between bg-[#161310] p-8 text-white sm:p-10">
                   <div>
-                    <span className="inline-flex w-max rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                    <span className="inline-flex w-max rounded-full bg-amber-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-300">
                       Plano Premium
                     </span>
-                    <h3 className="mt-5 text-lg font-bold text-emerald-50">Mensalidade do terreiro</h3>
+                    <h3 className="mt-5 text-lg font-bold text-neutral-300">Mensalidade do terreiro</h3>
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="font-display text-5xl font-black tracking-tight">{landingPrice.label}</span>
-                      <span className="text-lg text-emerald-100">{landingPrice.period}</span>
+                      <span className="font-display text-5xl font-black tracking-tight text-amber-400">{landingPrice.label}</span>
+                      <span className="text-lg text-neutral-400">{landingPrice.period}</span>
                     </div>
-                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-emerald-50/90">
+                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-neutral-300">
                       Tudo incluso, sem taxa por filho de santo. Ou comece pelo{' '}
-                      <a href={ROUTES.founderProgram} className="font-bold text-white underline decoration-emerald-200 underline-offset-2">
+                      <a href={ROUTES.founderProgram} className="font-bold text-amber-400 underline decoration-amber-400/50 underline-offset-2">
                         Programa Fundador
                       </a>{' '}
                       — 12 meses grátis.
@@ -208,7 +208,7 @@ export default function Landing() {
                   </div>
                   <a
                     href={appHref(ROUTES.register)}
-                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-emerald-700 transition hover:bg-emerald-50"
+                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-neutral-900 transition hover:bg-amber-300"
                   >
                     Cadastrar
                   </a>
@@ -219,8 +219,8 @@ export default function Landing() {
                   <ul className="mt-5 space-y-3.5 text-left text-sm text-slate-700" role="list">
                     {premiumFeatures.map((line) => (
                       <li key={line} className="flex gap-3">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-50">
-                          <Check className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-100">
+                          <Check className="h-3.5 w-3.5 text-amber-700" strokeWidth={2.5} />
                         </span>
                         {line}
                       </li>
@@ -232,7 +232,7 @@ export default function Landing() {
                       href={WA_COMERCIAL}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-bold text-emerald-600 hover:text-emerald-700"
+                      className="font-bold text-amber-700 hover:text-amber-800"
                     >
                       Fale com o comercial
                     </a>
@@ -249,26 +249,26 @@ export default function Landing() {
 
         <LandingSection aria-label="Fechamento">
           <div className="landing-section-inner mx-auto max-w-7xl">
-            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-emerald-700 p-10 text-center md:p-16">
+            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1c1813] to-[#0e0c0a] p-10 text-center md:p-16">
               <div
-                className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl"
+                className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-400/15 blur-2xl"
                 aria-hidden
               />
               <div
-                className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
+                className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-amber-400/15 blur-3xl"
                 aria-hidden
               />
-              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Que o axé acompanhe</p>
+              <p className="relative z-10 text-xs font-bold uppercase tracking-[0.2em] text-amber-400">Que o axé acompanhe</p>
               <p className="relative z-10 mx-auto mt-4 max-w-2xl font-display text-3xl font-black leading-tight text-white md:text-4xl">
                 Paz na casa, luz no caminho e organização no que é sagrado
               </p>
-              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-emerald-50/90">
+              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-neutral-300">
                 Leve transparência financeira, portal do filho de santo e memória da casa para o seu terreiro.
               </p>
               <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <a
                   href={ROUTES.founderProgram}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-black text-emerald-700 transition hover:bg-emerald-50 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-black text-neutral-900 transition hover:bg-amber-300 sm:w-auto"
                 >
                   Programa Fundador
                 </a>
@@ -293,7 +293,7 @@ export default function Landing() {
         </LandingSection>
       </main>
 
-      <footer className="relative z-[1] border-t border-emerald-800/40 bg-emerald-700 py-16 text-emerald-100" role="contentinfo">
+      <footer className="relative z-[1] border-t border-white/10 bg-[#161310] py-16 text-neutral-400" role="contentinfo">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
           <div className="space-y-4">
             <LogoMark compact />
@@ -308,7 +308,7 @@ export default function Landing() {
                     href={href}
                     target="_blank"
                     rel={rel}
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-emerald-100 transition hover:border-white/40 hover:text-white"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 text-neutral-300 transition hover:border-amber-400/40 hover:text-amber-400"
                     aria-label={`${label} @axecloudoficial`}
                   >
                     {id === 'instagram' ? <Instagram className="h-4 w-4" /> : <TikTokIcon className="h-4 w-4" />}
@@ -322,22 +322,22 @@ export default function Landing() {
             <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Portal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={ROUTES.terreiros} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.terreiros} className="text-neutral-400 hover:text-amber-400">
                   Terreiros
                 </a>
               </li>
               <li>
-                <a href={ROUTES.eventosPublicos} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.eventosPublicos} className="text-neutral-400 hover:text-amber-400">
                   Eventos públicos
                 </a>
               </li>
               <li>
-                <a href={ROUTES.espacoDoFiel} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.espacoDoFiel} className="text-neutral-400 hover:text-amber-400">
                   Pedir reza
                 </a>
               </li>
               <li>
-                <a href={ROUTES.liturgicalCalendar} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.liturgicalCalendar} className="text-neutral-400 hover:text-amber-400">
                   Calendário litúrgico
                 </a>
               </li>
@@ -348,22 +348,22 @@ export default function Landing() {
             <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Plataforma</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#recursos" className="text-emerald-100 hover:text-white">
+                <a href="#recursos" className="text-neutral-400 hover:text-amber-400">
                   Recursos
                 </a>
               </li>
               <li>
-                <a href="#demonstracao" className="text-emerald-100 hover:text-white">
+                <a href="#demonstracao" className="text-neutral-400 hover:text-amber-400">
                   Demo interativa
                 </a>
               </li>
               <li>
-                <a href={ROUTES.founderProgram} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.founderProgram} className="text-neutral-400 hover:text-amber-400">
                   Programa Fundador
                 </a>
               </li>
               <li>
-                <a href="#mensalidade" className="text-emerald-100 hover:text-white">
+                <a href="#mensalidade" className="text-neutral-400 hover:text-amber-400">
                   Planos
                 </a>
               </li>
@@ -374,22 +374,22 @@ export default function Landing() {
             <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Conta</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={appHref(ROUTES.login)} className="text-emerald-100 hover:text-white">
+                <a href={appHref(ROUTES.login)} className="text-neutral-400 hover:text-amber-400">
                   Entrar
                 </a>
               </li>
               <li>
-                <a href={appHref(ROUTES.register)} className="text-emerald-100 hover:text-white">
+                <a href={appHref(ROUTES.register)} className="text-neutral-400 hover:text-amber-400">
                   Cadastrar terreiro
                 </a>
               </li>
               <li>
-                <a href={ROUTES.contentHub} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.contentHub} className="text-neutral-400 hover:text-amber-400">
                   Conteúdo
                 </a>
               </li>
               <li>
-                <a href={ROUTES.glossary} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.glossary} className="text-neutral-400 hover:text-amber-400">
                   Glossário do axé
                 </a>
               </li>
@@ -400,17 +400,17 @@ export default function Landing() {
             <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Legal</h6>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#seguranca" className="text-emerald-100 hover:text-white">
+                <a href="#seguranca" className="text-neutral-400 hover:text-amber-400">
                   Segurança e LGPD
                 </a>
               </li>
               <li>
-                <a href={ROUTES.terms} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.terms} className="text-neutral-400 hover:text-amber-400">
                   Termos de Uso
                 </a>
               </li>
               <li>
-                <a href={ROUTES.privacy} className="text-emerald-100 hover:text-white">
+                <a href={ROUTES.privacy} className="text-neutral-400 hover:text-amber-400">
                   Política de Privacidade
                 </a>
               </li>
