@@ -16,8 +16,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'recursos', label: 'Recursos' },
   { id: 'demonstracao', label: 'Demo', highlight: true },
   { id: 'mensalidade', label: 'Planos' },
-  { id: 'seguranca', label: 'Segurança' },
-  { id: 'faq', label: 'FAQ' },
   { id: 'founder', label: 'Fundador', path: ROUTES.founderProgram },
 ];
 
