@@ -181,8 +181,8 @@ function PortalTerreirosShowcase({
   const totalLabel = terreiros.length === 1 ? '1 casa publicada' : `${terreiros.length} casas publicadas`;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(340px,1fr)] lg:items-stretch">
-      <div className="min-w-0">
+    <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <div className="mx-auto w-full max-w-sm min-w-0 lg:mx-0">
         <div className="mb-4 flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
             Casa em destaque
