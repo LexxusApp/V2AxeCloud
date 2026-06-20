@@ -64,7 +64,7 @@ export function MarketingTopNav({
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-emerald-700/60 bg-emerald-600/95 backdrop-blur-md">
+    <nav className="marketing-top-nav sticky top-0 z-50 border-b border-emerald-800/50 bg-emerald-700/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <a
           href={logoHref}

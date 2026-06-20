@@ -1140,13 +1140,13 @@ html:has(.landing-v3) {
 }
 
 html:has(.landing-v3) body {
-  background-color: #e9f2ec;
+  background-color: #eef3ea;
 }
 
 .landing-v3 {
   color: #334155;
   font-family: Inter, var(--font-sans);
-  background-color: #e9f2ec;
+  background-color: #eef3ea;
 }
 
 .landing-v3 .rounded-sm { border-radius: 0.125rem; }
