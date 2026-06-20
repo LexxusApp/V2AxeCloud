@@ -49,8 +49,8 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-display text-lg font-bold text-[#F1F5F9]">Financeiro do terreiro</h3>
-        <p className="text-xs text-[#94A3B8]">
+        <h3 className="font-display text-lg font-bold text-slate-900">Financeiro do terreiro</h3>
+        <p className="text-xs text-slate-600">
           Entradas, saídas e saldo em tempo real — como no módulo financeiro com Pix e mensalidades.
         </p>
       </div>
@@ -58,30 +58,30 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DemoCard className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Entradas</span>
-            <p className="mt-1 text-xl font-bold text-emerald-400">{formatDemoMoney(entradas)}</p>
+            <span className="text-[10px] font-bold uppercase text-slate-500">Entradas</span>
+            <p className="mt-1 text-xl font-bold text-emerald-600">{formatDemoMoney(entradas)}</p>
           </div>
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/40 p-2.5 text-emerald-400">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 p-2.5 text-emerald-600">
             <Plus className="h-5 w-5" />
           </div>
         </DemoCard>
         <DemoCard className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Saídas</span>
-            <p className="mt-1 text-xl font-bold text-rose-400">{formatDemoMoney(saidas)}</p>
+            <span className="text-[10px] font-bold uppercase text-slate-500">Saídas</span>
+            <p className="mt-1 text-xl font-bold text-rose-500">{formatDemoMoney(saidas)}</p>
           </div>
-          <div className="rounded-xl border border-rose-500/20 bg-rose-950/40 p-2.5 text-rose-400">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-50 p-2.5 text-rose-500">
             <Trash2 className="h-5 w-5" />
           </div>
         </DemoCard>
-        <DemoCard className="flex items-center justify-between border-primary/25">
+        <DemoCard className="flex items-center justify-between border-emerald-500/25">
           <div>
-            <span className="text-[10px] font-bold uppercase text-primary">Saldo</span>
-            <p className={`mt-1 text-xl font-bold ${saldo >= 0 ? 'text-[#F1F5F9]' : 'text-rose-400'}`}>
+            <span className="text-[10px] font-bold uppercase text-emerald-600">Saldo</span>
+            <p className={`mt-1 text-xl font-bold ${saldo >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
               {formatDemoMoney(saldo)}
             </p>
           </div>
-          <div className="rounded-xl border border-primary/20 bg-[#1E252E] p-2.5 text-primary">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 p-2.5 text-emerald-600">
             <DollarSign className="h-5 w-5" />
           </div>
         </DemoCard>
@@ -89,7 +89,7 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DemoCard>
-          <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Novo lançamento</h4>
+          <h4 className="mb-4 text-sm font-bold text-slate-900">Novo lançamento</h4>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className={demoLabelClass}>Descrição</label>
@@ -143,40 +143,40 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
           </form>
         </DemoCard>
 
-        <div className="overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] lg:col-span-2">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white lg:col-span-2">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-[#1E242B] text-xs">
-              <thead className="bg-[#12161A]">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50">
                 <tr>
                   {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
                     <th
                       key={h || 'act'}
-                      className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]"
+                      className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E242B]">
+              <tbody className="divide-y divide-slate-200">
                 {lancamentos.map((l) => (
-                  <tr key={l.id} className="hover:bg-[#1E242B]/40">
-                    <td className="px-4 py-3.5 font-medium text-[#F1F5F9]">{l.descricao}</td>
-                    <td className="px-4 py-3.5 text-[#94A3B8]">{l.categoria}</td>
-                    <td className="px-4 py-3.5 text-[#94A3B8]">{l.data}</td>
+                  <tr key={l.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3.5 font-medium text-slate-900">{l.descricao}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{l.categoria}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{l.data}</td>
                     <td className="px-4 py-3.5">
                       <span
                         className={
                           l.tipo === 'Entrada'
-                            ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
-                            : 'rounded-full border border-rose-500/30 bg-rose-950/50 px-2 py-0.5 text-[9px] font-bold text-rose-300'
+                            ? 'rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600'
+                            : 'rounded-full border border-rose-500/30 bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-600'
                         }
                       >
                         {l.tipo}
                       </span>
                     </td>
                     <td
-                      className={`px-4 py-3.5 text-right font-bold ${l.tipo === 'Entrada' ? 'text-emerald-400' : 'text-rose-400'}`}
+                      className={`px-4 py-3.5 text-right font-bold ${l.tipo === 'Entrada' ? 'text-emerald-600' : 'text-rose-500'}`}
                     >
                       {l.tipo === 'Entrada' ? '+' : '−'} {formatDemoMoney(l.valor)}
                     </td>
@@ -187,7 +187,7 @@ export function DemoFinanceiroPanel({ onNotify }: Props) {
                           setLancamentos((prev) => prev.filter((x) => x.id !== l.id));
                           onNotify(`Removido: ${l.descricao}`, 'info');
                         }}
-                        className="rounded p-1 text-rose-400 hover:bg-white/5"
+                        className="rounded p-1 text-rose-500 hover:bg-rose-50"
                         aria-label="Remover lançamento"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

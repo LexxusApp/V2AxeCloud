@@ -57,13 +57,13 @@ export function DemoFilhosPanel({ onNotify }: Props) {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         <div>
-          <h3 className="font-display text-lg font-bold text-[#F1F5F9]">Filhos de Santo</h3>
-          <p className="text-xs text-[#94A3B8]">
+          <h3 className="font-display text-lg font-bold text-slate-900">Filhos de Santo</h3>
+          <p className="text-xs text-slate-600">
             Cadastro litúrgico com cargo, orixá de frente e status — como no módulo real do AxéCloud.
           </p>
         </div>
         <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94A3B8]" aria-hidden />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" aria-hidden />
           <input
             type="search"
             value={search}
@@ -76,8 +76,8 @@ export function DemoFilhosPanel({ onNotify }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DemoCard>
-          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-[#F1F5F9]">
-            <Plus className="h-4 w-4 text-primary" aria-hidden />
+          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900">
+            <Plus className="h-4 w-4 text-emerald-600" aria-hidden />
             Adicionar filho de santo
           </h4>
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -144,25 +144,25 @@ export function DemoFilhosPanel({ onNotify }: Props) {
         </DemoCard>
 
         <div className="space-y-3 lg:col-span-2">
-          <div className="overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D]">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#1E242B] text-xs">
-                <thead className="bg-[#12161A]">
+              <table className="min-w-full divide-y divide-slate-200 text-xs">
+                <thead className="bg-slate-50">
                   <tr>
                     {['Filho', 'Cargo', 'Orixá', 'Guia', 'Status', ''].map((h) => (
                       <th
                         key={h || 'actions'}
-                        className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]"
+                        className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500"
                       >
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1E242B]">
+                <tbody className="divide-y divide-slate-200">
                   {filtered.map((f) => (
-                    <tr key={f.id} className="transition-colors hover:bg-[#1E242B]/40">
-                      <td className="whitespace-nowrap px-4 py-3.5 font-medium text-[#F1F5F9]">
+                    <tr key={f.id} className="transition-colors hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-medium text-slate-900">
                         <div className="flex items-center gap-2">
                           <span
                             className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold ${f.avatarTone}`}
@@ -172,17 +172,17 @@ export function DemoFilhosPanel({ onNotify }: Props) {
                           {f.nome}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-[#94A3B8]">{f.cargo}</td>
-                      <td className="px-4 py-3.5 font-semibold text-primary">{f.orixaFrente}</td>
-                      <td className="px-4 py-3.5 italic text-[#94A3B8]">{f.guiaEspiritual}</td>
+                      <td className="px-4 py-3.5 text-slate-600">{f.cargo}</td>
+                      <td className="px-4 py-3.5 font-semibold text-emerald-600">{f.orixaFrente}</td>
+                      <td className="px-4 py-3.5 italic text-slate-500">{f.guiaEspiritual}</td>
                       <td className="px-4 py-3.5">
                         <span
                           className={
                             f.status === 'Ativo'
-                              ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
+                              ? 'rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600'
                               : f.status === 'Pendente'
-                                ? 'rounded-full border border-amber-500/30 bg-amber-950/50 px-2 py-0.5 text-[9px] font-bold text-amber-300'
-                                : 'rounded-full border border-zinc-600 bg-zinc-800/80 px-2 py-0.5 text-[9px] font-bold text-zinc-400'
+                                ? 'rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-600'
+                                : 'rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500'
                           }
                         >
                           {f.status}
@@ -195,7 +195,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
                             setFilhos((prev) => prev.filter((x) => x.id !== f.id));
                             onNotify(`${f.nome} removido da demo.`, 'info');
                           }}
-                          className="rounded p-1 text-rose-400 hover:bg-white/5 hover:text-rose-300"
+                          className="rounded p-1 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                           aria-label={`Remover ${f.nome}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -205,7 +205,7 @@ export function DemoFilhosPanel({ onNotify }: Props) {
                   ))}
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-[#94A3B8]">
+                      <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
                         Nenhum filho encontrado para &ldquo;{search}&rdquo;.
                       </td>
                     </tr>
@@ -214,8 +214,8 @@ export function DemoFilhosPanel({ onNotify }: Props) {
               </table>
             </div>
           </div>
-          <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3.5 text-[11px] text-[#94A3B8]">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[11px] text-slate-600">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
             <span>
               No AxéCloud real, cada terreiro tem ambiente isolado (RLS), perfis de acesso e histórico completo do
               filho — esta demo roda só no seu navegador.

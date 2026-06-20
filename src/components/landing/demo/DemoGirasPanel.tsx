@@ -39,15 +39,15 @@ export function DemoGirasPanel({ onNotify }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-display text-lg font-bold text-[#F1F5F9]">Calendário de giras</h3>
-        <p className="text-xs text-[#94A3B8]">
+        <h3 className="font-display text-lg font-bold text-slate-900">Calendário de giras</h3>
+        <p className="text-xs text-slate-600">
           Agende trabalhos espirituais, festas e giras — com lembretes automáticos no WhatsApp no app real.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <DemoCard>
-          <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Nova gira / evento</h4>
+          <h4 className="mb-4 text-sm font-bold text-slate-900">Nova gira / evento</h4>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className={demoLabelClass}>Nome</label>
@@ -112,20 +112,20 @@ export function DemoGirasPanel({ onNotify }: Props) {
             {giras.map((g) => (
               <article
                 key={g.id}
-                className="flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-4 transition-colors hover:border-[#2F3643]"
+                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-emerald-300"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span
                       className={
                         g.status === 'Especial'
-                          ? 'rounded-full border border-rose-500/30 bg-rose-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-rose-300'
-                          : 'rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-emerald-300'
+                          ? 'rounded-full border border-rose-500/30 bg-rose-50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-rose-600'
+                          : 'rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-emerald-600'
                       }
                     >
                       {g.tipo}
                     </span>
-                    <h4 className="mt-2 text-sm font-bold text-[#F1F5F9]">{g.nome}</h4>
+                    <h4 className="mt-2 text-sm font-bold text-slate-900">{g.nome}</h4>
                   </div>
                   <button
                     type="button"
@@ -133,13 +133,13 @@ export function DemoGirasPanel({ onNotify }: Props) {
                       setGiras((prev) => prev.filter((x) => x.id !== g.id));
                       onNotify(`Gira removida: ${g.nome}`, 'info');
                     }}
-                    className="rounded p-1 text-zinc-500 hover:text-rose-400"
+                    className="rounded p-1 text-slate-400 hover:text-rose-500"
                     aria-label="Remover gira"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="mt-4 flex items-center justify-between border-t border-[#1E242B] pt-3 text-xs text-[#94A3B8]">
+                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-600">
                   <span className="flex items-center gap-1">
                     <CalendarDays className="h-3.5 w-3.5" aria-hidden />
                     {formatDemoDate(g.data)}
@@ -152,13 +152,13 @@ export function DemoGirasPanel({ onNotify }: Props) {
               </article>
             ))}
           </div>
-          <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
-            <div className="rounded-lg border border-[#1E242B] bg-[#13171D] p-2 text-primary">
+          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-lg border border-slate-200 bg-white p-2 text-emerald-600">
               <MessageSquare className="h-5 w-5" aria-hidden />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-[#94A3B8]">
+              <p className="text-xs font-bold text-slate-900">Convites e lembretes no WhatsApp</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
                 No AxéCloud real, convidados com telefone recebem o convite ao serem adicionados ao evento — e lembretes
                 automáticos antes da gira.
               </p>

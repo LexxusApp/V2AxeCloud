@@ -24,7 +24,6 @@ import {
 } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
-import { FounderHeroCallout } from './FounderHeroCallout';
 
 type PortalTile = {
   id: string;
@@ -98,33 +97,24 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
   return (
     <a
       href={tile.href}
-      className={cn(
-        'portal-action-card group relative flex h-full min-h-[164px] flex-col overflow-hidden rounded-[1.35rem] border p-5 transition sm:p-6',
-        tile.featured ? 'portal-action-card--featured border-emerald-500/20' : 'border-slate-200',
-      )}
+      className="group relative flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-slate-200/60"
     >
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-      <div className="flex items-start justify-between gap-4">
-        <div
-          className={cn(
-            'inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm',
-            tile.iconBg,
-          )}
-        >
-          <Icon className={cn('h-5 w-5', tile.accent)} aria-hidden />
-        </div>
+      <div
+        className={cn(
+          'inline-flex h-12 w-12 items-center justify-center rounded-xl border transition group-hover:scale-105',
+          tile.iconBg,
+        )}
+      >
+        <Icon className={cn('h-5 w-5', tile.accent)} aria-hidden />
       </div>
 
-      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-emerald-600">
-        {tile.eyebrow}
-      </p>
-      <h3 className="mt-2 font-display text-xl font-black tracking-tight text-slate-900 group-hover:text-emerald-700">
-        {tile.title}
-      </h3>
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{tile.eyebrow}</p>
+      <h3 className="mt-1.5 font-display text-xl font-black tracking-tight text-slate-900">{tile.title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{tile.description}</p>
-      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600 transition group-hover:border-emerald-500/40 group-hover:bg-emerald-100">
+
+      <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 transition-all group-hover:gap-2.5">
         Acessar
-        <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden />
+        <ArrowRight className="h-4 w-4" aria-hidden />
       </span>
     </a>
   );
@@ -192,67 +182,65 @@ function PortalTerreirosShowcase({
   const totalLabel = terreiros.length === 1 ? '1 casa publicada' : `${terreiros.length} casas publicadas`;
 
   return (
-    <div className="portal-terreiros-showcase overflow-hidden rounded-[2.25rem] border border-white/[0.08] p-4 sm:p-5 lg:p-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,1fr)] lg:items-stretch">
-        <div className="min-w-0">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <span className="rounded-full border border-[#FBBC00]/25 bg-[#FBBC00]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#FBBC00]">
-              Casa em destaque
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(340px,1fr)] lg:items-stretch">
+      <div className="min-w-0">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+            Casa em destaque
+          </span>
+          <span className="text-xs font-bold text-slate-500">{totalLabel}</span>
+        </div>
+        <TerreiroCard terreiro={principal} href={terreiroProfilePath(principal.slug)} />
+      </div>
+
+      <div className="flex min-w-0 flex-col justify-between rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 sm:p-7">
+        <div>
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200 bg-white">
+            <Building2 className="h-6 w-6 text-emerald-600" aria-hidden />
+          </div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">
+            Diretório em expansão
+          </p>
+          <h3 className="mt-3 font-display text-2xl font-black leading-tight text-slate-900 sm:text-3xl">
+            Casas de axé ganhando presença pública com mais cuidado.
+          </h3>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600">
+            Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com as
+            primeiras casas fundadoras e novos cadastros entram em destaque.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-2xl font-black text-slate-900">{terreiros.length}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">no portal</p>
+          </div>
+          <a
+            href={ROUTES.founderProgram}
+            className="group rounded-2xl border border-emerald-500/30 bg-emerald-600 p-4 text-white transition hover:bg-emerald-700"
+          >
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100">Cadastre sua casa</p>
+            <span className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-white">
+              Programa Fundador
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
             </span>
-            <span className="text-xs font-bold text-[#64748B]">{totalLabel}</span>
-          </div>
-          <TerreiroCard terreiro={principal} href={terreiroProfilePath(principal.slug)} />
+          </a>
         </div>
 
-        <div className="portal-terreiros-showcase__info flex min-w-0 flex-col justify-between rounded-[1.75rem] border border-white/[0.08] p-5 sm:p-6">
-          <div>
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FBBC00]/25 bg-[#FBBC00]/10">
-              <Building2 className="h-6 w-6 text-[#FBBC00]" aria-hidden />
-            </div>
-            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#FBBC00]">
-              Diretório em expansão
-            </p>
-            <h3 className="mt-3 font-display text-2xl font-black leading-tight text-[#F1F5F9] sm:text-3xl">
-              Casas de axé ganhando presença pública com mais cuidado.
-            </h3>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#94A3B8]">
-              Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com as
-              primeiras casas fundadoras e novos cadastros entram em destaque.
-            </p>
-          </div>
-
+        {outros.length > 0 ? (
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
-              <p className="text-2xl font-black text-[#F1F5F9]">{terreiros.length}</p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#94A3B8]">no portal</p>
-            </div>
-            <a
-              href={ROUTES.founderProgram}
-              className="group rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
-            >
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-300">Cadastre sua casa</p>
-              <span className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-[#F1F5F9]">
-                Programa Fundador
-                <ArrowRight className="h-4 w-4 text-emerald-300 transition group-hover:translate-x-0.5" aria-hidden />
-              </span>
-            </a>
+            {outros.map((t) => (
+              <TerreiroCard key={t.slug} terreiro={t} href={terreiroProfilePath(t.slug)} />
+            ))}
           </div>
-
-          {outros.length > 0 ? (
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {outros.map((t) => (
-                <TerreiroCard key={t.slug} terreiro={t} href={terreiroProfilePath(t.slug)} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-[#FBBC00]/20 bg-[#FBBC00]/[0.04] p-4">
-              <p className="text-sm font-bold text-[#F1F5F9]">Sua casa pode aparecer aqui.</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#94A3B8]">
-                O Programa Fundador libera o AxéCloud por 12 meses e prioriza o perfil público da casa no portal.
-              </p>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 p-4">
+            <p className="text-sm font-bold text-slate-900">Sua casa pode aparecer aqui.</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              O Programa Fundador libera o AxéCloud por 12 meses e prioriza o perfil público da casa no portal.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -278,72 +266,165 @@ export function PortalHomeHub() {
       .finally(() => setLoadingTerreiros(false));
   }, []);
 
+  const heroTerreiro = terreiros[0];
+  const heroEvento = eventos[0];
+
   return (
     <>
-      <section className="relative overflow-hidden pb-10 pt-10 sm:pb-14 sm:pt-14" aria-labelledby="portal-hero-title">
+      <section className="relative overflow-hidden" aria-labelledby="portal-hero-title">
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(251,188,0,0.12),transparent)]"
+          className="pointer-events-none absolute -left-32 -top-24 -z-10 h-[28rem] w-[28rem] rounded-full bg-emerald-200/40 blur-3xl"
           aria-hidden
         />
-        <div className="landing-section-inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative">
-            <aside
-              className="pointer-events-auto absolute -left-2 top-4 z-30 hidden xl:block"
-              aria-label="Chamada Programa Fundador"
-            >
-              <FounderHeroCallout variant="sidebar" />
-            </aside>
+        <div
+          className="pointer-events-none absolute -right-24 top-40 -z-10 h-[22rem] w-[22rem] rounded-full bg-emerald-100/50 blur-3xl"
+          aria-hidden
+        />
 
-            <div className="mb-6 flex justify-center xl:hidden">
-              <FounderHeroCallout variant="banner" />
-            </div>
-
-            <div className="mx-auto max-w-3xl text-center">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#FBBC00]/25 bg-[#13171D] px-3 py-1.5">
-                <Globe className="h-3.5 w-3.5 text-[#FBBC00]" aria-hidden />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#F1F5F9] md:text-xs">
+        <div className="landing-section-inner mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 md:text-xs">
                   Portal da comunidade de terreiros
                 </span>
               </div>
+
               <h1
                 id="portal-hero-title"
-                className="font-display text-3xl font-black leading-tight tracking-tight text-[#F1F5F9] sm:text-4xl md:text-5xl"
+                className="mt-6 font-display text-4xl font-black leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl"
               >
-                Encontre casas, veja giras e{' '}
-                <span className="bg-gradient-to-r from-[#FBBC00] via-amber-400 to-yellow-300 bg-clip-text text-transparent">
-                  participe do axé
+                A casa de axé,{' '}
+                <span className="relative whitespace-nowrap text-emerald-600">
+                  organizada
+                  <svg
+                    className="absolute -bottom-1 left-0 h-2.5 w-full text-emerald-300"
+                    viewBox="0 0 100 8"
+                    preserveAspectRatio="none"
+                    aria-hidden
+                  >
+                    <path d="M0 6 Q 25 0 50 4 T 100 3" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  </svg>
                 </span>
+                <br />
+                e conectada à comunidade.
               </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#94A3B8] md:text-lg">
-                O AxéCloud reúne terreiros, eventos públicos, pedidos de reza e conteúdo sobre Umbanda, Candomblé e
-                Jurema — escolha abaixo o que quer fazer agora.
+
+              <p className="mt-6 text-lg leading-relaxed text-slate-600">
+                Encontre terreiros, acompanhe giras e peça reza — e, se você zela por uma casa, gerencie tudo num só
+                lugar. Umbanda, Candomblé e Jurema com respeito e tecnologia.
               </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={ROUTES.terreiros}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 hover:shadow-emerald-600/30"
+                >
+                  Explorar terreiros
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </a>
+                <a
+                  href={appHref(ROUTES.login)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  <Users className="h-4 w-4" aria-hidden />
+                  Sou zelador(a)
+                </a>
+              </div>
+
+              <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-slate-200 pt-6">
+                {[
+                  { icon: Building2, label: 'Casas no portal' },
+                  { icon: CalendarDays, label: 'Giras e eventos' },
+                  { icon: Heart, label: 'Pedidos de reza' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col gap-1.5">
+                    <Icon className="h-5 w-5 text-emerald-600" aria-hidden />
+                    <dt className="text-xs font-semibold leading-tight text-slate-600">{label}</dt>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+              <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
+                <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700">
+                  {heroTerreiro?.fotoUrl ? (
+                    <img src={heroTerreiro.fotoUrl} alt="" className="h-full w-full object-cover" loading="eager" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Sun className="h-20 w-20 text-white/30" aria-hidden />
+                    </div>
+                  )}
+                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 backdrop-blur">
+                    <Globe className="h-3 w-3" aria-hidden />
+                    Casa em destaque
+                  </span>
+                </div>
+                <div className="p-5">
+                  <h2 className="font-display text-lg font-black text-slate-900">
+                    {heroTerreiro?.nome ?? 'Sua casa de axé aqui'}
+                  </h2>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                    {heroTerreiro
+                      ? [heroTerreiro.cidade, heroTerreiro.estado].filter(Boolean).join(' · ') || 'Brasil'
+                      : 'Publique o perfil público da sua casa'}
+                  </p>
+                  <a
+                    href={heroTerreiro ? terreiroProfilePath(heroTerreiro.slug) : ROUTES.terreiros}
+                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 transition hover:gap-2.5"
+                  >
+                    Ver perfil
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </a>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-5 -left-4 hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl sm:flex sm:items-center sm:gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                  <CalendarDays className="h-5 w-5 text-emerald-600" aria-hidden />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Próxima gira</p>
+                  <p className="max-w-[10rem] truncate text-sm font-bold text-slate-900">
+                    {heroEvento?.titulo ?? 'Agenda das casas'}
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href={ROUTES.founderProgram}
+                className="absolute -right-3 -top-5 hidden rounded-2xl border border-emerald-500 bg-emerald-600 p-3.5 text-white shadow-xl transition hover:bg-emerald-700 sm:block"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Programa Fundador</p>
+                <p className="font-display text-base font-black">12 meses grátis</p>
+              </a>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-10 rounded-[2rem] border border-white/[0.07] bg-[#090B0F]/82 p-3 shadow-[0_20px_64px_rgba(0,0,0,0.24)] sm:p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 sm:px-2">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#D6A72A]">Portal AxéCloud</p>
-                <p className="mt-1 text-sm text-[#94A3B8]">Escolha o caminho que quer acessar agora.</p>
-              </div>
-              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300/90">
-                Comunidade ativa
-              </span>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <section className="border-y border-slate-200 bg-white" aria-labelledby="explorar-title">
+        <div className="landing-section-inner mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">Explorar o portal</p>
+            <h2 id="explorar-title" className="mt-3 font-display text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+              O que você quer fazer agora?
+            </h2>
+            <p className="mt-3 text-base text-slate-600">
+              Tudo o que a comunidade do axé precisa, reunido e fácil de acessar.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {EXPLORAR_TILES.map((tile) => (
-              <div
-                key={tile.id}
-                className={cn(
-                  'xl:col-span-2',
-                  (tile.id === 'calendario' || tile.id === 'conteudo') && 'xl:col-span-3',
-                )}
-              >
-                <PortalTileCard tile={tile} />
-              </div>
+              <PortalTileCard key={tile.id} tile={tile} />
             ))}
-            </div>
           </div>
         </div>
       </section>
