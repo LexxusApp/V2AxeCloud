@@ -7,7 +7,6 @@ import {
   Heart,
   Loader2,
   MapPin,
-  Globe,
   Sun,
   Users,
 } from 'lucide-react';
@@ -266,9 +265,6 @@ export function PortalHomeHub() {
       .finally(() => setLoadingTerreiros(false));
   }, []);
 
-  const heroTerreiro = terreiros[0];
-  const heroEvento = eventos[0];
-
   return (
     <>
       <section className="relative overflow-hidden" aria-labelledby="portal-hero-title">
@@ -282,129 +278,71 @@ export function PortalHomeHub() {
         />
 
         <div className="landing-section-inner mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 md:text-xs">
-                  Portal da comunidade de terreiros
-                </span>
-              </div>
-
-              <h1
-                id="portal-hero-title"
-                className="mt-6 font-display text-4xl font-black leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl"
-              >
-                A casa de axé,{' '}
-                <span className="relative whitespace-nowrap text-emerald-600">
-                  organizada
-                  <svg
-                    className="absolute -bottom-1 left-0 h-2.5 w-full text-emerald-300"
-                    viewBox="0 0 100 8"
-                    preserveAspectRatio="none"
-                    aria-hidden
-                  >
-                    <path d="M0 6 Q 25 0 50 4 T 100 3" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
-                  </svg>
-                </span>
-                <br />
-                e conectada à comunidade.
-              </h1>
-
-              <p className="mt-6 text-lg leading-relaxed text-slate-600">
-                Encontre terreiros, acompanhe giras e peça reza — e, se você zela por uma casa, gerencie tudo num só
-                lugar. Umbanda, Candomblé e Jurema com respeito e tecnologia.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href={ROUTES.terreiros}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 hover:shadow-emerald-600/30"
-                >
-                  Explorar terreiros
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </a>
-                <a
-                  href={appHref(ROUTES.login)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                >
-                  <Users className="h-4 w-4" aria-hidden />
-                  Sou zelador(a)
-                </a>
-              </div>
-
-              <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-slate-200 pt-6">
-                {[
-                  { icon: Building2, label: 'Casas no portal' },
-                  { icon: CalendarDays, label: 'Giras e eventos' },
-                  { icon: Heart, label: 'Pedidos de reza' },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex flex-col gap-1.5">
-                    <Icon className="h-5 w-5 text-emerald-600" aria-hidden />
-                    <dt className="text-xs font-semibold leading-tight text-slate-600">{label}</dt>
-                  </div>
-                ))}
-              </dl>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 md:text-xs">
+                Portal da comunidade de terreiros
+              </span>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-              <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
-                <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700">
-                  {heroTerreiro?.fotoUrl ? (
-                    <img src={heroTerreiro.fotoUrl} alt="" className="h-full w-full object-cover" loading="eager" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Sun className="h-20 w-20 text-white/30" aria-hidden />
-                    </div>
-                  )}
-                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 backdrop-blur">
-                    <Globe className="h-3 w-3" aria-hidden />
-                    Casa em destaque
-                  </span>
-                </div>
-                <div className="p-5">
-                  <h2 className="font-display text-lg font-black text-slate-900">
-                    {heroTerreiro?.nome ?? 'Sua casa de axé aqui'}
-                  </h2>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-                    {heroTerreiro
-                      ? [heroTerreiro.cidade, heroTerreiro.estado].filter(Boolean).join(' · ') || 'Brasil'
-                      : 'Publique o perfil público da sua casa'}
-                  </p>
-                  <a
-                    href={heroTerreiro ? terreiroProfilePath(heroTerreiro.slug) : ROUTES.terreiros}
-                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 transition hover:gap-2.5"
-                  >
-                    Ver perfil
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </a>
-                </div>
-              </div>
+            <h1
+              id="portal-hero-title"
+              className="mt-6 font-display text-4xl font-black leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl"
+            >
+              A casa de axé,{' '}
+              <span className="relative whitespace-nowrap text-emerald-600">
+                organizada
+                <svg
+                  className="absolute -bottom-1 left-0 h-2.5 w-full text-emerald-300"
+                  viewBox="0 0 100 8"
+                  preserveAspectRatio="none"
+                  aria-hidden
+                >
+                  <path d="M0 6 Q 25 0 50 4 T 100 3" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
+                </svg>
+              </span>
+              <br />
+              e conectada à comunidade.
+            </h1>
 
-              <div className="absolute -bottom-5 -left-4 hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl sm:flex sm:items-center sm:gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                  <CalendarDays className="h-5 w-5 text-emerald-600" aria-hidden />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Próxima gira</p>
-                  <p className="max-w-[10rem] truncate text-sm font-bold text-slate-900">
-                    {heroEvento?.titulo ?? 'Agenda das casas'}
-                  </p>
-                </div>
-              </div>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+              Encontre terreiros, acompanhe giras e peça reza — e, se você zela por uma casa, gerencie tudo num só
+              lugar. Umbanda, Candomblé e Jurema com respeito e tecnologia.
+            </p>
 
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
-                href={ROUTES.founderProgram}
-                className="absolute -right-3 -top-5 hidden rounded-2xl border border-emerald-500 bg-emerald-600 p-3.5 text-white shadow-xl transition hover:bg-emerald-700 sm:block"
+                href={ROUTES.terreiros}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 hover:shadow-emerald-600/30"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Programa Fundador</p>
-                <p className="font-display text-base font-black">12 meses grátis</p>
+                Explorar terreiros
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </a>
+              <a
+                href={appHref(ROUTES.login)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              >
+                <Users className="h-4 w-4" aria-hidden />
+                Sou zelador(a)
               </a>
             </div>
+
+            <dl className="mt-10 grid w-full max-w-lg grid-cols-3 gap-4 border-t border-slate-200 pt-6">
+              {[
+                { icon: Building2, label: 'Casas no portal' },
+                { icon: CalendarDays, label: 'Giras e eventos' },
+                { icon: Heart, label: 'Pedidos de reza' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex flex-col items-center gap-1.5">
+                  <Icon className="h-5 w-5 text-emerald-600" aria-hidden />
+                  <dt className="text-xs font-semibold leading-tight text-slate-600">{label}</dt>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
       </section>
