@@ -1479,7 +1479,7 @@ html:has(.landing-v3) body {
 }
 
 .portal-action-card:hover {
-  border-color: rgba(251, 188, 0, 0.28);
+  border-color: rgba(214, 167, 42, 0.28);
   background: linear-gradient(180deg, rgba(15, 18, 24, 0.99), rgba(9, 11, 15, 0.99));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -1492,6 +1492,107 @@ html:has(.landing-v3) body {
 
 .portal-action-card--featured {
   background: linear-gradient(180deg, rgba(15, 17, 20, 0.99), rgba(8, 10, 13, 0.99));
+}
+
+.founder-soft-wrap {
+  padding: 0.25rem;
+}
+
+.founder-soft-wrap--banner {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.founder-soft-cta {
+  display: block;
+  width: 245px;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(214, 167, 42, 0.26);
+  background: linear-gradient(180deg, rgba(13, 16, 22, 0.98), rgba(8, 10, 13, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 38px rgba(0, 0, 0, 0.24);
+  color: #f1f5f9;
+  padding: 1rem;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.founder-soft-cta:hover {
+  border-color: rgba(214, 167, 42, 0.42);
+  background: linear-gradient(180deg, rgba(15, 18, 24, 0.99), rgba(9, 11, 15, 0.99));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 46px rgba(0, 0, 0, 0.28);
+}
+
+.founder-soft-cta--banner {
+  width: 100%;
+}
+
+.founder-soft-cta__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.founder-soft-cta__body--banner {
+  align-items: center;
+}
+
+.founder-soft-cta__icon {
+  display: inline-flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(214, 167, 42, 0.26);
+  background: rgba(214, 167, 42, 0.09);
+  color: #d6a72a;
+}
+
+.founder-soft-cta__label {
+  display: block;
+  color: #d6a72a;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.founder-soft-cta__headline {
+  display: block;
+  margin-top: 0.35rem;
+  color: #f8fafc;
+  font-family: Outfit, Inter, var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.founder-soft-cta__slots {
+  display: block;
+  margin-top: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.founder-soft-cta__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  color: #d6a72a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .portal-terreiros-showcase {

@@ -1,4 +1,4 @@
-import { ArrowRight, Crown, Flame, Sparkles } from 'lucide-react';
+import { ArrowRight, Crown } from 'lucide-react';
 import { FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { useFounderProgramStats } from '../../hooks/useFounderProgramStats';
 import { ROUTES } from '../../lib/routes';
@@ -9,7 +9,7 @@ type FounderHeroCalloutProps = {
   className?: string;
 };
 
-function FounderVipCallout({
+function FounderSoftCallout({
   variant,
   className,
   slotsLabel,
@@ -21,38 +21,28 @@ function FounderVipCallout({
   const isBanner = variant === 'banner';
 
   return (
-    <div className={cn('founder-vip-wrap', isBanner && 'founder-vip-wrap--banner', className)}>
+    <div className={cn('founder-soft-wrap', isBanner && 'founder-soft-wrap--banner', className)}>
       <a
         href={ROUTES.founderProgram}
-        className={cn('founder-vip-cta group', isBanner && 'founder-vip-cta--banner')}
+        className={cn('founder-soft-cta group', isBanner && 'founder-soft-cta--banner')}
         aria-label="Programa Fundador — 12 meses grátis para terreiros"
       >
-        <span className="founder-vip-cta__halo" aria-hidden />
-        <span className="founder-vip-cta__halo founder-vip-cta__halo--delay" aria-hidden />
-        <span className="founder-vip-cta__shine" aria-hidden />
-        <span className="founder-vip-cta__corner founder-vip-cta__blink" aria-hidden>
-          <Flame className="h-3 w-3" />
-          Últimas vagas
-        </span>
-
-        <span className={cn('founder-vip-cta__body', isBanner && 'founder-vip-cta__body--banner')}>
-          <span className="founder-vip-cta__seal founder-vip-cta__pulse-icon">
-            <Crown className="h-7 w-7" aria-hidden />
-            <Sparkles className="founder-vip-cta__spark h-4 w-4" aria-hidden />
+        <span className={cn('founder-soft-cta__body', isBanner && 'founder-soft-cta__body--banner')}>
+          <span className="founder-soft-cta__icon">
+            <Crown className="h-5 w-5" aria-hidden />
           </span>
 
           <span className="min-w-0 flex-1">
-            <span className="founder-vip-cta__live founder-vip-cta__blink">
-              <span className="founder-vip-cta__live-dot" aria-hidden />
+            <span className="founder-soft-cta__label">
               Programa Fundador
             </span>
-            <span className="founder-vip-cta__headline">
+            <span className="founder-soft-cta__headline">
               {FOUNDER_PROGRAM.freeMonths} meses grátis
             </span>
-            <span className="founder-vip-cta__slots founder-vip-cta__pulse-text">{slotsLabel}</span>
-            <span className="founder-vip-cta__action">
-              Quero minha vaga
-              <ArrowRight className="founder-vip-cta__arrow h-4 w-4" aria-hidden />
+            <span className="founder-soft-cta__slots">{slotsLabel}</span>
+            <span className="founder-soft-cta__action">
+              Ver Programa
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
             </span>
           </span>
         </span>
@@ -70,5 +60,5 @@ export function FounderHeroCallout({ variant = 'sidebar', className }: FounderHe
         ? 'Últimas vagas'
         : `${FOUNDER_PROGRAM.maxSlots} vagas`;
 
-  return <FounderVipCallout variant={variant} className={className} slotsLabel={slotsLabel} />;
+  return <FounderSoftCallout variant={variant} className={className} slotsLabel={slotsLabel} />;
 }

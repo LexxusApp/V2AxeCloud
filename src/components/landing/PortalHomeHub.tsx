@@ -46,8 +46,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Encontre casas de axé por tradição, cidade e perfil público.',
     href: ROUTES.terreiros,
     icon: Building2,
-    accent: 'text-amber-400',
-    iconBg: 'bg-amber-500/15 border-amber-500/25',
+    accent: 'text-[#D6A72A]',
+    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
     featured: true,
   },
   {
@@ -57,8 +57,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Veja giras, festas e encontros divulgados pelas casas.',
     href: ROUTES.eventosPublicos,
     icon: CalendarDays,
-    accent: 'text-rose-400',
-    iconBg: 'bg-rose-500/15 border-rose-500/25',
+    accent: 'text-[#D6A72A]',
+    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
     featured: true,
   },
   {
@@ -68,8 +68,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Envie seu pedido às casas que ativaram o acolhimento online.',
     href: ROUTES.espacoDoFiel,
     icon: Heart,
-    accent: 'text-pink-400',
-    iconBg: 'bg-pink-500/15 border-pink-500/25',
+    accent: 'text-[#D6A72A]',
+    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
   },
   {
     id: 'calendario',
@@ -78,8 +78,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Consulte datas sagradas, festas de orixás e observâncias.',
     href: ROUTES.liturgicalCalendar,
     icon: Sun,
-    accent: 'text-orange-400',
-    iconBg: 'bg-orange-500/15 border-orange-500/25',
+    accent: 'text-[#D6A72A]',
+    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
   },
   {
     id: 'conteudo',
@@ -88,8 +88,8 @@ const EXPLORAR_TILES: PortalTile[] = [
     description: 'Artigos, trilhas e termos do axé para filhos e consulentes.',
     href: ROUTES.contentHub,
     icon: BookOpen,
-    accent: 'text-sky-400',
-    iconBg: 'bg-sky-500/15 border-sky-500/25',
+    accent: 'text-[#D6A72A]',
+    iconBg: 'bg-[#D6A72A]/10 border-[#D6A72A]/20',
   },
 ];
 
@@ -100,9 +100,7 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
       href={tile.href}
       className={cn(
         'portal-action-card group relative flex h-full min-h-[164px] flex-col overflow-hidden rounded-[1.35rem] border p-5 transition sm:p-6',
-        tile.featured
-          ? 'portal-action-card--featured border-[#FBBC00]/30'
-          : 'border-white/[0.08]',
+        tile.featured ? 'portal-action-card--featured border-[#D6A72A]/22' : 'border-white/[0.08]',
       )}
     >
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -115,21 +113,16 @@ function PortalTileCard({ tile }: { tile: PortalTile }) {
         >
           <Icon className={cn('h-5 w-5', tile.accent)} aria-hidden />
         </div>
-        {tile.featured ? (
-          <span className="rounded-full border border-[#FBBC00]/25 bg-[#FBBC00]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#FBBC00]">
-            Destaque
-          </span>
-        ) : null}
       </div>
 
-      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] group-hover:text-[#FBBC00]">
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#6F7785] group-hover:text-[#D6A72A]">
         {tile.eyebrow}
       </p>
       <h3 className="mt-2 font-display text-xl font-black tracking-tight text-[#F1F5F9] group-hover:text-white">
         {tile.title}
       </h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-[#94A3B8]">{tile.description}</p>
-      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FBBC00]/20 bg-[#FBBC00]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#FBBC00] transition group-hover:border-[#FBBC00]/45 group-hover:bg-[#FBBC00]/15">
+      <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#D6A72A]/20 bg-[#D6A72A]/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#D6A72A] transition group-hover:border-[#D6A72A]/40 group-hover:bg-[#D6A72A]/[0.12]">
         Acessar
         <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden />
       </span>
@@ -328,13 +321,13 @@ export function PortalHomeHub() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-[2rem] border border-white/[0.07] bg-[#090B0F]/70 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-4">
+          <div className="mt-10 rounded-[2rem] border border-white/[0.07] bg-[#090B0F]/82 p-3 shadow-[0_20px_64px_rgba(0,0,0,0.24)] sm:p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 sm:px-2">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#FBBC00]">Portal AxéCloud</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#D6A72A]">Portal AxéCloud</p>
                 <p className="mt-1 text-sm text-[#94A3B8]">Escolha o caminho que quer acessar agora.</p>
               </div>
-              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300">
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300/90">
                 Comunidade ativa
               </span>
             </div>
