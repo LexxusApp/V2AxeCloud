@@ -443,36 +443,6 @@ export function PortalHomeHub() {
           </div>
         </div>
       </section>
-
-      <section className="landing-section landing-section--highlight pb-16" aria-labelledby="gestor-strip-title">
-        <div className="landing-section-inner mx-auto max-w-7xl">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8 md:flex md:items-center md:justify-between md:gap-8 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-50 sm:flex">
-                <Users className="h-6 w-6 text-emerald-600" aria-hidden />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Para zeladores e diretoria</p>
-                <h2 id="gestor-strip-title" className="mt-2 font-display text-xl font-black text-slate-900 md:text-2xl">
-                  Gerencia o seu terreiro no AxéCloud
-                </h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                  Painel completo: filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho —
-                  além de publicar eventos e perfil da casa neste portal.
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 flex shrink-0 flex-col gap-3 sm:flex-row md:mt-0">
-              <a href={appHref(ROUTES.login)} className="landing-btn-secondary text-center text-sm">
-                Entrar no painel
-              </a>
-              <a href={ROUTES.founderProgram} className="landing-btn-primary text-center text-sm">
-                Programa Fundador
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
     </>
   );
 }
