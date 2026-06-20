@@ -18,6 +18,8 @@ const Checkout = lazy(() => import('../views/Checkout'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
+const GiraCheckInPage = lazy(() => import('../views/GiraCheckInPage'));
+const GiraSenhasPublicPage = lazy(() => import('../views/GiraSenhasPublicPage'));
 const PortalWidgetPage = lazy(() => import('../views/portal/PortalWidgetPage'));
 
 function AppNotFound({ path }: { path: string }) {
@@ -82,6 +84,14 @@ function RoutedPage({ path }: { path: string }) {
 
   if (path.startsWith('/convite/') && path.length > '/convite/'.length) {
     return <EventRsvpPage />;
+  }
+
+  if (path.startsWith('/checkin/') && path.length > '/checkin/'.length) {
+    return <GiraCheckInPage />;
+  }
+
+  if (path.startsWith('/senhas/') && path.length > '/senhas/'.length) {
+    return <GiraSenhasPublicPage />;
   }
 
   switch (path) {

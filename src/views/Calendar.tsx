@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Moon, Star, Bell, Loader2, X, Ticket, User, Search, UserPlus, Lock, Smartphone, MessageSquare, ImagePlus, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { supabase } from '../lib/supabase';
-import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoCard,
@@ -18,8 +16,16 @@ import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton'
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { consumeCalendarFocusEventId } from '../lib/calendarFocus';
-import { hasPlanAccess, hasPremiumTierFeatures } from '../constants/plans';
+import { hasPlanAccess } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
+import { EventGiraOperationsPanel } from '../components/gira/EventGiraOperationsPanel';
+import { EventGuestsInline } from '../components/gira/EventGuestsInline';
+import {
+  checkinParticipante,
+  fetchMinhasParticipacoes,
+  respondParticipacao,
+  type ParticipanteStatus,
+} from '../lib/giraOperations';
 
 interface Event {
   id: string;
@@ -43,14 +49,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(new Error('Falha ao ler o arquivo'));
     reader.readAsDataURL(file);
   });
-}
-
-interface Guest {
-  id: string;
-  nome: string;
-  telefone?: string | null;
-  rsvp_token?: string | null;
-  status: 'Confirmado' | 'Pendente' | 'Check-in' | 'Recusado';
 }
 
 type EventWhatsAppFeedback = {
@@ -100,19 +98,6 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
       };
     default:
       return { message: 'Gira criada com sucesso!', type: 'success' };
-  }
-}
-
-function guestStatusMeta(status: Guest['status']) {
-  switch (status) {
-    case 'Confirmado':
-      return { label: 'Confirmado', color: 'text-primary', badge: 'bg-primary/15 text-primary' };
-    case 'Recusado':
-      return { label: 'Não vai', color: 'text-red-400', badge: 'bg-red-500/15 text-red-400' };
-    case 'Check-in':
-      return { label: 'Check-in', color: 'text-emerald-500', badge: 'bg-emerald-500/20 text-emerald-500' };
-    default:
-      return { label: 'Pendente', color: 'text-amber-400', badge: 'bg-amber-500/15 text-amber-400' };
   }
 }
 
@@ -259,6 +244,8 @@ type EventFormData = {
   descricao: string;
   status_confirmacao: string;
   evento_publico: boolean;
+  vagas_maximas: string;
+  senhas_ativas: boolean;
 };
 
 type AddEventModalPanelProps = {
@@ -407,6 +394,26 @@ function AddEventModalPanel({
                 Divulgar no portal público (/eventos)
               </span>
             </label>
+            <div>
+              <label className={appLabelClass}>Vagas máximas (opcional)</label>
+              <input
+                type="number"
+                min={0}
+                className={appInputClass}
+                placeholder="Sem limite"
+                value={formData.vagas_maximas}
+                onChange={(e) => setFormData({ ...formData, vagas_maximas: e.target.value })}
+              />
+            </div>
+            <label className="flex items-center gap-2 self-end pb-2">
+              <input
+                type="checkbox"
+                checked={formData.senhas_ativas}
+                onChange={(e) => setFormData({ ...formData, senhas_ativas: e.target.checked })}
+                className="h-4 w-4 accent-[#FBBC00]"
+              />
+              <span className="text-xs text-[#94A3B8]">Senhas online para consulentes</span>
+            </label>
             <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 sm:col-span-2">
               <label className={appLabelClass}>Banner (opcional)</label>
               <input
@@ -476,14 +483,13 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedEventForGuests, setSelectedEventForGuests] = useState<Event | null>(null);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loadingGuests, setLoadingGuests] = useState(false);
-  const [newGuestName, setNewGuestName] = useState('');
-  const [newGuestPhone, setNewGuestPhone] = useState('');
+  const [selectedEventForOps, setSelectedEventForOps] = useState<Event | null>(null);
+  const [participacoes, setParticipacoes] = useState<
+    Record<string, { status: ParticipanteStatus; id: string }>
+  >({});
+  const [partBusy, setPartBusy] = useState<string | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'event' | 'guest'; title?: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'event'; title?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -529,6 +535,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     descricao: '',
     status_confirmacao: 'Confirmado',
     evento_publico: false,
+    vagas_maximas: '',
+    senhas_ativas: false,
   });
 
   useEffect(() => {
@@ -540,10 +548,53 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   }, isFilho ? [currentMonth, effectiveTenantId, isFilho] : [effectiveTenantId, isFilho]);
 
   useEffect(() => {
-    if (selectedEventForGuests) {
-      fetchGuests(selectedEventForGuests.id);
+    if (!isFilho || !effectiveTenantId) return;
+    const monthStart = startOfMonth(currentMonth);
+    const rangeEnd = addDays(endOfMonth(currentMonth), 7);
+    void fetchMinhasParticipacoes(
+      effectiveTenantId,
+      format(monthStart, 'yyyy-MM-dd'),
+      format(rangeEnd, 'yyyy-MM-dd'),
+    )
+      .then((rows) => {
+        const map: Record<string, { status: ParticipanteStatus; id: string }> = {};
+        for (const r of rows) {
+          map[r.event_id] = { status: r.status, id: r.id };
+        }
+        setParticipacoes(map);
+      })
+      .catch(() => setParticipacoes({}));
+  }, [isFilho, effectiveTenantId, currentMonth, events.length]);
+
+  async function handleFilhoParticipacao(eventId: string, action: 'confirmar' | 'declinar' | 'checkin') {
+    if (!effectiveTenantId) return;
+    setPartBusy(eventId);
+    try {
+      if (action === 'checkin') {
+        await checkinParticipante(eventId, effectiveTenantId);
+      } else {
+        await respondParticipacao(eventId, effectiveTenantId, action);
+      }
+      const monthStart = startOfMonth(currentMonth);
+      const rangeEnd = addDays(endOfMonth(currentMonth), 7);
+      const rows = await fetchMinhasParticipacoes(
+        effectiveTenantId,
+        format(monthStart, 'yyyy-MM-dd'),
+        format(rangeEnd, 'yyyy-MM-dd'),
+      );
+      const map: Record<string, { status: ParticipanteStatus; id: string }> = {};
+      for (const r of rows) map[r.event_id] = { status: r.status, id: r.id };
+      setParticipacoes(map);
+      setToast({
+        type: 'success',
+        message: action === 'checkin' ? 'Presença registrada!' : action === 'confirmar' ? 'Participação confirmada!' : 'Resposta registrada.',
+      });
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erro');
+    } finally {
+      setPartBusy(null);
     }
-  }, [selectedEventForGuests]);
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -624,115 +675,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     }
   }
 
-  async function fetchGuests(eventId: string) {
-    setLoadingGuests(true);
-    try {
-      const { data, error } = await supabase
-        .from('convidados_eventos')
-        .select('id, nome, telefone, status, rsvp_token')
-        .eq('event_id', eventId)
-        .order('nome');
-      
-      if (error) throw error;
-      setGuests(data || []);
-    } catch (error) {
-      console.error('Error fetching guests:', error);
-    } finally {
-      setLoadingGuests(false);
-    }
-  }
-
-  async function addGuest() {
-    if (!newGuestName.trim() || !selectedEventForGuests) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('convidados_eventos')
-        .insert([{
-          event_id: selectedEventForGuests.id,
-          nome: newGuestName.trim(),
-          telefone: newGuestPhone.trim() ? newGuestPhone.trim().replace(/\D/g, '') : null,
-          status: 'Pendente' // Modifiquei de Confirmado para Pendente, para dar o sentido na confirmação
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      setGuests([...guests, data]);
-
-      // Disparar WhatsApp se for premium e e houver telefone
-      const isPremium = tenantData?.is_admin_global || hasPremiumTierFeatures(tenantData?.plan);
-      if (isPremium && newGuestPhone.trim()) {
-         try {
-           const { data: { session } } = await supabase.auth.getSession();
-           const token = session?.access_token;
-           const uid = session?.user?.id;
-           if (!token || !uid) return;
-           const rsvpToken = String(data?.rsvp_token || '').trim();
-           const waRes = await fetch(whatsappApiUrl('/whatsapp/send'), {
-              method: 'POST',
-              headers: whatsappRailwayHeaders(token, uid),
-              body: JSON.stringify({
-                tipo: 'convite_evento',
-                forcePhone: newGuestPhone.trim(),
-                variables: {
-                  event_id: selectedEventForGuests.id,
-                  nome_convidado: newGuestName.trim(),
-                  nome_terreiro: tenantData?.nome_terreiro || 'Nosso Terreiro',
-                  nome_evento: selectedEventForGuests.titulo,
-                  data_evento: format(parseISO(selectedEventForGuests.data), 'dd/MM/yyyy'),
-                  hora_evento: selectedEventForGuests.hora,
-                  local_evento: selectedEventForGuests.descricao || 'A confirmar',
-                  banner_url: selectedEventForGuests.banner_url || '',
-                  rsvp_token: rsvpToken,
-                }
-              })
-           });
-           if (!waRes.ok) {
-             const waErr = await waRes.json().catch(() => ({}));
-             console.warn('WhatsApp convite:', (waErr as { error?: string }).error || waRes.status);
-           }
-         } catch(e) {
-            console.error('Erro ao enviar whatsapp para convidado', e);
-         }
-      }
-
-      setNewGuestName('');
-      setNewGuestPhone('');
-    } catch (error) {
-      console.error('Error adding guest:', error);
-      alert('Erro ao adicionar convidado.');
-    }
-  }
-
-  async function updateGuestStatus(guestId: string, status: Guest['status']) {
-    try {
-      const { error } = await supabase
-        .from('convidados_eventos')
-        .update({ status })
-        .eq('id', guestId);
-
-      if (error) throw error;
-      setGuests(guests.map(g => g.id === guestId ? { ...g, status } : g));
-    } catch (error) {
-      console.error('Error updating guest status:', error);
-    }
-  }
-
-  async function removeGuest(guestId: string) {
-    try {
-      const { error } = await supabase
-        .from('convidados_eventos')
-        .delete()
-        .eq('id', guestId);
-
-      if (error) throw error;
-      setGuests(guests.filter(g => g.id !== guestId));
-    } catch (error) {
-      console.error('Error removing guest:', error);
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -792,6 +734,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         descricao: '',
         status_confirmacao: 'Confirmado',
         evento_publico: false,
+        vagas_maximas: '',
+        senhas_ativas: false,
       });
       setAddEventModalOpen(false);
       fetchEvents();
@@ -1021,10 +965,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     const horaFmt = formatHoraEvento(event.hora);
                     const dataCurta = format(parseISO(event.data), "dd/MM", { locale: ptBR });
                     const dataLonga = format(parseISO(event.data), "EEE, dd MMM", { locale: ptBR });
+                    const part = participacoes[event.id];
+                    const partStatus = part?.status;
                     return (
+                      <div key={event.id} className="space-y-2">
                       <button
                         type="button"
-                        key={event.id}
                         onClick={() => setEventDetailModal(event)}
                         className={cn(
                           'group flex w-full items-center gap-3 overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] p-2.5 text-left transition-all hover:border-primary/25 sm:p-3',
@@ -1084,6 +1030,53 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                           aria-hidden
                         />
                       </button>
+                      {!passed ? (
+                        <div className="flex flex-wrap gap-2 px-1">
+                          {partStatus === 'presente' ? (
+                            <span className="rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase text-primary">
+                              Presente na gira
+                            </span>
+                          ) : partStatus === 'confirmado' ? (
+                            <>
+                              <span className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400">
+                                Confirmado
+                              </span>
+                              <button
+                                type="button"
+                                disabled={partBusy === event.id}
+                                onClick={() => void handleFilhoParticipacao(event.id, 'checkin')}
+                                className="rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary"
+                              >
+                                Fazer check-in
+                              </button>
+                            </>
+                          ) : partStatus === 'recusado' ? (
+                            <span className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400">
+                              Não vou
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                disabled={partBusy === event.id}
+                                onClick={() => void handleFilhoParticipacao(event.id, 'confirmar')}
+                                className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400"
+                              >
+                                Confirmar vaga
+                              </button>
+                              <button
+                                type="button"
+                                disabled={partBusy === event.id}
+                                onClick={() => void handleFilhoParticipacao(event.id, 'declinar')}
+                                className="rounded-lg border border-[#1E242B] px-2 py-1 text-[10px] font-bold text-[#94A3B8]"
+                              >
+                                Não vou
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+                      </div>
                     );
                   })}
                 </div>
@@ -1172,12 +1165,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         ) : null}
                           <button 
                             type="button"
-                          onClick={() => setSelectedEventForGuests(event)}
+                          onClick={() => setSelectedEventForOps(event)}
                           className={cn(
                             'rounded p-1.5 hover:bg-white/10',
                             hasAccess ? 'text-primary' : 'text-zinc-600',
                           )}
-                          title={hasAccess ? 'Convidados' : 'Plano Oirô'}
+                          title={hasAccess ? 'Frequência, senhas, velas e QR' : 'Plano Oirô'}
                           disabled={!hasAccess}
                         >
                           <Ticket className="h-3.5 w-3.5" />
@@ -1281,232 +1274,26 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         )}
       </AnimatePresence>
 
-      {/* Modal de convidados */}
-      <AnimatePresence>
-        {selectedEventForGuests && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedEventForGuests(null)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      {selectedEventForOps && effectiveTenantId ? (
+        <EventGiraOperationsPanel
+          event={selectedEventForOps}
+          tenantId={effectiveTenantId}
+          onClose={() => setSelectedEventForOps(null)}
+          guestsSlot={
+            <EventGuestsInline
+              eventId={selectedEventForOps.id}
+              eventTitle={selectedEventForOps.titulo}
+              eventData={format(parseISO(selectedEventForOps.data), 'dd/MM/yyyy', { locale: ptBR })}
+              eventHora={selectedEventForOps.hora}
+              eventDescricao={selectedEventForOps.descricao}
+              bannerUrl={selectedEventForOps.banner_url}
+              tenantId={effectiveTenantId}
+              tenantPlan={tenantData?.plan}
+              isGlobalAdmin={isGlobalAdmin}
             />
-            <motion.div
-              initial={MODAL_PANEL_IN}
-              animate={MODAL_PANEL_DONE}
-              exit={MODAL_PANEL_OUT}
-              transition={MODAL_TW}
-              className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:max-w-lg sm:rounded-2xl"
-            >
-              {selectedEventForGuests.banner_url ? (
-                <div className="relative h-28 w-full shrink-0 overflow-hidden sm:h-32">
-                  <img
-                    src={selectedEventForGuests.banner_url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#13171D] via-[#13171D]/40 to-transparent" />
-                    </div>
-              ) : null}
-
-              <div className="shrink-0 border-b border-[#1E242B] px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8]">
-                      Lista de convidados
-                    </p>
-                    <h3 className="mt-1 truncate font-display text-lg font-bold text-[#F1F5F9]">
-                      {selectedEventForGuests.titulo}
-                    </h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#94A3B8]">
-                      <span className="inline-flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                        {format(parseISO(selectedEventForGuests.data), 'dd/MM/yyyy', { locale: ptBR })}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-primary" />
-                        {selectedEventForGuests.hora}
-                      </span>
-                      {selectedEventForGuests.descricao ? (
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-primary" />
-                          <span className="max-w-[200px] truncate">{selectedEventForGuests.descricao}</span>
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEventForGuests(null)}
-                    className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition-colors hover:bg-white/5 hover:text-white"
-                    aria-label="Fechar"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 no-scrollbar">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {[
-                    { label: 'Total', value: guests.length, tone: 'text-[#F1F5F9] border-[#1E242B] bg-[#12161A]' },
-                    {
-                      label: 'Confirmados',
-                      value: guests.filter((g) => g.status === 'Confirmado' || g.status === 'Check-in').length,
-                      tone: 'text-primary border-primary/25 bg-primary/10',
-                    },
-                    {
-                      label: 'Não vão',
-                      value: guests.filter((g) => g.status === 'Recusado').length,
-                      tone: 'text-red-400 border-red-500/20 bg-red-500/10',
-                    },
-                    {
-                      label: 'Pendentes',
-                      value: guests.filter((g) => g.status === 'Pendente').length,
-                      tone: 'text-amber-400 border-amber-500/20 bg-amber-500/10',
-                    },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className={cn('rounded-xl border px-3 py-3 text-center', stat.tone)}
-                    >
-                      <p className="text-xl font-bold tabular-nums">{stat.value}</p>
-                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">{stat.label}</p>
-                  </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <div className="relative flex-1">
-                      <UserPlus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-                      <input
-                        type="text"
-                        value={newGuestName}
-                        onChange={(e) => setNewGuestName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && addGuest()}
-                        placeholder="Nome do convidado"
-                        className={cn(appInputClass, 'pl-10')}
-                      />
-                    </div>
-                    {hasPlanAccess(tenantData?.plan, 'whatsapp_invites', isGlobalAdmin) && (
-                      <div className="relative flex-1">
-                        <Smartphone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
-                        <input
-                          type="tel"
-                          value={newGuestPhone}
-                          onChange={(e) => setNewGuestPhone(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && addGuest()}
-                          placeholder="WhatsApp (ex: 11999999999)"
-                          className={cn(
-                            appInputClass,
-                            'border-emerald-500/25 bg-emerald-500/5 pl-10 placeholder:text-emerald-500/40'
-                          )}
-                        />
-                      </div>
-                    )}
-                    <AppPrimaryButton
-                      type="button"
-                      onClick={addGuest}
-                      className="shrink-0 px-5 sm:self-stretch"
-                    >
-                      Adicionar
-                    </AppPrimaryButton>
-                  </div>
-                  {hasPlanAccess(tenantData?.plan, 'whatsapp_invites', isGlobalAdmin) && (
-                    <p className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
-                      <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
-                      Com WhatsApp preenchido, o convite Meta é enviado automaticamente.
-                    </p>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar na lista…"
-                    className={cn(appInputClass, 'pl-10')}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  {loadingGuests ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                    </div>
-                  ) : guests.filter((g) => g.nome.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
-                    guests
-                      .filter((g) => g.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((guest) => {
-                        const statusMeta = guestStatusMeta(guest.status);
-                        return (
-                          <div
-                            key={guest.id}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3 transition-colors hover:border-[#2F3643]"
-                          >
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div
-                                className={cn(
-                                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-                                  statusMeta.badge
-                                )}
-                              >
-                                <User className="h-4 w-4" />
-                          </div>
-                              <div className="min-w-0">
-                                <p className="truncate font-semibold text-[#F1F5F9]">{guest.nome}</p>
-                                <p className={cn('text-[10px] font-bold uppercase tracking-wider', statusMeta.color)}>
-                                  {statusMeta.label}
-                            </p>
-                          </div>
-                        </div>
-                            {isAdmin ? (
-                              <div className="flex shrink-0 items-center gap-1.5">
-                              {guest.status !== 'Check-in' ? (
-                                <button
-                                    type="button"
-                                  onClick={() => updateGuestStatus(guest.id, 'Check-in')}
-                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500"
-                                >
-                                  Check-in
-                                </button>
-                              ) : (
-                                <button
-                                    type="button"
-                                  onClick={() => updateGuestStatus(guest.id, 'Confirmado')}
-                                    className="rounded-lg border border-[#1E242B] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:bg-white/5"
-                                >
-                                  Estornar
-                                </button>
-                              )}
-                              <button
-                                  type="button"
-                                onClick={() => setItemToDelete({ id: guest.id, type: 'guest' })}
-                                  className="rounded-lg p-2 text-[#64748B] transition hover:bg-red-500/10 hover:text-red-400"
-                                  aria-label="Remover convidado"
-                              >
-                                  <X className="h-4 w-4" />
-                              </button>
-                        </div>
-                            ) : null}
-                      </div>
-                        );
-                      })
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-[#1E242B] py-12 text-center text-sm text-[#64748B]">
-                      Nenhum convidado na lista.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          }
+        />
+      ) : null}
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
@@ -1530,9 +1317,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               <div className="space-y-2">
                 <h3 className="text-xl font-black text-white">Confirmar Exclusão</h3>
                 <p className="text-sm font-medium text-[#94A3B8]">
-                  {itemToDelete.type === 'event'
-                    ? `Deseja realmente excluir o evento "${itemToDelete.title}"?`
-                    : 'Deseja remover este convidado da lista?'}
+                  Deseja realmente excluir o evento &quot;{itemToDelete.title}&quot;?
                 </p>
               </div>
               <div className="flex gap-3">
@@ -1544,14 +1329,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   onClick={async () => {
                     setIsDeleting(true);
                     try {
-                      if (itemToDelete.type === 'event') {
-                        const response = await authFetch(`/api/events/${itemToDelete.id}`, {
-                          method: 'DELETE',
-                        });
-                        if (response.ok) fetchEvents();
-                      } else if (itemToDelete.type === 'guest') {
-                        await removeGuest(itemToDelete.id);
-                      }
+                      const response = await authFetch(`/api/events/${itemToDelete.id}`, {
+                        method: 'DELETE',
+                      });
+                      if (response.ok) fetchEvents();
                       setItemToDelete(null);
                     } catch (err) {
                       console.error('Error deleting item:', err);

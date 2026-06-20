@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BookOpen,
   CalendarDays,
+  ClipboardList,
   Flame,
   Flower2,
   HandHeart,
@@ -30,7 +31,7 @@ export type AppNavItem = {
 };
 
 /** Módulos agrupados no menu «Casa» (zelador). */
-export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'mural'] as const;
+export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'frequencia', 'mural'] as const;
 
 /** Sub-rotas do menu «Financeiro» (zelador). */
 export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
@@ -49,6 +50,7 @@ export type ZeladorNavEntry =
 /** Mapeia id de navegação para feature de plano (sub-rotas do financeiro → `financial`). */
 export function navItemPlanFeature(itemId: string): string {
   if (itemId === 'financial' || itemId.startsWith('financial-')) return 'financial';
+  if (itemId === 'frequencia') return 'gestao_eventos';
   return itemId;
 }
 
@@ -69,6 +71,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'children', label: 'Filhos de Santo', icon: User },
   { id: 'financial', label: 'Financeiro', icon: PieChart },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
+  { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
   { id: 'mural', label: 'Mural', icon: Megaphone },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },

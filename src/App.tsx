@@ -32,6 +32,7 @@ const Store = lazy(() => import('./views/Store'));
 const Subscription = lazy(() => import('./views/Subscription'));
 const Atendimentos = lazy(() => import('./views/Atendimentos'));
 const Camarinha = lazy(() => import('./views/Camarinha'));
+const Frequencia = lazy(() => import('./views/Frequencia'));
 import { useWebPush } from './hooks/useWebPush';
 import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
@@ -1320,6 +1321,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       dashboard: true,
       children: true,
       calendar: true,
+      frequencia: hasPlanAccess(tenantData?.plan, 'gestao_eventos', isAdminGlobal),
       mural: true,
       settings: true,
       profile: true,
@@ -1362,6 +1364,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         return <Gallery tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'calendar': 
         return <Calendar user={session.user} userRole={userRole} tenantData={tenantData} setActiveTab={navigateToTab} />;
+      case 'frequencia':
+        return <Frequencia tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'mural':
         /* Neste ramo o usuário nunca é filho (filho tem switch próprio acima) — sempre gestão do terreiro */
         return <NoticeBoard isAdmin tenantData={tenantData} setActiveTab={navigateToTab} />;

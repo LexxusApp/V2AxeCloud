@@ -58,6 +58,7 @@ import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js"
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
+import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
@@ -3706,6 +3707,7 @@ async function startServer() {
   registerPublicPortalRoutes(app, { supabaseAdmin });
   registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
+  registerGiraOperationsRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
@@ -4080,6 +4082,16 @@ async function startServer() {
         descricao: req.body?.descricao ?? "",
         status_confirmacao: req.body?.status_confirmacao ?? "Confirmado",
         evento_publico: Boolean(req.body?.evento_publico),
+        vagas_maximas:
+          req.body?.vagas_maximas != null && req.body?.vagas_maximas !== ""
+            ? Math.max(0, Number(req.body.vagas_maximas) || 0)
+            : null,
+        confirmacao_automatica: req.body?.confirmacao_automatica !== false,
+        senhas_ativas: Boolean(req.body?.senhas_ativas),
+        checkin_qr_token: newPublicToken(),
+        ...(Boolean(req.body?.senhas_ativas)
+          ? { senhas_public_token: newPublicToken() }
+          : {}),
         ...(banner_url ? { banner_url } : {}),
         lider_id: user.id,
         tenant_id,
