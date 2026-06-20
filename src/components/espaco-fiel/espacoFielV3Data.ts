@@ -105,7 +105,7 @@ export const VELA_OPTIONS = [
   { color: 'Verde' as const, bg: 'bg-emerald-600 text-white border-emerald-850' },
   { color: 'Amarela' as const, bg: 'bg-yellow-500 text-gray-950 border-yellow-700' },
   { color: 'Preta' as const, bg: 'bg-gray-950 text-white border-gray-900' },
-  { color: 'Nenhuma' as const, bg: 'bg-transparent text-[#94A3B8] border-[#1E242B]' },
+  { color: 'Nenhuma' as const, bg: 'bg-transparent text-neutral-500 border-[#ece4d2]' },
 ];
 
 export const CIDADES_FILTRO = ['Todas', 'São Paulo', 'Rio de Janeiro', 'Salvador', 'Belo Horizonte', 'Curitiba', 'Porto Alegre'] as const;
