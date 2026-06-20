@@ -56,13 +56,13 @@ const fontLogin =
 const AUTH_MODAL_CARD = cn(
   'relative w-full overflow-hidden rounded-xl border border-primary/20 bg-card',
   'shadow-[0_0_50px_rgba(212,175,55,0.1)]',
-  'p-5 sm:p-6'
+  'px-4 pb-4 pt-2 sm:px-5 sm:pb-5'
 );
 
 const AUTH_MODAL_RADIUS = 'rounded-lg';
 
 const fieldShell = cn(
-  'w-full h-[38px] pl-[42px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
+  'w-full h-[34px] pl-[42px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
   'border border-white/10 bg-background',
   AUTH_MODAL_RADIUS,
   'outline-none transition-all focus:border-primary/50'
@@ -304,7 +304,7 @@ export default function Login() {
   return (
     <div
       className={cn(
-        'relative isolate flex min-h-screen min-h-[100dvh] flex-col items-center justify-center overflow-y-auto px-4 py-4 antialiased text-white backdrop-blur-2xl sm:px-6 sm:py-5',
+        'relative isolate flex h-[100dvh] max-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 py-2 antialiased text-white backdrop-blur-2xl sm:px-6',
         fontLogin
       )}
     >
@@ -321,9 +321,9 @@ export default function Login() {
       <motion.div
         initial={false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[22rem] sm:max-w-md"
+        className="relative z-10 w-full max-w-[22rem] sm:max-w-md"
       >
-        <div className={cn(AUTH_MODAL_CARD, 'space-y-4')}>
+        <div className={cn(AUTH_MODAL_CARD, 'space-y-2.5 sm:space-y-3')}>
         {showAlert && (
           <div
             className={cn(
@@ -346,19 +346,19 @@ export default function Login() {
           </div>
         )}
 
-        <header className="space-y-4 text-center">
-          <div className="flex justify-center py-1">
+        <header className="space-y-1.5 text-center">
+          <div className="flex justify-center">
             <img
               src={LOGIN_LOGO_SRC}
               alt="Ilê Asé — Gestão Sagrada"
               width={560}
               height={181}
               decoding="async"
-              className="h-auto w-full max-w-[260px] object-contain sm:max-w-[300px]"
+              className="login-card-logo h-auto w-full max-w-[210px] object-contain object-top sm:max-w-[240px] [@media(max-height:740px)]:max-w-[185px]"
             />
           </div>
           <h1 className="sr-only">Ilê Asé — Gestão Sagrada para terreiros</h1>
-          <div className="space-y-0.5 text-[13px] leading-snug">
+          <div className="space-y-0.5 text-[12px] leading-snug sm:text-[13px]">
             <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
             <p className="mx-auto max-w-[260px] text-gray-400">
               Organize, comunique e fortaleça sua casa com tecnologia e Axé.
@@ -366,8 +366,8 @@ export default function Login() {
           </div>
         </header>
 
-        <div className="space-y-3">
-          <form onSubmit={handleAuth} className="space-y-[8px]">
+        <div className="space-y-2">
+          <form onSubmit={handleAuth} className="space-y-[6px]">
             <AnimatePresence mode="wait">
               {!filhoSurface ? (
                 <motion.div
@@ -551,7 +551,7 @@ export default function Login() {
               whileTap={{ scale: 0.98 }}
               className={cn(
                 AUTH_MODAL_RADIUS,
-                'flex h-10 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
+                'flex h-9 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
                 'shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90 disabled:opacity-60'
               )}
             >
@@ -560,7 +560,7 @@ export default function Login() {
           </form>
 
           {!filhoSurface && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center gap-2 px-0.5">
                 <div className="h-px flex-1 bg-white/10" />
                 <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500">
@@ -576,7 +576,7 @@ export default function Login() {
                   setInfo(null);
                 }}
                 className={cn(
-                  'relative flex h-10 w-full items-center justify-center text-sm font-bold text-white',
+                  'relative flex h-9 w-full items-center justify-center text-sm font-bold text-white',
                   AUTH_MODAL_RADIUS,
                   'border border-white/10 bg-background transition-colors hover:border-primary/30 hover:bg-background/80'
                 )}
@@ -594,7 +594,7 @@ export default function Login() {
           <a
             href="/register"
             className={cn(
-              'group flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-background px-3 py-2.5',
+              'group flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-background px-3 py-2',
               'transition-colors hover:border-primary/20'
             )}
           >
@@ -612,7 +612,7 @@ export default function Login() {
           </a>
         </div>
 
-        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-4 text-[9px] font-black uppercase tracking-[0.28em] text-gray-600">
+        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-2.5 text-[8px] font-black uppercase tracking-[0.24em] text-gray-600 sm:text-[9px] sm:tracking-[0.28em]">
           <ShieldCheck className="h-4 w-4 shrink-0 text-primary/40" strokeWidth={1.55} />
           Seguro, confiável e feito para terreiros
         </p>
