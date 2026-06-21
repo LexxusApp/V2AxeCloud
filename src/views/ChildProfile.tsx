@@ -7,6 +7,7 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import { AppPageShell } from '../components/app/AppTopNav';
 import { hasPlanAccess } from '../constants/plans';
 import { ChildProfileV3View } from '../components/child-profile/ChildProfileV3View';
+import { resolveChildWhatsAppPhone } from '../lib/whatsappPhone';
 import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
 import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
 
@@ -217,7 +218,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         }
         
         setChild(data);
-        setEditData(data);
+        setEditData({
+          ...data,
+          whatsapp_phone: resolveChildWhatsAppPhone(data),
+        });
         setZeladorNotes(parseZeladorNotes(data?.notas_sigilosas));
 
         // Check for debt (compatível com schema novo e legado).
@@ -331,7 +335,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       
       const result = await response.json();
       setChild(result.data);
-      setEditData(result.data);
+      setEditData({
+        ...result.data,
+        whatsapp_phone: resolveChildWhatsAppPhone(result.data),
+      });
       setIsEditModalOpen(false);
     } catch (err: any) {
       console.error("Error saving child:", err);
@@ -767,7 +774,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
   // Mocked data for fields that don't exist in DB yet
   const cpf = editData.cpf || child.cpf || '';
   const endereco = editData.endereco || child.endereco || '';
-  const contato = editData.contato || child.contato || '';
+  const contato = resolveChildWhatsAppPhone(editData) || resolveChildWhatsAppPhone(child);
   const adjunto = editData.adjunto || child.adjunto || '';
   const data_feitura = editData.data_feitura || child.data_feitura || '';
   const historico = child.historico_obrigacoes || [

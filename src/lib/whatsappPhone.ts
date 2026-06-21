@@ -64,3 +64,10 @@ export function previewBrWhatsAppMsisdn(phone: string): string | null {
 export function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
+
+/** Lê WhatsApp do filho (coluna canônica `whatsapp_phone`, fallback legado `contato`). */
+export function resolveChildWhatsAppPhone(row: Record<string, unknown> | null | undefined): string {
+  if (!row) return "";
+  const raw = row.whatsapp_phone ?? row.contato;
+  return raw != null ? String(raw) : "";
+}

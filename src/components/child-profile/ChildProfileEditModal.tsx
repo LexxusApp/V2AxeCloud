@@ -5,6 +5,7 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import { appInputClass, appLabelClass } from '../../lib/appUiTokens';
 import { AppPrimaryButton } from '../ui/appDemoUi';
 import { cn } from '../../lib/utils';
+import { resolveChildWhatsAppPhone } from '../../lib/whatsappPhone';
 
 const ORIXAS = ['Oxalá', 'Iemanjá', 'Ogum', 'Oxóssi', 'Xangô', 'Iansã', 'Oxum', 'Nanã', 'Obaluaê', 'Exu', 'Pombagira'];
 
@@ -126,12 +127,12 @@ export function ChildProfileEditModal({
                 />
               </div>
               <div className="col-span-2">
-                <label className={fieldLabel}>Contato</label>
+                <label className={fieldLabel}>WhatsApp</label>
                 <input
-                  type="text"
-                  value={String(editData.contato || '')}
-                  onChange={(e) => onChange('contato', e.target.value)}
-                  placeholder="WhatsApp ou telefone"
+                  type="tel"
+                  value={resolveChildWhatsAppPhone(editData)}
+                  onChange={(e) => onChange('whatsapp_phone', e.target.value)}
+                  placeholder="11999999999"
                   className={fieldInput}
                 />
               </div>
