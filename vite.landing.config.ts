@@ -12,8 +12,11 @@ function stripCrossoriginFromBuiltHtml(): Plugin {
   return {
     name: 'strip-crossorigin-built-html-landing',
     apply: 'build',
-    transformIndexHtml(html) {
-      return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+      },
     },
   };
 }
@@ -58,6 +61,8 @@ export default defineConfig(({ mode }) => {
   build: {
     outDir: path.resolve(__dirname, 'landing-dist'),
     emptyOutDir: true,
+    /** Evita aviso de preload vs script quando Cloudflare Rocket Loader altera o carregamento. */
+    modulePreload: false,
     rollupOptions: {
       output: {
         entryFileNames: 'm-assets/[name]-[hash].js',

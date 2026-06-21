@@ -33,13 +33,13 @@ function StylizedAtabaque({ className }: { className?: string }) {
         strokeLinejoin="round"
       />
       <path
-        d="M12 20 C26 23 40 20 M11 28 C26 31 41 28 M12 36 C26 39 40 36 M13 44 C26 47 39 44 M14 52 C26 55 38 52"
+        d="M12 20 Q26 23 40 20 M11 28 Q26 31 41 28 M12 36 Q26 39 40 36 M13 44 Q26 47 39 44 M14 52 Q26 55 38 52"
         stroke="#d4a574"
         strokeWidth="1.15"
         strokeLinecap="round"
       />
       <path
-        d="M14 54 C26 57 38 54 C36 60 26 63 16 60 C14 58 14 56 14 54 Z"
+        d="M14 54 Q26 57 38 54 Q36 60 26 63 Q16 60 14 54 Z"
         fill="#5c3619"
         stroke="#1b1813"
         strokeWidth="1.2"

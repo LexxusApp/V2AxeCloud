@@ -21,8 +21,11 @@ function stripCrossoriginFromBuiltHtml(): Plugin {
   return {
     name: 'strip-crossorigin-built-html',
     apply: 'build',
-    transformIndexHtml(html) {
-      return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+      },
     },
   };
 }
