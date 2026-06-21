@@ -23,7 +23,7 @@ import './index.css';
 
 let swRegistration: ServiceWorkerRegistration | undefined;
 
-const SW_RESET_KEY = 'axecloud-sw-reset-v108';
+const SW_RESET_KEY = 'axecloud-sw-reset-v109';
 const SW_BACKGROUND_PROBE_MS = 3 * 60 * 1000;
 
 const requestAppUpdateCheck = (swHint = false) => {

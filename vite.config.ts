@@ -11,11 +11,6 @@ import {HOME_SEO} from './src/constants/seoHome';
 import {BRAND_NAME} from './src/constants/seoBrandKeywords';
 import {MARKETING_SITE_PATHS} from './src/lib/routes';
 
-function isMarketingNavigatePath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/';
-  return (MARKETING_SITE_PATHS as readonly string[]).includes(p) || p.startsWith('/conteudo/');
-}
-
 /** Vite injeta crossorigin nos bundles; com CORP global isso quebrava script/style no Brave/Chrome. */
 function stripCrossoriginFromBuiltHtml(): Plugin {
   return {
@@ -110,9 +105,11 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v115',
+          cacheId: 'axecloud-v116',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
+          /** Sem fallback de navegação — evita no-response do Workbox em /dashboard e outras rotas do app. */
+          navigateFallback: null,
           importScripts: ['/sw-push.js'],
           navigateFallbackDenylist: [
             /^\/api\//,
@@ -123,32 +120,14 @@ export default defineConfig(({mode}) => {
             /^\/espaco-do-fiel(\/|$)/,
             /^\/conteudo(\/|$)/,
           ],
-          /** HTML e assets: rede primeiro — PWA instalado não fica preso em bundle antigo se houver rede. */
+          /** Só assets (JS/CSS/fonts) — documentos HTML vão direto à rede sem interceptação do SW. */
           runtimeCaching: [
-            {
-              urlPattern: ({ request, sameOrigin, url }) => {
-                if (!sameOrigin || request.mode !== 'navigate') return false;
-                const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
-                return isMarketingNavigatePath(p);
-              },
-              handler: 'NetworkOnly',
-            },
-            {
-              urlPattern: ({ request, sameOrigin, url }) => {
-                if (!sameOrigin || request.mode !== 'navigate') return false;
-                const p = new URL(url).pathname.replace(/\/+$/, '') || '/';
-                if (isMarketingNavigatePath(p)) return false;
-                // App (login, painel, convites): documento sempre da rede — evita HTML em cache com hashes antigos.
-                return true;
-              },
-              handler: 'NetworkOnly',
-            },
             {
               urlPattern: ({ request, sameOrigin }) =>
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v113',
+                cacheName: 'axecloud-runtime-network-first-v116',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },
