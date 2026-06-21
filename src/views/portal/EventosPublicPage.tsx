@@ -12,12 +12,12 @@ import { fetchPublicEventos, terreiroProfilePath, type PublicEvento } from '../.
 import { ROUTES } from '../../lib/routes';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../../lib/modalMotion';
 
-function EventBanner({ url, alt }: { url: string; alt: string }) {
+function EventListThumb({ url, alt }: { url: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
-  if (failed) {
+  if (!url || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#f3ebe0]">
-        <CalendarDays className="h-10 w-10 text-[#1b1813]/15" />
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-[#f3ebe0]">
+        <CalendarDays className="h-8 w-8 text-[#1b1813]/15" aria-hidden />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function EventosPublicPage() {
             </a>
           </div>
         ) : (
-          <ul className="mt-10 space-y-4">
+          <ul className="mx-auto mt-10 flex max-w-2xl flex-col gap-4">
             {items.map((ev) => {
               let dataFmt = ev.data;
               try {
@@ -82,36 +82,34 @@ export default function EventosPublicPage() {
                     type="button"
                     onClick={() => setDetail(ev)}
                     className={cn(
-                      'group w-full cursor-pointer overflow-hidden text-left transition hover:-translate-y-0.5',
+                      'group flex w-full cursor-pointer gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
                       landingMockupCardClass,
                       'rounded-2xl',
                     )}
                   >
-                    {ev.bannerUrl ? (
-                      <div className="aspect-[16/9] max-h-44 overflow-hidden bg-[#f3ebe0] sm:max-h-48">
-                        <EventBanner url={ev.bannerUrl} alt={ev.titulo} />
-                      </div>
-                    ) : (
-                      <div className="flex aspect-[16/9] max-h-44 w-full items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent sm:max-h-48">
-                        <CalendarDays className="h-10 w-10 text-[#1b1813]/15" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-2 p-5">
-                      <span className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{ev.tipo}</span>
-                      <h2 className="text-lg font-bold text-[#1b1813]">{ev.titulo}</h2>
-                      <p className="flex items-center gap-2 text-sm text-[#1b1813]/65">
+                    <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f3ebe0] sm:h-28 sm:w-32">
+                      <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{ev.tipo}</span>
+                      <h2 className="mt-1 text-base font-bold leading-snug text-[#1b1813] group-hover:text-[#FFC107] sm:text-lg">
+                        {ev.titulo}
+                      </h2>
+                      <p className="mt-1.5 flex items-center gap-2 text-sm text-[#1b1813]/65">
                         <Calendar className="h-4 w-4 shrink-0" />
                         {dataFmt} · {ev.hora}
                       </p>
-                      <span className="flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
+                      <span className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        {ev.terreiro.nome}
-                        {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
+                        <span className="truncate">
+                          {ev.terreiro.nome}
+                          {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
+                        </span>
                       </span>
                       {ev.descricao ? (
-                        <p className="line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
+                        <p className="mt-2 line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
                       ) : null}
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
                         Toque para ver detalhes
                       </p>
                     </div>
