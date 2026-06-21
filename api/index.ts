@@ -4014,13 +4014,14 @@ async function startServer() {
     const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
     if (!access) return;
     const tenantId = access.tenantId;
-    const { start, end } = req.query;
+    const { start, end, scope } = req.query;
     try {
       const resolvedId = await resolveLeaderId(tenantId);
       const ids = Array.from(new Set([tenantId, resolvedId].filter(Boolean)));
       const tenantFilters = ids.flatMap((id) => [`tenant_id.eq.${id}`, `lider_id.eq.${id}`]).join(',');
       let query = supabaseAdmin.from('calendario_axe').select('*').order('data', { ascending: true });
       query = query.or(tenantFilters);
+      if (scope === 'calendar') query = query.neq('tipo', 'Obrigação');
       if (start) query = query.gte('data', start as string);
       if (end) query = query.lte('data', end as string);
       
@@ -4073,6 +4074,13 @@ async function startServer() {
       const rawBanner = req.body?.banner_url;
       const banner_url =
         typeof rawBanner === "string" && rawBanner.trim().length > 0 ? rawBanner.trim() : null;
+
+      const eventTipo = String(req.body?.tipo || '').trim();
+      if (eventTipo === 'Obrigação') {
+        return res.status(400).json({
+          error: 'Obrigações devem ser cadastradas no perfil do filho de santo, não no calendário de giras.',
+        });
+      }
 
       const eventData = {
         titulo: req.body?.titulo,

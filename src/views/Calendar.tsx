@@ -16,6 +16,7 @@ import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton'
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { consumeCalendarFocusEventId } from '../lib/calendarFocus';
+import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
 import { hasPlanAccess } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { EventGiraOperationsPanel } from '../components/gira/EventGiraOperationsPanel';
@@ -337,7 +338,6 @@ function AddEventModalPanel({
               >
                 <option value="Gira">Normal</option>
                 <option value="Festa">Festa pública</option>
-                <option value="Obrigação">Trabalho interno</option>
                 <option value="Manutenção">Caridade</option>
                 <option value="Reunião">Reunião</option>
               </select>
@@ -618,20 +618,20 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       const cacheKey = `cal_events_all_${effectiveTenantId}`;
       const cached = readStaleCache<Event[]>(cacheKey);
       if (cached != null) {
-        setEvents(cached);
+        setEvents(excludeObrigacaoEvents(cached));
         setLoading(false);
       } else {
         setLoading(true);
       }
       try {
-        const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}`;
+        const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&scope=calendar`;
         const response = await authFetch(url);
         if (!response.ok) {
           const body = await response.text().catch(() => '');
           throw new Error(`Failed to fetch events (${response.status}): ${body}`);
         }
         const { data } = await response.json();
-        const list = data || [];
+        const list = excludeObrigacaoEvents(data || []);
         setEvents(list);
         writeStaleCache(cacheKey, list);
       } catch (error) {
@@ -650,21 +650,21 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
     const cached = readStaleCache<Event[]>(cacheKey);
     if (cached != null) {
-      setEvents(cached);
+      setEvents(excludeObrigacaoEvents(cached));
       setLoading(false);
     } else {
       setLoading(true);
     }
 
     try {
-      const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(rangeEnd, 'yyyy-MM-dd')}`;
+      const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(rangeEnd, 'yyyy-MM-dd')}&scope=calendar`;
       const response = await authFetch(url);
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         throw new Error(`Failed to fetch events (${response.status}): ${body}`);
       }
       const { data } = await response.json();
-      const list = data || [];
+      const list = excludeObrigacaoEvents(data || []);
       setEvents(list);
       writeStaleCache(cacheKey, list);
     } catch (error) {

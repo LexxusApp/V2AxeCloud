@@ -550,7 +550,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       }
 
       closeObligationModal();
-      alert('Obrigação agendada com sucesso no calendário!');
+      alert('Obrigação registrada com sucesso!');
     } catch (error) {
       console.error('Error adding obligation:', error);
       alert(error instanceof Error ? error.message : 'Erro ao agendar obrigação.');

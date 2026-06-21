@@ -9,6 +9,7 @@ import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import { setCalendarFocusEventId } from '../../lib/calendarFocus';
+import { excludeObrigacaoEvents } from '../../lib/calendarEventFilters';
 
 export type DashboardNextEvent = {
   id: string;
@@ -97,7 +98,7 @@ export function DashboardProximaGira({ event, onOpenCalendar }: DashboardProxima
           </div>
           <p className="text-sm font-bold text-gray-400">Nenhuma gira agendada</p>
           <p className="mt-2 max-w-xs text-xs leading-relaxed text-gray-600">
-            Cadastre a próxima obrigação ou festa no calendário para avisar a casa.
+            Cadastre a próxima gira ou festa no calendário para avisar a casa.
           </p>
           <button
             type="button"
@@ -220,7 +221,7 @@ export function pickNextUpcomingEvent(events: DashboardNextEvent[]): DashboardNe
   };
 
   return (
-    [...events]
+    excludeObrigacaoEvents(events)
       .filter((e) => {
         try {
           return parseEventDateTime(e).getTime() > now;

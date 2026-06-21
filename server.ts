@@ -3438,7 +3438,7 @@ async function startServer() {
 
   // API Route: Get Events (Bypasses RLS)
   app.get("/api/events", async (req, res) => {
-    const { tenantId, start, end } = req.query;
+    const { tenantId, start, end, scope } = req.query;
     // tenantId obrigatório para evitar vazamento de dados entre tenants
     if (!tenantId || typeof tenantId !== 'string' || tenantId.trim() === '') {
       return res.status(400).json({ error: "tenantId é obrigatório" });
@@ -3452,6 +3452,7 @@ async function startServer() {
         .select('*')
         .or(tenantFilters)
         .order('data', { ascending: true });
+      if (scope === 'calendar') query = query.neq('tipo', 'Obrigação');
       if (start) query = query.gte('data', start as string);
       if (end) query = query.lte('data', end as string);
       
@@ -3507,6 +3508,13 @@ async function startServer() {
       const rawBanner = req.body?.banner_url;
       const banner_url =
         typeof rawBanner === "string" && rawBanner.trim().length > 0 ? rawBanner.trim() : null;
+
+      const eventTipo = String(req.body?.tipo || '').trim();
+      if (eventTipo === 'Obrigação') {
+        return res.status(400).json({
+          error: 'Obrigações devem ser cadastradas no perfil do filho de santo, não no calendário de giras.',
+        });
+      }
 
       const eventData = {
         titulo: req.body?.titulo,

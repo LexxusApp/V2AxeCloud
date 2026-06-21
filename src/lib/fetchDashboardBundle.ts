@@ -91,7 +91,7 @@ export async function fetchDashboardBundle(
             r.ok ? r.json() : { data: [] },
           )
         : Promise.resolve({ data: [] }),
-      authFetch(`/api/events?tenantId=${tid}&start=${monthStart}&end=${monthEnd}`).then(async (r) =>
+      authFetch(`/api/events?tenantId=${tid}&start=${monthStart}&end=${monthEnd}&scope=calendar`).then(async (r) =>
         r.ok ? r.json() : { data: [] },
       ),
       authFetch(`/api/notices?tenantId=${tid}`).then(async (r) => (r.ok ? r.json() : { data: [] })),

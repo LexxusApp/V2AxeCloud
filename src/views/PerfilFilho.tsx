@@ -404,7 +404,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       try {
         const hoje = startOfDay(new Date());
         const fim = endOfMonth(addMonths(hoje, 5));
-        const url = `/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${format(hoje, 'yyyy-MM-dd')}&end=${format(fim, 'yyyy-MM-dd')}`;
+        const url = `/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${format(hoje, 'yyyy-MM-dd')}&end=${format(fim, 'yyyy-MM-dd')}&scope=calendar`;
         const res = await authFetch(url);
         if (!res.ok) throw new Error('Falha ao carregar eventos');
         const { data } = await res.json();

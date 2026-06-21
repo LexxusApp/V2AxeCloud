@@ -163,7 +163,7 @@ async function fetchDashboardFinanceBundle(
             r.ok ? r.json() : { data: [] }
           )
         : Promise.resolve({ data: [] }),
-      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}`).then(async (r) =>
+      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}&scope=calendar`).then(async (r) =>
         r.ok ? r.json() : { data: [] }
       ),
     ]);
