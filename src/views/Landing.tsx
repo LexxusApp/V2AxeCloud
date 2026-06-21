@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ArrowUp, Check, MessageCircle } from 'lucide-react';
-import { LandingTopNav } from '../components/marketing/MarketingTopNav';
 import { MarketingMockupFooter } from '../components/marketing/MarketingMockupFooter';
 import { PortalHomeHub } from '../components/landing/PortalHomeHub';
 import { LandingReveal } from '../components/landing/LandingReveal';
@@ -124,8 +123,6 @@ export default function Landing() {
   return (
     <>
       <span id="top" className="sr-only" aria-hidden />
-
-      <LandingTopNav />
 
       <LandingMockupSideRails />
 

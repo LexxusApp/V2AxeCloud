@@ -2641,6 +2641,38 @@ html:has(.app-v3) {
   scale: 1 !important;
 }
 
+.landing-mockup-nav a,
+.landing-mockup-nav button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transform: none !important;
+  scale: 1 !important;
+  transition-property: color, background-color, border-color, opacity, box-shadow !important;
+}
+
+.landing-mockup-nav a:hover,
+.landing-mockup-nav a:active,
+.landing-mockup-nav a:focus,
+.landing-mockup-nav a:focus-visible,
+.landing-mockup-nav button:hover,
+.landing-mockup-nav button:active,
+.landing-mockup-nav button:focus,
+.landing-mockup-nav button:focus-visible {
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.landing-mockup-nav img,
+.landing-mockup-nav .landing-mockup-logo {
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.landing-mockup-nav__link:hover,
+.landing-mockup-nav__cta:hover {
+  transform: none !important;
+}
+
 .app-v3 button:active:not(:disabled),
 .app-v3 [role='button']:active:not([aria-disabled='true']),
 .app-v3 a:active,

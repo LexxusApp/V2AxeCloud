@@ -286,7 +286,7 @@ export function LandingMockupLogo({ variant = 'nav' }: { variant?: 'nav' | 'foot
       className={
         variant === 'footer'
           ? 'landing-mockup-logo h-11 w-auto max-w-[14rem] object-contain object-left sm:h-12 sm:max-w-[16rem]'
-          : 'landing-mockup-logo h-12 w-auto max-w-[14rem] object-contain object-left sm:h-[4.75rem] sm:max-w-[18rem] md:h-[5.25rem] md:max-w-[20rem] lg:h-[5.75rem] lg:max-w-[22rem] xl:h-[6.25rem] xl:max-w-[24rem]'
+          : 'landing-mockup-logo h-14 w-auto max-w-[11rem] object-contain object-left sm:h-16 sm:max-w-[13rem] md:h-[4.25rem] md:max-w-[15rem]'
       }
     />
   );
@@ -306,8 +306,8 @@ export function LandingTopNav() {
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="landing-mockup-nav sticky top-0 z-50 bg-black">
-      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 pt-1.5 pb-0 md:pt-2 md:pb-0 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
+    <nav className="landing-mockup-nav sticky top-0 z-50 min-h-[var(--landing-mockup-nav-height,4.25rem)] bg-black">
+      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[var(--landing-mockup-nav-height,4.25rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 pt-1.5 pb-0 md:pt-2 md:pb-0 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
         <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="ILÊ ASÉ — início">
           <LandingMockupLogo />
         </a>
@@ -401,5 +401,5 @@ export function LandingTopNav() {
 
 export function MarketingSubpageTopNav({ active }: { active?: 'fiel' }) {
   void active;
-  return <LandingTopNav />;
+  return null;
 }

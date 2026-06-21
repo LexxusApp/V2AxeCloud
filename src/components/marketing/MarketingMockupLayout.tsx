@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 import { LandingMockupSideRails } from '../landing/LandingMockupSideRails';
-import { LandingTopNav } from './MarketingTopNav';
 import { MarketingMockupFooter } from './MarketingMockupFooter';
 
 type MarketingMockupLayoutProps = {
@@ -19,7 +18,6 @@ export function MarketingMockupLayout({
 }: MarketingMockupLayoutProps) {
   return (
     <>
-      <LandingTopNav />
       {showSideRails ? <LandingMockupSideRails /> : null}
       <div
         className={cn(

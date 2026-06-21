@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect } from 'react';
+import { LandingTopNav } from '../components/marketing/MarketingTopNav';
 import { usePathname } from '../hooks/usePathname';
 import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
+import { installMarketingClientNavigation } from '../lib/marketingNavigation';
 import { ROUTES, normalizePath } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
@@ -22,7 +24,12 @@ const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage')
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 
 function MarketingSectionFallback() {
-  return <div aria-hidden className="min-h-[12rem] w-full" />;
+  return (
+    <div
+      aria-hidden
+      className="landing-v3 landing-mockup-theme min-h-[50vh] w-full bg-[#fdf8f0]"
+    />
+  );
 }
 
 function parseTerreirosPath(path: string): 'directory' | { city: string } | { profile: string } | null {
@@ -91,6 +98,8 @@ function MarketingAppRouteRedirect({ path }: { path: string }) {
 export default function MarketingRouter() {
   const path = usePathname();
 
+  useEffect(() => installMarketingClientNavigation(), []);
+
   useEffect(() => {
     applyRouteSeo(path);
   }, [path]);
@@ -104,8 +113,11 @@ export default function MarketingRouter() {
   }
 
   return (
-    <Suspense fallback={<MarketingSectionFallback />}>
-      <RoutedMarketingPage path={path} />
-    </Suspense>
+    <>
+      <LandingTopNav />
+      <Suspense fallback={<MarketingSectionFallback />}>
+        <RoutedMarketingPage path={path} />
+      </Suspense>
+    </>
   );
 }
