@@ -33,6 +33,7 @@ import {
   VELAS_VALIDAS,
   type VelaCor,
 } from '../../lib/pedidosRezaTypes';
+import BodyPortal from '../BodyPortal';
 import { AppPrimaryButton } from '../ui/appDemoUi';
 
 type TabId = 'frequencia' | 'senhas' | 'velas' | 'qr';
@@ -119,6 +120,14 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
   useEffect(() => {
     void loadCore();
   }, [loadCore]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     if (tab === 'senhas') void loadSenhas();
@@ -236,14 +245,22 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
   const velaOptions = useMemo(() => Array.from(VELAS_VALIDAS), []);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:rounded-2xl">
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] px-4 py-4 sm:px-5">
+    <BodyPortal>
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pt-20 pb-4 sm:p-6 sm:pt-24">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gira-ops-title"
+          className="relative z-10 flex max-h-[min(calc(100dvh-5.5rem),calc(100dvh-7rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
+        >
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] px-4 py-3 sm:px-5">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Operações da gira</p>
-            <h3 className="truncate text-lg font-black text-white">{event.titulo}</h3>
-            <p className="text-xs text-[#94A3B8]">
+            <h3 id="gira-ops-title" className="truncate text-base font-black text-white sm:text-lg">
+              {event.titulo}
+            </h3>
+            <p className="text-[11px] text-[#94A3B8] sm:text-xs">
               {event.data} · {event.hora} · {event.tipo}
             </p>
           </div>
@@ -252,7 +269,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
           </button>
         </div>
 
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#1E242B] px-3 py-2 [scrollbar-width:none]">
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#1E242B] px-3 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -272,7 +289,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {loading && tab === 'frequencia' ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -280,8 +297,8 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
           ) : error ? (
             <p className="text-sm text-red-400">{error}</p>
           ) : tab === 'frequencia' ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="space-y-3">
+              <div className="grid grid-cols-4 gap-1.5">
                 {[
                   { label: 'Filhos', value: stats.total },
                   { label: 'Confirmados', value: stats.confirmados },
@@ -291,106 +308,112 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
                     value: stats.vagas_maximas != null ? `${stats.confirmados}/${stats.vagas_maximas}` : '∞',
                   },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">{s.label}</p>
-                    <p className="text-xl font-black text-white tabular-nums">{s.value}</p>
+                  <div key={s.label} className="rounded-lg border border-[#1E242B] bg-[#12161A] px-2 py-2 text-center">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{s.label}</p>
+                    <p className="text-lg font-black text-white tabular-nums">{s.value}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 space-y-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#94A3B8]">Configuração de vagas</p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Máximo de participantes</label>
-                    <input
-                      type="number"
-                      min={0}
-                      className="mt-1 w-full rounded-lg border border-[#1E242B] bg-[#0D0F12] px-3 py-2 text-sm text-white"
-                      placeholder="Sem limite"
-                      value={config.vagas_maximas}
-                      onChange={(e) => setConfig((c) => ({ ...c, vagas_maximas: e.target.value }))}
-                    />
-                  </div>
-                  <label className="flex items-center gap-2 self-end pb-2">
-                    <input
-                      type="checkbox"
-                      checked={config.confirmacao_automatica}
-                      onChange={(e) => setConfig((c) => ({ ...c, confirmacao_automatica: e.target.checked }))}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    <span className="text-xs text-[#94A3B8]">Confirmar participação automaticamente</span>
-                  </label>
-                  <label className="flex items-center gap-2 sm:col-span-2">
-                    <input
-                      type="checkbox"
-                      checked={config.senhas_ativas}
-                      onChange={(e) => setConfig((c) => ({ ...c, senhas_ativas: e.target.checked }))}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    <span className="text-xs text-[#94A3B8]">Ativar emissão pública de senhas para consulentes</span>
-                  </label>
-                </div>
-                <AppPrimaryButton
-                  type="button"
-                  disabled={savingConfig}
-                  className="w-full sm:w-auto"
-                  onClick={() => void handleSaveConfig()}
-                >
-                  {savingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar configuração'}
-                </AppPrimaryButton>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#94A3B8]">Corrente — presença</p>
-                {participantes.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">Nenhum filho cadastrado.</p>
-                ) : (
-                  participantes.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">
-                          {p.filhos_de_santo?.nome || 'Filho'}
-                        </p>
-                        <p className="text-[10px] text-gray-500">{p.filhos_de_santo?.cargo || '—'}</p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-black uppercase', statusBadge(p.status))}>
-                          {p.status}
-                        </span>
-                        {p.status === 'pendente' && p.justificativa?.includes('aprovação') ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleApprove(p.id)}
-                            className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400"
-                          >
-                            Aprovar
-                          </button>
-                        ) : null}
-                        {p.status !== 'presente' ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleCheckin(p.filho_id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary"
-                          >
-                            <UserCheck className="h-3 w-3" />
-                            Check-in
-                          </button>
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4 text-primary" aria-label="Presente" />
-                        )}
-                      </div>
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 space-y-2.5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Configuração de vagas</p>
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-gray-500">Máximo de participantes</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="mt-1 w-full rounded-lg border border-[#1E242B] bg-[#0D0F12] px-3 py-1.5 text-sm text-white"
+                        placeholder="Sem limite"
+                        value={config.vagas_maximas}
+                        onChange={(e) => setConfig((c) => ({ ...c, vagas_maximas: e.target.value }))}
+                      />
                     </div>
-                  ))
-                )}
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={config.confirmacao_automatica}
+                        onChange={(e) => setConfig((c) => ({ ...c, confirmacao_automatica: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                      />
+                      <span className="text-[11px] leading-snug text-[#94A3B8]">Confirmar participação automaticamente</span>
+                    </label>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={config.senhas_ativas}
+                        onChange={(e) => setConfig((c) => ({ ...c, senhas_ativas: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                      />
+                      <span className="text-[11px] leading-snug text-[#94A3B8]">
+                        Ativar emissão pública de senhas para consulentes
+                      </span>
+                    </label>
+                  </div>
+                  <AppPrimaryButton
+                    type="button"
+                    disabled={savingConfig}
+                    className="w-full"
+                    onClick={() => void handleSaveConfig()}
+                  >
+                    {savingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar configuração'}
+                  </AppPrimaryButton>
+                </div>
+
+                <div className="flex min-h-0 flex-col space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Corrente — presença</p>
+                  <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {participantes.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic">Nenhum filho cadastrado.</p>
+                    ) : (
+                      participantes.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#1E242B] bg-[#12161A] px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-white">
+                              {p.filhos_de_santo?.nome || 'Filho'}
+                            </p>
+                            <p className="text-[10px] text-gray-500">{p.filhos_de_santo?.cargo || '—'}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-black uppercase', statusBadge(p.status))}>
+                              {p.status}
+                            </span>
+                            {p.status === 'pendente' && p.justificativa?.includes('aprovação') ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleApprove(p.id)}
+                                className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400"
+                              >
+                                Aprovar
+                              </button>
+                            ) : null}
+                            {p.status !== 'presente' ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleCheckin(p.filho_id)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary"
+                              >
+                                <UserCheck className="h-3 w-3" />
+                                Check-in
+                              </button>
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 text-primary" aria-label="Presente" />
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {guestsSlot ? <div className="border-t border-[#1E242B] pt-4">{guestsSlot}</div> : null}
+              {guestsSlot ? <div className="border-t border-[#1E242B] pt-3">{guestsSlot}</div> : null}
             </div>
           ) : null}
 
@@ -579,7 +602,8 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
             </div>
           ) : null}
         </div>
+        </div>
       </div>
-    </div>
+    </BodyPortal>
   );
 }

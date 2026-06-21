@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { DEMO_HOUSE_NAME } from '../../constants/landingDemo';
+import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { DemoFilhosPanel } from './demo/DemoFilhosPanel';
 import { DemoFinanceiroPanel } from './demo/DemoFinanceiroPanel';
@@ -64,6 +65,14 @@ export function LandingInteractiveDemo() {
             Simulador <strong className="font-semibold text-[#1b1813]">100% funcional no navegador</strong> com
             módulos reais do Ilê Asé. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
             sem criar conta. Os dados ficam só nesta página.
+          </p>
+          <p className="mt-4">
+            <a
+              href={ROUTES.previewPainel}
+              className="landing-mockup-link text-sm font-bold text-[#1b1813] underline decoration-[#FFC107]/50 underline-offset-4 hover:decoration-[#FFC107]"
+            >
+              Ver preview completo do painel (novo visual)
+            </a>
           </p>
         </div>
 

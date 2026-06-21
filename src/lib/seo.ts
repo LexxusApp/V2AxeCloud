@@ -62,6 +62,12 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/dashboard',
     robots: 'noindex, nofollow',
   },
+  [ROUTES.previewPainel]: {
+    title: `Preview do painel | ${BRAND_NAME}`,
+    description: 'Prévia visual do painel de gestão Ilê Asé — explore módulos com dados fictícios.',
+    canonicalPath: '/preview-painel',
+    robots: 'noindex, follow',
+  },
   [ROUTES.founderProgram]: {
     title: `Programa Fundador | ${BRAND_NAME} — 12 meses gratuitos para terreiros`,
     description:

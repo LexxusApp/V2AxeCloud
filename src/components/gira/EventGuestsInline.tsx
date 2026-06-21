@@ -132,9 +132,9 @@ export function EventGuestsInline({
   const filtered = guests.filter((g) => g.nome.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-widest text-[#94A3B8]">Convidados externos</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
+    <div className="space-y-2">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Convidados externos</p>
+      <div className="flex flex-col gap-1.5 sm:flex-row">
         <input
           type="text"
           value={newGuestName}
@@ -159,15 +159,16 @@ export function EventGuestsInline({
         type="search"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Buscar…"
-        className={appInputClass}
+        placeholder="Buscar convidado…"
+        className={cn(appInputClass, 'py-2 text-sm')}
       />
       {loading ? (
-        <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">Nenhum convidado externo.</p>
+        <p className="text-xs text-gray-500 italic">Nenhum convidado externo.</p>
       ) : (
-        filtered.map((guest) => (
+        <div className="max-h-28 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {filtered.map((guest) => (
           <div
             key={guest.id}
             className="flex items-center justify-between gap-2 rounded-lg border border-[#1E242B] bg-[#0D0F12] px-3 py-2"
@@ -201,7 +202,8 @@ export function EventGuestsInline({
               </button>
             </div>
           </div>
-        ))
+        ))}
+        </div>
       )}
     </div>
   );
