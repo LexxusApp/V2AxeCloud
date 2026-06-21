@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, CalendarDays, Handshake, Loader2, MapPin, Play, Sun, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, Handshake, MapPin, Play, Sun, Users } from 'lucide-react';
 import { appHref } from '../../lib/appHref';
 import {
   fetchPublicTerreiros,
@@ -8,6 +8,7 @@ import {
   type PublicTerreiro,
 } from '../../lib/portalPublic';
 import { landingMockupShellClass } from './landingMockupUi';
+import { cn } from '../../lib/utils';
 import { FounderProgramHeroSeal } from './FounderProgramHeroSeal';
 import { ROUTES } from '../../lib/routes';
 
@@ -79,6 +80,94 @@ function terreiroCardDescription(terreiro: PublicTerreiro): string {
   return `Casa de ${tradicao} no Portal de Gestão Ilê Asé. Perfil público com eventos, acolhimento e história da casa aberta à comunidade.`;
 }
 
+function HeroTerreiroCardBody({
+  loading,
+  terreiro,
+  location,
+  profileHref,
+}: {
+  loading: boolean;
+  terreiro: PublicTerreiro | null;
+  location: string | null;
+  profileHref: string;
+}) {
+  return (
+    <div className="relative min-h-[11.5rem] p-4 sm:min-h-[12rem] sm:p-5">
+      {loading ? (
+        <div className="flex items-start gap-4" aria-busy="true">
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="h-7 w-2/3 animate-pulse rounded-full bg-[#1b1813]/10" />
+            <div className="h-5 w-1/2 animate-pulse rounded-full bg-[#1b1813]/8" />
+            <div className="h-[2.75rem] animate-pulse rounded-2xl bg-[#1b1813]/6" />
+            <div className="h-5 w-40 animate-pulse rounded-full bg-[#1b1813]/8" />
+          </div>
+          <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-[#1b1813]/8" aria-hidden />
+        </div>
+      ) : terreiro ? (
+        <>
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg font-black text-[#1b1813] sm:text-xl">{terreiro.nome}</h2>
+              <p
+                className={cn(
+                  'mt-1 flex min-h-[1.25rem] items-center gap-1.5 text-sm font-medium text-[#1b1813]',
+                  !location && 'invisible',
+                )}
+                aria-hidden={!location}
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[#FFC107]" aria-hidden />
+                {location ?? '—'}
+              </p>
+              <p className="mt-2.5 line-clamp-2 min-h-[2.75rem] text-[13px] leading-relaxed text-[#1b1813]/88 sm:text-sm">
+                {terreiroCardDescription(terreiro)}
+              </p>
+            </div>
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC107] text-[#1b1813] sm:h-11 sm:w-11"
+              aria-hidden
+            >
+              <OxeIcon className="h-5 w-5" />
+            </div>
+          </div>
+
+          <a
+            href={profileHref}
+            className="mt-4 inline-flex min-h-[1.25rem] items-center gap-1.5 text-sm font-bold text-[#1b1813] transition hover:gap-2.5"
+          >
+            Ver perfil do terreiro
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </a>
+        </>
+      ) : (
+        <>
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-xl font-black text-[#1b1813]">Sua casa de axé aqui</h2>
+              <p className="mt-1 min-h-[1.25rem]" aria-hidden />
+              <p className="mt-2.5 min-h-[2.75rem] text-sm leading-relaxed text-[#1b1813]">
+                As primeiras casas estão a activar o perfil público no portal. Cadastre a sua e apareça em destaque.
+              </p>
+            </div>
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC107] text-[#1b1813] sm:h-11 sm:w-11"
+              aria-hidden
+            >
+              <OxeIcon className="h-5 w-5" />
+            </div>
+          </div>
+          <a
+            href={ROUTES.founderProgram}
+            className="mt-4 inline-flex min-h-[1.25rem] items-center gap-1.5 text-sm font-bold text-[#1b1813] transition hover:gap-2.5"
+          >
+            Programa Fundador
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </a>
+        </>
+      )}
+    </div>
+  );
+}
+
 function HeroTerreiroCard() {
   const [terreiro, setTerreiro] = useState<PublicTerreiro | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,18 +183,19 @@ function HeroTerreiroCard() {
   const profileHref = terreiro ? terreiroProfilePath(terreiro.slug) : ROUTES.terreiros;
 
   return (
-    <article className="landing-mockup-hero__card overflow-hidden">
+    <article className="landing-mockup-hero__card min-h-[22.5rem] overflow-hidden sm:min-h-[23rem]">
       <div className="landing-mockup-hero__card-media relative aspect-[16/10] overflow-hidden bg-[#1b1813]">
         {loading ? (
-          <div className="flex h-full items-center justify-center" aria-busy="true">
-            <Loader2 className="h-8 w-8 animate-spin text-[#FFC107]/70" />
-          </div>
+          <div className="h-full animate-pulse bg-[#2a241c]" aria-busy="true" aria-hidden />
         ) : terreiro?.fotoUrl ? (
           <img
             src={terreiro.fotoUrl}
             alt={terreiro.nome}
+            width={304}
+            height={190}
             className="h-full w-full object-cover"
             loading="eager"
+            fetchPriority="high"
             decoding="async"
           />
         ) : (
@@ -119,60 +209,12 @@ function HeroTerreiroCard() {
         </span>
       </div>
 
-      <div className="relative p-4 sm:p-5">
-        {loading ? (
-          <div className="space-y-3" aria-busy="true">
-            <div className="h-6 w-2/3 animate-pulse rounded-full bg-[#1b1813]/10" />
-            <div className="h-4 w-1/3 animate-pulse rounded-full bg-[#1b1813]/8" />
-            <div className="h-14 animate-pulse rounded-2xl bg-[#1b1813]/6" />
-          </div>
-        ) : terreiro ? (
-          <>
-            <div className="flex items-start gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className="font-display text-lg font-black text-[#1b1813] sm:text-xl">{terreiro.nome}</h2>
-                {location ? (
-                  <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[#1b1813]">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-[#FFC107]" aria-hidden />
-                    {location}
-                  </p>
-                ) : null}
-                <p className="mt-2.5 line-clamp-2 text-[13px] leading-relaxed text-[#1b1813]/88 sm:text-sm">
-                  {terreiroCardDescription(terreiro)}
-                </p>
-              </div>
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC107] text-[#1b1813] sm:h-11 sm:w-11"
-                aria-hidden
-              >
-                <OxeIcon className="h-5 w-5" />
-              </div>
-            </div>
-
-            <a
-              href={profileHref}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#1b1813] transition hover:gap-2.5"
-            >
-              Ver perfil do terreiro
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </a>
-          </>
-        ) : (
-          <>
-            <h2 className="font-display text-xl font-black text-[#1b1813]">Sua casa de axé aqui</h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#1b1813]">
-              As primeiras casas estão a activar o perfil público no portal. Cadastre a sua e apareça em destaque.
-            </p>
-            <a
-              href={ROUTES.founderProgram}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#1b1813] transition hover:gap-2.5"
-            >
-              Programa Fundador
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </a>
-          </>
-        )}
-      </div>
+      <HeroTerreiroCardBody
+        loading={loading}
+        terreiro={terreiro}
+        location={location}
+        profileHref={profileHref}
+      />
     </article>
   );
 }
@@ -236,7 +278,7 @@ export function LandingMockupHero() {
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-[17.5rem] overflow-visible sm:max-w-[18.5rem] lg:ml-auto lg:mr-7 lg:max-w-[19rem] xl:mr-10">
+            <div className="relative mx-auto w-full min-h-[22.5rem] max-w-[17.5rem] overflow-visible sm:min-h-[23rem] sm:max-w-[18.5rem] lg:ml-auto lg:mr-7 lg:max-w-[19rem] xl:mr-10">
               <HeroTerreiroCard />
             </div>
           </div>

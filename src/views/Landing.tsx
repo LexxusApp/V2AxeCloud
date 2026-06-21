@@ -51,8 +51,14 @@ const LandingBeforeAfter = lazy(() =>
   import('../components/landing/LandingBeforeAfter').then((m) => ({ default: m.LandingBeforeAfter }))
 );
 
-function LandingSectionFallback({ minHeight = '16rem' }: { minHeight?: string }) {
-  return <div aria-hidden className="w-full" style={{ minHeight }} />;
+function LandingSectionFallback({
+  minHeight = '16rem',
+  className,
+}: {
+  minHeight?: string;
+  className?: string;
+}) {
+  return <div aria-hidden className={cn('w-full', className)} style={{ minHeight }} />;
 }
 
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
@@ -130,7 +136,14 @@ export default function Landing() {
 
         <LandingSoftwareDivider />
 
-        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
+        <Suspense
+          fallback={
+            <LandingSectionFallback
+              minHeight="44rem"
+              className="landing-section landing-section--alt"
+            />
+          }
+        >
           <LandingPhilosophy />
         </Suspense>
 
