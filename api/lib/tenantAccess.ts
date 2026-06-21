@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
+import { resolveFilhoRowIdForFinance } from "./resolveFilhoRowIdForFinance.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -33,7 +34,36 @@ export async function resolveLeaderId(
 /** Filho shadow (f_*@axecloud.internal) ou vínculo em filhos_de_santo. */
 export function isShadowFilhoAuthEmail(email?: string | null): boolean {
   const e = String(email || "").toLowerCase().trim();
-  return e.startsWith("f_") && e.endsWith("@axecloud.internal");
+  return (
+    (e.startsWith("f_") && e.endsWith("@axecloud.internal")) ||
+    (e.startsWith("filho_") && e.endsWith("@axecloud.com"))
+  );
+}
+
+const SHADOW_EMAIL_F = /^f_([0-9a-f-]{36})@axecloud\.internal$/i;
+const SHADOW_EMAIL_FILHO = /^filho_([0-9a-f-]+)@axecloud\.com$/i;
+
+async function filhoHouseRefsById(
+  supabaseAdmin: SupabaseClient,
+  filhoId: string
+): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+  const id = String(filhoId || "").trim();
+  if (!id) return null;
+  const { data: exact } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("lider_id, tenant_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (exact) return exact;
+  if (id.length >= 8 && id.length < 36) {
+    const { data: rows } = await supabaseAdmin
+      .from("filhos_de_santo")
+      .select("lider_id, tenant_id")
+      .ilike("id", `${id}%`)
+      .limit(2);
+    if (rows?.length === 1) return rows[0] as { lider_id?: string | null; tenant_id?: string | null };
+  }
+  return null;
 }
 
 async function loadFilhoHouseRefs(
@@ -46,8 +76,46 @@ async function loadFilhoHouseRefs(
     .eq("user_id", user.id)
     .maybeSingle();
   if (child) return child;
-  if (!isShadowFilhoAuthEmail(user.email)) return null;
+
+  const email = String(user.email || "").trim().toLowerCase();
+  const shadowF = email.match(SHADOW_EMAIL_F);
+  if (shadowF?.[1]) {
+    const byShadow = await filhoHouseRefsById(supabaseAdmin, shadowF[1]);
+    if (byShadow) return byShadow;
+  }
+  const shadowFilho = email.match(SHADOW_EMAIL_FILHO);
+  if (shadowFilho?.[1]) {
+    const byShadow = await filhoHouseRefsById(supabaseAdmin, shadowFilho[1]);
+    if (byShadow) return byShadow;
+  }
+
+  if (email && !SHADOW_EMAIL_F.test(email) && !SHADOW_EMAIL_FILHO.test(email)) {
+    const { data: byEmail } = await supabaseAdmin
+      .from("filhos_de_santo")
+      .select("lider_id, tenant_id")
+      .eq("email", email)
+      .maybeSingle();
+    if (byEmail) return byEmail;
+  }
+
   return null;
+}
+
+/** Resolve vínculo do filho (user_id, e-mail real ou sombra) com fallback ao Auth Admin. */
+async function resolveFilhoHouseRefs(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null }
+): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+  let refs = await loadFilhoHouseRefs(supabaseAdmin, user);
+  if (refs || user.email) return refs;
+  try {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    const email = data?.user?.email;
+    if (!email) return null;
+    return loadFilhoHouseRefs(supabaseAdmin, { id: user.id, email });
+  } catch {
+    return null;
+  }
 }
 
 async function filhoCanAccessTenant(
@@ -69,13 +137,10 @@ async function filhoCanAccessTenant(
 
 export async function resolveTenantAccessForUser(
   supabaseAdmin: SupabaseClient,
-  userId: string
+  userId: string,
+  userEmail?: string | null
 ): Promise<{ tenantId: string; isGlobalAdmin: boolean; role: "admin" | "filho" }> {
-  const { data: child } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("tenant_id, lider_id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const child = await resolveFilhoHouseRefs(supabaseAdmin, { id: userId, email: userEmail });
   if (child) {
     const childTenant = String(child.tenant_id || child.lider_id || "").trim();
     return { tenantId: childTenant, isGlobalAdmin: false, role: "filho" };
@@ -126,7 +191,7 @@ export async function assertUserCanAccessTenant(
   if (await isConsoleGlobalAdmin(supabaseAdmin, user)) return true;
 
   // Filho tem prioridade — shadow users podem ter perfil_lider fantasma ("Meu Terreiro").
-  const child = await loadFilhoHouseRefs(supabaseAdmin, user);
+  const child = await resolveFilhoHouseRefs(supabaseAdmin, user);
   if (child) {
     return filhoCanAccessTenant(supabaseAdmin, child, tid);
   }
@@ -161,11 +226,7 @@ export async function resolveFinanceiroTenantScope(
 
   let ownTenant = "";
 
-  const { data: child } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("lider_id, tenant_id")
-    .eq("user_id", authenticatedUserId)
-    .maybeSingle();
+  const child = await resolveFilhoHouseRefs(supabaseAdmin, { id: authenticatedUserId });
 
   if (child || role === "filho") {
     const ref = String(child?.lider_id || child?.tenant_id || "").trim();
@@ -297,12 +358,13 @@ export async function assertObrigacaoPdfStorageAccess(
 
   if (await assertZeladorTenantAccess(supabaseAdmin, user.id, tid)) return true;
 
-  const { data: filho } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("id, tenant_id, lider_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!filho?.id || String(filho.id) !== pathChildId) return false;
+  const filhoId = await resolveFilhoRowIdForFinance(supabaseAdmin, {
+    jwtUserId: user.id,
+    jwtEmail: user.email,
+  });
+  if (!filhoId || filhoId !== pathChildId) return false;
 
-  return filhoCanAccessTenant(supabaseAdmin, filho, tid);
+  const filhoRefs = await resolveFilhoHouseRefs(supabaseAdmin, user);
+  if (!filhoRefs) return false;
+  return filhoCanAccessTenant(supabaseAdmin, filhoRefs, tid);
 }
