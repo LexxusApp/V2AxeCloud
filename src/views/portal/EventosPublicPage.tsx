@@ -16,8 +16,8 @@ function EventBanner({ url, alt }: { url: string; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className="flex aspect-[16/9] w-full items-center justify-center bg-white">
-        <CalendarDays className="h-10 w-10 text-white/15" />
+      <div className="flex h-full w-full items-center justify-center bg-[#f3ebe0]">
+        <CalendarDays className="h-10 w-10 text-[#1b1813]/15" />
       </div>
     );
   }
@@ -25,7 +25,7 @@ function EventBanner({ url, alt }: { url: string; alt: string }) {
     <img
       src={url}
       alt={alt}
-      className="aspect-[16/9] w-full object-cover"
+      className="h-full w-full object-cover object-center"
       loading="lazy"
       onError={() => setFailed(true)}
     />
@@ -88,12 +88,12 @@ export default function EventosPublicPage() {
                     )}
                   >
                     {ev.bannerUrl ? (
-                      <div className="overflow-hidden bg-white">
+                      <div className="aspect-[16/9] max-h-44 overflow-hidden bg-[#f3ebe0] sm:max-h-48">
                         <EventBanner url={ev.bannerUrl} alt={ev.titulo} />
                       </div>
                     ) : (
-                      <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent">
-                        <CalendarDays className="h-10 w-10 text-white/15" />
+                      <div className="flex aspect-[16/9] max-h-44 w-full items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent sm:max-h-48">
+                        <CalendarDays className="h-10 w-10 text-[#1b1813]/15" />
                       </div>
                     )}
                     <div className="flex flex-col gap-2 p-5">
