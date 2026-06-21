@@ -48,6 +48,18 @@ import {
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
+import { notifySessionExpired } from '../lib/supabase';
+
+const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
+
+async function parseApiJson<T>(response: Response, empty: T): Promise<T> {
+  if (response.status === 401) {
+    notifySessionExpired('dashboard_api_401');
+    throw new Error(SESSION_EXPIRED_ERR);
+  }
+  if (!response.ok) return empty;
+  return response.json() as Promise<T>;
+}
 
 type DashboardBirthday = {
   id: string;
@@ -131,11 +143,14 @@ async function fetchDashboardFinanceBundle(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
         )}&userRole=${encodeURIComponent(userRole || '')}`
-      ).then(async (r) => {
-        if (!r.ok) return { data: [] as any[] };
-        return r.json() as Promise<{ data?: any[] }>;
-      }),
+      ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] })),
       authFetch(txUrl).then(async (r) => {
+        if (r.status === 401) {
+          const errText = await r.text().catch(() => '');
+          console.error('[Dashboard] /api/transactions', r.status, errText);
+          notifySessionExpired('dashboard_transactions_401');
+          throw new Error(SESSION_EXPIRED_ERR);
+        }
         if (!r.ok) {
           const errText = await r.text().catch(() => '');
           console.error('[Dashboard] /api/transactions', r.status, errText);
@@ -148,23 +163,20 @@ async function fetchDashboardFinanceBundle(
             `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
               userRole || ''
             )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`
-          ).then(async (r) => {
-            if (!r.ok) return { data: [] as any[] };
-            return r.json() as Promise<{ data?: any[] }>;
-          })
+          ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] }))
         : Promise.resolve({ data: [] as any[] }),
       userRole !== 'filho'
-        ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then(async (r) =>
-            r.ok ? r.json() : { items: [] }
+        ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then((r) =>
+            parseApiJson(r, { items: [] })
           )
         : Promise.resolve({ items: [] }),
       userRole !== 'filho'
-        ? authFetch(`/api/notices?tenantId=${tidEnc}`).then(async (r) =>
-            r.ok ? r.json() : { data: [] }
+        ? authFetch(`/api/notices?tenantId=${tidEnc}`).then((r) =>
+            parseApiJson<{ data?: any[] }>(r, { data: [] })
           )
         : Promise.resolve({ data: [] }),
-      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}&scope=calendar`).then(async (r) =>
-        r.ok ? r.json() : { data: [] }
+      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}&scope=calendar`).then((r) =>
+        parseApiJson<{ data?: any[] }>(r, { data: [] })
       ),
     ]);
 
@@ -253,6 +265,7 @@ async function fetchDashboardFinanceBundle(
       birthdayData: birthdaysThisMonth(children),
     };
   } catch (e) {
+    if (e instanceof Error && e.message === SESSION_EXPIRED_ERR) throw e;
     console.error('Error fetching dashboard data:', e);
     return {
       transactions: [],
@@ -325,7 +338,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const [flowPeriodOpen, setFlowPeriodOpen] = useState(false);
 
   const dashboardSwrKey =
-    user?.id && tenantId
+    user?.id && tenantId && isSessionReady
       ? (['dashboard-finance', user.id, tenantId, userRole] as const)
       : null;
   const { data: dashboardBundle, isLoading, isValidating, error, mutate } = useSWR(

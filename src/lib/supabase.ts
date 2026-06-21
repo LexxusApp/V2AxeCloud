@@ -127,6 +127,11 @@ function emitSessionExpired(reason: string) {
   window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { reason } }));
 }
 
+/** Dispara fluxo global de sessão expirada (tela de re-login em App.tsx). */
+export function notifySessionExpired(reason: string): void {
+  emitSessionExpired(reason);
+}
+
 /** Limpa sessão local sem chamar a API (útil em /login com refresh token revogado). */
 export async function purgeLocalAuthSession(): Promise<void> {
   if (typeof window === 'undefined') return;
