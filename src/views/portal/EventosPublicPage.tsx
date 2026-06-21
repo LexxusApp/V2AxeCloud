@@ -130,7 +130,7 @@ export default function EventosPublicPage() {
 
       <AnimatePresence>
         {detail && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -144,66 +144,79 @@ export default function EventosPublicPage() {
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
               className={cn(
-                'relative z-10 flex max-h-[92dvh] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl',
+                'relative z-10 w-full overflow-hidden rounded-3xl bg-white shadow-2xl',
                 landingMockupCardClass,
-                detail.bannerUrl ? 'w-max max-w-[min(96vw,440px)]' : 'w-full max-w-lg',
+                detail.bannerUrl ? 'max-w-[min(96vw,42rem)]' : 'max-w-lg',
               )}
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-[var(--mockup-card-border,#cfc0a8)] px-5 py-4">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{detail.tipo}</p>
-                  <h3 className="truncate text-lg font-black text-[#1b1813]">{detail.titulo}</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDetail(null)}
-                  className="shrink-0 rounded-lg p-2 text-[#1b1813]/68 hover:bg-[#1b1813]/5"
-                  aria-label="Fechar"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div
+                className={cn(
+                  'flex max-h-[min(92dvh,32rem)] w-full overflow-hidden',
+                  detail.bannerUrl ? 'flex-row' : 'flex-col',
+                )}
+              >
                 {detail.bannerUrl ? (
-                  <img
-                    src={detail.bannerUrl}
-                    alt={detail.titulo}
-                    className="block h-auto max-h-[min(70dvh,560px)] w-auto max-w-[min(96vw,440px)]"
-                    loading="lazy"
-                  />
+                  <div className="w-[38%] min-w-[8.5rem] max-w-[15rem] shrink-0 self-stretch bg-[#f3ebe0]">
+                    <img
+                      src={detail.bannerUrl}
+                      alt={detail.titulo}
+                      className="h-full w-full object-cover object-center"
+                      loading="lazy"
+                    />
+                  </div>
                 ) : (
-                  <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent">
-                    <CalendarDays className="h-12 w-12 text-white/15" />
+                  <div className="flex aspect-[16/9] shrink-0 items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent">
+                    <CalendarDays className="h-12 w-12 text-[#1b1813]/15" />
                   </div>
                 )}
-                <div className="space-y-4 p-5">
-                  <div className="flex flex-wrap gap-3 text-sm text-[#1b1813]">
-                    <span className="flex items-center gap-2 font-bold">
-                      <Calendar className="h-4 w-4 text-[#FFC107]" />
-                      {(() => {
-                        try {
-                          return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR });
-                        } catch {
-                          return detail.data;
-                        }
-                      })()}
-                    </span>
-                    <span className="flex items-center gap-2 font-bold">
-                      <Clock className="h-4 w-4 text-[#FFC107]" />
-                      {detail.hora}
-                    </span>
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{detail.tipo}</p>
+                      <h3 className="text-lg font-black leading-snug text-[#1b1813] sm:text-xl">{detail.titulo}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDetail(null)}
+                      className="shrink-0 rounded-lg p-2 text-[#1b1813]/68 hover:bg-[#1b1813]/5"
+                      aria-label="Fechar"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
-                  <a
-                    href={terreiroProfilePath(detail.terreiro.slug)}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#1b1813]/75 hover:text-[#FFC107]"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    {detail.terreiro.nome}
-                    {detail.terreiro.cidade ? ` — ${detail.terreiro.cidade}` : ''}
-                  </a>
-                  {detail.descricao ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1b1813]/65">{detail.descricao}</p>
-                  ) : null}
+                  <div className="mt-4 space-y-3 overflow-hidden">
+                    <div className="space-y-2 text-sm text-[#1b1813]">
+                      <p className="flex items-start gap-2 font-bold leading-snug">
+                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#FFC107]" />
+                        {(() => {
+                          try {
+                            return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR });
+                          } catch {
+                            return detail.data;
+                          }
+                        })()}
+                      </p>
+                      <p className="flex items-center gap-2 font-bold">
+                        <Clock className="h-4 w-4 shrink-0 text-[#FFC107]" />
+                        {detail.hora}
+                      </p>
+                    </div>
+                    <a
+                      href={terreiroProfilePath(detail.terreiro.slug)}
+                      className="inline-flex items-start gap-2 text-sm font-semibold leading-snug text-[#1b1813]/75 hover:text-[#FFC107]"
+                    >
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {detail.terreiro.nome}
+                        {detail.terreiro.cidade ? ` — ${detail.terreiro.cidade}` : ''}
+                      </span>
+                    </a>
+                    {detail.descricao ? (
+                      <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed text-[#1b1813]/65">
+                        {detail.descricao}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </motion.div>
