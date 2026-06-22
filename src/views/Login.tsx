@@ -153,7 +153,7 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('updated') !== 'true') return;
 
-    window.history.replaceState({}, document.title, '/login');
+    window.history.replaceState({}, document.title, ROUTES.login);
 
     alertHideTimerRef.current = window.setTimeout(() => {
       setShowAlert(false);
@@ -192,7 +192,7 @@ export default function Login() {
     setForgotLoading(true);
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}${ROUTES.login}`,
       });
       if (resetErr) throw resetErr;
       setInfo('Enviamos um link de recuperação para o seu e-mail.');

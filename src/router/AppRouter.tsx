@@ -100,6 +100,7 @@ function RoutedPage({ path }: { path: string }) {
     case ROUTES.checkout:
       return <Checkout />;
     case ROUTES.login:
+    case ROUTES.loginLegacy:
       return <LoginPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
@@ -115,7 +116,14 @@ export default function AppRouter() {
   const path = usePathname();
 
   useEffect(() => {
-    applyRouteSeo(path);
+    if (path === ROUTES.loginLegacy) {
+      const qs = typeof window !== 'undefined' ? window.location.search : '';
+      window.history.replaceState({}, document.title, `${ROUTES.login}${qs}`);
+    }
+  }, [path]);
+
+  useEffect(() => {
+    applyRouteSeo(path === ROUTES.loginLegacy ? ROUTES.login : path);
   }, [path]);
 
   useEffect(() => {

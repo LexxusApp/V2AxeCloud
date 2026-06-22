@@ -26,8 +26,15 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     title: `Entrar | ${BRAND_NAME}`,
     description:
       `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
-    canonicalPath: '/login',
+    canonicalPath: '/entrar',
     robots: 'index, follow',
+  },
+  [ROUTES.loginLegacy]: {
+    title: `Entrar | ${BRAND_NAME}`,
+    description:
+      `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
+    canonicalPath: '/entrar',
+    robots: 'noindex, follow',
   },
   [ROUTES.terms]: {
     title: `Termos de Uso | ${BRAND_NAME}`,

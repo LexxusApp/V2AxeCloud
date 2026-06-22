@@ -48,6 +48,7 @@ import {
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { authFetch } from '../lib/authenticatedFetch';
+import { ROUTES } from '../lib/routes';
 import { notifySessionExpired } from '../lib/supabase';
 
 const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
@@ -539,7 +540,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       const hasUser = !!data.session?.user;
       setAuthLoading(false);
       if (!hasUser && !loading) {
-        window.location.href = '/login';
+        window.location.href = ROUTES.login;
       }
     }).catch(() => {
       if (cancelled) return;

@@ -128,7 +128,7 @@ export function resolveLoginPublicUrl(): string {
   )
     .trim()
     .replace(/\/$/, "");
-  return base.startsWith("http") ? `${base}/login` : "https://axecloud.com.br/login";
+  return base.startsWith("http") ? `${base}/entrar` : "https://axecloud.com.br/entrar";
 }
 
 function resolveSistemaName(variables?: Record<string, string | number>): string {

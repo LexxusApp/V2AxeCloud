@@ -62,7 +62,7 @@ export default defineConfig(({mode}) => {
           name: BRAND_NAME,
           short_name: BRAND_NAME,
           description: HOME_SEO.manifestDescription,
-          start_url: '/login',
+          start_url: '/entrar',
           scope: '/',
           lang: 'pt-BR',
           prefer_related_applications: false,

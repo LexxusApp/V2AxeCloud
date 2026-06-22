@@ -8,7 +8,9 @@ export function isHomePath(path: string): boolean {
 
 export const ROUTES = {
   home: '/',
-  login: '/login',
+  login: '/entrar',
+  /** @deprecated Use ROUTES.login — redirect 301 em produção (Caddy). */
+  loginLegacy: '/login',
   register: '/register',
   checkout: '/checkout',
   dashboard: '/dashboard',

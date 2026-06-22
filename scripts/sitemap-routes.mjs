@@ -22,10 +22,10 @@ export const SITEMAP_ROUTES = [
     comment: 'Página inicial — login e apresentação',
   },
   {
-    path: '/login',
+    path: '/entrar',
     changeFrequency: 'monthly',
     priority: 0.9,
-    comment: 'Entrada direta para login',
+    comment: 'Entrada para zeladores e filhos de santo',
   },
   {
     path: '/termos',

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { ROUTES } from './routes';
 import { APP_VERSION, SYSTEM_VERSION } from '../config/version';
 import {
   collectLegalAcceptanceFromStorage,
@@ -62,7 +63,7 @@ export async function performFastLogout(): Promise<void> {
     /* limpeza falhou — mesmo assim redireciona */
   } finally {
     // Cache-bust evita shell HTML antigo (hashes de bundle obsoletos → 404 em /assets).
-    window.location.replace(`/login?logout=${Date.now()}`);
+    window.location.replace(`${ROUTES.login}?logout=${Date.now()}`);
   }
 }
 

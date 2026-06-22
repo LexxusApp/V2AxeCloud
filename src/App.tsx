@@ -8,6 +8,7 @@ import { Session } from '@supabase/supabase-js';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { FilhoPushPrompt } from './components/filho/FilhoPushPrompt';
 import { cn } from './lib/utils';
+import { ROUTES } from './lib/routes';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
@@ -1153,7 +1154,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           <button
             type="button"
             onClick={() => {
-              window.location.href = '/login';
+              window.location.href = ROUTES.login;
             }}
             className="w-full py-4 bg-primary text-black font-black rounded-2xl hover:opacity-95 transition-opacity"
           >
