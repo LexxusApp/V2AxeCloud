@@ -27,7 +27,7 @@ rotate_key EVOLUTION_API_KEY "$EVO"
 if ! grep -q "^EFI_WEBHOOK_SECRET=" "$ENV_FILE"; then
   EFI=$(new_secret)
   rotate_key EFI_WEBHOOK_SECRET "$EFI"
-  echo "EFI_WEBHOOK_SECRET criado — atualize a URL do webhook na EFI: .../api/webhooks/efi?secret=<valor>"
+  echo "EFI_WEBHOOK_SECRET criado — configure header x-efi-webhook-secret na EFI: .../api/webhooks/efi"
 fi
 
 chmod 600 "$ENV_FILE"

@@ -5,9 +5,7 @@ import { cn } from '../lib/utils';
 import { PLAN_NAMES, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../lib/plansDisplay';
-import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
 import { ROUTES } from '../lib/routes';
-import { PLAN_PRICE_FOUNDER_REAIS } from '../../lib/planPricing';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 
@@ -129,7 +127,6 @@ interface SubscriptionProps {
 export default function Subscription({ session, tenantData, onPlanUpdated, hideHeader, onlyCurrentPlan, onlyAvailablePlans, setActiveTab }: SubscriptionProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
-  const { isFounderHouse } = useFounderHouseStatus();
 
   const handleSelectPlan = async (planId: string) => {
     if (tenantData?.plan === planId && tenantData?.status === 'active') {
@@ -142,24 +139,15 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   };
 
   const formatPrice = (price?: number, fallbackReais?: number) => {
-    const effectiveFallback =
-      isFounderHouse && fallbackReais === DEFAULT_PLAN_PRICES_REAIS.premium
-        ? PLAN_PRICE_FOUNDER_REAIS
-        : fallbackReais;
     const fb =
-      effectiveFallback != null
-        ? formatPriceBRL(effectiveFallback)
+      fallbackReais != null
+        ? formatPriceBRL(fallbackReais)
         : formatPriceBRL(DEFAULT_PLAN_PRICES_REAIS.premium);
     if (price === undefined || price === null) return fb;
     const n = Number(price);
     if (!Number.isFinite(n) || n <= 0) return fb;
-    if (isFounderHouse && n === DEFAULT_PLAN_PRICES_REAIS.premium) {
-      return formatPriceBRL(PLAN_PRICE_FOUNDER_REAIS);
-    }
     return formatPriceBRL(n);
   };
-
-  const premiumPriceNote = isFounderHouse ? 'Preço vitalício Casa Fundadora' : undefined;
 
   if (fetchingPlans) {
     if (onlyCurrentPlan) {
@@ -234,7 +222,6 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
           loading={loading === 'premium'}
           isCurrentPlan={planKey === 'premium'}
           compact
-          priceNote={premiumPriceNote}
         />
       </div>
     </div>

@@ -5,8 +5,7 @@
  * (no momento ignoramos o schedule e rodamos todos os habilitados — o intervalo
  * é controlado pelo Vercel Cron). Roda em série para não sobrecarregar PSI/CPU.
  *
- * Autorização: header `Authorization: Bearer <CRON_SECRET>` (padrão Vercel)
- * ou query `?secret=<CRON_SECRET>`.
+ * Autorização: header `Authorization: Bearer <CRON_SECRET>` (padrão Vercel).
  */
 
 import type { Request, Response } from "express";
@@ -23,11 +22,7 @@ function isAuthorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET || process.env.AUDIT_CRON_SECRET || "";
   if (!secret) return false;
   const auth = String(req.headers.authorization || "").trim();
-  if (auth === `Bearer ${secret}`) return true;
-  const q = String((req.query.secret as string) || "").trim();
-  if (q && q === secret) return true;
-  // Vercel Cron envia tambem header user-agent contendo "vercel-cron"; aceita só se secret bater.
-  return false;
+  return auth === `Bearer ${secret}`;
 }
 
 export async function handleAuditTick(req: Request, res: Response, supabase: any) {

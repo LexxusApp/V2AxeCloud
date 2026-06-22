@@ -5,6 +5,7 @@ import {
   normalizeQueryTenantId,
   resolveFinanceiroTenantScope,
 } from "./tenantAccess.js";
+import { secureCompare } from "./secureCompare.js";
 
 export async function requireTenantReadAccess(
   supabaseAdmin: SupabaseClient,
@@ -76,24 +77,24 @@ export function isAllowedPdfProxyUrl(rawUrl: string): boolean {
 export function verifyWhatsAppWebhook(req: { headers?: Record<string, string | string[] | undefined> }): boolean {
   const secret = process.env.WHATSAPP_WEBHOOK_SECRET || process.env.EVOLUTION_WEBHOOK_SECRET || "";
   if (!secret) return false;
-  const header = req.headers?.["x-webhook-secret"] || req.headers?.["apikey"];
+  const header = req.headers?.["x-webhook-secret"];
   const value = Array.isArray(header) ? header[0] : header;
-  return String(value || "") === secret;
+  return secureCompare(String(value || ""), secret);
 }
 
-/** Exige EFI_WEBHOOK_SECRET em produção (header ou ?secret= na URL registrada na EFI). */
+/** Exige EFI_WEBHOOK_SECRET (header x-efi-webhook-secret ou Authorization Bearer). */
 export function verifyEfiWebhook(req: {
   headers?: Record<string, string | string[] | undefined>;
-  query?: Record<string, string | string[] | undefined>;
+  query?: Record<string, unknown>;
 }): boolean {
   const secret = process.env.EFI_WEBHOOK_SECRET || "";
-  if (!secret) {
-    return process.env.NODE_ENV !== "production";
-  }
+  if (!secret) return false;
   const header = req.headers?.["x-efi-webhook-secret"] || req.headers?.["authorization"];
   const headerValue = Array.isArray(header) ? header[0] : header;
   const headerToken = String(headerValue || "").replace(/^Bearer\s+/i, "");
+  if (headerToken && secureCompare(headerToken, secret)) return true;
+  // Compat legado: EFI registrada com ?secret= na URL (evitar em novos cadastros)
   const q = req.query?.secret;
   const querySecret = Array.isArray(q) ? q[0] : q;
-  return headerToken === secret || String(querySecret || "") === secret;
+  return Boolean(querySecret) && secureCompare(String(querySecret), secret);
 }

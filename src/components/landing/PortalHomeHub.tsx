@@ -12,6 +12,8 @@ import {
   type PublicTerreiro,
 } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
+import { appHref } from '../../lib/appHref';
+import { TRIAL_DAYS } from '../../../lib/planPricing';
 import { cn } from '../../lib/utils';
 import { landingMockupCardClass, landingMockupInsetCardClass, landingMockupKickerClass, landingMockupLinkClass, landingMockupShellClass } from './landingMockupUi';
 
@@ -193,8 +195,8 @@ function PortalTerreirosShowcase({
             Casas de axé ganhando presença pública com mais cuidado.
           </h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#1b1813]/65">
-            Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com as
-            primeiras casas fundadoras e novos cadastros entram em destaque.
+            Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com
+            novos cadastros em destaque.
           </p>
         </div>
 
@@ -204,12 +206,12 @@ function PortalTerreirosShowcase({
             <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#1b1813]/62">no portal</p>
           </div>
           <a
-            href={ROUTES.founderProgram}
+            href={appHref(ROUTES.register)}
             className="group rounded-2xl border border-[#FFC107]/40 bg-[#FFC107] p-4 text-[#1b1813] transition hover:bg-[#ffcd38]"
           >
             <p className="text-xs font-black uppercase tracking-[0.16em] text-neutral-900/70">Cadastre sua casa</p>
             <span className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-neutral-900">
-              Programa Fundador
+              {TRIAL_DAYS} dias grátis
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
             </span>
           </a>
@@ -225,7 +227,7 @@ function PortalTerreirosShowcase({
           <div className="mt-6 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
             <p className="text-sm font-bold text-slate-900">Sua casa pode aparecer aqui.</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              O Programa Fundador libera o Ilê Asé por 12 meses e prioriza o perfil público da casa no portal.
+              Cadastre sua casa e teste o Ilê Asé por {TRIAL_DAYS} dias sem pagar. Depois, ative o perfil público no portal.
             </p>
           </div>
         )}
@@ -344,8 +346,8 @@ export function PortalHomeHub() {
               <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
                 <Building2 className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
                 <p className="mt-3 text-slate-600">As primeiras casas estão a activar o perfil público.</p>
-                <a href={ROUTES.founderProgram} className="landing-btn-secondary mt-5 inline-flex text-sm">
-                  Programa Fundador
+                <a href={appHref(ROUTES.register)} className="landing-btn-secondary mt-5 inline-flex text-sm">
+                  Teste grátis por {TRIAL_DAYS} dias
                 </a>
               </div>
             ) : (

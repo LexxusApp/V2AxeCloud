@@ -1,3 +1,6 @@
+/** Dias de teste gratuito após cadastro público (sem pagamento antecipado). */
+export const TRIAL_DAYS = 30;
+
 /** Preços comerciais do plano Premium AxéCloud (checkout EFI). */
 export const PLAN_PRICE_STANDARD_REAIS = 69.9;
 export const PLAN_PRICE_FOUNDER_REAIS = 49.9;

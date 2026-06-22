@@ -20,12 +20,10 @@ import { AdminDashboardLayout, type AdminNavTab } from "./AdminDashboardLayout";
 import { OverviewPanel } from "./OverviewPanel";
 import { TenantsTable } from "./TenantsTable";
 import { QuickActionDialogs, type QuickActionKind } from "./QuickActionDialogs";
-import { FounderProgramPanel } from "./FounderProgramPanel";
-import { SupabaseMetricsPanel } from "./SupabaseMetricsPanel";
-import { StoragePanel } from "./StoragePanel";
 import { CreateTenantPage } from "./CreateTenantPage";
 import { DemoAccountPanel } from "./DemoAccountPanel";
-import { founderRowToPrefill, type FounderTenantPrefill } from "@/lib/founderPrefill";
+import { SupabaseMetricsPanel } from "./SupabaseMetricsPanel";
+import { StoragePanel } from "./StoragePanel";
 
 type Tab = AdminNavTab;
 
@@ -89,7 +87,6 @@ export function CommandShell({ session }: { session: Session }) {
   const [drawerTenantId, setDrawerTenantId] = useState<string | null>(null);
   const [tenantSearch, setTenantSearch] = useState("");
   const [quickAction, setQuickAction] = useState<QuickActionKind>(null);
-  const [founderPrefill, setFounderPrefill] = useState<FounderTenantPrefill | null>(null);
 
   const email = session.user.email || "";
   const displayName = userDisplayName(session);
@@ -212,12 +209,6 @@ export function CommandShell({ session }: { session: Session }) {
     setTab(next);
   }
 
-  function openCreateFromFounder(row: Parameters<typeof founderRowToPrefill>[0]) {
-    setFounderPrefill(founderRowToPrefill(row));
-    goTab("create");
-    setMsg("Formulário pré-preenchido com dados do Programa Fundador.");
-  }
-
   const quickActions = [
     {
       label: "Liberar acesso vitalício",
@@ -289,17 +280,6 @@ export function CommandShell({ session }: { session: Session }) {
             onRenewMonth={(id) => void manageTenant(id, "renew", { amount: "1", unit: "months" })}
             onLifetime={(id) => void manageTenant(id, "set-lifetime")}
             onDelete={(id) => void deleteTenant(id)}
-          />
-        )}
-
-        {tab === "founders" && (
-          <FounderProgramPanel
-            onMessage={setMsg}
-            onCreateTenant={openCreateFromFounder}
-            onOpenTerreiro={(leaderId) => {
-              goTab("tenants");
-              setDrawerTenantId(leaderId);
-            }}
           />
         )}
 
@@ -469,10 +449,7 @@ export function CommandShell({ session }: { session: Session }) {
 
         {tab === "create" && (
           <CreateTenantPage
-            prefill={founderPrefill}
-            onClearPrefill={() => setFounderPrefill(null)}
             onDone={() => {
-              setFounderPrefill(null);
               void refreshTenants();
               void refreshOverview();
             }}

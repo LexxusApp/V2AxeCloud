@@ -15,7 +15,7 @@ import { getDiscreteR2Client } from "./lib/r2ClientDiscrete.js";
 import { getDiscreteSupabaseAdmin, parseQuery, sendJson } from "./lib/discreteSupabase.js";
 import { restoreReqUrl } from "./lib/restoreReqUrl.js";
 import { verifyUser } from "./lib/verifyUser.js";
-import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import {
   runTenantDetail,
   runTenantResetPassword,
@@ -111,20 +111,7 @@ async function handleSession(req: any, res: any): Promise<void> {
   }
   const ok = await isConsoleGlobalAdmin(sb, user);
   if (!ok) {
-    const allow = getConsoleAdminEmailAllowlist();
-    const userEmail = String(user.email || "")
-      .trim()
-      .toLowerCase();
-    sendJson(res, 403, {
-      error: "Acesso negado ao console administrativo",
-      debug: {
-        userEmail,
-        allowlistCount: allow.length,
-        hint: !allow.includes(userEmail)
-          ? `O email "${userEmail}" não está na allowlist do servidor.`
-          : "Perfil admin global ausente em perfil_lider.",
-      },
-    });
+    sendJson(res, 403, { error: "Acesso negado ao console administrativo" });
     return;
   }
   sendJson(res, 200, { ok: true, user: { id: user.id, email: user.email } });

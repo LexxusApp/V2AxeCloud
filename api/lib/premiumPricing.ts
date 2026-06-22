@@ -1,21 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PLAN_PRICE_FOUNDER_CENTS } from "../../lib/planPricing.js";
-import { getFounderHouseStatusForLeader } from "./founderProgramAdmin.js";
 import {
   formatAmountLabelFromCents,
   resolvePremiumAmountCents,
 } from "./plansCatalog.js";
 
-/** Valor em centavos para cobrança EFI — desconto fundador quando inscrição aceita. */
+/** Valor em centavos para cobrança EFI (plano Premium padrão). */
 export async function resolveTenantPremiumAmountCents(
   supabaseAdmin: SupabaseClient,
-  tenantId?: string | null
+  _tenantId?: string | null
 ): Promise<number> {
-  const id = String(tenantId || "").trim();
-  if (id) {
-    const founder = await getFounderHouseStatusForLeader(supabaseAdmin, id);
-    if (founder.isFounderHouse) return PLAN_PRICE_FOUNDER_CENTS;
-  }
   return resolvePremiumAmountCents(supabaseAdmin);
 }
 

@@ -19,12 +19,7 @@ export function getSupabaseServerAnonKey(): string | undefined {
 }
 
 export function getSupabaseServerServiceKey(): string | undefined {
-  return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.VITE_SUPABASE_SERVICE_KEY
-  );
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 }
 
 export function isValidSupabaseHttpUrl(url: string | undefined): boolean {

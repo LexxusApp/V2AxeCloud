@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { TRIAL_DAYS } from "../../lib/planPricing.js";
 import { normalizePlansCatalog } from "./plansCatalog.js";
 import { resolveTenantPremiumAmountCents } from "./premiumPricing.js";
 import {
@@ -33,7 +34,13 @@ export type RegisterTenantResult = {
   email: string;
   checkoutPath: string;
   subscriptionStatus: string;
+  trialEndsAt: string;
+  trialDays: number;
 };
+
+export function trialExpiresAtFromNow(days: number = TRIAL_DAYS): string {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
 
 export function resolvePublicAppUrl(): string {
   const fromEnv = [process.env.APP_PUBLIC_URL, process.env.VITE_APP_URL, process.env.PUBLIC_APP_URL]
@@ -52,12 +59,10 @@ export function resolvePublicAppUrl(): string {
 }
 
 export function efiNotificationUrl(): string {
-  const base = `${resolvePublicAppUrl()}/api/webhooks/efi`;
-  const secret = process.env.EFI_WEBHOOK_SECRET || "";
-  return secret ? `${base}?secret=${encodeURIComponent(secret)}` : base;
+  return `${resolvePublicAppUrl()}/api/webhooks/efi`;
 }
 
-/** Preço do onboarding Premium: fundador aceito → R$ 49,90; senão catálogo → env → fallback R$ 69,90. */
+/** Preço do onboarding Premium: catálogo → env → fallback R$ 69,90. */
 export async function resolvePremiumOnboardingAmountCents(
   supabaseAdmin: SupabaseClient,
   tenantId?: string | null
@@ -96,6 +101,7 @@ export async function registerNewTenant(
       nome_zelador,
       whatsapp,
       onboarding: "public_register",
+      is_trial: true,
     },
   });
 
@@ -131,15 +137,17 @@ export async function registerNewTenant(
     throw profileError;
   }
 
+  const trialEndsAt = trialExpiresAtFromNow();
+
   const { error: subError } = await upsertSubscriptionResilient(supabaseAdmin, {
     id: tenantId,
     tenant_id: tenantId,
     plan: "premium",
-    status: "pending",
-    expires_at: null,
+    status: "active",
+    expires_at: trialEndsAt,
     efi_charge_id: null,
     payment_provider: (efi ?? resolveEfiEnv()) ? "efi" : null,
-    pending_since: now,
+    pending_since: null,
     updated_at: now,
   });
 
@@ -158,7 +166,9 @@ export async function registerNewTenant(
     tenantId,
     email,
     checkoutPath: `/checkout?tenant=${tenantId}`,
-    subscriptionStatus: "pending",
+    subscriptionStatus: "active",
+    trialEndsAt,
+    trialDays: TRIAL_DAYS,
   };
 }
 

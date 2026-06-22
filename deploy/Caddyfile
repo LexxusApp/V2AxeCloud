@@ -15,11 +15,11 @@ axecloud.com.br, www.axecloud.com.br {
 	@www host www.axecloud.com.br
 	redir @www https://axecloud.com.br{uri} permanent
 
-	log {
+		log {
 		output file /var/log/caddy/access.log {
 			roll_size 10MiB
 			roll_keep 5
-			mode 0644
+			mode 0640
 		}
 		format json
 	}
@@ -30,6 +30,7 @@ axecloud.com.br, www.axecloud.com.br {
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br; frame-src 'self' https://*.efi.com.br https://*.gerencianet.com.br; object-src 'none'; base-uri 'self'"
 		-Server
 	}
 
@@ -96,6 +97,13 @@ axecloud.com.br, www.axecloud.com.br {
 
 		@evolution_webhook path /webhook/*
 		handle @evolution_webhook {
+			rate_limit {
+				zone evolution_webhook {
+					key {http.request.header.CF-Connecting-IP}
+					events 60
+					window 1m
+				}
+			}
 			reverse_proxy evolution:8080
 		}
 
@@ -169,7 +177,7 @@ admin.axecloud.com.br {
 		output file /var/log/caddy/admin-access.log {
 			roll_size 10MiB
 			roll_keep 5
-			mode 0644
+			mode 0640
 		}
 		format json
 	}
@@ -188,6 +196,13 @@ admin.axecloud.com.br {
 
 		@api path /api/*
 		handle @api {
+			rate_limit {
+				zone admin_api_general {
+					key {http.request.header.CF-Connecting-IP}
+					events 120
+					window 1m
+				}
+			}
 			reverse_proxy app:3000
 		}
 

@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Camera, CheckCircle, Loader2 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { TRADICAO_OPTIONS } from '../../lib/tradicaoModules';
-import { FounderHouseBadge } from '../founder/FounderHouseBadge';
-import { useFounderHouseStatus } from '../../hooks/useFounderHouseStatus';
 
 const CARGO_OPTIONS = [
   'Zelador de Santo (Pai de Santo)',
@@ -34,7 +32,6 @@ export function SettingsProfilePanel({
   onRefresh,
   onOpenPortal,
 }: SettingsProfilePanelProps) {
-  const { isFounderHouse, status: founderStatus, loading: founderLoading } = useFounderHouseStatus();
   const [profileName, setProfileName] = useState('');
   const [profileTerreiro, setProfileTerreiro] = useState('');
   const [profileCargo, setProfileCargo] = useState<string>(CARGO_OPTIONS[0]);
@@ -393,20 +390,6 @@ export function SettingsProfilePanel({
               <strong>{profileName || 'Zelador'}</strong> do <strong>{profileTerreiro || 'Terreiro'}</strong>.&quot;
             </p>
           </div>
-
-          {isFounderHouse && <FounderHouseBadge variant="panel" />}
-          {!founderLoading && !isFounderHouse && founderStatus === 'pending' && (
-            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Programa Fundador</p>
-              <p className="mt-2 text-sm font-bold text-zinc-300">Inscrição em análise</p>
-            </div>
-          )}
-          {!founderLoading && !isFounderHouse && founderStatus === 'contacted' && (
-            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Programa Fundador</p>
-              <p className="mt-2 text-sm font-bold text-zinc-300">Em contato</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

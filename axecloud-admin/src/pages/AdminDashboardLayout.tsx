@@ -16,14 +16,12 @@ import {
   ScrollText,
   Shield,
   X,
-  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type AdminNavTab =
   | "overview"
   | "tenants"
-  | "founders"
   | "logs"
   | "storage"
   | "metrics"
@@ -38,7 +36,6 @@ type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon };
 const MAIN_NAV: NavItem[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "tenants", label: "Terreiros", icon: Building2 },
-  { id: "founders", label: "Programa Fundador", icon: Crown },
   { id: "plans", label: "Mensalidades", icon: CreditCard },
   { id: "logs", label: "Eventos", icon: ScrollText },
   { id: "whatsapp", label: "Notificações", icon: MessageCircle },

@@ -76,11 +76,11 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     robots: 'noindex, follow',
   },
   [ROUTES.founderProgram]: {
-    title: `Programa Fundador | ${BRAND_NAME} — 12 meses gratuitos para terreiros`,
+    title: `Cadastro | ${BRAND_NAME} — 30 dias grátis`,
     description:
-      `Inscreva sua casa de axé no Programa Fundador ${BRAND_NAME}: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.`,
-    canonicalPath: '/programa-fundador',
-    robots: 'index, follow',
+      `Cadastre seu terreiro no ${BRAND_NAME} e teste o plano Premium por 30 dias sem pagar. Depois, mensalidade via PIX.`,
+    canonicalPath: '/register',
+    robots: 'noindex, follow',
   },
   [ROUTES.contentHub]: {
     title: `Conteúdo | ${PORTAL_BRAND} — Umbanda e Candomblé`,

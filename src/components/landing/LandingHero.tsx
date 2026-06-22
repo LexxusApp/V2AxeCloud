@@ -8,6 +8,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { HOME_SEO } from '../../constants/seoHome';
+import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 
@@ -48,8 +49,8 @@ export function LandingHero() {
           </p>
 
           <div className="mx-auto mt-12 flex max-w-lg flex-col items-center justify-center gap-4 sm:max-w-none sm:flex-row">
-            <a href={ROUTES.founderProgram} className="landing-btn-primary w-full px-8 py-4 text-base sm:w-auto">
-              Programa Fundador
+            <a href={appHref(ROUTES.register)} className="landing-btn-primary w-full px-8 py-4 text-base sm:w-auto">
+              Teste grátis 30 dias
               <ArrowRight className="h-4 w-4" aria-hidden />
             </a>
             <a href="#demonstracao" className="landing-btn-secondary w-full px-8 py-4 text-base sm:w-auto">

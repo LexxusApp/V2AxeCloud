@@ -243,7 +243,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
             <p className="mb-5 text-sm font-medium leading-relaxed text-gray-400">
               {isPending
                 ? 'Gere o QR Code Pix abaixo. Assim que o pagamento for confirmado, o painel libera automaticamente.'
-                : 'Sua assinatura expirou ou está inativa. Pague via Pix para voltar a gerenciar seu terreiro.'}
+                : 'Seu período de teste gratuito terminou. Pague via Pix para continuar gerenciando seu terreiro.'}
               {amountLabel ? (
                 <span className="mt-2 block text-primary font-bold">
                   Valor: {amountLabel}

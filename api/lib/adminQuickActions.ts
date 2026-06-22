@@ -3,18 +3,13 @@ import { sendEvolutionTextByInstance, CONSOLE_ADMIN_INSTANCE_NAME } from "../../
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { listConsoleTenants } from "./listConsoleTenants.js";
 
-const VAPID_PUBLIC_KEY =
-  process.env.VAPID_PUBLIC_KEY ||
-  process.env.VITE_VAPID_PUBLIC_KEY ||
-  "BEKar2pRRjBhX5Pz-EtX1QT07JbDBhSBx_-t5mAPZ3TevskbdG0w9JJNz-TbR-TzuIigtXTg27vCX_8GElZUM7Y";
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY ||
-  process.env.VITE_VAPID_PRIVATE_KEY ||
-  "QsB2TftnfoqwCo7UhYYmmLMNR2yoorTI-FKjsmgrjA0";
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 
 let vapidReady = false;
 function ensureVapid() {
   if (vapidReady) return;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
   try {
     webpush.setVapidDetails("mailto:contato@axecloud.com.br", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
     vapidReady = true;

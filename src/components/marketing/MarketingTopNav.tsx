@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
-import { SITE_TITLE } from '../../constants/seoBrandKeywords';
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
 
 type NavItem = {
   id: string;
@@ -17,22 +17,21 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'recursos', label: 'Recursos' },
   { id: 'demonstracao', label: 'Demo', highlight: true },
   { id: 'mensalidade', label: 'Planos' },
-  { id: 'founder', label: 'Fundador', path: ROUTES.founderProgram },
 ];
 
 function sectionHref(sectionBase: string, id: string) {
   return sectionBase ? `${sectionBase}#${id}` : `#${id}`;
 }
 
-const LOGO_SRC = '/ile-ase-logo.png';
+const LOGO_SRC = BRAND_LOGO_SRC;
 
 export function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
     <img
       src={LOGO_SRC}
-      alt={SITE_TITLE}
-      width={950}
-      height={316}
+      alt={BRAND_LOGO_ALT}
+      width={BRAND_LOGO_WIDTH}
+      height={BRAND_LOGO_HEIGHT}
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
@@ -278,10 +277,10 @@ function landingMockupNavLinkClass(desktop: 'always' | 'wide') {
 export function LandingMockupLogo({ variant = 'nav' }: { variant?: 'nav' | 'footer' }) {
   return (
     <img
-      src="/ile-ase-logo.png"
-      alt={SITE_TITLE}
-      width={560}
-      height={112}
+      src={BRAND_LOGO_SRC}
+      alt={BRAND_LOGO_ALT}
+      width={BRAND_LOGO_WIDTH}
+      height={BRAND_LOGO_HEIGHT}
       decoding="async"
       className={
         variant === 'footer'
@@ -308,7 +307,7 @@ export function LandingTopNav() {
   return (
     <nav className="landing-mockup-nav sticky top-0 z-50 min-h-[var(--landing-mockup-nav-height,4.25rem)] bg-black">
       <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[var(--landing-mockup-nav-height,4.25rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 pt-1.5 pb-0 md:pt-2 md:pb-0 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
-        <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="ILÊ ASÉ — início">
+        <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="AXÉCLOUD — início">
           <LandingMockupLogo />
         </a>
 

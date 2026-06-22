@@ -84,18 +84,22 @@ const __dirname = path.dirname(__filename);
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// VAPID Keys for Web Push
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BEKar2pRRjBhX5Pz-EtX1QT07JbDBhSBx_-t5mAPZ3TevskbdG0w9JJNz-TbR-TzuIigtXTg27vCX_8GElZUM7Y";
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "QsB2TftnfoqwCo7UhYYmmLMNR2yoorTI-FKjsmgrjA0";
+// VAPID Keys for Web Push (obrigatório via env — sem fallback hardcoded)
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 
-try {
-  webpush.setVapidDetails(
-    "mailto:contato@axecloud.com.br",
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-  );
-} catch (e) {
-  console.error("[webpush] setVapidDetails falhou (push pode não funcionar):", e);
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      "mailto:contato@axecloud.com.br",
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+  } catch (e) {
+    console.error("[webpush] setVapidDetails falhou (push pode não funcionar):", e);
+  }
+} else {
+  console.warn("[webpush] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY não configurados — push desativado.");
 }
 
 // --- Financeiro + mensalidades (inline; mesma lógica que api/index.ts) ---
@@ -2510,29 +2514,9 @@ async function startServer() {
   app.get("/api/v1/store/product-image-suggestion", handleStoreProductImageSuggestion);
   app.get("/api/store/product-image-suggestion", handleStoreProductImageSuggestion);
 
-  // API Route: PDF Proxy — serve o PDF do Supabase localmente para evitar CORS no PDF.js
-  app.get("/api/v1/library/pdf-proxy", async (req, res) => {
-    const { url } = req.query;
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: "url query param required" });
-    }
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        return res.status(response.status).send("Erro ao buscar PDF");
-      }
-      const buffer = Buffer.from(await response.arrayBuffer());
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Cache-Control': 'public, max-age=3600',
-        'Access-Control-Allow-Origin': '*',
-      });
-      res.send(buffer);
-    } catch (err: any) {
-      console.error("[PDF-PROXY] Erro:", err.message);
-      res.status(500).send("Erro interno");
-    }
+  // PDF Proxy descontinuado neste servidor legado — usar api/index.ts em produção
+  app.get("/api/v1/library/pdf-proxy", (_req, res) => {
+    res.status(410).json({ error: "Rota descontinuada neste servidor. Use a API de produção." });
   });
 
   // API Route: Upload Library Material (Bypasses Storage and DB RLS)

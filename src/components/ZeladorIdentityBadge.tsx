@@ -1,6 +1,4 @@
 import { cn } from '../lib/utils';
-import { useFounderHouseStatus } from '../hooks/useFounderHouseStatus';
-import { FounderHouseBadge } from './founder/FounderHouseBadge';
 import { performFastLogout } from '../lib/logout';
 
 type ZeladorIdentityBadgeProps = {
@@ -31,7 +29,6 @@ export function ZeladorIdentityBadge({
   displayName: displayNameProp,
 }: ZeladorIdentityBadgeProps) {
   const isZelador = tenantData?.role !== 'filho';
-  const { isFounderHouse } = useFounderHouseStatus(isZelador);
   const displayName = displayNameProp?.trim() || tenantData?.nome?.trim() || 'Zelador';
   const initial = (displayName[0] || 'Z').toUpperCase();
   const roleLine =
@@ -92,13 +89,9 @@ export function ZeladorIdentityBadge({
           <span className="truncate text-sm font-bold tracking-tight text-white" title={displayName}>
             {displayName}
           </span>
-          {isFounderHouse ? (
-            <FounderHouseBadge variant="compact" />
-          ) : (
-            <span className="shrink-0 rounded-[4px] bg-[#FBBC00]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#FBBC00]">
-              {tenantData?.plan?.toUpperCase() || 'PREMIUM'}
-            </span>
-          )}
+          <span className="shrink-0 rounded-[4px] bg-[#FBBC00]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#FBBC00]">
+            {tenantData?.plan?.toUpperCase() || 'PREMIUM'}
+          </span>
         </div>
         {roleLine && (
           <span className="max-w-[220px] truncate text-[10px] font-bold uppercase tracking-widest text-gray-500">

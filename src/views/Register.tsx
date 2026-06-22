@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Loader2,
   AlertCircle,
@@ -13,11 +13,8 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
-
-type CheckoutPriceConfig = { amountLabel?: string };
+import { TRIAL_DAYS } from '../../lib/planPricing';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
-import { RegistrationProgress } from '../components/RegistrationProgress';
-import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
@@ -46,28 +43,8 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutPriceLabel, setCheckoutPriceLabel] = useState(catalogPrice.label);
-
-  useEffect(() => {
-    setCheckoutPriceLabel(catalogPrice.label);
-  }, [catalogPrice.label]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetch('/api/v1/checkout/efi/config', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((cfg: CheckoutPriceConfig | null) => {
-        if (!cancelled && cfg?.amountLabel) setCheckoutPriceLabel(cfg.amountLabel);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -84,13 +61,6 @@ export default function Register() {
       document.body.style.overflow = '';
     };
   }, []);
-
-  useEffect(() => {
-    if (step !== 2) return;
-    const main = document.querySelector<HTMLElement>('[data-register-main]');
-    main?.scrollTo({ top: 0 });
-    window.scrollTo({ top: 0 });
-  }, [step]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,18 +90,10 @@ export default function Register() {
         password,
       });
       if (signInErr) {
-        console.warn('[register] auto-login:', signInErr.message);
+        throw new Error('Conta criada, mas o login automático falhou. Entre com seu e-mail e senha.');
       }
 
-      const newTenantId = data.tenantId as string | undefined;
-      if (!newTenantId) {
-        setError('Cadastro criado, mas o pagamento não pôde ser iniciado. Entre em contato com o suporte.');
-        return;
-      }
-
-      setTenantId(newTenantId);
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.location.href = ROUTES.dashboard;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {
@@ -192,10 +154,10 @@ export default function Register() {
 
             <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-white/85 backdrop-blur-sm">
               <span className="font-bold text-[#f2b90f]">
-                {checkoutPriceLabel}
-                {catalogPrice.period}
+                {TRIAL_DAYS} dias grátis
               </span>
-              {' · '}Pagamento via PIX · painel liberado na hora após o pagamento.
+              {' · '}Depois, {catalogPrice.label}
+              {catalogPrice.period} via PIX.
             </p>
           </motion.div>
 
@@ -209,10 +171,7 @@ export default function Register() {
       >
         <motion.div
           className={cn(
-            'mx-auto w-full px-5 pb-10 sm:px-8 lg:flex lg:flex-col',
-            step === 1
-              ? 'max-w-[440px] py-8 sm:py-10 lg:min-h-full lg:justify-center'
-              : 'max-w-[460px] py-4 sm:py-5 lg:justify-start lg:pt-5 lg:pb-8'
+            'mx-auto w-full max-w-[440px] px-5 py-8 sm:px-8 sm:py-10 lg:min-h-full lg:flex lg:flex-col lg:justify-center'
           )}
         >
           <a
@@ -222,179 +181,131 @@ export default function Register() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Voltar ao site
           </a>
-          <RegistrationProgress currentStep={step} compact={step === 2} />
 
-          <AnimatePresence mode="wait">
-            {step === 1 ? (
-              <motion.div
-                key="step-1"
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 lg:hidden">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Ilê Asé</p>
-                  <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-600">
-                    {checkoutPriceLabel}
-                    {catalogPrice.period} · PIX · painel liberado após o pagamento.
-                  </p>
-                </div>
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 lg:hidden">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Ilê Asé</p>
+            <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+              {TRIAL_DAYS} dias grátis para testar tudo · depois {catalogPrice.label}
+              {catalogPrice.period}
+            </p>
+          </div>
 
-                <header className="mb-6">
-                  <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
-                    Cadastre seu terreiro
-                  </h2>
-                  <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-                    Primeiro os dados da casa. Na próxima etapa você ativa o sistema com PIX.
-                  </p>
-                </header>
+          <header className="mb-6">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
+              Cadastre seu terreiro
+            </h2>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
+              Crie sua conta e use o sistema completo por {TRIAL_DAYS} dias sem pagar. Após o período de teste,
+              a mensalidade é cobrada via PIX para manter o acesso.
+            </p>
+          </header>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {error && (
-                    <motion.div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-800">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{error}</span>
-                    </motion.div>
-                  )}
-
-                  <motion.div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
-                    <motion.div className="sm:col-span-2">
-                      <label className={labelClass}>Nome do terreiro</label>
-                      <input
-                        className={fieldShell}
-                        value={nomeTerreiro}
-                        onChange={(e) => setNomeTerreiro(e.target.value)}
-                        placeholder="Ilê Axé Exemplo"
-                        required
-                        autoComplete="organization"
-                      />
-                    </motion.div>
-                    <motion.div>
-                      <label className={labelClass}>Seu nome (zelador)</label>
-                      <input
-                        className={fieldShell}
-                        value={nomeZelador}
-                        onChange={(e) => setNomeZelador(e.target.value)}
-                        placeholder="Como é conhecido na casa"
-                        required
-                        autoComplete="name"
-                      />
-                    </motion.div>
-                    <motion.div>
-                      <label className={labelClass}>WhatsApp</label>
-                      <input
-                        className={fieldShell}
-                        value={whatsapp}
-                        onChange={(e) => setWhatsapp(e.target.value)}
-                        placeholder="(11) 99999-9999"
-                        inputMode="tel"
-                        autoComplete="tel"
-                      />
-                    </motion.div>
-                    <motion.div className="sm:col-span-2">
-                      <label className={labelClass}>E-mail</label>
-                      <input
-                        type="email"
-                        className={fieldShell}
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="zelador@terreiro.com"
-                        required
-                        autoComplete="email"
-                      />
-                    </motion.div>
-                    <motion.div className="sm:col-span-2">
-                      <label className={labelClass}>Senha</label>
-                      <motion.div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          className={cn(fieldShell, 'pr-11')}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Mínimo 6 caracteres"
-                          required
-                          minLength={6}
-                          autoComplete="new-password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800"
-                          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </motion.div>
-                    </motion.div>
-                  </motion.div>
-
-                  <motion.button
-                    type="submit"
-                    disabled={loading}
-                    whileTap={{ scale: 0.99 }}
-                    style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-                    className="flex h-[44px] w-full items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.06em] text-black shadow-sm disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Continuar para ativação'
-                    )}
-                  </motion.button>
-
-                  <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
-                    <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
-                    Checkout EFI Bank · {checkoutPriceLabel}/mês
-                  </p>
-                </form>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="step-2"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <header className="mb-3">
-                  <h2 className="text-[18px] font-extrabold tracking-tight text-zinc-900 sm:text-[20px]">
-                    Ativação do sistema
-                  </h2>
-                  <p className="mt-1 text-[12px] leading-snug text-zinc-600 sm:text-[13px]">
-                    Pagamento via PIX · {checkoutPriceLabel}
-                    {catalogPrice.period} · liberação automática
-                  </p>
-                </header>
-
-                {tenantId ? (
-                  <RegistrationCheckoutPanel
-                    tenantId={tenantId}
-                    variant="light"
-                    compact
-                    defaultHolderName={nomeZelador}
-                    defaultPhone={whatsapp}
-                  />
-                ) : null}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <motion.div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-800">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
               </motion.div>
             )}
-          </AnimatePresence>
 
-          {step === 1 ? (
-            <p className="mt-6 text-center text-[13px] text-zinc-700">
-              Já tem conta?{' '}
-              <a href={ROUTES.login} className="font-bold text-amber-800 hover:text-amber-900 hover:underline">
-                Fazer login
-              </a>
+            <motion.div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
+              <motion.div className="sm:col-span-2">
+                <label className={labelClass}>Nome do terreiro</label>
+                <input
+                  className={fieldShell}
+                  value={nomeTerreiro}
+                  onChange={(e) => setNomeTerreiro(e.target.value)}
+                  placeholder="Ilê Axé Exemplo"
+                  required
+                  autoComplete="organization"
+                />
+              </motion.div>
+              <motion.div>
+                <label className={labelClass}>Seu nome (zelador)</label>
+                <input
+                  className={fieldShell}
+                  value={nomeZelador}
+                  onChange={(e) => setNomeZelador(e.target.value)}
+                  placeholder="Como é conhecido na casa"
+                  required
+                  autoComplete="name"
+                />
+              </motion.div>
+              <motion.div>
+                <label className={labelClass}>WhatsApp</label>
+                <input
+                  className={fieldShell}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
+              </motion.div>
+              <motion.div className="sm:col-span-2">
+                <label className={labelClass}>E-mail</label>
+                <input
+                  type="email"
+                  className={fieldShell}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="zelador@terreiro.com"
+                  required
+                  autoComplete="email"
+                />
+              </motion.div>
+              <motion.div className="sm:col-span-2">
+                <label className={labelClass}>Senha</label>
+                <motion.div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className={cn(fieldShell, 'pr-11')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: 0.99 }}
+              style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
+              className="flex h-[44px] w-full items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.06em] text-black shadow-sm disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                `Começar teste de ${TRIAL_DAYS} dias`
+              )}
+            </motion.button>
+
+            <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
+              Sem cartão · {TRIAL_DAYS} dias grátis · depois {catalogPrice.label}/mês
             </p>
-          ) : (
-            <p className="mt-4 text-center text-[12px] text-zinc-600">
-              <a href={ROUTES.login} className="font-semibold text-amber-800 hover:underline">
-                Já tem conta? Fazer login
-              </a>
-            </p>
-          )}
+          </form>
+
+          <p className="mt-6 text-center text-[13px] text-zinc-700">
+            Já tem conta?{' '}
+            <a href={ROUTES.login} className="font-bold text-amber-800 hover:text-amber-900 hover:underline">
+              Fazer login
+            </a>
+          </p>
         </motion.div>
       </main>
     </motion.div>

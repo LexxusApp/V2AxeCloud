@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
@@ -53,7 +54,6 @@ import { logEvent } from "./lib/auditLog.js";
 import { createAuditLog } from "./lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
-import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
@@ -917,8 +917,8 @@ function usesDistantSubscriptionExpiry(plan: string | undefined): boolean {
 
 // Web Push — O par público/privado DEVE ser o mesmo de `src/hooks/useWebPush.ts` e `server.ts`
 // (o cliente gera a subscription com a chave pública; enviar com outro par quebra o envio em silêncio).
-const VAPID_PUBLIC_KEY = getServerEnv("VAPID_PUBLIC_KEY", "VITE_VAPID_PUBLIC_KEY");
-const VAPID_PRIVATE_KEY = getServerEnv("VAPID_PRIVATE_KEY", "VITE_VAPID_PRIVATE_KEY");
+const VAPID_PUBLIC_KEY = getServerEnv("VAPID_PUBLIC_KEY");
+const VAPID_PRIVATE_KEY = getServerEnv("VAPID_PRIVATE_KEY");
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   try {
@@ -1254,6 +1254,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+
   /** Na Vercel o path interno pode ser `/api/index`; restaura o URL público a partir de headers. */
   app.use((req, _res, next) => {
     if (process.env.VERCEL === "1") {
@@ -1283,15 +1285,6 @@ async function startServer() {
           /* ignorar header inválido */
         }
       }
-    }
-    next();
-  });
-
-  // Middleware de log global (antes de qualquer rota)
-  app.use((req, res, next) => {
-    const u = req.url || "";
-    if (!u.startsWith('/@vite') && !u.startsWith('/src')) {
-      console.log(`[SERVER] ${req.method} ${u}`);
     }
     next();
   });
@@ -1361,12 +1354,6 @@ async function startServer() {
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Middleware de log para todas as requisições API
-  app.use("/api", (req, _res, next) => {
-    console.log(`[API LOG] ${req.method} ${req.url}`);
-    next();
-  });
-
   app.get("/api/ping", (req, res) => {
     res.json({ status: "pong", timestamp: new Date().toISOString() });
   });
@@ -1412,7 +1399,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[PUSH] Erro ao salvar inscrição:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -1699,7 +1686,7 @@ async function startServer() {
       res.json({ success: true, data: notice, push: pushResult });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar aviso:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -1755,7 +1742,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] DELETE /api/notices/:id:", error?.message || error);
-      res.status(500).json({ error: error.message || "Erro ao excluir aviso" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir aviso") });
     }
   });
 
@@ -1790,7 +1777,7 @@ async function startServer() {
       res.json({ success: true, data: inventoryItem });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar item no almoxarifado:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -1808,7 +1795,7 @@ async function startServer() {
       res.json({ data: data || [] });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar produtos:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: safeErrorMessage(err) });
     }
   };
   app.get("/api/v1/store/products", handleStoreProductsGet);
@@ -1872,7 +1859,7 @@ async function startServer() {
       res.status(201).json({ success: true, data });
     } catch (err: any) {
       console.error("[SERVER] Erro ao criar produto:", err.message || err);
-      res.status(500).json({ error: err.message || "Erro ao salvar produto" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao salvar produto") });
     }
   };
   app.post("/api/v1/store/products", handleStoreProductsPost);
@@ -1937,7 +1924,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[SERVER] Erro ao excluir produto:", err.message || err);
-      res.status(500).json({ error: err.message || "Erro ao excluir produto" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao excluir produto") });
     }
   };
   app.delete("/api/v1/store/products/:id", handleStoreProductDelete);
@@ -2073,7 +2060,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[SERVER] Erro ao salvar pix config:", err.message || err);
-      res.status(500).json({ error: err.message || "Erro ao salvar configuração PIX" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao salvar configuração PIX") });
     }
   });
 
@@ -2290,7 +2277,7 @@ async function startServer() {
       res.json({ data: enriched });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar materiais:", err.message || err);
-      res.status(500).json({ error: err.message || "Erro ao buscar materiais" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao buscar materiais") });
     }
   });
 
@@ -2298,6 +2285,10 @@ async function startServer() {
     const { fileName, contentType, categoria, tenantId } = req.body;
     if (!fileName || !tenantId) {
       return res.status(400).json({ error: "Unauthorized or missing data" });
+    }
+    const mime = String(contentType || "application/pdf").toLowerCase();
+    if (mime !== "application/pdf") {
+      return res.status(400).json({ error: "Apenas PDF (application/pdf) é permitido" });
     }
 
     try {
@@ -2323,7 +2314,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar URL de upload:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar upload") });
     }
   });
 
@@ -2365,7 +2356,7 @@ async function startServer() {
       res.json({ success: true, publicUrl: signed?.signedUrl || null });
     } catch (error: any) {
       console.error("[SERVER] Erro ao finalizar upload:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro interno ao salvar material" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao salvar material") });
     }
   });
 
@@ -2424,7 +2415,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar URL de upload de obrigação:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar upload") });
     }
   });
 
@@ -2497,7 +2488,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao atualizar PDF de obrigação:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao atualizar PDF" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar PDF") });
     }
   });
 
@@ -2618,7 +2609,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar albuns da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao buscar galeria" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar galeria") });
     }
   });
 
@@ -2642,7 +2633,7 @@ async function startServer() {
       res.json({ album: { ...album, media: [] } });
     } catch (error: any) {
       console.error("[SERVER] Erro ao garantir álbum do mural:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar mural" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar mural") });
     }
   });
 
@@ -2679,7 +2670,7 @@ async function startServer() {
       res.json({ album: { ...data, media: [] } });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar album:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao criar album" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao criar album") });
     }
   });
 
@@ -2758,7 +2749,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao preparar upload da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar upload") });
     }
   });
 
@@ -2842,7 +2833,7 @@ async function startServer() {
       res.json({ media: enriched });
     } catch (error: any) {
       console.error("[SERVER] Erro ao concluir upload da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao concluir upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao concluir upload") });
     }
   });
 
@@ -2882,7 +2873,7 @@ async function startServer() {
       res.json({ ok: true });
     } catch (error: any) {
       console.error("[SERVER] Erro ao remover mídia da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao remover lembrança" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao remover lembrança") });
     }
   });
 
@@ -2922,7 +2913,7 @@ async function startServer() {
       res.json({ ok: true });
     } catch (error: any) {
       console.error("[SERVER] Erro ao remover álbum da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao remover álbum" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao remover álbum") });
     }
   });
 
@@ -2958,7 +2949,7 @@ async function startServer() {
       res.json({ media: enriched });
     } catch (error: any) {
       console.error("[SERVER] Erro ao registrar Axé na galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao enviar Axé" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar Axé") });
     }
   });
 
@@ -3016,7 +3007,7 @@ async function startServer() {
       res.json({ success: true, publicUrl });
     } catch (error: any) {
       console.error("[SERVER] Erro no upload de banner de evento:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao enviar banner" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar banner") });
     }
   });
 
@@ -3263,7 +3254,7 @@ async function startServer() {
 
     } catch (error: any) {
       console.error("Admin Create Tenant Error:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -3370,7 +3361,7 @@ async function startServer() {
 
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar configurações:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -3551,7 +3542,7 @@ async function startServer() {
       res.json({ profiles: augmentedProfiles, subs, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao listar tenants:", error);
-      return res.status(500).json({ error: "Erro ao listar tenants", details: error.message || String(error) });
+      return res.status(500).json({ error: safeErrorMessage(error, "Erro ao listar tenants") });
     }
   });
 
@@ -3580,7 +3571,7 @@ async function startServer() {
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar planos:", error);
-      res.status(500).json({ error: error.message || "Erro ao salvar planos" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao salvar planos") });
     }
   });
 
@@ -3592,7 +3583,7 @@ async function startServer() {
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3734,7 +3725,7 @@ async function startServer() {
       res.json({ success: true, message: "Comando enviado com sucesso" });
     } catch (error: any) {
       console.error("[SERVER] Erro ao gerenciar tenant:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3752,7 +3743,6 @@ async function startServer() {
   });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
-  registerFounderProgramRoutes(app, { supabaseAdmin });
   registerConsulentePortalRoutes(app, {
     supabaseAdmin,
     resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
@@ -3806,7 +3796,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Test DB error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3847,7 +3837,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in GET /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3904,7 +3894,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in PUT /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3947,7 +3937,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in DELETE /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3990,7 +3980,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar filhos:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -4058,7 +4048,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao adicionar filho:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -4087,7 +4077,7 @@ async function startServer() {
       res.json({ data: mapped });
     } catch (error: any) {
       console.error("[SERVER] Error fetching events:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4184,7 +4174,7 @@ async function startServer() {
       res.json({ success: true, data, whatsapp });
     } catch (error: any) {
       console.error("[SERVER] Error creating event:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4232,7 +4222,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Error deleting event:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4252,7 +4242,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching notices:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4272,7 +4262,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching inventory:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4342,7 +4332,7 @@ async function startServer() {
       res.json({ data: filtered });
     } catch (error: any) {
       console.error("[SERVER] Error fetching transactions:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4538,7 +4528,7 @@ async function startServer() {
       return res.status(500).json({ error: String(delErr?.message || delErr) });
     } catch (error: any) {
       console.error("[SERVER] /api/transactions DELETE:", error?.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4744,7 +4734,7 @@ async function startServer() {
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -5029,7 +5019,7 @@ async function startServer() {
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error("[SERVER ERROR]", err);
-    res.status(500).json({ error: "Internal Server Error", details: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   });
 
   return app;
@@ -5043,7 +5033,7 @@ export default async function handler(req: any, res: any) {
     return app(req, res);
   } catch (err: any) {
     console.error("[VERCEL HANDLER ERROR]", err);
-    res.status(500).json({ error: "Internal Server Error during initialization", details: err.message || String(err) });
+    res.status(500).json({ error: safeErrorMessage(err, "Erro interno do servidor") });
   }
 }
 

@@ -75,8 +75,8 @@ export function MarketingMockupFooter() {
               </a>
             </li>
             <li>
-              <a href={ROUTES.founderProgram} className="text-white/60 transition hover:text-[#FFC107]">
-                Programa Fundador
+              <a href={appHref(ROUTES.register)} className="text-white/60 transition hover:text-[#FFC107]">
+                Teste grátis 30 dias
               </a>
             </li>
             <li>

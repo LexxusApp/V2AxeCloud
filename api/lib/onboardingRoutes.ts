@@ -43,7 +43,10 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         email: result.email,
         checkoutPath: result.checkoutPath,
         subscriptionStatus: result.subscriptionStatus,
+        trialEndsAt: result.trialEndsAt,
+        trialDays: result.trialDays,
         loginUrl: resolvePublicAppUrl(),
+        dashboardPath: '/dashboard',
       });
     } catch (err: any) {
       const status = Number(err?.status) || 500;

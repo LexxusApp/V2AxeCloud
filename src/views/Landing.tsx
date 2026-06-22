@@ -8,6 +8,7 @@ import { appHref } from '../lib/appHref';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
+import { TRIAL_DAYS } from '../../lib/planPricing';
 import { landingMockupShellClass } from '../components/landing/landingMockupUi';
 import { LandingMockupSideRails } from '../components/landing/LandingMockupSideRails';
 
@@ -16,9 +17,6 @@ const LandingPhilosophy = lazy(() =>
 );
 const LandingResources = lazy(() =>
   import('../components/landing/LandingResources').then((m) => ({ default: m.LandingResources }))
-);
-const LandingFounderProgram = lazy(() =>
-  import('../components/landing/LandingFounderProgram').then((m) => ({ default: m.LandingFounderProgram }))
 );
 const LandingPortalPreview = lazy(() =>
   import('../components/landing/LandingPortalPreview').then((m) => ({ default: m.LandingPortalPreview }))
@@ -67,8 +65,8 @@ const premiumFeatures = [
   'Filhos de santo, calendário, mural e biblioteca',
   'Galeria de fotos, financeiro e loja do axé',
   'Mensalidade com Pix e histórico transparente',
-  'Ativação do plano via PIX (EFI Bank)',
-  'Liberação automática após o pagamento',
+  `${TRIAL_DAYS} dias grátis para testar tudo`,
+  'Pagamento via PIX após o período de teste',
 ] as const;
 
 function ScrollToTopButton() {
@@ -156,10 +154,6 @@ export default function Landing() {
           <LandingBeforeAfter />
         </Suspense>
 
-        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
-          <LandingFounderProgram />
-        </Suspense>
-
         <Suspense fallback={<LandingSectionFallback minHeight="24rem" />}>
           <LandingPortalPreview />
         </Suspense>
@@ -207,18 +201,15 @@ export default function Landing() {
                       <span className="text-lg text-white/50">{landingPrice.period}</span>
                     </div>
                     <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-                      Tudo incluso, sem taxa por filho de santo. Ou comece pelo{' '}
-                      <a href={ROUTES.founderProgram} className="font-bold text-[#FFC107] underline decoration-[#FFC107]/50 underline-offset-2">
-                        Programa Fundador
-                      </a>{' '}
-                      — 12 meses grátis.
+                      Tudo incluso, sem taxa por filho de santo. Teste grátis por {TRIAL_DAYS} dias — depois,
+                      mensalidade via PIX.
                     </p>
                   </div>
                   <a
                     href={appHref(ROUTES.register)}
                     className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]"
                   >
-                    Cadastrar
+                    Cadastrar — {TRIAL_DAYS} dias grátis
                   </a>
                 </div>
 
@@ -267,16 +258,19 @@ export default function Landing() {
               </p>
               <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <a
-                  href={ROUTES.founderProgram}
+                  href={appHref(ROUTES.register)}
                   className="inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38] sm:w-auto"
                 >
-                  Programa Fundador
+                  Teste grátis por {TRIAL_DAYS} dias
                 </a>
                 <a
-                  href={appHref(ROUTES.register)}
-                  className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto"
+                  href={WA_COMERCIAL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/5 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto"
                 >
-                  Cadastrar com PIX
+                  <MessageCircle className="h-4 w-4" />
+                  Falar com o comercial
               </a>
               <a
                 href={WA_COMERCIAL}

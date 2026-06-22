@@ -23,8 +23,7 @@ import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { DEMO_HOUSE_NAME } from '../../constants/landingDemo';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../constants/seoBrandKeywords';
-
-export type PainelPreviewTab =
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
   | 'dashboard'
   | 'filhos'
   | 'financeiro'
@@ -41,9 +40,7 @@ const TABS: { id: PainelPreviewTab; label: string; icon: LucideIcon }[] = [
   { id: 'reza', label: 'Pedidos de Reza', icon: Heart },
 ];
 
-const LOGO_SRC = '/ile-ase-logo.png';
-
-type PainelPreviewShellProps = {
+export type PainelPreviewTab =
   activeTab: PainelPreviewTab;
   onTabChange: (tab: PainelPreviewTab) => void;
   children: ReactNode;
@@ -89,10 +86,10 @@ export function PainelPreviewShell({ activeTab, onTabChange, children }: PainelP
               {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
             <img
-              src={LOGO_SRC}
-              alt="Ilê Asé"
-              width={200}
-              height={65}
+              src={BRAND_LOGO_SRC}
+              alt={BRAND_LOGO_ALT}
+              width={BRAND_LOGO_WIDTH}
+              height={BRAND_LOGO_HEIGHT}
               className="hidden h-9 w-auto object-contain sm:block sm:h-10"
               decoding="async"
             />
@@ -174,7 +171,7 @@ export function PainelPreviewShell({ activeTab, onTabChange, children }: PainelP
               className="fixed bottom-0 left-0 top-0 z-[70] flex w-[min(18rem,88vw)] flex-col border-r border-[#cfc0a8] bg-[#fdf8f0] p-4 lg:hidden"
             >
               <div className="mb-4 flex items-center justify-between">
-                <img src={LOGO_SRC} alt="" className="h-8 w-auto" decoding="async" />
+                <img src={BRAND_LOGO_SRC} alt={BRAND_LOGO_ALT} className="h-8 w-auto" decoding="async" />
                 <button
                   type="button"
                   onClick={() => setMobileNavOpen(false)}

@@ -31,7 +31,7 @@ export type HomeFaqItem = { q: string; a: string };
 export const HOME_FAQ: readonly HomeFaqItem[] = [
   {
     q: 'Qual o melhor software de gestão de terreiros para Umbanda e Candomblé?',
-    a: `O ${BRAND_NAME} é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Conheça o Programa Fundador para testar gratuitamente.`,
+    a: `O ${BRAND_NAME} é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Teste grátis por 30 dias em ${SITE_ORIGIN}/register.`,
   },
   {
     q: `O ${BRAND_NAME} serve para terreiros de Umbanda, Candomblé e Jurema?`,
@@ -59,7 +59,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
   {
     q: 'Existe programa gratuito para começar?',
-    a: 'Sim. O Programa Fundador oferece 12 meses gratuitos para as primeiras casas selecionadas, com onboarding personalizado. Depois do período: R$ 49,90/mês vitalício para casas aprovadas ou R$ 69,90/mês para as demais. Inscreva-se em axecloud.com.br/programa-fundador.',
+    a: `Sim. Todo terreiro novo tem 30 dias de teste gratuito com acesso ao plano Premium completo — sem cartão de crédito. Após o período, a mensalidade é cobrada via PIX. Cadastre-se em ${SITE_ORIGIN}/register.`,
   },
   {
     q: 'Preciso instalar alguma coisa no computador ou celular?',

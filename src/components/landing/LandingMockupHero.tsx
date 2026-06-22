@@ -9,7 +9,6 @@ import {
 } from '../../lib/portalPublic';
 import { landingMockupShellClass } from './landingMockupUi';
 import { cn } from '../../lib/utils';
-import { FounderProgramHeroSeal } from './FounderProgramHeroSeal';
 import { ROUTES } from '../../lib/routes';
 
 function AcolhimentoIcon({ className }: { className?: string }) {
@@ -156,10 +155,10 @@ function HeroTerreiroCardBody({
             </div>
           </div>
           <a
-            href={ROUTES.founderProgram}
+            href={appHref(ROUTES.register)}
             className="mt-4 inline-flex min-h-[1.25rem] items-center gap-1.5 text-sm font-bold text-[#1b1813] transition hover:gap-2.5"
           >
-            Programa Fundador
+            Cadastre sua casa
             <ArrowRight className="h-4 w-4" aria-hidden />
           </a>
         </>
@@ -237,8 +236,6 @@ export function LandingMockupHero() {
         </div>
 
         <div className={`landing-mockup-hero__inner relative z-[2] ${landingMockupShellClass} pb-16 pt-8 sm:pb-20 sm:pt-10`}>
-          <FounderProgramHeroSeal />
-
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 xl:gap-20">
             <div className="max-w-xl">
               <span className="landing-mockup-hero__badge inline-flex items-center gap-2 rounded-full bg-[#FFC107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#1b1813] md:text-[11px]">

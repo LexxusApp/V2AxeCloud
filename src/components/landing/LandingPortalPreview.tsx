@@ -1,8 +1,9 @@
 ﻿import { motion } from 'framer-motion';
 import { Award, HandHeart, MapPin, Search } from 'lucide-react';
-import { FOUNDER_PROGRAM } from '../../constants/founderProgram';
 import { useFounderHouses } from '../../hooks/useFounderHouses';
 import { ROUTES, consulentePortalPath } from '../../lib/routes';
+import { appHref } from '../../lib/appHref';
+import { TRIAL_DAYS } from '../../../lib/planPricing';
 import { cn } from '../../lib/utils';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
@@ -59,7 +60,7 @@ function FounderHouseCard({
       <div className="mb-4 flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
           <Award className="h-3.5 w-3.5" aria-hidden />
-          Casa fundadora
+          Casa parceira
         </span>
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tradition}</span>
       </div>
@@ -77,7 +78,7 @@ function FounderHouseCard({
         </blockquote>
       ) : (
         <p className="mt-4 text-sm leading-relaxed text-slate-600">
-          Primeira casa validando o Ilê Asé no Programa Fundador — organização digital com respeito à tradição.
+          Casa parceira do Ilê Asé — organização digital com respeito à tradição.
         </p>
       )}
       {portalSlug ? (
@@ -107,17 +108,17 @@ export function LandingPortalPreview() {
         <motion.div {...fade}>
           <LandingSectionHeader
             kicker="Portal do axé"
-            title={hasHouses ? 'Casas fundadoras no Ilê Asé' : 'Encontre casas de axé — em construção'}
+            title={hasHouses ? 'Casas no portal Ilê Asé' : 'Encontre casas de axé — em construção'}
             titleId="portal-head"
             lead={
               hasHouses
-                ? `O diretório público está nascendo com as primeiras casas do Programa Fundador. Consulentes podem enviar pedidos de reza pelo portal de cada casa — sem precisar entrar no sistema.`
-                : 'Estamos construindo o diretório público de terreiros e a agenda cultural do axé no Brasil. As primeiras casas aparecerão aqui através do Programa Fundador — com respeito, opt-in e curadoria.'
+                ? 'O diretório público está crescendo com terreiros que activaram o perfil. Consulentes podem enviar pedidos de reza pelo portal de cada casa — sem precisar entrar no sistema.'
+                : 'Estamos construindo o diretório público de terreiros e a agenda cultural do axé no Brasil — com respeito, opt-in e curadoria.'
             }
           />
           {hasHouses ? (
             <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-amber-600">
-              {count} casa{count === 1 ? '' : 's'} fundadora{count === 1 ? '' : 's'} · {FOUNDER_PROGRAM.pilotCity}
+              {count} casa{count === 1 ? '' : 's'} no portal
             </p>
           ) : null}
         </motion.div>
@@ -129,7 +130,7 @@ export function LandingPortalPreview() {
         >
           {loading ? (
             <div className="landing-device-frame p-10 text-center text-sm text-slate-500" aria-busy="true">
-              Carregando casas fundadoras…
+              Carregando casas…
             </div>
           ) : hasHouses ? (
             <div className="space-y-6">
@@ -158,8 +159,8 @@ export function LandingPortalPreview() {
                 O zelador acompanha em Atendimentos, dentro do terreiro.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <a href={ROUTES.founderProgram} className="landing-btn-primary text-xs uppercase tracking-wider">
-                  Quero ser a próxima casa fundadora
+                <a href={appHref(ROUTES.register)} className="landing-btn-primary text-xs uppercase tracking-wider">
+                  Cadastrar — {TRIAL_DAYS} dias grátis
                 </a>
                 <a href={ROUTES.contentHub} className="landing-btn-secondary text-xs">
                   Glossário e artigos
@@ -178,14 +179,14 @@ export function LandingPortalPreview() {
                 <LandingIconBox accent="sky" size="lg" className="mx-auto mb-5">
                   <Search className={landingIconClass('sky', 'h-7 w-7')} aria-hidden />
                 </LandingIconBox>
-                <p className="text-base font-semibold text-slate-900">Casas fundadoras em breve</p>
+                <p className="text-base font-semibold text-slate-900">Casas em breve no diretório</p>
                 <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-slate-500">
                   <MapPin className="h-4 w-4 text-rose-500" aria-hidden />
                   Começando pela Grande São Paulo e região
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                  <a href={ROUTES.founderProgram} className="landing-btn-primary text-xs uppercase tracking-wider">
-                    Participar do programa
+                  <a href={appHref(ROUTES.register)} className="landing-btn-primary text-xs uppercase tracking-wider">
+                    Teste grátis {TRIAL_DAYS} dias
                   </a>
                   <a href={ROUTES.contentHub} className="landing-btn-secondary text-xs">
                     Glossário e artigos

@@ -1,5 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./consoleAdmin.js";
+import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { sendJson } from "./discreteSupabase.js";
 import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
@@ -21,20 +21,7 @@ export async function requireConsoleAdminDiscrete(
   }
   const ok = await isConsoleGlobalAdmin(supabaseAdmin, user);
   if (!ok) {
-    const allow = getConsoleAdminEmailAllowlist();
-    const userEmail = String(user.email || "")
-      .trim()
-      .toLowerCase();
-    sendJson(res, 403, {
-      error: "Acesso negado ao console administrativo",
-      debug: {
-        userEmail,
-        allowlistCount: allow.length,
-        hint: !allow.includes(userEmail)
-          ? `O email "${userEmail}" não está na allowlist do servidor.`
-          : "Perfil admin global ausente em perfil_lider.",
-      },
-    });
+    sendJson(res, 403, { error: "Acesso negado ao console administrativo" });
     return null;
   }
   return { user };

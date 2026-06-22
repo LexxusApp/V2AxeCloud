@@ -46,12 +46,12 @@ function AdminFormField({
 }
 
 export function CreateTenantPage({
-  prefill,
+  prefill = null,
   onClearPrefill,
   onDone,
 }: {
-  prefill: FounderTenantPrefill | null;
-  onClearPrefill: () => void;
+  prefill?: FounderTenantPrefill | null;
+  onClearPrefill?: () => void;
   onDone: () => void;
 }) {
   const [email, setEmail] = useState("");

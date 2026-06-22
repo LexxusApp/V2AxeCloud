@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { LandingTopNav } from '../components/marketing/MarketingTopNav';
 import { usePathname } from '../hooks/usePathname';
-import { isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
+import { appHref, isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { installMarketingClientNavigation } from '../lib/marketingNavigation';
 import { ROUTES, normalizePath } from '../lib/routes';
 import { applyRouteSeo } from '../lib/seo';
@@ -10,7 +10,6 @@ import { parseContentArticleSlug } from '../content/portalContent';
 import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
 
 const Landing = lazy(() => import('../views/Landing'));
-const FounderProgramPage = lazy(() => import('../views/FounderProgramPage'));
 const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
 const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
 const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
@@ -46,6 +45,15 @@ function parseTerreirosPath(path: string): 'directory' | { city: string } | { pr
   return null;
 }
 
+function ProgramaFundadorRedirect() {
+  useEffect(() => {
+    window.location.replace(appHref(ROUTES.register));
+  }, []);
+  return (
+    <div className="landing-v3 landing-mockup-theme min-h-[50vh] w-full bg-[#fdf8f0]" aria-hidden />
+  );
+}
+
 function RoutedMarketingPage({ path }: { path: string }) {
   const articleSlug = parseContentArticleSlug(path);
   if (articleSlug) {
@@ -63,7 +71,7 @@ function RoutedMarketingPage({ path }: { path: string }) {
 
   switch (normalizePath(path)) {
     case ROUTES.founderProgram:
-      return <FounderProgramPage />;
+      return <ProgramaFundadorRedirect />;
     case ROUTES.terms:
       return <TermsPage />;
     case ROUTES.privacy:
