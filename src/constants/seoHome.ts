@@ -222,7 +222,7 @@ export function buildHomeBodyInject(): string {
 
   return [
     `    <article id="axecloud-seo-static" aria-label="Sobre o ${escapeHtml(BRAND_NAME)}">`,
-    `      <h2>${escapeHtml(HOME_SEO.h1)}</h2>`,
+    `      <h1>${escapeHtml(HOME_SEO.h1)}</h1>`,
     `      <p>${escapeHtml(HOME_SEO.description)}</p>`,
     `      <p>${escapeHtml(HOME_SEO.brandRecognition)}</p>`,
     '',
