@@ -46,15 +46,32 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
     h1: `Entrar no ${BRAND_NAME}`,
     intro:
-      'Faça login como zelador(a) ou filho de santo para acessar o painel do terreiro, mensalidades, mural, calendário de giras e galeria de fotos.',
+      `O ${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema. Nesta página você acessa o painel da sua casa: zeladores e diretoria entram com e-mail e senha; filhos de santo usam o ID da casa e CPF fornecidos pelo zelador. Tudo funciona no navegador, sem instalar aplicativo.`,
     sections: [
       {
-        heading: 'Acesso para zeladores',
-        body: 'Zeladores e diretoria administram financeiro, cadastros, galeria e configurações do terreiro após autenticação com e-mail e senha.',
+        heading: 'Acesso para zeladores e diretoria',
+        body:
+          'Zeladores, mães e pais de santo, ogãs e membros da diretoria administram financeiro com Pix, cadastro de filhos, galeria de fotos, calendário de giras, mural de avisos, biblioteca e loja do axé. O login é feito com o e-mail cadastrado na abertura da conta do terreiro e a senha definida por você.',
       },
       {
         heading: 'Portal do filho de santo',
-        body: 'Integrantes da casa acessam mural, biblioteca, calendário e mensalidades no portal dedicado, com credenciais próprias.',
+        body:
+          'Cada integrante da casa recebe credenciais próprias: um identificador curto (ID) e o CPF, informados pelo zelador no momento do cadastro. No portal, o filho acompanha mensalidades, avisos do mural, calendário de giras, biblioteca de estudos e obrigações — separado do painel administrativo.',
+      },
+      {
+        heading: 'Recuperação de senha',
+        body:
+          'Esqueceu a senha do zelador? Use a opção de recuperação na tela de entrada com o mesmo e-mail da conta. Filhos de santo devem solicitar novo acesso ao zelador da casa, que pode reemitir as credenciais pelo painel.',
+      },
+      {
+        heading: 'Segurança e privacidade',
+        body:
+          'Cada terreiro possui ambiente isolado na nuvem. A conexão é criptografada (HTTPS) e os dados da casa não são compartilhados com outros terreiros. Respeitamos a LGPD e a confidencialidade litúrgica dos registros da comunidade.',
+      },
+      {
+        heading: 'Ainda não tem conta?',
+        body:
+          `Terreiros novos podem se cadastrar gratuitamente pelo Programa Fundador (${FOUNDER_PROGRAM.freeMonths} meses Premium) ou criar conta em ${SITE_ORIGIN}${ROUTES.register}. Casas já cadastradas entram diretamente por esta página.`,
       },
     ],
   },
@@ -82,19 +99,35 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     description:
       `Inscreva sua casa de axé no Programa Fundador ${BRAND_NAME}: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.`,
     h1: 'Programa Fundador — 12 meses gratuitos para terreiros',
-    intro: `Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros de Umbanda, Candomblé e Jurema para validar o ${BRAND_NAME}. Uso completo gratuito por ${FOUNDER_PROGRAM.freeMonths} meses, onboarding personalizado e selo de Casa Fundadora no futuro diretório público.`,
+    intro:
+      `Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros de Umbanda, Candomblé e Jurema para validar o ${BRAND_NAME} antes do lançamento nacional. Casas aprovadas usam o sistema completo — financeiro com Pix, calendário, galeria, mural, portal do filho e loja do axé — sem pagar nada por ${FOUNDER_PROGRAM.freeMonths} meses. Você recebe onboarding personalizado, selo de Casa Fundadora e prioridade no diretório público quando o portal estiver no ar.`,
     sections: [
+      {
+        heading: 'Como funciona a inscrição',
+        body:
+          'Preencha o formulário nesta página (leva cerca de dois minutos). Nossa equipe entra em contato pelo WhatsApp para uma conversa inicial, alinha expectativas e libera o acesso Premium gratuito. Configuramos a casa junto com você: cadastros, Pix, mural e calendário.',
+      },
       ...FOUNDER_BENEFITS.map((body, i) => ({
         heading: `Benefício ${i + 1}`,
         body,
       })),
-      {
-        heading: 'Requisitos para participar',
-        body: FOUNDER_REQUIREMENTS.join(' '),
-      },
+      ...FOUNDER_REQUIREMENTS.map((body) => ({
+        heading: 'Requisito para participar',
+        body,
+      })),
       {
         heading: 'Região piloto',
         body: `${FOUNDER_PROGRAM.pilotCity}. ${FOUNDER_PROGRAM.pilotRegionNote}`,
+      },
+      {
+        heading: 'Preços após o período fundador',
+        body:
+          `Depois dos ${FOUNDER_PROGRAM.freeMonths} meses gratuitos, casas aprovadas no programa pagam ${FOUNDER_PROGRAM.founderPriceLabel} vitalício. Demais terreiros: ${FOUNDER_PROGRAM.standardPriceLabel}. Não pedimos cartão de crédito na inscrição — transparência desde o primeiro contato.`,
+      },
+      {
+        heading: 'Por que participar agora',
+        body:
+          `O ${BRAND_NAME} foi pensado ouvindo zeladores e médiuns: termos litúrgicos reais, sigilo do prontuário espiritual e ferramentas que respeitam a rotina da casa. Como Casa Fundadora, você molda o produto e aparece em destaque no portal público de terreiros que estamos construindo.`,
       },
     ],
     jsonLd: {
@@ -186,19 +219,37 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       'Portal público de pedidos de reza: selecione um terreiro parceiro por cidade, acenda sua vela virtual e acompanhe o altar com respeito e privacidade.',
     h1: 'Portal Público de Pedidos de Reza',
     intro:
-      'Ambiente dedicado do visitante e herdeiro de fé — selecione uma casa parceira, firme seu pedido e acompanhe a vela virtual no altar.',
+      `O Espaço do Fiel é o portal público do ${BRAND_NAME} para quem deseja firmar um pedido de reza em um terreiro parceiro. Você escolhe a casa por cidade, descreve sua intenção com respeito, acende uma vela virtual no altar e acompanha o andamento — tudo com privacidade. Terreiros com portal ativo recebem o pedido no painel e respondem quando aceitarem o trabalho espiritual.`,
     sections: [
       {
         heading: 'Selecione o terreiro por cidade',
-        body: 'Encontre casas religiosas parceiras em São Paulo, Rio de Janeiro, Salvador e outras cidades.',
+        body:
+          'Navegue pelo diretório de casas parceiras em São Paulo, Rio de Janeiro, Salvador, Belo Horizonte e outras cidades. Cada terreiro exibe tradição (Umbanda, Candomblé, Jurema), nome público e se aceita pedidos online. Filtre por cidade para encontrar uma casa próxima ou de confiança.',
       },
       {
-        heading: 'Formulário de amparo',
-        body: 'Envie seu pedido de reza com tipo, linha de trabalho e cor da vela virtual.',
+        heading: 'Formulário de amparo espiritual',
+        body:
+          'Informe seu nome, a intenção do pedido, a linha ou entidade de trabalho (Caboclos, Pretos Velhos, Exus, Erês, Orixás ou outra conforme a casa), o tipo de amparo (proteção, abertura de caminhos, saúde, equilíbrio emocional) e a cor da vela virtual. O zelador recebe a solicitação e decide se a casa pode atender.',
       },
       {
-        heading: 'Altar virtual',
-        body: 'Acompanhe o status do pedido — vela acesa quando aceito pelo zelador, apagada enquanto pendente.',
+        heading: 'Altar virtual e acompanhamento',
+        body:
+          'Quando o pedido é aceito, a vela acende no altar virtual da página — símbolo de que a casa recebeu e firmou seu amparo. Enquanto pendente, a vela permanece apagada. Você pode acompanhar o status e trocar mensagens respeitosas com a equipe do terreiro quando disponível.',
+      },
+      {
+        heading: 'Privacidade e respeito',
+        body:
+          'Seus dados são tratados com confidencialidade conforme a LGPD. Não divulgamos endereços nem detalhes íntimos dos pedidos publicamente. O portal foi desenhado para consulentes, filhos à distância e pessoas que buscam acolhimento espiritual com dignidade.',
+      },
+      {
+        heading: 'Para terreiros que querem activar o portal',
+        body:
+          `Casas de axé parceiras do ${BRAND_NAME} ativam o Espaço do Fiel nas configurações do painel. Zeladores gerenciam pedidos, respondem consulentes e mantêm o altar atualizado. Conheça o Programa Fundador em ${SITE_ORIGIN}${ROUTES.founderProgram} para usar o sistema completo.`,
+      },
+      {
+        heading: 'Outros recursos do portal',
+        body:
+          `Além dos pedidos de reza, o ${PORTAL_BRAND} oferece diretório de terreiros, agenda de eventos públicos, calendário litúrgico de referência, glossário do axé e artigos educativos sobre tradições afro-brasileiras — sempre com linguagem respeitosa.`,
       },
     ],
   },
@@ -306,7 +357,6 @@ export function buildPublicPageBodyInject(page: PublicPrerenderPage): string {
 
 export function buildPublicPageNoscript(page: PublicPrerenderPage): string {
   const sections = page.sections
-    .slice(0, 3)
     .map((s) => `<h2>${escapeHtml(s.heading)}</h2><p>${escapeHtml(s.body)}</p>`)
     .join('');
   const nav = PUBLIC_SITE_NAV_LINKS.map(
