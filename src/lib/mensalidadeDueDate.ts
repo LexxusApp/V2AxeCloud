@@ -28,23 +28,35 @@ function firstDueOnOrAfterInclusion(inclusao: Date, diaVenc: number): Date {
   return candidate;
 }
 
+/** Data de inclusão para cobrança: a mais recente entre entrada no terreiro e cadastro no sistema. */
+export function childInclusionDateForMensalidade(
+  dataEntradaIso: string | null | undefined,
+  createdAtIso?: string | null | undefined
+): Date | null {
+  const candidates: Date[] = [];
+  for (const raw of [dataEntradaIso, createdAtIso]) {
+    if (!raw || String(raw).trim() === '') continue;
+    const parsed = parseISO(String(raw).trim().slice(0, 10));
+    if (isValid(parsed)) candidates.push(startOfDay(parsed));
+  }
+  if (candidates.length === 0) return null;
+  return candidates.reduce((a, b) => (a.getTime() > b.getTime() ? a : b));
+}
+
 /**
  * Próxima data de vencimento da mensalidade para exibir na grade do zelador.
- * Usa `data_entrada` ou `created_at` como referência de inclusão e o dia fixo das configurações.
+ * Usa a data mais recente entre `data_entrada` e `created_at` como referência de inclusão.
  * Regra extra: na véspera (falta 1 dia para o vencimento no mesmo mês), já exibe o vencimento do mês seguinte.
  */
 export function computeProximaDataMensalidadePrevisao(
   dataInclusaoIso: string | null | undefined,
   diaVencimento: number,
-  referencia: Date = new Date()
+  referencia: Date = new Date(),
+  dataCadastroIso?: string | null | undefined
 ): string {
   const hoje = startOfDay(referencia);
-  let inclusao = hoje;
-  if (dataInclusaoIso && String(dataInclusaoIso).trim() !== '') {
-    const raw = String(dataInclusaoIso).trim().slice(0, 10);
-    const parsed = parseISO(raw);
-    if (isValid(parsed)) inclusao = startOfDay(parsed);
-  }
+  const resolved = childInclusionDateForMensalidade(dataInclusaoIso, dataCadastroIso);
+  const inclusao = resolved ?? hoje;
 
   const d = Math.min(Math.max(1, Math.floor(Number(diaVencimento)) || 10), 31);
 

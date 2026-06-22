@@ -455,8 +455,12 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
   /** Mesma regra do financeiro do zelador: data de entrada + dia fixo (+ véspera). */
   const proximoVencimentoMensalidadeFmt = useMemo(() => {
-    const inc = filho?.data_entrada || filho?.created_at;
-    const iso = computeProximaDataMensalidadePrevisao(inc, diaVencimentoMensalidade);
+    const iso = computeProximaDataMensalidadePrevisao(
+      filho?.data_entrada,
+      diaVencimentoMensalidade,
+      new Date(),
+      filho?.created_at
+    );
     try {
       const s = format(parseISO(iso), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
       return s.charAt(0).toUpperCase() + s.slice(1);

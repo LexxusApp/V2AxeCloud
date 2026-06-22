@@ -66,6 +66,7 @@ import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./api/lib/runti
 import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
 import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
+import { childEligibleForDueMonth } from "./api/lib/mensalidadeEligibility.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -527,14 +528,34 @@ async function hasPendingMensalidadeForDueMonth(
   return false;
 }
 
-/** Filho já existia no terreiro até o dia do vencimento deste mês (evita mensalidade antes da entrada). */
-function childEligibleForDueMonth(child: any, dueStr: string): boolean {
-  const raw = (child as any).data_entrada || (child as any).created_at;
-  if (!raw) return true;
-  const parsed = parseISO(String(raw).trim().slice(0, 10));
-  if (!isValid(parsed)) return true;
-  const due = startOfDay(parseISO(dueStr));
-  return startOfDay(parsed).getTime() <= due.getTime();
+async function loadTenantChildrenForMensalidade(
+  supabaseAdmin: any,
+  tenantId: string,
+  resolvedTenant: string,
+  userId: string
+): Promise<any[]> {
+  const { data: children, error } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("id, nome, tenant_id, lider_id, created_at, data_entrada, status")
+    .or(
+      [
+        `tenant_id.eq.${tenantId}`,
+        `tenant_id.eq.${resolvedTenant}`,
+        `lider_id.eq.${tenantId}`,
+        `lider_id.eq.${resolvedTenant}`,
+        `lider_id.eq.${userId}`,
+      ].join(",")
+    );
+  if (error) throw error;
+  return (children || []).filter((c: any) => {
+    return (
+      c.tenant_id === tenantId ||
+      c.tenant_id === resolvedTenant ||
+      c.lider_id === userId ||
+      c.lider_id === tenantId ||
+      c.lider_id === resolvedTenant
+    );
+  });
 }
 
 async function fetchMensalidadesPendentesList(
@@ -549,6 +570,22 @@ async function fetchMensalidadesPendentesList(
   const last = new Date(y, m0 + 1, 0).getDate();
   const endStr = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
 
+  let diaVenc = 10;
+  const { data: pix } = await supabaseAdmin
+    .from("configuracoes_pix")
+    .select("dia_vencimento")
+    .or(`terreiro_id.eq.${tenantId},terreiro_id.eq.${tenantId}`)
+    .maybeSingle();
+  if (pix) diaVenc = parseInt(String((pix as any).dia_vencimento), 10) || 10;
+
+  const { data: children } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("id, data_entrada, created_at")
+    .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
+  const childById = new Map<string, any>(
+    (children || []).map((c: any) => [String(c.id).trim().toLowerCase(), c])
+  );
+
   let q = supabaseAdmin
     .from("financeiro")
     .select("*")
@@ -562,8 +599,12 @@ async function fetchMensalidadesPendentesList(
   const pendentesMesAtual = ((data || []) as MensalidadeZeladorRow[]).filter((row) => {
     const ymd = mensalidadeVencimentoOuDataYmd(row);
     if (!mensalidadeYmdDentroDoMesCalendario(ymd, start, endStr)) return false;
-    if (!deriveMensalidadeFilhoId(row)) return false;
-    return rowIsMensalidadePendenteForDueCheck(row, supportsStatus);
+    const fid = deriveMensalidadeFilhoId(row);
+    if (!fid) return false;
+    if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) return false;
+    const child = childById.get(fid);
+    if (!child) return true;
+    return childEligibleForDueMonth(child, ymd!, diaVenc);
   });
   pendentesMesAtual.sort((a, b) => {
     const aRef = String((a as any).data_vencimento || a.data || "").slice(0, 10);
@@ -629,28 +670,12 @@ async function syncMensalidadesPendentes(
     valorPadrao = Number((pix as any).valor_mensalidade) || valorPadrao;
   }
 
-  const { data: children, error: chErr } = await supabaseAdmin
-    .from("filhos_de_santo")
-    .select("id, nome, tenant_id, lider_id, created_at, data_entrada, status")
-    .or(
-      [
-        `tenant_id.eq.${tenantId}`,
-        `tenant_id.eq.${resolvedTenant}`,
-        `lider_id.eq.${tenantId}`,
-        `lider_id.eq.${resolvedTenant}`,
-        `lider_id.eq.${userId}`,
-      ].join(",")
-    );
-  if (chErr) throw chErr;
-  const rows = (children || []).filter((c: any) => {
-    const same =
-      c.tenant_id === tenantId ||
-      c.tenant_id === resolvedTenant ||
-      c.lider_id === userId ||
-      c.lider_id === tenantId ||
-      c.lider_id === resolvedTenant;
-    return same;
-  });
+  const rows = await loadTenantChildrenForMensalidade(
+    supabaseAdmin,
+    tenantId,
+    resolvedTenant,
+    userId
+  );
 
   const ref = new Date();
   const y = ref.getFullYear();
@@ -672,7 +697,7 @@ async function syncMensalidadesPendentes(
     if (stFilho === "inativo" || stFilho === "desligado" || stFilho === "falecido") continue;
 
     const fid = child.id as string;
-    if (!childEligibleForDueMonth(child, dueStr)) continue;
+    if (!childEligibleForDueMonth(child, dueStr, dia)) continue;
 
     const pendingThisMonth = await hasPendingMensalidadeForDueMonth(
       supabaseAdmin,
@@ -716,6 +741,35 @@ async function syncMensalidadesPendentes(
     }
     if (!insErr) created += 1;
   }
+
+  // Remove pendentes gerados indevidamente (ex.: filho migrado com data_entrada antiga).
+  let removed = 0;
+  const childById = new Map<string, any>(
+    rows.map((c: any) => [String(c.id).trim().toLowerCase(), c])
+  );
+  let qClean = supabaseAdmin
+    .from("financeiro")
+    .select("id, descricao, data, data_vencimento, status, categoria, filho_id")
+    .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
+    .eq("categoria", "Mensalidade");
+  if (supportsStatus) qClean = qClean.eq("status", "pendente");
+  const { data: pendRows } = await qClean;
+  for (const row of pendRows || []) {
+    if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) continue;
+    const ymd = mensalidadeVencimentoOuDataYmd(row);
+    if (!ymd || !mensalidadeYmdDentroDoMesCalendario(ymd, monthStart, monthEnd)) continue;
+    const fid = deriveMensalidadeFilhoId(row);
+    if (!fid) continue;
+    const child = childById.get(fid);
+    if (!child) continue;
+    if (childEligibleForDueMonth(child, ymd, dia)) continue;
+    const { error: delErr } = await supabaseAdmin.from("financeiro").delete().eq("id", row.id);
+    if (!delErr) removed += 1;
+  }
+  if (removed > 0) {
+    console.info("[SERVER] syncMensalidadesPendentes: removed ineligible =", removed, "tenant =", tenantId);
+  }
+
   return { created };
 }
 
