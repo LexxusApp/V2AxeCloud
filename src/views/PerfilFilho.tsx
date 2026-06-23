@@ -32,7 +32,13 @@ import Avatar from '../components/Avatar';
 import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
-import { filhoKickerClass, filhoPanelClass, filhoPanelInsetClass, filhoSectionTitleClass } from '../lib/filhoUiTokens';
+import {
+  filhoChipPanelClass,
+  filhoKickerClass,
+  filhoPanelClass,
+  filhoPanelInsetClass,
+  filhoSectionTitleClass,
+} from '../lib/filhoUiTokens';
 
 type Tenant =
   | { nome?: string; plan?: string; tenant_id?: string; foto_url?: string }
@@ -574,12 +580,12 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
   return (
     <AppPageShell>
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="flex flex-col items-start gap-8 animate-in fade-in duration-500">
       {/* Topo — identidade compacta */}
       <motion.header
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn(filhoPanelClass, 'px-4 py-3 sm:px-5 sm:py-4')}
+        className={cn(filhoPanelClass, filhoChipPanelClass, 'px-4 py-3 sm:px-5 sm:py-4')}
       >
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="group relative shrink-0">
@@ -625,9 +631,9 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
             />
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="truncate text-base font-bold text-white sm:text-lg">{displayName}</h1>
+              <h1 className="text-base font-bold text-white sm:text-lg">{displayName}</h1>
               {cargo && (
                 <span className="inline-flex shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-primary">
                   {cargo}
@@ -639,55 +645,39 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 </span>
               )}
             </div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-[#94A3B8]">
-              {tenantData?.foto_url ? (
-                <img
-                  src={tenantData.foto_url}
-                  alt=""
-                  className="h-4 w-4 shrink-0 rounded object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <Home className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#94A3B8]">
+                {tenantData?.foto_url ? (
+                  <img
+                    src={tenantData.foto_url}
+                    alt=""
+                    className="h-4 w-4 shrink-0 rounded object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <Home className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
+                )}
+                <span>{tenantData?.nome || 'Terreiro vinculado'}</span>
+              </div>
+              {mensalidadeAtiva && !loadingDebt && (
+                <span
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                    hasDebt
+                      ? 'border-red-500/25 bg-red-500/10 text-red-400'
+                      : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
+                  )}
+                >
+                  <span
+                    className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
+                    aria-hidden
+                  />
+                  {hasDebt ? 'Em aberto' : 'Em dia'}
+                </span>
               )}
-              <span className="truncate">{tenantData?.nome || 'Terreiro vinculado'}</span>
             </div>
           </div>
-
-          {mensalidadeAtiva && !loadingDebt && (
-            <div
-              className={cn(
-                'hidden shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex',
-                hasDebt
-                  ? 'border-red-500/25 bg-red-500/10 text-red-400'
-                  : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
-              )}
-            >
-              <span
-                className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
-                aria-hidden
-              />
-              {hasDebt ? 'Em aberto' : 'Em dia'}
-            </div>
-          )}
         </div>
-
-        {mensalidadeAtiva && !loadingDebt && (
-          <div
-            className={cn(
-              'mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:hidden',
-              hasDebt
-                ? 'border-red-500/25 bg-red-500/10 text-red-400'
-                : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
-            )}
-          >
-            <span
-              className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
-              aria-hidden
-            />
-            {hasDebt ? 'Mensalidade em aberto' : 'Mensalidade em dia'}
-          </div>
-        )}
 
         {photoMessage && (
           <p

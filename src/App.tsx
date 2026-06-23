@@ -1417,7 +1417,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             data-role={userRole ?? undefined}
           >
             {userRole === 'filho' && session ? (
-              <div className="mx-auto w-full max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
+              <div className="mx-auto flex w-full max-w-[1600px] flex-col items-start px-4 pt-4 sm:px-6 lg:px-8">
                 <FilhoPushPrompt
                   permission={permission}
                   loading={pushLoading}
