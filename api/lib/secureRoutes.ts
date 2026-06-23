@@ -34,9 +34,6 @@ export async function requireTenantReadAccess(
 
   const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tid);
   if (!ok) {
-    // #region agent log
-    fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'secureRoutes.ts:deny',message:'tenant read denied',data:{tid,userId:user.id},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
     res.status(403).json({ error: "Acesso negado" });
     return null;
   }

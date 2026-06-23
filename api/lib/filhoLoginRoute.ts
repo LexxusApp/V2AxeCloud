@@ -254,10 +254,6 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       });
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'filhoLoginRoute.ts:parse',message:'filho login id parsed',data:{kind:parseFilhoLoginId(childIdStr)?.kind,rateKey:childIdRaw},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
-
     if (filhoLoginIsLocked(childIdRaw, req)) {
       return sendJson(res, 429, {
         error: "Muitas tentativas incorretas para este ID. Aguarde 30 minutos.",
@@ -265,9 +261,6 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     }
 
     const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childIdStr, cpfPrefix);
-    // #region agent log
-    fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'filhoLoginRoute.ts:lookup',message:'filho login lookup',data:{found:!!child,ambiguous},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
     if (ambiguous) {
       recordFilhoLoginFailure(childIdRaw, req);
       return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });
