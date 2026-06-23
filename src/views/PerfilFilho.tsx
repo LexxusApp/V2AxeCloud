@@ -575,142 +575,130 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   return (
     <AppPageShell>
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Topo — identidade do filho + vínculo com o terreiro */}
+      {/* Topo — identidade compacta */}
       <motion.header
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn(filhoPanelClass, 'relative overflow-hidden')}
+        className={cn(filhoPanelClass, 'px-4 py-3 sm:px-5 sm:py-4')}
       >
-        <div
-          className="pointer-events-none absolute -top-20 right-0 h-52 w-52 rounded-full bg-primary/12 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-16 left-8 h-36 w-36 rounded-full bg-amber-700/8 blur-3xl"
-          aria-hidden
-        />
-
-        <div className="relative px-6 py-8 sm:px-10 sm:py-10">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
-            <div className="group relative shrink-0">
-              <button
-                type="button"
-                onClick={() => !isUploadingPhoto && fileInputRef.current?.click()}
-                disabled={isUploadingPhoto || loadingFilho || !filho}
-                className="relative h-28 w-28 rounded-full p-[3px] bg-gradient-to-br from-primary via-amber-300 to-amber-700 shadow-lg shadow-primary/20 ring-4 ring-primary/10 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70 sm:h-32 sm:w-32"
-                aria-label="Alterar foto de perfil"
-              >
-                <div className="h-full w-full overflow-hidden rounded-full border-2 border-[#13171D] bg-[#0B0E12]">
-                  {loadingFilho ? (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <Avatar
-                      src={fotoUrl}
-                      name={displayName}
-                      alt={displayName}
-                      shape="circle"
-                      textSize="text-3xl sm:text-4xl"
-                      className="h-full w-full"
-                    />
-                  )}
-                </div>
-                {!loadingFilho && filho && (
-                  <span className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/60 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                    {isUploadingPhoto ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    ) : (
-                      <>
-                        <Camera className="mb-0.5 h-5 w-5 text-primary" />
-                        <span className="text-[8px] font-black uppercase tracking-wider text-white">Alterar</span>
-                      </>
-                    )}
-                  </span>
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/*"
-                onChange={(e) => void handlePhotoUpload(e)}
-              />
-            </div>
-
-            <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
-              <div>
-                <p className={filhoKickerClass}>Seu perfil no Axé</p>
-                <h1 className="mt-1 break-words text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">
-                  {displayName}
-                </h1>
-                {(cargo || orixa) && (
-                  <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-                    {cargo && (
-                      <span className="inline-flex rounded-full border border-primary/30 bg-primary/15 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-primary">
-                        {cargo}
-                      </span>
-                    )}
-                    {orixa && (
-                      <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase text-gray-300">
-                        {orixa}
-                      </span>
-                    )}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="group relative shrink-0">
+            <button
+              type="button"
+              onClick={() => !isUploadingPhoto && fileInputRef.current?.click()}
+              disabled={isUploadingPhoto || loadingFilho || !filho}
+              className="relative h-14 w-14 rounded-full p-[2px] bg-gradient-to-br from-primary to-amber-600 shadow-sm shadow-primary/15 transition-transform hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-70 sm:h-16 sm:w-16"
+              aria-label="Alterar foto de perfil"
+            >
+              <div className="h-full w-full overflow-hidden rounded-full border border-[#13171D] bg-[#0B0E12]">
+                {loadingFilho ? (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
-                )}
-              </div>
-
-              <div className="inline-flex max-w-full items-center gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
-                {tenantData?.foto_url ? (
-                  <img
-                    src={tenantData.foto_url}
-                    alt=""
-                    className="h-11 w-11 shrink-0 rounded-lg border border-[#1E242B] object-cover"
-                    referrerPolicy="no-referrer"
-                  />
                 ) : (
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-                    <Home className="h-5 w-5 text-primary" aria-hidden />
-                  </div>
-                )}
-                <div className="min-w-0 text-left">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#64748B]">Terreiro vinculado</p>
-                  <p className="truncate text-sm font-bold text-[#F1F5F9]">
-                    {tenantData?.nome || 'Terreiro vinculado'}
-                  </p>
-                </div>
-              </div>
-
-              {mensalidadeAtiva && !loadingDebt && (
-                <div
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide',
-                    hasDebt
-                      ? 'border-red-500/25 bg-red-500/10 text-red-400'
-                      : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
-                  )}
-                >
-                  <span
-                    className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
-                    aria-hidden
+                  <Avatar
+                    src={fotoUrl}
+                    name={displayName}
+                    alt={displayName}
+                    shape="circle"
+                    textSize="text-lg sm:text-xl"
+                    className="h-full w-full"
                   />
-                  {hasDebt ? 'Mensalidade em aberto' : 'Mensalidade em dia'}
-                </div>
-              )}
-
-              {photoMessage && (
-                <p
-                  className={cn(
-                    'text-xs font-semibold',
-                    photoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'
+                )}
+              </div>
+              {!loadingFilho && filho && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                  {isUploadingPhoto ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Camera className="h-4 w-4 text-primary" />
                   )}
-                >
-                  {photoMessage.text}
-                </p>
+                </span>
               )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+              onChange={(e) => void handlePhotoUpload(e)}
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="truncate text-base font-bold text-white sm:text-lg">{displayName}</h1>
+              {cargo && (
+                <span className="inline-flex shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-primary">
+                  {cargo}
+                </span>
+              )}
+              {orixa && (
+                <span className="inline-flex shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase text-gray-400">
+                  {orixa}
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-[#94A3B8]">
+              {tenantData?.foto_url ? (
+                <img
+                  src={tenantData.foto_url}
+                  alt=""
+                  className="h-4 w-4 shrink-0 rounded object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <Home className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
+              )}
+              <span className="truncate">{tenantData?.nome || 'Terreiro vinculado'}</span>
             </div>
           </div>
+
+          {mensalidadeAtiva && !loadingDebt && (
+            <div
+              className={cn(
+                'hidden shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex',
+                hasDebt
+                  ? 'border-red-500/25 bg-red-500/10 text-red-400'
+                  : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
+              )}
+            >
+              <span
+                className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
+                aria-hidden
+              />
+              {hasDebt ? 'Em aberto' : 'Em dia'}
+            </div>
+          )}
         </div>
+
+        {mensalidadeAtiva && !loadingDebt && (
+          <div
+            className={cn(
+              'mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:hidden',
+              hasDebt
+                ? 'border-red-500/25 bg-red-500/10 text-red-400'
+                : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
+            )}
+          >
+            <span
+              className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')}
+              aria-hidden
+            />
+            {hasDebt ? 'Mensalidade em aberto' : 'Mensalidade em dia'}
+          </div>
+        )}
+
+        {photoMessage && (
+          <p
+            className={cn(
+              'mt-2 text-[11px] font-semibold',
+              photoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'
+            )}
+          >
+            {photoMessage.text}
+          </p>
+        )}
       </motion.header>
 
       {/* Mensalidade (PIX) | Próximo evento — altura independente por coluna */}
