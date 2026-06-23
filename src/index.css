@@ -2749,27 +2749,27 @@ html:has(.app-v3) {
 
 /* Landing mockup — fidelidade visual ao hero aprovado */
 html:has(.landing-mockup-nav) {
-  --landing-mockup-nav-height: 5rem;
+  --landing-mockup-nav-height: 4.75rem;
   --mockup-shell-max: 72rem;
   --mockup-gutter: 1.5rem;
 }
 
 @media (min-width: 640px) {
   html:has(.landing-mockup-nav) {
-    --landing-mockup-nav-height: 6.25rem;
+    --landing-mockup-nav-height: 6rem;
     --mockup-gutter: 2.5rem;
   }
 }
 
 @media (min-width: 768px) {
   html:has(.landing-mockup-nav) {
-    --landing-mockup-nav-height: 7.25rem;
+    --landing-mockup-nav-height: 6.75rem;
   }
 }
 
 @media (min-width: 1024px) {
   html:has(.landing-mockup-nav) {
-    --landing-mockup-nav-height: 7.75rem;
+    --landing-mockup-nav-height: 7.25rem;
     --mockup-gutter: 3.5rem;
   }
 }

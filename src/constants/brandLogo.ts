@@ -8,7 +8,7 @@ export const BRAND_LOGO_HEIGHT = 357;
 
 /** Classes Tailwind — navbar marketing (wordmark grande e legível). */
 export const BRAND_LOGO_NAV_CLASS =
-  'landing-mockup-logo h-[4rem] w-auto min-w-[11rem] max-w-none object-contain object-left sm:h-[4.75rem] sm:min-w-[13rem] md:h-[5.5rem] md:min-w-[15rem] lg:h-[6rem] lg:min-w-[17rem] xl:h-[6.5rem] xl:min-w-[19rem]';
+  'landing-mockup-logo h-[3.75rem] w-auto min-w-[10rem] max-w-none object-contain object-left sm:h-[4.5rem] sm:min-w-[12rem] md:h-[5.25rem] md:min-w-[14rem] lg:h-[5.75rem] lg:min-w-[16rem] xl:h-[6.25rem] xl:min-w-[18rem]';
 
 export const BRAND_LOGO_NAV_FOOTER_CLASS =
   'landing-mockup-logo h-14 w-auto min-w-[12rem] max-w-none object-contain object-left sm:h-16 sm:min-w-[14rem]';
