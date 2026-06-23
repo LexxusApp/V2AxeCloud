@@ -27,21 +27,35 @@ export function writeCachedTenantIdForUser(userId: string, tenantId: string) {
   }
 }
 
-export function readCachedTenantIdForUser(userId: string): string {
+/**
+ * @param rejectSelfId Quando true (filho), ignora cache onde tenant === auth user id —
+ * vínculo inválido gravado por versões antigas do login filho.
+ */
+export function readCachedTenantIdForUser(
+  userId: string,
+  opts?: { rejectSelfId?: boolean }
+): string {
   if (!userId || typeof window === 'undefined') return '';
+  const rejectSelfId = !!opts?.rejectSelfId;
+
+  const pick = (raw: string | null): string => {
+    const tid = parseTenantPayload(raw);
+    if (!tid) return '';
+    if (rejectSelfId && tid === userId) return '';
+    return tid;
+  };
+
   try {
-    const ls = parseTenantPayload(localStorage.getItem(`${LS_PREFIX}:${userId}`));
-    if (ls && ls !== userId) return ls;
+    const ls = pick(localStorage.getItem(`${LS_PREFIX}:${userId}`));
+    if (ls) return ls;
   } catch {
     /* */
   }
   try {
-    const ss = parseTenantPayload(sessionStorage.getItem(`${SS_PREFIX}:${userId}`));
-    if (ss && ss !== userId) return ss;
+    return pick(sessionStorage.getItem(`${SS_PREFIX}:${userId}`));
   } catch {
     return '';
   }
-  return '';
 }
 
 export function clearCachedTenantIdForUser(userId: string) {
@@ -66,13 +80,31 @@ export function peekCachedTenantId(userId: string): string {
   return readCachedTenantIdForUser(userId);
 }
 
-/** Preferência: sessão/tenant-info; fallback: último tenant gravado para este usuário. */
+/**
+ * Resolve tenant para APIs financeiras/dashboard.
+ * Zelador: tenant_id costuma ser o próprio perfil_lider.id (igual ao user.id) — isso é válido.
+ * Filho: auth user id nunca é o tenant do terreiro.
+ */
 export function resolveTenantIdForFinance(
   tenantFromSession: string | null | undefined,
-  userId?: string | null
+  userId?: string | null,
+  isFilho = false
 ): string {
   const uid = String(userId || '').trim();
   const fromSession = String(tenantFromSession ?? '').trim();
-  if (fromSession && (!uid || fromSession !== uid)) return fromSession;
-  return readCachedTenantIdForUser(uid);
+
+  if (fromSession) {
+    if (isFilho && uid && fromSession === uid) {
+      const cached = readCachedTenantIdForUser(uid, { rejectSelfId: true });
+      if (cached) return cached;
+      return '';
+    }
+    return fromSession;
+  }
+
+  const cached = readCachedTenantIdForUser(uid, { rejectSelfId: isFilho });
+  if (cached) return cached;
+
+  if (!isFilho && uid) return uid;
+  return '';
 }

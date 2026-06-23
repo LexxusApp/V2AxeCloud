@@ -339,8 +339,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const [authLoading, setAuthLoading] = useState(true);
   const reduceChartGpu = useCoarsePointerOrMobile();
   const tenantId = useMemo(
-    () => resolveTenantIdForFinance(tenantData?.tenant_id || initialTenantFromStorage, user?.id),
-    [tenantData?.tenant_id, user?.id, initialTenantFromStorage]
+    () =>
+      resolveTenantIdForFinance(
+        tenantData?.tenant_id || initialTenantFromStorage,
+        user?.id,
+        userRole === 'filho'
+      ),
+    [tenantData?.tenant_id, user?.id, userRole, initialTenantFromStorage]
   );
   /** Último bundle válido — evita “sumir” dados durante revalidação SWR ou HMR. */
   const lastBundleRef = useRef<DashboardBundle | null>(null);

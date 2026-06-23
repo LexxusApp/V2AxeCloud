@@ -171,7 +171,7 @@ const categoryConfig: Record<
 };
 
 export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFilhoProps) {
-  const tenantId = resolveTenantIdForFinance(tenantData?.tenant_id, user.id);
+  const tenantId = resolveTenantIdForFinance(tenantData?.tenant_id, user.id, true);
 
   const [filho, setFilho] = useState<FilhoData | null>(null);
   const [loadingFilho, setLoadingFilho] = useState(true);

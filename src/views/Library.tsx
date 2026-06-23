@@ -181,7 +181,8 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   });
 
   const effectiveTenantId =
-    resolveTenantIdForFinance(tenantData?.tenant_id, user.id) || tenantData?.tenant_id || user.id;
+    resolveTenantIdForFinance(tenantData?.tenant_id, user.id, userRole === 'filho') ||
+    (userRole !== 'filho' ? tenantData?.tenant_id || user.id : '');
 
   const fetchMaterials = async () => {
     if (!effectiveTenantId) {

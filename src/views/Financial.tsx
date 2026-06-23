@@ -184,8 +184,8 @@ export default function Financial({
   // O plano controla QUAIS funções de gestão estão disponíveis (via hasPlanAccess), não SE o usuário é gestor.
   const isAdmin = userRole !== 'filho';
   const tenantId = useMemo(
-    () => resolveTenantIdForFinance(tenantData?.tenant_id, userId),
-    [tenantData?.tenant_id, userId]
+    () => resolveTenantIdForFinance(tenantData?.tenant_id, userId, userRole === 'filho'),
+    [tenantData?.tenant_id, userId, userRole]
   );
   const plan = canonicalPlanSlug(tenantData?.plan);
   const isBasicFinancePlan = plan === 'free';
