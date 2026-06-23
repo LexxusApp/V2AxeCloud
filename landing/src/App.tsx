@@ -125,7 +125,7 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
-        compact ? 'h-[3.25rem] max-w-none sm:h-14 md:h-[5.25rem]' : 'h-[3.75rem] max-w-none sm:h-[5.25rem] md:h-[5.75rem]',
+        compact ? 'h-12 max-w-none sm:h-[3.5rem] md:h-[5rem]' : 'h-[3.5rem] max-w-none sm:h-[5rem] md:h-[5.5rem]',
         className,
       )}
     />
