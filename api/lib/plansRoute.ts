@@ -5,6 +5,7 @@ import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { loadPlansCatalogWithMeta, PLANS_CATALOG_DEFAULT } from "./plansCatalog.js";
 import { getSupabaseProjectRef, getSupabaseServerUrl } from "./supabaseServerEnv.js";
+import { safeErrorMessage } from "./safeError.js";
 
 export async function handlePlansRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
@@ -43,8 +44,6 @@ export async function handlePlansRoute(req: any, res: any) {
       },
     });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro ao buscar planos";
-    console.error("[api/plans]", msg);
-    return sendJson(res, 500, { error: msg });
+    return sendJson(res, 500, { error: safeErrorMessage(e, "Erro ao buscar planos") });
   }
 }

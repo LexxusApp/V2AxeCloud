@@ -10,6 +10,8 @@
 
 import type { Request, Response } from "express";
 import { runFullAudit, type AuditTargetRow } from "./runFull.js";
+import { secureCompare } from "../secureCompare.js";
+import { safeErrorMessage } from "../safeError.js";
 
 const HARD_BUDGET_MS = 50_000; // teto p/ serverless de 60s
 
@@ -22,7 +24,7 @@ function isAuthorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET || process.env.AUDIT_CRON_SECRET || "";
   if (!secret) return false;
   const auth = String(req.headers.authorization || "").trim();
-  return auth === `Bearer ${secret}`;
+  return secureCompare(auth, `Bearer ${secret}`);
 }
 
 export async function handleAuditTick(req: Request, res: Response, supabase: any) {
@@ -61,7 +63,7 @@ export async function handleAuditTick(req: Request, res: Response, supabase: any
         if (r.alerted) alerts++;
       } catch (e: any) {
         failed++;
-        errors.push({ id: t.id, url: t.url, error: e?.message || String(e) });
+        errors.push({ id: t.id, url: t.url, error: safeErrorMessage(e, "Falha na auditoria") });
       }
     }
 
@@ -76,6 +78,6 @@ export async function handleAuditTick(req: Request, res: Response, supabase: any
     });
   } catch (e: any) {
     console.error("[cron/audit-tick] erro fatal:", e);
-    res.status(500).json({ error: e?.message || String(e) });
+    res.status(500).json({ error: safeErrorMessage(e, "Erro interno") });
   }
 }

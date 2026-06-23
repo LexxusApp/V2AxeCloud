@@ -29,6 +29,11 @@ const SUPABASE_SERVICE_ROLE_KEY = getServerEnv(
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_SERVICE_KEY"
 );
+const SUPABASE_ANON_KEY = getServerEnv(
+  "VITE_SUPABASE_ANON_KEY",
+  "SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+);
 
 const supabaseAdmin: SupabaseClient | null =
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
@@ -39,6 +44,7 @@ const supabaseAdmin: SupabaseClient | null =
 
 const FILHO_LOGIN_DENIED = "ID ou CPF incorretos.";
 const CPF_PREFIX_LEN = 6;
+const MIN_ID_PREFIX_LEN = 12;
 
 function sendJson(res: any, status: number, body: Record<string, unknown>) {
   res.status(status).setHeader("Content-Type", "application/json");
@@ -58,6 +64,13 @@ function normalizeChildIdInput(childIdInput: string): string {
   return childId;
 }
 
+function childIdMeetsMinimum(childIdInput: string): boolean {
+  const raw = String(childIdInput || "").trim();
+  if (isValidUuid(raw)) return true;
+  const normalized = normalizeChildIdInput(raw).toLowerCase().replace(/-/g, "");
+  return normalized.length >= MIN_ID_PREFIX_LEN;
+}
+
 async function findChildByIdPrefix(
   sb: SupabaseClient,
   childIdInput: string,
@@ -66,11 +79,12 @@ async function findChildByIdPrefix(
   const childId = normalizeChildIdInput(childIdInput);
   const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
 
-  if (isValidUuid(childId)) {
+  if (isValidUuid(String(childIdInput || "").trim()) || isValidUuid(childId)) {
+    const lookupId = isValidUuid(String(childIdInput || "").trim()) ? String(childIdInput).trim() : childId;
     const { data, error } = await sb
       .from("filhos_de_santo")
       .select("id, cpf, user_id, nome")
-      .eq("id", childId)
+      .eq("id", lookupId)
       .maybeSingle();
     if (error) throw error;
     if (!data) return { child: null, ambiguous: false };
@@ -80,7 +94,7 @@ async function findChildByIdPrefix(
   }
 
   const prefix = childId.toLowerCase().replace(/-/g, "");
-  if (prefix.length < 4) return { child: null, ambiguous: false };
+  if (prefix.length < MIN_ID_PREFIX_LEN) return { child: null, ambiguous: false };
 
   const { data, error } = await sb.rpc("find_filhos_for_login", {
     p_id_prefix: prefix,
@@ -151,6 +165,28 @@ async function cleanupShadowFilhoPerfilLider(sb: SupabaseClient, userId: string)
   }
 }
 
+async function issueFilhoSession(
+  email: string,
+  password: string
+): Promise<{ access_token: string; refresh_token: string; expires_in: number; token_type: string }> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase anon key não configurada no servidor.");
+  }
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+  if (error || !data.session) {
+    throw error || new Error("Falha ao criar sessão do filho.");
+  }
+  return {
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+    expires_in: data.session.expires_in ?? 3600,
+    token_type: data.session.token_type ?? "bearer",
+  };
+}
+
 export async function handleFilhoLoginRoute(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
 
@@ -182,15 +218,22 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       });
     }
 
+    if (!childIdMeetsMinimum(String(childId || ""))) {
+      return sendJson(res, 400, {
+        error: `Informe o UUID completo do filho ou ao menos ${MIN_ID_PREFIX_LEN} caracteres do ID.`,
+      });
+    }
+
     if (filhoLoginIsLocked(childIdRaw, req)) {
       return sendJson(res, 429, {
         error: "Muitas tentativas incorretas para este ID. Aguarde 30 minutos.",
       });
     }
 
-    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childIdRaw, cpfPrefix);
+    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, String(childId || ""), cpfPrefix);
     if (ambiguous) {
-      return sendJson(res, 409, { error: "ID ambíguo. Informe o UUID completo do filho." });
+      recordFilhoLoginFailure(childIdRaw, req);
+      return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });
     }
     if (!child) {
       recordFilhoLoginFailure(childIdRaw, req);
@@ -233,7 +276,8 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
 
       await cleanupShadowFilhoPerfilLider(supabaseAdmin, authUser.id);
 
-      return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
+      const session = await issueFilhoSession(fakeEmail, generatedPassword);
+      return sendJson(res, 200, session);
     }
 
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -257,7 +301,8 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
           if (retryUpdateError) throw retryUpdateError;
           await supabaseAdmin.from("filhos_de_santo").update({ user_id: recovered.id }).eq("id", child.id);
           await cleanupShadowFilhoPerfilLider(supabaseAdmin, recovered.id);
-          return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
+          const session = await issueFilhoSession(fakeEmail, generatedPassword);
+          return sendJson(res, 200, session);
         }
       }
       throw createError;
@@ -267,7 +312,8 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
 
     await cleanupShadowFilhoPerfilLider(supabaseAdmin, newUser.user.id);
 
-    return sendJson(res, 200, { email: fakeEmail, password: generatedPassword });
+    const session = await issueFilhoSession(fakeEmail, generatedPassword);
+    return sendJson(res, 200, session);
   } catch (error: any) {
     console.error("[AUTH] Erro no Login do Filho:", error);
     return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao processar login.") });

@@ -180,6 +180,24 @@ export async function assertZeladorTenantAccess(
   return a === b;
 }
 
+/** Zelador do tenant ou admin global (filhos retornam false). */
+export async function assertZeladorOrGlobalAdmin(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null },
+  tenantId: string
+): Promise<boolean> {
+  if (await isConsoleGlobalAdmin(supabaseAdmin, user)) return true;
+  return assertZeladorTenantAccess(supabaseAdmin, user.id, tenantId);
+}
+
+/** Retorna o registro filhos_de_santo do usuário autenticado, se for filho. */
+export async function resolveAuthenticatedFilho(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<{ id: string; user_id?: string | null; tenant_id?: string | null; lider_id?: string | null } | null> {
+  return resolveFilhoHouseRefs(supabaseAdmin, { id: userId });
+}
+
 export async function assertUserCanAccessTenant(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null },

@@ -9,9 +9,11 @@ import {
   resolvePublicAppUrl,
 } from "./tenantOnboarding.js";
 import { requireAuthUser } from "./requireAuth.js";
+import { secureCompare } from "./secureCompare.js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
 import { authRateLimit, webhookRateLimit } from "./rateLimit.js";
 import { verifyEfiWebhook } from "./secureRoutes.js";
+import { safeErrorMessage } from "./safeError.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -51,7 +53,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
     } catch (err: any) {
       const status = Number(err?.status) || 500;
       console.error("[register]", err?.message || err);
-      res.status(status).json({ error: err?.message || "Erro ao cadastrar terreiro." });
+      res.status(status).json({ error: safeErrorMessage(err, "Erro ao cadastrar terreiro.") });
     }
   });
 
@@ -78,7 +80,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       res.json({ checkoutPath: `/checkout?tenant=${userId}` });
     } catch (err: any) {
       console.error("[checkout/resume]", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro ao gerar checkout." });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao gerar checkout.") });
     }
   });
 
@@ -102,7 +104,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       const result = await processEfiNotificationToken(supabaseAdmin, token);
       if (!result.ok) {
         console.error("[EFI WEBHOOK]", result.message);
-        return res.status(422).json({ error: result.message });
+        return res.status(422).json({ error: "Falha ao processar notificação de pagamento" });
       }
 
       console.log("[EFI WEBHOOK]", result.message);
@@ -139,7 +141,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/v1/onboarding/activate", async (req: Request, res: Response) => {
     const secret = process.env.ONBOARDING_ACTIVATE_SECRET;
-    if (!secret || req.headers["x-onboarding-secret"] !== secret) {
+    if (!secret || !secureCompare(String(req.headers["x-onboarding-secret"] || ""), secret)) {
       return res.status(403).json({ error: "Forbidden" });
     }
     const tenantId = String(req.body?.tenantId || "").trim();
@@ -149,7 +151,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       const out = await activateTenantSubscription(supabaseAdmin, tenantId, { provider: "efi" });
       res.json({ success: true, ...out });
     } catch (err: any) {
-      res.status(500).json({ error: err?.message || "Erro ao ativar" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao ativar") });
     }
   });
 }

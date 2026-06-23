@@ -5,7 +5,6 @@ import {
   efiCreateCardSubscriptionOneStep,
   efiGetCharge,
   efiGetSubscription,
-  formatEfiApiError,
   resolveEfiEnv,
   resolveEfiPayeeCode,
 } from "./efiPay.js";
@@ -225,7 +224,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     } catch (err: any) {
       console.error("[checkout/pix]", err?.response?.data || err?.message || err);
       res.status(500).json({
-        error: err?.response?.data?.mensagem || err?.message || "Erro ao gerar PIX.",
+        error: safeErrorMessage(err, "Erro ao gerar PIX."),
       });
     }
   });
@@ -263,7 +262,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       res.json({ status: cob.status, paid: false, active: false });
     } catch (err: any) {
       console.error("[checkout/pix/status]", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro ao consultar PIX." });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao consultar PIX.") });
     }
   });
 
@@ -383,9 +382,8 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         httpStatus === 400 || httpStatus === 422 || httpStatus === 412 ? 400 : 500;
       const suggestPix = isEfiCardProcessingFailure(err, { httpStatus });
       res.status(status).json({
-        error: suggestPix ? EFI_CARD_PIX_FALLBACK_MESSAGE : formatEfiApiError(err),
+        error: suggestPix ? EFI_CARD_PIX_FALLBACK_MESSAGE : safeErrorMessage(err, "Erro ao processar cartão."),
         suggestPix,
-        efiCode: (err as { response?: { data?: { code?: number } } })?.response?.data?.code ?? null,
       });
     }
   });

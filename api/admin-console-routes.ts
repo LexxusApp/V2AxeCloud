@@ -21,6 +21,7 @@ import { logEvent } from "./lib/auditLog.js";
 import { createAuditLog } from "./lib/createAuditLog.js";
 import { getBearerToken } from "./lib/requireAuth.js";
 import { scanUrl } from "./lib/audit/scan.js";
+import { safeErrorMessage } from "./lib/safeError.js";
 import { dnsReport } from "./lib/audit/dns.js";
 import { runPsi } from "./lib/audit/psi.js";
 import { checkLinks } from "./lib/audit/links.js";
@@ -212,7 +213,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       });
     } catch (e: any) {
       console.error("[admin-console/overview]", e);
-      res.status(500).json({ error: e?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro interno") });
     }
   });
 
@@ -340,7 +341,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       });
     } catch (e: any) {
       console.error("[admin-console/tenant detail]", e);
-      res.status(500).json({ error: e?.message || "Erro ao buscar tenant" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao buscar tenant") });
     }
   });
 
@@ -382,7 +383,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, role: data?.role || role });
     } catch (e: any) {
       console.error("[admin-console/tenant:set-role]", e);
-      res.status(500).json({ error: e?.message || "Falha ao atualizar role." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao atualizar role.") });
     }
   });
 
@@ -424,7 +425,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, updated: ids.length, total: (pre || []).length });
     } catch (e: any) {
       console.error("[admin-console/maintenance/normalize-roles]", e);
-      res.status(500).json({ error: e?.message || "Falha ao normalizar roles." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao normalizar roles.") });
     }
   });
 
@@ -463,7 +464,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, password: newPassword });
     } catch (e: any) {
       console.error("[admin-console/tenant reset-password]", e);
-      res.status(500).json({ error: e?.message || "Erro ao redefinir senha" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao redefinir senha") });
     }
   });
 
@@ -477,7 +478,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       }
       res.json(await handleAdminAuditLogs(deps.supabaseAdmin, qs));
     } catch (e: any) {
-      res.status(500).json({ error: e?.message || "Erro ao ler audit_logs." });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao ler audit_logs.") });
     }
   });
 
@@ -589,7 +590,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         eventTypes,
       });
     } catch (e: any) {
-      res.status(500).json({ error: e?.message || "Tabela access_logs indisponível ou erro ao ler." });
+      res.status(500).json({ error: safeErrorMessage(e, "Tabela access_logs indisponível ou erro ao ler.") });
     }
   });
 
@@ -607,7 +608,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json(await handleAdminR2Usage(deps.r2Client, deps.r2Bucket, cap));
     } catch (e: any) {
       console.error("[admin-console/r2-usage]", e);
-      res.status(500).json({ error: e?.message || "Erro ao listar R2" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar R2") });
     }
   });
 
@@ -681,7 +682,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       });
     } catch (e: any) {
       console.error("[admin-console/create-demo]", e);
-      res.status(500).json({ error: e?.message || "Erro ao criar demo" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao criar demo") });
     }
   });
 
@@ -699,7 +700,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/status]", e);
-      res.status(500).json({ error: e?.message || "Erro ao consultar status" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao consultar status") });
     }
   });
 
@@ -734,7 +735,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ...out, message: "Use o código abaixo no WhatsApp do dispositivo." });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/connect]", e);
-      res.status(500).json({ error: e?.message || "Erro ao gerar pairing code" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao gerar pairing code") });
     }
   });
 
@@ -755,7 +756,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/logout]", e);
-      res.status(500).json({ error: e?.message || "Erro ao desconectar" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao desconectar") });
     }
   });
 
@@ -767,7 +768,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       const cfg = await loadWelcomeMessageConfig(deps.supabaseAdmin);
       res.json({ ...cfg, defaults: WELCOME_MESSAGE_DEFAULT });
     } catch (e: any) {
-      res.status(500).json({ error: e?.message || "Erro ao carregar mensagem" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar mensagem") });
     }
   });
 
@@ -798,7 +799,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       });
       res.json(saved);
     } catch (e: any) {
-      res.status(500).json({ error: e?.message || "Erro ao guardar mensagem" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao guardar mensagem") });
     }
   });
 
@@ -824,7 +825,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, msisdn, ...out });
     } catch (e: any) {
       console.error("[admin-console/welcome-message/test]", e);
-      res.status(500).json({ error: e?.message || "Falha ao enviar teste" });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao enviar teste") });
     }
   });
 
@@ -853,7 +854,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...out });
     } catch (e: any) {
       console.error("[admin-console/whatsapp/test-message]", e);
-      res.status(500).json({ error: e?.message || "Falha ao enviar mensagem" });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao enviar mensagem") });
     }
   });
 
@@ -894,7 +895,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, result });
     } catch (e: any) {
       console.error("[admin-console/audit/scan]", e);
-      res.status(500).json({ error: e?.message || "Falha ao auditar URL." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao auditar URL.") });
     }
   });
 
@@ -925,7 +926,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, report });
     } catch (e: any) {
       console.error("[admin-console/audit/dns]", e);
-      res.status(500).json({ error: e?.message || "Falha ao consultar DNS/WHOIS." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao consultar DNS/WHOIS.") });
     }
   });
 
@@ -963,7 +964,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, links, hreflang });
     } catch (e: any) {
       console.error("[admin-console/audit/links]", e);
-      res.status(500).json({ error: e?.message || "Falha ao verificar links." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao verificar links.") });
     }
   });
 
@@ -990,7 +991,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, result });
     } catch (e: any) {
       console.error("[admin-console/audit/psi]", e);
-      res.status(500).json({ error: e?.message || "Falha no PageSpeed Insights." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha no PageSpeed Insights.") });
     }
   });
 
@@ -1020,7 +1021,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, targets: data || [] });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:list]", e);
-      res.status(500).json({ error: e?.message || "Falha ao listar alvos." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao listar alvos.") });
     }
   });
 
@@ -1061,7 +1062,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, target: data });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:create]", e);
-      res.status(500).json({ error: e?.message || "Falha ao criar alvo." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao criar alvo.") });
     }
   });
 
@@ -1096,7 +1097,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, target: data });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:update]", e);
-      res.status(500).json({ error: e?.message || "Falha ao atualizar alvo." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao atualizar alvo.") });
     }
   });
 
@@ -1119,7 +1120,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:delete]", e);
-      res.status(500).json({ error: e?.message || "Falha ao remover alvo." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao remover alvo.") });
     }
   });
 
@@ -1153,7 +1154,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: out.ok, run: out });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:run]", e);
-      res.status(500).json({ error: e?.message || "Falha na execução." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha na execução.") });
     }
   });
 
@@ -1178,7 +1179,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, runs: data || [] });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:history]", e);
-      res.status(500).json({ error: e?.message || "Falha ao listar histórico." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao listar histórico.") });
     }
   });
 
@@ -1196,7 +1197,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: true, run: data });
     } catch (e: any) {
       console.error("[admin-console/audit/runs:get]", e);
-      res.status(500).json({ error: e?.message || "Falha ao buscar run." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao buscar run.") });
     }
   });
 
@@ -1218,7 +1219,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ ok: r.ok, status: r.status, error: r.error });
     } catch (e: any) {
       console.error("[admin-console/audit/targets:test-webhook]", e);
-      res.status(500).json({ error: e?.message || "Falha no webhook." });
+      res.status(500).json({ error: safeErrorMessage(e, "Falha no webhook.") });
     }
   });
 
@@ -1240,7 +1241,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json(await fetchAdminActivityStats(deps.supabaseAdmin));
     } catch (e: any) {
       console.error("[admin-console/activity]", e);
-      res.status(500).json({ error: e?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro interno") });
     }
   });
 
@@ -1268,7 +1269,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...result });
     } catch (e: any) {
       console.error("[admin-console/quick-actions/global-notice]", e);
-      res.status(500).json({ error: e?.message || "Erro ao publicar comunicado" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao publicar comunicado") });
     }
   });
 
@@ -1294,7 +1295,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...result });
     } catch (e: any) {
       console.error("[admin-console/quick-actions/broadcast-push]", e);
-      res.status(500).json({ error: e?.message || "Erro ao enviar notificações" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao enviar notificações") });
     }
   });
 
@@ -1316,7 +1317,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...result });
     } catch (e: any) {
       console.error("[admin-console/quick-actions/broadcast-whatsapp]", e);
-      res.status(500).json({ error: e?.message || "Erro ao enviar WhatsApp" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao enviar WhatsApp") });
     }
   });
 
@@ -1337,7 +1338,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...report });
     } catch (e: any) {
       console.error("[admin-console/quick-actions/financial-report]", e);
-      res.status(500).json({ error: e?.message || "Erro ao gerar relatório" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao gerar relatório") });
     }
   });
 
@@ -1355,7 +1356,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, stats, ...list });
     } catch (e: any) {
       console.error("[admin-console/founder-applications]", e);
-      res.status(500).json({ error: e?.message || "Erro ao listar inscrições" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar inscrições") });
     }
   });
 
@@ -1369,7 +1370,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, ...snapshot });
     } catch (e: any) {
       console.error("[admin-console/supabase-metrics]", e);
-      res.status(500).json({ error: e?.message || "Erro ao obter métricas Supabase" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao obter métricas Supabase") });
     }
   });
 
@@ -1428,7 +1429,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, row });
     } catch (e: any) {
       console.error("[admin-console/founder-applications/patch]", e);
-      res.status(500).json({ error: e?.message || "Erro ao actualizar inscrição" });
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao actualizar inscrição") });
     }
   });
 
@@ -1454,7 +1455,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.json({ success: true, row });
     } catch (e: any) {
       console.error("[admin-console/founder-applications/link-existing]", e);
-      const msg = e?.message || "Erro ao vincular terreiro";
+      const msg = safeErrorMessage(e, "Erro ao vincular terreiro");
       const code = msg.includes("Nenhum terreiro") ? 404 : 500;
       res.status(code).json({ error: msg });
     }

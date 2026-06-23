@@ -78,6 +78,8 @@ import {
   resolveLeaderId as resolveLeaderIdLib,
   resolveTenantAccessForUser as resolveTenantAccessForUserLib,
   assertZeladorTenantAccess as assertZeladorTenantAccessLib,
+  assertZeladorOrGlobalAdmin,
+  resolveAuthenticatedFilho,
   resolveFinanceiroTenantScope as resolveFinanceiroTenantScopeLib,
   assertUserCanAccessTenant,
   normalizeChildPayload,
@@ -92,7 +94,7 @@ import {
   normalizeGalleryCategory,
 } from "./lib/galleryHelpers.js";
 import { safeErrorMessage } from "./lib/safeError.js";
-import { requireTenantReadAccess, isAllowedPdfProxyUrl, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
+import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
 import {
   webhookRateLimit,
   sensitiveActionRateLimit,
@@ -1651,16 +1653,7 @@ async function startServer() {
         console.error('[SERVER] mural insert failed; candidatos:', uniqueTenants.join(', '));
         console.error('[SERVER] mural erros por tenant_id:', errLog.join(' | '));
         return res.status(500).json({
-          error: lastErr?.message || 'Não foi possível publicar o aviso (FK tenant_id).',
-          details: {
-            zeladorId,
-            candidatos: uniqueTenants,
-            perfil_lider_id: pl.id,
-            perfil_lider_tenant_id: pl.tenant_id ?? null,
-            erros: errLog,
-            hint:
-              'Confirme que o .env aponta para o mesmo projeto Supabase onde rodou o SQL. Rode scripts/fix_mural_avisos_fk.sql ou scripts/remove_mural_tenant_fk.sql.',
-          },
+          error: safeErrorMessage(lastErr, "Não foi possível publicar o aviso (FK tenant_id)."),
         });
       }
 
@@ -1824,23 +1817,9 @@ async function startServer() {
         return res.status(400).json({ error: "tenantId é obrigatório." });
       }
 
-      const { data: pl } = await supabaseAdmin
-        .from("perfil_lider")
-        .select("role, tenant_id, is_admin_global")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (pl?.role === "filho") {
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+      if (!zeladorOk) {
         return res.status(403).json({ error: "Sem permissão para cadastrar produtos." });
-      }
-
-      const allowed =
-        !!pl?.is_admin_global ||
-        user.id === tenantId ||
-        (!!pl?.tenant_id && pl.tenant_id === tenantId);
-
-      if (!allowed) {
-        return res.status(403).json({ error: "Você não pode cadastrar produtos neste terreiro." });
       }
 
       const row = {
@@ -1876,23 +1855,9 @@ async function startServer() {
         return res.status(400).json({ error: "id e tenantId são obrigatórios" });
       }
 
-      const { data: pl } = await supabaseAdmin
-        .from("perfil_lider")
-        .select("role, tenant_id, is_admin_global")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (pl?.role === "filho") {
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+      if (!zeladorOk) {
         return res.status(403).json({ error: "Sem permissão para excluir produtos." });
-      }
-
-      const allowed =
-        !!pl?.is_admin_global ||
-        user.id === tenantId ||
-        (!!pl?.tenant_id && pl.tenant_id === tenantId);
-
-      if (!allowed) {
-        return res.status(403).json({ error: "Você não pode excluir produtos neste terreiro." });
       }
 
       const { data: row } = await supabaseAdmin
@@ -1996,7 +1961,7 @@ async function startServer() {
       return res.json({ url });
     } catch (err: any) {
       console.error("[product-image-suggestion]", err?.message || err);
-      return res.status(500).json({ error: err?.message || "Erro ao sugerir imagem" });
+      return res.status(500).json({ error: safeErrorMessage(err, "Erro ao sugerir imagem") });
     }
   };
   app.get("/api/v1/store/product-image-suggestion", handleStoreProductImageSuggestion);
@@ -2098,6 +2063,11 @@ async function startServer() {
         return res.status(403).json({ error: "Sem permissão para confirmar este pagamento" });
       }
 
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, String(tenant_id));
+      if (!zeladorOk) {
+        return res.status(403).json({ error: "Apenas o zelador pode confirmar mensalidades" });
+      }
+
       const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, String(tenant_id));
       if (!ativa) {
         return res.status(403).json({ error: "Cobrança de mensalidade desativada neste terreiro" });
@@ -2147,7 +2117,7 @@ async function startServer() {
       const { data: inserted, error: insErr } = await supabaseAdmin.from("financeiro").insert([row]).select("id").single();
       if (insErr) {
         console.error("[SERVER] confirm-mensalidade fallback insert:", insErr);
-        return res.status(500).json({ error: insErr.message || "Falha ao registrar pagamento" });
+        return res.status(500).json({ error: safeErrorMessage(insErr, "Falha ao registrar pagamento") });
       }
       void notifyMensalidadeConfirmadaWhatsApp(supabaseAdmin, {
         tenantId: String(tenant_id),
@@ -2160,7 +2130,7 @@ async function startServer() {
       return res.json({ success: true, id: inserted?.id, via: "insert" });
     } catch (err: any) {
       console.error("[SERVER] confirm-mensalidade:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });
     }
   });
 
@@ -2181,7 +2151,7 @@ async function startServer() {
       res.json({ success: true, created });
     } catch (err: any) {
       console.error("[SERVER] mensalidades/sync-pendentes:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });
     }
   });
 
@@ -2201,7 +2171,7 @@ async function startServer() {
       res.json({ data });
     } catch (err: any) {
       console.error("[SERVER] mensalidades GET:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });
     }
   });
 
@@ -2225,7 +2195,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[SERVER] mensalidades/liquidar:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });
     }
   });
 
@@ -2241,7 +2211,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[SERVER] mensalidades/estornar:", err?.message || err);
-      res.status(500).json({ error: err?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });
     }
   });
 
@@ -2295,7 +2265,7 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const safeCategoria = slugifyStoragePath(categoria || 'geral');
@@ -2328,7 +2298,7 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const normalizedPath = String(storagePath || "").replace(/\\/g, "/");
@@ -2686,6 +2656,14 @@ async function startServer() {
     try {
       const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
       if (!access) return;
+      const { user } = access;
+
+      const canManage =
+        (await isConsoleGlobalAdmin(supabaseAdmin, user)) ||
+        (await assertGalleryManager(supabaseAdmin, user.id, tenantId));
+      if (!canManage) {
+        return res.status(403).json({ error: "Apenas zeladores podem enviar mídia para a galeria" });
+      }
 
       const normalizedType = String(contentType).toLowerCase();
       if (!normalizedType.startsWith("image/") && !normalizedType.startsWith("video/")) {
@@ -2964,7 +2942,7 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
+      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Sem permissão para este terreiro" });
 
       const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -3011,83 +2989,55 @@ async function startServer() {
     }
   });
 
-  // API Route: PDF Proxy — serve o PDF localmente para evitar CORS no PDF.js (Vercel)
+  // API Route: PDF Proxy — path+tenantId autenticado (sem modo ?url=)
   app.get("/api/v1/library/pdf-proxy", async (req, res) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
 
     const pathRaw = typeof req.query.path === "string" ? req.query.path : "";
     const tenantIdRaw = normalizeQueryTenantId(req.query.tenantId);
-    const urlRaw = typeof req.query.url === "string" ? req.query.url : "";
 
-    if (pathRaw && tenantIdRaw) {
-      const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
-      if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-      const normalizedPath = pathRaw.replace(/\\/g, "/");
-      if (!normalizedPath.startsWith(`${tenantIdRaw}/`)) {
-        return res.status(403).json({ error: "Caminho inválido" });
-      }
-
-      const isObrigacaoPdf = normalizedPath.includes("/obrigacoes/");
-      if (isObrigacaoPdf) {
-        const { assertObrigacaoPdfStorageAccess } = await import("./lib/tenantAccess.js");
-        const obrigacaoOk = await assertObrigacaoPdfStorageAccess(
-          supabaseAdmin,
-          user,
-          tenantIdRaw,
-          normalizedPath
-        );
-        if (!obrigacaoOk) return res.status(403).json({ error: "Acesso negado" });
-      } else {
-        const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
-        if (!ok) return res.status(403).json({ error: "Acesso negado" });
-      }
-
-      try {
-        const { data, error } = await supabaseAdmin.storage
-          .from("biblioteca_estudos")
-          .download(normalizedPath);
-        if (error || !data) {
-          return res.status(404).send("PDF não encontrado");
-        }
-        const buffer = Buffer.from(await data.arrayBuffer());
-        res.set({
-          "Content-Type": "application/pdf",
-          "Content-Length": String(buffer.length),
-          "Cache-Control": "private, max-age=300",
-        });
-        return res.send(buffer);
-      } catch (err: any) {
-        console.error("[PDF-PROXY] storage:", err.message || err);
-        return res.status(500).send("Erro interno");
-      }
+    if (!pathRaw || !tenantIdRaw) {
+      return res.status(400).json({ error: "path e tenantId são obrigatórios" });
     }
 
-    if (!urlRaw) {
-      return res.status(400).json({ error: "url ou path+tenantId obrigatórios" });
+    const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
+    if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+    const normalizedPath = pathRaw.replace(/\\/g, "/");
+    if (!normalizedPath.startsWith(`${tenantIdRaw}/`)) {
+      return res.status(403).json({ error: "Caminho inválido" });
     }
 
-    if (!isAllowedPdfProxyUrl(urlRaw)) {
-      return res.status(403).json({ error: "URL não permitida" });
+    const isObrigacaoPdf = normalizedPath.includes("/obrigacoes/");
+    if (isObrigacaoPdf) {
+      const { assertObrigacaoPdfStorageAccess } = await import("./lib/tenantAccess.js");
+      const obrigacaoOk = await assertObrigacaoPdfStorageAccess(
+        supabaseAdmin,
+        user,
+        tenantIdRaw,
+        normalizedPath
+      );
+      if (!obrigacaoOk) return res.status(403).json({ error: "Acesso negado" });
     }
 
     try {
-      const response = await fetch(urlRaw);
-      if (!response.ok) {
-        return res.status(response.status).send("Erro ao buscar PDF");
+      const { data, error } = await supabaseAdmin.storage
+        .from("biblioteca_estudos")
+        .download(normalizedPath);
+      if (error || !data) {
+        return res.status(404).send("PDF não encontrado");
       }
-
-      const buffer = Buffer.from(await response.arrayBuffer());
+      const buffer = Buffer.from(await data.arrayBuffer());
       res.set({
-        'Content-Type': response.headers.get('content-type') || 'application/pdf',
-        'Content-Length': String(buffer.length),
-        'Cache-Control': 'public, max-age=3600',
+        "Content-Type": "application/pdf",
+        "Content-Length": String(buffer.length),
+        "Cache-Control": "private, max-age=300",
       });
-      res.send(buffer);
+      return res.send(buffer);
     } catch (err: any) {
-      console.error("[PDF-PROXY] Erro:", err.message || err);
-      res.status(500).send("Erro interno");
+      console.error("[PDF-PROXY] storage:", err?.message || err);
+      return res.status(500).send("Erro interno");
     }
   });
 
@@ -3174,7 +3124,7 @@ async function startServer() {
         if (subError) {
           console.error("[ADMIN][create-tenant] subscription upsert FAILED:", subError);
           return res.status(500).json({
-            error: `Falha ao gravar assinatura (${planSlug}): ${subError.message || subError}`,
+            error: safeErrorMessage(subError, `Falha ao gravar assinatura (${planSlug})`),
           });
         }
       }
@@ -3295,15 +3245,12 @@ async function startServer() {
       res.json({ publicUrl });
     } catch (error: unknown) {
       console.error("[SERVER] Erro no upload de foto:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Erro interno ao subir foto",
-      });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao subir foto") });
     }
   });
 
-  // API Route: Save User Settings (Bypasses RLS)
+  // API Route: Save User Settings (Bypasses RLS — somente zelador)
   app.post("/api/v1/settings/save", async (req, res) => {
-    console.log(`[SERVER] Recebida requisição em /api/v1/settings/save`);
     const { userId, tenantId, profile } = req.body;
 
     try {
@@ -3312,20 +3259,13 @@ async function startServer() {
 
       if (user.id !== userId) {
         console.error(`[SECURITY ALERT] Tentativa de Mass Assignment. Token: ${user.id}, Req: ${userId}`);
-        return res.status(403).json({
-          error: "Acesso negado",
-          details: "ID do usuário não coincide",
-        });
-      }
-      console.log(`[SERVER] Tentando salvar configurações para: ${userId}, tenantId: ${tenantId}`);
-      
-      // Verificação de segurança: A tabela existe?
-      const { error: tableCheck } = await supabaseAdmin.from('perfil_lider').select('id').limit(1);
-      if (tableCheck && tableCheck.code === '42P01') {
-        return res.status(500).json({ error: "A tabela 'perfil_lider' não existe. Você precisa executar o SQL no Supabase Editor." });
+        return res.status(403).json({ error: "Acesso negado" });
       }
 
-      // 1. Save Profile
+      const filhoSelf = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
+      if (filhoSelf) {
+        return res.status(403).json({ error: "Filhos de santo não podem alterar configurações do terreiro." });
+      }
       const isSuperAdmin = await isConsoleGlobalAdmin(supabaseAdmin, user);
       const SHARED_TENANT_ID = '6588b6c9-ce84-4140-a69a-f487a0c61dab';
 
@@ -3353,10 +3293,9 @@ async function startServer() {
 
       if (profileError) {
         console.error("[SERVER] Erro no Perfil:", profileError);
-        return res.status(500).json({ error: `Erro no Banco (Perfil): ${profileError.message}` });
+        return res.status(500).json({ error: safeErrorMessage(profileError, "Erro ao salvar perfil") });
       }
 
-      console.log(`[SERVER] SUCESSO TOTAL para ${userId}`);
       res.json({ success: true });
 
     } catch (error: any) {
@@ -3372,7 +3311,13 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const version = String((req.body || {}).version || LEGAL_TERMS_VERSION_ACCEPT).trim() || LEGAL_TERMS_VERSION_ACCEPT;
+      const version = LEGAL_TERMS_VERSION_ACCEPT;
+
+      const filhoSelf = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
+      if (filhoSelf) {
+        return res.json({ success: true, version });
+      }
+
       const now = new Date().toISOString();
 
       const { data: existing } = await supabaseAdmin
@@ -3402,31 +3347,12 @@ async function startServer() {
         saved = result.data;
         saveError = result.error;
       } else {
-        const email = await resolvePerfilLiderEmail(supabaseAdmin, user);
-        const result = await supabaseAdmin
-          .from("perfil_lider")
-          .upsert(
-            {
-              id: user.id,
-              email,
-              nome_terreiro: "Meu Terreiro",
-              role: "admin",
-              tenant_id: user.id,
-              terms_accepted_version: version,
-              terms_accepted_at: now,
-              updated_at: now,
-            },
-            { onConflict: "id" }
-          )
-          .select("terms_accepted_version")
-          .single();
-        saved = result.data;
-        saveError = result.error;
+        return res.status(403).json({ error: "Perfil de zelador não encontrado" });
       }
 
       if (saveError) {
         console.error("[SERVER] accept-terms:", saveError);
-        return res.status(500).json({ error: saveError.message || "Erro ao registrar aceite" });
+        return res.status(500).json({ error: safeErrorMessage(saveError, "Erro ao registrar aceite") });
       }
       if (saved?.terms_accepted_version !== version) {
         return res.status(500).json({
@@ -3437,7 +3363,7 @@ async function startServer() {
       return res.json({ success: true, version });
     } catch (error: any) {
       console.error("[SERVER] accept-terms:", error);
-      return res.status(500).json({ error: error?.message || "Erro interno" });
+      return res.status(500).json({ error: safeErrorMessage(error, "Erro interno") });
     }
   });
 
@@ -3471,7 +3397,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[permanent-delete]", error);
-      res.status(500).json({ error: error?.message || "Erro interno" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro interno") });
     }
   });
 
@@ -3800,7 +3726,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Get Single Child (Bypasses RLS)
+  // API Route: Get Single Child (Bypasses RLS — zelador ou próprio filho)
   app.get("/api/children/:id", async (req, res) => {
     const childId = req.params.id;
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
@@ -3817,6 +3743,16 @@ async function startServer() {
         tenantIdFromQuery
       );
       if (!tenantId) return res.status(403).json({ error: "Acesso negado" });
+
+      const selfFilho = await resolveAuthenticatedFilho(supabaseAdmin, userId);
+      if (selfFilho) {
+        if (String(selfFilho.id) !== String(childId)) {
+          return res.status(403).json({ error: "Acesso negado" });
+        }
+      } else {
+        const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+        if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+      }
 
       let query = supabaseAdmin.from('filhos_de_santo').select('*').eq('id', childId);
       
@@ -3841,7 +3777,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Update Single Child (Bypasses RLS)
+  // API Route: Update Single Child (Bypasses RLS — somente zelador)
   app.put("/api/children/:id", async (req, res) => {
     const childId = req.params.id;
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
@@ -3863,6 +3799,9 @@ async function startServer() {
       );
       if (!tenantId) return res.status(403).json({ error: "Acesso negado" });
 
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
       let query = supabaseAdmin.from('filhos_de_santo').select('id').eq('id', childId);
       if (tenantId) {
          query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
@@ -3875,7 +3814,6 @@ async function startServer() {
         return res.status(404).json({ error: "Filho não encontrado ou acesso negado" });
       }
 
-      // 3. Update the child
       const { data, error } = await supabaseAdmin
         .from('filhos_de_santo')
         .update(updateData)
@@ -3885,10 +3823,7 @@ async function startServer() {
 
       if (error) {
         console.error("[SERVER] Error updating child:", error);
-        const hint = String(error.message || "").trim();
-        return res.status(500).json({
-          error: hint ? `Erro ao atualizar filho de santo: ${hint}` : "Erro ao atualizar filho de santo",
-        });
+        return res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar filho de santo") });
       }
 
       res.json({ success: true, data });
@@ -3898,7 +3833,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Delete Single Child (Bypasses RLS)
+  // API Route: Delete Single Child (Bypasses RLS — somente zelador)
   app.delete("/api/children/:id", async (req, res) => {
     const childId = req.params.id;
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
@@ -3915,6 +3850,9 @@ async function startServer() {
         tenantIdFromQuery
       );
       if (!tenantId) return res.status(403).json({ error: "Acesso negado" });
+
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
       let query = supabaseAdmin.from("filhos_de_santo").select("id").eq("id", childId);
       if (tenantId) {
@@ -3941,7 +3879,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Get Children (Bypasses RLS)
+  // API Route: Get Children (Bypasses RLS — somente zelador)
   app.get("/api/children", async (req, res) => {
     try {
       const user = await requireAuthOrRespond(supabaseAdmin, req, res);
@@ -3958,13 +3896,14 @@ async function startServer() {
       );
       if (!tenantId) return res.status(403).json({ error: "Acesso negado" });
 
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
       let query = supabaseAdmin.from('filhos_de_santo').select('*').order('nome', { ascending: true });
       
       if (tenantId) {
-        console.log(`[SERVER] Fetching children for tenant_id/lider_id: ${tenantId}`);
         query = query.or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`);
       } else {
-        console.log(`[SERVER] Fetching children for lider_id: ${userId}`);
         query = query.eq('lider_id', userId);
       }
 
@@ -3975,7 +3914,6 @@ async function startServer() {
         throw error;
       }
       
-      console.log(`[SERVER] GET /api/children success. Found ${data?.length || 0} children.`);
       res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=60");
       res.json({ data });
     } catch (error: any) {
@@ -3995,6 +3933,11 @@ async function startServer() {
         return res.status(403).json({ error: "Operação proibida" });
       }
 
+      const filhoSelf = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
+      if (filhoSelf) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
       // Buscar o tenant_id real do usuário no banco (NUNCA confiar no tenantId do body)
       const { data: userProfile } = await supabaseAdmin
         .from('perfil_lider')
@@ -4004,6 +3947,9 @@ async function startServer() {
       
       const tenantId = userProfile?.tenant_id;
       if (!tenantId) return res.status(403).json({ error: "Tenant não configurado" });
+
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
       const allowed = normalizeChildPayload((childData || {}) as Record<string, unknown>);
       const dataToInsert: Record<string, unknown> = {
@@ -4302,7 +4248,7 @@ async function startServer() {
           return res.json({ data: filtered });
         } catch (e: any) {
           console.error("[SERVER] fetchFinanceiroRowsForFilho:", e?.message || e);
-          return res.status(500).json({ error: e?.message || "Erro ao listar financeiro" });
+          return res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar financeiro") });
         }
       }
 
@@ -4369,11 +4315,12 @@ async function startServer() {
       }
       if (insertData.filho_id) {
         const fid = String(insertData.filho_id);
+        const leaderId = await resolveLeaderId(tid);
         const { data: childRow } = await supabaseAdmin
           .from("filhos_de_santo")
           .select("id")
           .eq("id", fid)
-          .eq("tenant_id", tid)
+          .or(`tenant_id.eq.${tid},tenant_id.eq.${leaderId},lider_id.eq.${tid},lider_id.eq.${leaderId}`)
           .maybeSingle();
         if (!childRow) return res.status(400).json({ error: "filho_id inválido para este terreiro" });
       }
@@ -4521,11 +4468,10 @@ async function startServer() {
         return res.status(409).json({
           error:
             "Não foi possível excluir por vínculo no banco e o soft delete falhou. Confirme a coluna `status` em `financeiro`.",
-          details: String(delErr?.message || delErr),
         });
       }
       console.error("[SERVER] DELETE financeiro:", { id, deleteError: delErr });
-      return res.status(500).json({ error: String(delErr?.message || delErr) });
+      return res.status(500).json({ error: safeErrorMessage(delErr, "Erro ao excluir lançamento") });
     } catch (error: any) {
       console.error("[SERVER] /api/transactions DELETE:", error?.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
@@ -4631,6 +4577,16 @@ async function startServer() {
         return res.status(403).json({ error: "Acesso negado" });
       }
 
+      const { data: eventRow } = await supabaseAdmin
+        .from("calendario_axe")
+        .select("tenant_id, lider_id")
+        .eq("id", guest.event_id)
+        .maybeSingle();
+      const eventTenant = String(eventRow?.tenant_id || eventRow?.lider_id || "").trim();
+      if (!eventTenant) return res.status(404).json({ error: "Evento não encontrado" });
+      const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, eventTenant);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
       const { error } = await supabaseAdmin
         .from("convidados_eventos")
         .update({ status })
@@ -4644,13 +4600,9 @@ async function startServer() {
   });
 
   /** WhatsApp via Evolution API (src/services/evolution.service). */
-  function whatsappInitializingResponse(res: express.Response, err?: unknown) {
-    const msg =
-      err && typeof err === "object" && "message" in err && String((err as { message?: string }).message)
-        ? String((err as { message: string }).message)
-        : WHATSAPP_INITIALIZING_MESSAGE_PT;
+  function whatsappInitializingResponse(res: express.Response, _err?: unknown) {
     return res.status(503).json({
-      error: msg,
+      error: WHATSAPP_INITIALIZING_MESSAGE_PT,
       code: "WHATSAPP_INITIALIZING",
     });
   }
@@ -4698,7 +4650,7 @@ async function startServer() {
         phoneNumber: data?.phone_number || null,
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error?.message || "Erro ao carregar configurações do WhatsApp." });
+      return res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar configurações do WhatsApp.") });
     }
   });
 
@@ -4706,6 +4658,9 @@ async function startServer() {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
+
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
       const { instance_name, evolution_api_url, templates, preferences } = req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(templates);
@@ -4751,7 +4706,7 @@ async function startServer() {
       if (error) throw error;
       res.json({ success: true, logs: data || [] });
     } catch (error: any) {
-      res.status(500).json({ error: error?.message || "Erro ao carregar logs." });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar logs.") });
     }
   });
 
@@ -4759,6 +4714,10 @@ async function startServer() {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
+
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
       const message = String(req.body?.message || "").trim();
       if (!message) return res.status(400).json({ error: "Mensagem obrigatória." });
 
@@ -4785,7 +4744,7 @@ async function startServer() {
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
       const status = Number(error?.statusCode) || 500;
-      res.status(status).json({ error: error?.message || "Erro na transmissão." });
+      res.status(status).json({ error: safeErrorMessage(error, "Erro na transmissão.") });
     }
   });
 
@@ -4810,7 +4769,7 @@ async function startServer() {
         return whatsappInitializingResponse(res, error);
       }
       const status = error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : 500;
-      res.status(status).json({ error: error?.message || "Erro ao enviar mensagem" });
+      res.status(status).json({ error: safeErrorMessage(error, "Erro ao enviar mensagem") });
     }
   });
 
@@ -4868,7 +4827,7 @@ async function startServer() {
       return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
     } catch (err: any) {
       if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Falha ao enviar." });
+      res.status(500).json({ error: safeErrorMessage(err, "Falha ao enviar.") });
     }
   });
 

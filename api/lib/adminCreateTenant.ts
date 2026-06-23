@@ -10,6 +10,7 @@ import {
 } from "./welcomeMessage.js";
 import { createAuditLog } from "./createAuditLog.js";
 import { logEvent } from "./auditLog.js";
+import { safeErrorMessage } from "./safeError.js";
 
 export type CreateTenantBody = {
   email?: string;
@@ -86,7 +87,7 @@ export async function runCreateTenant(
     if (subError) {
       return {
         status: 500,
-        body: { error: `Falha ao gravar assinatura (${planSlug}): ${subError.message || subError}` },
+        body: { error: safeErrorMessage(subError, `Falha ao gravar assinatura (${planSlug})`) },
       };
     }
   }

@@ -3,6 +3,7 @@ import { createAuditLog, resolveTerreiroIdForUser } from "./createAuditLog.js";
 import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 import { auditLogRateLimit } from "./rateLimit.js";
+import { safeErrorMessage } from "./safeError.js";
 
 type VerifyUserFn = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -71,8 +72,7 @@ export function registerAuthAuditRoutes(app: Express, deps: AuthAuditRouteDeps) 
       void createAuditLog(deps.supabaseAdmin, req, action, status, terreiroId, details);
       return res.json({ ok: true });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Erro ao registar auditoria";
-      return res.status(500).json({ error: msg });
+      return res.status(500).json({ error: safeErrorMessage(e, "Erro ao registar auditoria") });
     }
   });
 }

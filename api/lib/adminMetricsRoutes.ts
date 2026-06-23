@@ -5,6 +5,7 @@ import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { requireApiUser, requireApiGlobalAdmin } from "./routeAuthHelpers.js";
 import { consumeRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
 import { trackPublicSiteVisit } from "./publicSiteTraffic.js";
+import { safeErrorMessage } from "./safeError.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -191,7 +192,7 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
       res.json({ success: true, email, password, expiresAt });
     } catch (error: any) {
       console.error("[SERVER] Erro ao gerar trial:", error);
-      res.status(500).json({ error: error?.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 }

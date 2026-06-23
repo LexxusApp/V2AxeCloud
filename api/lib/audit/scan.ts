@@ -12,6 +12,7 @@
 import { connect as tlsConnect } from "node:tls";
 import { URL } from "node:url";
 import { gradeSecurityHeaders, type SecurityGrade } from "./securityHeaders.js";
+import { assertSafeExternalUrl } from "../ssrfGuard.js";
 
 const UA =
   "AxeCloudAudit/1.0 (+https://axecloud.com.br) Mozilla/5.0";
@@ -91,16 +92,6 @@ export type ScanResult = {
   issues: { level: "error" | "warn" | "info"; key: string; message: string }[];
 };
 
-function normalizeAndValidateUrl(input: string): URL {
-  let raw = (input || "").trim();
-  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
-  const u = new URL(raw);
-  if (!u.hostname || !/\./.test(u.hostname)) {
-    throw new Error("URL inválida.");
-  }
-  return u;
-}
-
 function safeRel(base: string, href: string): string {
   try {
     return new URL(href, base).toString();
@@ -150,7 +141,9 @@ async function followRedirects(startUrl: string): Promise<{
       duration,
     });
     if (response.status >= 300 && response.status < 400 && location) {
-      currentUrl = safeRel(currentUrl, location);
+      const nextUrl = safeRel(currentUrl, location);
+      await assertSafeExternalUrl(nextUrl);
+      currentUrl = nextUrl;
       continue;
     }
     return { hops, finalUrl: currentUrl, finalResponse: response, status: response.status };
@@ -489,7 +482,7 @@ function collectIssues(result: ScanResult): ScanResult["issues"] {
 
 export async function scanUrl(input: string): Promise<ScanResult> {
   const startedAt = Date.now();
-  const u = normalizeAndValidateUrl(input);
+  const u = await assertSafeExternalUrl(input);
   const origin = `${u.protocol}//${u.host}`;
 
   const hardTimer = setTimeout(() => {

@@ -497,6 +497,8 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     if (!access) return;
     try {
       const eventId = String(req.params.eventId || "");
+      const event = await loadEventForTenant(sb, resolveLeader, eventId, access.tenantId);
+      if (!event) return res.status(404).json({ error: "Evento não encontrado" });
       const { data, error } = await sb
         .from("evento_senhas")
         .select("*")
@@ -519,6 +521,9 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const eventId = String(req.params.eventId || "");
+      const event = await loadEventForTenant(sb, resolveLeader, eventId, tenantId);
+      if (!event) return res.status(404).json({ error: "Evento não encontrado" });
+
       const nome = String(req.body?.nome || "").trim();
       if (!nome) return res.status(400).json({ error: "Nome obrigatório." });
 
@@ -558,6 +563,10 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
+      const eventId = String(req.params.eventId || "");
+      const event = await loadEventForTenant(sb, resolveLeader, eventId, tenantId);
+      if (!event) return res.status(404).json({ error: "Evento não encontrado" });
+
       const status = String(req.body?.status || "");
       const patch: Record<string, unknown> = {};
       if (["aguardando", "chamado", "atendido", "cancelado"].includes(status)) {
@@ -570,6 +579,8 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         .from("evento_senhas")
         .update(patch)
         .eq("id", req.params.senhaId)
+        .eq("event_id", eventId)
+        .eq("tenant_id", tenantId)
         .select("*")
         .single();
       if (error) throw error;
@@ -634,6 +645,9 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const eventId = String(req.params.eventId || "");
+      const event = await loadEventForTenant(sb, resolveLeader, eventId, tenantId);
+      if (!event) return res.status(404).json({ error: "Evento não encontrado" });
+
       const items = Array.isArray(req.body?.items) ? req.body.items : [];
       const rows = items
         .filter((i: { filho_id?: string; vela?: string }) => i.filho_id && i.vela && VELAS_VALIDAS.has(i.vela))
@@ -666,6 +680,18 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       if (!tenantId) return res.status(400).json({ error: "tenantId required" });
       const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+      const eventId = String(req.params.eventId || "");
+      const { data: velaRow } = await sb
+        .from("gira_velas")
+        .select("id, event_id, tenant_id")
+        .eq("id", req.params.velaId)
+        .maybeSingle();
+      if (!velaRow) return res.status(404).json({ error: "Vela não encontrada" });
+      const event = await loadEventForTenant(sb, resolveLeader, String(velaRow.event_id), tenantId);
+      if (!event || String(velaRow.tenant_id) !== tenantId) {
+        return res.status(404).json({ error: "Vela não encontrada" });
+      }
 
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (typeof req.body?.entregue === "boolean") patch.entregue = req.body.entregue;

@@ -6,6 +6,8 @@
  */
 import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./lib/discreteSupabase.js";
+import { secureCompare } from "./lib/secureCompare.js";
+import { safeErrorMessage } from "./lib/safeError.js";
 
 const EVOLUTION_PING_TIMEOUT_MS = 15_000;
 
@@ -33,7 +35,7 @@ async function pingEvolutionCron(): Promise<{ ok: boolean; status?: number; erro
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[CRON] Erro ao pingar Evolution API:", message);
-    return { ok: false, error: message };
+    return { ok: false, error: "Falha no ping" };
   } finally {
     clearTimeout(timeoutId);
   }
@@ -50,16 +52,15 @@ export default async function handler(req: any, res: any) {
   if (job === "ping-evolution" && method === "GET") {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
-    if (!cronSecret || authHeader !== cronSecret) {
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
       return sendJson(res, 401, { error: "Não autorizado" });
     }
     try {
       const evolution = await pingEvolutionCron();
       return sendJson(res, 200, { pinged: true, evolution });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("[CRON] Falha inesperada no ping-evolution:", message);
-      return sendJson(res, 200, { pinged: true, evolution: { ok: false, error: message } });
+      console.error("[CRON] Falha inesperada no ping-evolution:", error);
+      return sendJson(res, 200, { pinged: true, evolution: { ok: false, error: "Falha no ping" } });
     }
   }
 
@@ -73,7 +74,7 @@ export default async function handler(req: any, res: any) {
   if (job === "whatsapp-jobs" && method === "GET") {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
-    if (!cronSecret || authHeader !== cronSecret) {
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
       return sendJson(res, 401, { error: "Não autorizado" });
     }
     const sb = getDiscreteSupabaseAdmin();
@@ -83,9 +84,8 @@ export default async function handler(req: any, res: any) {
       const result = await runWhatsAppCronJobs(sb);
       return sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("[CRON] whatsapp-jobs:", message);
-      return sendJson(res, 500, { error: message });
+      console.error("[CRON] whatsapp-jobs:", error);
+      return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar jobs WhatsApp") });
     }
   }
 

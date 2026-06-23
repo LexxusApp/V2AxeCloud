@@ -237,12 +237,21 @@ export default function Login() {
           throw new Error(data.error || 'Erro ao fazer login.');
         }
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
-
-        if (signInError) throw signInError;
+        if (data.access_token && data.refresh_token) {
+          const { error: signInError } = await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          });
+          if (signInError) throw signInError;
+        } else if (data.email && data.password) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+          });
+          if (signInError) throw signInError;
+        } else {
+          throw new Error('Resposta de login inválida.');
+        }
         persistFilhoFlag(true);
       }
 

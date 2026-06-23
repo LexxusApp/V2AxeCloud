@@ -3,6 +3,7 @@ import { createAuditLog, resolveTerreiroIdForUser } from "./createAuditLog.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
 import { verifyUser } from "./verifyUser.js";
 import { consumeRateLimit } from "./rateLimit.js";
+import { safeErrorMessage } from "./safeError.js";
 
 const CLIENT_ALLOWED_ACTIONS = new Set(["auth.login_success", "auth.login_failed"]);
 
@@ -68,7 +69,6 @@ export async function handleAuthAuditRoute(req: any, res: any) {
     void createAuditLog(sb, req, action, status, terreiroId, details);
     return sendJson(res, 200, { ok: true });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro ao registar auditoria";
-    return sendJson(res, 500, { error: msg });
+    return sendJson(res, 500, { error: safeErrorMessage(e, "Erro ao registar auditoria") });
   }
 }

@@ -10,6 +10,7 @@ import { normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { getDiscreteR2Client } from "./lib/r2ClientDiscrete.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./lib/discreteSupabase.js";
 import { verifyUser } from "./lib/verifyUser.js";
+import { safeErrorMessage } from "./lib/safeError.js";
 
 export default async function handler(req: any, res: any) {
   if (applyDiscreteRouteCors(req, res)) return;
@@ -36,7 +37,7 @@ export default async function handler(req: any, res: any) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Erro interno";
       console.error("[admin/tenants]", msg);
-      return sendJson(res, 500, { error: msg });
+      return sendJson(res, 500, { error: safeErrorMessage(e, "Erro interno") });
     }
   }
 
@@ -72,8 +73,7 @@ export default async function handler(req: any, res: any) {
 
     return sendJson(res, 404, { error: "Ação admin não encontrada", action });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro interno";
-    console.error("[admin]", action, msg);
-    return sendJson(res, 500, { error: msg });
+    console.error("[admin]", action, e);
+    return sendJson(res, 500, { error: safeErrorMessage(e, "Erro interno") });
   }
 }

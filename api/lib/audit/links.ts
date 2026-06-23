@@ -13,6 +13,8 @@
  * como `network`.
  */
 
+import { assertSafeExternalUrl } from "../ssrfGuard.js";
+
 const HTML_MAX_BYTES = 1_500_000; // 1.5 MB
 const LINK_TIMEOUT_MS = 6_000;
 const HTML_TIMEOUT_MS = 10_000;
@@ -179,6 +181,23 @@ async function fetchWithMethod(
 
 async function checkSingleLink(anchor: ExtractedAnchor, baseHost: string): Promise<LinkCheck> {
   const t0 = Date.now();
+  try {
+    await assertSafeExternalUrl(anchor.href);
+  } catch {
+    return {
+      url: anchor.href,
+      status: "network",
+      httpStatus: null,
+      finalUrl: null,
+      durationMs: Date.now() - t0,
+      contentType: null,
+      method: "—",
+      internal: false,
+      anchorText: anchor.text,
+      rel: anchor.rel,
+      error: "URL bloqueada",
+    };
+  }
   const internal = (() => {
     try {
       return new URL(anchor.href).host === baseHost;
@@ -291,6 +310,7 @@ async function runPool<T, R>(items: T[], concurrency: number, worker: (it: T) =>
 
 export async function checkLinks(targetUrl: string, opts: { limit?: number } = {}): Promise<LinksReport> {
   const limit = Math.max(1, Math.min(HARD_LIMIT, opts.limit ?? DEFAULT_LIMIT));
+  await assertSafeExternalUrl(targetUrl);
   const { html, finalUrl } = await fetchHtml(targetUrl);
   const baseHost = new URL(finalUrl).host;
   const anchors = extractAnchors(html, finalUrl);

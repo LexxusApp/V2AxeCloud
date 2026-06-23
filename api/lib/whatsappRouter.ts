@@ -16,13 +16,11 @@ import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 import { verifyWhatsAppWebhook } from "./secureRoutes.js";
 import { consumeRateLimit } from "./rateLimit.js";
+import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
+import { safeErrorMessage } from "./safeError.js";
 
-function whatsappInitializingResponse(res: any, err?: unknown) {
-  const msg =
-    err && typeof err === "object" && "message" in err && String((err as { message?: string }).message)
-      ? String((err as { message: string }).message)
-      : WHATSAPP_INITIALIZING_MESSAGE_PT;
-  return sendJson(res, 503, { error: msg, code: "WHATSAPP_INITIALIZING" });
+function whatsappInitializingResponse(res: any, _err?: unknown) {
+  return sendJson(res, 503, { error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
 }
 
 async function requireAuthUser(
@@ -115,6 +113,9 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "config" && method === "POST") {
+      const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
+      if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
+
       const config = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const safeTemplates = normalizeWhatsAppTemplates(config?.templates);
       const { data: existing } = await sb
@@ -151,6 +152,9 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "broadcast" && method === "POST") {
+      const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
+      if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
+
       const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 10, keyPrefix: "wa-broadcast" });
       if (!rl.allowed) {
         return sendJson(res, 429, { error: "Limite de transmissões excedido. Tente mais tarde." });
@@ -203,7 +207,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
           return whatsappInitializingResponse(res, err);
         }
         const status = e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : 500;
-        return sendJson(res, status, { error: e.message || "Erro ao enviar mensagem" });
+        return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao enviar mensagem") });
       }
     }
 
@@ -264,7 +268,6 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       whatsappInitializingResponse(res, new Error(WHATSAPP_INITIALIZING_MESSAGE_PT));
       return;
     }
-    console.error(`[whatsapp/${act}]`, e?.message || err);
-    sendJson(res, 500, { error: e?.message || "Erro interno" });
+    sendJson(res, 500, { error: safeErrorMessage(e, "Erro interno") });
   }
 }

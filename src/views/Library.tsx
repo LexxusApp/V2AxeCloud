@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { authFetch } from '../lib/authenticatedFetch';
+import { getAccessToken } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
@@ -47,7 +47,17 @@ interface Material {
 const CATEGORIES = ['Cantigas', 'História', 'Ervas', 'Orixás', 'Fundamentos'];
 
 /** Miniatura da capa do PDF — renderiza a 1ª página via PDF.js em canvas */
-function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
+function PdfCover({
+  url,
+  storagePath,
+  tenantId,
+  compact,
+}: {
+  url: string;
+  storagePath?: string;
+  tenantId?: string;
+  compact?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
@@ -60,17 +70,22 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
         const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
-        // Tenta primeiro pelo proxy local (Vercel/Express), e cai para URL direta se necessário.
-        const sources = [
-          `/api/v1/library/pdf-proxy?url=${encodeURIComponent(url)}`,
-          url,
-        ];
+        const sources: { url: string; httpHeaders?: Record<string, string> }[] = [];
+        const token = await getAccessToken();
+        if (storagePath && tenantId && token) {
+          sources.push({
+            url: `/api/v1/library/pdf-proxy?path=${encodeURIComponent(storagePath)}&tenantId=${encodeURIComponent(tenantId)}`,
+            httpHeaders: { Authorization: `Bearer ${token}` },
+          });
+        }
+        sources.push({ url });
         let pdf: any = null;
         let lastError: unknown = null;
         for (const source of sources) {
           try {
             pdf = await pdfjsLib.getDocument({
-              url: source,
+              url: source.url,
+              httpHeaders: source.httpHeaders,
               withCredentials: false,
               disableRange: true,
               disableStream: true,
@@ -116,7 +131,7 @@ function PdfCover({ url, compact }: { url: string; compact?: boolean }) {
 
     render();
     return () => { cancelled = true; };
-  }, [url]);
+  }, [url, storagePath, tenantId]);
 
   return (
     <div className={`relative w-full overflow-hidden bg-[#12161A] ${compact ? 'pdf-cover-compact' : 'pdf-cover-normal'}`}>
@@ -516,7 +531,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                       className="cursor-pointer"
                       onClick={() => openMaterial(material)}
                     >
-                      <PdfCover url={material.arquivo_url} compact={embedded} />
+                      <PdfCover
+                        url={material.arquivo_url}
+                        storagePath={material.storage_path}
+                        tenantId={material.tenant_id}
+                        compact={embedded}
+                      />
                     </div>
 
                     {/* Badge de categoria — sobrepõe a miniatura */}

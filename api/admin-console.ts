@@ -16,6 +16,7 @@ import { getDiscreteSupabaseAdmin, parseQuery, sendJson } from "./lib/discreteSu
 import { restoreReqUrl } from "./lib/restoreReqUrl.js";
 import { verifyUser } from "./lib/verifyUser.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { safeErrorMessage } from "./lib/safeError.js";
 import {
   runTenantDetail,
   runTenantResetPassword,
@@ -63,9 +64,7 @@ async function handleTenantRoutes(target: string, method: string, req: any, res:
     sendJson(res, 405, { error: "Método não permitido para este terreiro" });
     return true;
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro ao processar terreiro";
-    console.error("[admin-console/tenant]", sub || "detail", msg);
-    sendJson(res, 500, { error: msg });
+    sendJson(res, 500, { error: safeErrorMessage(e, "Erro ao processar terreiro") });
     return true;
   }
 }
@@ -155,9 +154,8 @@ async function handleGatewayGet(route: string, req: any, res: any): Promise<void
         sendJson(res, 404, { error: "Rota do console não encontrada", route });
     }
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro interno";
-    console.error("[admin-console/gateway]", route, msg);
-    sendJson(res, 500, { error: msg });
+    console.error("[admin-console/gateway]", route, e);
+    sendJson(res, 500, { error: safeErrorMessage(e, "Erro interno") });
   }
 }
 
@@ -188,8 +186,7 @@ export default async function handler(req: any, res: any) {
     const app = await getDispatchApp();
     return app(req, res);
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Erro interno";
-    console.error("[admin-console] fatal:", msg);
-    sendJson(res, 500, { error: msg });
+    console.error("[admin-console] fatal:", e);
+    sendJson(res, 500, { error: safeErrorMessage(e, "Erro interno") });
   }
 }
