@@ -32,3 +32,70 @@ export async function assertGalleryManagerUser(
   if (await isConsoleGlobalAdmin(supabaseAdmin, user)) return true;
   return assertZeladorTenantAccess(supabaseAdmin, user.id, tenantId);
 }
+
+export async function ensureMuralAlbum(
+  supabaseAdmin: SupabaseClient,
+  tenantId: string,
+  userId: string,
+) {
+  const { data: existing, error: findError } = await supabaseAdmin
+    .from("gallery_albums")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("name", MURAL_ALBUM_NAME)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (findError) throw findError;
+  if (existing) return existing;
+
+  const { data: created, error: createError } = await supabaseAdmin
+    .from("gallery_albums")
+    .insert([
+      {
+        tenant_id: tenantId,
+        name: MURAL_ALBUM_NAME,
+        description: MURAL_ALBUM_DESCRIPTION,
+        created_by: userId,
+      },
+    ])
+    .select("*")
+    .single();
+  if (createError) throw createError;
+  return created;
+}
+
+export async function enrichGalleryMediaRows(
+  supabaseAdmin: SupabaseClient,
+  media: Array<Record<string, unknown>>,
+) {
+  const creatorIds = [
+    ...new Set(
+      (media || [])
+        .map((item) => item?.created_by)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ];
+
+  let nameByUser: Record<string, string> = {};
+  if (creatorIds.length > 0) {
+    const { data: leaders } = await supabaseAdmin
+      .from("perfil_lider")
+      .select("id, nome_terreiro, nome")
+      .in("id", creatorIds);
+    nameByUser = Object.fromEntries(
+      (leaders || []).map((leader: { id: string; nome?: string | null; nome_terreiro?: string | null }) => [
+        leader.id,
+        String(leader.nome || leader.nome_terreiro || "").trim(),
+      ]),
+    );
+  }
+
+  return (media || []).map((item) => ({
+    ...item,
+    likes_count: Number(item?.likes_count ?? 0),
+    author_name: item?.created_by
+      ? nameByUser[String(item.created_by)] || "Zelador"
+      : "Zelador",
+  }));
+}
