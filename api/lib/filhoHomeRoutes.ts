@@ -1,8 +1,58 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
-import { assertUserCanAccessTenant, normalizeQueryTenantId } from "./tenantAccess.js";
+import {
+  assertUserCanAccessTenant,
+  normalizeQueryTenantId,
+  resolveAuthenticatedFilho,
+} from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
+
+const ALLOWED_PHOTO_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+
+function extFromContentType(contentType: string): string {
+  const ct = contentType.toLowerCase();
+  if (ct.includes("png")) return "png";
+  if (ct.includes("webp")) return "webp";
+  if (ct.includes("heic") || ct.includes("heif")) return "heic";
+  return "jpg";
+}
+
+async function resolveFilhoRecord(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null }
+) {
+  let child = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
+  if (child) return child;
+
+  if (!user.email) return null;
+
+  const email = String(user.email).trim().toLowerCase();
+  const { data: emailChild } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select("id, user_id, tenant_id, lider_id")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (!emailChild) return null;
+
+  if (!emailChild.user_id) {
+    await supabaseAdmin
+      .from("filhos_de_santo")
+      .update({ user_id: user.id })
+      .eq("id", emailChild.id)
+      .is("user_id", null);
+  }
+
+  return emailChild;
+}
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -83,6 +133,61 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
     } catch (e: unknown) {
       console.error("[filho home GET]", e);
       res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar início.") });
+    }
+  });
+
+  app.post("/api/v1/filho/profile-photo", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+
+    const { fileData, contentType } = req.body || {};
+    if (!fileData) {
+      return res.status(400).json({ error: "Dados da imagem ausentes." });
+    }
+
+    const mime = String(contentType || "image/jpeg").toLowerCase();
+    if (!ALLOWED_PHOTO_TYPES.has(mime) && !mime.startsWith("image/")) {
+      return res.status(400).json({ error: "Formato de imagem não suportado." });
+    }
+
+    try {
+      const filho = await resolveFilhoRecord(supabaseAdmin, user);
+      if (!filho?.id) {
+        return res.status(403).json({ error: "Perfil de filho de santo não encontrado." });
+      }
+
+      const buffer = Buffer.from(String(fileData), "base64");
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Imagem maior que 5 MB." });
+      }
+
+      const ext = extFromContentType(mime);
+      const safeName = `${user.id}-filho-${Date.now()}.${ext}`.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("perfil_fotos")
+        .upload(safeName, buffer, {
+          contentType: mime,
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("perfil_fotos").getPublicUrl(safeName);
+
+      const { error: dbError } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .update({ foto_url: publicUrl })
+        .eq("id", filho.id);
+
+      if (dbError) throw dbError;
+
+      res.json({ publicUrl });
+    } catch (e: unknown) {
+      console.error("[filho profile-photo POST]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao atualizar foto de perfil.") });
     }
   });
 }

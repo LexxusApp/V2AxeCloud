@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertCircle,
   ArrowRight,
   BookOpen,
   Calendar as CalendarIcon,
+  Camera,
   CheckCircle2,
   Copy,
   Info,
@@ -197,6 +198,9 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   /** Dia de vencimento configurado pelo zelador (Pix / financeiro). */
   const [diaVencimentoMensalidade, setDiaVencimentoMensalidade] = useState(10);
   const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Fallback para quando os dados do banco ainda estão carregando
   // Priorizamos user_metadata.nome que é onde o servidor salvou o nome oficial do filho
@@ -483,6 +487,69 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   const orixa = filho?.orixa_frente?.trim();
   const fotoUrl = filho?.foto_url || null;
 
+  useEffect(() => {
+    if (!photoMessage) return;
+    const t = window.setTimeout(() => setPhotoMessage(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [photoMessage]);
+
+  const handlePhotoUpload = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file || !filho) return;
+
+      if (!file.type.startsWith('image/')) {
+        setPhotoMessage({ text: 'Selecione uma imagem (JPG, PNG ou WebP).', type: 'error' });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setPhotoMessage({ text: 'A imagem deve ter no máximo 5 MB.', type: 'error' });
+        return;
+      }
+
+      setIsUploadingPhoto(true);
+      try {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const encoded = result.split(',')[1];
+            if (!encoded) reject(new Error('Falha ao ler a imagem.'));
+            else resolve(encoded);
+          };
+          reader.onerror = () => reject(new Error('Erro ao processar a imagem.'));
+          reader.readAsDataURL(file);
+        });
+
+        const response = await authFetch('/api/v1/filho/profile-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileData: base64Data,
+            contentType: file.type,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao enviar foto.');
+        }
+
+        const publicUrl = String(data.publicUrl || '');
+        setFilho((prev) => (prev ? { ...prev, foto_url: publicUrl } : prev));
+        setPhotoMessage({ text: 'Foto de perfil atualizada!', type: 'success' });
+      } catch (err: unknown) {
+        setPhotoMessage({
+          text: err instanceof Error ? err.message : 'Erro ao enviar foto.',
+          type: 'error',
+        });
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    },
+    [filho]
+  );
+
   const proximoEvento = useMemo(() => {
     const now = Date.now();
     const sorted = [...calEvents]
@@ -519,40 +586,82 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               Portal do filho de santo — mensalidade, giras, mural e loja do Axé em um só lugar.
             </p>
           </div>
-          <div className="flex items-center justify-center gap-4 shrink-0">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full p-[3px] bg-gradient-to-br from-primary via-amber-300 to-amber-600 shadow-xl shadow-primary/25">
-              <div className="w-full h-full rounded-full overflow-hidden bg-black border-2 border-black">
-                {loadingFilho ? (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Loader2 className="w-7 h-7 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center gap-3 shrink-0">
+            <div className="flex items-center justify-center gap-4">
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={() => !isUploadingPhoto && fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto || loadingFilho || !filho}
+                  className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full p-[3px] bg-gradient-to-br from-primary via-amber-300 to-amber-600 shadow-xl shadow-primary/25 disabled:opacity-70 disabled:cursor-not-allowed"
+                  aria-label="Alterar foto de perfil"
+                >
+                  <div className="w-full h-full rounded-full overflow-hidden bg-black border-2 border-black">
+                    {loadingFilho ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <Avatar
+                        src={fotoUrl}
+                        name={displayName}
+                        alt={displayName}
+                        shape="circle"
+                        textSize="text-2xl sm:text-3xl"
+                        className="w-full h-full"
+                      />
+                    )}
                   </div>
-                ) : (
-                  <Avatar
-                    src={fotoUrl}
-                    name={displayName}
-                    alt={displayName}
-                    shape="circle"
-                    textSize="text-2xl sm:text-3xl"
-                    className="w-full h-full"
-                  />
-                )}
+                  {!loadingFilho && filho && (
+                    <span className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/55 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      {isUploadingPhoto ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      ) : (
+                        <>
+                          <Camera className="w-5 h-5 text-primary mb-0.5" />
+                          <span className="text-[8px] font-black uppercase tracking-wider text-white">Alterar</span>
+                        </>
+                      )}
+                    </span>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                  onChange={(e) => void handlePhotoUpload(e)}
+                />
+              </div>
+              <div className="text-left min-w-0 max-w-[220px]">
+                <p className="text-lg font-black text-white truncate">{displayName}</p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {cargo && (
+                    <span className="inline-flex rounded-full bg-primary/15 border border-primary/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">
+                      {cargo}
+                    </span>
+                  )}
+                  {orixa && (
+                    <span className="inline-flex rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-bold uppercase text-gray-300">
+                      {orixa}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="text-left min-w-0 max-w-[220px]">
-              <p className="text-lg font-black text-white truncate">{displayName}</p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {cargo && (
-                  <span className="inline-flex rounded-full bg-primary/15 border border-primary/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">
-                    {cargo}
-                  </span>
+            {photoMessage && (
+              <p
+                className={cn(
+                  'text-[11px] font-semibold text-center max-w-[220px]',
+                  photoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'
                 )}
-                {orixa && (
-                  <span className="inline-flex rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-bold uppercase text-gray-300">
-                    {orixa}
-                  </span>
-                )}
-              </div>
-            </div>
+              >
+                {photoMessage.text}
+              </p>
+            )}
+            <p className="text-[10px] text-gray-500 text-center max-w-[220px]">
+              Toque na foto para escolher do celular ou computador
+            </p>
           </div>
         </div>
       </header>
