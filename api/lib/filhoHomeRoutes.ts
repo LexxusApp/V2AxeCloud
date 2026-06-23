@@ -1,11 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
-import {
-  assertUserCanAccessTenant,
-  normalizeQueryTenantId,
-  resolveAuthenticatedFilho,
-} from "./tenantAccess.js";
+import { assertUserCanAccessTenant, normalizeQueryTenantId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 
 const ALLOWED_PHOTO_TYPES = new Set([
@@ -17,6 +13,16 @@ const ALLOWED_PHOTO_TYPES = new Set([
   "image/heif",
 ]);
 
+type FilhoRecord = {
+  id: string;
+  nome?: string | null;
+  foto_url?: string | null;
+  tenant_id?: string | null;
+  user_id?: string | null;
+  email?: string | null;
+  lider_id?: string | null;
+};
+
 function extFromContentType(contentType: string): string {
   const ct = contentType.toLowerCase();
   if (ct.includes("png")) return "png";
@@ -25,33 +31,52 @@ function extFromContentType(contentType: string): string {
   return "jpg";
 }
 
-async function resolveFilhoRecord(
+/** Carrega o registro filhos_de_santo do usuário autenticado (com id). */
+async function loadFilhoRecordForUser(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
-) {
-  let child = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
-  if (child) return child;
+): Promise<FilhoRecord | null> {
+  const selectCols = "id, nome, foto_url, tenant_id, user_id, email, lider_id";
 
-  if (!user.email) return null;
-
-  const email = String(user.email).trim().toLowerCase();
-  const { data: emailChild } = await supabaseAdmin
+  let { data: child } = await supabaseAdmin
     .from("filhos_de_santo")
-    .select("id, user_id, tenant_id, lider_id")
-    .ilike("email", email)
+    .select(selectCols)
+    .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!emailChild) return null;
+  if (!child) {
+    let email = String(user.email || "").trim().toLowerCase();
+    if (!email) {
+      try {
+        const { data } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        email = String(data?.user?.email || "").trim().toLowerCase();
+      } catch {
+        /* ignore */
+      }
+    }
 
-  if (!emailChild.user_id) {
-    await supabaseAdmin
-      .from("filhos_de_santo")
-      .update({ user_id: user.id })
-      .eq("id", emailChild.id)
-      .is("user_id", null);
+    if (email) {
+      const { data: emailChild } = await supabaseAdmin
+        .from("filhos_de_santo")
+        .select(selectCols)
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (emailChild) {
+        if (!emailChild.user_id) {
+          await supabaseAdmin
+            .from("filhos_de_santo")
+            .update({ user_id: user.id })
+            .eq("id", emailChild.id)
+            .is("user_id", null);
+          emailChild.user_id = user.id;
+        }
+        child = emailChild;
+      }
+    }
   }
 
-  return emailChild;
+  return child as FilhoRecord | null;
 }
 
 type Deps = {
@@ -68,32 +93,7 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
     const tenantIdQ = normalizeQueryTenantId(req.query.tenantId);
 
     try {
-      let { data: child } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id, nome, foto_url, tenant_id, user_id, email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!child && user.email) {
-        const email = String(user.email).trim().toLowerCase();
-        const { data: emailChild } = await supabaseAdmin
-          .from("filhos_de_santo")
-          .select("id, nome, foto_url, tenant_id, user_id, email")
-          .ilike("email", email)
-          .maybeSingle();
-
-        if (emailChild) {
-          if (!emailChild.user_id) {
-            await supabaseAdmin
-              .from("filhos_de_santo")
-              .update({ user_id: user.id })
-              .eq("id", emailChild.id)
-              .is("user_id", null);
-            emailChild.user_id = user.id;
-          }
-          child = emailChild;
-        }
-      }
+      const child = await loadFilhoRecordForUser(supabaseAdmin, user);
 
       if (!child) {
         return res.json({ child: null, financialStatus: "pago", notices: [] });
@@ -151,7 +151,7 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
     }
 
     try {
-      const filho = await resolveFilhoRecord(supabaseAdmin, user);
+      const filho = await loadFilhoRecordForUser(supabaseAdmin, user);
       if (!filho?.id) {
         return res.status(403).json({ error: "Perfil de filho de santo não encontrado." });
       }
