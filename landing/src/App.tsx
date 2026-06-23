@@ -120,12 +120,12 @@ function LogoMark({ className, compact = false }: { className?: string; compact?
     <img
       src="/ile-ase-logo.png"
       alt="AXÉCLOUD — Gestão Sagrada"
-      width={1024}
-      height={512}
+      width={929}
+      height={357}
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
-        compact ? 'h-10 max-w-[14rem] sm:h-11' : 'h-12 max-w-[16rem] sm:h-14 sm:max-w-[18rem]',
+        compact ? 'h-14 max-w-none sm:h-16 md:h-[5.5rem]' : 'h-16 max-w-none sm:h-[5.5rem] md:h-[6rem]',
         className,
       )}
     />

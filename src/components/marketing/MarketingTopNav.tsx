@@ -35,7 +35,7 @@ export function LogoMark({ compact = false }: { compact?: boolean }) {
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
-        compact ? 'h-14 sm:h-16 md:h-[4.75rem]' : 'h-16 sm:h-[4.75rem] md:h-[5rem]',
+        compact ? 'h-16 sm:h-[4.75rem] md:h-[5.5rem]' : 'h-[4.25rem] sm:h-[5rem] md:h-[5.75rem]',
       )}
     />
   );
@@ -301,8 +301,8 @@ export function LandingTopNav() {
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="landing-mockup-nav sticky top-0 z-50 min-h-[var(--landing-mockup-nav-height,4.25rem)] bg-black">
-      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[var(--landing-mockup-nav-height,4.25rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 pt-1.5 pb-0 md:pt-2 md:pb-0 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
+    <nav className="landing-mockup-nav sticky top-0 z-50 min-h-[var(--landing-mockup-nav-height,5rem)] bg-black">
+      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[var(--landing-mockup-nav-height,5rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-1 md:py-1.5 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
         <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="AXÉCLOUD — início">
           <LandingMockupLogo />
         </a>
