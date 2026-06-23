@@ -169,9 +169,6 @@ async function fetchDashboardFinanceBundle(
         if (!r.ok) {
           const errText = await r.text().catch(() => '');
           console.error('[Dashboard] /api/transactions', r.status, errText);
-          // #region agent log
-          fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'Dashboard.tsx:tx',message:'transactions fetch failed',data:{status:r.status,tenantIdEfetivo},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-          // #endregion
           if (r.status === 401) {
             notifySessionExpired('dashboard_transactions_401');
             throw new Error(SESSION_EXPIRED_ERR);
@@ -540,9 +537,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       if (debounce) window.clearTimeout(debounce);
       debounce = window.setTimeout(() => {
         void (async () => {
-          // #region agent log
-          fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'Dashboard.tsx:visibility',message:'tab visible dashboard refresh',data:{tenantId},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-          // #endregion
           await ensureFreshAccessToken();
           await mutate();
         })();
