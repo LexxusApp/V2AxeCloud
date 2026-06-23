@@ -114,13 +114,15 @@ export function isBoasVindasTemplate(tipo: string): boolean {
     .replace(/[^a-z0-9_]/g, "_") === "boas_vindas";
 }
 
-/** ID de login do filho (4 caracteres do UUID, como na tela /login). */
+/** @deprecated Use formatFilhoMatricula — mantido para compatibilidade interna. */
 export function filhoLoginIdShort(uuid: string): string {
   return String(uuid || "")
     .replace(/-/g, "")
     .slice(0, 4)
     .toUpperCase();
 }
+
+export { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
 
 export function resolveLoginPublicUrl(): string {
   const base = String(

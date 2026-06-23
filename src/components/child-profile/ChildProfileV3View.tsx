@@ -24,6 +24,7 @@ import {
 import Avatar from '../Avatar';
 import { cn } from '../../lib/utils';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { formatFilhoMatricula } from '../../../lib/filhoMatricula';
 
 export type ChildProfileTab = 'info' | 'history' | 'finance' | 'notes';
 
@@ -98,11 +99,10 @@ function whatsappHref(contato: string): string | null {
 }
 
 function matricula(child: Record<string, unknown>): string {
-  const id = String(child.id || '');
-  const year = child.data_entrada
-    ? new Date(String(child.data_entrada)).getFullYear()
-    : new Date().getFullYear();
-  return `AXC-${year}-${id.substring(0, 4).toUpperCase()}`;
+  return formatFilhoMatricula(
+    String(child.id || ''),
+    child.data_entrada ? String(child.data_entrada) : null
+  );
 }
 
 function maturityPercent(anos: number | null): number {

@@ -9,7 +9,7 @@ export type WhatsAppTemplateType =
 
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
   boas_vindas:
-    'Boas-vindas {{nome_filho}} — acesse {{login_url}} com ID {{filho_login_id}} e os 6 primeiros dígitos do CPF.',
+    'Boas-vindas {{nome_filho}} — acesse {{login_url}} com registro {{filho_login_id}} e os 6 primeiros dígitos do CPF.',
   cobranca_mensalidade:
     'Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!',
   financeiro:

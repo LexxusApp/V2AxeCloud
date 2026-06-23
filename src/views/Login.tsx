@@ -23,6 +23,7 @@ import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { ROUTES } from '../lib/routes';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
 import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
+import { isValidFilhoLoginId } from '../../lib/filhoMatricula';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -221,6 +222,9 @@ export default function Login() {
         });
         if (signErr) throw signErr;
       } else {
+        if (!isValidFilhoLoginId(childId)) {
+          throw new Error('Informe o registro completo (ex.: AXC-2021-B2CA).');
+        }
         if (cpfPrefix.length < 6) {
           throw new Error('Digite os 6 primeiros dígitos do CPF.');
         }
@@ -496,7 +500,7 @@ export default function Login() {
                     ← Voltar ao login do zelador
                   </button>
                   <div className="space-y-[5px]">
-                    <label className={labelClass}>ID (4 dígitos)</label>
+                    <label className={labelClass}>Registro</label>
                     <div className="relative">
                       <User
                         className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
@@ -505,10 +509,12 @@ export default function Login() {
                       <input
                         type="text"
                         required
-                        maxLength={4}
+                        maxLength={14}
                         value={childId}
-                        onChange={(e) => setChildId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
-                        placeholder="Ex.: 2E6B"
+                        onChange={(e) =>
+                          setChildId(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))
+                        }
+                        placeholder="Ex.: AXC-2021-B2CA"
                         className={fieldShell}
                       />
                     </div>

@@ -9,7 +9,11 @@ import {
   recordFilhoLoginFailure,
 } from "./filhoLoginGuard.js";
 import { filhoLoginRateLimit } from "./rateLimit.js";
-import { isValidUuid } from "./tenantAccess.js";
+import {
+  filhoLoginRateLimitKey,
+  isValidFilhoLoginId,
+  parseFilhoLoginId,
+} from "../../lib/filhoMatricula.js";
 import { safeErrorMessage } from "./safeError.js";
 
 dotenv.config();
@@ -42,9 +46,9 @@ const supabaseAdmin: SupabaseClient | null =
       })
     : null;
 
-const FILHO_LOGIN_DENIED = "ID ou CPF incorretos.";
+const FILHO_LOGIN_DENIED = "Registro ou CPF incorretos.";
 const CPF_PREFIX_LEN = 6;
-const MIN_ID_PREFIX_LEN = 12;
+const LEGACY_ID_PREFIX_LEN = 12;
 
 function sendJson(res: any, status: number, body: Record<string, unknown>) {
   res.status(status).setHeader("Content-Type", "application/json");
@@ -55,20 +59,39 @@ function generateFilhoPassword(): string {
   return `Axe-${randomBytes(12).toString("base64url")}`;
 }
 
-function normalizeChildIdInput(childIdInput: string): string {
-  let childId = String(childIdInput || "").trim();
-  if (childId.includes("-")) {
-    const parts = childId.split("-");
-    childId = parts[parts.length - 1];
-  }
-  return childId;
+function matriculaEntryYear(dataEntrada: string | null | undefined): number | null {
+  if (!dataEntrada) return null;
+  const year = new Date(String(dataEntrada)).getFullYear();
+  return Number.isFinite(year) ? year : null;
 }
 
-function childIdMeetsMinimum(childIdInput: string): boolean {
-  const raw = String(childIdInput || "").trim();
-  if (isValidUuid(raw)) return true;
-  const normalized = normalizeChildIdInput(raw).toLowerCase().replace(/-/g, "");
-  return normalized.length >= MIN_ID_PREFIX_LEN;
+async function filterMatchesByMatriculaYear(
+  sb: SupabaseClient,
+  matches: Array<{ id: string }>,
+  matriculaYear: number
+): Promise<Array<{ id: string; cpf: string | null; user_id: string | null; nome: string | null }>> {
+  if (!matches.length) return [];
+
+  const { data: rows, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, data_entrada")
+    .in(
+      "id",
+      matches.map((m) => m.id)
+    );
+  if (error) throw error;
+
+  const yearOk = new Set(
+    (rows || [])
+      .filter((row) => matriculaEntryYear(row.data_entrada) === matriculaYear)
+      .map((row) => row.id)
+  );
+  return matches.filter((m) => yearOk.has(m.id)) as Array<{
+    id: string;
+    cpf: string | null;
+    user_id: string | null;
+    nome: string | null;
+  }>;
 }
 
 async function findChildByIdPrefix(
@@ -76,11 +99,12 @@ async function findChildByIdPrefix(
   childIdInput: string,
   cpfPrefix: string
 ): Promise<{ child: any | null; ambiguous: boolean }> {
-  const childId = normalizeChildIdInput(childIdInput);
+  const parsed = parseFilhoLoginId(childIdInput);
   const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
+  if (!parsed) return { child: null, ambiguous: false };
 
-  if (isValidUuid(String(childIdInput || "").trim()) || isValidUuid(childId)) {
-    const lookupId = isValidUuid(String(childIdInput || "").trim()) ? String(childIdInput).trim() : childId;
+  if (parsed.kind === "uuid") {
+    const lookupId = parsed.uuidPrefix;
     const { data, error } = await sb
       .from("filhos_de_santo")
       .select("id, cpf, user_id, nome")
@@ -93,8 +117,9 @@ async function findChildByIdPrefix(
     return { child: data, ambiguous: false };
   }
 
-  const prefix = childId.toLowerCase().replace(/-/g, "");
-  if (prefix.length < MIN_ID_PREFIX_LEN) return { child: null, ambiguous: false };
+  const prefix = parsed.uuidPrefix.replace(/-/g, "");
+  const minPrefixLen = parsed.kind === "prefix" ? LEGACY_ID_PREFIX_LEN : 4;
+  if (prefix.length < minPrefixLen) return { child: null, ambiguous: false };
 
   const { data, error } = await sb.rpc("find_filhos_for_login", {
     p_id_prefix: prefix,
@@ -102,7 +127,11 @@ async function findChildByIdPrefix(
   });
   if (error) throw error;
 
-  const matches = data || [];
+  let matches = data || [];
+  if (parsed.kind === "matricula" && parsed.matriculaYear) {
+    matches = await filterMatchesByMatriculaYear(sb, matches, parsed.matriculaYear);
+  }
+
   if (matches.length === 1) return { child: matches[0], ambiguous: false };
   if (matches.length > 1) return { child: null, ambiguous: true };
   return { child: null, ambiguous: false };
@@ -209,20 +238,25 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     let { childId, cpfPrefix } = body as { childId?: string; cpfPrefix?: string };
 
-    childIdRaw = normalizeChildIdInput(String(childId || ""));
+    const childIdStr = String(childId || "").trim();
+    childIdRaw = filhoLoginRateLimitKey(childIdStr);
     cpfPrefix = String(cpfPrefix || "").replace(/\D/g, "");
 
-    if (!childIdRaw || cpfPrefix.length !== CPF_PREFIX_LEN) {
+    if (!childIdStr || cpfPrefix.length !== CPF_PREFIX_LEN) {
       return sendJson(res, 400, {
-        error: `ID e os ${CPF_PREFIX_LEN} primeiros dígitos do CPF são obrigatórios.`,
+        error: `Registro (AXC-ANO-CÓDIGO) e os ${CPF_PREFIX_LEN} primeiros dígitos do CPF são obrigatórios.`,
       });
     }
 
-    if (!childIdMeetsMinimum(String(childId || ""))) {
+    if (!isValidFilhoLoginId(childIdStr)) {
       return sendJson(res, 400, {
-        error: `Informe o UUID completo do filho ou ao menos ${MIN_ID_PREFIX_LEN} caracteres do ID.`,
+        error: "Informe o registro completo (ex.: AXC-2021-B2CA).",
       });
     }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'filhoLoginRoute.ts:parse',message:'filho login id parsed',data:{kind:parseFilhoLoginId(childIdStr)?.kind,rateKey:childIdRaw},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
 
     if (filhoLoginIsLocked(childIdRaw, req)) {
       return sendJson(res, 429, {
@@ -230,7 +264,10 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       });
     }
 
-    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, String(childId || ""), cpfPrefix);
+    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childIdStr, cpfPrefix);
+    // #region agent log
+    fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'filhoLoginRoute.ts:lookup',message:'filho login lookup',data:{found:!!child,ambiguous},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     if (ambiguous) {
       recordFilhoLoginFailure(childIdRaw, req);
       return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });

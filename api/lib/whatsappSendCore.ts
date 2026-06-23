@@ -12,12 +12,12 @@ import {
   buildSignedWhatsAppBody,
   buildWhatsAppAuditMessage,
   extractRsvpToken,
-  filhoLoginIdShort,
   isAvisoGiraTemplate,
   isBoasVindasTemplate,
   isConviteEventoTemplate,
   resolveLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
+import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -238,7 +238,7 @@ async function enrichBoasVindasVariables(
 
   const { data: filho, error } = await sb
     .from("filhos_de_santo")
-    .select("id, nome, tenant_id, lider_id")
+    .select("id, nome, tenant_id, lider_id, data_entrada")
     .eq("id", filhoId)
     .maybeSingle();
   if (error) throw error;
@@ -249,7 +249,7 @@ async function enrichBoasVindasVariables(
   return {
     ...base,
     nome_filho: variables.nome_filho || String(filho.nome || ""),
-    filho_login_id: filhoLoginIdShort(String(filho.id)),
+    filho_login_id: formatFilhoMatricula(String(filho.id), filho.data_entrada),
   };
 }
 
