@@ -47,11 +47,23 @@ import {
   parseFinanceiroDataRef,
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
-import { authFetch } from '../lib/authenticatedFetch';
+import { authFetch, ensureFreshAccessToken } from '../lib/authenticatedFetch';
 import { ROUTES } from '../lib/routes';
 import { notifySessionExpired } from '../lib/supabase';
 
 const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
+const DASHBOARD_FETCH_ERR = 'DASHBOARD_FETCH_FAILED';
+
+function bundleHasMeaningfulData(bundle: DashboardBundle | null | undefined): boolean {
+  if (!bundle) return false;
+  return (
+    bundle.transactions.length > 0 ||
+    bundle.allChildren.length > 0 ||
+    bundle.noticesData.length > 0 ||
+    bundle.pedidosData.length > 0 ||
+    bundle.nextEvent != null
+  );
+}
 
 async function parseApiJson<T>(response: Response, empty: T): Promise<T> {
   if (response.status === 401) {
@@ -120,6 +132,8 @@ async function fetchDashboardFinanceBundle(
   tenantIdDasProps: string | undefined | null
 ): Promise<DashboardBundle> {
   try {
+    await ensureFreshAccessToken();
+
     let lojaTenantPk: string | null = null;
     if (userRole !== 'filho') {
       const seed = tenantIdEfetivo || user.id;
@@ -155,7 +169,14 @@ async function fetchDashboardFinanceBundle(
         if (!r.ok) {
           const errText = await r.text().catch(() => '');
           console.error('[Dashboard] /api/transactions', r.status, errText);
-          return { data: [] as any[] };
+          // #region agent log
+          fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'Dashboard.tsx:tx',message:'transactions fetch failed',data:{status:r.status,tenantIdEfetivo},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
+          if (r.status === 401) {
+            notifySessionExpired('dashboard_transactions_401');
+            throw new Error(SESSION_EXPIRED_ERR);
+          }
+          throw new Error(DASHBOARD_FETCH_ERR);
         }
         return r.json() as Promise<{ data?: any[] }>;
       }),
@@ -267,6 +288,7 @@ async function fetchDashboardFinanceBundle(
     };
   } catch (e) {
     if (e instanceof Error && e.message === SESSION_EXPIRED_ERR) throw e;
+    if (e instanceof Error && e.message === DASHBOARD_FETCH_ERR) throw e;
     console.error('Error fetching dashboard data:', e);
     return {
       transactions: [],
@@ -347,7 +369,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id),
     {
       revalidateOnMount: true,
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
       dedupingInterval: 2000,
       keepPreviousData: true,
       errorRetryCount: 2,
@@ -355,7 +377,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   );
 
   if (dashboardBundle) {
-    lastBundleRef.current = dashboardBundle;
+    const prev = lastBundleRef.current;
+    if (!prev || bundleHasMeaningfulData(dashboardBundle) || !bundleHasMeaningfulData(prev)) {
+      lastBundleRef.current = dashboardBundle;
+    }
   }
   const resolvedBundle = dashboardBundle ?? lastBundleRef.current;
   const transactions = resolvedBundle?.transactions ?? [];
@@ -504,6 +529,28 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   }, [mutate]);
 
   useEffect(() => {
+    let debounce: number | undefined;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (debounce) window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => {
+        void (async () => {
+          // #region agent log
+          fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'37bbb6'},body:JSON.stringify({sessionId:'37bbb6',location:'Dashboard.tsx:visibility',message:'tab visible dashboard refresh',data:{tenantId},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+          // #endregion
+          await ensureFreshAccessToken();
+          await mutate();
+        })();
+      }, 350);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (debounce) window.clearTimeout(debounce);
+    };
+  }, [mutate, tenantId]);
+
+  useEffect(() => {
     if (!tenantId) return;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     const subscribeTimer = window.setTimeout(() => {
@@ -559,6 +606,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
   const fetchFailed = Boolean(dashboardSwrKey && error && !resolvedBundle);
 
+  const staleDataBanner = Boolean(
+    dashboardSwrKey && error && resolvedBundle && bundleHasMeaningfulData(resolvedBundle)
+  );
+
   const terreiroNome = tenantData?.nome?.trim() || '';
 
   const now = new Date();
@@ -581,6 +632,20 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             type="button"
             onClick={() => void mutate()}
             className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-black"
+          >
+            Recarregar
+          </button>
+        </div>
+      )}
+      {staleDataBanner && !fetchFailed && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
+          <p className="text-[11px] font-medium text-gray-400">
+            Exibindo últimos dados salvos. Toque em recarregar se algo parecer desatualizado.
+          </p>
+          <button
+            type="button"
+            onClick={() => void mutate()}
+            className="text-[10px] font-black uppercase tracking-widest text-primary"
           >
             Recarregar
           </button>

@@ -29,6 +29,17 @@ export async function getAccessToken(): Promise<string | null> {
   return refreshAccessToken();
 }
 
+/** Renova sessão antes de rajadas de API (ex.: voltar à aba após idle). */
+export async function ensureFreshAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.refresh_token) return null;
+  const exp = session.expires_at;
+  const needsRefresh =
+    exp == null || !Number.isFinite(Number(exp)) || Number(exp) * 1000 < Date.now() + 120_000;
+  if (needsRefresh) return refreshAccessToken();
+  return session.access_token ?? null;
+}
+
 export async function authHeaders(extra?: HeadersInit, explicitToken?: string | null): Promise<Headers> {
   const headers = new Headers(extra || undefined);
   const token = explicitToken ?? (await getAccessToken());
