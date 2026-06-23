@@ -283,9 +283,6 @@ async function resilientLock<R>(
   } catch (err: any) {
     clearTimeout(timer);
     if (err?.name === 'AbortError') {
-      console.warn(
-        `[supabase-lock] não foi possível adquirir "${name}" em ${timeoutMs}ms — executando sem lock.`
-      );
       return fn();
     }
     throw err;

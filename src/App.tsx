@@ -719,92 +719,21 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setIsInitializing(false);
     };
 
-    const initializeAuth = async () => {
-      const lastVersion = localStorage.getItem('axecloud_version');
+    const lastVersion = localStorage.getItem('axecloud_version');
+    if (lastVersion !== SYSTEM_VERSION) {
+      // SOFT version bump: apenas registra a nova versão e segue o fluxo normal.
+      // A sessão Supabase é preservada — o novo bundle JS já foi carregado pelo SW
+      // (src/main.tsx → onNeedRefresh fez o reload). O usuário NÃO é deslogado.
+      console.log('[SYSTEM] Nova versão detectada (soft):', SYSTEM_VERSION);
+      void performVersionBumpLogout(SYSTEM_VERSION);
+    }
 
-      if (lastVersion !== SYSTEM_VERSION) {
-        // SOFT version bump: apenas registra a nova versão e segue o fluxo normal.
-        // A sessão Supabase é preservada — o novo bundle JS já foi carregado pelo SW
-        // (src/main.tsx → onNeedRefresh fez o reload). O usuário NÃO é deslogado.
-        console.log('[SYSTEM] Nova versão detectada (soft):', SYSTEM_VERSION);
-        void performVersionBumpLogout(SYSTEM_VERSION);
-      }
-
-      // getSession() pode demorar com aba em segundo plano (throttling de timer/rede)
-      // ou fila de lock entre abas. O lock resiliente em src/lib/supabase.ts evita espera infinita.
-      // Importante: NUNCA retornar "sessão null" por timeout — isso apagava o estado React e
-      // parecia logout espúrio mesmo com tokens válidos no localStorage (Promise.race antigo).
-      const sessionPromise = supabase.auth.getSession();
-      const slowLog = window.setTimeout(() => {
-        console.warn(
-          '[SYSTEM] getSession inicial > 5.5s — possível aba em background ou rede lenta; aguardando resultado real (sem deslogar).'
-        );
-      }, 5500);
-      const {
-        data: { session: initialSession },
-      } = await sessionPromise;
-      window.clearTimeout(slowLog);
-      if (initialSession?.user) {
-        setSession(initialSession);
-        lastAuthUserIdRef.current = initialSession.user.id;
-
-        // INITIAL_SESSION (disparado no subscribe) pode já estar carregando tenant — não reabrir spinner.
-        if (
-          initializedRef.current ||
-          tenantLoadInFlightRef.current === initialSession.user.id ||
-          authFirstEventHandledRef.current
-        ) {
-          markAuthInitialized();
-          return;
-        }
-
-        // Hidratação otimista: se ja temos cache de tenant + role no localStorage,
-        // renderizamos a UI IMEDIATAMENTE com cache e o fetch de /api/tenant-info
-        // roda em background. Evita "spinner amarelo" em mobile com rede lenta.
-        const cachedTenant = peekCachedTenantId(initialSession.user.id);
-        const cachedRole = readUserRoleAnchor();
-        if (cachedTenant && cachedRole) {
-          console.log('[SYSTEM] Hidratação otimista do cache (tenant + role).');
-          setTenantData((prev) => prev ?? {
-            nome: '',
-            plan: 'premium',
-            tenant_id: cachedTenant,
-            role: cachedRole,
-          });
-          setUserRole(cachedRole);
-          setIsAdminGlobal(false);
-          setSubscriptionActive(true);
-          setLoading(false);
-          setIsSessionHydrating(false);
-          authFirstEventHandledRef.current = true;
-          setIsInitializing(false);
-        } else {
-          setLoading(true);
-          setIsSessionHydrating(true);
-        }
-      } else {
-        setSession(null);
-        if (localStorage.getItem('axecloud-auth-token')) {
-          void supabase.auth.signOut({ scope: 'local' });
-        }
-        // Só mostra Login depois que getSession() de fato respondeu sem usuário.
-        if (!authFirstEventHandledRef.current) {
-          authFirstEventHandledRef.current = true;
-          setIsInitializing(false);
-          setLoading(false);
-          setIsSessionHydrating(false);
-        }
-      }
-    };
-
-    void initializeAuth();
-
-    // 2. Auth Listener
-    // This will trigger INITIAL_SESSION immediately on subscribe
+    // Auth Listener — única fonte de getSession no boot (evita contenção de lock com
+    // initializeAuth + INITIAL_SESSION simultâneos, que gerava aviso supabase-lock).
+    // Dispara INITIAL_SESSION imediatamente ao subscrever.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      
       // Quando trocamos de aba, o Supabase muitas vezes dispara eventos espúrios.
       // Se não há alteração real na sessão e ela já estava setada, nós ignoramos chamadas extras custosas de fetch (INITIAL_SESSION/SIGNED_IN)
       if (
@@ -910,6 +839,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             initializedRef.current = true;
           }
         } else {
+          if (event === 'INITIAL_SESSION' && localStorage.getItem('axecloud-auth-token')) {
+            void supabase.auth.signOut({ scope: 'local' });
+          }
           const uidOut = lastAuthUserIdRef.current;
           if (uidOut) clearCachedTenantIdForUser(uidOut);
           lastAuthUserIdRef.current = null;
