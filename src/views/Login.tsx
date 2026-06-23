@@ -22,7 +22,7 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { ROUTES } from '../lib/routes';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -364,7 +364,7 @@ export default function Login() {
               width={BRAND_LOGO_WIDTH}
               height={BRAND_LOGO_HEIGHT}
               decoding="async"
-              className="login-card-logo h-auto w-full max-w-[250px] object-contain object-top sm:max-w-[280px] [@media(max-height:700px)]:max-w-[210px]"
+              className={BRAND_LOGO_LOGIN_CLASS}
             />
           </div>
           <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>

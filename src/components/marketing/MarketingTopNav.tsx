@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_NAV_CLASS, BRAND_LOGO_NAV_FOOTER_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
 
 type NavItem = {
   id: string;
@@ -35,7 +35,7 @@ export function LogoMark({ compact = false }: { compact?: boolean }) {
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
-        compact ? 'h-14 sm:h-16 md:h-[4.25rem]' : 'h-16 sm:h-[4.5rem]',
+        compact ? 'h-14 sm:h-16 md:h-[4.75rem]' : 'h-16 sm:h-[4.75rem] md:h-[5rem]',
       )}
     />
   );
@@ -282,11 +282,7 @@ export function LandingMockupLogo({ variant = 'nav' }: { variant?: 'nav' | 'foot
       width={BRAND_LOGO_WIDTH}
       height={BRAND_LOGO_HEIGHT}
       decoding="async"
-      className={
-        variant === 'footer'
-          ? 'landing-mockup-logo h-11 w-auto max-w-[14rem] object-contain object-left sm:h-12 sm:max-w-[16rem]'
-          : 'landing-mockup-logo h-14 w-auto max-w-[11rem] object-contain object-left sm:h-16 sm:max-w-[13rem] md:h-[4.25rem] md:max-w-[15rem]'
-      }
+      className={variant === 'footer' ? BRAND_LOGO_NAV_FOOTER_CLASS : BRAND_LOGO_NAV_CLASS}
     />
   );
 }
