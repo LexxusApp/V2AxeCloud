@@ -29,6 +29,7 @@ import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPa
 import Avatar from '../components/Avatar';
 import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
+import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { filhoKickerClass, filhoPanelClass, filhoPanelInsetClass, filhoSectionTitleClass } from '../lib/filhoUiTokens';
 
 type Tenant =
@@ -169,7 +170,7 @@ const categoryConfig: Record<
 };
 
 export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFilhoProps) {
-  const tenantId = tenantData?.tenant_id;
+  const tenantId = resolveTenantIdForFinance(tenantData?.tenant_id, user.id);
 
   const [filho, setFilho] = useState<FilhoData | null>(null);
   const [loadingFilho, setLoadingFilho] = useState(true);

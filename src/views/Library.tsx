@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { getAccessToken } from '../lib/authenticatedFetch';
+import { authFetch, getAccessToken } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
@@ -24,6 +24,7 @@ import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
+import { resolveTenantIdForFinance } from '../lib/tenantCache';
 
 interface LibraryProps {
   user: any;
@@ -179,8 +180,10 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     file: null as File | null
   });
 
+  const effectiveTenantId =
+    resolveTenantIdForFinance(tenantData?.tenant_id, user.id) || tenantData?.tenant_id || user.id;
+
   const fetchMaterials = async () => {
-    const effectiveTenantId = tenantData?.tenant_id || user.id;
     if (!effectiveTenantId) {
       setLoading(false);
       return;
@@ -210,7 +213,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   };
 
   useEffect(() => {
-    const effectiveTenantId = tenantData?.tenant_id || user.id;
     if (effectiveTenantId) {
       void fetchMaterials();
 
@@ -225,7 +227,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
           });
       }
     }
-  }, [tenantData?.tenant_id, user.id, userRole]);
+  }, [effectiveTenantId, user.id, userRole, isAdmin]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,7 +240,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       alert('Por favor, insira um título para o material.');
       return;
     }
-    const effectiveTenantId = tenantData?.tenant_id || user.id;
 
     if (!effectiveTenantId) {
       alert('Erro: ID do terreiro não encontrado. Tente recarregar a página.');
@@ -317,7 +318,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const handleDelete = async (id: string, storagePath: string) => {
     if (!confirm('Deseja realmente excluir este material?')) return;
 
-    const effectiveTenantId = tenantData?.tenant_id || user.id;
     if (!effectiveTenantId) {
       alert('Terreiro não identificado.');
       return;

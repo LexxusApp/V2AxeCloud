@@ -31,15 +31,17 @@ export function readCachedTenantIdForUser(userId: string): string {
   if (!userId || typeof window === 'undefined') return '';
   try {
     const ls = parseTenantPayload(localStorage.getItem(`${LS_PREFIX}:${userId}`));
-    if (ls) return ls;
+    if (ls && ls !== userId) return ls;
   } catch {
     /* */
   }
   try {
-    return parseTenantPayload(sessionStorage.getItem(`${SS_PREFIX}:${userId}`));
+    const ss = parseTenantPayload(sessionStorage.getItem(`${SS_PREFIX}:${userId}`));
+    if (ss && ss !== userId) return ss;
   } catch {
     return '';
   }
+  return '';
 }
 
 export function clearCachedTenantIdForUser(userId: string) {
@@ -69,7 +71,8 @@ export function resolveTenantIdForFinance(
   tenantFromSession: string | null | undefined,
   userId?: string | null
 ): string {
+  const uid = String(userId || '').trim();
   const fromSession = String(tenantFromSession ?? '').trim();
-  if (fromSession) return fromSession;
-  return readCachedTenantIdForUser(String(userId || ''));
+  if (fromSession && (!uid || fromSession !== uid)) return fromSession;
+  return readCachedTenantIdForUser(uid);
 }

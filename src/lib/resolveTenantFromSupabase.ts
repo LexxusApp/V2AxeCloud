@@ -23,6 +23,30 @@ export async function resolveTenantFromSupabase(
 
   const em = String(email || '').trim().toLowerCase();
   if (em) {
+    const shadowF = em.match(/^f_([0-9a-f-]{36})@axecloud\.internal$/i);
+    if (shadowF?.[1]) {
+      const { data: byShadow } = await supabase
+        .from('filhos_de_santo')
+        .select('lider_id, tenant_id')
+        .eq('id', shadowF[1])
+        .maybeSingle();
+      if (byShadow) {
+        const leaderRef = String(byShadow.lider_id || byShadow.tenant_id || '').trim();
+        if (leaderRef) {
+          const { data: leader } = await supabase
+            .from('perfil_lider')
+            .select('tenant_id, id')
+            .eq('id', leaderRef)
+            .maybeSingle();
+          if (leader) {
+            const tid = String(leader.tenant_id || '').trim() || String(leader.id || '').trim();
+            if (tid) return tid;
+          }
+          return leaderRef;
+        }
+      }
+    }
+
     const { data: byEmail } = await supabase
       .from('perfil_lider')
       .select('tenant_id, id')

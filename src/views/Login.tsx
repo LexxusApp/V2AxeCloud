@@ -18,6 +18,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
+import { resolveTenantFromSupabase } from '../lib/resolveTenantFromSupabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { ROUTES } from '../lib/routes';
@@ -264,37 +265,83 @@ export default function Login() {
       } = await supabase.auth.getSession();
       if (postSession?.user) {
         persistFilhoFlag(filhoSurface, postSession.user.id);
-        let tenantId = postSession.user.id;
-        try {
-          const r = await authFetch(
-            `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`,
-            {},
-            postSession.access_token
-          );
-          if (r.ok) {
-            const j = await r.json();
-            tenantId = String(j.tenant_id || '').trim() || postSession.user.id;
-            writeCachedTenantIdForUser(postSession.user.id, tenantId);
-          } else {
+        if (filhoSurface) {
+          try {
+            const r = await authFetch(
+              `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`,
+              {},
+              postSession.access_token
+            );
+            let tenantId = '';
+            if (r.ok) {
+              const j = await r.json();
+              tenantId = String(j.tenant_id || '').trim();
+            }
+            if (!tenantId || tenantId === postSession.user.id) {
+              tenantId = await resolveTenantFromSupabase(
+                postSession.user.id,
+                postSession.user.email
+              );
+            }
+            if (tenantId && tenantId !== postSession.user.id) {
+              writeCachedTenantIdForUser(postSession.user.id, tenantId);
+            }
+            void postAuthAuditLog(
+              {
+                action: 'auth.login_success',
+                status: 'success',
+                terreiroId: tenantId || null,
+                details: {
+                  surface: 'app',
+                  mode: 'filho',
+                  email: postSession.user.email,
+                  userId: postSession.user.id,
+                },
+              },
+              postSession.access_token
+            );
+          } catch {
+            const tenantId = await resolveTenantFromSupabase(
+              postSession.user.id,
+              postSession.user.email
+            );
+            if (tenantId && tenantId !== postSession.user.id) {
+              writeCachedTenantIdForUser(postSession.user.id, tenantId);
+            }
+          }
+        } else {
+          let tenantId = postSession.user.id;
+          try {
+            const r = await authFetch(
+              `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`,
+              {},
+              postSession.access_token
+            );
+            if (r.ok) {
+              const j = await r.json();
+              tenantId = String(j.tenant_id || '').trim() || postSession.user.id;
+              writeCachedTenantIdForUser(postSession.user.id, tenantId);
+            } else {
+              writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
+            }
+          } catch {
             writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
           }
-        } catch {
-          writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
-        }
-        void postAuthAuditLog(
-          {
-            action: 'auth.login_success',
-            status: 'success',
-            terreiroId: tenantId,
-            details: {
-              surface: 'app',
-              mode: filhoSurface ? 'filho' : 'zelador',
-              email: postSession.user.email,
-              userId: postSession.user.id,
+          void postAuthAuditLog(
+            {
+              action: 'auth.login_success',
+              status: 'success',
+              terreiroId: tenantId,
+              details: {
+                surface: 'app',
+                mode: 'zelador',
+                email: postSession.user.email,
+                userId: postSession.user.id,
+              },
             },
-          },
-          postSession.access_token
-        );
+            postSession.access_token
+          );
+        }
       }
     } catch (err: unknown) {
       const msg = humanizeAuthError(err);

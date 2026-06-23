@@ -211,6 +211,11 @@ export async function assertUserCanAccessTenant(
   // Filho tem prioridade — shadow users podem ter perfil_lider fantasma ("Meu Terreiro").
   const child = await resolveFilhoHouseRefs(supabaseAdmin, user);
   if (child) {
+    // Cache legado do login às vezes grava o auth user id do filho como tenantId.
+    if (tid === String(user.id || "").trim()) {
+      const houseId = String(child.lider_id || child.tenant_id || "").trim();
+      if (houseId) return filhoCanAccessTenant(supabaseAdmin, child, houseId);
+    }
     return filhoCanAccessTenant(supabaseAdmin, child, tid);
   }
 
@@ -227,6 +232,20 @@ export async function assertUserCanAccessTenant(
   }
 
   return false;
+}
+
+/** Corrige tenantId da query quando filho envia o próprio auth user id por cache legado. */
+export async function normalizeFilhoRequestTenantId(
+  supabaseAdmin: SupabaseClient,
+  user: { id: string; email?: string | null },
+  tenantId: string
+): Promise<string> {
+  const tid = normalizeQueryTenantId(tenantId);
+  if (!tid) return "";
+  if (tid !== String(user.id || "").trim()) return tid;
+  const child = await resolveFilhoHouseRefs(supabaseAdmin, user);
+  if (!child) return tid;
+  return String(child.lider_id || child.tenant_id || "").trim() || tid;
 }
 
 /**

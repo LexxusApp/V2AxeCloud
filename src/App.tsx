@@ -419,7 +419,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
       const persistedFilho = readPersistedFilhoFlag(userId);
       let tid = readCachedTenantIdForUser(userId);
-      if (!tid) {
+      if (!tid || (persistedFilho && tid === userId)) {
         tid = await resolveTenantFromSupabase(userId, userEmail ?? undefined);
         if (tid) writeCachedTenantIdForUser(userId, tid);
       }

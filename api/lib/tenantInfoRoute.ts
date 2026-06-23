@@ -126,6 +126,19 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       linkedChild = byEmail.data?.[0] ?? null;
     }
 
+    if (!linkedChild && email) {
+      const shadowF = email.match(/^f_([0-9a-f-]{36})@axecloud\.internal$/i);
+      if (shadowF?.[1]) {
+        const byShadow = await sb
+          .from("filhos_de_santo")
+          .select("id, nome, lider_id, tenant_id")
+          .eq("id", shadowF[1])
+          .maybeSingle();
+        if (byShadow.error) throw byShadow.error;
+        linkedChild = byShadow.data ?? null;
+      }
+    }
+
     if (linkedChild) {
       const leaderRef = linkedChild.lider_id || linkedChild.tenant_id;
       let leaderProfile: { data: any; error: any } = { data: null, error: null };
@@ -169,7 +182,8 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         leaderProfile.data?.id ||
         (leaderRef ? String(leaderRef) : "") ||
         linkedChild.tenant_id ||
-        userId;
+        linkedChild.lider_id ||
+        "";
       res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
