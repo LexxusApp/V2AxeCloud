@@ -55,6 +55,7 @@ import { createAuditLog } from "./lib/createAuditLog.js";
 import { registerAuthAuditRoutes } from "./lib/authAuditRoutes.js";
 import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
+import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
@@ -3673,6 +3674,7 @@ async function startServer() {
     supabaseAdmin,
     resolveLeaderId: (tenantId) => resolveLeaderIdLib(supabaseAdmin, tenantId),
   });
+  registerFounderProgramRoutes(app, { supabaseAdmin });
   registerPublicPortalRoutes(app, { supabaseAdmin });
   registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
