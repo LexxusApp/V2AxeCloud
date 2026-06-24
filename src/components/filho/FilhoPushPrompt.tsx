@@ -28,7 +28,7 @@ export function FilhoPushPrompt({ permission, loading, onSubscribe }: FilhoPushP
 
   if (permission === 'denied') {
     return (
-      <div className="app-v3-panel mb-4 flex w-fit max-w-full items-start gap-3 px-4 py-3.5">
+      <div className="app-v3-panel mb-3 flex w-fit max-w-full items-start gap-3 px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#1E242B] bg-[#12161A]">
           <BellOff className="h-4 w-4 text-[#64748B]" aria-hidden />
         </div>
@@ -43,7 +43,7 @@ export function FilhoPushPrompt({ permission, loading, onSubscribe }: FilhoPushP
   if (dismissed) return null;
 
   return (
-    <div className="app-v3-panel mb-4 flex w-fit max-w-full flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center">
+    <div className="app-v3-panel mb-3 flex w-fit max-w-full flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
           <Bell className="h-4 w-4 text-primary" aria-hidden />

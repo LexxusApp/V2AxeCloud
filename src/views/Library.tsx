@@ -422,15 +422,15 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col', embedded && 'min-h-0 flex-1')}
           >
             {embedded ? (
-              <div className="mb-4 flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
+              <div className="mb-3 flex shrink-0 items-center justify-between gap-2 border-b border-[#1E242B] pb-2">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Biblioteca de estudos</p>
-                  <h2 className="mt-0.5 text-lg font-bold tracking-tight text-[#F1F5F9] sm:text-xl">PDFs do terreiro</h2>
+                  <h2 className="mt-0.5 text-base font-bold text-[#F1F5F9] sm:text-lg">PDFs do terreiro</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('library')}
-                  className="flex shrink-0 items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 transition hover:text-primary"
+                  className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#64748B] transition hover:text-primary"
                 >
                   Ver tudo
                   <ExternalLink className="w-3 h-3" />

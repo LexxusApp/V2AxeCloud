@@ -11,4 +11,13 @@ export const filhoPanelInsetClass =
 export const filhoKickerClass =
   'text-[10px] font-bold uppercase tracking-[0.2em] text-primary';
 
-export const filhoSectionTitleClass = 'text-lg font-bold text-[#F1F5F9] sm:text-xl';
+export const filhoSectionTitleClass = 'text-base font-bold text-[#F1F5F9] sm:text-lg';
+
+/** Cabeçalho padrão de módulo na dashboard do filho. */
+export const filhoSectionHeaderClass =
+  'mb-3 flex items-center justify-between gap-2 border-b border-[#1E242B] pb-2';
+
+export const filhoSectionLinkClass =
+  'inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#64748B] transition-colors hover:text-primary';
+
+export const filhoPanelPaddingClass = 'p-4';

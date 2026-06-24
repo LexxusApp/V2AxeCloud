@@ -11,7 +11,6 @@ import {
   Info,
   Loader2,
   PartyPopper,
-  User,
   ShoppingBag,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -37,6 +36,9 @@ import {
   filhoKickerClass,
   filhoPanelClass,
   filhoPanelInsetClass,
+  filhoPanelPaddingClass,
+  filhoSectionHeaderClass,
+  filhoSectionLinkClass,
   filhoSectionTitleClass,
 } from '../lib/filhoUiTokens';
 
@@ -444,7 +446,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     const canvas = filhoQrRef.current;
     if (!canvas) return;
     QRCode.toCanvas(canvas, payload, {
-      width: 168,
+      width: 120,
       margin: 1,
       color: { dark: '#0a0a0a', light: '#ffffff' },
       errorCorrectionLevel: 'M',
@@ -579,8 +581,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   }, [proximoEvento]);
 
   return (
-    <AppPageShell>
-    <div className="flex flex-col items-start gap-8 animate-in fade-in duration-500">
+    <AppPageShell compact>
+    <div className="flex w-full flex-col gap-4 animate-in fade-in duration-500">
       {/* Topo — identidade compacta */}
       <motion.header
         initial={{ opacity: 0, y: 8 }}
@@ -691,328 +693,271 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         )}
       </motion.header>
 
-      {/* Mensalidade (PIX) | Próximo evento — altura independente por coluna */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start [&>section]:min-w-0">
-        <section className={cn(filhoPanelClass, 'flex w-full flex-col p-6 sm:p-8')}>
-          <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* Mensalidade */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'flex flex-col lg:col-span-7')}>
+          <div className={filhoSectionHeaderClass}>
             <div>
               <p className={filhoKickerClass}>Mensalidade</p>
-              <h2 className={cn(filhoSectionTitleClass, 'mt-1')}>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>
                 {mensalidadeAtiva ? 'Pagamento via PIX' : 'Não habilitada'}
               </h2>
             </div>
             {mensalidadeAtiva ? (
-            <button
-              type="button"
-              onClick={() => setActiveTab('financial')}
-              className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1"
-            >
-              Detalhes
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+              <button type="button" onClick={() => setActiveTab('financial')} className={filhoSectionLinkClass}>
+                Detalhes
+                <ArrowRight className="h-3 w-3" />
+              </button>
             ) : null}
           </div>
 
           {!mensalidadeAtiva && pixFetched ? (
-            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-              <CheckCircle2 className="mb-3 h-10 w-10 text-primary" aria-hidden />
+            <div className="flex flex-col items-center py-6 text-center">
+              <CheckCircle2 className="mb-2 h-8 w-8 text-primary" aria-hidden />
               <p className="text-sm font-bold text-white">Seu terreiro não cobra mensalidade fixa</p>
-              <p className="mt-2 max-w-xs text-xs text-gray-500">
-                A zeladoria desativou este módulo. Contribuições podem ser combinadas diretamente com a diretoria.
+              <p className="mt-1.5 max-w-xs text-xs text-gray-500">
+                Contribuições podem ser combinadas diretamente com a diretoria.
               </p>
             </div>
           ) : (
-          <div className="flex flex-col sm:flex-row gap-6 flex-1">
-            <div className="flex flex-col items-center sm:items-start gap-3">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Valor</p>
-              <p className="text-3xl sm:text-4xl font-black text-primary tabular-nums">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorMensalidade)}
-              </p>
-              <div className="rounded-2xl bg-white p-2.5 shadow-lg border border-white/20">
-                <canvas ref={filhoQrRef} className="block rounded-xl" width={168} height={168} />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Valor</p>
+                  <p className="text-2xl font-black text-primary tabular-nums">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorMensalidade)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-1.5 shadow-sm border border-white/20">
+                  <canvas ref={filhoQrRef} className="block rounded-lg" width={120} height={120} />
+                </div>
+                {tenantId && proximoVencimentoMensalidadeFmt && pixFetched && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('financial')}
+                    className="text-left text-[10px] text-gray-500 hover:text-gray-300"
+                  >
+                    <span className="font-bold uppercase tracking-wider">Vencimento </span>
+                    <span className="tabular-nums text-gray-400">{proximoVencimentoMensalidadeFmt}</span>
+                  </button>
+                )}
+                {!loadingPix && pixNotConfigured && (
+                  <p className="max-w-[200px] text-[11px] text-amber-500/90">Chave Pix ainda não cadastrada.</p>
+                )}
               </div>
-              {tenantId && proximoVencimentoMensalidadeFmt && pixFetched && (
+
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Pix copia e cola</p>
+                <div className="max-h-20 overflow-y-auto rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2">
+                  <p className="break-all font-mono text-[10px] leading-relaxed text-gray-400 select-all">
+                    {pixBrCode || (loadingPix ? 'Carregando…' : '—')}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('financial')}
-                  className="group mt-1.5 w-full max-w-[188px] shrink-0 rounded-lg px-2 py-1 text-center transition-colors border border-transparent hover:border-white/[0.08] hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
-                  aria-label={`Próximo vencimento da mensalidade: ${proximoVencimentoMensalidadeFmt}. Abrir mensalidade.`}
+                  onClick={copyPixBrCode}
+                  disabled={!pixBrCode}
+                  className={cn(
+                    'flex w-full items-center justify-center gap-2 rounded-lg py-2 text-[11px] font-bold uppercase tracking-wide transition-all',
+                    copiedPix
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-primary text-black hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40',
+                  )}
                 >
-                  <p className="text-[7px] font-bold uppercase tracking-[0.2em] text-gray-600 leading-none">
-                    Próximo vencimento
-                  </p>
-                  <p className="text-[10px] font-medium text-gray-400 mt-0.5 tabular-nums leading-tight group-hover:text-gray-300">
-                    {proximoVencimentoMensalidadeFmt}
-                  </p>
+                  {copiedPix ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedPix ? 'Copiado!' : 'Copiar PIX'}
                 </button>
-              )}
-              {!loadingPix && pixNotConfigured && (
-                <p className="text-xs text-amber-500/90 text-center sm:text-left max-w-[240px]">
-                  O zelador ainda não cadastrou a chave Pix. Avise a gestão.
-                </p>
-              )}
-            </div>
-            <div className="flex-1 flex flex-col gap-3 min-w-0">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Pix copia e cola</p>
-              <div className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 max-h-28 overflow-y-auto">
-                <p className="text-[10px] font-mono text-gray-400 break-all leading-relaxed select-all">
-                  {pixBrCode || (loadingPix ? 'Carregando…' : '—')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={copyPixBrCode}
-                disabled={!pixBrCode}
-                className={cn(
-                  'w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
-                  copiedPix ? 'bg-emerald-600 text-white' : 'bg-primary text-black hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed'
+                {pixConfig?.chave_pix && (
+                  <p className="truncate font-mono text-[10px] text-primary">
+                    <span className="text-gray-600">{pixConfig.tipo_chave}: </span>
+                    {pixConfig.chave_pix}
+                  </p>
                 )}
-              >
-                {copiedPix ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copiedPix ? 'Copiado!' : 'Copiar código PIX'}
-              </button>
-              {pixConfig?.chave_pix && (
-                <div className="pt-2 border-t border-white/5 space-y-1">
-                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Chave ({pixConfig.tipo_chave})</p>
-                  <p className="text-xs font-mono text-primary break-all">{pixConfig.chave_pix}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-gray-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    {hasDebt ? (
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    )}
+                    {loadingDebt ? 'Verificando…' : hasDebt ? 'Pendência no mês' : 'Em dia, axé!'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={openPixModal}
+                    className="font-bold text-primary hover:underline"
+                  >
+                    Tela cheia
+                  </button>
                 </div>
-              )}
-              <div className="mt-auto pt-2 flex items-center gap-2 text-xs text-gray-500">
-                {hasDebt ? <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" /> : <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-                <span>{loadingDebt ? 'Verificando situação…' : hasDebt ? 'Há pendência na mensalidade.' : 'Situação em dia, axé!'}</span>
               </div>
-              <button
-                type="button"
-                onClick={openPixModal}
-                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wide text-left"
-              >
-                Abrir PIX em tela cheia
-              </button>
             </div>
-          </div>
           )}
         </section>
 
-        <section className={cn(filhoPanelClass, 'flex w-full flex-col self-start p-5 sm:p-6')}>
-          <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+        {/* Próximo evento */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'flex flex-col lg:col-span-5')}>
+          <div className={filhoSectionHeaderClass}>
             <div>
               <p className={filhoKickerClass}>Giras & eventos</p>
-              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5 tracking-tight')}>Próximo na agenda</h2>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Próximo na agenda</h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('calendar')}
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1 shrink-0"
-            >
-              Ver agenda
-              <ArrowRight className="w-3.5 h-3.5" />
+            <button type="button" onClick={() => setActiveTab('calendar')} className={filhoSectionLinkClass}>
+              Agenda
+              <ArrowRight className="h-3 w-3" />
             </button>
           </div>
 
           {loadingCal ? (
-            <div className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex flex-col gap-3 flex-1 min-w-0">
-                <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-white/10 animate-pulse shrink-0" />
-                  <div className="h-10 w-28 rounded bg-white/10 animate-pulse" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 flex-1 min-w-0 sm:items-end sm:border-l sm:border-white/10 sm:pl-5 pt-3 sm:pt-0 border-t border-white/10 sm:border-t-0">
-                <div className="h-3 w-full max-w-[180px] sm:max-w-none rounded bg-white/10 animate-pulse sm:ml-auto" />
-                <div className="h-3 w-24 rounded bg-primary/20 animate-pulse sm:ml-auto" />
-              </div>
-            </div>
+            <div className={cn(filhoPanelInsetClass, 'h-28 animate-pulse')} />
           ) : proximoEvento && proximoEventoLabels ? (
             <button
               type="button"
               onClick={() => setActiveTab('calendar')}
-              aria-label={`Abrir agenda completa: ${proximoEvento.titulo}`}
+              aria-label={`Abrir agenda: ${proximoEvento.titulo}`}
               className={cn(
                 filhoPanelInsetClass,
-                'group flex w-full cursor-pointer flex-col px-4 py-3.5 text-left transition-all hover:border-primary/30 sm:px-5 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
+                'group flex w-full flex-col gap-2 px-3 py-3 text-left transition-colors hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
               )}
             >
-              <div className="flex items-start justify-between gap-2 mb-1.5 shrink-0">
-                <p className="text-[11px] text-white/90 italic tracking-wide">Próximo evento</p>
-                {proximoEvento.tipo ? (
-                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-primary">
-                    {proximoEvento.tipo}
-                  </span>
-                ) : null}
-              </div>
-              {formatDataPorExtenso(proximoEvento.data) ? (
-                <p className="text-[10px] font-semibold text-gray-500 mb-2 leading-snug pr-6">
-                  {formatDataPorExtenso(proximoEvento.data)}
-                </p>
-              ) : null}
-              <div className="flex flex-col sm:flex-row sm:items-start gap-3 min-w-0">
-                <div className="flex items-center gap-3 shrink-0">
-                  <CalendarIcon className="w-8 h-8 text-primary shrink-0 stroke-[1.25] group-hover:scale-105 transition-transform" aria-hidden />
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl sm:text-4xl font-black text-primary tabular-nums leading-none tracking-tight">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-end gap-1.5">
+                    <span className="text-2xl font-black leading-none text-primary tabular-nums">
                       {proximoEventoLabels.dia}
                     </span>
-                    <span className="text-xs font-black text-white uppercase tracking-[0.16em] pb-0.5">
+                    <span className="pb-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
                       {proximoEventoLabels.mes}
                     </span>
                   </div>
+                  {proximoEvento.tipo ? (
+                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[8px] font-bold uppercase text-primary">
+                      {proximoEvento.tipo}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="min-w-0 flex flex-col gap-1 border-t border-white/10 pt-3 sm:border-t-0 sm:border-l sm:border-white/10 sm:pl-5 sm:pt-0 sm:flex-1">
-                  <p className="text-sm text-white font-bold leading-snug line-clamp-2">{proximoEvento.titulo}</p>
-                  {formatHoraEvento(proximoEvento.hora) ? (
-                    <p className="text-sm text-primary italic font-semibold tabular-nums">
-                      {formatHoraEvento(proximoEvento.hora)}
-                    </p>
-                  ) : null}
-                  {proximoEvento.local?.trim() ? (
-                    <p className="text-[11px] text-gray-400 leading-snug line-clamp-2">
-                      <span className="font-black text-gray-500 uppercase tracking-wider">Local: </span>
-                      {proximoEvento.local.trim()}
-                    </p>
-                  ) : null}
-                  {textoPresenca(proximoEvento.status_confirmacao) ? (
-                    <p className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wide">
-                      {textoPresenca(proximoEvento.status_confirmacao)}
-                    </p>
-                  ) : null}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/80 mt-1 flex items-center gap-1">
-                    Ver na agenda
-                    <ArrowRight className="w-3 h-3 inline group-hover:translate-x-0.5 transition-transform" />
-                  </p>
-                </div>
+                <CalendarIcon className="h-5 w-5 shrink-0 text-primary/70" aria-hidden />
               </div>
+              <p className="line-clamp-2 text-sm font-bold leading-snug text-white">{proximoEvento.titulo}</p>
+              {formatDataPorExtenso(proximoEvento.data) ? (
+                <p className="text-[11px] leading-snug text-gray-500">{formatDataPorExtenso(proximoEvento.data)}</p>
+              ) : null}
+              {formatHoraEvento(proximoEvento.hora) ? (
+                <p className="text-xs font-semibold text-primary">{formatHoraEvento(proximoEvento.hora)}</p>
+              ) : null}
+              {proximoEvento.local?.trim() ? (
+                <p className="line-clamp-1 text-[11px] text-gray-400">{proximoEvento.local.trim()}</p>
+              ) : null}
+              {textoPresenca(proximoEvento.status_confirmacao) ? (
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-400/90">
+                  {textoPresenca(proximoEvento.status_confirmacao)}
+                </p>
+              ) : null}
             </button>
           ) : (
-            <div className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-4 py-8 text-center">
-              <CalendarIcon className="w-9 h-9 text-primary/45 mx-auto mb-2.5" />
-              <p className="text-xs font-bold text-gray-400 italic">Nenhum evento futuro na agenda</p>
-              <p className="text-[11px] text-gray-600 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                Quando o zelador cadastrar giras ou eventos, o próximo aparecerá aqui.
-              </p>
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-3 py-6 text-center">
+              <CalendarIcon className="mb-2 h-7 w-7 text-primary/40" />
+              <p className="text-xs font-semibold text-gray-400">Nenhum evento futuro</p>
               <button
                 type="button"
                 onClick={() => setActiveTab('calendar')}
-                className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                className="mt-2 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline"
               >
-                Abrir calendário completo
+                Ver calendário
               </button>
             </div>
           )}
         </section>
-      </div>
 
-      {/* Mural + Biblioteca — colunas iguais, painéis alinhados */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-        <section className={cn(filhoPanelClass, 'flex min-w-0 flex-col p-5 sm:p-6')}>
-          <div className="mb-4 flex items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
+        {/* Mural */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'flex min-w-0 flex-col lg:col-span-6')}>
+          <div className={filhoSectionHeaderClass}>
             <div className="min-w-0">
               <p className={filhoKickerClass}>Mural do terreiro</p>
               <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Últimos avisos</h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('mural')}
-              className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1"
-            >
+            <button type="button" onClick={() => setActiveTab('mural')} className={filhoSectionLinkClass}>
               Ver mural
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="h-3 w-3" />
             </button>
           </div>
 
           {loadingNotices ? (
-            <div className="space-y-3 w-full">
+            <div className="space-y-2">
               {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-[#1E242B] bg-[#12161A] h-28 animate-pulse"
-                />
+                <div key={i} className={cn(filhoPanelInsetClass, 'h-20 animate-pulse')} />
               ))}
             </div>
           ) : sortedNotices.length === 0 ? (
-            <div className="w-full rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-10 px-4 text-center space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mx-auto">
-                <Info className="w-6 h-6 text-gray-500" />
-              </div>
-              <p className="text-sm font-bold text-gray-300">Nenhum aviso por aqui ainda</p>
-              <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                Quando o zelador publicar avisos no mural, eles aparecerão neste feed.
-              </p>
+            <div className="rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] px-3 py-6 text-center">
+              <Info className="mx-auto mb-2 h-6 w-6 text-gray-500" />
+              <p className="text-xs font-semibold text-gray-400">Nenhum aviso publicado</p>
             </div>
           ) : (
-            <div className="space-y-3 w-full min-w-0">
-            {sortedNotices.slice(0, 2).map((notice, idx) => {
-              const cfg = categoryConfig[notice.categoria] || categoryConfig.Geral;
-              const Icon = cfg.icon;
-              return (
-                <motion.article
-                  key={notice.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className={cn(
-                    filhoPanelInsetClass,
-                    'overflow-hidden',
-                    notice.categoria === 'Urgente' ? 'border-rose-500/25' : '',
-                  )}
-                >
-                  <header className="flex items-start gap-2.5 px-3.5 pt-3.5 pb-2.5 border-b border-white/[0.06]">
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-lg border flex items-center justify-center shrink-0',
-                        cfg.bg,
-                        cfg.border
-                      )}
-                    >
-                      <Icon className={cn('w-3.5 h-3.5', cfg.color)} />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <p className="text-xs font-black text-white leading-tight truncate">
-                          {tenantData?.nome || 'Terreiro'}
-                        </p>
-                        <span
-                          className={cn(
-                            'inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest',
-                            cfg.badge
-                          )}
-                        >
-                          {cfg.label}
-                        </span>
+            <div className="min-w-0 space-y-2">
+              {sortedNotices.slice(0, 2).map((notice, idx) => {
+                const cfg = categoryConfig[notice.categoria] || categoryConfig.Geral;
+                const Icon = cfg.icon;
+                return (
+                  <motion.article
+                    key={notice.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    className={cn(
+                      filhoPanelInsetClass,
+                      'overflow-hidden',
+                      notice.categoria === 'Urgente' ? 'border-rose-500/25' : '',
+                    )}
+                  >
+                    <header className="flex items-start gap-2 border-b border-white/[0.06] px-3 py-2.5">
+                      <div
+                        className={cn(
+                          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border',
+                          cfg.bg,
+                          cfg.border,
+                        )}
+                      >
+                        <Icon className={cn('h-3.5 w-3.5', cfg.color)} />
                       </div>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
-                        {format(new Date(notice.data_publicacao), "dd 'de' MMM • HH:mm", {
-                          locale: ptBR,
-                        })}
-                      </p>
-                    </div>
-                  </header>
-
-                  <div className="px-3.5 py-3 space-y-1">
-                    <h3 className="text-sm font-black text-white tracking-tight leading-snug line-clamp-2">
-                      {notice.titulo}
-                    </h3>
-                    <div className="prose prose-invert prose-sm max-w-none text-gray-400 text-xs leading-relaxed line-clamp-3 [&>*:first-child]:mt-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="truncate text-xs font-bold text-white">{notice.titulo}</p>
+                          <span
+                            className={cn(
+                              'inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase',
+                              cfg.badge,
+                            )}
+                          >
+                            {cfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[9px] font-medium uppercase tracking-wide text-gray-500">
+                          {format(new Date(notice.data_publicacao), "dd MMM • HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </header>
+                    <div className="prose prose-invert prose-sm max-w-none px-3 py-2 text-xs leading-relaxed text-gray-400 line-clamp-2 [&>*:first-child]:mt-0">
                       <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
                     </div>
-                  </div>
-                </motion.article>
-              );
-            })}
-            {sortedNotices.length > 2 ? (
-              <button
-                type="button"
-                onClick={() => setActiveTab('mural')}
-                className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
-              >
-                + {sortedNotices.length - 2} aviso(s) no mural
-              </button>
-            ) : null}
+                  </motion.article>
+                );
+              })}
+              {sortedNotices.length > 2 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('mural')}
+                  className="w-full py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline"
+                >
+                  + {sortedNotices.length - 2} aviso(s)
+                </button>
+              ) : null}
             </div>
           )}
         </section>
 
-        <section className={cn(filhoPanelClass, 'flex min-w-0 min-h-0 flex-col p-5 sm:p-6')}>
+        {/* Biblioteca */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'flex min-h-0 min-w-0 flex-col lg:col-span-6')}>
           <Library
             user={user}
             userRole="filho"
@@ -1022,80 +967,67 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
             embedded
           />
         </section>
-      </div>
 
-      {/* Loja do Axé */}
-      <section className={cn(filhoPanelClass, 'p-5 sm:p-6 space-y-4')}>
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#1E242B] pb-3">
-          <div className="min-w-0">
-            <p className={filhoKickerClass}>Loja do Axé</p>
-            <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Produtos do terreiro</h2>
-            <p className="text-xs text-gray-500 mt-1">Itens cadastrados pelo zelador para a comunidade.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('store')}
-            className="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-primary flex items-center gap-1"
-          >
-            Ir para a loja
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {loadingProducts ? (
-            [1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-[4/5] rounded-2xl bg-white/5 border border-white/5 animate-pulse" />
-            ))
-          ) : products.length === 0 ? (
-            <div className="col-span-full py-10 text-center rounded-xl border border-dashed border-[#2F3643] bg-[#12161A]">
-              <ShoppingBag className="w-9 h-9 text-gray-600 mx-auto mb-2 opacity-40" />
-              <p className="text-sm font-bold text-gray-400">Nenhum produto na vitrine ainda</p>
+        {/* Loja */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'lg:col-span-12')}>
+          <div className={filhoSectionHeaderClass}>
+            <div className="min-w-0">
+              <p className={filhoKickerClass}>Loja do Axé</p>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Produtos do terreiro</h2>
             </div>
-          ) : (
-            products.map((product) => (
-              <motion.button
-                key={product.id}
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab('store')}
-                className="group text-left rounded-xl border border-[#1E242B] bg-[#12161A] overflow-hidden transition-colors hover:border-primary/30"
-              >
-                <div className="aspect-square bg-black/50 relative">
-                  {product.imagem_url ? (
-                    <img
-                      src={product.imagem_url}
-                      alt={product.nome}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ShoppingBag className="w-10 h-10 text-white/10" />
-                    </div>
-                  )}
-                  {product.estoque_atual <= 0 && (
-                    <span className="absolute bottom-2 left-2 text-[9px] font-black uppercase bg-black/80 text-gray-400 px-2 py-0.5 rounded-md border border-white/10">
-                      Esgotado
-                    </span>
-                  )}
-                </div>
-                <div className="p-3 space-y-0.5">
-                  <p className="text-[11px] font-black text-white line-clamp-2 leading-tight">{product.nome}</p>
-                  <p className="text-sm font-black text-primary">R$ {product.preco.toFixed(2)}</p>
-                </div>
-              </motion.button>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Footer suave */}
-      <footer className="text-center pt-2 pb-2">
-        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-700 flex items-center justify-center gap-1.5">
-          <User className="w-3 h-3" />
-          Ilê Asé — Portal do Filho de Santo
-        </div>
-      </footer>
+            <button type="button" onClick={() => setActiveTab('store')} className={filhoSectionLinkClass}>
+              Ver loja
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {loadingProducts ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="aspect-[4/5] animate-pulse rounded-xl border border-[#1E242B] bg-[#12161A]" />
+              ))
+            ) : products.length === 0 ? (
+              <div className="col-span-full rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-8 text-center">
+                <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-gray-600 opacity-40" />
+                <p className="text-xs font-semibold text-gray-400">Nenhum produto na vitrine</p>
+              </div>
+            ) : (
+              products.map((product) => (
+                <motion.button
+                  key={product.id}
+                  type="button"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => setActiveTab('store')}
+                  className="group overflow-hidden rounded-xl border border-[#1E242B] bg-[#12161A] text-left transition-colors hover:border-primary/30"
+                >
+                  <div className="relative aspect-square bg-black/50">
+                    {product.imagem_url ? (
+                      <img
+                        src={product.imagem_url}
+                        alt={product.nome}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ShoppingBag className="h-8 w-8 text-white/10" />
+                      </div>
+                    )}
+                    {product.estoque_atual <= 0 && (
+                      <span className="absolute bottom-1.5 left-1.5 rounded border border-white/10 bg-black/80 px-1.5 py-0.5 text-[8px] font-bold uppercase text-gray-400">
+                        Esgotado
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-0.5 p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-bold leading-tight text-white">{product.nome}</p>
+                    <p className="text-sm font-black text-primary">R$ {product.preco.toFixed(2)}</p>
+                  </div>
+                </motion.button>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
 
       <PixPaymentModal
         open={pixModalOpen}

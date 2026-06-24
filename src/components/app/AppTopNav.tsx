@@ -656,9 +656,20 @@ export default function AppTopNav({
   );
 }
 
-export function AppPageShell({ children }: { children: ReactNode }) {
+export function AppPageShell({
+  children,
+  compact,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}) {
   return (
-    <div className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
+    <div
+      className={cn(
+        'mx-auto w-full flex-1 px-4 sm:px-6 lg:px-8',
+        compact ? 'max-w-6xl py-4' : 'max-w-[1600px] py-6 md:py-8',
+      )}
+    >
       {children}
     </div>
   );
