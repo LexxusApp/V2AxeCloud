@@ -53,6 +53,7 @@ export type ChatContact = {
   fotoUrl: string | null;
   cargo: string | null;
   status: string | null;
+  canChat?: boolean;
 };
 
 export function chatMessagePreview(type: ChatMessageType, body: string | null): string {

@@ -45,14 +45,16 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
   const loadContacts = useCallback(async () => {
     if (!tenantId) return;
     try {
-      const res = await authFetch(`/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}`);
+      const res = await authFetch(
+        `/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}&userRole=${encodeURIComponent(userRole || 'filho')}`,
+      );
       if (!res.ok) return;
       const data = await res.json();
       setContacts(data.contacts || []);
     } catch {
       /* ignore */
     }
-  }, [tenantId]);
+  }, [tenantId, userRole]);
 
   useEffect(() => {
     void loadConversations();

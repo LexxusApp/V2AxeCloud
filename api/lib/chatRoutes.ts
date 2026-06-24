@@ -10,6 +10,7 @@ import {
   assertZeladorOrGlobalAdmin,
   normalizeFilhoRequestTenantId,
   normalizeQueryTenantId,
+  resolveFinanceiroTenantScope,
   resolveLeaderId,
   resolveTenantAccessForUser,
 } from "./tenantAccess.js";
@@ -88,6 +89,45 @@ async function loadFilhoForUser(
     }
   }
   return child as FilhoRow | null;
+}
+
+function isFilhoAtivo(status: string | null | undefined): boolean {
+  return String(status || "").toLowerCase() !== "inativo";
+}
+
+/** Lista filhos do terreiro — mesmo critério amplo de /api/children (lider_id / tenant_id). */
+async function loadFilhosDaCorrente(
+  supabaseAdmin: SupabaseClient,
+  resolveLeaderIdFn: (sb: SupabaseClient, id: string) => Promise<string>,
+  tenantId: string,
+  leaderUserId: string
+): Promise<FilhoRow[]> {
+  const resolved = await resolveLeaderIdFn(supabaseAdmin, tenantId);
+  const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email";
+  const orParts = [
+    `tenant_id.eq.${tenantId}`,
+    `tenant_id.eq.${resolved}`,
+    `lider_id.eq.${tenantId}`,
+    `lider_id.eq.${resolved}`,
+    `lider_id.eq.${leaderUserId}`,
+  ];
+  const { data, error } = await supabaseAdmin
+    .from("filhos_de_santo")
+    .select(cols)
+    .or(orParts.join(","))
+    .order("nome", { ascending: true });
+  if (error) throw error;
+
+  const seen = new Set<string>();
+  const rows: FilhoRow[] = [];
+  for (const row of data || []) {
+    const f = row as FilhoRow;
+    if (!isFilhoAtivo(f.status)) continue;
+    if (seen.has(f.id)) continue;
+    seen.add(f.id);
+    rows.push(f);
+  }
+  return rows;
 }
 
 async function resolveTenantIdForRequest(
@@ -232,23 +272,32 @@ export function registerChatRoutes(app: Express, deps: Deps) {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
     try {
-      const tenantId = await resolveTenantIdForRequest(supabaseAdmin, user, req.query.tenantId);
+      const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
+      const userRoleQ = String(req.query.userRole || "");
+      const tenantId =
+        (await resolveFinanceiroTenantScope(
+          supabaseAdmin,
+          user.id,
+          userRoleQ || undefined,
+          tenantIdFromQuery
+        )) || (await resolveTenantIdForRequest(supabaseAdmin, user, tenantIdFromQuery));
+
       if (!tenantId) return res.status(400).json({ error: "tenantId inválido" });
       const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantId);
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
       const selfFilho = await loadFilhoForUser(supabaseAdmin, user);
       const leaderId = await resolveLeaderIdFn(supabaseAdmin, tenantId);
+      const leaderUserId = await loadLeaderUserId(supabaseAdmin, resolveLeaderIdFn, tenantId);
 
-      const { data: filhos, error } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id, nome, foto_url, cargo, user_id, status")
-        .or(`tenant_id.eq.${tenantId},lider_id.eq.${leaderId}`)
-        .neq("status", "inativo")
-        .order("nome", { ascending: true });
-      if (error) throw error;
+      const filhos = await loadFilhosDaCorrente(
+        supabaseAdmin,
+        resolveLeaderIdFn,
+        tenantId,
+        leaderUserId || user.id
+      );
 
-      const contacts = (filhos || [])
+      const contacts = filhos
         .filter((f) => !selfFilho || f.id !== selfFilho.id)
         .map((f) => ({
           filhoId: f.id,
@@ -257,6 +306,7 @@ export function registerChatRoutes(app: Express, deps: Deps) {
           fotoUrl: f.foto_url,
           cargo: f.cargo,
           status: f.status,
+          canChat: !!f.user_id,
         }));
 
       res.json({ contacts, leaderId });
@@ -399,12 +449,12 @@ export function registerChatRoutes(app: Express, deps: Deps) {
           .single();
         if (convErr) throw convErr;
 
-        const leaderId = await resolveLeaderIdFn(supabaseAdmin, tenantId);
-        const { data: filhos } = await supabaseAdmin
-          .from("filhos_de_santo")
-          .select("id, user_id")
-          .or(`tenant_id.eq.${tenantId},lider_id.eq.${leaderId}`)
-          .neq("status", "inativo");
+        const filhos = await loadFilhosDaCorrente(
+          supabaseAdmin,
+          resolveLeaderIdFn,
+          tenantId,
+          leaderUserId || user.id
+        );
 
         const participantRows = [
           {

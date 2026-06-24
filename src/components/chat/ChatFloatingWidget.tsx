@@ -57,7 +57,9 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
     if (!tenantId) return;
     setLoadingContacts(true);
     try {
-      const res = await authFetch(`/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}`);
+      const res = await authFetch(
+        `/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}&userRole=${encodeURIComponent(userRole || 'admin')}`,
+      );
       if (!res.ok) return;
       const data = await res.json();
       setContacts(data.contacts || []);
@@ -66,7 +68,7 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
     } finally {
       setLoadingContacts(false);
     }
-  }, [tenantId]);
+  }, [tenantId, userRole]);
 
   useEffect(() => {
     void loadConversations();
@@ -309,13 +311,18 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
                 ) : (
                   filteredContacts.map((c) => {
                     const unread = unreadByFilho.get(c.filhoId) || 0;
+                    const canChat = c.canChat !== false && !!c.userId;
                     return (
                       <button
                         key={c.filhoId}
                         type="button"
-                        disabled={opening}
-                        onClick={() => void startChat({ targetFilhoId: c.filhoId })}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/5 disabled:opacity-50"
+                        disabled={opening || !canChat}
+                        onClick={() => canChat && void startChat({ targetFilhoId: c.filhoId })}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
+                          canChat ? 'hover:bg-white/5' : 'cursor-not-allowed opacity-50',
+                          opening && 'disabled:opacity-50',
+                        )}
                       >
                         {c.fotoUrl ? (
                           <img src={c.fotoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
@@ -328,6 +335,8 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
                           <p className="truncate text-sm font-bold text-white">{c.nome}</p>
                           {c.cargo ? (
                             <p className="truncate text-[10px] text-[#64748B]">{c.cargo}</p>
+                          ) : !canChat ? (
+                            <p className="truncate text-[10px] text-[#64748B]">Sem login no app</p>
                           ) : null}
                         </div>
                         {unread > 0 ? (
