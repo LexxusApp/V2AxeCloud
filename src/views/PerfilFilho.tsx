@@ -30,11 +30,9 @@ import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import {
-  filhoChipPanelClass,
   filhoKickerClass,
-  filhoPanelClass,
+  filhoModuleClass,
   filhoPanelInsetClass,
-  filhoPanelPaddingClass,
   filhoSectionHeaderClass,
   filhoSectionLinkClass,
   filhoSectionTitleClass,
@@ -561,14 +559,14 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
   return (
     <AppPageShell fullWidth>
-      <div className="flex w-full flex-col gap-4">
-        {/* Perfil */}
+      <div className="flex w-full flex-col gap-3">
+        {/* Perfil — faixa full width */}
         <motion.header
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn(filhoPanelClass, filhoChipPanelClass, filhoPanelPaddingClass)}
+          className={filhoModuleClass}
         >
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex w-full items-center gap-3 sm:gap-4">
             <div className="group relative shrink-0">
               <button
                 type="button"
@@ -611,7 +609,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 onChange={(e) => void handlePhotoUpload(e)}
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h1 className="text-base font-bold text-white sm:text-lg">{displayName}</h1>
                 {cargo && (
@@ -655,8 +653,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         </motion.header>
 
         {/* Mensalidade | Agenda */}
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
+          <section className={filhoModuleClass}>
             <div className={filhoSectionHeaderClass}>
               <div>
                 <p className={filhoKickerClass}>Mensalidade</p>
@@ -731,7 +729,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
             )}
           </section>
 
-          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+          <section className={filhoModuleClass}>
             <div className={filhoSectionHeaderClass}>
               <div>
                 <p className={filhoKickerClass}>Giras & eventos</p>
@@ -742,15 +740,16 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 <ArrowRight className="h-3 w-3" />
               </button>
             </div>
+            <div className="flex min-h-[148px] flex-1 flex-col">
             {loadingCal ? (
-              <div className={cn(filhoPanelInsetClass, 'h-24 animate-pulse')} />
+              <div className={cn(filhoPanelInsetClass, 'min-h-[120px] flex-1 animate-pulse')} />
             ) : proximoEvento && proximoEventoLabels ? (
               <button
                 type="button"
                 onClick={() => setActiveTab('calendar')}
                 className={cn(
                   filhoPanelInsetClass,
-                  'flex w-full gap-3 p-3 text-left transition hover:border-primary/30',
+                  'flex flex-1 gap-3 p-3 text-left transition hover:border-primary/30',
                 )}
               >
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -765,24 +764,30 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 </div>
               </button>
             ) : (
-              <div className={cn(filhoPanelInsetClass, 'flex flex-col items-center px-3 py-8 text-center')}>
-                <CalendarIcon className="mb-2 h-7 w-7 text-primary/40" />
-                <p className="text-xs font-semibold text-[#94A3B8]">Nenhum evento futuro</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('calendar')}
-                  className="mt-2 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline"
-                >
-                  Ver calendário
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('calendar')}
+                className={cn(
+                  filhoPanelInsetClass,
+                  'flex flex-1 items-center gap-3 p-3 text-left transition hover:border-primary/30',
+                )}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1A1F27]">
+                  <CalendarIcon className="h-5 w-5 text-[#64748B]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#94A3B8]">Nenhum evento agendado</p>
+                  <p className="text-[11px] font-bold text-primary">Abrir calendário</p>
+                </div>
+              </button>
             )}
+            </div>
           </section>
         </div>
 
         {/* Mural | Biblioteca */}
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
+          <section className={filhoModuleClass}>
             <div className={filhoSectionHeaderClass}>
               <div>
                 <p className={filhoKickerClass}>Mural do terreiro</p>
@@ -800,12 +805,11 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 ))}
               </div>
             ) : sortedNotices.length === 0 ? (
-              <div className={cn(filhoPanelInsetClass, 'py-8 text-center')}>
-                <Info className="mx-auto mb-2 h-6 w-6 text-[#64748B]" />
+              <div className={cn(filhoPanelInsetClass, 'flex flex-1 items-center justify-center py-6 text-center')}>
                 <p className="text-xs font-semibold text-[#94A3B8]">Nenhum aviso publicado</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="flex flex-1 flex-col gap-2">
                 {sortedNotices.slice(0, 2).map((notice) => {
                   const cfg = categoryConfig[notice.categoria] || categoryConfig.Geral;
                   const Icon = cfg.icon;
@@ -834,7 +838,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
             )}
           </section>
 
-          <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'min-w-0')}>
+          <section className={cn(filhoModuleClass, 'min-w-0')}>
+            <div className="flex min-h-0 flex-1 flex-col">
             <Library
               user={user}
               userRole="filho"
@@ -843,11 +848,12 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               setActiveTab={setActiveTab}
               embedded
             />
+            </div>
           </section>
         </div>
 
         {/* Loja */}
-        <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+        <section className={filhoModuleClass}>
           <div className={filhoSectionHeaderClass}>
             <div>
               <p className={filhoKickerClass}>Loja do Axé</p>

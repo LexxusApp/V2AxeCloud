@@ -22,6 +22,10 @@ export const filhoSectionLinkClass =
 
 export const filhoPanelPaddingClass = 'p-4 sm:p-5';
 
+/** Card de módulo na dashboard — preenche a célula do grid. */
+export const filhoModuleClass =
+  [filhoPanelClass, filhoPanelPaddingClass, 'flex h-full flex-col'].join(' ');
+
 export const filhoDashboardShellClass =
   'overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm';
 
