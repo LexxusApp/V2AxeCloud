@@ -30,8 +30,12 @@ import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import {
-  filhoDashboardDividerClass,
-  filhoDashboardShellClass,
+  filhoChipPanelClass,
+  filhoKickerClass,
+  filhoPanelClass,
+  filhoPanelInsetClass,
+  filhoPanelPaddingClass,
+  filhoSectionHeaderClass,
   filhoSectionLinkClass,
   filhoSectionTitleClass,
 } from '../lib/filhoUiTokens';
@@ -557,18 +561,12 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
   return (
     <AppPageShell fullWidth>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={cn(filhoDashboardShellClass, 'w-full')}
-      >
-        {/* Barra de identidade */}
-        <div
-          className={cn(
-            'relative border-b px-4 py-4 sm:px-5',
-            filhoDashboardDividerClass,
-            'bg-gradient-to-r from-primary/[0.07] via-transparent to-transparent',
-          )}
+      <div className="flex w-full flex-col gap-4">
+        {/* Perfil */}
+        <motion.header
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(filhoPanelClass, filhoChipPanelClass, filhoPanelPaddingClass)}
         >
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="group relative shrink-0">
@@ -613,38 +611,35 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 onChange={(e) => void handlePhotoUpload(e)}
               />
             </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium text-[#64748B]">Olá,</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg font-bold text-white sm:text-xl">{displayName}</h1>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-base font-bold text-white sm:text-lg">{displayName}</h1>
                 {cargo && (
-                  <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase text-primary">
                     {cargo}
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#94A3B8]">
-                <span className="inline-flex items-center gap-1.5 truncate">
-                  <Home className="h-3 w-3 shrink-0 text-primary/70" aria-hidden />
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[#94A3B8]">
+                <span className="inline-flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
                   {tenantData?.nome || 'Terreiro vinculado'}
                 </span>
                 {orixa && <span className="text-[#64748B]">· {orixa}</span>}
               </p>
             </div>
-
             {mensalidadeAtiva && !loadingDebt && (
-              <div
+              <span
                 className={cn(
-                  'hidden shrink-0 rounded-lg border px-2.5 py-1.5 text-center sm:block',
-                  hasDebt ? 'border-red-500/30 bg-red-500/10' : 'border-emerald-500/30 bg-emerald-500/10',
+                  'ml-auto hidden shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase sm:inline-flex',
+                  hasDebt
+                    ? 'border-red-500/25 bg-red-500/10 text-red-400'
+                    : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
                 )}
               >
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[#64748B]">Mensalidade</p>
-                <p className={cn('text-xs font-bold', hasDebt ? 'text-red-400' : 'text-emerald-400')}>
-                  {hasDebt ? 'Em aberto' : 'Em dia'}
-                </p>
-              </div>
+                <span className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')} />
+                {hasDebt ? 'Em aberto' : 'Em dia'}
+              </span>
             )}
           </div>
           {photoMessage && (
@@ -657,28 +652,32 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               {photoMessage.text}
             </p>
           )}
-        </div>
+        </motion.header>
 
-        {/* Mensalidade + agenda */}
-        <div className={cn('grid items-start lg:grid-cols-5', 'border-b', filhoDashboardDividerClass)}>
-          <div className="border-b p-4 sm:p-5 lg:col-span-3 lg:border-b-0 lg:border-r">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className={filhoSectionTitleClass}>Mensalidade</h2>
+        {/* Mensalidade | Agenda */}
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+            <div className={filhoSectionHeaderClass}>
+              <div>
+                <p className={filhoKickerClass}>Mensalidade</p>
+                <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>
+                  {mensalidadeAtiva ? 'Pagamento via PIX' : 'Não habilitada'}
+                </h2>
+              </div>
               {mensalidadeAtiva ? (
                 <button type="button" onClick={() => setActiveTab('financial')} className={filhoSectionLinkClass}>
-                  Ver histórico
+                  Detalhes
                   <ArrowRight className="h-3 w-3" />
                 </button>
               ) : null}
             </div>
-
             {!mensalidadeAtiva && pixFetched ? (
               <p className="text-sm text-[#94A3B8]">Seu terreiro não cobra mensalidade fixa neste módulo.</p>
             ) : (
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="flex shrink-0 items-center gap-3">
-                  <div className="rounded-lg bg-white p-1.5 shadow-sm">
-                    <canvas ref={filhoQrRef} className="block rounded" width={120} height={120} />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-start">
+                  <div className="rounded-xl bg-white p-1.5 shadow-sm">
+                    <canvas ref={filhoQrRef} className="block rounded-lg" width={120} height={120} />
                   </div>
                   <div>
                     <p className="text-2xl font-black tabular-nums text-primary">
@@ -689,42 +688,38 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                         Vence em <span className="text-[#94A3B8]">{proximoVencimentoMensalidadeFmt}</span>
                       </p>
                     )}
-                    <p className="mt-1 flex items-center gap-1 text-[11px] text-[#64748B] sm:hidden">
-                      {hasDebt ? (
-                        <AlertCircle className="h-3 w-3 text-amber-500" />
-                      ) : (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                      )}
-                      {loadingDebt ? 'Verificando…' : hasDebt ? 'Pendente' : 'Em dia'}
-                    </p>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
-                  <div className="max-h-16 overflow-y-auto rounded-lg bg-[#0D0F12] px-2.5 py-2 ring-1 ring-[#252B35]">
+                  <div className={cn(filhoPanelInsetClass, 'max-h-20 overflow-y-auto px-2.5 py-2')}>
                     <p className="break-all font-mono text-[10px] leading-relaxed text-[#94A3B8] select-all">
                       {pixBrCode || (loadingPix ? 'Carregando…' : '—')}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={copyPixBrCode}
-                      disabled={!pixBrCode}
-                      className={cn(
-                        'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition',
-                        copiedPix
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-primary text-black hover:opacity-95 disabled:opacity-40',
+                  <button
+                    type="button"
+                    onClick={copyPixBrCode}
+                    disabled={!pixBrCode}
+                    className={cn(
+                      'flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide transition',
+                      copiedPix
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-primary text-black hover:opacity-95 disabled:opacity-40',
+                    )}
+                  >
+                    {copiedPix ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedPix ? 'Copiado!' : 'Copiar PIX'}
+                  </button>
+                  <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+                    <span className="inline-flex items-center gap-1">
+                      {hasDebt ? (
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                       )}
-                    >
-                      {copiedPix ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                      {copiedPix ? 'Copiado' : 'Copiar PIX'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={openPixModal}
-                      className="rounded-lg border border-[#252B35] px-3 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white"
-                    >
+                      {loadingDebt ? 'Verificando…' : hasDebt ? 'Pendência no mês' : 'Em dia, axé!'}
+                    </span>
+                    <button type="button" onClick={openPixModal} className="font-bold text-primary hover:underline">
                       Ampliar
                     </button>
                   </div>
@@ -734,105 +729,112 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="p-4 sm:p-5 lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className={filhoSectionTitleClass}>Próximo na agenda</h2>
+          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+            <div className={filhoSectionHeaderClass}>
+              <div>
+                <p className={filhoKickerClass}>Giras & eventos</p>
+                <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Próximo na agenda</h2>
+              </div>
               <button type="button" onClick={() => setActiveTab('calendar')} className={filhoSectionLinkClass}>
-                Calendário
+                Agenda
                 <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-
             {loadingCal ? (
-              <div className="h-20 animate-pulse rounded-lg bg-[#12161A]" />
+              <div className={cn(filhoPanelInsetClass, 'h-24 animate-pulse')} />
             ) : proximoEvento && proximoEventoLabels ? (
               <button
                 type="button"
                 onClick={() => setActiveTab('calendar')}
-                className="flex w-full gap-3 rounded-lg bg-[#12161A] p-3 text-left ring-1 ring-[#252B35] transition hover:ring-primary/30"
+                className={cn(
+                  filhoPanelInsetClass,
+                  'flex w-full gap-3 p-3 text-left transition hover:border-primary/30',
+                )}
               >
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <span className="text-xl font-black leading-none tabular-nums">{proximoEventoLabels.dia}</span>
                   <span className="text-[9px] font-bold uppercase">{proximoEventoLabels.mes}</span>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0">
                   <p className="line-clamp-2 text-sm font-bold text-white">{proximoEvento.titulo}</p>
                   {formatHoraEvento(proximoEvento.hora) && (
                     <p className="mt-0.5 text-xs text-primary">{formatHoraEvento(proximoEvento.hora)}</p>
                   )}
-                  {proximoEvento.tipo && (
-                    <p className="mt-1 text-[10px] font-bold uppercase text-[#64748B]">{proximoEvento.tipo}</p>
-                  )}
                 </div>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => setActiveTab('calendar')}
-                className="flex w-full items-center gap-3 rounded-lg bg-[#12161A] p-3 text-left ring-1 ring-[#252B35] transition hover:ring-primary/25"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1A1F27]">
-                  <CalendarIcon className="h-5 w-5 text-[#64748B]" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#94A3B8]">Nenhum evento agendado</p>
-                  <p className="text-[11px] text-primary">Abrir calendário</p>
-                </div>
-              </button>
+              <div className={cn(filhoPanelInsetClass, 'flex flex-col items-center px-3 py-8 text-center')}>
+                <CalendarIcon className="mb-2 h-7 w-7 text-primary/40" />
+                <p className="text-xs font-semibold text-[#94A3B8]">Nenhum evento futuro</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('calendar')}
+                  className="mt-2 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline"
+                >
+                  Ver calendário
+                </button>
+              </div>
             )}
-          </div>
+          </section>
         </div>
 
-        {/* Mural + biblioteca */}
-        <div className={cn('grid items-start lg:grid-cols-2', 'border-b', filhoDashboardDividerClass)}>
-          <div className="border-b p-4 sm:p-5 lg:border-b-0 lg:border-r">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className={filhoSectionTitleClass}>Mural</h2>
+        {/* Mural | Biblioteca */}
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+            <div className={filhoSectionHeaderClass}>
+              <div>
+                <p className={filhoKickerClass}>Mural do terreiro</p>
+                <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Últimos avisos</h2>
+              </div>
               <button type="button" onClick={() => setActiveTab('mural')} className={filhoSectionLinkClass}>
-                Ver tudo
+                Ver mural
                 <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-
             {loadingNotices ? (
               <div className="space-y-2">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-14 animate-pulse rounded-lg bg-[#12161A]" />
+                  <div key={i} className={cn(filhoPanelInsetClass, 'h-16 animate-pulse')} />
                 ))}
               </div>
             ) : sortedNotices.length === 0 ? (
-              <p className="text-sm text-[#64748B]">Nenhum aviso publicado ainda.</p>
+              <div className={cn(filhoPanelInsetClass, 'py-8 text-center')}>
+                <Info className="mx-auto mb-2 h-6 w-6 text-[#64748B]" />
+                <p className="text-xs font-semibold text-[#94A3B8]">Nenhum aviso publicado</p>
+              </div>
             ) : (
-              <ul className="divide-y divide-[#252B35] rounded-lg bg-[#12161A] ring-1 ring-[#252B35]">
-                {sortedNotices.slice(0, 3).map((notice) => {
+              <div className="space-y-2">
+                {sortedNotices.slice(0, 2).map((notice) => {
                   const cfg = categoryConfig[notice.categoria] || categoryConfig.Geral;
                   const Icon = cfg.icon;
                   return (
-                    <li key={notice.id} className="flex gap-2.5 px-3 py-2.5">
-                      <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', cfg.color)} aria-hidden />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{notice.titulo}</p>
-                        <p className="text-[11px] text-[#64748B]">
-                          {format(new Date(notice.data_publicacao), "dd MMM • HH:mm", { locale: ptBR })}
-                        </p>
+                    <article
+                      key={notice.id}
+                      className={cn(
+                        filhoPanelInsetClass,
+                        'overflow-hidden p-3',
+                        notice.categoria === 'Urgente' ? 'border-rose-500/25' : '',
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', cfg.color)} aria-hidden />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-white">{notice.titulo}</p>
+                          <p className="text-[10px] text-[#64748B]">
+                            {format(new Date(notice.data_publicacao), "dd MMM • HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
                       </div>
-                    </li>
+                    </article>
                   );
                 })}
-              </ul>
+              </div>
             )}
-          </div>
+          </section>
 
-          <div className="p-4 sm:p-5">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className={filhoSectionTitleClass}>Biblioteca</h2>
-              <button type="button" onClick={() => setActiveTab('library')} className={filhoSectionLinkClass}>
-                Ver tudo
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
+          <section className={cn(filhoPanelClass, filhoPanelPaddingClass, 'min-w-0')}>
             <Library
               user={user}
               userRole="filho"
@@ -840,62 +842,64 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               isAdminGlobal={false}
               setActiveTab={setActiveTab}
               embedded
-              hideEmbeddedHeader
             />
-          </div>
+          </section>
         </div>
 
-        {/* Loja — carrossel */}
-        <div className="p-4 sm:p-5">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className={filhoSectionTitleClass}>Loja do Axé</h2>
+        {/* Loja */}
+        <section className={cn(filhoPanelClass, filhoPanelPaddingClass)}>
+          <div className={filhoSectionHeaderClass}>
+            <div>
+              <p className={filhoKickerClass}>Loja do Axé</p>
+              <h2 className={cn(filhoSectionTitleClass, 'mt-0.5')}>Produtos do terreiro</h2>
+            </div>
             <button type="button" onClick={() => setActiveTab('store')} className={filhoSectionLinkClass}>
               Ver loja
               <ArrowRight className="h-3 w-3" />
             </button>
           </div>
-
-          {loadingProducts ? (
-            <div className="flex gap-3 overflow-hidden">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-36 w-28 shrink-0 animate-pulse rounded-lg bg-[#12161A]" />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <p className="text-sm text-[#64748B]">Nenhum produto na vitrine.</p>
-          ) : (
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-              {products.map((product) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {loadingProducts ? (
+              [1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className={cn(filhoPanelInsetClass, 'aspect-[4/5] animate-pulse')} />
+              ))
+            ) : products.length === 0 ? (
+              <div className={cn(filhoPanelInsetClass, 'col-span-full py-8 text-center')}>
+                <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-[#64748B] opacity-40" />
+                <p className="text-xs font-semibold text-[#94A3B8]">Nenhum produto na vitrine</p>
+              </div>
+            ) : (
+              products.map((product) => (
                 <button
                   key={product.id}
                   type="button"
                   onClick={() => setActiveTab('store')}
-                  className="w-28 shrink-0 overflow-hidden rounded-lg bg-[#12161A] text-left ring-1 ring-[#252B35] transition hover:ring-primary/30"
+                  className={cn(filhoPanelInsetClass, 'overflow-hidden text-left transition hover:border-primary/30')}
                 >
                   <div className="relative aspect-square bg-black/40">
                     {product.imagem_url ? (
                       <img src={product.imagem_url} alt={product.nome} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <ShoppingBag className="h-6 w-6 text-white/15" />
+                        <ShoppingBag className="h-8 w-8 text-white/10" />
                       </div>
                     )}
                     {product.estoque_atual <= 0 && (
-                      <span className="absolute bottom-1 left-1 rounded bg-black/80 px-1 text-[8px] font-bold uppercase text-gray-400">
+                      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[8px] font-bold uppercase text-gray-400">
                         Esgotado
                       </span>
                     )}
                   </div>
-                  <div className="space-y-0.5 p-2">
-                    <p className="line-clamp-2 text-[10px] font-semibold leading-tight text-white">{product.nome}</p>
-                    <p className="text-xs font-bold text-primary">R$ {product.preco.toFixed(2)}</p>
+                  <div className="space-y-0.5 p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-bold leading-tight text-white">{product.nome}</p>
+                    <p className="text-sm font-black text-primary">R$ {product.preco.toFixed(2)}</p>
                   </div>
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </motion.div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
 
       <PixPaymentModal
         open={pixModalOpen}
