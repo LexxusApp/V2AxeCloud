@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { fetchPublicTerreiro, type PublicTerreiro } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
@@ -82,7 +82,7 @@ export default function PortalWidgetPage() {
       <p className="mt-3 text-[10px] text-[#1b1813]/65">
         via{' '}
         <a href={marketingHref(ROUTES.home)} target="_blank" rel="noreferrer" className="font-bold text-amber-700">
-          Ilê Asé
+          AxéCloud
         </a>
       </p>
     </div>

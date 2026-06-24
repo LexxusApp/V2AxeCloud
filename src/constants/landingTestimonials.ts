@@ -1,4 +1,4 @@
-export type LandingTestimonial = {
+﻿export type LandingTestimonial = {
   id: string;
   quote: string;
   authorName: string;
@@ -10,8 +10,8 @@ export type LandingTestimonial = {
 
 export const LANDING_TESTIMONIALS_HEADING = {
   kicker: 'Depoimentos',
-  title: 'O que dirigentes dizem sobre o Ilê Asé',
-  lead: 'Casas espirituais que usam o Ilê Asé para organizar a rotina com mais clareza e respeito à tradição.',
+  title: 'O que dirigentes dizem sobre o AxéCloud',
+  lead: 'Casas espirituais que usam o AxéCloud para organizar a rotina com mais clareza e respeito à tradição.',
 } as const;
 
 /**

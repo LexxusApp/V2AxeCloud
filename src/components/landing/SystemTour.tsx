@@ -175,7 +175,7 @@ export function SystemTour() {
                   >
                     <img
                       src={active.src}
-                      alt={`${active.label} — gestão de terreiro Ilê Asé`}
+                      alt={`${active.label} — gestão de terreiro AxéCloud`}
                       className="block h-auto max-h-[min(70vh,520px)] w-auto max-w-[min(100vw-2.5rem,960px)]"
                       width={1400}
                       height={900}

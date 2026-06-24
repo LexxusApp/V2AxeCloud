@@ -46,7 +46,7 @@ export default function LegalDocumentPage(props: LegalDocumentPageProps) {
         </div>
 
         <p className="mt-8 text-center text-xs text-[#1b1813]/45">
-          Versão {CURRENT_LEGAL_TERMS_VERSION} · Ilê Asé
+          Versão {CURRENT_LEGAL_TERMS_VERSION} · AxéCloud
         </p>
       </main>
     </MarketingMockupLayout>

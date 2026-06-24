@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { TerreiroCard } from '../../components/portal/TerreiroCard';
 import { TerreirosMapSummary } from '../../components/portal/TerreirosMapSummary';
@@ -38,7 +38,7 @@ export default function TerreirosDirectoryPage() {
     <MarketingMockupLayout>
       <main className={cn('relative z-[1] py-10 sm:py-14', landingMockupShellClass, 'max-w-7xl')}>
         <MarketingMockupPageHeader
-          kicker="Portal de Gestão Ilê Asé"
+          kicker="Portal de Gestão AxéCloud"
           title="Diretório de terreiros"
           summary="Casas de Umbanda, Candomblé e tradições afins que optaram por perfil público — com respeito, privacidade e moderação."
         />

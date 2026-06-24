@@ -1,4 +1,4 @@
-import { authFetch } from '../lib/authenticatedFetch';
+﻿import { authFetch } from '../lib/authenticatedFetch';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -235,7 +235,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
                 </>
               ) : (
                 <>
-                  Seu acesso ao <span className="text-primary">Ilê Asé</span> está suspenso
+                  Seu acesso ao <span className="text-primary">AxéCloud</span> está suspenso
                 </>
               )}
             </h2>

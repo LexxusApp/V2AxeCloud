@@ -1,4 +1,4 @@
-import {
+﻿import {
   Check,
   Crown,
   Gift,
@@ -71,7 +71,7 @@ export default function FounderProgramPage() {
       variant="founder"
       kicker="Programa Fundador"
       title="12 meses gratuitos para as primeiras casas de axé"
-      summary={`Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros para validar o Ilê Asé e construir o portal público do axé no Brasil. Você usa o sistema completo, ajuda a moldar o produto e entra como Casa Fundadora quando o diretório estiver no ar.`}
+      summary={`Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros para validar o AxéCloud e construir o portal público do axé no Brasil. Você usa o sistema completo, ajuda a moldar o produto e entra como Casa Fundadora quando o diretório estiver no ar.`}
       heroExtra={<FounderHeroStats />}
     >
       <section aria-labelledby="fp-steps" className="mb-10 sm:mb-12">

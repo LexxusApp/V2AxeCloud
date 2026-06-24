@@ -1,4 +1,4 @@
-import { Instagram } from 'lucide-react';
+﻿import { Instagram } from 'lucide-react';
 import { TikTokIcon } from '../icons/TikTokIcon';
 import { landingMockupShellClass } from '../landing/landingMockupUi';
 import { SOCIAL_LINKS } from '../../constants/socialLinks';
@@ -138,7 +138,7 @@ export function MarketingMockupFooter() {
       <div
         className={`mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 text-center text-xs sm:flex-row ${landingMockupShellClass}`}
       >
-        <p>© {new Date().getFullYear()} Ilê Asé — CNPJ: {CNPJ}</p>
+        <p>© {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}</p>
         <p className="italic">Axé — com respeito às tradições de matriz africana.</p>
       </div>
     </footer>

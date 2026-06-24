@@ -27,7 +27,7 @@ export function LandingFounderProgram() {
             title={`12 meses gratuitos para as primeiras ${FOUNDER_PROGRAM.maxSlots} casas`}
             titleId="founder-head"
             icon={<Crown className="h-3.5 w-3.5" aria-hidden />}
-            lead="Estamos validando o Ilê Asé com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
+            lead="Estamos validando o AxéCloud com terreiros reais antes de abrir o portal público. Use o sistema completo, ajude a moldar o produto e apareça como Casa Fundadora quando o diretório estiver no ar."
           />
           {!loading ? (
             <p className="mt-4 text-center text-xs font-black uppercase tracking-widest text-[#FFC107]">

@@ -1,5 +1,5 @@
-/** Nome canônico da marca (com acento). */
-export const BRAND_NAME = 'Ilê Asé' as const;
+﻿/** Nome canônico da marca (com acento). */
+export const BRAND_NAME = 'AxéCloud' as const;
 
 /** Slogan principal da marca. */
 export const BRAND_TAGLINE = 'Gestão de Terreiros de Umbanda e Candomblé' as const;
@@ -8,17 +8,17 @@ export const BRAND_TAGLINE = 'Gestão de Terreiros de Umbanda e Candomblé' as c
 export const SITE_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}` as const;
 
 /** Nome público do portal (diretório, conteúdo, terreiros). */
-export const PORTAL_BRAND = 'Portal de Gestão Ilê Asé' as const;
+export const PORTAL_BRAND = 'Portal de Gestão AxéCloud' as const;
 
 /**
  * Variações de escrita que as pessoas digitam no Google.
  * Fonte única para meta keywords, JSON-LD alternateName e texto estático.
  */
 export const BRAND_ALTERNATE_NAMES = [
+  'Ilê Asé',
   'Ilê Ase',
   'Ile Ase',
   'ile ase',
-  'AxéCloud',
   'axecloud',
   'AxeCloud',
   'axe cloud',

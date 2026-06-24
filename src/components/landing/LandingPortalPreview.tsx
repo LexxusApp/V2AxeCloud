@@ -78,7 +78,7 @@ function FounderHouseCard({
         </blockquote>
       ) : (
         <p className="mt-4 text-sm leading-relaxed text-slate-600">
-          Casa parceira do Ilê Asé — organização digital com respeito à tradição.
+          Casa parceira do AxéCloud — organização digital com respeito à tradição.
         </p>
       )}
       {portalSlug ? (
@@ -108,7 +108,7 @@ export function LandingPortalPreview() {
         <motion.div {...fade}>
           <LandingSectionHeader
             kicker="Portal do axé"
-            title={hasHouses ? 'Casas no portal Ilê Asé' : 'Encontre casas de axé — em construção'}
+            title={hasHouses ? 'Casas no portal AxéCloud' : 'Encontre casas de axé — em construção'}
             titleId="portal-head"
             lead={
               hasHouses

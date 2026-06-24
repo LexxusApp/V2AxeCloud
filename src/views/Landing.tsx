@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+﻿import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ArrowUp, Check, MessageCircle } from 'lucide-react';
 import { MarketingMockupFooter } from '../components/marketing/MarketingMockupFooter';
 import { PortalHomeHub } from '../components/landing/PortalHomeHub';
@@ -183,7 +183,7 @@ export default function Landing() {
             <LandingReveal>
               <LandingSectionHeader
                 kicker="Mensalidade"
-                title="Um valor. Todo o Ilê Asé."
+                title="Um valor. Todo o AxéCloud."
                 titleId="mensalidade-head"
                 lead={landingPrice.description}
               />

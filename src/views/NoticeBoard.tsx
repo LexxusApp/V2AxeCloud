@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, 
   Plus, 
@@ -103,7 +103,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const getFormattedMessage = (title: string, content: string) => {
     const systemUrl = window.location.origin;
     const summary = content.length > 100 ? content.substring(0, 100) + '...' : content;
-    return `📢 *AVISO DO TERREIRO - ILÊ ASÉ* 📢\n\n📌 *Assunto:* ${title}\n\n📝 ${summary}\n\n🔗 Veja o aviso completo aqui: ${systemUrl}`;
+    return `📢 *AVISO DO TERREIRO - AxéCloud* 📢\n\n📌 *Assunto:* ${title}\n\n📝 ${summary}\n\n🔗 Veja o aviso completo aqui: ${systemUrl}`;
   };
 
   const generateWhatsAppLink = (title: string, content: string) => {

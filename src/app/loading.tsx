@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fallback de carregamento de rotas (equivalente ao `loading.tsx` do Next.js App Router).
  * Usado pelo `AppRouter` via React Suspense e como shell inicial em `index.html`.
  */
@@ -15,7 +15,7 @@ export default function Loading() {
         aria-hidden
       />
       <p className="animate-pulse text-sm font-medium tracking-wide text-neutral-400">
-        Carregando Ilê Asé...
+        Carregando AxéCloud...
       </p>
     </div>
   );

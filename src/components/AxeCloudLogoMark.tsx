@@ -1,4 +1,4 @@
-import { cn } from '../lib/utils';
+﻿import { cn } from '../lib/utils';
 import { BRAND_TAGLINE } from '../constants/seoBrandKeywords';
 
 export type AxeCloudLogoMarkSize = 'compact' | 'default' | 'large';
@@ -44,7 +44,7 @@ const sizeStyles: Record<
   },
 };
 
-/** Marca Ilê Asé em CSS — mesma identidade da landing (`Landing.tsx`). */
+/** Marca AxéCloud em CSS — mesma identidade da landing (`Landing.tsx`). */
 export function AxeCloudLogoMark({
   className,
   size = 'default',
@@ -77,8 +77,8 @@ export function AxeCloudLogoMark({
       </div>
       <div className="min-w-0 leading-none">
         <div className="flex items-center gap-[3px]">
-          <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>ILÊ</span>
-          <span className={cn('font-black uppercase tracking-[0.22em] text-[#f2b90f]', s.word)}>ASÉ</span>
+          <span className={cn('font-black uppercase tracking-[0.22em] text-white', s.word)}>AXÉ</span>
+          <span className={cn('font-black uppercase tracking-[0.22em] text-[#f2b90f]', s.word)}>CLOUD</span>
         </div>
         <p className={cn('text-center font-black uppercase text-[#d99c0a]', s.tagline)}>{BRAND_TAGLINE}</p>
       </div>

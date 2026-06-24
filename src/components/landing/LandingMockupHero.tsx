@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { ArrowRight, BookOpen, CalendarDays, Handshake, MapPin, Play, Sun, Users } from 'lucide-react';
 import { appHref } from '../../lib/appHref';
 import {
@@ -76,7 +76,7 @@ function terreiroCardDescription(terreiro: PublicTerreiro): string {
   if (local) {
     return `Casa de ${tradicao} em ${local}. Perfil público com eventos, acolhimento e história da casa aberta à comunidade.`;
   }
-  return `Casa de ${tradicao} no Portal de Gestão Ilê Asé. Perfil público com eventos, acolhimento e história da casa aberta à comunidade.`;
+  return `Casa de ${tradicao} no Portal de Gestão AxéCloud. Perfil público com eventos, acolhimento e história da casa aberta à comunidade.`;
 }
 
 function HeroTerreiroCardBody({
@@ -254,7 +254,7 @@ export function LandingMockupHero() {
               </h1>
 
               <p className="landing-mockup-hero__lead mt-6 max-w-lg text-[15px] font-medium leading-relaxed text-[#1b1813] sm:text-base">
-                Ilê Asé é a plataforma completa para terreiros organizarem a casa, cuidarem da comunidade e
+                AxéCloud é a plataforma completa para terreiros organizarem a casa, cuidarem da comunidade e
                 manterem viva a cultura — Umbanda, Candomblé e Jurema com respeito e tecnologia.
               </p>
 
@@ -309,7 +309,7 @@ export function LandingMockupHero() {
             <Handshake className="h-5 w-5 shrink-0 text-[#FFC107]" aria-hidden />
             <span>
               Feito para terreiros. Feito com axé. Feito por nós.{' '}
-              <span className="font-bold text-[#FFC107]">Ilê Asé</span>
+              <span className="font-bold text-[#FFC107]">AxéCloud</span>
             </span>
           </div>
         </div>

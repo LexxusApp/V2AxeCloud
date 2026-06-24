@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Building2,
   Check,
@@ -268,7 +268,7 @@ export function EspacoFielV3Portal() {
           {!terreirosLoading && terreirosFiltrados.length === 0 ? (
             <div className="my-2 rounded-2xl border border-dashed border-[#cfc0a8] bg-[#fffdf9] p-8 text-center text-neutral-500">
               {terreiros.length === 0
-                ? 'Nenhum terreiro com portal de pedidos activo no momento. As casas podem activar o portal em Configurações no app Ilê Asé.'
+                ? 'Nenhum terreiro com portal de pedidos activo no momento. As casas podem activar o portal em Configurações no app AxéCloud.'
                 : 'Nenhum terreiro cadastrado nesta cidade ainda. Experimente selecionar "Todas as Cidades" ou escolher uma cidade vizinha.'}
             </div>
           ) : null}
@@ -636,7 +636,7 @@ export function EspacoFielV3Portal() {
 
             <div className="mt-4 rounded-xl border border-dashed border-[#cfc0a8] bg-amber-50/70 p-2.5 text-center text-[10px] text-neutral-600">
               💡 <strong>Comunicação real com o terreiro:</strong> ao enviar um pedido, o zelador recebe no painel{' '}
-              <strong>Atendimentos</strong> do Ilê Asé. Quando ele aceitar, iniciar a prece ou responder no chat, você
+              <strong>Atendimentos</strong> do AxéCloud. Quando ele aceitar, iniciar a prece ou responder no chat, você
               acompanha aqui no Altar Virtual (atualização automática a cada poucos segundos). Veja também a{' '}
               <a href={`${ROUTES.home}#demonstracao`} className="font-semibold text-[#FACC15] hover:underline">
                 Demo Interativa

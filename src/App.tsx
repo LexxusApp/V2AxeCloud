@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import AppTopNav from './components/app/AppTopNav';
 import SubscriptionLock from './components/SubscriptionLock';
@@ -1145,7 +1145,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             <ShieldAlert className="w-10 h-10 text-amber-500" />
           </div>
           <h2 className="text-3xl font-black text-white tracking-tighter">ACESSO SUSPENSO</h2>
-          <p className="text-gray-400 font-medium">Seu acesso ao Ilê Asé foi temporariamente suspenso por um administrador.</p>
+          <p className="text-gray-400 font-medium">Seu acesso ao AxéCloud foi temporariamente suspenso por um administrador.</p>
           <button onClick={() => performFastLogout()} className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all">
             VOLTAR AO LOGIN
           </button>

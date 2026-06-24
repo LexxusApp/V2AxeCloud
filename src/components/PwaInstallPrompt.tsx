@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react';
+﻿import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 
@@ -45,7 +45,7 @@ export function PwaInstallPrompt({ className, variant = 'banner' }: Props) {
     >
       <Download className="h-4 w-4 shrink-0" aria-hidden />
       <p className="min-w-0 flex-1 leading-snug">
-        Instale o Ilê Asé na tela inicial para acesso rápido e atualizações automáticas.
+        Instale o AxéCloud na tela inicial para acesso rápido e atualizações automáticas.
       </p>
       <button
         type="button"

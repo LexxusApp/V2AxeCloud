@@ -63,7 +63,7 @@ export function LandingInteractiveDemo() {
           </h2>
           <p className="landing-lead mx-auto mt-4 max-w-2xl text-[#1b1813]/70">
             Simulador <strong className="font-semibold text-[#1b1813]">100% funcional no navegador</strong> com
-            módulos reais do Ilê Asé. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
+            módulos reais do AxéCloud. Cadastre filhos de santo, lance no financeiro, marque giras e publique avisos —
             sem criar conta. Os dados ficam só nesta página.
           </p>
           <p className="mt-4">

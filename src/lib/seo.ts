@@ -1,4 +1,4 @@
-import { metadata as homeMetadata } from '../app/page';
+﻿import { metadata as homeMetadata } from '../app/page';
 import { BRAND_NAME, PORTAL_BRAND, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
 import { getPortalArticleBySlug, parseContentArticleSlug } from '../content/portalContent';
 import { ROUTES, normalizePath } from './routes';
@@ -71,7 +71,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   },
   [ROUTES.previewPainel]: {
     title: `Preview do painel | ${BRAND_NAME}`,
-    description: 'Prévia visual do painel de gestão Ilê Asé — explore módulos com dados fictícios.',
+    description: 'Prévia visual do painel de gestão AxéCloud — explore módulos com dados fictícios.',
     canonicalPath: '/preview-painel',
     robots: 'noindex, follow',
   },

@@ -1,4 +1,4 @@
-import { Heart, Menu, X } from 'lucide-react';
+﻿import { Heart, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { appHref } from '../../lib/appHref';
@@ -69,7 +69,7 @@ export function MarketingTopNav({
         <a
           href={logoHref}
           className="mr-1 flex shrink-0 items-center sm:mr-3"
-          aria-label="Ilê Asé — início"
+          aria-label="AxéCloud — início"
         >
           <LogoMark compact />
         </a>

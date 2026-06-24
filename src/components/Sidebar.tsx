@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Home,
   User,
@@ -177,7 +177,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
               </div>
               <div className="flex min-w-0 flex-col">
                 <div className="whitespace-nowrap font-display text-lg font-bold leading-none tracking-tight text-[#F1F5F9]">
-                  ILÊ ASÉ
+                  AxéCloud
                 </div>
                 <p className="mt-0.5 whitespace-nowrap text-[10px] font-bold tracking-[0.14em] text-primary">
                   GESTÃO SAGRADA

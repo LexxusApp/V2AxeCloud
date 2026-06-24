@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { Calendar, Clock } from 'lucide-react';
 import { ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
 import { landingMockupCardClass } from '../components/landing/landingMockupUi';
@@ -71,7 +71,7 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
       <div className={cn('mt-8 border-amber-300/40 p-6 sm:p-7', landingMockupCardClass, 'rounded-2xl')}>
         <p className="text-base font-bold text-[#1b1813]">Sua casa quer participar?</p>
         <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/65">
-          Inscreva-se no Programa Fundador e use o Ilê Asé gratuitamente por 12 meses enquanto construímos o portal.
+          Inscreva-se no Programa Fundador e use o AxéCloud gratuitamente por 12 meses enquanto construímos o portal.
         </p>
         <a
           href={ROUTES.founderProgram}

@@ -227,7 +227,7 @@ function PortalTerreirosShowcase({
           <div className="mt-6 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
             <p className="text-sm font-bold text-slate-900">Sua casa pode aparecer aqui.</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Cadastre sua casa e teste o Ilê Asé por {TRIAL_DAYS} dias sem pagar. Depois, ative o perfil público no portal.
+              Cadastre sua casa e teste o AxéCloud por {TRIAL_DAYS} dias sem pagar. Depois, ative o perfil público no portal.
             </p>
           </div>
         )}

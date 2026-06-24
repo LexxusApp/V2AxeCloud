@@ -19,7 +19,7 @@ export function contentArticlePath(slug: string): string {
 export const PORTAL_ARTICLES: readonly PortalArticle[] = [
   {
     slug: 'como-o-axecloud-ajuda-terreiros',
-    title: 'Como o Ilê Asé ajuda terreiros a se organizar',
+    title: 'Como o AxéCloud ajuda terreiros a se organizar',
     summary:
       'Gestão financeira, calendário de giras, galeria de fotos, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa.',
     publishedAt: '2026-05-29',
@@ -33,12 +33,12 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Financeiro com transparência',
         body:
-          'O Ilê Asé registra mensalidades, doações e despesas com histórico claro. Filhos de santo podem pagar via Pix; a diretoria acompanha tudo em tempo real. Menos dúvida sobre quem está em dia, mais confiança na gestão da casa — sem transformar a contribuição em burocracia fria.',
+          'O AxéCloud registra mensalidades, doações e despesas com histórico claro. Filhos de santo podem pagar via Pix; a diretoria acompanha tudo em tempo real. Menos dúvida sobre quem está em dia, mais confiança na gestão da casa — sem transformar a contribuição em burocracia fria.',
       },
       {
         title: 'Galeria de fotos da casa',
         body:
-          'Giras, festas de santo, obrigações e momentos da comunidade merecem memória. A galeria do Ilê Asé organiza álbuns e fotos do terreiro em um só lugar — a diretoria guarda o registro com respeito, e filhos de santo podem reviver a história da casa sem depender de grupos espalhados no celular.',
+          'Giras, festas de santo, obrigações e momentos da comunidade merecem memória. A galeria do AxéCloud organiza álbuns e fotos do terreiro em um só lugar — a diretoria guarda o registro com respeito, e filhos de santo podem reviver a história da casa sem depender de grupos espalhados no celular.',
       },
       {
         title: 'Calendário e mural integrados',
@@ -58,7 +58,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Programa Fundador',
         body:
-          'Estamos convidando as primeiras casas a usar o Ilê Asé gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador.',
+          'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador.',
       },
     ],
   },
@@ -98,7 +98,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Organização e espiritualidade',
         body:
-          'Casas que crescem precisam de registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o Ilê Asé ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade.',
+          'Casas que crescem precisam de registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade.',
       },
     ],
   },
@@ -128,7 +128,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Casas que não cobram mensalidade',
         body:
-          'Alguns terreiros funcionam só com doações, rifas, bazares ou contribuições espontâneas. O Ilê Asé permite desativar a cobrança de mensalidade para essas casas, mantendo financeiro, calendário e mural ativos. Não há um modelo único de gestão — o sistema se adapta à forma da casa.',
+          'Alguns terreiros funcionam só com doações, rifas, bazares ou contribuições espontâneas. O AxéCloud permite desativar a cobrança de mensalidade para essas casas, mantendo financeiro, calendário e mural ativos. Não há um modelo único de gestão — o sistema se adapta à forma da casa.',
       },
       {
         title: 'Boas práticas na diretoria',
@@ -138,7 +138,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Tecnologia a serviço da casa',
         body:
-          'O financeiro do Ilê Asé foi pensado para terreiros: mensalidades, Pix, histórico, relatórios e configuração por casa. Menos tempo em cobrança manual, mais tempo para o que importa — girar, acolher e cuidar do axé.',
+          'O financeiro do AxéCloud foi pensado para terreiros: mensalidades, Pix, histórico, relatórios e configuração por casa. Menos tempo em cobrança manual, mais tempo para o que importa — girar, acolher e cuidar do axé.',
       },
     ],
   },
@@ -178,12 +178,12 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Convites e confirmação de presença',
         body:
-          'Para eventos com convidados, algumas casas enviam link de confirmação por WhatsApp. O Ilê Asé permite RSVP de convidados: quem recebe o link confirma ou declina sem precisar entrar no sistema. A diretoria enxerga quem vem e organiza o salão com mais tranquilidade.',
+          'Para eventos com convidados, algumas casas enviam link de confirmação por WhatsApp. O AxéCloud permite RSVP de convidados: quem recebe o link confirma ou declina sem precisar entrar no sistema. A diretoria enxerga quem vem e organiza o salão com mais tranquilidade.',
       },
       {
         title: 'Organize sem perder o sagrado',
         body:
-          'Registrar datas, tipos de evento e avisos no calendário do Ilê Asé não “automatiza” o ritual — libera a diretoria do trabalho de repetir a mesma informação dez vezes. O sagrado continua no terreiro; a organização fica na ferramenta certa.',
+          'Registrar datas, tipos de evento e avisos no calendário do AxéCloud não “automatiza” o ritual — libera a diretoria do trabalho de repetir a mesma informação dez vezes. O sagrado continua no terreiro; a organização fica na ferramenta certa.',
       },
     ],
   },
@@ -223,7 +223,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Pedido de reza à distância',
         body:
-          'Se você não pode ir presencialmente, algumas casas parceiras aceitam pedido de reza pelo Portal de Gestão Ilê Asé — com vela virtual e acompanhamento do altar. É outro caminho de conexão, sempre com o mesmo respeito à orientação de cada terreiro.',
+          'Se você não pode ir presencialmente, algumas casas parceiras aceitam pedido de reza pelo Portal de Gestão AxéCloud — com vela virtual e acompanhamento do altar. É outro caminho de conexão, sempre com o mesmo respeito à orientação de cada terreiro.',
       },
       {
         title: 'Depois da visita',

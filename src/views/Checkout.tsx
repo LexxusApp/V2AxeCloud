@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { ShieldCheck, TreePine } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
@@ -49,7 +49,7 @@ export default function Checkout() {
           >
             <TreePine className="h-7 w-7 text-[#f2b90f]" />
           </motion.div>
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">Ilê Asé</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
           <h1 className="mt-2 text-2xl font-black tracking-tight">Ativação do sistema</h1>
           <p className="mt-2 text-sm text-[#b8bbc4]">
             Passo 2 — pagamento via PIX. Plano Premium {landingPrice.label}

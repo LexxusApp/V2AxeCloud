@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -732,7 +732,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         loading={loadingPix}
         pixConfig={pixConfig}
         valor={valorMensalidade}
-        descricao="Mensalidade Ilê Asé"
+        descricao="Mensalidade AxéCloud"
         txid={(filho?.id || user.id).replace(/-/g, '').slice(0, 25).padEnd(5, '0')}
       />
     </AppPageShell>

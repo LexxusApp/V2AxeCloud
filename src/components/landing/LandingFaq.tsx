@@ -39,7 +39,7 @@ export function LandingFaq() {
             kicker="Dúvidas frequentes"
             title="Perguntas sobre gestão de terreiros"
             titleId="faq-head"
-            lead="Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o Ilê Asé."
+            lead="Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud."
           />
 
           <div className="relative z-10 mt-8 space-y-3 sm:mt-10">

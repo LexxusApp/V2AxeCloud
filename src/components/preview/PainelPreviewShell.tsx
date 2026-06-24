@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+﻿import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   Bell,
@@ -246,7 +246,7 @@ export function PainelPreviewShell({ activeTab, onTabChange, children }: PainelP
           className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#1b1813]/55 transition hover:text-[#1b1813]"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          Site Ilê Asé
+          Site AxéCloud
         </a>
 
         <div className="landing-mockup-demo-frame overflow-hidden rounded-[1.75rem]">

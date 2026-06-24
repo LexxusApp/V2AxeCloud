@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   User, 
   DollarSign, 
@@ -236,7 +236,7 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
       <div className="pt-20 pb-10 text-center">
         <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.6em] flex items-center justify-center gap-6">
           <span className="w-12 h-[1px] bg-white/10" />
-          ILÊ ASÉ — PORTAL DO FILHO DE SANTO
+          AxéCloud — PORTAL DO FILHO DE SANTO
           <span className="w-12 h-[1px] bg-white/10" />
         </div>
       </div>

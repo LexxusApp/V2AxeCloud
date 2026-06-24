@@ -33,7 +33,7 @@ export function LandingBeforeAfter() {
             transition={{ ...fade.transition, delay: 0.05 }}
             className="landing-before-after-card landing-before-after-card--before"
           >
-            <p className="landing-before-after-card__label">Antes do Ilê Asé</p>
+            <p className="landing-before-after-card__label">Antes do AxéCloud</p>
             <h3 className="landing-before-after-card__title">Gestão espalhada</h3>
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_BEFORE_ITEMS.map((item) => (
@@ -50,7 +50,7 @@ export function LandingBeforeAfter() {
             transition={{ ...fade.transition, delay: 0.12 }}
             className="landing-before-after-card landing-before-after-card--after"
           >
-            <p className="landing-before-after-card__label">Com o Ilê Asé</p>
+            <p className="landing-before-after-card__label">Com o AxéCloud</p>
             <h3 className="landing-before-after-card__title">Gestão centralizada</h3>
             <ul className="landing-before-after-card__list" role="list">
               {LANDING_AFTER_ITEMS.map((item) => (

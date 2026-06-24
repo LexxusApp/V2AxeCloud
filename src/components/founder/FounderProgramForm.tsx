@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Check, Loader2, MessageCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
@@ -269,7 +269,7 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
               disabled={slotsClosed || submitting}
             />
             <span className="text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
-              Autorizo a exibição futura de perfil público no portal Ilê Asé (nome da casa, cidade, tradição e
+              Autorizo a exibição futura de perfil público no portal AxéCloud (nome da casa, cidade, tradição e
               contato — sem endereço completo sem meu consentimento). *
             </span>
           </label>
@@ -283,7 +283,7 @@ export function FounderProgramForm({ className, showSlotsBanner = true }: Founde
               disabled={slotsClosed || submitting}
             />
             <span className="text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
-              Autorizo depoimento sobre o uso do Ilê Asé em materiais do site (opcional).
+              Autorizo depoimento sobre o uso do AxéCloud em materiais do site (opcional).
             </span>
           </label>
 

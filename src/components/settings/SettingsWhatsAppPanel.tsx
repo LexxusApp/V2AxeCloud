@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
   MessageSquare,
@@ -319,7 +319,7 @@ export function SettingsWhatsAppPanel() {
         throw new Error(String(data.error || 'Falha no envio de teste'));
       }
       notify(
-        'Mensagem de teste enviada! Verifique o WhatsApp do número informado — ela chega pelo canal oficial Ilê Asé.',
+        'Mensagem de teste enviada! Verifique o WhatsApp do número informado — ela chega pelo canal oficial AxéCloud.',
         'success',
       );
       void loadLogs();
@@ -422,7 +422,7 @@ export function SettingsWhatsAppPanel() {
             Integração & Configuração do WhatsApp
           </h5>
           <p className="text-xs text-[#94A3B8]">
-            Notificações automáticas para filhos de santo saem pelo WhatsApp Business oficial do Ilê Asé, com o nome
+            Notificações automáticas para filhos de santo saem pelo WhatsApp Business oficial do AxéCloud, com o nome
             do membro e do seu terreiro em cada mensagem.
           </p>
         </div>
@@ -447,7 +447,7 @@ export function SettingsWhatsAppPanel() {
 
             <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Shield className="h-4 w-4" />
-              1. Canal Oficial Ilê Asé (Meta Cloud API)
+              1. Canal Oficial AxéCloud (Meta Cloud API)
             </h6>
 
             <div className="relative space-y-4">
@@ -460,10 +460,10 @@ export function SettingsWhatsAppPanel() {
                     <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
                       {connected ? 'Status: Ativo & Operante' : 'Status: Inicializando'}
                     </span>
-                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — Ilê Asé</h6>
+                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — AxéCloud</h6>
                     <p className="text-[9.5px] text-gray-400">
                       {channelMessage ||
-                        'Template Meta aviso_geral_axecloud (boas-vindas): {{1}} = membro, {{2}} = Ilê Asé. Login em /login com ID + CPF.'}
+                        'Template Meta aviso_geral_axecloud (boas-vindas): {{1}} = membro, {{2}} = AxéCloud. Login em /login com ID + CPF.'}
                     </p>
                   </div>
                 </div>
@@ -531,7 +531,7 @@ export function SettingsWhatsAppPanel() {
             <div className="space-y-3">
               <p className="text-[11px] leading-relaxed text-gray-400">
                 Envie um teste direto para o número que você informar. A mensagem chega pelo{' '}
-                <strong className="text-gray-300">WhatsApp Business oficial do Ilê Asé</strong> (não pelo seu número
+                <strong className="text-gray-300">WhatsApp Business oficial do AxéCloud</strong> (não pelo seu número
                 pessoal).
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -673,7 +673,7 @@ export function SettingsWhatsAppPanel() {
 
           <div className="mt-6 space-y-1.5 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] leading-relaxed text-gray-400">
             <div className="mb-1 flex items-center gap-1 font-bold text-[#F1F5F9]">
-              <CheckCircle className="h-3.5 w-3.5 text-[#10B981]" /> Como testar no Ilê Asé:
+              <CheckCircle className="h-3.5 w-3.5 text-[#10B981]" /> Como testar no AxéCloud:
             </div>
             <p>
               Conecte o WhatsApp no <strong>Passo 1</strong> acima. Depois, experimente criar uma nova Gira na aba{' '}

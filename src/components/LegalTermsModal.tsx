@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Loader2, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -85,7 +85,7 @@ export default function LegalTermsModal({ open, onAccept, accepting = false }: L
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-black/40 accent-primary"
             />
             <span className="text-xs font-medium leading-snug text-gray-300">
-              Li e aceito os Termos de Uso e a Política de Privacidade do Ilê Asé.
+              Li e aceito os Termos de Uso e a Política de Privacidade do AxéCloud.
             </span>
           </label>
 

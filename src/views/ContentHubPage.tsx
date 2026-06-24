@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import {
   ArrowRight,
   BookOpen,
@@ -59,7 +59,7 @@ function ContentHeroStats() {
 export default function ContentHubPage() {
   return (
     <ContentMarketingLayout
-      kicker="Portal de Gestão Ilê Asé"
+      kicker="Portal de Gestão AxéCloud"
       title="Conteúdo para quem busca entender a tradição"
       summary="Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé."
       heroExtra={<ContentHeroStats />}
@@ -210,7 +210,7 @@ export default function ContentHubPage() {
                 Programa Fundador
               </p>
               <h3 className="mt-2 text-lg font-bold text-[#1b1813] sm:text-xl">
-                Sua casa quer usar o Ilê Asé e aparecer no portal?
+                Sua casa quer usar o AxéCloud e aparecer no portal?
               </h3>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#1b1813]/65">
                 12 meses gratuitos, onboarding personalizado e prioridade quando o diretório público estiver no ar.

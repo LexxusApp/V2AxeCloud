@@ -1,4 +1,4 @@
-import { Check, Lock } from 'lucide-react';
+﻿import { Check, Lock } from 'lucide-react';
 
 import { landingMockupShellClass } from './landingMockupUi';
 
@@ -70,7 +70,7 @@ export function LandingSecurity() {
 
             <p className="text-sm leading-relaxed text-white/70 md:text-base">
               Reconhecemos a extrema seriedade que envolve os nomes ritualísticos e preparos internos de terreiros
-              tradicionais de matriz africana. O Ilê Asé segue rigorosamente as leis civis de dados (LGPD) sob a
+              tradicionais de matriz africana. O AxéCloud segue rigorosamente as leis civis de dados (LGPD) sob a
               tutela de dados religiosos extremamente sensíveis.
             </p>
 

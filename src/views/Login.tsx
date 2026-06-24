@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock,
@@ -376,7 +376,7 @@ export default function Login() {
         className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.5rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Conhecer o Ilê Asé
+        Conhecer o AxéCloud
       </a>
 
       <motion.div
