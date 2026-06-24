@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatThread } from './ChatThread';
 import { authFetch } from '../../lib/authenticatedFetch';
 import type { ChatContact, ChatConversationSummary, ChatParticipantSummary } from '../../lib/chatTypes';
+import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 
@@ -30,11 +31,19 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
   const rootRef = useRef<HTMLDivElement>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   const [activeConversation, setActiveConversation] = useState<ChatConversationSummary | null>(null);
-  const [conversations, setConversations] = useState<ChatConversationSummary[]>([]);
-  const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const contactsCacheKey = `chat_contacts_${tenantId}`;
+  const conversationsCacheKey = `chat_conversations_${tenantId}`;
+
+  const [contacts, setContacts] = useState<ChatContact[]>(
+    () => readStaleCache<ChatContact[]>(contactsCacheKey) || [],
+  );
+  const [conversations, setConversations] = useState<ChatConversationSummary[]>(
+    () => readStaleCache<ChatConversationSummary[]>(conversationsCacheKey) || [],
+  );
   const [search, setSearch] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [opening, setOpening] = useState(false);
+  const contactsFetchRef = useRef<Promise<void> | null>(null);
 
   const totalUnread = useMemo(
     () => conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0),
@@ -47,15 +56,16 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
       const res = await authFetch(`/api/v1/chat/conversations?tenantId=${encodeURIComponent(tenantId)}`);
       if (!res.ok) return;
       const data = await res.json();
-      setConversations(data.conversations || []);
+      const next = data.conversations || [];
+      setConversations(next);
+      writeStaleCache(conversationsCacheKey, next);
     } catch {
       /* ignore */
     }
-  }, [tenantId]);
+  }, [tenantId, conversationsCacheKey]);
 
   const loadContacts = useCallback(async () => {
     if (!tenantId) return;
-    setLoadingContacts(true);
     try {
       const res = await authFetch(
         `/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}&userRole=${encodeURIComponent(userRole || 'admin')}`,
@@ -69,17 +79,32 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
         return;
       }
       const data = await res.json();
-      setContacts(data.contacts || []);
+      const next = data.contacts || [];
+      setContacts(next);
+      writeStaleCache(contactsCacheKey, next);
     } catch {
       /* ignore */
-    } finally {
-      setLoadingContacts(false);
     }
-  }, [tenantId, userRole]);
+  }, [tenantId, userRole, contactsCacheKey]);
+
+  const refreshContacts = useCallback(
+    (showSpinner = false) => {
+      if (contactsFetchRef.current) return contactsFetchRef.current;
+      if (showSpinner) setLoadingContacts(true);
+      contactsFetchRef.current = loadContacts().finally(() => {
+        contactsFetchRef.current = null;
+        setLoadingContacts(false);
+      });
+      return contactsFetchRef.current;
+    },
+    [loadContacts],
+  );
 
   useEffect(() => {
+    if (!tenantId) return;
     void loadConversations();
-  }, [loadConversations]);
+    void refreshContacts(false);
+  }, [tenantId, loadConversations, refreshContacts]);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -143,7 +168,17 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
     }
     const next = !membersOpen;
     setMembersOpen(next);
-    if (next) void loadContacts();
+    if (next) void refreshContacts(contacts.length === 0);
+  };
+
+  const findExistingConversation = (opts: { targetFilhoId?: string; withZelador?: boolean }) => {
+    if (opts.withZelador) {
+      return conversations.find((c) => c.peer?.participantType === 'admin') || null;
+    }
+    if (opts.targetFilhoId) {
+      return conversations.find((c) => c.peer?.filhoId === opts.targetFilhoId) || null;
+    }
+    return null;
   };
 
   const resolveConversationSummary = (
@@ -168,6 +203,39 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
 
   const startChat = async (opts: { targetFilhoId?: string; withZelador?: boolean }) => {
     if (!tenantId || opening) return;
+
+    const existing = findExistingConversation(opts);
+    if (existing) {
+      setActiveConversation(existing);
+      setMembersOpen(false);
+      setSearch('');
+      return;
+    }
+
+    let peer: ChatParticipantSummary;
+    if (opts.withZelador) {
+      peer = {
+        userId: '',
+        participantType: 'admin',
+        filhoId: null,
+        nome: 'Zelador(a)',
+        fotoUrl: tenantData?.foto_url || null,
+        cargo: tenantData?.cargo || null,
+      };
+    } else {
+      const contact = contacts.find((c) => c.filhoId === opts.targetFilhoId);
+      peer = contact
+        ? contactToPeer(contact)
+        : {
+            userId: '',
+            participantType: 'filho',
+            filhoId: opts.targetFilhoId || null,
+            nome: 'Membro',
+            fotoUrl: null,
+            cargo: null,
+          };
+    }
+
     setOpening(true);
     try {
       const res = await authFetch('/api/v1/chat/conversations', {
@@ -180,35 +248,10 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
         throw new Error(err.error || 'Erro ao abrir conversa');
       }
       const data = await res.json();
-      await loadConversations();
-
-      let peer: ChatParticipantSummary;
-      if (opts.withZelador) {
-        peer = {
-          userId: '',
-          participantType: 'admin',
-          filhoId: null,
-          nome: 'Zelador(a)',
-          fotoUrl: tenantData?.foto_url || null,
-          cargo: tenantData?.cargo || null,
-        };
-      } else {
-        const contact = contacts.find((c) => c.filhoId === opts.targetFilhoId);
-        peer = contact
-          ? contactToPeer(contact)
-          : {
-              userId: '',
-              participantType: 'filho',
-              filhoId: opts.targetFilhoId || null,
-              nome: 'Membro',
-              fotoUrl: null,
-              cargo: null,
-            };
-      }
-
       setActiveConversation(resolveConversationSummary(data.conversationId, peer));
       setMembersOpen(false);
       setSearch('');
+      void loadConversations();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erro ao abrir conversa');
     } finally {
@@ -285,7 +328,7 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
-            {loadingContacts ? (
+            {loadingContacts && contacts.length === 0 ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>

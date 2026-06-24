@@ -1,10 +1,10 @@
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChatAudioRecorder } from './ChatAudioRecorder';
-import { ChatMediaPicker } from './ChatMediaPicker';
+import { ChatAttachMenu } from './ChatAttachMenu';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { authFetch } from '../../lib/authenticatedFetch';
 import type { ChatConversationSummary, ChatMessage } from '../../lib/chatTypes';
+import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 
@@ -25,9 +25,11 @@ export function ChatThread({
   onMessageSent,
   variant = 'page',
 }: ChatThreadProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesCacheKey = `chat_msgs_${conversation.id}`;
+  const cachedMessages = readStaleCache<ChatMessage[]>(messagesCacheKey);
+  const [messages, setMessages] = useState<ChatMessage[]>(cachedMessages || []);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedMessages);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -47,13 +49,15 @@ export function ChatThread({
       );
       if (!res.ok) throw new Error('Falha ao carregar mensagens');
       const data = await res.json();
-      setMessages(data.messages || []);
+      const next = data.messages || [];
+      setMessages(next);
+      writeStaleCache(messagesCacheKey, next);
     } catch (e) {
       console.error('[ChatThread] load:', e);
     } finally {
       setLoading(false);
     }
-  }, [conversation.id]);
+  }, [conversation.id, messagesCacheKey]);
 
   const markRead = useCallback(async () => {
     try {
@@ -64,10 +68,12 @@ export function ChatThread({
   }, [conversation.id]);
 
   useEffect(() => {
-    setLoading(true);
+    const cached = readStaleCache<ChatMessage[]>(messagesCacheKey);
+    setMessages(cached || []);
+    setLoading(!cached);
     void loadMessages();
     void markRead();
-  }, [loadMessages, markRead]);
+  }, [loadMessages, markRead, messagesCacheKey]);
 
   useEffect(() => {
     const channel = supabase
@@ -99,7 +105,7 @@ export function ChatThread({
             if (prev.some((m) => m.id === row.id)) return prev;
             const isOwn = row.sender_user_id === userId;
             const peer = conversation.participants.find((p) => p.userId === row.sender_user_id);
-            return [
+            const next = [
               ...prev,
               {
                 id: row.id,
@@ -118,6 +124,8 @@ export function ChatThread({
                 isOwn,
               },
             ];
+            writeStaleCache(messagesCacheKey, next);
+            return next;
           });
 
           if (row.sender_user_id !== userId) void markRead();
@@ -248,8 +256,8 @@ export function ChatThread({
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-        {loading ? (
+      <div ref={listRef} className="relative flex-1 space-y-3 overflow-y-auto p-4">
+        {loading && messages.length === 0 ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -270,9 +278,9 @@ export function ChatThread({
           </p>
         )}
         <div className="flex items-end gap-2">
-          <ChatMediaPicker disabled={sending || uploading} onPick={(f) => void uploadAndSend(f)} />
-          <ChatAudioRecorder
+          <ChatAttachMenu
             disabled={sending || uploading}
+            onPick={(f) => void uploadAndSend(f)}
             onRecorded={(file, dur) => void uploadAndSend(file, dur)}
           />
           <textarea
@@ -286,7 +294,7 @@ export function ChatThread({
             }}
             placeholder="Digite sua mensagem..."
             rows={1}
-            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:border-primary/50 focus:outline-none"
+            className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:border-primary/50 focus:outline-none"
             disabled={sending || uploading}
           />
           <button
