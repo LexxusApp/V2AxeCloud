@@ -72,11 +72,6 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
         `/api/v1/chat/contacts?tenantId=${encodeURIComponent(tenantId)}&userRole=${encodeURIComponent(userRole || 'admin')}`,
       );
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        // #region agent log
-        console.error("[CHAT-DEBUG cb5e09] contacts fetch failed", res.status, errBody);
-        fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cb5e09'},body:JSON.stringify({sessionId:'cb5e09',location:'ChatFloatingWidget.tsx:loadContacts',message:'contacts fetch failed',data:{status:res.status,errBody,tenantId},timestamp:Date.now(),hypothesisId:'H-uuid-or'})}).catch(()=>{});
-        // #endregion
         return;
       }
       const data = await res.json();

@@ -336,18 +336,12 @@ export function registerChatRoutes(app: Express, deps: Deps) {
   app.get("/api/v1/chat/contacts", async (req: Request, res: Response) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
-    // #region agent log
-    let debugStep = "start";
-    // #endregion
     try {
       if (!resolveLeaderIdFn) {
         throw new Error("resolveLeaderIdFn não configurado");
       }
       const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
       const userRoleQ = String(req.query.userRole || "");
-      // #region agent log
-      debugStep = "resolve-tenant";
-      // #endregion
       const tenantId =
         (await resolveFinanceiroTenantScope(
           supabaseAdmin,
@@ -363,16 +357,6 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       const selfFilho = await loadFilhoForUser(supabaseAdmin, user);
       const leaderId = await resolveLeaderIdFn(supabaseAdmin, tenantId);
       const leaderUserId = await loadLeaderUserId(supabaseAdmin, resolveLeaderIdFn, tenantId);
-      // #region agent log
-      debugStep = "load-filhos";
-      console.error("[CHAT-DEBUG cb5e09] contacts pre-query", {
-        tenantId,
-        leaderId,
-        leaderUserId,
-        userId: user.id,
-        orPreview: buildFilhosTenantOrFilter(tenantId, leaderId, leaderUserId || user.id),
-      });
-      // #endregion
 
       const filhos = await loadFilhosDaCorrente(
         supabaseAdmin,
@@ -400,18 +384,9 @@ export function registerChatRoutes(app: Express, deps: Deps) {
 
       res.json({ contacts, leaderId });
     } catch (error: unknown) {
-      const errObj = error as { message?: string; code?: string };
-      // #region agent log
-      console.error("[CHAT-DEBUG cb5e09] contacts error", {
-        step: debugStep,
-        message: errObj?.message,
-        code: errObj?.code,
-      });
-      // #endregion
       console.error("[CHAT] contacts:", error);
       res.status(500).json({
         error: safeErrorMessage(error, "Erro ao listar contatos"),
-        debugStep,
       });
     }
   });
@@ -804,10 +779,6 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       return res.status(500).json({ error: "R2 não configurado" });
     }
 
-    // #region agent log
-    let debugStep = "auth";
-    // #endregion
-
     try {
       const isMember = await assertParticipant(supabaseAdmin, conversationId, user.id);
       if (!isMember) return res.status(403).json({ error: "Acesso negado" });
@@ -821,16 +792,6 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       const body = req.body;
       const sizeBytes = Buffer.isBuffer(body) ? body.length : 0;
 
-      // #region agent log
-      debugStep = "validate";
-      console.error("[CHAT-DEBUG cb5e09] upload proxy", {
-        conversationId,
-        contentType,
-        sizeBytes,
-        fileName: fileName.slice(0, 80),
-      });
-      // #endregion
-
       const media = resolveChatMediaType(contentType);
       if (!media) return res.status(400).json({ error: "Tipo de arquivo não suportado" });
       if (!sizeBytes) return res.status(400).json({ error: "Arquivo vazio" });
@@ -842,10 +803,6 @@ export function registerChatRoutes(app: Express, deps: Deps) {
 
       const tenantId = access.tenantId;
       const storageKey = `chat/${tenantId}/${conversationId}/${Date.now()}_${slugifyFileName(fileName)}`;
-
-      // #region agent log
-      debugStep = "r2-put";
-      // #endregion
 
       await r2Client.send(
         new PutObjectCommand({
@@ -864,18 +821,9 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         contentType,
       });
     } catch (error: unknown) {
-      const errObj = error as { message?: string; code?: string };
-      // #region agent log
-      console.error("[CHAT-DEBUG cb5e09] upload proxy error", {
-        step: debugStep,
-        message: errObj?.message,
-        code: errObj?.code,
-      });
-      // #endregion
       console.error("[CHAT] upload proxy:", error);
       res.status(500).json({
         error: safeErrorMessage(error, "Erro ao enviar mídia"),
-        debugStep,
       });
     }
   });

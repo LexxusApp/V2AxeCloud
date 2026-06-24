@@ -196,15 +196,7 @@ export function ChatThread({
     if (uploading) return;
     setUploading(true);
     const contentType = guessChatMimeType(file);
-    // #region agent log
-    let debugStep = 'prepare';
-    // #endregion
     try {
-      // #region agent log
-      debugStep = 'proxy-upload';
-      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cb5e09'},body:JSON.stringify({sessionId:'cb5e09',location:'ChatThread.tsx:uploadAndSend',message:'chat media upload start',data:{contentType,size:file.size,conversationId:conversation.id},timestamp:Date.now(),hypothesisId:'H-csp-r2'})}).catch(()=>{});
-      // #endregion
-
       const resUrl = await authFetch(`/api/v1/chat/conversations/${conversation.id}/upload`, {
         method: 'POST',
         headers: {
@@ -219,10 +211,6 @@ export function ChatThread({
         throw new Error(err.error || 'Erro no upload');
       }
       const { storageKey, publicUrl, messageType, contentType: storedType } = await resUrl.json();
-
-      // #region agent log
-      debugStep = 'register-message';
-      // #endregion
 
       const resMsg = await authFetch(`/api/v1/chat/conversations/${conversation.id}/messages`, {
         method: 'POST',
@@ -240,10 +228,6 @@ export function ChatThread({
       onMessageSent?.();
       void loadMessages();
     } catch (e) {
-      // #region agent log
-      console.error('[CHAT-DEBUG cb5e09] upload failed', debugStep, e);
-      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cb5e09'},body:JSON.stringify({sessionId:'cb5e09',location:'ChatThread.tsx:uploadAndSend',message:'chat media upload failed',data:{debugStep,error:e instanceof Error ? e.message : String(e)},timestamp:Date.now(),hypothesisId:'H-csp-r2'})}).catch(()=>{});
-      // #endregion
       console.error('[ChatThread] upload:', e);
       alert(e instanceof Error ? e.message : 'Erro ao enviar mídia');
     } finally {
