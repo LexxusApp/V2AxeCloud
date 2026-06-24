@@ -464,8 +464,17 @@ export default function AppTopNav({
     }
   };
 
+  const isFilhoProfile = userRole === 'filho';
+
   const profileAvatar = (
-    <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10">
+    <div
+      className={cn(
+        'grid place-items-center overflow-hidden rounded-full border bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10',
+        isFilhoProfile
+          ? 'h-12 w-12 border-2 border-primary/50 shadow-md shadow-primary/15'
+          : 'h-9 w-9 border-primary/40',
+      )}
+    >
       {profileFoto ? (
         <img
           src={profileFoto}
@@ -474,7 +483,7 @@ export default function AppTopNav({
           referrerPolicy="no-referrer"
         />
       ) : (
-        <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
+        <Flame className={cn('text-[#13171D]', isFilhoProfile ? 'h-5 w-5' : 'h-4 w-4')} aria-hidden />
       )}
     </div>
   );
@@ -652,16 +661,16 @@ export default function AppTopNav({
                   type="button"
                   onClick={() => !isUploadingFilhoPhoto && filhoPhotoInputRef.current?.click()}
                   disabled={isUploadingFilhoPhoto}
-                  className="group relative rounded-full disabled:opacity-70"
+                  className="group relative shrink-0 rounded-full disabled:opacity-70"
                   aria-label="Alterar foto de perfil"
                   title="Alterar foto de perfil"
                 >
                   {profileAvatar}
-                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#13171D] bg-[#1A1F26] text-primary shadow-md ring-1 ring-primary/25 transition-transform group-hover:scale-105 group-active:scale-95">
                     {isUploadingFilhoPhoto ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
+                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                     ) : (
-                      <Camera className="h-3.5 w-3.5 text-primary" aria-hidden />
+                      <Camera className="h-3 w-3" aria-hidden />
                     )}
                   </span>
                   <input
