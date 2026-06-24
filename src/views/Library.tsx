@@ -33,6 +33,8 @@ interface LibraryProps {
   isAdminGlobal?: boolean;
   /** Painel compacto ao lado do mural (portal do filho) — abre PDF em nova aba */
   embedded?: boolean;
+  /** Oculta título no modo embedded (dashboard do filho fornece o cabeçalho). */
+  hideEmbeddedHeader?: boolean;
 }
 
 interface Material {
@@ -163,7 +165,7 @@ function PdfCover({
   );
 }
 
-export default function Library({ user, userRole, tenantData, isAdminGlobal, setActiveTab, embedded }: LibraryProps & { setActiveTab: (tab: string) => void }) {
+export default function Library({ user, userRole, tenantData, isAdminGlobal, setActiveTab, embedded, hideEmbeddedHeader }: LibraryProps & { setActiveTab: (tab: string) => void }) {
   // Não-filhos são sempre gestores do terreiro (plano determina quais funções de gestão estão disponíveis).
   const isAdmin = userRole !== 'filho';
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -421,7 +423,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             exit={{ opacity: 0, x: 20 }}
             className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col', embedded && 'min-h-0 flex-1')}
           >
-            {embedded ? (
+            {embedded && !hideEmbeddedHeader ? (
               <div className="mb-3 flex shrink-0 items-center justify-between gap-2 border-b border-[#1E242B] pb-2">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Biblioteca de estudos</p>

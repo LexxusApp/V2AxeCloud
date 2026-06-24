@@ -20,4 +20,7 @@ export const filhoSectionHeaderClass =
 export const filhoSectionLinkClass =
   'inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#64748B] transition-colors hover:text-primary';
 
-export const filhoPanelPaddingClass = 'p-4';
+export const filhoDashboardShellClass =
+  'overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm';
+
+export const filhoDashboardDividerClass = 'border-[#1E242B]';
