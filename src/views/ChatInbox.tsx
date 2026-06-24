@@ -1,6 +1,7 @@
 import { Loader2, MessageCircle, Plus, Search, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { ChatThread } from '../components/chat/ChatThread';
+import { ChatContactRow } from '../components/chat/ChatContactRow';
 import { authFetch } from '../lib/authenticatedFetch';
 import type { ChatContact, ChatConversationSummary } from '../lib/chatTypes';
 import { formatChatTime } from '../lib/chatTypes';
@@ -223,25 +224,13 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
               </div>
               <div className="max-h-40 space-y-1 overflow-y-auto">
                 {filteredContacts.map((c) => (
-                  <button
+                  <ChatContactRow
                     key={c.filhoId}
-                    type="button"
+                    contact={c}
                     disabled={creating}
+                    avatarSize="sm"
                     onClick={() => void openConversation({ targetFilhoId: c.filhoId })}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-white/5 disabled:opacity-50"
-                  >
-                    {c.fotoUrl ? (
-                      <img src={c.fotoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                        {c.nome.charAt(0)}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-white">{c.nome}</p>
-                      {c.cargo && <p className="truncate text-[10px] text-[#64748B]">{c.cargo}</p>}
-                    </div>
-                  </button>
+                  />
                 ))}
               </div>
             </div>

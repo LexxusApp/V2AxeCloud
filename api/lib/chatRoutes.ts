@@ -19,6 +19,7 @@ import { requireApiTenantRead } from "./routeAuthHelpers.js";
 import { buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./r2PublicMedia.js";
 import { safeErrorMessage } from "./safeError.js";
 import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
+import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
 
 const CHAT_IMAGE_MAX = 20 * 1024 * 1024;
 const CHAT_VIDEO_MAX = 200 * 1024 * 1024;
@@ -91,6 +92,7 @@ type FilhoRow = {
   lider_id?: string | null;
   status?: string | null;
   email?: string | null;
+  data_entrada?: string | null;
 };
 
 function slugifyFileName(str: string): string {
@@ -121,7 +123,7 @@ async function loadFilhoForUser(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
 ): Promise<FilhoRow | null> {
-  const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email";
+  const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email, data_entrada";
   let { data: child } = await supabaseAdmin
     .from("filhos_de_santo")
     .select(cols)
@@ -173,7 +175,7 @@ async function loadFilhosDaCorrente(
   const orFilter = buildFilhosTenantOrFilter(tenantId, resolved, leaderUserId);
   if (!orFilter) return [];
 
-  const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email";
+  const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email, data_entrada";
   const { data, error } = await supabaseAdmin
     .from("filhos_de_santo")
     .select(cols)
@@ -389,7 +391,12 @@ export function registerChatRoutes(app: Express, deps: Deps) {
           cargo: f.cargo,
           status: f.status,
           canChat: !!f.user_id,
-        }));
+          matricula: f.user_id ? null : formatFilhoMatricula(f.id, f.data_entrada),
+        }))
+        .sort((a, b) => {
+          if (!!a.userId !== !!b.userId) return a.userId ? -1 : 1;
+          return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
+        });
 
       res.json({ contacts, leaderId });
     } catch (error: unknown) {

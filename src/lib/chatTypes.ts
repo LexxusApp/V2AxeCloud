@@ -54,6 +54,8 @@ export type ChatContact = {
   cargo: string | null;
   status: string | null;
   canChat?: boolean;
+  /** Registro para login do filho (AXC-ANO-XXXX) — só quando ainda não entrou no app. */
+  matricula?: string | null;
 };
 
 export function chatMessagePreview(type: ChatMessageType, body: string | null): string {

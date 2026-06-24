@@ -1,6 +1,7 @@
 import { Loader2, MessageCircle, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatThread } from './ChatThread';
+import { ChatContactRow } from './ChatContactRow';
 import { authFetch } from '../../lib/authenticatedFetch';
 import type { ChatContact, ChatConversationSummary, ChatParticipantSummary } from '../../lib/chatTypes';
 import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
@@ -359,44 +360,15 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
                 {filteredContacts.length === 0 ? (
                   <p className="px-2 py-6 text-center text-xs text-[#64748B]">Nenhum membro encontrado.</p>
                 ) : (
-                  filteredContacts.map((c) => {
-                    const unread = unreadByFilho.get(c.filhoId) || 0;
-                    const canChat = c.canChat !== false && !!c.userId;
-                    return (
-                      <button
-                        key={c.filhoId}
-                        type="button"
-                        disabled={opening || !canChat}
-                        onClick={() => canChat && void startChat({ targetFilhoId: c.filhoId })}
-                        className={cn(
-                          'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
-                          canChat ? 'hover:bg-white/5' : 'cursor-not-allowed opacity-50',
-                          opening && 'disabled:opacity-50',
-                        )}
-                      >
-                        {c.fotoUrl ? (
-                          <img src={c.fotoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
-                            {c.nome.charAt(0)}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-white">{c.nome}</p>
-                          {c.cargo ? (
-                            <p className="truncate text-[10px] text-[#64748B]">{c.cargo}</p>
-                          ) : !canChat ? (
-                            <p className="truncate text-[10px] text-[#64748B]">Sem login no app</p>
-                          ) : null}
-                        </div>
-                        {unread > 0 ? (
-                          <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-black text-black">
-                            {unread > 99 ? '99+' : unread}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })
+                  filteredContacts.map((c) => (
+                    <ChatContactRow
+                      key={c.filhoId}
+                      contact={c}
+                      unread={unreadByFilho.get(c.filhoId) || 0}
+                      disabled={opening}
+                      onClick={() => void startChat({ targetFilhoId: c.filhoId })}
+                    />
+                  ))
                 )}
               </>
             )}
