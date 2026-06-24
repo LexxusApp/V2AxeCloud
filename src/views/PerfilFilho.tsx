@@ -1,19 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
   BookOpen,
   Calendar as CalendarIcon,
-  Camera,
   CheckCircle2,
   Copy,
-  Home,
   Info,
   Loader2,
   PartyPopper,
   ShoppingBag,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { addMonths, endOfMonth, format, parseISO, startOfDay } from 'date-fns';
 import { computeProximaDataMensalidadePrevisao } from '../lib/mensalidadeDueDate';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
@@ -25,7 +22,6 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPaymentModal';
-import Avatar from '../components/Avatar';
 import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
@@ -108,10 +104,6 @@ function formatHoraEvento(hora?: string): string {
 
 interface FilhoData {
   id: string;
-  nome: string;
-  foto_url?: string | null;
-  cargo?: string | null;
-  orixa_frente?: string | null;
   created_at?: string;
   data_entrada?: string;
 }
@@ -160,7 +152,6 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   const tenantId = resolveTenantIdForFinance(tenantData?.tenant_id, user.id, true);
 
   const [filho, setFilho] = useState<FilhoData | null>(null);
-  const [loadingFilho, setLoadingFilho] = useState(true);
 
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loadingNotices, setLoadingNotices] = useState(true);
@@ -184,40 +175,28 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   /** Dia de vencimento configurado pelo zelador (Pix / financeiro). */
   const [diaVencimentoMensalidade, setDiaVencimentoMensalidade] = useState(10);
   const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [photoMessage, setPhotoMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Fallback para quando os dados do banco ainda estão carregando
-  // Priorizamos user_metadata.nome que é onde o servidor salvou o nome oficial do filho
-  const rawFallback =
-    user.user_metadata?.nome || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Filho de Santo';
-  
-  const isShadowEmailFallback =
-    typeof rawFallback === 'string' && /^f_[a-f0-9-]{8,}$/i.test(rawFallback);
-  const fallbackName = isShadowEmailFallback ? 'Filho de Santo' : rawFallback;
-
-  // 1. Dados do filho (nome, cargo, foto)
+  // 1. Dados do filho (vínculo, datas para mensalidade)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         let { data, error } = await supabase
           .from('filhos_de_santo')
-          .select('id, nome, foto_url, cargo, orixa_frente, created_at, data_entrada')
+          .select('id, created_at, data_entrada')
           .eq('user_id', user.id)
           .maybeSingle();
         if (!data && user.email) {
           const { data: byEmail, error: emailErr } = await supabase
             .from('filhos_de_santo')
-            .select('id, nome, foto_url, cargo, orixa_frente, created_at, data_entrada')
+            .select('id, created_at, data_entrada')
             .eq('email', user.email)
             .maybeSingle();
           if (!emailErr && byEmail) data = byEmail;
         }
         if (!cancelled && !error && data) setFilho(data as FilhoData);
-      } finally {
-        if (!cancelled) setLoadingFilho(false);
+      } catch {
+        /* ignore */
       }
     })();
     return () => {
@@ -468,74 +447,6 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     });
   }, [notices]);
 
-  const displayName = filho?.nome?.trim() || fallbackName;
-  const cargo = filho?.cargo?.trim();
-  const orixa = filho?.orixa_frente?.trim();
-  const fotoUrl = filho?.foto_url || null;
-
-  useEffect(() => {
-    if (!photoMessage) return;
-    const t = window.setTimeout(() => setPhotoMessage(null), 4000);
-    return () => window.clearTimeout(t);
-  }, [photoMessage]);
-
-  const handlePhotoUpload = useCallback(
-    async (e: ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file || !filho) return;
-
-      if (!file.type.startsWith('image/')) {
-        setPhotoMessage({ text: 'Selecione uma imagem (JPG, PNG ou WebP).', type: 'error' });
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setPhotoMessage({ text: 'A imagem deve ter no máximo 5 MB.', type: 'error' });
-        return;
-      }
-
-      setIsUploadingPhoto(true);
-      try {
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            const encoded = result.split(',')[1];
-            if (!encoded) reject(new Error('Falha ao ler a imagem.'));
-            else resolve(encoded);
-          };
-          reader.onerror = () => reject(new Error('Erro ao processar a imagem.'));
-          reader.readAsDataURL(file);
-        });
-
-        const response = await authFetch('/api/v1/filho/profile-photo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileData: base64Data,
-            contentType: file.type,
-          }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data.error || 'Erro ao enviar foto.');
-        }
-
-        const publicUrl = String(data.publicUrl || '');
-        setFilho((prev) => (prev ? { ...prev, foto_url: publicUrl } : prev));
-        setPhotoMessage({ text: 'Foto de perfil atualizada!', type: 'success' });
-      } catch (err: unknown) {
-        setPhotoMessage({
-          text: err instanceof Error ? err.message : 'Erro ao enviar foto.',
-          type: 'error',
-        });
-      } finally {
-        setIsUploadingPhoto(false);
-      }
-    },
-    [filho]
-  );
-
   const proximoEvento = useMemo(() => {
     const now = Date.now();
     const sorted = [...calEvents]
@@ -560,98 +471,6 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   return (
     <AppPageShell fullWidth>
       <div className="flex w-full flex-col gap-3">
-        {/* Perfil — faixa full width */}
-        <motion.header
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={filhoModuleClass}
-        >
-          <div className="flex w-full items-center gap-3 sm:gap-4">
-            <div className="group relative shrink-0">
-              <button
-                type="button"
-                onClick={() => !isUploadingPhoto && fileInputRef.current?.click()}
-                disabled={isUploadingPhoto || loadingFilho || !filho}
-                className="relative h-12 w-12 rounded-full ring-2 ring-primary/30 transition hover:ring-primary/50 disabled:opacity-70 sm:h-14 sm:w-14"
-                aria-label="Alterar foto de perfil"
-              >
-                <div className="h-full w-full overflow-hidden rounded-full bg-[#0B0E12]">
-                  {loadingFilho ? (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <Avatar
-                      src={fotoUrl}
-                      name={displayName}
-                      alt={displayName}
-                      shape="circle"
-                      textSize="text-lg"
-                      className="h-full w-full"
-                    />
-                  )}
-                </div>
-                {!loadingFilho && filho && (
-                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                    {isUploadingPhoto ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    ) : (
-                      <Camera className="h-4 w-4 text-primary" />
-                    )}
-                  </span>
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/*"
-                onChange={(e) => void handlePhotoUpload(e)}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="text-base font-bold text-white sm:text-lg">{displayName}</h1>
-                {cargo && (
-                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase text-primary">
-                    {cargo}
-                  </span>
-                )}
-              </div>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[#94A3B8]">
-                <span className="inline-flex items-center gap-1.5">
-                  <Home className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
-                  {tenantData?.nome || 'Terreiro vinculado'}
-                </span>
-                {orixa && <span className="text-[#64748B]">· {orixa}</span>}
-              </p>
-            </div>
-            {mensalidadeAtiva && !loadingDebt && (
-              <span
-                className={cn(
-                  'ml-auto hidden shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase sm:inline-flex',
-                  hasDebt
-                    ? 'border-red-500/25 bg-red-500/10 text-red-400'
-                    : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
-                )}
-              >
-                <span className={cn('h-1.5 w-1.5 rounded-full', hasDebt ? 'bg-red-400' : 'bg-emerald-400')} />
-                {hasDebt ? 'Em aberto' : 'Em dia'}
-              </span>
-            )}
-          </div>
-          {photoMessage && (
-            <p
-              className={cn(
-                'mt-2 text-[11px] font-semibold',
-                photoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400',
-              )}
-            >
-              {photoMessage.text}
-            </p>
-          )}
-        </motion.header>
-
         {/* Mensalidade | Agenda */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
           <section className={filhoModuleClass}>

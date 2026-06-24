@@ -1,4 +1,5 @@
 import {
+  Camera,
   ChevronDown,
   Download,
   Flame,
@@ -9,9 +10,10 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { cn } from '../../lib/utils';
+import { uploadFilhoProfilePhoto } from '../../lib/filhoProfilePhoto';
 import { hasPlanAccess } from '../../constants/plans';
 import {
   buildZeladorNavEntries,
@@ -37,6 +39,7 @@ type AppTopNavProps = {
   } | null;
   userDisplayName?: string;
   filhoFotoUrl?: string | null;
+  onFilhoFotoUpdated?: (url: string) => void;
 };
 
 function useMediaQuery(query: string) {
@@ -347,10 +350,17 @@ export default function AppTopNav({
   tenantData,
   userDisplayName,
   filhoFotoUrl,
+  onFilhoFotoUpdated,
 }: AppTopNavProps) {
   const isLgDesktop = useMediaQuery('(min-width: 1024px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isInstalled: isStandalonePwa, install } = usePwaInstall();
+  const filhoPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFilhoPhoto, setIsUploadingFilhoPhoto] = useState(false);
+  const [filhoPhotoMessage, setFilhoPhotoMessage] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
   useEffect(() => {
     if (isLgDesktop) setMobileOpen(false);
@@ -423,6 +433,51 @@ export default function AppTopNav({
       ? userDisplayName || 'Filho de Santo'
       : `${tenantData?.plan?.toUpperCase() || 'AXÉ'} · gestão do terreiro`;
   const profileFoto = userRole === 'filho' ? filhoFotoUrl : tenantData?.foto_url;
+
+  useEffect(() => {
+    if (!filhoPhotoMessage) return;
+    const t = window.setTimeout(() => setFilhoPhotoMessage(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [filhoPhotoMessage]);
+
+  const handleFilhoPhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || userRole !== 'filho') return;
+
+    setIsUploadingFilhoPhoto(true);
+    try {
+      const result = await uploadFilhoProfilePhoto(file);
+      if (!result.ok) {
+        setFilhoPhotoMessage({ text: result.error, type: 'error' });
+        return;
+      }
+      onFilhoFotoUpdated?.(result.publicUrl);
+      setFilhoPhotoMessage({ text: 'Foto de perfil atualizada!', type: 'success' });
+    } catch (err: unknown) {
+      setFilhoPhotoMessage({
+        text: err instanceof Error ? err.message : 'Erro ao enviar foto.',
+        type: 'error',
+      });
+    } finally {
+      setIsUploadingFilhoPhoto(false);
+    }
+  };
+
+  const profileAvatar = (
+    <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10">
+      {profileFoto ? (
+        <img
+          src={profileFoto}
+          alt=""
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
+      )}
+    </div>
+  );
 
   const headerActions = (compact?: boolean) => (
     <>
@@ -592,24 +647,51 @@ export default function AppTopNav({
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex shrink-0 flex-col items-center gap-0.5">
-              <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10">
-                {profileFoto ? (
-                  <img
-                    src={profileFoto}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
+              {userRole === 'filho' ? (
+                <button
+                  type="button"
+                  onClick={() => !isUploadingFilhoPhoto && filhoPhotoInputRef.current?.click()}
+                  disabled={isUploadingFilhoPhoto}
+                  className="group relative rounded-full disabled:opacity-70"
+                  aria-label="Alterar foto de perfil"
+                  title="Alterar foto de perfil"
+                >
+                  {profileAvatar}
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    {isUploadingFilhoPhoto ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5 text-primary" aria-hidden />
+                    )}
+                  </span>
+                  <input
+                    ref={filhoPhotoInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                    onChange={(e) => void handleFilhoPhotoUpload(e)}
                   />
-                ) : (
-                  <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
-                )}
-              </div>
+                </button>
+              ) : (
+                profileAvatar
+              )}
             </div>
             <div className="min-w-0 text-left">
               <p className="truncate font-display text-sm font-bold leading-tight text-[#F1F5F9]">
                 {terreiroNome}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-medium text-primary">{subtitle}</p>
+              {userRole === 'filho' && filhoPhotoMessage ? (
+                <p
+                  className={cn(
+                    'mt-0.5 truncate text-[10px] font-semibold',
+                    filhoPhotoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400',
+                  )}
+                  role="status"
+                >
+                  {filhoPhotoMessage.text}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="flex shrink-0 items-center lg:hidden">

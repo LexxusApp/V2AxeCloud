@@ -1430,6 +1430,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         tenantData={tenantData}
         userDisplayName={session?.user?.user_metadata?.nome}
         filhoFotoUrl={filhoFotoUrl}
+        onFilhoFotoUpdated={setFilhoFotoUrl}
       />
 
       <div className="app-v3-scroll relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12]">
@@ -1438,7 +1439,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             data-role={userRole ?? undefined}
           >
             {userRole === 'filho' && session ? (
-              <div className="w-full px-4 pt-3 sm:px-6 lg:px-8">
+              <div className="flex w-full justify-center px-4 pt-3 sm:px-6 lg:px-8">
                 <FilhoPushPrompt
                   permission={permission}
                   loading={pushLoading}
