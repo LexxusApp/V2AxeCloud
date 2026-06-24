@@ -10,11 +10,8 @@ import {
   Home,
   Info,
   Loader2,
-  Megaphone,
   PartyPopper,
-  ScrollText,
   ShoppingBag,
-  Wallet,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { addMonths, endOfMonth, format, parseISO, startOfDay } from 'date-fns';
@@ -558,20 +555,8 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     }
   }, [proximoEvento]);
 
-  const quickNav = useMemo(
-    () => [
-      { tab: 'financial', label: 'Mensalidade', icon: Wallet },
-      { tab: 'calendar', label: 'Giras', icon: CalendarIcon },
-      { tab: 'mural', label: 'Mural', icon: Megaphone },
-      { tab: 'library', label: 'Biblioteca', icon: BookOpen },
-      { tab: 'store', label: 'Loja', icon: ShoppingBag },
-      { tab: 'obrigacoes', label: 'Obrigações', icon: ScrollText },
-    ],
-    [],
-  );
-
   return (
-    <AppPageShell compact>
+    <AppPageShell fullWidth>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -672,21 +657,6 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
               {photoMessage.text}
             </p>
           )}
-        </div>
-
-        {/* Atalhos */}
-        <div className={cn('flex gap-2 overflow-x-auto border-b px-4 py-3 sm:px-5', filhoDashboardDividerClass)}>
-          {quickNav.map(({ tab, label, icon: Icon }) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#252B35] bg-[#12161A] px-3 py-2 text-xs font-semibold text-[#E2E8F0] transition hover:border-primary/35 hover:bg-primary/5"
-            >
-              <Icon className="h-3.5 w-3.5 text-primary" aria-hidden />
-              {label}
-            </button>
-          ))}
         </div>
 
         {/* Mensalidade + agenda */}
