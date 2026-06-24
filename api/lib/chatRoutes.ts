@@ -11,8 +11,8 @@ import {
   normalizeFilhoRequestTenantId,
   normalizeQueryTenantId,
   resolveFinanceiroTenantScope,
-  resolveLeaderId,
   resolveTenantAccessForUser,
+  isValidUuid,
 } from "./tenantAccess.js";
 import { requireApiTenantRead } from "./routeAuthHelpers.js";
 import { buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./r2PublicMedia.js";
@@ -95,6 +95,22 @@ function isFilhoAtivo(status: string | null | undefined): boolean {
   return String(status || "").toLowerCase() !== "inativo";
 }
 
+function buildFilhosTenantOrFilter(...ids: string[]): string {
+  const clauses: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of ids) {
+    const id = String(raw || "").trim();
+    if (!isValidUuid(id)) continue;
+    for (const col of ["tenant_id", "lider_id"] as const) {
+      const clause = `${col}.eq.${id}`;
+      if (seen.has(clause)) continue;
+      seen.add(clause);
+      clauses.push(clause);
+    }
+  }
+  return clauses.join(",");
+}
+
 /** Lista filhos do terreiro — mesmo critério amplo de /api/children (lider_id / tenant_id). */
 async function loadFilhosDaCorrente(
   supabaseAdmin: SupabaseClient,
@@ -103,18 +119,14 @@ async function loadFilhosDaCorrente(
   leaderUserId: string
 ): Promise<FilhoRow[]> {
   const resolved = await resolveLeaderIdFn(supabaseAdmin, tenantId);
+  const orFilter = buildFilhosTenantOrFilter(tenantId, resolved, leaderUserId);
+  if (!orFilter) return [];
+
   const cols = "id, nome, foto_url, cargo, user_id, tenant_id, lider_id, status, email";
-  const orParts = [
-    `tenant_id.eq.${tenantId}`,
-    `tenant_id.eq.${resolved}`,
-    `lider_id.eq.${tenantId}`,
-    `lider_id.eq.${resolved}`,
-    `lider_id.eq.${leaderUserId}`,
-  ];
   const { data, error } = await supabaseAdmin
     .from("filhos_de_santo")
     .select(cols)
-    .or(orParts.join(","))
+    .or(orFilter)
     .order("nome", { ascending: true });
   if (error) throw error;
 
@@ -271,9 +283,18 @@ export function registerChatRoutes(app: Express, deps: Deps) {
   app.get("/api/v1/chat/contacts", async (req: Request, res: Response) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
+    // #region agent log
+    let debugStep = "start";
+    // #endregion
     try {
+      if (!resolveLeaderIdFn) {
+        throw new Error("resolveLeaderIdFn não configurado");
+      }
       const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
       const userRoleQ = String(req.query.userRole || "");
+      // #region agent log
+      debugStep = "resolve-tenant";
+      // #endregion
       const tenantId =
         (await resolveFinanceiroTenantScope(
           supabaseAdmin,
@@ -289,6 +310,16 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       const selfFilho = await loadFilhoForUser(supabaseAdmin, user);
       const leaderId = await resolveLeaderIdFn(supabaseAdmin, tenantId);
       const leaderUserId = await loadLeaderUserId(supabaseAdmin, resolveLeaderIdFn, tenantId);
+      // #region agent log
+      debugStep = "load-filhos";
+      console.error("[CHAT-DEBUG cb5e09] contacts pre-query", {
+        tenantId,
+        leaderId,
+        leaderUserId,
+        userId: user.id,
+        orPreview: buildFilhosTenantOrFilter(tenantId, leaderId, leaderUserId || user.id),
+      });
+      // #endregion
 
       const filhos = await loadFilhosDaCorrente(
         supabaseAdmin,
@@ -311,8 +342,19 @@ export function registerChatRoutes(app: Express, deps: Deps) {
 
       res.json({ contacts, leaderId });
     } catch (error: unknown) {
+      const errObj = error as { message?: string; code?: string };
+      // #region agent log
+      console.error("[CHAT-DEBUG cb5e09] contacts error", {
+        step: debugStep,
+        message: errObj?.message,
+        code: errObj?.code,
+      });
+      // #endregion
       console.error("[CHAT] contacts:", error);
-      res.status(500).json({ error: safeErrorMessage(error, "Erro ao listar contatos") });
+      res.status(500).json({
+        error: safeErrorMessage(error, "Erro ao listar contatos"),
+        debugStep,
+      });
     }
   });
 
