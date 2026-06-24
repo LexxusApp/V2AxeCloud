@@ -1,7 +1,7 @@
 export type PlanType = 'premium' | 'cortesia' | 'vita';
 
 const PREMIUM_LIKE_FEATURES = [
-  'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'gallery', 'inventory', 'library', 'notes',
+  'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'chat', 'gallery', 'inventory', 'library', 'notes',
   'financial', 'financial_reports', 'financial_whatsapp', 'whatsapp_invites', 'store', 'settings',
   'caixinha', 'saude_axe', 'camarinha', 'atendimentos',
 ] as const;
@@ -68,7 +68,7 @@ export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
   vita: 49.9,
 };
 
-export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'subscription' | 'caixinha' | 'saude_axe' | 'camarinha' | 'atendimentos';
+export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'chat' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'subscription' | 'caixinha' | 'saude_axe' | 'camarinha' | 'atendimentos';
 
 export const hasPlanAccess = (plan: string | undefined, feature: string, isAdminGlobal: boolean = false): boolean => {
   if (isAdminGlobal) return true;
