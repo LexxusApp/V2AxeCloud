@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
+import express from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { S3Client } from "@aws-sdk/client-s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import webpush from "web-push";
 import { requireAuthOrRespond } from "./requireAuth.js";
@@ -22,6 +23,56 @@ import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 const CHAT_IMAGE_MAX = 20 * 1024 * 1024;
 const CHAT_VIDEO_MAX = 200 * 1024 * 1024;
 const CHAT_AUDIO_MAX = 50 * 1024 * 1024;
+const CHAT_MEDIA_KEY_RE =
+  /^chat\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/.+/i;
+
+function resolveChatMediaType(contentType: string): { messageType: string; maxSize: number } | null {
+  const normalizedType = String(contentType || "").toLowerCase();
+  if (normalizedType.startsWith("image/")) {
+    return { messageType: "image", maxSize: CHAT_IMAGE_MAX };
+  }
+  if (normalizedType.startsWith("video/")) {
+    return { messageType: "video", maxSize: CHAT_VIDEO_MAX };
+  }
+  if (normalizedType.startsWith("audio/")) {
+    return { messageType: "audio", maxSize: CHAT_AUDIO_MAX };
+  }
+  return null;
+}
+
+function resolveChatMediaUrl(url: string | null | undefined): string | null {
+  const raw = String(url || "").trim();
+  if (!raw) return null;
+
+  if (raw.includes("/api/v1/public/media")) {
+    try {
+      const parsed = new URL(raw, "https://axecloud.com.br");
+      const key = parsed.searchParams.get("key");
+      if (key?.startsWith("chat/")) return buildChatPublicUrl(key);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const fromR2 = resolvePublicMediaUrl(raw);
+  if (fromR2) return fromR2;
+
+  return raw;
+}
+
+function extractConversationIdFromChatKey(storageKey: string): string | null {
+  const parts = String(storageKey || "").split("/");
+  if (parts.length < 3 || parts[0] !== "chat") return null;
+  return isValidUuid(parts[2]) ? parts[2] : null;
+}
+
+function buildChatPublicUrl(storageKey: string): string {
+  const built = buildR2PublicUrlFromKey(storageKey);
+  if (built.includes("/api/v1/public/media")) {
+    return `/api/v1/chat/media?key=${encodeURIComponent(storageKey)}`;
+  }
+  return built;
+}
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -704,7 +755,7 @@ export function registerChatRoutes(app: Express, deps: Deps) {
             senderFotoUrl: filho?.foto_url || null,
             body: r.body,
             messageType: r.message_type,
-            mediaUrl: resolvePublicMediaUrl(r.media_url) || r.media_url,
+            mediaUrl: resolveChatMediaUrl(r.media_url),
             mediaMime: r.media_mime,
             mediaDurationSec: r.media_duration_sec,
             createdAt: r.created_at,
@@ -737,6 +788,142 @@ export function registerChatRoutes(app: Express, deps: Deps) {
     }
   });
 
+  app.post("/api/v1/chat/conversations/:id/upload", express.raw({ type: () => true, limit: CHAT_VIDEO_MAX + 1024 }), async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    const conversationId = String(req.params.id || "").trim();
+    if (!conversationId) return res.status(400).json({ error: "conversationId inválido" });
+    if (!r2Client || !bucketName) {
+      return res.status(500).json({ error: "R2 não configurado" });
+    }
+
+    // #region agent log
+    let debugStep = "auth";
+    // #endregion
+
+    try {
+      const isMember = await assertParticipant(supabaseAdmin, conversationId, user.id);
+      if (!isMember) return res.status(403).json({ error: "Acesso negado" });
+
+      const rawTenant = String(req.headers["x-tenant-id"] || "").trim();
+      const access = await requireApiTenantRead(supabaseAdmin, req, res, rawTenant);
+      if (!access) return;
+
+      const contentType = String(req.headers["content-type"] || "application/octet-stream").toLowerCase();
+      const fileName = decodeURIComponent(String(req.headers["x-file-name"] || "file"));
+      const body = req.body;
+      const sizeBytes = Buffer.isBuffer(body) ? body.length : 0;
+
+      // #region agent log
+      debugStep = "validate";
+      console.error("[CHAT-DEBUG cb5e09] upload proxy", {
+        conversationId,
+        contentType,
+        sizeBytes,
+        fileName: fileName.slice(0, 80),
+      });
+      // #endregion
+
+      const media = resolveChatMediaType(contentType);
+      if (!media) return res.status(400).json({ error: "Tipo de arquivo não suportado" });
+      if (!sizeBytes) return res.status(400).json({ error: "Arquivo vazio" });
+      if (sizeBytes > media.maxSize) {
+        return res.status(400).json({
+          error: `Arquivo muito grande (máx. ${Math.round(media.maxSize / 1024 / 1024)}MB)`,
+        });
+      }
+
+      const tenantId = access.tenantId;
+      const storageKey = `chat/${tenantId}/${conversationId}/${Date.now()}_${slugifyFileName(fileName)}`;
+
+      // #region agent log
+      debugStep = "r2-put";
+      // #endregion
+
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: storageKey,
+          Body: body,
+          ContentType: contentType,
+        })
+      );
+
+      const publicUrl = buildChatPublicUrl(storageKey);
+      res.json({
+        storageKey,
+        publicUrl,
+        messageType: media.messageType,
+        contentType,
+      });
+    } catch (error: unknown) {
+      const errObj = error as { message?: string; code?: string };
+      // #region agent log
+      console.error("[CHAT-DEBUG cb5e09] upload proxy error", {
+        step: debugStep,
+        message: errObj?.message,
+        code: errObj?.code,
+      });
+      // #endregion
+      console.error("[CHAT] upload proxy:", error);
+      res.status(500).json({
+        error: safeErrorMessage(error, "Erro ao enviar mídia"),
+        debugStep,
+      });
+    }
+  });
+
+  app.get("/api/v1/chat/media", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+
+    const key = String(req.query.key || "")
+      .replace(/\\/g, "/")
+      .trim();
+    if (!CHAT_MEDIA_KEY_RE.test(key)) {
+      return res.status(400).json({ error: "Chave de mídia inválida" });
+    }
+    if (!r2Client || !bucketName) {
+      return res.status(503).json({ error: "Armazenamento indisponível" });
+    }
+
+    try {
+      const conversationId = extractConversationIdFromChatKey(key);
+      if (!conversationId) return res.status(400).json({ error: "Conversa inválida" });
+
+      const isMember = await assertParticipant(supabaseAdmin, conversationId, user.id);
+      if (!isMember && !(await isConsoleGlobalAdmin(supabaseAdmin, user))) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const out = await r2Client.send(
+        new GetObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        })
+      );
+
+      const body = out.Body;
+      if (!body) return res.status(404).end();
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of body as AsyncIterable<Uint8Array>) {
+        chunks.push(Buffer.from(chunk));
+      }
+      const buffer = Buffer.concat(chunks);
+
+      res.set({
+        "Content-Type": out.ContentType || "application/octet-stream",
+        "Content-Length": String(buffer.length),
+        "Cache-Control": "private, max-age=3600",
+      });
+      return res.send(buffer);
+    } catch (error: unknown) {
+      console.error("[CHAT] media:", error);
+      return res.status(404).end();
+    }
+  });
+
   app.post("/api/v1/chat/upload-url", async (req: Request, res: Response) => {
     const { tenantId: rawTenant, conversationId, fileName, contentType, sizeBytes } = req.body || {};
     if (!conversationId || !fileName || !contentType || !sizeBytes) {
@@ -760,17 +947,10 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         return res.status(400).json({ error: "Tamanho inválido" });
       }
 
-      let maxSize = CHAT_IMAGE_MAX;
-      let messageType = "image";
-      if (normalizedType.startsWith("video/")) {
-        maxSize = CHAT_VIDEO_MAX;
-        messageType = "video";
-      } else if (normalizedType.startsWith("audio/")) {
-        maxSize = CHAT_AUDIO_MAX;
-        messageType = "audio";
-      } else if (!normalizedType.startsWith("image/")) {
-        return res.status(400).json({ error: "Tipo de arquivo não suportado" });
-      }
+      const media = resolveChatMediaType(normalizedType);
+      if (!media) return res.status(400).json({ error: "Tipo de arquivo não suportado" });
+      const maxSize = media.maxSize;
+      const messageType = media.messageType;
 
       if (numericSize > maxSize) {
         return res.status(400).json({ error: `Arquivo muito grande (máx. ${Math.round(maxSize / 1024 / 1024)}MB)` });
@@ -784,7 +964,7 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         ContentType: normalizedType,
       });
       const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 });
-      const publicUrl = buildR2PublicUrlFromKey(storageKey);
+      const publicUrl = buildChatPublicUrl(storageKey);
 
       res.json({ uploadUrl, storageKey, publicUrl, messageType, contentType: normalizedType });
     } catch (error: unknown) {

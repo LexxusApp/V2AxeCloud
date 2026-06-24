@@ -8,6 +8,28 @@ import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 
+function guessChatMimeType(file: File): string {
+  const direct = String(file.type || '').trim();
+  if (direct && direct !== 'application/octet-stream') return direct;
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const map: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    heic: 'image/heic',
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    m4a: 'audio/mp4',
+    ogg: 'audio/ogg',
+  };
+  return map[ext] || 'application/octet-stream';
+}
+
 type ChatThreadProps = {
   conversation: ChatConversationSummary;
   tenantId: string;
@@ -173,30 +195,34 @@ export function ChatThread({
   const uploadAndSend = async (file: File, durationSec?: number) => {
     if (uploading) return;
     setUploading(true);
+    const contentType = guessChatMimeType(file);
+    // #region agent log
+    let debugStep = 'prepare';
+    // #endregion
     try {
-      const resUrl = await authFetch('/api/v1/chat/upload-url', {
+      // #region agent log
+      debugStep = 'proxy-upload';
+      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cb5e09'},body:JSON.stringify({sessionId:'cb5e09',location:'ChatThread.tsx:uploadAndSend',message:'chat media upload start',data:{contentType,size:file.size,conversationId:conversation.id},timestamp:Date.now(),hypothesisId:'H-csp-r2'})}).catch(()=>{});
+      // #endregion
+
+      const resUrl = await authFetch(`/api/v1/chat/conversations/${conversation.id}/upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId,
-          conversationId: conversation.id,
-          fileName: file.name,
-          contentType: file.type || 'application/octet-stream',
-          sizeBytes: file.size,
-        }),
+        headers: {
+          'Content-Type': contentType,
+          'X-File-Name': encodeURIComponent(file.name || 'file'),
+          'X-Tenant-Id': tenantId,
+        },
+        body: file,
       });
       if (!resUrl.ok) {
         const err = await resUrl.json().catch(() => ({}));
         throw new Error(err.error || 'Erro no upload');
       }
-      const { uploadUrl, storageKey, publicUrl, messageType, contentType } = await resUrl.json();
+      const { storageKey, publicUrl, messageType, contentType: storedType } = await resUrl.json();
 
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': contentType },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error('Falha ao enviar arquivo');
+      // #region agent log
+      debugStep = 'register-message';
+      // #endregion
 
       const resMsg = await authFetch(`/api/v1/chat/conversations/${conversation.id}/messages`, {
         method: 'POST',
@@ -205,14 +231,19 @@ export function ChatThread({
           messageType,
           mediaUrl: publicUrl,
           mediaPath: storageKey,
-          mediaMime: contentType,
+          mediaMime: storedType || contentType,
           mediaSizeBytes: file.size,
           mediaDurationSec: durationSec ?? null,
         }),
       });
       if (!resMsg.ok) throw new Error('Erro ao registrar mensagem');
       onMessageSent?.();
+      void loadMessages();
     } catch (e) {
+      // #region agent log
+      console.error('[CHAT-DEBUG cb5e09] upload failed', debugStep, e);
+      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cb5e09'},body:JSON.stringify({sessionId:'cb5e09',location:'ChatThread.tsx:uploadAndSend',message:'chat media upload failed',data:{debugStep,error:e instanceof Error ? e.message : String(e)},timestamp:Date.now(),hypothesisId:'H-csp-r2'})}).catch(()=>{});
+      // #endregion
       console.error('[ChatThread] upload:', e);
       alert(e instanceof Error ? e.message : 'Erro ao enviar mídia');
     } finally {

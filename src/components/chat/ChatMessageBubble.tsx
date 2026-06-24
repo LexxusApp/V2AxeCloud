@@ -2,7 +2,47 @@ import { Play, Pause } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from '../../lib/chatTypes';
 import { formatChatTime } from '../../lib/chatTypes';
+import { authFetch } from '../../lib/authenticatedFetch';
 import { cn } from '../../lib/utils';
+
+function useAuthMediaUrl(url: string | null | undefined): string | null {
+  const [resolved, setResolved] = useState<string | null>(url || null);
+
+  useEffect(() => {
+    const raw = String(url || '').trim();
+    if (!raw) {
+      setResolved(null);
+      return;
+    }
+    if (!raw.includes('/api/v1/chat/media')) {
+      setResolved(raw);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await authFetch(raw);
+        if (!res.ok || cancelled) return;
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setResolved(objectUrl);
+      } catch {
+        if (!cancelled) setResolved(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+
+  return resolved;
+}
 
 type ChatMessageBubbleProps = {
   message: ChatMessage;
@@ -34,23 +74,11 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
         )}
 
         {message.messageType === 'image' && message.mediaUrl && (
-          <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer">
-            <img
-              src={message.mediaUrl}
-              alt="Imagem enviada"
-              className="max-h-64 rounded-xl object-cover"
-              loading="lazy"
-            />
-          </a>
+          <ChatMediaImage url={message.mediaUrl} />
         )}
 
         {message.messageType === 'video' && message.mediaUrl && (
-          <video
-            src={message.mediaUrl}
-            controls
-            className="max-h-64 w-full rounded-xl"
-            preload="metadata"
-          />
+          <ChatMediaVideo url={message.mediaUrl} />
         )}
 
         {message.messageType === 'audio' && message.mediaUrl && (
@@ -78,6 +106,22 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
   );
 }
 
+function ChatMediaImage({ url }: { url: string }) {
+  const src = useAuthMediaUrl(url);
+  if (!src) return <p className="text-xs text-[#94A3B8]">Carregando imagem...</p>;
+  return (
+    <a href={src} target="_blank" rel="noopener noreferrer">
+      <img src={src} alt="Imagem enviada" className="max-h-64 rounded-xl object-cover" loading="lazy" />
+    </a>
+  );
+}
+
+function ChatMediaVideo({ url }: { url: string }) {
+  const src = useAuthMediaUrl(url);
+  if (!src) return <p className="text-xs text-[#94A3B8]">Carregando vídeo...</p>;
+  return <video src={src} controls className="max-h-64 w-full rounded-xl" preload="metadata" />;
+}
+
 function ChatAudioPlayer({
   url,
   durationSec,
@@ -89,6 +133,7 @@ function ChatAudioPlayer({
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
+  const resolvedUrl = useAuthMediaUrl(url);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -115,15 +160,17 @@ function ChatAudioPlayer({
       <button
         type="button"
         onClick={toggle}
+        disabled={!resolvedUrl}
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
           isOwn ? 'bg-black/15 text-black' : 'bg-white/10 text-white',
+          !resolvedUrl && 'opacity-40',
         )}
         aria-label={playing ? 'Pausar áudio' : 'Reproduzir áudio'}
       >
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
-      <audio ref={audioRef} src={url} preload="metadata" className="hidden" />
+      {resolvedUrl ? <audio ref={audioRef} src={resolvedUrl} preload="metadata" className="hidden" /> : null}
       <span className="text-xs font-medium">
         {durationSec ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}` : 'Áudio'}
       </span>
