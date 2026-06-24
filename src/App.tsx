@@ -46,6 +46,7 @@ import {
 import { resolveTenantFromSupabase } from './lib/resolveTenantFromSupabase';
 import LegalTermsModal from './components/LegalTermsModal';
 import AppFooter from './components/AppFooter';
+import { ChatFloatingWidget } from './components/chat/ChatFloatingWidget';
 import { AuthScreenBackground } from './components/AuthScreenBackground';
 import { CURRENT_LEGAL_TERMS_VERSION } from './config/legal';
 import {
@@ -1465,6 +1466,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         open
         onAccept={handleAcceptLegalTerms}
         accepting={legalTermsAccepting}
+      />
+    ) : null}
+    {session && effectiveTenantId && !blockingSpinnerActive ? (
+      <ChatFloatingWidget
+        tenantData={tenantData}
+        userId={session.user.id}
+        userRole={userRole}
       />
     ) : null}
     </>

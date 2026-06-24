@@ -14,9 +14,17 @@ type ChatThreadProps = {
   userId: string;
   onBack: () => void;
   onMessageSent?: () => void;
+  variant?: 'page' | 'floating';
 };
 
-export function ChatThread({ conversation, tenantId, userId, onBack, onMessageSent }: ChatThreadProps) {
+export function ChatThread({
+  conversation,
+  tenantId,
+  userId,
+  onBack,
+  onMessageSent,
+  variant = 'page',
+}: ChatThreadProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -204,14 +212,24 @@ export function ChatThread({ conversation, tenantId, userId, onBack, onMessageSe
     }
   };
 
+  const isFloating = variant === 'floating';
+
   return (
-    <div className="flex h-full min-h-[480px] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D]">
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl',
+        isFloating ? 'h-[min(72dvh,420px)] w-full' : 'h-full min-h-[480px]',
+      )}
+    >
       <div className="flex items-center gap-3 border-b border-[#1E242B] bg-[#12161A] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="rounded-lg p-2 text-[#94A3B8] hover:bg-white/5 hover:text-white lg:hidden"
-          aria-label="Voltar"
+          className={cn(
+            'rounded-lg p-2 text-[#94A3B8] hover:bg-white/5 hover:text-white',
+            !isFloating && 'lg:hidden',
+          )}
+          aria-label="Fechar conversa"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
