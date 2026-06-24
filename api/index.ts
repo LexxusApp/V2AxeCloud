@@ -65,6 +65,7 @@ import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.j
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
+import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 import {
   getSupabaseServerAnonKey,
@@ -3684,6 +3685,12 @@ async function startServer() {
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerFilhoHomeRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
+  registerChatRoutes(app, {
+    supabaseAdmin,
+    r2Client,
+    bucketName: R2_BUCKET_NAME,
+    resolveLeaderIdFn: resolveLeaderId,
+  });
 
   // Cron: ping Evolution (Vercel rewrite + VPS Express)
   app.get("/api/v1/cron/ping-evolution", async (req, res) => {

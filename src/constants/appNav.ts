@@ -11,6 +11,7 @@ import {
   Landmark,
   LogOut,
   Megaphone,
+  MessageCircle,
   Newspaper,
   Package,
   PieChart,
@@ -73,6 +74,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
   { id: 'mural', label: 'Mural', icon: Megaphone },
+  { id: 'chat', label: 'Mensagens', icon: MessageCircle },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
@@ -152,6 +154,7 @@ export const FILHO_NAV: AppNavItem[] = [
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
   { id: 'mural', label: 'Mural', icon: Newspaper },
+  { id: 'chat', label: 'Conversas', icon: MessageCircle },
 ];
 
 export { LogOut };

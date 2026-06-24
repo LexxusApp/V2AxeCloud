@@ -34,6 +34,7 @@ const Subscription = lazy(() => import('./views/Subscription'));
 const Atendimentos = lazy(() => import('./views/Atendimentos'));
 const Camarinha = lazy(() => import('./views/Camarinha'));
 const Frequencia = lazy(() => import('./views/Frequencia'));
+const ChatInbox = lazy(() => import('./views/ChatInbox'));
 import { useWebPush } from './hooks/useWebPush';
 import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
@@ -59,7 +60,7 @@ import {
 } from './lib/logout';
 import { goToLogin } from './lib/navigation';
 
-const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural']);
+const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural', 'chat']);
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 const TENANT_ANCHOR_KEY = 'tenant_id';
@@ -1244,6 +1245,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         case 'library': return <Library user={session.user} userRole={userRole} tenantData={hijoTenantData} isAdminGlobal={false} setActiveTab={navigateToTab} />;
         case 'store': return <Store userRole={userRole} tenantData={hijoTenantData} userId={session.user.id} isAdminGlobal={false} setActiveTab={navigateToTab} />;
         case 'mural': return <NoticeBoard isAdmin={false} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
+        case 'chat':
+          return (
+            <ChatInbox
+              tenantData={hijoTenantData}
+              userId={session.user.id}
+              userRole={userRole}
+              setActiveTab={navigateToTab}
+            />
+          );
         default: return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
       }
     }
@@ -1256,6 +1266,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       calendar: true,
       frequencia: hasPlanAccess(tenantData?.plan, 'gestao_eventos', isAdminGlobal),
       mural: true,
+      chat: true,
       settings: true,
       profile: true,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
@@ -1302,6 +1313,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       case 'mural':
         /* Neste ramo o usuário nunca é filho (filho tem switch próprio acima) — sempre gestão do terreiro */
         return <NoticeBoard isAdmin tenantData={tenantData} setActiveTab={navigateToTab} />;
+      case 'chat':
+        return (
+          <ChatInbox
+            tenantData={tenantData}
+            userId={session.user.id}
+            userRole={userRole}
+            setActiveTab={navigateToTab}
+          />
+        );
       case 'financial':
       case 'financial-mensalidades':
       case 'financial-configs':
