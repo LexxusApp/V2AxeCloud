@@ -312,10 +312,13 @@ async function sendChatPushToUsers(
     .select("subscription_object")
     .in("user_id", targets);
 
+  const rows = subs || [];
+  if (rows.length === 0) return;
+
   const json = JSON.stringify(payload);
   await Promise.all(
-    (subs || []).map((sub: { subscription_object: webpush.PushSubscription }) =>
-      webpush.sendNotification(sub.subscription_object, json).catch((err: { statusCode?: number }) => {
+    rows.map((sub: { subscription_object: webpush.PushSubscription }) =>
+      webpush.sendNotification(sub.subscription_object, json).catch((err: { statusCode?: number; message?: string }) => {
         if (err?.statusCode === 410 || err?.statusCode === 404) {
           const endpoint = (sub.subscription_object as { endpoint?: string })?.endpoint;
           if (endpoint) {
@@ -325,6 +328,7 @@ async function sendChatPushToUsers(
               .eq("subscription_object->>endpoint", endpoint);
           }
         }
+        console.warn("[CHAT-PUSH] falha ao enviar:", err?.statusCode || err?.message || err);
       })
     )
   );

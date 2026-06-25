@@ -921,7 +921,7 @@ function usesDistantSubscriptionExpiry(plan: string | undefined): boolean {
 
 // Web Push — O par público/privado DEVE ser o mesmo de `src/hooks/useWebPush.ts` e `server.ts`
 // (o cliente gera a subscription com a chave pública; enviar com outro par quebra o envio em silêncio).
-const VAPID_PUBLIC_KEY = getServerEnv("VAPID_PUBLIC_KEY");
+const VAPID_PUBLIC_KEY = getServerEnv("VAPID_PUBLIC_KEY", "VITE_VAPID_PUBLIC_KEY");
 const VAPID_PRIVATE_KEY = getServerEnv("VAPID_PRIVATE_KEY");
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

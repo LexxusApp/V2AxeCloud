@@ -3,7 +3,7 @@ import { sendEvolutionTextByInstance, CONSOLE_ADMIN_INSTANCE_NAME } from "../../
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { listConsoleTenants } from "./listConsoleTenants.js";
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 
 let vapidReady = false;
