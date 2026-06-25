@@ -36,7 +36,7 @@ function ModalShell({
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-[rgba(16,24,40,0.4)]"
         aria-label="Fechar"
         onClick={onClose}
       />

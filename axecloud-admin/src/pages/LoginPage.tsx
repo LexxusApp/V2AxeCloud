@@ -25,8 +25,8 @@ function Notice({
       className={cn(
         "mb-6 rounded-[var(--ac-radius-sm)] border px-4 py-3.5 text-sm leading-relaxed",
         tone === "error"
-          ? "border-[rgba(180,35,24,0.25)] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
-          : "border-[rgba(154,103,0,0.25)] bg-[var(--ac-warn-soft)] text-[var(--ac-warn)]"
+          ? "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+          : "border-[#fedf89] bg-[var(--ac-warn-soft)] text-[var(--ac-warn)]"
       )}
     >
       <p className="font-semibold mb-1.5">{title}</p>
@@ -99,20 +99,20 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
     <div className="admin-login-shell">
       <aside className="admin-login-brand">
         <div>
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ac-radius)] bg-white/10 text-white">
             <Shield className="h-6 w-6" />
           </div>
           <h1 className="mt-8 text-3xl font-semibold tracking-tight leading-tight">
             AxéCloud
             <br />
-            <span className="text-[#7dcec0]">Console</span>
+            <span className="text-[#d0d5dd]">Console</span>
           </h1>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#9aa3ad]">
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#98a2b3]">
             Centro de comando para administradores globais — terreiros, assinaturas, auditoria e
             infraestrutura num só lugar.
           </p>
         </div>
-        <p className="text-[11px] text-[#5c6570]">Acesso restrito · sessão auditável</p>
+        <p className="text-[11px] text-[#667085]">Acesso restrito · sessão auditável</p>
       </aside>
 
       <div className="admin-login-form-wrap">
@@ -121,8 +121,19 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
               <Shield className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight">Entrar no console</h2>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[var(--ac-text)]">
+              Entrar no console
+            </h2>
             <p className="mt-1 text-sm text-[var(--ac-text-muted)]">Administradores globais</p>
+          </div>
+
+          <div className="hidden lg:block mb-8">
+            <h2 className="text-2xl font-semibold tracking-tight text-[var(--ac-text)]">
+              Entrar no console
+            </h2>
+            <p className="mt-1 text-sm text-[var(--ac-text-muted)]">
+              Use as credenciais de administrador global
+            </p>
           </div>
 
           {session && consoleGate === "network" && (
@@ -174,7 +185,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
               />
             </div>
             {err && (
-              <p className="rounded-[var(--ac-radius-sm)] border border-[rgba(180,35,24,0.25)] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">
+              <p className="rounded-[var(--ac-radius-sm)] border border-[#fecdca] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">
                 {err}
               </p>
             )}
@@ -195,6 +206,3 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
     </div>
   );
 }
-
-
-

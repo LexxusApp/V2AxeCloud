@@ -537,25 +537,25 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
                   {
                     key: "iowait",
                     label: "Iowait",
-                    color: "rgba(166, 27, 18, 0.75)",
+                    color: "rgba(217, 45, 32, 0.75)",
                     values: history.map((p) => p.cpuIowait),
                   },
                   {
                     key: "system",
                     label: "System",
-                    color: "rgba(138, 90, 0, 0.85)",
+                    color: "rgba(220, 104, 3, 0.85)",
                     values: history.map((p) => p.cpuSystem),
                   },
                   {
                     key: "user",
                     label: "User",
-                    color: "rgba(90, 111, 158, 0.9)",
+                    color: "rgba(52, 64, 84, 0.85)",
                     values: history.map((p) => p.cpuUser),
                   },
                   {
                     key: "idle",
                     label: "Idle",
-                    color: "rgba(74, 124, 89, 0.85)",
+                    color: "rgba(3, 152, 85, 0.85)",
                     values: history.map((p) => p.cpuIdle),
                   },
 
@@ -581,7 +581,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "RAM usada",
 
-                    color: "rgba(90, 111, 158, 0.85)",
+                    color: "rgba(52, 64, 84, 0.8)",
 
                     values: history.map((p) => p.ramUsedPct),
 
@@ -593,7 +593,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "SWAP usada",
 
-                    color: "rgba(166, 27, 18, 0.7)",
+                    color: "rgba(217, 45, 32, 0.7)",
 
                     values: history.map((p) => p.swapUsedPct),
 
@@ -621,7 +621,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "Recepção",
 
-                    color: "rgba(74, 124, 89, 0.8)",
+                    color: "rgba(3, 152, 85, 0.8)",
 
                     values: history.map((p) => p.netRecvKbps),
 
@@ -633,7 +633,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "Transmissão",
 
-                    color: "rgba(138, 90, 0, 0.8)",
+                    color: "rgba(220, 104, 3, 0.8)",
 
                     values: history.map((p) => p.netSendKbps),
 
@@ -657,7 +657,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "FS / (%)",
 
-                    color: "rgba(74, 124, 89, 0.8)",
+                    color: "rgba(3, 152, 85, 0.8)",
 
                     values: history.map((p) => p.rootFsUsedPct),
 
@@ -669,7 +669,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "I/O em progresso",
 
-                    color: "rgba(90, 111, 158, 0.75)",
+                    color: "rgba(52, 64, 84, 0.75)",
 
                     values: history.map((p) => p.diskIoNow),
 
@@ -681,7 +681,7 @@ export function SupabaseMetricsPanel({ onMessage }: SupabaseMetricsPanelProps) {
 
                     label: "Conexões SQL (%)",
 
-                    color: "rgba(166, 27, 18, 0.65)",
+                    color: "rgba(217, 45, 32, 0.65)",
 
                     values: history.map((p) => p.connPct),
 

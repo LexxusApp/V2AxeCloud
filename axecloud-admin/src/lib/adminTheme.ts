@@ -1,4 +1,4 @@
-/** Classes reutilizáveis — painel admin monocromático (preto/branco). */
+/** Classes reutilizáveis — painel admin claro (branco/cinza). */
 export const admin = {
   shell: "admin-shell",
   sidebar: "admin-sidebar",

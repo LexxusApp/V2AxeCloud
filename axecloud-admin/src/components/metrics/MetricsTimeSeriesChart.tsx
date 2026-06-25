@@ -138,7 +138,7 @@ export function MetricsTimeSeriesChart({
             aria-label={title}
           >
             {paths.map((p) => (
-              <path key={p.key} d={p.d} fill={p.color} fillOpacity={stacked ? 0.75 : 0.35} />
+              <path key={p.key} d={p.d} fill={p.color} fillOpacity={stacked ? 0.7 : 0.25} />
             ))}
           </svg>
           <div className="metrics-chart-x">

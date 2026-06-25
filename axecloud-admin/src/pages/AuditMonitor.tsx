@@ -746,8 +746,8 @@ function Sparkline({ runs }: { runs: AuditRunRow[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="h-12 w-full" preserveAspectRatio="none">
       <defs>
         <linearGradient id="audit-spark" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#a78bfa" stopOpacity="0" />
+          <stop offset="0%" stopColor="#667085" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#667085" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path
@@ -755,7 +755,7 @@ function Sparkline({ runs }: { runs: AuditRunRow[] }) {
         fill="url(#audit-spark)"
         stroke="none"
       />
-      <path d={path} fill="none" stroke="#a78bfa" strokeWidth={1.5} />
+      <path d={path} fill="none" stroke="#344054" strokeWidth={1.5} />
     </svg>
   );
 }

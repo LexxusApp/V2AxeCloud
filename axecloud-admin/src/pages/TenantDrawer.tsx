@@ -177,25 +177,25 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
         type="button"
         aria-label="Fechar"
         onClick={onClose}
-        className="flex-1 bg-black/60 backdrop-blur-sm"
+        className="flex-1 bg-[rgba(16,24,40,0.4)] backdrop-blur-sm"
       />
       {/* Drawer */}
       <aside className="admin-drawer">
-        <header className="flex items-start justify-between gap-4 border-b border-neutral-800 bg-black px-5 py-4">
+        <header className="flex items-start justify-between gap-4 border-b border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-5 py-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase  text-neutral-500">Terreiro</p>
-            <h3 className="mt-0.5 truncate text-lg font-bold text-white">
+            <p className="admin-label">Terreiro</p>
+            <h3 className="mt-0.5 truncate text-lg font-bold text-[var(--ac-text)]">
               {data?.profile?.nome_terreiro || (loading ? "A carregar…" : "Sem nome")}
             </h3>
             {data?.profile?.email && (
-              <p className="truncate admin-mono text-[11px] text-neutral-400">{data.profile.email}</p>
+              <p className="truncate admin-mono text-[11px] text-[var(--ac-text-muted)]">{data.profile.email}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="shrink-0 rounded-lg border border-white/10 bg-neutral-900 p-1.5 text-neutral-300 hover:bg-neutral-900"
+            className="admin-btn-secondary shrink-0 !p-1.5"
           >
             <X className="h-4 w-4" />
           </button>
@@ -203,15 +203,13 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           {loading && (
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-neutral-300">
-              <Loader2 className="h-4 w-4 animate-spin text-neutral-300" /> A carregar dados…
+            <div className="admin-alert-info flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--ac-text-muted)]" /> A carregar dados…
             </div>
           )}
 
           {error && (
-            <div className="rounded-lg border border-neutral-400 bg-black px-3 py-2 text-sm text-white">
-              {error}
-            </div>
+            <div className="admin-alert-error text-sm">{error}</div>
           )}
 
           {data && (
@@ -412,15 +410,15 @@ function RoleRow({
   const isAdmin = normalized === "admin";
   const isInconsistent = !!normalized && !isFilho && !isAdmin;
   const tone = isFilho
-    ? "bg-neutral-900 text-neutral-200 ring-neutral-600"
+    ? "admin-badge"
     : isAdmin
-      ? "bg-neutral-900 text-white ring-neutral-600"
-      : "bg-neutral-900 text-neutral-300 ring-neutral-600";
+      ? "admin-badge-strong"
+      : "admin-badge";
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Papel</span>
+      <span className="admin-label">Papel</span>
       <div className="flex items-center gap-2">
-        <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-bold ring-1", tone)}>
+        <span className={cn(tone, "rounded-md px-2 py-0.5 text-[11px]")}>
           {role || "—"}
         </span>
         {isInconsistent && (
@@ -429,7 +427,7 @@ function RoleRow({
             onClick={() => onSet("admin")}
             disabled={busy}
             title="Normalizar papel para 'admin' (zelador)."
-            className="rounded-md border border-neutral-500 bg-neutral-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-neutral-900 disabled:opacity-50"
+            className="admin-btn-secondary !px-2 !py-0.5 !text-[10px] uppercase"
           >
             {busy ? "..." : "definir admin"}
           </button>
@@ -440,7 +438,7 @@ function RoleRow({
             onClick={() => onSet(isFilho ? "admin" : "filho")}
             disabled={busy}
             title={isFilho ? "Marcar como Admin (zelador)" : "Marcar como Filho"}
-            className="rounded-md border border-white/10 bg-neutral-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
+            className="admin-btn-ghost !px-2 !py-0.5 !text-[10px] uppercase"
           >
             {busy ? "..." : isFilho ? "→ admin" : "→ filho"}
           </button>
@@ -460,9 +458,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-neutral-800 bg-neutral-950 p-3 ring-1 ring-neutral-800">
-      <h4 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-        <Icon className="h-3.5 w-3.5 text-neutral-300" /> {title}
+    <section className="admin-card-padded">
+      <h4 className="admin-label mb-2 flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5" /> {title}
       </h4>
       <div className="space-y-1">{children}</div>
     </section>
@@ -489,9 +487,9 @@ function Row({
   const isString = typeof value === "string";
   return (
     <div className="flex items-start justify-between gap-3 py-1 text-xs">
-      <span className="shrink-0 font-medium uppercase tracking-wide text-neutral-500">{label}</span>
+      <span className="shrink-0 admin-label !normal-case">{label}</span>
       <div className="flex min-w-0 items-center gap-1">
-        <span className={cn("min-w-0 truncate text-right text-neutral-200", mono && "admin-mono")}>
+        <span className={cn("min-w-0 truncate text-right text-[var(--ac-text)]", mono && "admin-mono")}>
           {value || "—"}
         </span>
         {copyable && isString && onCopy && tag && (
@@ -500,10 +498,8 @@ function Row({
             onClick={() => void onCopy(String(value), tag)}
             title="Copiar"
             className={cn(
-              "shrink-0 rounded-md border p-1 text-[10px] transition",
-              copied === tag
-                ? "border-neutral-500 bg-neutral-900 text-white"
-                : "border-white/10 bg-neutral-900 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
+              "admin-btn-ghost shrink-0 !p-1",
+              copied === tag && "text-[var(--ac-success)]"
             )}
           >
             <Copy className="h-3 w-3" />

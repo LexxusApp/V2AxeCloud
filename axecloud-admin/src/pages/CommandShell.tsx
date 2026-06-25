@@ -525,33 +525,33 @@ function PlanCatalogCard({
     <div className={admin.card}>
       <div className="space-y-3.5 p-5">
         <div>
-          <h3 className="text-base font-semibold text-white">{title}</h3>
-          <p className="text-[11px] text-neutral-500">{subtitle}</p>
+          <h3 className="text-base font-semibold text-[var(--ac-text)]">{title}</h3>
+          <p className="text-[11px] text-[var(--ac-text-muted)]">{subtitle}</p>
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Nome público</label>
+          <label className="admin-label">Nome público</label>
           <input
-            className="mt-1 w-full rounded-md border border-neutral-800 bg-black px-2.5 py-2 text-sm text-white outline-none ring-neutral-400/20 focus:ring-2"
+            className="admin-input mt-1"
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
           />
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Preço (referência)</label>
+          <label className="admin-label">Preço (referência)</label>
           <input
             type="number"
             step="0.01"
             min={0}
-            className="mt-1 w-full rounded-md border border-neutral-800 bg-black px-2.5 py-2 admin-mono text-sm text-neutral-100 outline-none ring-neutral-400/20 focus:ring-2"
+            className="admin-input admin-mono mt-1"
             value={Number.isFinite(data.price) ? data.price : 0}
             onChange={(e) => onChange({ ...data, price: Number(e.target.value) || 0 })}
           />
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Descrição</label>
+          <label className="admin-label">Descrição</label>
           <textarea
             rows={4}
-            className="mt-1 w-full resize-none rounded-md border border-neutral-800 bg-black px-2.5 py-2 text-sm leading-relaxed text-neutral-200 outline-none ring-neutral-400/20 focus:ring-2"
+            className="admin-input mt-1 resize-none leading-relaxed"
             value={data.description}
             onChange={(e) => onChange({ ...data, description: e.target.value })}
           />
@@ -587,20 +587,20 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="rounded-md border border-neutral-800 bg-neutral-900 px-5 py-4 ring-1 ring-neutral-800">
+      <div className="admin-panel">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase  text-neutral-500">Catálogo</p>
-            <h3 className="mt-1 text-lg font-semibold text-white">Premium e Plano Vita</h3>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-neutral-400">
+            <p className="admin-kicker">Catálogo</p>
+            <h3 className="mt-1 text-lg font-semibold text-[var(--ac-text)]">Premium e Plano Vita</h3>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--ac-text-muted)]">
               Estes dois planos são os únicos comerciais do AxéCloud. O preço do Premium alimenta checkout, Pix e
               cartão EFI na hora (tabela{" "}
-              <code className="admin-mono text-neutral-200/90">global_settings</code>, id{" "}
-              <code className="admin-mono text-neutral-200/90">plans</code>). Entradas antigas como Axé/Orô são
+              <code className="admin-mono text-[var(--ac-text)]">global_settings</code>, id{" "}
+              <code className="admin-mono text-[var(--ac-text)]">plans</code>). Entradas antigas como Axé/Orô são
               ignoradas ao guardar.
             </p>
           </div>
-          <FileJson2 className="hidden h-10 w-10 shrink-0 text-neutral-600 sm:block" aria-hidden />
+          <FileJson2 className="hidden h-10 w-10 shrink-0 text-[var(--ac-text-faint)] sm:block" aria-hidden />
         </div>
       </div>
 
@@ -621,20 +621,15 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
 
       {status && (
         <p
-          className={
-            /guardados/i.test(status)
-              ? "text-sm font-medium text-white"
-              : "text-sm font-medium text-white"
-          }
+          className={cn(
+            "text-sm font-medium",
+            /guardados/i.test(status) ? "text-[var(--ac-success)]" : "text-[var(--ac-danger)]"
+          )}
         >
           {status}
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => void save()}
-        className="rounded-md bg-neutral-100 px-6 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-white active:bg-neutral-200"
-      >
+      <button type="button" onClick={() => void save()} className="admin-btn-primary">
         Guardar planos
       </button>
     </div>
