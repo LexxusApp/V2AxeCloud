@@ -17,11 +17,15 @@ import {
   Ban,
   Clock,
   Server,
+  PlusCircle,
+  MessageCircle,
+  FileText,
+  Infinity,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { AdminPanel } from "./AdminDashboardLayout";
+import { AdminPanel, AdminQuickActions } from "./AdminDashboardLayout";
 import { TenantsTable } from "./TenantsTable";
 import type { AdminNavTab } from "./AdminDashboardLayout";
 
@@ -86,8 +90,65 @@ type OverviewPanelProps = {
   onBlock: (id: string, block: boolean) => void;
   onRenewMonth: (id: string) => void;
   onLifetime: (id: string) => void;
-  quickActions: { label: string; onClick: () => void }[];
+  quickActions: { label: string; onClick: () => void; icon?: LucideIcon }[];
 };
+
+function HeroMetric({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  tone = "default",
+  onClick,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: LucideIcon;
+  tone?: "default" | "warn" | "danger" | "success";
+  onClick?: () => void;
+}) {
+  const toneClass =
+    tone === "warn"
+      ? "admin-metric-hero--warn"
+      : tone === "danger"
+        ? "admin-metric-hero--danger"
+        : tone === "success"
+          ? "admin-metric-hero--success"
+          : "";
+
+  const content = (
+    <div className="flex items-start justify-between gap-3 pl-2">
+      <div className="min-w-0">
+        <p className="admin-label">{label}</p>
+        <p className="admin-metric-hero-value admin-mono">{value}</p>
+        {sub ? <p className="mt-1 text-xs text-[var(--ac-text-muted)]">{sub}</p> : null}
+      </div>
+      <div className="admin-action-tile-icon">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </div>
+    </div>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cn("admin-metric-hero text-left w-full", toneClass)}>
+        {content}
+      </button>
+    );
+  }
+  return <article className={cn("admin-metric-hero", toneClass)}>{content}</article>;
+}
+
+function CompactMetric({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <article className="admin-metric-compact">
+      <p className="admin-label">{label}</p>
+      <p className="admin-metric-compact-value admin-mono">{value}</p>
+      {sub ? <p className="mt-0.5 text-[10px] text-[var(--ac-text-faint)]">{sub}</p> : null}
+    </article>
+  );
+}
 
 function formatStatNumber(n: number | undefined | null): string {
   if (n == null || Number.isNaN(n)) return "—";
@@ -108,55 +169,6 @@ function planLabel(key: string): string {
   if (k === "premium") return "Premium";
   if (k === "lifetime" || k === "vitalicio") return "Vitalício";
   return key.charAt(0).toUpperCase() + key.slice(1);
-}
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone = "default",
-  onClick,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: LucideIcon;
-  tone?: "default" | "warn" | "danger" | "accent";
-  onClick?: () => void;
-}) {
-  const toneClass =
-    tone === "warn"
-      ? "overview-kpi--warn"
-      : tone === "danger"
-        ? "overview-kpi--danger"
-        : tone === "accent"
-          ? "overview-kpi--accent"
-          : "";
-
-  const inner = (
-    <article className={cn("overview-kpi", toneClass)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="overview-kpi-label">{label}</p>
-          <p className="overview-kpi-value admin-mono">{value}</p>
-          {sub ? <p className="overview-kpi-sub">{sub}</p> : null}
-        </div>
-        <div className="overview-kpi-icon">
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
-        </div>
-      </div>
-    </article>
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className="text-left w-full transition hover:opacity-95">
-        {inner}
-      </button>
-    );
-  }
-  return inner;
 }
 
 export function OverviewPanel({
@@ -303,13 +315,11 @@ export function OverviewPanel({
 
   return (
     <div className="overview-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="admin-dashboard-hero">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--ac-text-faint)]">
-            Painel operacional
-          </p>
-          <p className="mt-0.5 text-sm text-[var(--ac-text-muted)]">
-            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+          <h1 className="admin-dashboard-greeting">Painel operacional</h1>
+          <p className="admin-dashboard-date">
+            {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
         <button
@@ -322,32 +332,44 @@ export function OverviewPanel({
           className="admin-btn-secondary"
         >
           <RefreshCw className={cn("h-4 w-4", busy && "animate-spin")} />
-          Actualizar
+          Actualizar dados
         </button>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3">
-        <KpiCard
+      <section className="admin-metric-hero-grid">
+        <HeroMetric
           label="Terreiros activos"
           value={statLoading ? "…" : formatStatNumber(activeCount)}
-          sub={blockedCount > 0 ? `${blockedCount} bloqueado(s)` : `${tenants.length} no total`}
+          sub={blockedCount > 0 ? `${blockedCount} bloqueado(s) · ${tenants.length} total` : `${tenants.length} cadastrados`}
           icon={Building2}
+          tone={blockedCount > 0 ? "warn" : "success"}
           onClick={() => onTab("tenants")}
         />
-        <KpiCard
-          label="Filhos de santo"
-          value={statLoading ? "…" : formatStatNumber(totalFilhos)}
-          sub="cadastrados no sistema"
-          icon={Users}
-        />
-        <KpiCard
+        <HeroMetric
           label="MRR referência"
           value={busy && !tenants.length ? "…" : formatCurrencyBRL(estimatedRevenue)}
-          sub={`${overview?.subscriptionsCount ?? 0} assinatura(s)`}
+          sub={`${overview?.subscriptionsCount ?? 0} assinatura(s) activas`}
           icon={Wallet}
+          onClick={() => onTab("plans")}
         />
-        <KpiCard
-          label="Visitantes públicos (7d)"
+        <HeroMetric
+          label="Infra Supabase"
+          value={metrics?.available ? (criticalInfra ? "Atenção" : "Operacional") : "—"}
+          sub={metrics?.error ? "verificar configuração" : metrics?.available ? "métricas em tempo real" : "sem dados"}
+          icon={Server}
+          tone={criticalInfra ? "danger" : metrics?.available ? "success" : "default"}
+          onClick={() => onTab("metrics")}
+        />
+      </section>
+
+      <section className="admin-metric-compact-grid">
+        <CompactMetric
+          label="Filhos de santo"
+          value={statLoading ? "…" : formatStatNumber(totalFilhos)}
+          sub="cadastrados"
+        />
+        <CompactMetric
+          label="Visitantes (7d)"
           value={
             statLoading
               ? "…"
@@ -355,15 +377,9 @@ export function OverviewPanel({
                 ? "N/D"
                 : formatStatNumber(activity?.publicSiteVisitorsLast7Days)
           }
-          sub={
-            activity?.publicSiteVisitorsAvailable
-              ? `hoje: ${formatStatNumber(activity?.publicSiteVisitorsToday)} · 30d: ${formatStatNumber(activity?.publicSiteVisitorsLast30Days)}`
-              : "aplique migration public_site_visitors"
-          }
-          icon={Globe}
-          tone="accent"
+          sub={activity?.publicSiteVisitorsAvailable ? `hoje: ${formatStatNumber(activity?.publicSiteVisitorsToday)}` : "migration pendente"}
         />
-        <KpiCard
+        <CompactMetric
           label="Uso logado (7d)"
           value={
             statLoading
@@ -372,34 +388,12 @@ export function OverviewPanel({
                 ? "N/D"
                 : formatStatNumber(overview?.accessEventsLast7Days)
           }
-          sub={
-            activity?.trafficSource === "none"
-              ? "sem eventos (30d)"
-              : activity?.totalEvents30d
-                ? `${activity.totalEvents30d} eventos (30d)`
-                : "logins e sessões"
-          }
-          icon={CalendarDays}
+          sub={activity?.totalEvents30d ? `${activity.totalEvents30d} eventos (30d)` : "sessões e logins"}
         />
-        <KpiCard
+        <CompactMetric
           label="Programa Fundador"
           value={founder?.available ? formatStatNumber(founder.pending) : "—"}
-          sub={
-            founder?.available
-              ? `${founder.remainingSlots} vagas · ${founder.total} inscrições`
-              : "migração pendente"
-          }
-          icon={Crown}
-          tone={(founder?.pending ?? 0) > 0 ? "warn" : "default"}
-          onClick={() => onTab("founders")}
-        />
-        <KpiCard
-          label="Infra Supabase"
-          value={metrics?.available ? (criticalInfra ? "Atenção" : "OK") : "—"}
-          sub={metrics?.error ? "ver config" : metrics?.available ? "métricas ao vivo" : "sem dados"}
-          icon={Server}
-          tone={criticalInfra ? "danger" : metrics?.available ? "accent" : "default"}
-          onClick={() => onTab("metrics")}
+          sub={founder?.available ? `${founder.remainingSlots} vagas restantes` : "migração pendente"}
         />
       </section>
 
@@ -679,20 +673,7 @@ export function OverviewPanel({
             </AdminPanel>
           )}
 
-          <section className="admin-panel">
-            <p className="admin-kicker">Fluxo</p>
-            <h3 className="admin-section-title mt-1 mb-4">Ações rápidas</h3>
-            <ul className="space-y-1.5">
-              {quickActions.map((item) => (
-                <li key={item.label}>
-                  <button type="button" onClick={item.onClick} className="overview-quick-action">
-                    <span>{item.label}</span>
-                    <ArrowRight className="h-4 w-4 shrink-0 opacity-50" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <AdminQuickActions items={quickActions} />
         </div>
       </section>
 

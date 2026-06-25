@@ -8,7 +8,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { format } from "date-fns";
-import { FileJson2, ScrollText, X } from "lucide-react";
+import { FileJson2, ScrollText, X, Infinity, Megaphone, PlusCircle, Bell, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -212,6 +212,7 @@ export function CommandShell({ session }: { session: Session }) {
   const quickActions = [
     {
       label: "Liberar acesso vitalício",
+      icon: Infinity,
       onClick: () => {
         if (!tenants.length) {
           setMsg("Nenhum terreiro carregado. Actualize a página.");
@@ -220,10 +221,10 @@ export function CommandShell({ session }: { session: Session }) {
         setQuickAction("lifetime");
       },
     },
-    { label: "Criar comunicado global", onClick: () => setQuickAction("notice") },
-    { label: "Adicionar novo terreiro", onClick: () => goTab("create") },
-    { label: "Enviar notificações", onClick: () => setQuickAction("notify") },
-    { label: "Gerar relatório financeiro", onClick: () => setQuickAction("report") },
+    { label: "Criar comunicado global", icon: Megaphone, onClick: () => setQuickAction("notice") },
+    { label: "Adicionar novo terreiro", icon: PlusCircle, onClick: () => goTab("create") },
+    { label: "Enviar notificações", icon: Bell, onClick: () => setQuickAction("notify") },
+    { label: "Gerar relatório financeiro", icon: FileSpreadsheet, onClick: () => setQuickAction("report") },
   ];
 
   async function refreshDashboard() {

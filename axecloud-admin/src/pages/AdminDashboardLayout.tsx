@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   Bell,
   Building2,
+  ChevronRight,
   CreditCard,
   FlaskConical,
   HardDrive,
@@ -15,6 +16,7 @@ import {
   MessageCircle,
   PlusCircle,
   ScrollText,
+  Search,
   Shield,
   X,
 } from "lucide-react";
@@ -46,7 +48,6 @@ const EXTRA_NAV: NavItem[] = [
   { id: "storage", label: "Armazenamento", icon: HardDrive },
   { id: "metrics", label: "Infra Supabase", icon: Gauge },
   { id: "monitor", label: "Monitor", icon: Activity },
-  { id: "create", label: "Novo terreiro", icon: PlusCircle },
   { id: "demo", label: "Conta demo", icon: FlaskConical },
 ];
 
@@ -69,6 +70,30 @@ export function sectionLabel(tab: AdminNavTab): string {
   return ALL_NAV.find((x) => x.id === tab)?.label ?? "Console";
 }
 
+function NavButton({
+  item,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn("admin-nav-item", active ? "admin-nav-item-active" : "admin-nav-item-idle")}
+    >
+      <span className="admin-nav-icon">
+        <Icon className="h-4 w-4" strokeWidth={active ? 2 : 1.75} />
+      </span>
+      {item.label}
+    </button>
+  );
+}
+
 function SidebarNav({
   tab,
   onTab,
@@ -78,76 +103,114 @@ function SidebarNav({
   onTab: (tab: AdminNavTab) => void;
   onNavigate?: () => void;
 }) {
-  const handleTab = (id: AdminNavTab) => {
+  const go = (id: AdminNavTab) => {
     onTab(id);
     onNavigate?.();
   };
 
   return (
-    <nav className="admin-sidebar-nav px-2 py-3 space-y-0.5">
+    <nav className="admin-sidebar-nav px-2 py-2 space-y-0.5">
       <p className="admin-nav-group-label">Principal</p>
-      {MAIN_NAV.map((item) => {
-        const Icon = item.icon;
-        const active = tab === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => handleTab(item.id)}
-            className={cn("admin-nav-item", active ? "admin-nav-item-active" : "admin-nav-item-idle")}
-          >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2 : 1.75} />
-            {item.label}
-          </button>
-        );
-      })}
+      {MAIN_NAV.map((item) => (
+        <NavButton key={item.id} item={item} active={tab === item.id} onClick={() => go(item.id)} />
+      ))}
       <p className="admin-nav-group-label">Operações</p>
-      {EXTRA_NAV.map((item) => {
-        const Icon = item.icon;
-        const active = tab === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => handleTab(item.id)}
-            className={cn("admin-nav-item", active ? "admin-nav-item-active" : "admin-nav-item-idle")}
-          >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2 : 1.75} />
-            {item.label}
-          </button>
-        );
-      })}
+      {EXTRA_NAV.map((item) => (
+        <NavButton key={item.id} item={item} active={tab === item.id} onClick={() => go(item.id)} />
+      ))}
     </nav>
   );
 }
 
-function SidebarBrand() {
+function UserMenu({
+  displayName,
+  email,
+  initials,
+  onLogout,
+}: {
+  displayName: string;
+  email: string;
+  initials: string;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
   return (
-    <div className="admin-sidebar-brand border-b border-[var(--ac-paper-border)] px-4 py-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
-          <Shield className="h-4 w-4" strokeWidth={2} />
+    <div className="admin-user-menu" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-2 py-1.5 transition hover:bg-[var(--ac-paper-elevated)]"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-[10px] font-bold text-white">
+          {initials}
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ac-text-faint)]">
-            AxéCloud
-          </p>
-          <h1 className="text-base font-semibold tracking-tight text-[var(--ac-text)] leading-tight">Console</h1>
+        <span className="hidden sm:block max-w-[120px] truncate text-xs font-semibold text-[var(--ac-text)]">
+          {displayName}
+        </span>
+      </button>
+      {open && (
+        <div className="admin-user-menu-panel" role="menu">
+          <div className="px-2 py-2 border-b border-[var(--ac-paper-border)] mb-1">
+            <p className="text-sm font-semibold text-[var(--ac-text)] truncate">{displayName}</p>
+            <p className="text-[11px] text-[var(--ac-text-muted)] truncate">{email}</p>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+            className="admin-user-menu-item admin-user-menu-item--danger"
+          >
+            <LogOut className="h-4 w-4" />
+            Terminar sessão
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function SidebarSession({ displayName, email }: { displayName: string; email: string }) {
+export function AdminPageHeader({
+  title,
+  subtitle,
+  breadcrumb = "Console",
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  breadcrumb?: string;
+  action?: ReactNode;
+}) {
   return (
-    <div className="admin-sidebar-session border-t border-[var(--ac-paper-border)] p-3">
-      <div className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ac-text-faint)]">Sessão</p>
-        <p className="mt-1 truncate text-sm font-medium text-[var(--ac-text)]">{displayName}</p>
-        <p className="truncate text-[11px] text-[var(--ac-text-muted)]">{email}</p>
+    <header className="admin-page-header">
+      <nav className="admin-breadcrumb" aria-label="Navegação">
+        <span>AxéCloud</span>
+        <ChevronRight className="admin-breadcrumb-sep h-3.5 w-3.5" aria-hidden />
+        <span className="admin-breadcrumb-current">{breadcrumb}</span>
+      </nav>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="admin-page-title">{title}</h1>
+          {subtitle ? <p className="admin-page-subtitle mt-1">{subtitle}</p> : null}
+        </div>
+        {action}
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -178,14 +241,46 @@ export function AdminDashboardLayout({
   const email = session.user.email || "";
   const successMsg = msg && /concluída|guardados|criado|criada|demo criada/i.test(msg);
   const subtitle = SECTION_SUBTITLES[tab];
+  const showPageHeader = tab !== "overview";
 
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar" aria-label="Menu principal">
-        <SidebarBrand />
-        <SidebarNav tab={tab} onTab={onTab} />
-        <SidebarSession displayName={displayName} email={email} />
-      </aside>
+    <div className="admin-app">
+      <header className="admin-topbar">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="admin-btn-secondary !p-2 lg:hidden"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="admin-topbar-brand">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
+            <Shield className="h-4 w-4" strokeWidth={2} />
+          </div>
+          <div className="hidden sm:block min-w-0">
+            <p className="text-sm font-semibold text-[var(--ac-text)] leading-tight">AxéCloud Console</p>
+            <p className="text-[10px] text-[var(--ac-text-faint)]">Administração global</p>
+          </div>
+        </div>
+        <div className="admin-topbar-search">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)]" />
+            <input type="search" placeholder="Pesquisar terreiros, eventos…" aria-label="Pesquisar" readOnly />
+          </div>
+        </div>
+        <div className="admin-topbar-actions">
+          <button
+            type="button"
+            onClick={() => onTab("whatsapp")}
+            className="admin-btn-secondary !p-2"
+            title="Notificações"
+          >
+            <Bell className="h-4 w-4" />
+          </button>
+          <UserMenu displayName={displayName} email={email} initials={initials} onLogout={onLogout} />
+        </div>
+      </header>
 
       {mobileOpen && (
         <>
@@ -197,94 +292,66 @@ export function AdminDashboardLayout({
           />
           <div className="admin-mobile-drawer lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
             <div className="flex items-center justify-between border-b border-[var(--ac-paper-border)] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
-                  <Shield className="h-4 w-4" strokeWidth={2} />
-                </div>
-                <span className="text-sm font-semibold text-[var(--ac-text)]">Menu</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="admin-btn-ghost !p-2"
-                aria-label="Fechar"
-              >
+              <span className="text-sm font-semibold text-[var(--ac-text)]">Navegação</span>
+              <button type="button" onClick={() => setMobileOpen(false)} className="admin-btn-ghost !p-2" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <SidebarNav tab={tab} onTab={onTab} onNavigate={() => setMobileOpen(false)} />
-            <SidebarSession displayName={displayName} email={email} />
+            <div className="admin-sidebar-cta">
+              <button type="button" className="admin-btn-primary" onClick={() => { onTab("create"); setMobileOpen(false); }}>
+                <PlusCircle className="h-4 w-4" />
+                Novo terreiro
+              </button>
+            </div>
           </div>
         </>
       )}
 
-      <div className="admin-workspace">
-        <header className="admin-main-header">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="admin-btn-secondary !p-2.5 lg:hidden"
-              aria-label="Abrir menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold tracking-tight text-[var(--ac-text)] sm:text-2xl">
-                {sectionLabel(tab)}
-              </h2>
-              {subtitle ? <p className="admin-page-subtitle hidden sm:block">{subtitle}</p> : null}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={() => onTab("whatsapp")}
-              className="admin-btn-secondary !p-2.5"
-              title="Notificações"
-            >
-              <Bell className="h-4 w-4" />
-            </button>
-            <div className="hidden sm:flex items-center gap-2.5 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-3 py-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-xs font-bold text-white">
-                {initials}
-              </div>
-              <div className="min-w-0 max-w-[180px]">
-                <p className="truncate text-sm font-semibold text-[var(--ac-text)]">{displayName}</p>
-                <p className="truncate text-[11px] text-[var(--ac-text-muted)]">{email}</p>
-              </div>
-            </div>
-            <button type="button" onClick={onLogout} className="admin-btn-secondary">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Sair</span>
+      <div className="admin-body">
+        <aside className="admin-sidebar" aria-label="Menu principal">
+          <SidebarNav tab={tab} onTab={onTab} />
+          <div className="admin-sidebar-cta">
+            <button type="button" className="admin-btn-primary" onClick={() => onTab("create")}>
+              <PlusCircle className="h-4 w-4" />
+              Novo terreiro
             </button>
           </div>
-        </header>
+        </aside>
 
-        <main className="admin-main">
-          {msg && (
-            <div
-              className={cn(
-                "mb-6 flex items-start gap-3 rounded-[var(--ac-radius-sm)] border px-4 py-3 text-sm",
-                successMsg
-                  ? "border-[#abefc6] bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
-                  : "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+        <div className="admin-workspace">
+          <main className="admin-main">
+            <div className="admin-page-container">
+              {msg && (
+                <div
+                  className={cn(
+                    "mb-6 flex items-start gap-3 rounded-[var(--ac-radius-sm)] border px-4 py-3 text-sm",
+                    successMsg
+                      ? "border-[#abefc6] bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
+                      : "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+                  )}
+                  role="status"
+                >
+                  <p className="min-w-0 flex-1">{msg}</p>
+                  <button
+                    type="button"
+                    onClick={onDismissMsg}
+                    className="shrink-0 rounded-md p-1 hover:bg-[var(--ac-accent-soft)]"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               )}
-              role="status"
-            >
-              <p className="min-w-0 flex-1">{msg}</p>
-              <button
-                type="button"
-                onClick={onDismissMsg}
-                className="shrink-0 rounded-md p-1 hover:bg-[var(--ac-accent-soft)]"
-                aria-label="Fechar"
-              >
-                <X className="h-4 w-4" />
-              </button>
+
+              {showPageHeader && (
+                <AdminPageHeader title={sectionLabel(tab)} subtitle={subtitle} breadcrumb={sectionLabel(tab)} />
+              )}
+
+              {children}
             </div>
-          )}
-          {children}
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -302,17 +369,15 @@ export function AdminStatCard({
   hint?: string;
 }) {
   return (
-    <article className="admin-stat-card">
-      <div className="flex items-start justify-between gap-3">
+    <article className="admin-metric-compact">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="admin-label">{title}</p>
-          <p className="admin-mono mt-2 text-2xl font-semibold tracking-tight text-[var(--ac-text)] sm:text-3xl">
-            {value}
-          </p>
-          {hint ? <p className="mt-1 text-xs text-[var(--ac-text-faint)]">{hint}</p> : null}
+          <p className="admin-metric-compact-value admin-mono">{value}</p>
+          {hint ? <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">{hint}</p> : null}
         </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] text-[var(--ac-accent)]">
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
+        <div className="admin-action-tile-icon !h-8 !w-8">
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
         </div>
       </div>
     </article>
@@ -332,10 +397,10 @@ export function AdminPanel({
 }) {
   return (
     <section className="admin-panel">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-[var(--ac-paper-border)] pb-4">
         <div>
           {kicker ? <p className="admin-kicker">{kicker}</p> : null}
-          <h3 className="admin-section-title mt-1">{title}</h3>
+          <h3 className="admin-section-title mt-0.5">{title}</h3>
         </div>
         {action}
       </div>
@@ -347,26 +412,25 @@ export function AdminPanel({
 export function AdminQuickActions({
   items,
 }: {
-  items: { label: string; onClick: () => void }[];
+  items: { label: string; onClick: () => void; icon?: LucideIcon }[];
 }) {
   return (
-    <AdminPanel kicker="Fluxo" title="Ações rápidas">
-      <ul className="space-y-2">
-        {items.map((item) => (
-          <li key={item.label}>
-            <button
-              type="button"
-              onClick={item.onClick}
-              className="flex w-full items-center justify-between gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-4 py-3.5 text-left text-sm font-medium text-[var(--ac-text)] transition hover:border-[var(--ac-paper-border-strong)] hover:bg-[var(--ac-paper-elevated)]"
-            >
-              <span>{item.label}</span>
-              <span className="text-[var(--ac-text-faint)]" aria-hidden>
-                →
+    <section className="admin-panel">
+      <p className="admin-kicker">Fluxo</p>
+      <h3 className="admin-section-title mt-0.5 mb-4">Ações rápidas</h3>
+      <div className="admin-action-tile-grid">
+        {items.map((item) => {
+          const Icon = item.icon ?? PlusCircle;
+          return (
+            <button key={item.label} type="button" onClick={item.onClick} className="admin-action-tile">
+              <span className="admin-action-tile-icon">
+                <Icon className="h-4 w-4" />
               </span>
+              <span className="admin-action-tile-label">{item.label}</span>
             </button>
-          </li>
-        ))}
-      </ul>
-    </AdminPanel>
+          );
+        })}
+      </div>
+    </section>
   );
 }

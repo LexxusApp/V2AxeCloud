@@ -23,7 +23,7 @@ function Notice({
   return (
     <div
       className={cn(
-        "mb-6 rounded-[var(--ac-radius-sm)] border px-4 py-3.5 text-sm leading-relaxed",
+        "mb-5 rounded-[var(--ac-radius-sm)] border px-4 py-3.5 text-sm leading-relaxed",
         tone === "error"
           ? "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
           : "border-[#fedf89] bg-[var(--ac-warn-soft)] text-[var(--ac-warn)]"
@@ -96,112 +96,84 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
   }
 
   return (
-    <div className="admin-login-shell">
-      <aside className="admin-login-brand">
-        <div>
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ac-radius)] bg-white/10 text-white">
+    <div className="admin-login-page">
+      <div className="admin-login-card">
+        <div className="admin-login-logo">
+          <div className="admin-login-logo-icon">
             <Shield className="h-6 w-6" />
           </div>
-          <h1 className="mt-8 text-3xl font-semibold tracking-tight leading-tight">
-            AxéCloud
-            <br />
-            <span className="text-[#d0d5dd]">Console</span>
-          </h1>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#98a2b3]">
-            Centro de comando para administradores globais — terreiros, assinaturas, auditoria e
-            infraestrutura num só lugar.
-          </p>
-        </div>
-        <p className="text-[11px] text-[#667085]">Acesso restrito · sessão auditável</p>
-      </aside>
-
-      <div className="admin-login-form-wrap">
-        <div className="w-full max-w-[400px]">
-          <div className="mb-8 lg:hidden">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
-              <Shield className="h-5 w-5" />
-            </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[var(--ac-text)]">
-              Entrar no console
-            </h2>
-            <p className="mt-1 text-sm text-[var(--ac-text-muted)]">Administradores globais</p>
+          <div className="admin-login-logo-text">
+            <h1>AxéCloud Console</h1>
+            <p>Administração global da plataforma</p>
           </div>
+        </div>
 
-          <div className="hidden lg:block mb-8">
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--ac-text)]">
-              Entrar no console
-            </h2>
-            <p className="mt-1 text-sm text-[var(--ac-text-muted)]">
-              Use as credenciais de administrador global
+        {session && consoleGate === "network" && (
+          <Notice tone="error" title="API indisponível">
+            <p>Não foi possível validar a sessão com o servidor. Tente novamente em instantes.</p>
+          </Notice>
+        )}
+
+        {session && consoleGate === "forbidden" && (
+          <Notice tone="warn" title="Sem permissão">
+            <p>
+              A conta <strong>{session.user.email}</strong> não tem perfil de administrador global.
             </p>
-          </div>
-
-          {session && consoleGate === "network" && (
-            <Notice tone="error" title="API indisponível">
-              <p>Não foi possível validar a sessão com o servidor. Tente novamente em instantes.</p>
-            </Notice>
-          )}
-
-          {session && consoleGate === "forbidden" && (
-            <Notice tone="warn" title="Sem permissão">
-              <p>
-                A conta <strong>{session.user.email}</strong> não tem perfil de administrador global.
-              </p>
-              <button
-                type="button"
-                onClick={() => void clearSession()}
-                className="mt-2 inline-flex items-center gap-2 admin-btn-secondary !text-xs"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Usar outra conta
-              </button>
-            </Notice>
-          )}
-
-          <form
-            onSubmit={submit}
-            className="rounded-[var(--ac-radius)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] p-6 sm:p-8 shadow-[var(--ac-shadow)] space-y-5"
-          >
-            <div>
-              <label className="admin-label">E-mail</label>
-              <input
-                className="admin-input mt-2"
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="admin-label">Senha</label>
-              <input
-                className="admin-input mt-2"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {err && (
-              <p className="rounded-[var(--ac-radius-sm)] border border-[#fecdca] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">
-                {err}
-              </p>
-            )}
-            <button type="submit" disabled={loading} className="admin-btn-primary w-full !py-3.5">
-              {loading ? (
-                "A entrar…"
-              ) : (
-                <>
-                  <KeyRound className="h-4 w-4" />
-                  Entrar no console
-                  <ArrowRight className="h-4 w-4 opacity-70" />
-                </>
-              )}
+            <button
+              type="button"
+              onClick={() => void clearSession()}
+              className="mt-2 inline-flex items-center gap-2 admin-btn-secondary !text-xs"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Usar outra conta
             </button>
-          </form>
-        </div>
+          </Notice>
+        )}
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="admin-label">E-mail</label>
+            <input
+              className="admin-input mt-1.5"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="admin-label">Senha</label>
+            <input
+              className="admin-input mt-1.5"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {err && (
+            <p className="rounded-[var(--ac-radius-sm)] border border-[#fecdca] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">
+              {err}
+            </p>
+          )}
+          <button type="submit" disabled={loading} className="admin-btn-primary w-full !py-3 mt-2">
+            {loading ? (
+              "A entrar…"
+            ) : (
+              <>
+                <KeyRound className="h-4 w-4" />
+                Entrar no console
+                <ArrowRight className="h-4 w-4 opacity-70" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-[11px] text-[var(--ac-text-faint)]">
+          Acesso restrito · todas as sessões são auditadas
+        </p>
       </div>
     </div>
   );

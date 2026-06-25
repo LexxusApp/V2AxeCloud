@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { admin } from "@/lib/adminTheme";
 
@@ -40,6 +42,125 @@ function expiraLabel(expires_at?: string | null): string {
   }
 }
 
+function tenantInitials(name: string | null): string {
+  const n = (name || "?").trim();
+  const parts = n.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return n.slice(0, 2).toUpperCase();
+}
+
+function RowActionsMenu({
+  row,
+  compact,
+  busy,
+  onManage,
+  onBlock,
+  onRenewMonth,
+  onLifetime,
+  onDelete,
+}: {
+  row: TenantTableRow;
+  compact?: boolean;
+  busy?: boolean;
+  onManage: (id: string) => void;
+  onBlock: (id: string, blocked: boolean) => void;
+  onRenewMonth: (id: string) => void;
+  onLifetime: (id: string) => void;
+  onDelete?: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div className="admin-row-menu" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="admin-btn-secondary !p-1.5"
+        aria-label="Acções"
+        aria-expanded={open}
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="admin-row-menu-panel" role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            className="admin-row-menu-item"
+            onClick={() => {
+              setOpen(false);
+              onManage(row.id);
+            }}
+          >
+            Gerenciar terreiro
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="admin-row-menu-item"
+            onClick={() => {
+              setOpen(false);
+              onBlock(row.id, !row.is_blocked);
+            }}
+          >
+            {row.is_blocked ? "Desbloquear" : "Bloquear"}
+          </button>
+          {!compact && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="admin-row-menu-item"
+                onClick={() => {
+                  setOpen(false);
+                  onRenewMonth(row.id);
+                }}
+              >
+                Renovar +1 mês
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="admin-row-menu-item"
+                onClick={() => {
+                  setOpen(false);
+                  onLifetime(row.id);
+                }}
+              >
+                Acesso vitalício
+              </button>
+              {onDelete && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  className="admin-row-menu-item admin-row-menu-item--danger"
+                  onClick={() => {
+                    setOpen(false);
+                    onDelete(row.id);
+                  }}
+                >
+                  Excluir terreiro
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type TenantsTableProps = {
   rows: TenantTableRow[];
   search: string;
@@ -65,54 +186,79 @@ export function TenantsTable({
   busy,
   compact,
 }: TenantsTableProps) {
-  const cell = "px-4 py-2.5";
+  const cell = "px-4 py-3";
   const head = cn(cell, "text-[10px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]");
 
   return (
     <section className="admin-panel !p-0 overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-[var(--ac-paper-border)] p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="admin-table-toolbar">
         <div>
-          <p className="admin-kicker !text-[10px]">Sistema</p>
-          <h3 className="text-base font-semibold text-[var(--ac-text)] mt-0.5">
-            {compact ? "Últimos terreiros cadastrados" : "Terreiros cadastrados"}
+          <h3 className="text-sm font-semibold text-[var(--ac-text)]">
+            {compact ? "Últimos terreiros" : "Todos os terreiros"}
           </h3>
+          <p className="text-xs text-[var(--ac-text-muted)] mt-0.5">
+            {rows.length} {rows.length === 1 ? "registo" : "registos"}
+            {search ? ` · filtro activo` : ""}
+          </p>
         </div>
         <input
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar usuário ou terreiro..."
-          className="admin-input !py-2 !text-sm w-full lg:max-w-sm"
+          placeholder="Buscar terreiro ou e-mail…"
+          className="admin-input !py-2 !text-sm w-full sm:max-w-xs"
         />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className={cn(admin.thead, "text-left")}>
               <th className={head}>Terreiro</th>
               <th className={head}>Plano</th>
-              {!compact && <th className={head}>E-mail</th>}
+              {!compact && <th className={head}>Membros</th>}
               <th className={head}>Cadastro</th>
               {!compact && <th className={head}>Expira</th>}
-              <th className={head}>Status</th>
-              <th className={head}>Ações</th>
+              <th className={head}>Estado</th>
+              <th className={cn(head, "text-right")}>Acções</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={compact ? 5 : 7} className="px-4 py-8 text-center text-xs text-[var(--ac-text-muted)]">
-                  {busy ? "A carregar…" : "Nenhum terreiro encontrado."}
+                <td colSpan={compact ? 5 : 7} className="px-4 py-12 text-center">
+                  <p className="text-sm font-medium text-[var(--ac-text)]">
+                    {busy ? "A carregar terreiros…" : "Nenhum terreiro encontrado"}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--ac-text-muted)]">
+                    {search ? "Tente outro termo de busca." : "Os novos cadastros aparecerão aqui."}
+                  </p>
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)] transition-all")}
+                  className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)] transition-colors")}
                 >
-                  <td className={cn(cell, "font-medium text-[var(--ac-text)] max-w-[180px] truncate")}>
-                    {row.nome_terreiro || "—"}
+                  <td className={cell}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={cn(
+                          "admin-tenant-avatar",
+                          row.is_blocked && "admin-tenant-avatar--blocked"
+                        )}
+                      >
+                        {tenantInitials(row.nome_terreiro)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-[var(--ac-text)] truncate max-w-[200px]">
+                          {row.nome_terreiro || "Sem nome"}
+                        </p>
+                        <p className="text-[11px] text-[var(--ac-text-muted)] truncate max-w-[200px]">
+                          {row.email || "—"}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                   <td className={cell}>
                     <span className={cn(admin.badgeStrong, "px-2 py-0.5 text-[11px] font-medium")}>
@@ -120,8 +266,8 @@ export function TenantsTable({
                     </span>
                   </td>
                   {!compact && (
-                    <td className={cn(cell, "text-[var(--ac-text-muted)] text-xs max-w-[160px] truncate")}>
-                      {row.email || "—"}
+                    <td className={cn(cell, "text-[var(--ac-text-muted)] admin-mono text-xs")}>
+                      {row.totalChildren ?? "—"}
                     </td>
                   )}
                   <td className={cn(cell, "text-[var(--ac-text-muted)] text-xs whitespace-nowrap")}>
@@ -132,63 +278,30 @@ export function TenantsTable({
                       {expiraLabel(row.expires_at)}
                     </td>
                   )}
-                  <td className={cn(cell, "text-xs whitespace-nowrap")}>
-                    {row.is_blocked ? (
-                      <span className="text-[var(--ac-danger)]">● Bloqueado</span>
-                    ) : (
-                      <span className="text-[var(--ac-success)]">● Ativo</span>
-                    )}
-                  </td>
                   <td className={cell}>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => onManage(row.id)}
-                        className="admin-btn-primary !px-2.5 !py-1 text-xs"
-                      >
-                        Gerenciar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onBlock(row.id, !row.is_blocked)}
-                        className={cn(
-                          "admin-btn-secondary !px-2.5 !py-1 text-xs",
-                          row.is_blocked
-                            ? "!border-[rgba(13,122,78,0.35)] !text-[var(--ac-success)]"
-                            : "!border-[var(--ac-paper-border)] hover:!border-[var(--ac-danger)] hover:!text-[var(--ac-danger)]"
-                        )}
-                      >
-                        {row.is_blocked ? "Desbloquear" : "Bloquear"}
-                      </button>
-                      {!compact && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => onRenewMonth(row.id)}
-                            className="admin-btn-ghost border border-[var(--ac-paper-border)] !px-2 !py-1 text-[11px]"
-                          >
-                            +1 mês
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onLifetime(row.id)}
-                            className="admin-btn-ghost border border-[var(--ac-paper-border)] !px-2 !py-1 text-[11px]"
-                          >
-                            Vitalício
-                          </button>
-                          {onDelete && (
-                            <button
-                              type="button"
-                              onClick={() => onDelete(row.id)}
-                              disabled={busy}
-                              className="admin-btn-ghost !rounded-lg border border-[rgba(180,40,40,0.35)] !px-2 !py-1 text-[11px] text-[var(--ac-danger)] hover:!bg-[rgba(180,40,40,0.06)] disabled:opacity-50"
-                            >
-                              Excluir
-                            </button>
-                          )}
-                        </>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        row.is_blocked
+                          ? "bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+                          : "bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
                       )}
-                    </div>
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {row.is_blocked ? "Bloqueado" : "Activo"}
+                    </span>
+                  </td>
+                  <td className={cn(cell, "text-right")}>
+                    <RowActionsMenu
+                      row={row}
+                      compact={compact}
+                      busy={busy}
+                      onManage={onManage}
+                      onBlock={onBlock}
+                      onRenewMonth={onRenewMonth}
+                      onLifetime={onLifetime}
+                      onDelete={onDelete}
+                    />
                   </td>
                 </tr>
               ))
