@@ -32,7 +32,7 @@ export type AppNavItem = {
 };
 
 /** Módulos agrupados no menu «Casa» (zelador). */
-export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'frequencia', 'mural'] as const;
+export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'frequencia', 'mural', 'chat'] as const;
 
 /** Sub-rotas do menu «Financeiro» (zelador). */
 export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
