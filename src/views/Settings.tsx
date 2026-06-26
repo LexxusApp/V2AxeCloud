@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
+import { SettingsSubscriptionPanel } from '../components/settings/SettingsSubscriptionPanel';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import { AppDemoCard } from '../components/ui/appDemoUi';
 
@@ -166,13 +167,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           ) : activeSection === 'whatsapp' ? (
             <SettingsWhatsAppPanel />
           ) : activeSection === 'subscription' ? (
-            <Subscription 
-              session={session} 
-              tenantData={tenantData} 
-              onPlanUpdated={onRefresh || (() => {})} 
-              onlyCurrentPlan={true} 
-              setActiveTab={setActiveTab}
-            />
+            <SettingsSubscriptionPanel tenantData={tenantData} />
           ) : activeSection === 'portal' ? (
             <AppDemoCard>
               <PortalConsulenteSettings />
