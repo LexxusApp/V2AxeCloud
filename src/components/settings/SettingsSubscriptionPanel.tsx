@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Crown, Infinity, Loader2, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { Check, Crown, Infinity, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
   PLAN_NAMES,
@@ -210,11 +210,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                     accent.iconBg,
                   )}
                 >
-                  {isLifetime && planKey === 'vita' ? (
-                    <Sparkles className={cn('h-7 w-7', accent.icon)} aria-hidden />
-                  ) : (
-                    <Crown className={cn('h-7 w-7', accent.icon)} aria-hidden />
-                  )}
+                  <Crown className={cn('h-7 w-7', accent.icon)} aria-hidden />
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 z-20 h-4 w-4 rounded-full border-2 border-[#1E252E] bg-emerald-500" />
               </div>
