@@ -11,7 +11,6 @@ import {
   MapPin,
   RefreshCw,
   Crown,
-  TrendingUp,
   Users,
   Wallet,
   Ban,
@@ -295,14 +294,6 @@ export function OverviewPanel({
     }, 0);
   }, [tenants, plansCatalog]);
 
-  const dailySeries = useMemo(() => {
-    const d = activity?.dailyAccess;
-    if (!d) return [];
-    return Object.entries(d)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-14);
-  }, [activity]);
-
   const publicTopPages = useMemo(() => activity?.publicSiteTopPages ?? [], [activity]);
 
   const publicDailySeries = useMemo(() => {
@@ -313,7 +304,6 @@ export function OverviewPanel({
       .slice(-14);
   }, [activity]);
 
-  const maxDaily = useMemo(() => Math.max(1, ...dailySeries.map(([, c]) => c)), [dailySeries]);
   const maxPublicDaily = useMemo(
     () => Math.max(1, ...publicDailySeries.map(([, c]) => c)),
     [publicDailySeries]
@@ -606,55 +596,6 @@ export function OverviewPanel({
               <code className="admin-mono text-[var(--ac-accent)]">20260619143000_public_site_page_views.sql</code>.
             </div>
           ) : null}
-
-          <AdminPanel
-            kicker="Sistema logado"
-            title="Eventos por dia"
-            action={
-              <span className="text-xs text-[var(--ac-text-faint)]">
-                {dailySeries.length
-                  ? `${activity?.totalEvents30d ?? 0} eventos · ${dailySeries.length} dias`
-                  : activity?.auditLogsAvailable || activity?.accessLogsAvailable
-                    ? "0 eventos nos últimos 30 dias"
-                    : "tabelas de log ausentes"}
-              </span>
-            }
-          >
-            {dailySeries.length ? (
-              <div className="overview-chart">
-                <div className="overview-chart-bars">
-                  {dailySeries.map(([day, count]) => {
-                    const h = 12 + Math.round((count / maxDaily) * 148);
-                    const label = day.length >= 10 ? format(parseISO(day), "dd/MM") : day;
-                    return (
-                      <div key={day} className="overview-chart-col" title={`${day}: ${count}`}>
-                        <span className="overview-chart-val admin-mono">{count}</span>
-                        <div className="overview-chart-bar" style={{ height: `${h}px` }} />
-                        <span className="overview-chart-day">{label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="py-12 text-center text-sm text-[var(--ac-text-muted)] max-w-md mx-auto">
-                <TrendingUp className="mx-auto h-8 w-8 text-[var(--ac-text-faint)] mb-2" />
-                {!activity?.accessLogsAvailable && !activity?.auditLogsAvailable ? (
-                  <>
-                    Tabelas <code className="text-[var(--ac-accent)]">access_logs</code> e{" "}
-                    <code className="text-[var(--ac-accent)]">audit_logs</code> não encontradas. Aplique as migrations
-                    em <code className="text-[var(--ac-accent)]">supabase/migrations/</code>.
-                  </>
-                ) : (
-                  <>
-                    Nenhum evento nos últimos 30 dias. Logins e acções do admin passam a contar em{" "}
-                    <code className="text-[var(--ac-accent)]">audit_logs</code>; sessões do app em{" "}
-                    <code className="text-[var(--ac-accent)]">access_logs</code> (após login).
-                  </>
-                )}
-              </div>
-            )}
-          </AdminPanel>
 
           <AdminPanel
             kicker="WhatsApp"
