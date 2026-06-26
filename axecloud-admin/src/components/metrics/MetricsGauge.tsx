@@ -1,3 +1,5 @@
+import { cn } from "@/lib/cn";
+
 type MetricsGaugeProps = {
   label: string;
   value: number;
@@ -7,9 +9,9 @@ type MetricsGaugeProps = {
 };
 
 function arcColor(status: MetricsGaugeProps["status"]) {
-  if (status === "critical") return "var(--ac-text)";
-  if (status === "warn") return "var(--ac-text-muted)";
-  return "var(--ac-paper-border-strong)";
+  if (status === "critical") return "var(--ac-danger)";
+  if (status === "warn") return "var(--ac-warn)";
+  return "var(--ac-success)";
 }
 
 export function MetricsGauge({ label, value, display, status, size = 88 }: MetricsGaugeProps) {
@@ -44,7 +46,16 @@ export function MetricsGauge({ label, value, display, status, size = 88 }: Metri
         />
       </svg>
       <div className="metrics-gauge-center">
-        <span className="metrics-gauge-value admin-mono">{display}</span>
+        <span
+          className={cn(
+            "metrics-gauge-value admin-mono",
+            status === "critical" && "text-[var(--ac-danger)]",
+            status === "warn" && "text-[var(--ac-warn)]",
+            status === "ok" && "text-[var(--ac-success)]"
+          )}
+        >
+          {display}
+        </span>
       </div>
       <p className="metrics-gauge-label">{label}</p>
     </div>

@@ -279,7 +279,15 @@ export function TenantsTable({
                     </td>
                   )}
                   <td className={cell}>
-                    <span className="inline-flex items-center rounded-full border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] px-2 py-0.5 text-[11px] font-medium text-[var(--ac-text-muted)]">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        row.is_blocked
+                          ? "bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+                          : "bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
+                      )}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
                       {row.is_blocked ? "Bloqueado" : "Activo"}
                     </span>
                   </td>

@@ -32,22 +32,26 @@ export type AdminNavTab =
   | "whatsapp"
   | "monitor";
 
-type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon };
+type IconTone = "blue" | "violet" | "emerald" | "amber" | "rose" | "teal" | "sky" | "orange";
+
+type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon; tone: IconTone };
 
 const MAIN_NAV: NavItem[] = [
-  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "tenants", label: "Terreiros", icon: Building2 },
-  { id: "plans", label: "Mensalidades", icon: CreditCard },
-  { id: "logs", label: "Eventos", icon: ScrollText },
-  { id: "whatsapp", label: "Notificações", icon: MessageCircle },
+  { id: "overview", label: "Visão geral", icon: LayoutDashboard, tone: "blue" },
+  { id: "tenants", label: "Terreiros", icon: Building2, tone: "violet" },
+  { id: "plans", label: "Mensalidades", icon: CreditCard, tone: "emerald" },
+  { id: "logs", label: "Eventos", icon: ScrollText, tone: "amber" },
+  { id: "whatsapp", label: "Notificações", icon: MessageCircle, tone: "teal" },
 ];
 
 const EXTRA_NAV: NavItem[] = [
-  { id: "storage", label: "Armazenamento", icon: HardDrive },
-  { id: "metrics", label: "Infra Supabase", icon: Gauge },
-  { id: "monitor", label: "Monitor", icon: Activity },
-  { id: "demo", label: "Conta demo", icon: FlaskConical },
+  { id: "storage", label: "Armazenamento", icon: HardDrive, tone: "sky" },
+  { id: "metrics", label: "Infra Supabase", icon: Gauge, tone: "orange" },
+  { id: "monitor", label: "Monitor", icon: Activity, tone: "rose" },
+  { id: "demo", label: "Conta demo", icon: FlaskConical, tone: "amber" },
 ];
+
+const QUICK_ACTION_TONES: IconTone[] = ["violet", "blue", "emerald", "amber", "rose"];
 
 const ALL_NAV = [...MAIN_NAV, ...EXTRA_NAV];
 
@@ -72,8 +76,8 @@ function SidebarBrand() {
   return (
     <div className="admin-sidebar-brand">
       <div className="flex items-center gap-2.5 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] text-[var(--ac-text-muted)]">
-          <Shield className="h-4 w-4" strokeWidth={1.75} />
+        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-blue)] text-white shadow-sm">
+          <Shield className="h-4 w-4" strokeWidth={2} />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--ac-text)] leading-tight truncate">AxéCloud Console</p>
@@ -100,7 +104,7 @@ function NavButton({
       onClick={onClick}
       className={cn("admin-nav-item", active ? "admin-nav-item-active" : "admin-nav-item-idle")}
     >
-      <span className="admin-nav-icon">
+      <span className={cn("admin-nav-icon", `admin-icon-chip--${item.tone}`)}>
         <Icon className="h-4 w-4" strokeWidth={active ? 2 : 1.75} />
       </span>
       {item.label}
@@ -152,7 +156,7 @@ function SidebarSession({
   return (
     <div className="admin-sidebar-session">
       <div className="flex items-center gap-2.5">
-        <div className="admin-tenant-avatar">{initials}</div>
+        <span className={cn("admin-nav-icon", "admin-icon-chip--blue", "text-[10px] font-bold")}>{initials}</span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-[var(--ac-text)] truncate">{displayName}</p>
           <p className="text-[10px] text-[var(--ac-text-muted)] truncate">{email}</p>
@@ -295,8 +299,8 @@ export function AdminDashboardLayout({
                   className={cn(
                     "mb-6 flex items-start gap-3 rounded-[var(--ac-radius-sm)] border px-4 py-3 text-sm",
                     successMsg
-                      ? "border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] text-[var(--ac-text)]"
-                      : "border-[var(--ac-paper-border-strong)] bg-[var(--ac-paper-elevated)] text-[var(--ac-text)]"
+                      ? "border-[#abefc6] bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
+                      : "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
                   )}
                   role="status"
                 >
@@ -328,18 +332,30 @@ export function AdminDashboardLayout({
 export function AdminStatCard({
   title,
   value,
+  icon: Icon,
   hint,
+  tone = "blue",
 }: {
   title: string;
   value: string;
   icon?: LucideIcon;
   hint?: string;
+  tone?: IconTone;
 }) {
   return (
     <article className="admin-metric-compact">
-      <p className="admin-label">{title}</p>
-      <p className="admin-metric-compact-value admin-mono">{value}</p>
-      {hint ? <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">{hint}</p> : null}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="admin-label">{title}</p>
+          <p className="admin-metric-compact-value admin-mono">{value}</p>
+          {hint ? <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">{hint}</p> : null}
+        </div>
+        {Icon ? (
+          <div className={cn("admin-action-tile-icon", `admin-icon-chip--${tone}`)}>
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -379,11 +395,18 @@ export function AdminQuickActions({
       <p className="admin-kicker">Fluxo</p>
       <h3 className="admin-section-title mt-0.5 mb-4">Ações rápidas</h3>
       <div className="admin-action-tile-grid">
-        {items.map((item) => (
-          <button key={item.label} type="button" onClick={item.onClick} className="admin-action-tile">
-            <span className="admin-action-tile-label">{item.label}</span>
-          </button>
-        ))}
+        {items.map((item, index) => {
+          const Icon = item.icon ?? PlusCircle;
+          const tone = QUICK_ACTION_TONES[index % QUICK_ACTION_TONES.length];
+          return (
+            <button key={item.label} type="button" onClick={item.onClick} className="admin-action-tile">
+              <span className={cn("admin-action-tile-icon", `admin-icon-chip--${tone}`)}>
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="admin-action-tile-label">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
