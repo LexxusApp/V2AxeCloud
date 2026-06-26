@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatAttachMenu } from './ChatAttachMenu';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { authFetch } from '../../lib/authenticatedFetch';
-import type { ChatConversationSummary, ChatMessage } from '../../lib/chatTypes';
+import type { ChatConversationSummary, ChatMessage, ChatParticipantSummary } from '../../lib/chatTypes';
 import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
@@ -30,6 +30,79 @@ function guessChatMimeType(file: File): string {
   return map[ext] || 'application/octet-stream';
 }
 
+function newClientMessageId(): string {
+  return `opt-${crypto.randomUUID()}`;
+}
+
+function buildOwnMessage(
+  conversation: ChatConversationSummary,
+  tenantId: string,
+  userId: string,
+  partial: Pick<ChatMessage, 'id' | 'body' | 'messageType' | 'mediaUrl' | 'mediaMime' | 'mediaDurationSec'> & {
+    pending?: boolean;
+  },
+): ChatMessage {
+  const selfPeer = conversation.participants.find((p) => p.userId === userId);
+  return {
+    id: partial.id,
+    conversationId: conversation.id,
+    tenantId,
+    senderUserId: userId,
+    senderFilhoId: selfPeer?.filhoId || null,
+    senderNome: 'Você',
+    senderFotoUrl: selfPeer?.fotoUrl || null,
+    body: partial.body,
+    messageType: partial.messageType,
+    mediaUrl: partial.mediaUrl,
+    mediaMime: partial.mediaMime,
+    mediaDurationSec: partial.mediaDurationSec,
+    createdAt: new Date().toISOString(),
+    isOwn: true,
+    pending: partial.pending,
+  };
+}
+
+function rowToChatMessage(
+  row: {
+    id: string;
+    conversation_id: string;
+    tenant_id: string;
+    sender_user_id: string;
+    sender_filho_id: string | null;
+    body: string | null;
+    message_type: string;
+    media_url: string | null;
+    media_mime: string | null;
+    media_duration_sec: number | null;
+    created_at: string;
+  },
+  userId: string,
+  participants: ChatParticipantSummary[],
+): ChatMessage {
+  const isOwn = row.sender_user_id === userId;
+  const peer = participants.find((p) => p.userId === row.sender_user_id);
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    tenantId: row.tenant_id,
+    senderUserId: row.sender_user_id,
+    senderFilhoId: row.sender_filho_id,
+    senderNome: peer?.nome || (isOwn ? 'Você' : 'Participante'),
+    senderFotoUrl: peer?.fotoUrl || null,
+    body: row.body,
+    messageType: row.message_type as ChatMessage['messageType'],
+    mediaUrl: row.media_url,
+    mediaMime: row.media_mime,
+    mediaDurationSec: row.media_duration_sec,
+    createdAt: row.created_at,
+    isOwn,
+  };
+}
+
+function stripOwnPending(prev: ChatMessage[]): ChatMessage[] {
+  return prev.filter((m) => !(m.isOwn && m.pending));
+}
+
 type ChatThreadProps = {
   conversation: ChatConversationSummary;
   tenantId: string;
@@ -52,10 +125,20 @@ export function ChatThread({
   const [messages, setMessages] = useState<ChatMessage[]>(cachedMessages || []);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(!cachedMessages);
-  const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const applyMessages = useCallback(
+    (updater: (prev: ChatMessage[]) => ChatMessage[]) => {
+      setMessages((prev) => {
+        const next = updater(prev);
+        writeStaleCache(messagesCacheKey, next);
+        return next;
+      });
+    },
+    [messagesCacheKey],
+  );
 
   const displayTitle =
     conversation.type === 'group'
@@ -123,79 +206,123 @@ export function ChatThread({
             created_at: string;
           };
 
-          setMessages((prev) => {
+          applyMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev;
-            const isOwn = row.sender_user_id === userId;
-            const peer = conversation.participants.find((p) => p.userId === row.sender_user_id);
-            const next = [
-              ...prev,
-              {
-                id: row.id,
-                conversationId: row.conversation_id,
-                tenantId: row.tenant_id,
-                senderUserId: row.sender_user_id,
-                senderFilhoId: row.sender_filho_id,
-                senderNome: peer?.nome || (isOwn ? 'Você' : 'Participante'),
-                senderFotoUrl: peer?.fotoUrl || null,
-                body: row.body,
-                messageType: row.message_type as ChatMessage['messageType'],
-                mediaUrl: row.media_url,
-                mediaMime: row.media_mime,
-                mediaDurationSec: row.media_duration_sec,
-                createdAt: row.created_at,
-                isOwn,
-              },
-            ];
-            writeStaleCache(messagesCacheKey, next);
-            return next;
+            let base = prev;
+            if (row.sender_user_id === userId) {
+              base = stripOwnPending(prev);
+            }
+            const incoming = rowToChatMessage(row, userId, conversation.participants);
+            return [...base, incoming];
           });
 
           if (row.sender_user_id !== userId) void markRead();
         },
       );
 
-    const t = setTimeout(() => {
-      void channel.subscribe();
-    }, 0);
+    void channel.subscribe();
 
     return () => {
-      clearTimeout(t);
       void supabase.removeChannel(channel);
     };
-  }, [conversation.id, conversation.participants, userId, markRead]);
+  }, [conversation.id, conversation.participants, userId, markRead, applyMessages]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const last = messages[messages.length - 1];
+    bottomRef.current?.scrollIntoView({
+      behavior: last?.isOwn ? 'auto' : 'smooth',
+    });
   }, [messages]);
 
-  const sendText = async () => {
+  const confirmSentMessage = (clientId: string, serverId: string, createdAt: string) => {
+    applyMessages((prev) =>
+      prev.map((m) =>
+        m.id === clientId
+          ? { ...m, id: serverId, createdAt, pending: false }
+          : m,
+      ),
+    );
+  };
+
+  const sendText = () => {
     const text = input.trim();
-    if (!text || sending) return;
-    setSending(true);
-    try {
-      const res = await authFetch(`/api/v1/chat/conversations/${conversation.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: text, messageType: 'text' }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Erro ao enviar');
+    if (!text) return;
+
+    const clientId = newClientMessageId();
+    applyMessages((prev) => [
+      ...prev,
+      buildOwnMessage(conversation, tenantId, userId, {
+        id: clientId,
+        body: text,
+        messageType: 'text',
+        mediaUrl: null,
+        mediaMime: null,
+        mediaDurationSec: null,
+        pending: true,
+      }),
+    ]);
+    setInput('');
+    onMessageSent?.();
+
+    void (async () => {
+      try {
+        const res = await authFetch(`/api/v1/chat/conversations/${conversation.id}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ body: text, messageType: 'text' }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Erro ao enviar');
+        }
+        const data = await res.json();
+        const serverId = String(data?.message?.id || '').trim();
+        const createdAt = String(data?.message?.createdAt || new Date().toISOString());
+        if (serverId) {
+          applyMessages((prev) => {
+            if (prev.some((m) => m.id === serverId)) {
+              return stripOwnPending(prev.filter((m) => m.id !== clientId));
+            }
+            return prev.map((m) =>
+              m.id === clientId ? { ...m, id: serverId, createdAt, pending: false } : m,
+            );
+          });
+        } else {
+          confirmSentMessage(clientId, clientId, createdAt);
+        }
+      } catch (e) {
+        console.error('[ChatThread] send:', e);
+        applyMessages((prev) => prev.filter((m) => m.id !== clientId));
+        setInput(text);
+        alert(e instanceof Error ? e.message : 'Erro ao enviar mensagem');
       }
-      setInput('');
-      onMessageSent?.();
-    } catch (e) {
-      console.error('[ChatThread] send:', e);
-      alert(e instanceof Error ? e.message : 'Erro ao enviar mensagem');
-    } finally {
-      setSending(false);
-    }
+    })();
   };
 
   const uploadAndSend = async (file: File, durationSec?: number) => {
     if (uploading) return;
-    setUploading(true);
     const contentType = guessChatMimeType(file);
+    const mediaType = contentType.startsWith('video/')
+      ? 'video'
+      : contentType.startsWith('audio/')
+        ? 'audio'
+        : 'image';
+    const clientId = newClientMessageId();
+
+    applyMessages((prev) => [
+      ...prev,
+      buildOwnMessage(conversation, tenantId, userId, {
+        id: clientId,
+        body: null,
+        messageType: mediaType,
+        mediaUrl: URL.createObjectURL(file),
+        mediaMime: contentType,
+        mediaDurationSec: durationSec ?? null,
+        pending: true,
+      }),
+    ]);
+    setUploading(true);
+
     try {
       const resUrl = await authFetch(`/api/v1/chat/conversations/${conversation.id}/upload`, {
         method: 'POST',
@@ -225,10 +352,40 @@ export function ChatThread({
         }),
       });
       if (!resMsg.ok) throw new Error('Erro ao registrar mensagem');
+      const data = await resMsg.json();
+      const serverId = String(data?.message?.id || '').trim();
+      const createdAt = String(data?.message?.createdAt || new Date().toISOString());
+      applyMessages((prev) => {
+        const pending = prev.find((m) => m.id === clientId);
+        if (pending?.mediaUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(pending.mediaUrl);
+        }
+        if (serverId && prev.some((m) => m.id === serverId)) {
+          return stripOwnPending(prev.filter((m) => m.id !== clientId));
+        }
+        return prev.map((m) =>
+          m.id === clientId
+            ? {
+                ...m,
+                id: serverId || clientId,
+                createdAt,
+                mediaUrl: publicUrl,
+                mediaMime: storedType || contentType,
+                pending: false,
+              }
+            : m,
+        );
+      });
       onMessageSent?.();
-      void loadMessages();
     } catch (e) {
       console.error('[ChatThread] upload:', e);
+      applyMessages((prev) => {
+        const pending = prev.find((m) => m.id === clientId);
+        if (pending?.mediaUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(pending.mediaUrl);
+        }
+        return prev.filter((m) => m.id !== clientId);
+      });
       alert(e instanceof Error ? e.message : 'Erro ao enviar mídia');
     } finally {
       setUploading(false);
@@ -287,14 +444,14 @@ export function ChatThread({
       </div>
 
       <div className="border-t border-[#1E242B] bg-[#12161A] p-3">
-        {(uploading || sending) && (
+        {uploading && (
           <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-wide text-primary">
-            {uploading ? 'Enviando mídia...' : 'Enviando...'}
+            Enviando mídia...
           </p>
         )}
         <div className="flex items-end gap-2">
           <ChatAttachMenu
-            disabled={sending || uploading}
+            disabled={uploading}
             onPick={(f) => void uploadAndSend(f)}
             onRecorded={(file, dur) => void uploadAndSend(file, dur)}
           />
@@ -304,21 +461,21 @@ export function ChatThread({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                void sendText();
+                sendText();
               }
             }}
             placeholder="Digite sua mensagem..."
             rows={1}
             className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:border-primary/50 focus:outline-none"
-            disabled={sending || uploading}
+            disabled={uploading}
           />
           <button
             type="button"
-            onClick={() => void sendText()}
-            disabled={!input.trim() || sending || uploading}
+            onClick={sendText}
+            disabled={!input.trim() || uploading}
             className={cn(
               'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-primary text-black transition-opacity',
-              (!input.trim() || sending || uploading) && 'opacity-40',
+              (!input.trim() || uploading) && 'opacity-40',
             )}
             aria-label="Enviar"
           >

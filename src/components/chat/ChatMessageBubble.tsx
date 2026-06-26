@@ -59,6 +59,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
           isOwn
             ? 'rounded-br-md bg-primary text-black'
             : 'rounded-bl-md border border-[#1E242B] bg-[#1A1F26] text-[#F1F5F9]',
+          message.pending && 'opacity-80',
         )}
       >
         {!isOwn && (

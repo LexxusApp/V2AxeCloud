@@ -938,9 +938,6 @@ export function registerChatRoutes(app: Express, deps: Deps) {
     const conversationId = String(req.params.id || "").trim();
 
     try {
-      const isMember = await assertParticipant(supabaseAdmin, conversationId, user.id);
-      if (!isMember) return res.status(403).json({ error: "Acesso negado" });
-
       const {
         body,
         messageType = "text",
@@ -956,17 +953,21 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       if (type === "text" && !textBody) return res.status(400).json({ error: "Mensagem vazia" });
       if (type !== "text" && !mediaUrl) return res.status(400).json({ error: "mediaUrl obrigatório" });
 
-      const selfFilho = await loadFilhoForUser(supabaseAdmin, user);
+      const [isMember, selfFilho, { data: conv }] = await Promise.all([
+        assertParticipant(supabaseAdmin, conversationId, user.id),
+        loadFilhoForUser(supabaseAdmin, user),
+        supabaseAdmin
+          .from("chat_conversations")
+          .select("tenant_id")
+          .eq("id", conversationId)
+          .maybeSingle(),
+      ]);
+
+      if (!isMember) return res.status(403).json({ error: "Acesso negado" });
+      if (!conv) return res.status(404).json({ error: "Conversa não encontrada" });
       if (selfFilho && String(selfFilho.status || "").toLowerCase() === "inativo") {
         return res.status(403).json({ error: "Conta inativa" });
       }
-
-      const { data: conv } = await supabaseAdmin
-        .from("chat_conversations")
-        .select("tenant_id")
-        .eq("id", conversationId)
-        .maybeSingle();
-      if (!conv) return res.status(404).json({ error: "Conversa não encontrada" });
 
       const now = new Date().toISOString();
       const { data: msg, error: msgErr } = await supabaseAdmin
@@ -989,37 +990,8 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         .single();
       if (msgErr) throw msgErr;
 
-      await supabaseAdmin
-        .from("chat_conversations")
-        .update({ last_message_at: now })
-        .eq("id", conversationId);
-
-      await supabaseAdmin
-        .from("chat_participants")
-        .update({ last_read_at: now })
-        .eq("conversation_id", conversationId)
-        .eq("user_id", user.id);
-
-      const { data: participants } = await supabaseAdmin
-        .from("chat_participants")
-        .select("user_id, muted")
-        .eq("conversation_id", conversationId)
-        .neq("user_id", user.id);
-
       const senderName = selfFilho?.nome || "Zelador(a)";
       const preview = messagePreview(type, textBody || null);
-      const notifyIds = (participants || []).filter((p) => !p.muted).map((p) => p.user_id);
-
-      void sendChatPushToUsers(
-        supabaseAdmin,
-        notifyIds,
-        {
-          title: senderName,
-          body: preview,
-          url: `/chat?conversation=${conversationId}`,
-        },
-        user.id
-      );
 
       res.json({
         message: {
@@ -1027,6 +999,42 @@ export function registerChatRoutes(app: Express, deps: Deps) {
           createdAt: msg.created_at,
         },
       });
+
+      void (async () => {
+        try {
+          await Promise.all([
+            supabaseAdmin
+              .from("chat_conversations")
+              .update({ last_message_at: now })
+              .eq("id", conversationId),
+            supabaseAdmin
+              .from("chat_participants")
+              .update({ last_read_at: now })
+              .eq("conversation_id", conversationId)
+              .eq("user_id", user.id),
+          ]);
+
+          const { data: participants } = await supabaseAdmin
+            .from("chat_participants")
+            .select("user_id, muted")
+            .eq("conversation_id", conversationId)
+            .neq("user_id", user.id);
+
+          const notifyIds = (participants || []).filter((p) => !p.muted).map((p) => p.user_id);
+          await sendChatPushToUsers(
+            supabaseAdmin,
+            notifyIds,
+            {
+              title: senderName,
+              body: preview,
+              url: `/chat?conversation=${conversationId}`,
+            },
+            user.id
+          );
+        } catch (bgErr) {
+          console.error("[CHAT] pós-envio (atualização/push):", bgErr);
+        }
+      })();
     } catch (error: unknown) {
       console.error("[CHAT] send message:", error);
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar mensagem") });

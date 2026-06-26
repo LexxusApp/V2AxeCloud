@@ -44,6 +44,8 @@ export type ChatMessage = {
   mediaDurationSec: number | null;
   createdAt: string;
   isOwn: boolean;
+  /** Ainda aguardando confirmação do servidor (envio otimista). */
+  pending?: boolean;
 };
 
 export type ChatContact = {
