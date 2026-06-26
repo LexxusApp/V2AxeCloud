@@ -97,47 +97,29 @@ function HeroMetric({
   label,
   value,
   sub,
-  icon: Icon,
-  tone = "default",
   onClick,
 }: {
   label: string;
   value: string;
   sub?: string;
-  icon: LucideIcon;
-  tone?: "default" | "warn" | "danger" | "success";
   onClick?: () => void;
 }) {
-  const toneClass =
-    tone === "warn"
-      ? "admin-metric-hero--warn"
-      : tone === "danger"
-        ? "admin-metric-hero--danger"
-        : tone === "success"
-          ? "admin-metric-hero--success"
-          : "";
-
   const content = (
-    <div className="flex items-start justify-between gap-3 pl-2">
-      <div className="min-w-0">
-        <p className="admin-label">{label}</p>
-        <p className="admin-metric-hero-value admin-mono">{value}</p>
-        {sub ? <p className="mt-1 text-xs text-[var(--ac-text-muted)]">{sub}</p> : null}
-      </div>
-      <div className="admin-action-tile-icon">
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </div>
+    <div className="min-w-0">
+      <p className="admin-label">{label}</p>
+      <p className="admin-metric-hero-value admin-mono">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-[var(--ac-text-muted)]">{sub}</p> : null}
     </div>
   );
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={cn("admin-metric-hero text-left w-full", toneClass)}>
+      <button type="button" onClick={onClick} className="admin-metric-hero text-left w-full">
         {content}
       </button>
     );
   }
-  return <article className={cn("admin-metric-hero", toneClass)}>{content}</article>;
+  return <article className="admin-metric-hero">{content}</article>;
 }
 
 function CompactMetric({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -341,23 +323,18 @@ export function OverviewPanel({
           label="Terreiros activos"
           value={statLoading ? "…" : formatStatNumber(activeCount)}
           sub={blockedCount > 0 ? `${blockedCount} bloqueado(s) · ${tenants.length} total` : `${tenants.length} cadastrados`}
-          icon={Building2}
-          tone={blockedCount > 0 ? "warn" : "success"}
           onClick={() => onTab("tenants")}
         />
         <HeroMetric
           label="MRR referência"
           value={busy && !tenants.length ? "…" : formatCurrencyBRL(estimatedRevenue)}
           sub={`${overview?.subscriptionsCount ?? 0} assinatura(s) activas`}
-          icon={Wallet}
           onClick={() => onTab("plans")}
         />
         <HeroMetric
           label="Infra Supabase"
           value={metrics?.available ? (criticalInfra ? "Atenção" : "Operacional") : "—"}
           sub={metrics?.error ? "verificar configuração" : metrics?.available ? "métricas em tempo real" : "sem dados"}
-          icon={Server}
-          tone={criticalInfra ? "danger" : metrics?.available ? "success" : "default"}
           onClick={() => onTab("metrics")}
         />
       </section>

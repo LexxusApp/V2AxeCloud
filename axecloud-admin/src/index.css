@@ -5,11 +5,11 @@
   --ac-ink: #1d2939;
   --ac-ink-soft: #344054;
   --ac-ink-muted: #475467;
-  --ac-paper: #f4f5f7;
-  --ac-paper-elevated: #f9fafb;
+  --ac-paper: #e4e7ec;
+  --ac-paper-elevated: #f2f4f7;
   --ac-paper-surface: #ffffff;
-  --ac-paper-border: #e4e7ec;
-  --ac-paper-border-strong: #d0d5dd;
+  --ac-paper-border: #c8cdd4;
+  --ac-paper-border-strong: #98a2b3;
   --ac-text: #101828;
   --ac-text-muted: #667085;
   --ac-text-faint: #98a2b3;
@@ -27,8 +27,8 @@
   --ac-topbar-h: 3.5rem;
   --ac-radius: 8px;
   --ac-radius-sm: 6px;
-  --ac-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
-  --ac-shadow-lg: 0 4px 6px -1px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --ac-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 4px 12px rgba(16, 24, 40, 0.06);
+  --ac-shadow-lg: 0 4px 16px rgba(16, 24, 40, 0.1), 0 8px 24px rgba(16, 24, 40, 0.06);
   --ac-font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -188,8 +188,23 @@ textarea {
 .admin-body {
   display: flex;
   flex: 1;
+  min-height: 100vh;
   min-height: 0;
-  min-height: calc(100vh - var(--ac-topbar-h));
+}
+
+.admin-mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--ac-paper-surface);
+  border-bottom: 1px solid var(--ac-paper-border);
+}
+
+@media (min-width: 1024px) {
+  .admin-mobile-bar {
+    display: none;
+  }
 }
 
 .admin-shell {
@@ -205,7 +220,10 @@ textarea {
   flex-direction: column;
   background: var(--ac-paper-surface);
   border-right: 1px solid var(--ac-paper-border);
-  min-height: 0;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
   overflow: hidden;
 }
 
@@ -354,15 +372,13 @@ textarea {
 
 .admin-nav-icon {
   display: flex;
-  height: 2rem;
-  width: 2rem;
+  height: 1.25rem;
+  width: 1.25rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: var(--ac-radius-sm);
-  background: var(--ac-paper-elevated);
-  color: var(--ac-text-muted);
-  transition: background 0.12s, color 0.12s;
+  color: var(--ac-text-faint);
+  transition: color 0.12s;
 }
 
 .admin-nav-item-idle:hover {
@@ -371,19 +387,18 @@ textarea {
 }
 
 .admin-nav-item-idle:hover .admin-nav-icon {
-  color: var(--ac-text);
+  color: var(--ac-text-muted);
 }
 
 .admin-nav-item-active {
   color: var(--ac-text);
   font-weight: 600;
-  background: var(--ac-accent-soft);
+  background: var(--ac-paper-elevated);
   border-color: transparent;
 }
 
 .admin-nav-item-active .admin-nav-icon {
-  background: var(--ac-accent);
-  color: #fff;
+  color: var(--ac-text);
 }
 
 .admin-sidebar-brand {
@@ -433,27 +448,10 @@ textarea {
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
-.admin-metric-hero::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--ac-accent);
-  border-radius: var(--ac-radius) 0 0 var(--ac-radius);
-}
-
-.admin-metric-hero--warn::before {
-  background: var(--ac-warn);
-}
-
-.admin-metric-hero--danger::before {
-  background: var(--ac-danger);
-}
-
+.admin-metric-hero--warn::before,
+.admin-metric-hero--danger::before,
 .admin-metric-hero--success::before {
-  background: var(--ac-success);
+  display: none;
 }
 
 button.admin-metric-hero:hover,
@@ -488,6 +486,7 @@ a.admin-metric-hero:hover {
   border: 1px solid var(--ac-paper-border);
   background: var(--ac-paper-surface);
   padding: 0.85rem 1rem;
+  box-shadow: var(--ac-shadow);
 }
 
 .admin-metric-compact-value {
@@ -512,14 +511,14 @@ a.admin-metric-hero:hover {
 
 .admin-action-tile {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-radius: var(--ac-radius);
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--ac-radius-sm);
   border: 1px solid var(--ac-paper-border);
   background: var(--ac-paper-surface);
-  text-align: left;
+  text-align: center;
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
 }
 
@@ -536,8 +535,9 @@ a.admin-metric-hero:hover {
   align-items: center;
   justify-content: center;
   border-radius: var(--ac-radius-sm);
-  background: var(--ac-accent-soft);
-  color: var(--ac-accent);
+  border: 1px solid var(--ac-paper-border);
+  background: var(--ac-paper-elevated);
+  color: var(--ac-text-muted);
 }
 
 .admin-action-tile-label {
@@ -556,16 +556,18 @@ a.admin-metric-hero:hover {
   align-items: center;
   justify-content: center;
   border-radius: var(--ac-radius-sm);
-  background: var(--ac-accent-soft);
+  border: 1px solid var(--ac-paper-border);
+  background: var(--ac-paper-elevated);
   font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--ac-accent);
+  color: var(--ac-text-muted);
   letter-spacing: -0.02em;
 }
 
 .admin-tenant-avatar--blocked {
-  background: var(--ac-danger-soft);
-  color: var(--ac-danger);
+  background: var(--ac-paper-elevated);
+  color: var(--ac-text-faint);
+  border-style: dashed;
 }
 
 .admin-table-toolbar {
@@ -576,7 +578,7 @@ a.admin-metric-hero:hover {
   gap: 0.75rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--ac-paper-border);
-  background: var(--ac-paper-elevated);
+  background: var(--ac-paper-surface);
 }
 
 .admin-row-menu {

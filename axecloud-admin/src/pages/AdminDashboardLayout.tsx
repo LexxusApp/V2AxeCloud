@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   Bell,
   Building2,
-  ChevronRight,
   CreditCard,
   FlaskConical,
   HardDrive,
@@ -16,7 +15,6 @@ import {
   MessageCircle,
   PlusCircle,
   ScrollText,
-  Search,
   Shield,
   X,
 } from "lucide-react";
@@ -68,6 +66,22 @@ const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
 
 export function sectionLabel(tab: AdminNavTab): string {
   return ALL_NAV.find((x) => x.id === tab)?.label ?? "Console";
+}
+
+function SidebarBrand() {
+  return (
+    <div className="admin-sidebar-brand">
+      <div className="flex items-center gap-2.5 px-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] text-[var(--ac-text-muted)]">
+          <Shield className="h-4 w-4" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--ac-text)] leading-tight truncate">AxéCloud Console</p>
+          <p className="text-[10px] text-[var(--ac-text-faint)]">Administração global</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function NavButton({
@@ -122,65 +136,38 @@ function SidebarNav({
   );
 }
 
-function UserMenu({
+function SidebarSession({
   displayName,
   email,
   initials,
   onLogout,
+  onNotifications,
 }: {
   displayName: string;
   email: string;
   initials: string;
   onLogout: () => void;
+  onNotifications: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-
   return (
-    <div className="admin-user-menu" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-2 py-1.5 transition hover:bg-[var(--ac-paper-elevated)]"
-        aria-expanded={open}
-        aria-haspopup="menu"
-      >
-        <div className="flex h-7 w-7 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-[10px] font-bold text-white">
-          {initials}
+    <div className="admin-sidebar-session">
+      <div className="flex items-center gap-2.5">
+        <div className="admin-tenant-avatar">{initials}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[var(--ac-text)] truncate">{displayName}</p>
+          <p className="text-[10px] text-[var(--ac-text-muted)] truncate">{email}</p>
         </div>
-        <span className="hidden sm:block max-w-[120px] truncate text-xs font-semibold text-[var(--ac-text)]">
-          {displayName}
-        </span>
-      </button>
-      {open && (
-        <div className="admin-user-menu-panel" role="menu">
-          <div className="px-2 py-2 border-b border-[var(--ac-paper-border)] mb-1">
-            <p className="text-sm font-semibold text-[var(--ac-text)] truncate">{displayName}</p>
-            <p className="text-[11px] text-[var(--ac-text-muted)] truncate">{email}</p>
-          </div>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onLogout();
-            }}
-            className="admin-user-menu-item admin-user-menu-item--danger"
-          >
-            <LogOut className="h-4 w-4" />
-            Terminar sessão
-          </button>
-        </div>
-      )}
+      </div>
+      <div className="mt-2.5 flex gap-1.5">
+        <button type="button" onClick={onNotifications} className="admin-btn-secondary flex-1 !py-1.5 text-xs">
+          <Bell className="h-3.5 w-3.5" />
+          Alertas
+        </button>
+        <button type="button" onClick={onLogout} className="admin-btn-secondary flex-1 !py-1.5 text-xs">
+          <LogOut className="h-3.5 w-3.5" />
+          Sair
+        </button>
+      </div>
     </div>
   );
 }
@@ -188,21 +175,14 @@ function UserMenu({
 export function AdminPageHeader({
   title,
   subtitle,
-  breadcrumb = "Console",
   action,
 }: {
   title: string;
   subtitle?: string;
-  breadcrumb?: string;
   action?: ReactNode;
 }) {
   return (
-    <header className="admin-page-header">
-      <nav className="admin-breadcrumb" aria-label="Navegação">
-        <span>AxéCloud</span>
-        <ChevronRight className="admin-breadcrumb-sep h-3.5 w-3.5" aria-hidden />
-        <span className="admin-breadcrumb-current">{breadcrumb}</span>
-      </nav>
+    <header className="mb-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="admin-page-title">{title}</h1>
@@ -243,44 +223,29 @@ export function AdminDashboardLayout({
   const subtitle = SECTION_SUBTITLES[tab];
   const showPageHeader = tab !== "overview";
 
+  const sessionFooter = (
+    <SidebarSession
+      displayName={displayName}
+      email={email}
+      initials={initials}
+      onLogout={onLogout}
+      onNotifications={() => onTab("whatsapp")}
+    />
+  );
+
   return (
     <div className="admin-app">
-      <header className="admin-topbar">
+      <div className="admin-mobile-bar lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="admin-btn-secondary !p-2 lg:hidden"
+          className="admin-btn-secondary !p-2"
           aria-label="Abrir menu"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="admin-topbar-brand">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-accent)] text-white">
-            <Shield className="h-4 w-4" strokeWidth={2} />
-          </div>
-          <div className="hidden sm:block min-w-0">
-            <p className="text-sm font-semibold text-[var(--ac-text)] leading-tight">AxéCloud Console</p>
-            <p className="text-[10px] text-[var(--ac-text-faint)]">Administração global</p>
-          </div>
-        </div>
-        <div className="admin-topbar-search">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)]" />
-            <input type="search" placeholder="Pesquisar terreiros, eventos…" aria-label="Pesquisar" readOnly />
-          </div>
-        </div>
-        <div className="admin-topbar-actions">
-          <button
-            type="button"
-            onClick={() => onTab("whatsapp")}
-            className="admin-btn-secondary !p-2"
-            title="Notificações"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
-          <UserMenu displayName={displayName} email={email} initials={initials} onLogout={onLogout} />
-        </div>
-      </header>
+        <p className="text-sm font-semibold text-[var(--ac-text)] truncate">{sectionLabel(tab)}</p>
+      </div>
 
       {mobileOpen && (
         <>
@@ -291,8 +256,8 @@ export function AdminDashboardLayout({
             onClick={() => setMobileOpen(false)}
           />
           <div className="admin-mobile-drawer lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-            <div className="flex items-center justify-between border-b border-[var(--ac-paper-border)] px-4 py-3">
-              <span className="text-sm font-semibold text-[var(--ac-text)]">Navegação</span>
+            <div className="flex items-center justify-between border-b border-[var(--ac-paper-border)] px-3 py-2.5">
+              <SidebarBrand />
               <button type="button" onClick={() => setMobileOpen(false)} className="admin-btn-ghost !p-2" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
@@ -304,12 +269,14 @@ export function AdminDashboardLayout({
                 Novo terreiro
               </button>
             </div>
+            {sessionFooter}
           </div>
         </>
       )}
 
       <div className="admin-body">
         <aside className="admin-sidebar" aria-label="Menu principal">
+          <SidebarBrand />
           <SidebarNav tab={tab} onTab={onTab} />
           <div className="admin-sidebar-cta">
             <button type="button" className="admin-btn-primary" onClick={() => onTab("create")}>
@@ -317,6 +284,7 @@ export function AdminDashboardLayout({
               Novo terreiro
             </button>
           </div>
+          {sessionFooter}
         </aside>
 
         <div className="admin-workspace">
@@ -327,8 +295,8 @@ export function AdminDashboardLayout({
                   className={cn(
                     "mb-6 flex items-start gap-3 rounded-[var(--ac-radius-sm)] border px-4 py-3 text-sm",
                     successMsg
-                      ? "border-[#abefc6] bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
-                      : "border-[#fecdca] bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+                      ? "border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] text-[var(--ac-text)]"
+                      : "border-[var(--ac-paper-border-strong)] bg-[var(--ac-paper-elevated)] text-[var(--ac-text)]"
                   )}
                   role="status"
                 >
@@ -336,7 +304,7 @@ export function AdminDashboardLayout({
                   <button
                     type="button"
                     onClick={onDismissMsg}
-                    className="shrink-0 rounded-md p-1 hover:bg-[var(--ac-accent-soft)]"
+                    className="shrink-0 rounded-md p-1 hover:bg-[var(--ac-paper-elevated)]"
                     aria-label="Fechar"
                   >
                     <X className="h-4 w-4" />
@@ -345,7 +313,7 @@ export function AdminDashboardLayout({
               )}
 
               {showPageHeader && (
-                <AdminPageHeader title={sectionLabel(tab)} subtitle={subtitle} breadcrumb={sectionLabel(tab)} />
+                <AdminPageHeader title={sectionLabel(tab)} subtitle={subtitle} />
               )}
 
               {children}
@@ -360,26 +328,18 @@ export function AdminDashboardLayout({
 export function AdminStatCard({
   title,
   value,
-  icon: Icon,
   hint,
 }: {
   title: string;
   value: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   hint?: string;
 }) {
   return (
     <article className="admin-metric-compact">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="admin-label">{title}</p>
-          <p className="admin-metric-compact-value admin-mono">{value}</p>
-          {hint ? <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">{hint}</p> : null}
-        </div>
-        <div className="admin-action-tile-icon !h-8 !w-8">
-          <Icon className="h-4 w-4" strokeWidth={1.75} />
-        </div>
-      </div>
+      <p className="admin-label">{title}</p>
+      <p className="admin-metric-compact-value admin-mono">{value}</p>
+      {hint ? <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">{hint}</p> : null}
     </article>
   );
 }
@@ -419,17 +379,11 @@ export function AdminQuickActions({
       <p className="admin-kicker">Fluxo</p>
       <h3 className="admin-section-title mt-0.5 mb-4">Ações rápidas</h3>
       <div className="admin-action-tile-grid">
-        {items.map((item) => {
-          const Icon = item.icon ?? PlusCircle;
-          return (
-            <button key={item.label} type="button" onClick={item.onClick} className="admin-action-tile">
-              <span className="admin-action-tile-icon">
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="admin-action-tile-label">{item.label}</span>
-            </button>
-          );
-        })}
+        {items.map((item) => (
+          <button key={item.label} type="button" onClick={item.onClick} className="admin-action-tile">
+            <span className="admin-action-tile-label">{item.label}</span>
+          </button>
+        ))}
       </div>
     </section>
   );
