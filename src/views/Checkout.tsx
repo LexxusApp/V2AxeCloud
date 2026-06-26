@@ -1,10 +1,12 @@
-﻿import { motion } from 'framer-motion';
-import { ShieldCheck, TreePine } from 'lucide-react';
+﻿import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Loader2, ShieldCheck, TreePine } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { RegistrationProgress } from '../components/RegistrationProgress';
 import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
+import { supabase } from '../lib/supabase';
 
 const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
 
@@ -15,13 +17,52 @@ function readTenantFromUrl(): string {
 
 export default function Checkout() {
   const { premium: landingPrice } = usePlansCatalog();
-  const tenantId = readTenantFromUrl();
+  const [tenantId, setTenantId] = useState(() => readTenantFromUrl());
+  const [resolving, setResolving] = useState(() => !readTenantFromUrl());
+
+  useEffect(() => {
+    if (tenantId) {
+      setResolving(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const uid = data.session?.user?.id?.trim();
+        if (cancelled) return;
+        if (uid) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('tenant', uid);
+          window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+          setTenantId(uid);
+          return;
+        }
+      } finally {
+        if (!cancelled) setResolving(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  if (resolving) {
+    return (
+      <motion.div className={cn('relative flex min-h-screen items-center justify-center px-4', fontLogin)}>
+        <AuthScreenBackground variant="dark" />
+        <Loader2 className="relative z-10 h-8 w-8 animate-spin text-[#f2b90f]" />
+      </motion.div>
+    );
+  }
 
   if (!tenantId) {
     return (
       <motion.div className={cn('relative flex min-h-screen items-center justify-center px-4', fontLogin)}>
         <AuthScreenBackground variant="dark" />
-        <p className="relative z-10 text-center text-sm text-[#b8bbc4]">
+        <p className="relative z-10 max-w-sm text-center text-sm text-[#b8bbc4]">
           Link de ativação inválido. Volte ao cadastro ou faça login.
         </p>
       </motion.div>

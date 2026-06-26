@@ -5,7 +5,8 @@ import { cn } from '../lib/utils';
 import { PLAN_NAMES, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../lib/plansDisplay';
-import { ROUTES } from '../lib/routes';
+import { checkoutPathForTenant } from '../lib/routes';
+import { supabase } from '../lib/supabase';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 
@@ -135,7 +136,18 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
     }
 
     setLoading(planId);
-    window.location.href = ROUTES.checkout;
+    let tenantId = String(tenantData?.tenant_id || '').trim();
+    if (!tenantId) {
+      const { data } = await supabase.auth.getSession();
+      tenantId = data.session?.user?.id || '';
+    }
+    const path = checkoutPathForTenant(tenantId);
+    if (!path) {
+      alert('Não foi possível abrir o checkout. Faça login novamente.');
+      setLoading(null);
+      return;
+    }
+    window.location.href = path;
   };
 
   const formatPrice = (price?: number, fallbackReais?: number) => {

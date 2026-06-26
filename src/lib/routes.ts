@@ -30,6 +30,13 @@ export const ROUTES = {
   giraSenhas: '/senhas',
 } as const;
 
+/** Checkout EFI exige `?tenant=` (id do zelador / linha em subscriptions). */
+export function checkoutPathForTenant(tenantId: string | null | undefined): string | null {
+  const id = String(tenantId || '').trim();
+  if (!id) return null;
+  return `${ROUTES.checkout}?tenant=${encodeURIComponent(id)}`;
+}
+
 export function terreiroProfilePath(slug: string): string {
   return `/terreiros/${encodeURIComponent(slug)}`;
 }

@@ -9,7 +9,8 @@ import {
 } from '../../constants/plans';
 import { usePlansCatalog } from '../../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../../lib/plansDisplay';
-import { ROUTES } from '../../lib/routes';
+import { checkoutPathForTenant } from '../../lib/routes';
+import { supabase } from '../../lib/supabase';
 
 type SettingsSubscriptionPanelProps = {
   tenantData: Record<string, unknown> | null | undefined;
@@ -74,6 +75,7 @@ function statusBadge(status: string | undefined, isLifetime: boolean) {
 
 export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPanelProps) {
   const [renewLoading, setRenewLoading] = useState(false);
+  const [renewError, setRenewError] = useState<string | null>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
 
   const planKey = canonicalPlanSlug(String(tenantData?.plan || ''));
@@ -95,9 +97,26 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
     plansConfig.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium,
   );
 
-  function handleRenew() {
+  async function handleRenew() {
     setRenewLoading(true);
-    window.location.href = ROUTES.checkout;
+    setRenewError(null);
+    try {
+      let tenantId = String(tenantData?.tenant_id || '').trim();
+      if (!tenantId) {
+        const { data } = await supabase.auth.getSession();
+        tenantId = data.session?.user?.id || '';
+      }
+      const path = checkoutPathForTenant(tenantId);
+      if (!path) {
+        setRenewError('Não foi possível abrir o checkout. Faça login novamente.');
+        setRenewLoading(false);
+        return;
+      }
+      window.location.href = path;
+    } catch {
+      setRenewError('Erro ao abrir o checkout. Tente novamente.');
+      setRenewLoading(false);
+    }
   }
 
   if (fetchingPlans) {
@@ -177,10 +196,16 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
           </div>
 
           {!isLifetime && (
-            <button
-              type="button"
-              onClick={handleRenew}
-              disabled={renewLoading}
+            <div className="space-y-2">
+              {renewError ? (
+                <p className="rounded-xl border border-red-500/30 bg-red-950/30 px-3 py-2 text-xs font-bold text-red-300">
+                  {renewError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void handleRenew()}
+                disabled={renewLoading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-[#080A0D] shadow-md shadow-primary/15 transition-all hover:bg-[#fde047] disabled:opacity-50 sm:w-auto sm:px-6"
             >
               {renewLoading ? (
@@ -190,6 +215,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
               )}
               Renovar assinatura
             </button>
+            </div>
           )}
         </div>
 
