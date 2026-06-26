@@ -16,6 +16,7 @@ import { getBearerToken } from "./requireAuth.js";
 import { verifyUser } from "./verifyUser.js";
 import { verifyWhatsAppWebhook } from "./secureRoutes.js";
 import { consumeRateLimit } from "./rateLimit.js";
+import { validateWhatsAppOutboundMessage } from "./whatsappSendGuards.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 
@@ -155,13 +156,18 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
-      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 10, keyPrefix: "wa-broadcast" });
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "wa-broadcast" });
       if (!rl.allowed) {
         return sendJson(res, 429, { error: "Limite de transmissões excedido. Tente mais tarde." });
       }
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const message = String(body.message || "").trim();
-      if (!message) return sendJson(res, 400, { error: "Mensagem obrigatória." });
+      let message: string;
+      try {
+        message = validateWhatsAppOutboundMessage(String(body.message || ""));
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; message?: string };
+        return sendJson(res, e.statusCode || 400, { error: safeErrorMessage(e, "Mensagem inválida.") });
+      }
 
       const { sent, failed, total, lastError } = await broadcastWhatsAppForTenant(sb, user.id, message);
       if (!total) {
@@ -186,7 +192,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "send" && method === "POST") {
-      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 40, keyPrefix: "wa-send" });
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 25, keyPrefix: "wa-send" });
       if (!rl.allowed) {
         return sendJson(res, 429, { error: "Limite de envios WhatsApp excedido. Tente mais tarde." });
       }
@@ -206,7 +212,8 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         if (e.code === "WHATSAPP_INITIALIZING") {
           return whatsappInitializingResponse(res, err);
         }
-        const status = e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : 500;
+        const status =
+          e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : e.statusCode === 429 ? 429 : 500;
         return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao enviar mensagem") });
       }
     }
@@ -219,6 +226,10 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "test-message" && method === "POST") {
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-test" });
+      if (!rl.allowed) {
+        return sendJson(res, 429, { error: "Limite de testes WhatsApp excedido. Tente mais tarde." });
+      }
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { phone } = body;
       if (!phone) return sendJson(res, 400, { error: "Telefone é obrigatório." });

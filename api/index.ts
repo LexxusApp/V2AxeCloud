@@ -25,10 +25,10 @@ import {
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   getOfficialWhatsAppStatus,
-  sendEvolutionTextByInstance,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./lib/evolutionSendQueue.js";
 import {
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
@@ -45,6 +45,7 @@ import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
 import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext } from "./lib/whatsappSendCore.js";
+import { validateWhatsAppOutboundMessage } from "./lib/whatsappSendGuards.js";
 import { dispatchGiraWhatsApp, dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
@@ -101,6 +102,7 @@ import {
   webhookRateLimit,
   sensitiveActionRateLimit,
   whatsappSendRateLimit,
+  whatsappBroadcastRateLimit,
   pushDirectRateLimit,
   apiReadRateLimit,
   filhoLoginRateLimit,
@@ -3167,7 +3169,7 @@ async function startServer() {
               assinatura: cfg.signature,
             });
             welcomeStatus = "queued";
-            void sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
+            void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
               .then((r) => console.log(`[ADMIN] Welcome WhatsApp enviado para ${msisdn}`, r?.messageId || ""))
               .catch((err) => console.error(`[ADMIN] Welcome WhatsApp falhou (${msisdn}):`, err?.message || err));
           }
@@ -4719,7 +4721,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/whatsapp/broadcast", async (req, res) => {
+  app.post("/api/whatsapp/broadcast", whatsappBroadcastRateLimit, async (req, res) => {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
@@ -4727,8 +4729,12 @@ async function startServer() {
       const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
       if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
-      const message = String(req.body?.message || "").trim();
-      if (!message) return res.status(400).json({ error: "Mensagem obrigatória." });
+      let message: string;
+      try {
+        message = validateWhatsAppOutboundMessage(String(req.body?.message || ""));
+      } catch (error: any) {
+        return res.status(error?.statusCode || 400).json({ error: safeErrorMessage(error, "Mensagem inválida.") });
+      }
 
       const { sent, failed, total, lastError } = await broadcastWhatsAppForTenant(supabaseAdmin, user.id, message);
       if (!total) {
@@ -4777,7 +4783,8 @@ async function startServer() {
       if (error?.code === "WHATSAPP_INITIALIZING") {
         return whatsappInitializingResponse(res, error);
       }
-      const status = error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : 500;
+      const status =
+        error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : error?.statusCode === 429 ? 429 : 500;
       res.status(status).json({ error: safeErrorMessage(error, "Erro ao enviar mensagem") });
     }
   });

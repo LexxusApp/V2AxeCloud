@@ -1,8 +1,8 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
-  sendEvolutionTextByInstance,
 } from "../../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
 import {
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
@@ -125,7 +125,7 @@ export async function runCreateTenant(
           assinatura: cfg.signature,
         });
         welcomeStatus = "queued";
-        void sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text).catch((err) =>
+        void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text).catch((err) =>
           console.error("[adminCreateTenant] welcome WA:", err?.message || err)
         );
       }

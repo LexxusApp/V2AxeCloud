@@ -1,5 +1,6 @@
 import webpush from "web-push";
-import { sendEvolutionTextByInstance, CONSOLE_ADMIN_INSTANCE_NAME } from "../../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
+import { CONSOLE_ADMIN_INSTANCE_NAME } from "../../src/services/evolution.service.js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { listConsoleTenants } from "./listConsoleTenants.js";
 
@@ -157,7 +158,7 @@ export async function broadcastWhatsAppToLeaders(
       continue;
     }
     try {
-      await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
+      await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
       sent++;
     } catch {
       failed++;

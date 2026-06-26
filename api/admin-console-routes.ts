@@ -6,8 +6,8 @@ import {
   createInstanceWithPairingCode,
   getConsoleInstanceStatus,
   logoutEvolutionInstanceByName,
-  sendEvolutionTextByInstance,
 } from "../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./lib/evolutionSendQueue.js";
 import {
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
@@ -821,7 +821,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         site: cfg.loginUrl,
         assinatura: cfg.signature,
       });
-      const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
+      const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
       res.json({ success: true, msisdn, ...out });
     } catch (e: any) {
       console.error("[admin-console/welcome-message/test]", e);
@@ -840,7 +840,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     let phoneDigits = rawPhone.replace(/\D/g, "");
     if (!phoneDigits.startsWith("55")) phoneDigits = `55${phoneDigits}`;
     try {
-      const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phoneDigits, text);
+      const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, phoneDigits, text);
       void logEvent(deps.supabaseAdmin, {
         eventType: "whatsapp.test-message",
         userId: ctx.user.id,
@@ -1371,6 +1371,22 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/supabase-metrics]", e);
       res.status(500).json({ error: safeErrorMessage(e, "Erro ao obter métricas Supabase") });
+    }
+  });
+
+  app.get("/api/admin-console/whatsapp-dispatch-stats", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const periodRaw = String(req.query.period || "daily").trim().toLowerCase();
+    const period = periodRaw === "monthly" ? "monthly" : "daily";
+    try {
+      const { fetchWhatsAppDispatchStats } = await import("./lib/adminWhatsAppDispatchStats.js");
+      const stats = await fetchWhatsAppDispatchStats(deps.supabaseAdmin, period);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json(stats);
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp-dispatch-stats]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar disparos WhatsApp") });
     }
   });
 

@@ -4,8 +4,8 @@ import { normalizePlansCatalog } from "./plansCatalog.js";
 import { resolveTenantPremiumAmountCents } from "./premiumPricing.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
-  sendEvolutionTextByInstance,
 } from "../../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
 import {
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
@@ -222,7 +222,7 @@ export async function sendPostPaymentWelcomeWhatsApp(
     assinatura: signature,
   });
 
-  void sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
+  void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
     .then((r) => console.log(`[onboarding] WhatsApp pós-pagamento → ${msisdn}`, r?.messageId || ""))
     .catch((err) => console.error(`[onboarding] WhatsApp falhou:`, err?.message || err));
 

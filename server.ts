@@ -25,10 +25,10 @@ import {
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   getOfficialWhatsAppStatus,
-  sendEvolutionTextByInstance,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "./src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./api/lib/evolutionSendQueue.js";
 import {
   assertGalleryManager,
   enrichGalleryMediaRows,
@@ -1469,7 +1469,7 @@ async function startServer() {
               assinatura: cfg.signature,
             });
             welcomeStatus = "queued";
-            void sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
+            void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
               .then((r) => console.log(`[ADMIN] Welcome WhatsApp enviado para ${msisdn}`, r?.messageId || ""))
               .catch((err) => console.error(`[ADMIN] Welcome WhatsApp falhou (${msisdn}):`, err?.message || err));
           }

@@ -109,9 +109,23 @@ export const sensitiveActionRateLimit = createRateLimit({
 
 export const whatsappSendRateLimit = createRateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 40,
+  max: 25,
   keyPrefix: "wa-send",
   message: { error: "Limite de envios WhatsApp excedido. Tente mais tarde." },
+});
+
+export const whatsappBroadcastRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 4,
+  keyPrefix: "wa-broadcast",
+  message: { error: "Limite de transmissões excedido. Tente mais tarde." },
+});
+
+export const whatsappTestRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyPrefix: "wa-test",
+  message: { error: "Limite de testes WhatsApp excedido. Tente mais tarde." },
 });
 
 export const pushDirectRateLimit = createRateLimit({

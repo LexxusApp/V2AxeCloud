@@ -3,8 +3,14 @@ import { format, parseISO } from "date-fns";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   ensureOfficialWhatsAppReady,
-  sendEvolutionTextByInstance,
 } from "../../src/services/evolution.service.js";
+import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
+import {
+  assertBroadcastCooldown,
+  assertBroadcastRecipientLimit,
+  assertTenantWhatsAppDailyQuota,
+  validateWhatsAppOutboundMessage,
+} from "./whatsappSendGuards.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
@@ -18,10 +24,6 @@ import {
   resolveLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export type WhatsAppSendInput = {
   tenantId: string;
@@ -324,8 +326,9 @@ export function buildWhatsAppDeliverableText(
 }
 
 async function sendWhatsAppTextMessage(phone: string, text: string): Promise<{ messageId?: string }> {
-  const out = await sendEvolutionTextByInstance(CONSOLE_ADMIN_INSTANCE_NAME, phone, text);
-  console.log(`[WHATSAPP] text via Evolution → ${phone.slice(0, 4)}…`);
+  const safeText = validateWhatsAppOutboundMessage(text);
+  const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, phone, safeText);
+  console.log(`[WHATSAPP] text via Evolution (fila) → ${phone.slice(0, 4)}…`);
   return out;
 }
 
@@ -344,6 +347,7 @@ export async function logAndSendWhatsApp(
   await ensureOfficialWhatsAppReady();
 
   const { tipo, phone, message, deliverableText, filhoId, tenantId } = input;
+  await assertTenantWhatsAppDailyQuota(sb, tenantId, 1);
   const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
   const textToSend =
     deliverableText ||
@@ -475,30 +479,10 @@ export async function broadcastWhatsAppForTenant(
     return true;
   });
 
-  const cooldownMs = Number(process.env.WA_BROADCAST_PHONE_COOLDOWN_MS || 180000);
-  if (cooldownMs > 0 && uniqueTargets.length > 0) {
-    const phone = normalizeBrPhone(String(uniqueTargets[0].whatsapp_phone));
-    const { data: last } = await sb
-      .from("whatsapp_logs")
-      .select("created_at")
-      .eq("tenant_id", tenantId)
-      .eq("telefone", phone)
-      .eq("tipo", "broadcast")
-      .in("status", ["sent", "partial"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (last?.created_at) {
-      const elapsed = Date.now() - new Date(String(last.created_at)).getTime();
-      if (elapsed < cooldownMs) {
-        const waitMin = Math.ceil((cooldownMs - elapsed) / 60000);
-        throw httpError(
-          `Aguarde cerca de ${waitMin} min antes de reenviar para o mesmo número (limite anti-spam do WhatsApp).`,
-          429
-        );
-      }
-    }
-  }
+  validateWhatsAppOutboundMessage(messageText);
+  assertBroadcastRecipientLimit(uniqueTargets.length);
+  await assertBroadcastCooldown(sb, tenantId);
+  await assertTenantWhatsAppDailyQuota(sb, tenantId, uniqueTargets.length);
 
   let sent = 0;
   let failed = 0;
@@ -508,7 +492,6 @@ export async function broadcastWhatsAppForTenant(
     const filho = uniqueTargets[i];
     const phone = normalizeBrPhone(String(filho.whatsapp_phone));
     try {
-      if (i > 0) await sleep(2000);
       await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
       const nomeMembro = String(filho.nome || "Membro");
       await logAndSendWhatsApp(sb, {
@@ -533,7 +516,9 @@ export async function broadcastWhatsAppForTenant(
     } catch (err) {
       failed += 1;
       lastError = err instanceof Error ? err.message : String(err);
+      const code = (err as { code?: string })?.code || "";
       console.error(`[WHATSAPP] broadcast falhou (${phone}):`, lastError);
+      if (code.startsWith("WA_QUOTA")) break;
       try {
         await sb.from("whatsapp_logs").insert({
           tenant_id: tenantId,

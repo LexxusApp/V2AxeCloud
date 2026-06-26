@@ -62,6 +62,22 @@ type MetricsSnapshot = {
   groups?: Record<string, { label: string; display: string; status: string }[]>;
 };
 
+type WhatsAppDispatchPeriod = "daily" | "monthly";
+
+type WhatsAppDispatchStats = {
+  available: boolean;
+  period: WhatsAppDispatchPeriod;
+  since: string;
+  total: number;
+  tenantsWithDispatches: number;
+  tenants: {
+    tenantId: string;
+    nomeTerreiro: string | null;
+    email: string | null;
+    count: number;
+  }[];
+};
+
 type OverviewPanelProps = {
   overview: Overview | null;
   tenants: TenantRow[];
@@ -205,6 +221,9 @@ export function OverviewPanel({
   quickActions,
 }: OverviewPanelProps) {
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
+  const [dispatchPeriod, setDispatchPeriod] = useState<WhatsAppDispatchPeriod>("daily");
+  const [dispatchStats, setDispatchStats] = useState<WhatsAppDispatchStats | null>(null);
+  const [dispatchBusy, setDispatchBusy] = useState(false);
 
   const loadMetrics = useCallback(async () => {
     try {
@@ -218,6 +237,24 @@ export function OverviewPanel({
   useEffect(() => {
     void loadMetrics();
   }, [loadMetrics]);
+
+  const loadDispatchStats = useCallback(async (period: WhatsAppDispatchPeriod) => {
+    setDispatchBusy(true);
+    try {
+      const j = await apiJson<WhatsAppDispatchStats>(
+        `/api/admin-console/whatsapp-dispatch-stats?period=${period}`
+      );
+      setDispatchStats(j);
+    } catch {
+      setDispatchStats(null);
+    } finally {
+      setDispatchBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadDispatchStats(dispatchPeriod);
+  }, [dispatchPeriod, loadDispatchStats]);
 
   const blockedCount = useMemo(() => tenants.filter((t) => t.is_blocked).length, [tenants]);
   const activeCount = tenants.length - blockedCount;
@@ -328,6 +365,16 @@ export function OverviewPanel({
     return list.slice(0, 8);
   }, [tenants, tenantSearch]);
 
+  const dispatchRows = useMemo(() => {
+    const rows = dispatchStats?.tenants ?? [];
+    return rows.filter((r) => r.count > 0);
+  }, [dispatchStats]);
+
+  const dispatchIdleCount = useMemo(() => {
+    const rows = dispatchStats?.tenants ?? [];
+    return rows.filter((r) => r.count === 0).length;
+  }, [dispatchStats]);
+
   const statLoading = busy && !overview;
 
   return (
@@ -344,6 +391,7 @@ export function OverviewPanel({
           onClick={() => {
             void onRefresh();
             void loadMetrics();
+            void loadDispatchStats(dispatchPeriod);
           }}
           disabled={busy}
           className="admin-btn-secondary"
@@ -606,6 +654,102 @@ export function OverviewPanel({
                 )}
               </div>
             )}
+          </AdminPanel>
+
+          <AdminPanel
+            kicker="WhatsApp"
+            title="Disparos por terreiro"
+            action={
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDispatchPeriod("daily")}
+                    className={cn(
+                      "rounded-[calc(var(--ac-radius-sm)-2px)] px-3 py-1.5 text-xs font-medium transition-colors",
+                      dispatchPeriod === "daily"
+                        ? "bg-[var(--ac-accent)] text-white"
+                        : "text-[var(--ac-text-muted)] hover:text-[var(--ac-text)]"
+                    )}
+                  >
+                    Diário
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDispatchPeriod("monthly")}
+                    className={cn(
+                      "rounded-[calc(var(--ac-radius-sm)-2px)] px-3 py-1.5 text-xs font-medium transition-colors",
+                      dispatchPeriod === "monthly"
+                        ? "bg-[var(--ac-accent)] text-white"
+                        : "text-[var(--ac-text-muted)] hover:text-[var(--ac-text)]"
+                    )}
+                  >
+                    Mensal
+                  </button>
+                </div>
+                <span className="text-xs text-[var(--ac-text-faint)]">
+                  {dispatchBusy
+                    ? "a carregar…"
+                    : dispatchStats
+                      ? `${formatStatNumber(dispatchStats.total)} disparo(s) · ${dispatchStats.tenantsWithDispatches} terreiro(s)`
+                      : "—"}
+                </span>
+              </div>
+            }
+          >
+            {dispatchStats?.available === false ? (
+              <div className="py-10 text-center text-sm text-[var(--ac-text-muted)] max-w-md mx-auto">
+                <MessageCircle className="mx-auto h-8 w-8 text-[var(--ac-text-faint)] mb-2" />
+                Tabela <code className="text-[var(--ac-accent)]">whatsapp_logs</code> não encontrada. Aplique a
+                migration <code className="text-[var(--ac-accent)]">20260510210800_create_whatsapp_tables.sql</code>.
+              </div>
+            ) : dispatchBusy && !dispatchStats ? (
+              <div className="py-10 text-center text-sm text-[var(--ac-text-muted)]">A carregar disparos…</div>
+            ) : dispatchRows.length ? (
+              <ul className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
+                {dispatchRows.map((row, i) => {
+                  const label = row.nomeTerreiro || row.email || row.tenantId.slice(0, 8);
+                  const maxCount = dispatchRows[0]?.count || 1;
+                  const pct = Math.max(4, Math.round((row.count / maxCount) * 100));
+                  return (
+                    <li
+                      key={row.tenantId}
+                      className="flex items-center gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] px-3 py-2.5"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-bold bg-[var(--ac-accent-soft)] text-[var(--ac-accent)]">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[var(--ac-text)] truncate">{label}</p>
+                        {row.nomeTerreiro && row.email ? (
+                          <p className="text-[10px] text-[var(--ac-text-faint)] truncate">{row.email}</p>
+                        ) : null}
+                      </div>
+                      <div className="hidden sm:block w-20 h-1.5 rounded-full bg-[var(--ac-paper-border)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--ac-accent)]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="admin-mono text-sm font-semibold text-[var(--ac-accent)] shrink-0">
+                        {formatStatNumber(row.count)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="py-10 text-center text-sm text-[var(--ac-text-muted)]">
+                <MessageCircle className="mx-auto h-8 w-8 text-[var(--ac-text-faint)] mb-2" />
+                Nenhum disparo registado no período{" "}
+                {dispatchPeriod === "daily" ? "de hoje" : "deste mês"}.
+              </div>
+            )}
+            {dispatchStats?.available && dispatchIdleCount > 0 ? (
+              <p className="mt-3 text-xs text-[var(--ac-text-faint)]">
+                {dispatchIdleCount} terreiro(s) sem disparos no período seleccionado.
+              </p>
+            ) : null}
           </AdminPanel>
 
           <TenantsTable
