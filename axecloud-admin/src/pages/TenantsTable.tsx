@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MoreHorizontal } from "lucide-react";
@@ -49,6 +50,26 @@ function tenantInitials(name: string | null): string {
   return n.slice(0, 2).toUpperCase();
 }
 
+function computeMenuPosition(btnRect: DOMRect, panelHeight: number) {
+  const gap = 6;
+  const panelWidth = 168;
+  const left = Math.min(btnRect.right, window.innerWidth - 8);
+  const spaceBelow = window.innerHeight - btnRect.bottom;
+  const openUp = spaceBelow < panelHeight + gap && btnRect.top > panelHeight + gap;
+
+  return {
+    openUp,
+    style: {
+      position: "fixed" as const,
+      zIndex: 10000,
+      left,
+      minWidth: panelWidth,
+      transform: openUp ? "translate(-100%, calc(-100% - 6px))" : "translateX(-100%)",
+      top: openUp ? btnRect.top : btnRect.bottom + gap,
+    },
+  };
+}
+
 function RowActionsMenu({
   row,
   compact,
@@ -69,94 +90,131 @@ function RowActionsMenu({
   onDelete?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const reposition = useCallback(() => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const panelHeight = panelRef.current?.offsetHeight ?? 220;
+    const { style } = computeMenuPosition(btn.getBoundingClientRect(), panelHeight);
+    setMenuStyle(style);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    reposition();
+  }, [open, reposition, compact, onDelete]);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
     };
+    const onReflow = () => reposition();
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
+    };
+  }, [open, reposition]);
+
+  const menuPanel = open ? (
+    <div
+      ref={panelRef}
+      className="admin-row-menu-panel admin-row-menu-panel--portal"
+      style={menuStyle ?? { position: "fixed", visibility: "hidden" }}
+      role="menu"
+    >
+      <button
+        type="button"
+        role="menuitem"
+        className="admin-row-menu-item"
+        onClick={() => {
+          setOpen(false);
+          onManage(row.id);
+        }}
+      >
+        Gerenciar terreiro
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="admin-row-menu-item"
+        onClick={() => {
+          setOpen(false);
+          onBlock(row.id, !row.is_blocked);
+        }}
+      >
+        {row.is_blocked ? "Desbloquear" : "Bloquear"}
+      </button>
+      {!compact && (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            className="admin-row-menu-item"
+            onClick={() => {
+              setOpen(false);
+              onRenewMonth(row.id);
+            }}
+          >
+            Renovar +1 mês
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="admin-row-menu-item"
+            onClick={() => {
+              setOpen(false);
+              onLifetime(row.id);
+            }}
+          >
+            Acesso vitalício
+          </button>
+          {onDelete && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={busy}
+              className="admin-row-menu-item admin-row-menu-item--danger"
+              onClick={() => {
+                setOpen(false);
+                onDelete(row.id);
+              }}
+            >
+              Excluir terreiro
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  ) : null;
 
   return (
-    <div className="admin-row-menu" ref={ref}>
+    <div className="admin-row-menu" ref={wrapRef}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="admin-btn-secondary !p-1.5"
         aria-label="Acções"
         aria-expanded={open}
+        aria-haspopup="menu"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
-      {open && (
-        <div className="admin-row-menu-panel" role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            className="admin-row-menu-item"
-            onClick={() => {
-              setOpen(false);
-              onManage(row.id);
-            }}
-          >
-            Gerenciar terreiro
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="admin-row-menu-item"
-            onClick={() => {
-              setOpen(false);
-              onBlock(row.id, !row.is_blocked);
-            }}
-          >
-            {row.is_blocked ? "Desbloquear" : "Bloquear"}
-          </button>
-          {!compact && (
-            <>
-              <button
-                type="button"
-                role="menuitem"
-                className="admin-row-menu-item"
-                onClick={() => {
-                  setOpen(false);
-                  onRenewMonth(row.id);
-                }}
-              >
-                Renovar +1 mês
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="admin-row-menu-item"
-                onClick={() => {
-                  setOpen(false);
-                  onLifetime(row.id);
-                }}
-              >
-                Acesso vitalício
-              </button>
-              {onDelete && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={busy}
-                  className="admin-row-menu-item admin-row-menu-item--danger"
-                  onClick={() => {
-                    setOpen(false);
-                    onDelete(row.id);
-                  }}
-                >
-                  Excluir terreiro
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {menuPanel && typeof document !== "undefined" ? createPortal(menuPanel, document.body) : null}
     </div>
   );
 }
@@ -190,7 +248,7 @@ export function TenantsTable({
   const head = cn(cell, "text-[10px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]");
 
   return (
-    <section className="admin-panel !p-0 overflow-hidden">
+    <section className="admin-panel !p-0">
       <div className="admin-table-toolbar">
         <div>
           <h3 className="text-sm font-semibold text-[var(--ac-text)]">

@@ -630,6 +630,12 @@ a.admin-metric-hero:hover {
   padding: 0.25rem;
 }
 
+.admin-row-menu-panel--portal {
+  position: fixed;
+  right: auto;
+  top: auto;
+}
+
 .admin-row-menu-item {
   display: flex;
   width: 100%;
