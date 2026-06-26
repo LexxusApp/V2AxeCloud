@@ -244,13 +244,19 @@ export function PortalConsulenteSettings() {
               />
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">WhatsApp público (opcional)</label>
+              <label className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                WhatsApp público (alertas de pedidos de reza)
+              </label>
               <input
                 value={data.whatsappPublico || ''}
                 onChange={(e) => setData({ ...data, whatsappPublico: e.target.value.replace(/\D/g, '') })}
                 className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white"
                 placeholder="5511999999999"
               />
+              <p className="mt-1 text-[10px] text-gray-500">
+                Número que recebe alerta quando um fiel enviar pedido pelo Espaço do Fiel. Se vazio, usa notificação push
+                no painel.
+              </p>
             </div>
             <div className="sm:col-span-2">
               <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Descrição pública</label>

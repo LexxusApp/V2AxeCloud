@@ -77,50 +77,21 @@ export function DashboardPedidosRezaAltar({
     [tenantId],
   );
 
-  const sendMensagem = useCallback(
-    async (id: string, texto: string) => {
-      const res = await authFetch(`/api/v1/atendimentos/pedidos-reza/${id}/mensagens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId, texto }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String((json as { error?: string }).error || 'Erro ao enviar mensagem'));
-      return json;
-    },
-    [tenantId],
-  );
-
   const handleFirmarVela = useCallback(
     async (pedido: DashboardPedidoReza) => {
       if (busyId) return;
       setBusyId(pedido.id);
       try {
         const nome = pedido.nome || 'o necessitado';
-        const velaTxt =
-          pedido.vela && pedido.vela !== 'Nenhuma' ? ` a vela ${pedido.vela}` : '';
 
         if (pedido.status === 'pendente') {
           await patchStatus(pedido.id, 'aceito');
-          await sendMensagem(
-            pedido.id,
-            `🕯️ Vela litúrgica firmada com sucesso no congá para ${nome}${velaTxt}! Sinta a vibração positiva.`,
-          );
         } else if (pedido.status === 'aceito') {
           await patchStatus(pedido.id, 'em_oracao');
-          await sendMensagem(
-            pedido.id,
-            `🕯️ Mais uma vela consagrada em corrente de luz por ${nome}. A prece segue firme no altar.`,
-          );
-        } else {
-          await sendMensagem(
-            pedido.id,
-            `🕯️ Vela adicional firmada no congá por ${nome}. Saravá e axé!`,
-          );
         }
 
         setExtraVelas((prev) => ({ ...prev, [pedido.id]: (prev[pedido.id] || 0) + 1 }));
-        showToast(`Vela litúrgica firmada com sucesso no congá para ${nome}! Sinta a vibração positiva.`);
+        showToast(`Vela litúrgica firmada com sucesso no congá para ${nome}!`);
         await onRefresh?.();
       } catch (e: unknown) {
         showToast(e instanceof Error ? e.message : 'Não foi possível firmar a vela.', 'error');
@@ -128,7 +99,7 @@ export function DashboardPedidosRezaAltar({
         setBusyId(null);
       }
     },
-    [busyId, onRefresh, patchStatus, sendMensagem, showToast],
+    [busyId, onRefresh, patchStatus, showToast],
   );
 
   return (

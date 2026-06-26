@@ -1,18 +1,10 @@
-import { Check, Flame, Heart, Leaf } from 'lucide-react';
+import { Check, ExternalLink, Flame, Heart } from 'lucide-react';
 import {
   CANDLE_COLOR_HEX,
   CANDLE_DOT_CLASS,
   type VelaCor,
 } from '../../lib/pedidosRezaTypes';
 import { cn } from '../../lib/utils';
-
-export type PedidoRezaChatBubble = {
-  id: string;
-  sender: 'Zelador' | 'Visitante' | 'Sistema';
-  text: string;
-  time: string;
-  isSystem?: boolean;
-};
 
 export type PedidoRezaUiItem = {
   id: string;
@@ -24,7 +16,7 @@ export type PedidoRezaUiItem = {
   status: 'Pendente' | 'Aceito' | 'Em Oração';
   intencao: string;
   data: string;
-  chatMessages: PedidoRezaChatBubble[];
+  whatsapp?: string | null;
 };
 
 type PedidosRezaZeladorPanelProps = {
@@ -35,22 +27,24 @@ type PedidosRezaZeladorPanelProps = {
   onStartPrayer: (id: string) => void;
   onFinishPrayer: (id: string) => void;
   onArchive: (id: string) => void;
-  chatInput: string;
-  onChatInputChange: (value: string) => void;
-  onSendChat: () => void;
   zeladorLabel?: string;
   busy?: boolean;
   maxHeightClass?: string;
 };
 
-const QUICK_TEMPLATES = [
-  { text: 'Sua vela está firmada em nosso congá de paz e luz. Confie!', label: '🕯️ Confirmar Vela' },
-  {
-    text: 'Para acalmar do cansaço, tome um banho de ervas frias (Alecrim e Alfazema) antes de dormir.',
-    label: '🌿 Banho de Ervas',
-  },
-  { text: 'Que Oxalá cubra você e os seus de absoluta proteção e amor.', label: '✨ Benção Oxalá' },
-] as const;
+function formatWhatsappDisplay(digits: string): string {
+  const d = digits.replace(/\D/g, '');
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9, 13)}`;
+}
+
+function whatsappHref(digits: string): string {
+  const d = digits.replace(/\D/g, '');
+  const withCountry = d.startsWith('55') ? d : `55${d}`;
+  return `https://wa.me/${withCountry}`;
+}
 
 export function PedidosRezaZeladorPanel({
   items,
@@ -60,19 +54,15 @@ export function PedidosRezaZeladorPanel({
   onStartPrayer,
   onFinishPrayer,
   onArchive,
-  chatInput,
-  onChatInputChange,
-  onSendChat,
-  zeladorLabel = 'Zelador',
   busy = false,
   maxHeightClass = 'max-h-[620px]',
 }: PedidosRezaZeladorPanelProps) {
   const pendingCount = items.filter((r) => r.status === 'Pendente').length;
   const currentReq = items.find((r) => r.id === selectedId) ?? null;
+  const waDigits = String(currentReq?.whatsapp || '').replace(/\D/g, '');
 
   return (
     <div className={cn('grid grid-cols-1 gap-6 lg:grid-cols-12', maxHeightClass && '')}>
-      {/* Lista */}
       <div
         className={cn(
           'flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm lg:col-span-5',
@@ -166,7 +156,6 @@ export function PedidosRezaZeladorPanel({
         </div>
       </div>
 
-      {/* Detalhe */}
       <div
         className={cn(
           'flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 shadow-lg lg:col-span-7',
@@ -178,7 +167,7 @@ export function PedidosRezaZeladorPanel({
             <Heart className="h-10 w-10 animate-pulse text-gray-600" />
             <h6 className="font-display text-xs font-bold uppercase text-[#F1F5F9]">Nenhum pedido selecionado</h6>
             <p className="text-[11px] text-[#94A3B8]">
-              Selecione um pedido ao lado para gerenciar, acender a vela espiritual ou conversar com o solicitante.
+              Selecione um pedido ao lado para gerenciar e acender a vela espiritual.
             </p>
           </div>
         ) : (
@@ -209,6 +198,26 @@ export function PedidosRezaZeladorPanel({
                   <span className="block font-medium">LINHA RELIGIOSA</span>
                   <span className="font-semibold text-[#F1F5F9]">{currentReq.linha}</span>
                 </div>
+                {waDigits.length >= 10 ? (
+                  <div className="col-span-2">
+                    <span className="block font-medium">WHATSAPP DO FIEL</span>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-[#F1F5F9]">{formatWhatsappDisplay(waDigits)}</span>
+                      <a
+                        href={whatsappHref(waDigits)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-950/30 px-2 py-0.5 text-[9px] font-bold text-emerald-400 hover:bg-emerald-950/50"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Abrir no WhatsApp
+                      </a>
+                    </div>
+                    <p className="mt-1 text-[9px] text-[#94A3B8]">
+                      Ao aceitar, o fiel recebe automaticamente um aviso no WhatsApp de que a reza será na próxima gira.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -265,7 +274,7 @@ export function PedidosRezaZeladorPanel({
                 {currentReq.status === 'Pendente' ? (
                   <div className="space-y-2">
                     <p className="text-[10px] leading-tight text-[#94A3B8]">
-                      Zelador avalia o pedido e firma a vela mental do solicitante em nosso congá de caridade.
+                      Ao aceitar, o fiel recebe WhatsApp informando que a reza será realizada na próxima gira.
                     </p>
                     <button
                       type="button"
@@ -320,85 +329,9 @@ export function PedidosRezaZeladorPanel({
               </div>
             </div>
 
-            <div className="flex max-h-[250px] min-h-[190px] flex-grow flex-col overflow-hidden rounded-xl border border-[#1E242B] bg-[#12161A]/60">
-              <div className="flex items-center justify-between border-b border-[#1E242B] bg-[#12161A] p-2 text-[9.5px] font-bold uppercase text-[#94A3B8]">
-                <span>Chat Pastoral e Conselhos Litúrgicos</span>
-                <span className="rounded bg-red-950/40 px-1 text-[8px] font-normal text-rose-400">Canal Privado</span>
-              </div>
-              <div className="flex flex-grow flex-col justify-end space-y-2 overflow-y-auto p-3">
-                {currentReq.chatMessages.map((msg) => {
-                  if (msg.isSystem || msg.sender === 'Sistema') {
-                    return (
-                      <div key={msg.id} className="my-1.5 text-center">
-                        <span className="rounded-full border border-[#1E242B] bg-[#1E2530] px-2 py-0.5 text-[8.5px] text-[#FACC15]">
-                          {msg.text}
-                        </span>
-                      </div>
-                    );
-                  }
-                  const isZelador = msg.sender === 'Zelador';
-                  return (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        'flex max-w-[85%] flex-col',
-                        isZelador ? 'items-end self-end' : 'items-start self-start',
-                      )}
-                    >
-                      <span className="mb-0.5 text-[8px] text-gray-500">
-                        {isZelador ? zeladorLabel : `${currentReq.solicitante} (Fiel)`} • {msg.time}
-                      </span>
-                      <div
-                        className={cn(
-                          'rounded-xl p-2.5 text-[11px] leading-relaxed',
-                          isZelador
-                            ? 'rounded-tr-none bg-[#FACC15] text-[#080A0D]'
-                            : 'rounded-tl-none border border-[#1E242B] bg-[#1E2530] text-[#F1F5F9]',
-                        )}
-                      >
-                        {msg.text}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-1.5 border-t border-[#1E242B] bg-[#12161A] p-2">
-                <input
-                  type="text"
-                  placeholder="Diga uma orientação pastoral, banho de ervas ou mensagem ao fiel..."
-                  value={chatInput}
-                  disabled={busy}
-                  onChange={(e) => onChatInputChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') onSendChat();
-                  }}
-                  className="flex-grow rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-1.5 text-xs text-[#F1F5F9] placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
-                />
-                <button
-                  type="button"
-                  disabled={busy || !chatInput.trim()}
-                  onClick={onSendChat}
-                  className="rounded-lg bg-[#FACC15] px-3 py-1.5 text-xs font-bold text-[#080A0D] transition-all hover:bg-[#FDE047] disabled:opacity-60"
-                >
-                  Enviar
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A]/20 p-2 text-[9px] text-[#94A3B8]">
-              <span className="mr-1 flex items-center gap-0.5 font-bold uppercase tracking-wider text-gray-500">
-                <Leaf className="h-3 w-3 text-emerald-400" /> Rezário / Conselhos Rápidos:
-              </span>
-              {QUICK_TEMPLATES.map((t) => (
-                <button
-                  key={t.label}
-                  type="button"
-                  onClick={() => onChatInputChange(t.text)}
-                  className="rounded border border-[#1E242B] bg-[#1E252E] px-1.5 py-1 font-medium text-[#F1F5F9] transition-colors hover:bg-[#1E2530]"
-                >
-                  {t.label}
-                </button>
-              ))}
+            <div className="rounded-xl border border-[#1E242B] bg-[#12161A]/20 p-3 text-[10px] leading-relaxed text-[#94A3B8]">
+              <strong className="text-[#F1F5F9]">Intenção do pedido:</strong>{' '}
+              <span className="italic">&quot;{currentReq.intencao}&quot;</span>
             </div>
           </div>
         )}
@@ -418,8 +351,8 @@ export function pedidoDbToUi(
     linha?: string | null;
     vela?: string | null;
     nome_terreiro?: string | null;
+    whatsapp?: string | null;
   },
-  mensagens: Array<{ id: string; created_at: string; sender: string; texto: string }> = [],
 ): PedidoRezaUiItem {
   const statusMap: Record<string, PedidoRezaUiItem['status']> = {
     pendente: 'Pendente',
@@ -438,6 +371,7 @@ export function pedidoDbToUi(
     vela: (item.vela as VelaCor) || 'Nenhuma',
     status: statusMap[item.status] || 'Pendente',
     intencao: item.mensagem,
+    whatsapp: item.whatsapp,
     data: new Date(item.created_at).toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -445,13 +379,5 @@ export function pedidoDbToUi(
       hour: '2-digit',
       minute: '2-digit',
     }),
-    chatMessages: mensagens.map((m) => ({
-      id: m.id,
-      sender:
-        m.sender === 'zelador' ? 'Zelador' : m.sender === 'sistema' ? 'Sistema' : 'Visitante',
-      text: m.texto,
-      time: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      isSystem: m.sender === 'sistema',
-    })),
   };
 }

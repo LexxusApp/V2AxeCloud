@@ -10,9 +10,6 @@ export type PedidosRezaZeladorScreenProps = {
   onStartPrayer: (id: string) => void;
   onFinishPrayer: (id: string) => void;
   onArchive: (id: string) => void;
-  chatInput: string;
-  onChatInputChange: (value: string) => void;
-  onSendChat: () => void;
   zeladorLabel?: string;
   busy?: boolean;
   headerAction?: ReactNode;
@@ -22,7 +19,6 @@ export type PedidosRezaZeladorScreenProps = {
   variant?: 'standalone' | 'embedded';
 };
 
-/** Layout idêntico à aba Pedidos de Reza da demo interativa (axe-cloudv3). */
 export function PedidosRezaZeladorScreen({
   items,
   selectedId,
@@ -31,9 +27,6 @@ export function PedidosRezaZeladorScreen({
   onStartPrayer,
   onFinishPrayer,
   onArchive,
-  chatInput,
-  onChatInputChange,
-  onSendChat,
   zeladorLabel,
   busy,
   headerAction,
@@ -55,8 +48,8 @@ export function PedidosRezaZeladorScreen({
           <p className="mt-1 text-xs text-[#94A3B8]">
             {description ?? (
               <>
-                Conectando fiéis e zeladores para amparo espiritual em tempo real — terminal da zeladoria, congá
-                digital e chat pastoral.
+                Pedidos do Espaço do Fiel com notificação por WhatsApp — aceite o pedido e o fiel é avisado
+                automaticamente.
               </>
             )}
           </p>
@@ -76,9 +69,6 @@ export function PedidosRezaZeladorScreen({
         onStartPrayer={onStartPrayer}
         onFinishPrayer={onFinishPrayer}
         onArchive={onArchive}
-        chatInput={chatInput}
-        onChatInputChange={onChatInputChange}
-        onSendChat={onSendChat}
         zeladorLabel={zeladorLabel}
         busy={busy}
       />

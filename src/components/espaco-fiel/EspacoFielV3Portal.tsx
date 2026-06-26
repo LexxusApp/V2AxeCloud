@@ -36,12 +36,23 @@ const PUBLIC_FORM_INITIAL: PublicPrayerForm = {
   whatsapp: '',
 };
 
+function formatWhatsappInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function isValidWhatsapp(digits: string): boolean {
+  const d = digits.replace(/\D/g, '');
+  return d.length >= 10 && d.length <= 13;
+}
+
 export function EspacoFielV3Portal() {
-  const { terreiros, terreirosLoading, pedidos, submitPedido, sendMensagem } = useEspacoFielPedidos();
+  const { terreiros, terreirosLoading, pedidos, submitPedido } = useEspacoFielPedidos();
   const [notification, setNotification] = useState<string | null>(null);
   const [publicPrayerRequest, setPublicPrayerRequest] = useState<PublicPrayerForm>(PUBLIC_FORM_INITIAL);
   const [publicSelectedId, setPublicSelectedId] = useState<string | null>(null);
-  const [publicChatInput, setPublicChatInput] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>('Todas');
   const [submitting, setSubmitting] = useState(false);
 
@@ -95,6 +106,10 @@ export function EspacoFielV3Portal() {
       showNotification('Por favor, preencha o nome de quem solicita e a intenção de oração.');
       return;
     }
+    if (!isValidWhatsapp(publicPrayerRequest.whatsapp)) {
+      showNotification('Informe um WhatsApp válido com DDD para receber o aviso quando o pedido for aceito.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -105,7 +120,7 @@ export function EspacoFielV3Portal() {
         categoria: publicPrayerRequest.categoria,
         linha: publicPrayerRequest.linha,
         vela: publicPrayerRequest.vela,
-        whatsapp: publicPrayerRequest.whatsapp,
+        whatsapp: publicPrayerRequest.whatsapp.replace(/\D/g, ''),
       });
       if (created?.id) setPublicSelectedId(created.id);
       setPublicPrayerRequest({
@@ -114,23 +129,12 @@ export function EspacoFielV3Portal() {
         slug: publicPrayerRequest.slug,
       });
       showNotification(
-        `Seu pedido foi registrado na casa "${publicPrayerRequest.casa}" com sucesso! Acompanhe o Altar Virtual na coluna ao lado.`,
+        `Seu pedido foi registrado na casa "${publicPrayerRequest.casa}". Você será avisado no WhatsApp quando o zelador aceitar.`,
       );
     } catch (err: unknown) {
       showNotification(err instanceof Error ? err.message : 'Erro ao enviar pedido.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleSendPublicChatMessage = async () => {
-    if (!publicChatInput.trim() || !selectedReq?.token) return;
-    try {
-      await sendMensagem(selectedReq.token, publicChatInput.trim());
-      setPublicChatInput('');
-      showNotification('Mensagem enviada com sucesso no chat do altar!');
-    } catch (err: unknown) {
-      showNotification(err instanceof Error ? err.message : 'Erro ao enviar mensagem.');
     }
   };
 
@@ -375,6 +379,28 @@ export function EspacoFielV3Portal() {
 
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-neutral-600">
+                    Seu WhatsApp (obrigatório)
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="(11) 99999-9999"
+                    value={publicPrayerRequest.whatsapp}
+                    onChange={(e) =>
+                      setPublicPrayerRequest({
+                        ...publicPrayerRequest,
+                        whatsapp: formatWhatsappInput(e.target.value),
+                      })
+                    }
+                    className="w-full rounded-lg border border-[#cfc0a8] bg-white p-2.5 text-xs text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
+                  />
+                  <p className="mt-1 text-[9px] text-neutral-500">
+                    Usado somente para avisar quando o zelador aceitar seu pedido.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-neutral-600">
                     Sua Intenção / Prece Particular
                   </label>
                   <textarea
@@ -402,8 +428,8 @@ export function EspacoFielV3Portal() {
             </div>
 
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] text-neutral-600">
-              🔒 <strong>Amparo Privado:</strong> Toda comunicação é criptografada e restrita estritamente ao Zelador da
-              sua casa de acolhimento. Seu pedido não será divulgado publicamente no site.
+              🔒 <strong>Amparo Privado:</strong> Seu pedido é restrito ao zelador da casa. Você receberá aviso no
+              WhatsApp quando o pedido for aceito — não há chat no site.
             </div>
           </div>
 
@@ -547,7 +573,7 @@ export function EspacoFielV3Portal() {
                       ) : selectedReq.status === 'Aceito' ? (
                         <div className="flex items-center gap-1.5 rounded border border-amber-300/40 bg-amber-50 p-1 text-[10px] font-bold text-amber-700">
                           <Check className="h-3.5 w-3.5" />
-                          <span>Vela virtual acendida no Altar Físico! Orações correndo de forma assistida.</span>
+                          <span>Pedido aceito! A reza será realizada na próxima gira. Confira seu WhatsApp.</span>
                         </div>
                       ) : (
                         <div className="flex animate-pulse items-center gap-1.5 rounded border border-violet-500/15 bg-violet-500/5 p-1 text-[10px] font-black text-violet-400">
@@ -560,88 +586,16 @@ export function EspacoFielV3Portal() {
                 </div>
               )}
 
-              {selectedReq ? (
-                <div className={cn('flex max-h-[190px] flex-col justify-between overflow-hidden rounded-2xl', espacoFielPanelClass)}>
-                  <div className="flex flex-wrap items-center justify-between gap-1 border-b border-[#cfc0a8] bg-white px-3 py-1.5 text-[9px] font-black uppercase text-neutral-600">
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                      Linha de Contato com o Altar
-                    </span>
-                    <span className="rounded border border-amber-300/30 bg-amber-50 px-1.5 py-0.5 text-[7.5px] font-normal uppercase text-amber-700">
-                      Chat do Fiel (Privado)
-                    </span>
-                  </div>
-
-                  <div className="flex min-h-[90px] max-h-[110px] flex-grow flex-col justify-end space-y-2 overflow-y-auto p-3">
-                    {selectedReq.chatMessages.map((msg) => {
-                      const isZelador = msg.sender === 'Zelador';
-                      const isSystem = msg.isSystem || msg.sender === 'Sistema';
-
-                      if (isSystem) {
-                        return (
-                          <div key={msg.id} className="my-0.5 text-center">
-                            <span className="rounded-full border border-[#cfc0a8] bg-amber-50 px-1.5 py-0.5 text-[8px] text-[#FACC15]">
-                              {msg.text}
-                            </span>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex max-w-[80%] flex-col ${
-                            isZelador ? 'items-start self-start' : 'items-end self-end'
-                          }`}
-                        >
-                          <span className="mb-0.5 text-[7.5px] text-neutral-500">
-                            {isZelador ? 'Zelador (Terreiro)' : 'Você'} • {msg.time}
-                          </span>
-                          <div
-                            className={`rounded-lg p-2 text-[10.5px] leading-tight ${
-                              isZelador
-                                ? 'rounded-tl-none border border-[#cfc0a8] bg-amber-50 text-[#1b1813]'
-                                : 'rounded-tr-none bg-[#FBEFDB] text-[#292523]'
-                            }`}
-                          >
-                            {msg.text}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 border-t border-[#cfc0a8] bg-white p-1.5">
-                    <input
-                      type="text"
-                      placeholder="Fale com o Zelador sobre banhos de ervas, preces ou agradecimentos..."
-                      value={publicChatInput}
-                      onChange={(e) => setPublicChatInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSendPublicChatMessage();
-                      }}
-                      className="flex-grow rounded-md border border-[#cfc0a8] bg-white px-2.5 py-1.5 text-[11px] text-[#1b1813] placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-[#FACC15]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendPublicChatMessage}
-                      className="cursor-pointer rounded-md bg-amber-400 px-3 py-1.5 text-[10.5px] font-bold uppercase text-neutral-900 transition-all hover:bg-amber-300"
-                    >
-                      Enviar
-                    </button>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div className="mt-4 rounded-xl border border-dashed border-[#cfc0a8] bg-amber-50/70 p-2.5 text-center text-[10px] text-neutral-600">
-              💡 <strong>Comunicação real com o terreiro:</strong> ao enviar um pedido, o zelador recebe no painel{' '}
-              <strong>Atendimentos</strong> do AxéCloud. Quando ele aceitar, iniciar a prece ou responder no chat, você
-              acompanha aqui no Altar Virtual (atualização automática a cada poucos segundos). Veja também a{' '}
+              💡 <strong>Como funciona:</strong> ao enviar o pedido, o zelador recebe alerta no WhatsApp ou no painel{' '}
+              <strong>Atendimentos</strong> do AxéCloud. Quando ele aceitar, você recebe mensagem no WhatsApp informando
+              que a reza será na próxima gira. Acompanhe o status aqui no Altar Virtual. Veja a{' '}
               <a href={`${ROUTES.home}#demonstracao`} className="font-semibold text-[#FACC15] hover:underline">
                 Demo Interativa
               </a>{' '}
-              na aba <strong>Pedidos de Reza</strong> para conhecer o painel do zelador.
+              na aba <strong>Pedidos de Reza</strong>.
             </div>
           </div>
         </div>

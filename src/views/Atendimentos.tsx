@@ -8,7 +8,7 @@ import {
   pedidoDbToUi,
   type PedidoRezaUiItem,
 } from '../components/pedidos-reza/PedidosRezaZeladorPanel';
-import type { PedidoRezaItem, PedidoRezaMensagem, PedidoRezaStatus } from '../lib/pedidosRezaTypes';
+import type { PedidoRezaItem, PedidoRezaStatus } from '../lib/pedidosRezaTypes';
 
 interface AtendimentosProps {
   tenantData?: { tenant_id?: string | null; nome?: string | null; nome_terreiro?: string | null };
@@ -24,16 +24,14 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
       : 'Zelador';
 
   const [rawItems, setRawItems] = useState<PedidoRezaItem[]>([]);
-  const [messagesById, setMessagesById] = useState<Record<string, PedidoRezaMensagem[]>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const uiItems: PedidoRezaUiItem[] = useMemo(
-    () => rawItems.map((item) => pedidoDbToUi(item, messagesById[item.id] || [])),
-    [rawItems, messagesById],
+    () => rawItems.map((item) => pedidoDbToUi(item)),
+    [rawItems],
   );
 
   const loadList = useCallback(async () => {
@@ -66,9 +64,6 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
         );
         const json = await res.json();
         if (!res.ok) return;
-        if (json.mensagens) {
-          setMessagesById((prev) => ({ ...prev, [id]: json.mensagens }));
-        }
         if (json.item) {
           setRawItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...json.item } : p)));
         }
@@ -113,31 +108,8 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
       if (json.item) {
         setRawItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...json.item } : p)));
       }
-      if (json.mensagens) {
-        setMessagesById((prev) => ({ ...prev, [id]: json.mensagens }));
-      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao actualizar');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendChat() {
-    if (!tenantId || !selectedId || !chatInput.trim()) return;
-    setBusy(true);
-    try {
-      const res = await authFetch(`/api/v1/atendimentos/pedidos-reza/${selectedId}/mensagens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId, texto: chatInput.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro ao enviar');
-      setChatInput('');
-      await loadDetail(selectedId);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erro ao enviar mensagem');
     } finally {
       setBusy(false);
     }
@@ -166,9 +138,6 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
             setSelectedId((cur) => (cur === id ? null : cur));
           });
         }}
-        chatInput={chatInput}
-        onChatInputChange={setChatInput}
-        onSendChat={() => void sendChat()}
         zeladorLabel={zeladorLabel}
         busy={busy}
         error={error}
@@ -178,7 +147,7 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
             <a href="/espaco-do-fiel" target="_blank" rel="noreferrer" className="font-semibold text-[#FACC15] hover:underline">
               Espaço do Fiel
             </a>{' '}
-            e pelo portal do consulente — aceite, acenda a vela virtual e responda no chat pastoral.
+            — ao aceitar, o fiel recebe WhatsApp informando que a reza será na próxima gira.
           </>
         }
         headerAction={

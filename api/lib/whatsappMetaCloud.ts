@@ -80,6 +80,18 @@ export function resolveMetaTemplateName(tipo: string): string {
       String(process.env.WA_META_TEMPLATE_ESTOQUE_CRITICO || "").trim() || ESTOQUE_CRITICO_TEMPLATE
     );
   }
+  if (normalized === "pedido_reza_novo_zelador") {
+    return (
+      String(process.env.WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR || "").trim() ||
+      "pedido_reza_novo_zelador_axecloud"
+    );
+  }
+  if (normalized === "pedido_reza_aceito_fiel") {
+    return (
+      String(process.env.WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL || "").trim() ||
+      "pedido_reza_aceito_fiel_axecloud"
+    );
+  }
   if (normalized === "broadcast" || normalized === "teste") {
     const livre = String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim();
     if (livre) return livre;

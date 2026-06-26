@@ -3,7 +3,6 @@ import {
   loadStoredPedidoTokens,
   storePedidoToken,
   type PedidoRezaItem,
-  type PedidoRezaMensagem,
   type VelaCor,
 } from '../lib/pedidosRezaTypes';
 import {
@@ -22,9 +21,8 @@ export type TerreiroPedidosReza = {
 
 function mapPublicToPrayerRequest(
   item: PedidoRezaItem,
-  mensagens: PedidoRezaMensagem[],
 ): PedidoRezaUiItem & { token: string } {
-  const ui = pedidoDbToUi(item, mensagens);
+  const ui = pedidoDbToUi(item);
   return { ...ui, token: item.acesso_token || '' };
 }
 
@@ -65,8 +63,7 @@ export function useEspacoFielPedidos() {
           if (!res.ok) return null;
           const json = await res.json();
           const item = json.item as PedidoRezaItem;
-          const mensagens = (json.mensagens || []) as PedidoRezaMensagem[];
-          return mapPublicToPrayerRequest({ ...item, acesso_token: token }, mensagens);
+          return mapPublicToPrayerRequest({ ...item, acesso_token: token });
         }),
       );
       setPedidos(results.filter((r): r is PedidoRezaUiItem & { token: string } => r != null));
@@ -93,7 +90,7 @@ export function useEspacoFielPedidos() {
       categoria: string;
       linha: string;
       vela: VelaCor;
-      whatsapp?: string;
+      whatsapp: string;
     }) => {
       const res = await fetch(
         `/api/v1/public/consulente/${encodeURIComponent(payload.slug)}/pedidos-reza`,
@@ -106,7 +103,7 @@ export function useEspacoFielPedidos() {
             categoria: payload.categoria,
             linha: payload.linha,
             vela: payload.vela,
-            whatsapp: payload.whatsapp || '',
+            whatsapp: payload.whatsapp,
           }),
         },
       );
@@ -119,27 +116,12 @@ export function useEspacoFielPedidos() {
     [refreshPedidos],
   );
 
-  const sendMensagem = useCallback(
-    async (token: string, texto: string) => {
-      const res = await fetch(`/api/v1/public/pedidos-reza/${encodeURIComponent(token)}/mensagens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Não foi possível enviar a mensagem.');
-      await refreshPedidos();
-    },
-    [refreshPedidos],
-  );
-
   return {
     terreiros,
     terreirosLoading,
     pedidos,
     pedidosLoading,
     submitPedido,
-    sendMensagem,
     refreshPedidos,
   };
 }

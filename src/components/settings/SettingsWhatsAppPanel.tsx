@@ -388,7 +388,7 @@ export function SettingsWhatsAppPanel() {
     {
       key: 'notifReza',
       title: 'Altar Virtual (Pedidos de Reza)',
-      desc: 'Envia aviso de firmeza de vela e oração iniciada aos devotos que efetuarem preces.',
+      desc: 'Avisa o zelador quando chegar pedido novo e confirma ao fiel no WhatsApp ao aceitar (reza na próxima gira).',
       toastLabel: 'Altar Virtual',
     },
     {

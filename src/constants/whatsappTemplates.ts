@@ -5,11 +5,18 @@
   | 'mensalidade_confirmada'
   | 'mural_aviso'
   | 'convite_evento'
-  | 'estoque_critico';
+  | 'estoque_critico'
+  | 'pedido_reza_novo_zelador'
+  | 'pedido_reza_aceito_fiel';
 
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
   boas_vindas:
-    'Boas-vindas {{nome_filho}} — acesse {{login_url}} com registro {{filho_login_id}} e os 6 primeiros dígitos do CPF.',
+    'Olá, {{nome_filho}}! Bem-vindo(a) ao {{nome_sistema}} do terreiro {{nome_terreiro}}.\n\n' +
+    '🔐 *Seu acesso:*\n' +
+    'Registro: {{filho_login_id}}\n' +
+    'Senha: {{senha_acesso}}\n' +
+    'Entrar: {{login_url}}\n\n' +
+    'Axé!',
   cobranca_mensalidade:
     'Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!',
   financeiro:
@@ -22,6 +29,10 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
   estoque_critico:
     '⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.',
+  pedido_reza_novo_zelador:
+    'Novo pedido de reza no {{nome_terreiro}}: {{nome_fiel}} — {{categoria}}. Acesse Atendimentos no AxéCloud para aceitar o pedido.',
+  pedido_reza_aceito_fiel:
+    'Saravá, {{nome_fiel}}! O zelador de {{nome_terreiro}} aceitou seu pedido. Sua reza será realizada na próxima gira. Axé!',
 };
 
 export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
@@ -32,6 +43,8 @@ export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'mural_aviso',
   'convite_evento',
   'estoque_critico',
+  'pedido_reza_novo_zelador',
+  'pedido_reza_aceito_fiel',
 ];
 
 export function normalizeWhatsAppTemplates(input: unknown): Record<WhatsAppTemplateType, string> {

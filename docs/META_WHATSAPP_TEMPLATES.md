@@ -169,6 +169,45 @@ O sistema tenta primeiro **texto livre** (quando o filho está na janela de 24h)
 
 ---
 
+## 7. `pedido_reza_novo_zelador_axecloud`
+
+**Uso:** quando um fiel envia pedido pelo Espaço do Fiel (`POST /api/v1/public/consulente/:slug/pedidos-reza`).
+
+**Corpo:**
+
+```
+Novo pedido de reza no {{1}}: {{2}} — {{3}}. Acesse Atendimentos no AxéCloud para aceitar o pedido.
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Terreiro de Oxum |
+| {{2}} | Maria Silva |
+| {{3}} | Saúde / Cura |
+
+**Env:** `WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud`
+
+---
+
+## 8. `pedido_reza_aceito_fiel_axecloud`
+
+**Uso:** quando o zelador aceita o pedido (`PATCH` status `aceito`).
+
+**Corpo:**
+
+```
+Saravá, {{1}}! O zelador de {{2}} aceitou seu pedido. Sua reza será realizada na próxima gira. Axé!
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | João Santos |
+| {{2}} | Casa de Umbanda Axé |
+
+**Env:** `WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_axecloud`
+
+---
+
 ## Templates já existentes (referência)
 
 | Nome | Variáveis |
@@ -190,6 +229,8 @@ WA_META_TEMPLATE_COBRANCA_MENSALIDADE=cobranca_mensalidade_axecloud
 WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud
 WA_META_TEMPLATE_ESTOQUE_CRITICO=estoque_critico_axecloud
 WA_META_TEMPLATE_BROADCAST=comunicado_terreiro_axecloud
+WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
+WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_axecloud
 ```
 
 2. `git pull` + rebuild/restart do container app.

@@ -19,65 +19,21 @@ function seedToUi(): PedidoRezaUiItem[] {
     status: r.status,
     intencao: r.intencao,
     data: r.data,
-    chatMessages: r.chatMessages.map((m) => ({
-      id: m.id,
-      sender: m.sender,
-      text: m.text,
-      time: m.time,
-      isSystem: m.id.startsWith('m-sys-'),
-    })),
+    whatsapp: '11999998888',
   }));
 }
 
 export function DemoRezaPanel({ notify }: DemoRezaPanelProps) {
   const [items, setItems] = useState<PedidoRezaUiItem[]>(seedToUi);
   const [selectedId, setSelectedId] = useState('pr-2');
-  const [chatInput, setChatInput] = useState('');
 
   const zeladorLabel = useMemo(() => 'Zelador (Pai Alexandre)', []);
 
-  function updateStatus(id: string, status: PedidoRezaUiItem['status'], systemMsg?: string) {
-    setItems((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const chatMessages = systemMsg
-          ? [
-              ...r.chatMessages,
-              {
-                id: 'm-sys-' + Date.now(),
-                sender: 'Sistema' as const,
-                text: systemMsg,
-                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                isSystem: true,
-              },
-            ]
-          : r.chatMessages;
-        return { ...r, status, chatMessages };
-      }),
-    );
-  }
-
-  function sendChat() {
-    if (!chatInput.trim() || !selectedId) return;
-    setItems((prev) =>
-      prev.map((r) => {
-        if (r.id !== selectedId) return r;
-        return {
-          ...r,
-          chatMessages: [
-            ...r.chatMessages,
-            {
-              id: 'm-' + Date.now(),
-              sender: 'Zelador' as const,
-              text: chatInput.trim(),
-              time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            },
-          ],
-        };
-      }),
-    );
-    setChatInput('');
-    notify('Mensagem pastoral enviada (demo).');
+  function updateStatus(id: string, status: PedidoRezaUiItem['status']) {
+    setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    if (status === 'Aceito') {
+      notify('Pedido aceito (demo). O fiel receberia WhatsApp sobre a próxima gira.');
+    }
   }
 
   return (
@@ -86,38 +42,18 @@ export function DemoRezaPanel({ notify }: DemoRezaPanelProps) {
       items={items}
       selectedId={selectedId}
       onSelect={setSelectedId}
-      onAccept={(id) => {
-        updateStatus(
-          id,
-          'Aceito',
-          'Saravá! O Zelador aceitou seu pedido e firmou a vela em nosso congá de caridade.',
-        );
-        notify('Pedido aceito e altar firmado (demo).');
-      }}
-      onStartPrayer={(id) => {
-        updateStatus(id, 'Em Oração', 'Corrente Espiritual Ativa no terreiro! Mentalize pensamentos de cura e amparo.');
-        notify('Vibração espiritual iniciada (demo).');
-      }}
-      onFinishPrayer={(id) => {
-        updateStatus(id, 'Aceito');
-        notify('Sessão de oração finalizada (demo).', 'info');
-      }}
+      onAccept={(id) => updateStatus(id, 'Aceito')}
+      onStartPrayer={(id) => updateStatus(id, 'Em Oração')}
+      onFinishPrayer={(id) => updateStatus(id, 'Aceito')}
       onArchive={(id) => {
         setItems((prev) => prev.filter((r) => r.id !== id));
-        setSelectedId((cur) => (cur === id ? null : cur));
-        notify('Pedido arquivado (demo).', 'info');
+        setSelectedId((cur) => (cur === id ? items[0]?.id ?? null : cur));
+        notify('Pedido arquivado (demo).');
       }}
-      chatInput={chatInput}
-      onChatInputChange={setChatInput}
-      onSendChat={sendChat}
       zeladorLabel={zeladorLabel}
       description={
         <>
-          Painel do zelador — como os pedidos do{' '}
-          <a href="/espaco-do-fiel" className="font-semibold text-[#FACC15] hover:underline">
-            Espaço do Fiel
-          </a>{' '}
-          chegam ao terreiro. Dados só nesta demo; pedidos reais aparecem no app autenticado.
+          Demonstração do fluxo com WhatsApp — sem chat pastoral. Ao aceitar, o fiel é notificado automaticamente.
         </>
       }
     />

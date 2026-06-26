@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { assertZeladorTenantAccess, normalizeQueryTenantId } from "./tenantAccess.js";
+import { notifyFielPedidoAceito, notifyZeladorNovoPedidoReza } from "./pedidosRezaNotify.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -59,46 +60,6 @@ async function findPedidoByToken(sb: SupabaseClient, token: string) {
     .maybeSingle();
   if (error || !data) return null;
   return data;
-}
-
-async function loadMensagens(sb: SupabaseClient, pedidoId: string) {
-  const { data, error } = await sb
-    .from("pedidos_reza_mensagens")
-    .select("id, created_at, sender, texto")
-    .eq("pedido_id", pedidoId)
-    .order("created_at", { ascending: true })
-    .limit(200);
-  if (error) throw error;
-  return data || [];
-}
-
-async function insertMensagem(
-  sb: SupabaseClient,
-  pedidoId: string,
-  sender: "zelador" | "visitante" | "sistema",
-  texto: string,
-) {
-  const { data, error } = await sb
-    .from("pedidos_reza_mensagens")
-    .insert({ pedido_id: pedidoId, sender, texto: texto.slice(0, 2000) })
-    .select("id, created_at, sender, texto")
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-function systemMessageForStatus(status: string, vela: string | null): string | null {
-  if (status === "aceito") {
-    const velaTxt = vela && vela !== "Nenhuma" ? ` a vela ${vela}` : "";
-    return `Saravá! O Zelador aceitou seu pedido e firmou${velaTxt} em nosso congá de caridade.`;
-  }
-  if (status === "em_oracao") {
-    return "Corrente Espiritual Ativa no terreiro! Mentalize pensamentos de cura e amparo.";
-  }
-  if (status === "concluido") {
-    return "Sessão de oração finalizada. Que Oxalá cubra você de paz e proteção.";
-  }
-  return null;
 }
 
 async function assertPedidoTenantAccess(
@@ -209,8 +170,8 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
 
       if (nome.length < 2) return res.status(400).json({ error: "Informe seu nome." });
       if (mensagem.length < 8) return res.status(400).json({ error: "Descreva seu pedido de reza." });
-      if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) {
-        return res.status(400).json({ error: "WhatsApp inválido." });
+      if (!whatsapp || whatsapp.length < 10 || whatsapp.length > 13) {
+        return res.status(400).json({ error: "Informe um WhatsApp válido com DDD." });
       }
 
       const tenantId = String(leader.tenant_id || leader.id);
@@ -223,7 +184,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
           tenant_id: tenantId,
           lider_id: liderId,
           nome,
-          whatsapp: whatsapp || null,
+          whatsapp,
           mensagem: mensagem.slice(0, 2000),
           status: "pendente",
           categoria,
@@ -237,13 +198,18 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
 
       if (error) throw error;
 
-      await insertMensagem(sb, data.id, "visitante", mensagem.slice(0, 2000));
+      void notifyZeladorNovoPedidoReza(sb, resolveLeaderId, {
+        tenantId,
+        liderId,
+        pedido: { id: data.id, nome, categoria, mensagem },
+        nomeTerreiro: String(leader.nome_terreiro || "Terreiro"),
+      });
 
       res.status(201).json({
         success: true,
         id: data.id,
         acessoToken: data.acesso_token,
-        message: "Pedido recebido. Acompanhe o altar virtual na coluna ao lado.",
+        message: "Pedido recebido. Você será avisado no WhatsApp quando o zelador aceitar.",
       });
     } catch (e: unknown) {
       console.error("[public/consulente/pedidos-reza]", e);
@@ -255,29 +221,15 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const pedido = await findPedidoByToken(sb, String(req.params.token || ""));
       if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
-      const mensagens = await loadMensagens(sb, pedido.id);
-      res.json({ item: { ...pedido, acesso_token: undefined }, mensagens });
+      res.json({ item: { ...pedido, acesso_token: undefined }, mensagens: [] });
     } catch (e: unknown) {
       console.error("[public/pedidos-reza/get]", e);
       res.status(500).json({ error: "Erro ao carregar pedido." });
     }
   });
 
-  app.post("/api/v1/public/pedidos-reza/:token/mensagens", publicFormRateLimit, async (req: Request, res: Response) => {
-    try {
-      const pedido = await findPedidoByToken(sb, String(req.params.token || ""));
-      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
-      const texto = String(req.body?.texto || "").trim();
-      if (texto.length < 1) return res.status(400).json({ error: "Mensagem vazia." });
-      if (pedido.status === "cancelado" || pedido.status === "concluido") {
-        return res.status(400).json({ error: "Este pedido foi encerrado." });
-      }
-      const msg = await insertMensagem(sb, pedido.id, "visitante", texto);
-      res.status(201).json({ success: true, mensagem: msg });
-    } catch (e: unknown) {
-      console.error("[public/pedidos-reza/mensagens]", e);
-      res.status(500).json({ error: "Não foi possível enviar a mensagem." });
-    }
+  app.post("/api/v1/public/pedidos-reza/:token/mensagens", publicFormRateLimit, (_req: Request, res: Response) => {
+    res.status(410).json({ error: "O chat de pedidos de reza foi descontinuado. Acompanhe pelo altar virtual e WhatsApp." });
   });
 
   app.get("/api/v1/atendimentos/pedidos-reza", apiReadRateLimit, async (req: Request, res: Response) => {
@@ -320,8 +272,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const { data, error } = await sb.from("pedidos_reza").select(PEDIDO_SELECT).eq("id", id).maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Pedido não encontrado." });
-      const mensagens = await loadMensagens(sb, id);
-      res.json({ item: data, mensagens });
+      res.json({ item: data, mensagens: [] });
     } catch (e: unknown) {
       console.error("[atendimentos/pedidos-reza/get]", e);
       res.status(500).json({ error: "Erro ao carregar pedido." });
@@ -368,40 +319,30 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Pedido não encontrado." });
 
-      if (newStatus) {
-        const sysMsg = systemMessageForStatus(newStatus, data.vela);
-        if (sysMsg) await insertMensagem(sb, id, "sistema", sysMsg);
+      if (newStatus === "aceito") {
+        const leaderPk = await resolveLeaderId(tenantId);
+        void notifyFielPedidoAceito(sb, resolveLeaderId, {
+          tenantId,
+          liderId: leaderPk,
+          pedido: {
+            nome: data.nome,
+            whatsapp: data.whatsapp,
+            vela: data.vela,
+            categoria: data.categoria,
+          },
+          nomeTerreiro: String(data.nome_terreiro || "Terreiro"),
+        });
       }
 
-      const mensagens = await loadMensagens(sb, id);
-      res.json({ success: true, item: data, mensagens });
+      res.json({ success: true, item: data, mensagens: [] });
     } catch (e: unknown) {
       console.error("[atendimentos/pedidos-reza/patch]", e);
       res.status(500).json({ error: "Erro ao actualizar pedido." });
     }
   });
 
-  app.post("/api/v1/atendimentos/pedidos-reza/:id/mensagens", apiReadRateLimit, async (req: Request, res: Response) => {
-    const user = await requireAuthOrRespond(sb, req, res);
-    if (!user) return;
-    const id = String(req.params.id || "").trim();
-    const tenantId = normalizeQueryTenantId(req.body?.tenantId ?? req.query.tenantId);
-    if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId obrigatórios" });
-    const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
-    if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-    const texto = String(req.body?.texto || "").trim();
-    if (texto.length < 1) return res.status(400).json({ error: "Mensagem vazia." });
-
-    try {
-      const pedido = await assertPedidoTenantAccess(sb, tenantId, id, resolveLeaderId);
-      if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
-      const msg = await insertMensagem(sb, id, "zelador", texto);
-      res.status(201).json({ success: true, mensagem: msg });
-    } catch (e: unknown) {
-      console.error("[atendimentos/pedidos-reza/mensagens]", e);
-      res.status(500).json({ error: "Não foi possível enviar a mensagem." });
-    }
+  app.post("/api/v1/atendimentos/pedidos-reza/:id/mensagens", apiReadRateLimit, (_req: Request, res: Response) => {
+    res.status(410).json({ error: "O chat de pedidos de reza foi descontinuado. Use o WhatsApp do fiel se necessário." });
   });
 
   app.get("/api/v1/settings/portal-consulente", apiReadRateLimit, async (req: Request, res: Response) => {
