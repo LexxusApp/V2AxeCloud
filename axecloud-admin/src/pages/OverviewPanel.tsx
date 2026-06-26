@@ -294,8 +294,6 @@ export function OverviewPanel({
     }, 0);
   }, [tenants, plansCatalog]);
 
-  const publicTopPages = useMemo(() => activity?.publicSiteTopPages ?? [], [activity]);
-
   const publicDailySeries = useMemo(() => {
     const d = activity?.publicSiteDailyVisitors;
     if (!d) return [];
@@ -555,47 +553,6 @@ export function OverviewPanel({
               </div>
             )}
           </AdminPanel>
-
-          {publicTopPages.length > 0 ? (
-            <AdminPanel
-              kicker="Site público"
-              title="Páginas mais visitadas (30 dias)"
-              action={
-                <span className="text-xs text-[var(--ac-text-faint)]">
-                  visitantes únicos por secção
-                </span>
-              }
-            >
-              <ul className="space-y-2">
-                {publicTopPages.slice(0, 10).map((row) => (
-                  <li
-                    key={row.bucket}
-                    className="flex items-center gap-3 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] px-3 py-2.5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[var(--ac-text)] truncate">{row.label}</p>
-                      <p className="text-[10px] text-[var(--ac-text-faint)] admin-mono truncate">{row.bucket}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="admin-mono text-sm font-semibold text-[var(--ac-accent)]">{row.visitors}</p>
-                      <p className="text-[10px] text-[var(--ac-text-muted)]">{row.sharePct}%</p>
-                    </div>
-                    <div className="hidden sm:block w-24 h-1.5 rounded-full bg-[var(--ac-paper-border)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[var(--ac-accent)]"
-                        style={{ width: `${Math.max(4, row.sharePct)}%` }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </AdminPanel>
-          ) : activity?.publicSiteVisitorsAvailable && activity?.publicSitePageViewsAvailable === false ? (
-            <div className="admin-alert-info text-sm">
-              Breakdown por página disponível após aplicar{" "}
-              <code className="admin-mono text-[var(--ac-accent)]">20260619143000_public_site_page_views.sql</code>.
-            </div>
-          ) : null}
 
           <AdminPanel
             kicker="WhatsApp"
