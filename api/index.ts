@@ -44,7 +44,7 @@ import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
-import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext } from "./lib/whatsappSendCore.js";
+import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendBoasVindasWhatsAppForTenant } from "./lib/whatsappSendCore.js";
 import { validateWhatsAppOutboundMessage } from "./lib/whatsappSendGuards.js";
 import { dispatchGiraWhatsApp, dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
@@ -103,6 +103,7 @@ import {
   sensitiveActionRateLimit,
   whatsappSendRateLimit,
   whatsappBroadcastRateLimit,
+  whatsappResendWelcomeRateLimit,
   pushDirectRateLimit,
   apiReadRateLimit,
   filhoLoginRateLimit,
@@ -4760,6 +4761,40 @@ async function startServer() {
       if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
       const status = Number(error?.statusCode) || 500;
       res.status(status).json({ error: safeErrorMessage(error, "Erro na transmissão.") });
+    }
+  });
+
+  app.post("/api/whatsapp/resend-welcome", whatsappResendWelcomeRateLimit, async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
+      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+
+      const result = await resendBoasVindasWhatsAppForTenant(supabaseAdmin, user.id);
+      if (!result.total && result.skippedNoPhone > 0 && !result.sent) {
+        return res.status(400).json({
+          error: "Nenhum filho com WhatsApp e CPF cadastrados para envio de acesso.",
+          ...result,
+        });
+      }
+      if (!result.sent && result.failed > 0) {
+        return res.status(502).json({
+          error: result.lastError || "Não foi possível enviar as mensagens de boas-vindas.",
+          ...result,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Boas-vindas enfileiradas com sucesso.",
+        ...result,
+      });
+    } catch (error: any) {
+      if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
+      const status = Number(error?.statusCode) || 500;
+      res.status(status).json({ error: safeErrorMessage(error, "Erro ao reenviar boas-vindas.") });
     }
   });
 

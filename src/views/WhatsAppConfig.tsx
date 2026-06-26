@@ -79,7 +79,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
   const templateMeta: Record<WhatsAppTemplateType, { title: string; hint: string }> = {
     boas_vindas: {
       title: 'Boas-vindas',
-      hint: 'Enviada ao cadastrar novo filho.',
+      hint: 'Enviada ao cadastrar novo filho ou pelo botão na lista de Filhos de Santo. Variáveis: {{filho_login_id}}, {{senha_acesso}}, {{login_url}}.',
     },
     cobranca_mensalidade: {
       title: 'Cobrança de Mensalidade',

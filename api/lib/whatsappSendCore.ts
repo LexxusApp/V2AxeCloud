@@ -240,7 +240,7 @@ async function enrichBoasVindasVariables(
 
   const { data: filho, error } = await sb
     .from("filhos_de_santo")
-    .select("id, nome, tenant_id, lider_id, data_entrada")
+    .select("id, nome, cpf, tenant_id, lider_id, data_entrada")
     .eq("id", filhoId)
     .maybeSingle();
   if (error) throw error;
@@ -248,10 +248,17 @@ async function enrichBoasVindasVariables(
 
   await assertFilhoBelongsToTerreiro(sb, leaderId, filho);
 
+  const cpfDigits = String(filho.cpf || "").replace(/\D/g, "");
+  const senhaAcesso =
+    cpfDigits.length >= 6
+      ? cpfDigits.slice(0, 6)
+      : "os 6 primeiros dígitos do seu CPF (cadastre o CPF no perfil se ainda não informou)";
+
   return {
     ...base,
     nome_filho: variables.nome_filho || String(filho.nome || ""),
     filho_login_id: formatFilhoMatricula(String(filho.id), filho.data_entrada),
+    senha_acesso: senhaAcesso,
   };
 }
 
@@ -547,4 +554,91 @@ export async function broadcastWhatsAppForTenant(
   }
 
   return { sent, failed, total: uniqueTargets.length, lastError };
+}
+
+/** Reenvia boas-vindas com registro, senha (6 dígitos CPF) e link de login para filhos com WhatsApp. */
+export async function resendBoasVindasWhatsAppForTenant(
+  sb: SupabaseClient,
+  tenantId: string
+): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  skippedNoPhone: number;
+  skippedNoCpf: number;
+  lastError?: string;
+}> {
+  const ctx = await resolveTerreiroWhatsAppContext(sb, tenantId, tenantId);
+
+  const { data: filhos, error } = await sb
+    .from("filhos_de_santo")
+    .select("id, nome, whatsapp_phone, cpf, status, tenant_id, lider_id, data_entrada")
+    .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
+
+  if (error) throw error;
+
+  let skippedNoPhone = 0;
+  let skippedNoCpf = 0;
+  const eligible: NonNullable<typeof filhos> = [];
+
+  for (const f of filhos || []) {
+    const st = String(f.status || "Ativo").trim().toLowerCase();
+    if (st === "inativo" || st === "desligado" || st === "falecido") continue;
+
+    const hasPhone = String(f.whatsapp_phone || "").replace(/\D/g, "").length >= 10;
+    if (!hasPhone) {
+      skippedNoPhone += 1;
+      continue;
+    }
+
+    const cpfDigits = String(f.cpf || "").replace(/\D/g, "");
+    if (cpfDigits.length < 6) {
+      skippedNoCpf += 1;
+      continue;
+    }
+
+    eligible.push(f);
+  }
+
+  await assertTenantWhatsAppDailyQuota(sb, tenantId, eligible.length);
+
+  let sent = 0;
+  let failed = 0;
+  let lastError: string | undefined;
+
+  for (let i = 0; i < eligible.length; i++) {
+    const filho = eligible[i];
+    try {
+      await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
+      const nomeMembro = String(filho.nome || "Membro");
+      await sendWhatsAppForTenant(sb, {
+        tenantId,
+        filhoId: String(filho.id),
+        tipo: "boas_vindas",
+        variables: {
+          nome_filho: nomeMembro,
+          nome_terreiro: ctx.nomeTerreiro,
+          nome_sistema: "AxéCloud",
+        },
+      });
+      sent += 1;
+    } catch (err) {
+      failed += 1;
+      lastError = err instanceof Error ? err.message : String(err);
+      const code = (err as { code?: string })?.code || "";
+      console.error(`[WHATSAPP] boas-vindas falhou (${filho.id}):`, lastError);
+      if (code.startsWith("WA_QUOTA")) break;
+    }
+  }
+
+  return {
+    sent,
+    failed,
+    skipped: skippedNoPhone + skippedNoCpf,
+    total: eligible.length,
+    skippedNoPhone,
+    skippedNoCpf,
+    lastError,
+  };
 }

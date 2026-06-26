@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X } from 'lucide-react';
+import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
+import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
+import { supabase } from '../lib/supabase';
 import { MODAL_TW } from '../lib/modalMotion';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
@@ -57,6 +59,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [resendingWelcome, setResendingWelcome] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({ ...EMPTY_CHILD_FORM, data_entrada: new Date().toISOString().split('T')[0] });
@@ -147,6 +150,46 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       setSubmitError(error.message || 'Erro ao cadastrar filho de santo.');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendWelcomeWhatsApp() {
+    if (!user?.id) return;
+    const ok = confirm(
+      'Enviar mensagem de boas-vindas com registro de acesso, senha (6 primeiros dígitos do CPF) e link de login para todos os filhos com WhatsApp e CPF cadastrados?\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
+    );
+    if (!ok) return;
+
+    setResendingWelcome(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const response = await fetch(whatsappApiUrl('/whatsapp/resend-welcome'), {
+        method: 'POST',
+        headers: whatsappRailwayHeaders(token, user.id),
+        body: JSON.stringify({}),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Não foi possível enfileirar o envio.');
+      }
+
+      const parts = [
+        `${result.sent ?? 0} enviada(s)`,
+        result.failed ? `${result.failed} falha(s)` : null,
+        result.skippedNoPhone ? `${result.skippedNoPhone} sem WhatsApp` : null,
+        result.skippedNoCpf ? `${result.skippedNoCpf} sem CPF` : null,
+      ].filter(Boolean);
+
+      alert(`Boas-vindas enfileiradas.\n\n${parts.join(' · ')}`);
+    } catch (error) {
+      console.error('[Children] resend welcome WA:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao enviar boas-vindas via WhatsApp.');
+    } finally {
+      setResendingWelcome(false);
     }
   }
 
@@ -241,7 +284,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         action={searchBar}
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {['Todos', 'Ativo', 'Pendente', 'Inativo'].map((status) => (
           <button
             key={status}
@@ -257,6 +300,24 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             {status}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => void handleResendWelcomeWhatsApp()}
+          disabled={resendingWelcome || children.length === 0}
+          className={cn(
+            'ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all',
+            resendingWelcome || children.length === 0
+              ? 'cursor-not-allowed border-[#1E242B] bg-[#12161A] text-zinc-600'
+              : 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/15',
+          )}
+        >
+          {resendingWelcome ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          ) : (
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+          )}
+          Enviar acesso via WhatsApp
+        </button>
       </div>
 
       <div className="space-y-3">
@@ -338,6 +399,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
             <span>
               Cada terreiro tem ambiente isolado (RLS). Clique na linha para abrir o perfil completo do filho.
+              Use &quot;Enviar acesso via WhatsApp&quot; para reenviar registro, senha e link de login aos filhos
+              com WhatsApp e CPF cadastrados.
             </span>
           </div>
         </div>

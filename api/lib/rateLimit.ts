@@ -128,6 +128,13 @@ export const whatsappTestRateLimit = createRateLimit({
   message: { error: "Limite de testes WhatsApp excedido. Tente mais tarde." },
 });
 
+export const whatsappResendWelcomeRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyPrefix: "wa-resend-welcome",
+  message: { error: "Limite de reenvio de boas-vindas excedido. Tente mais tarde." },
+});
+
 export const pushDirectRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
