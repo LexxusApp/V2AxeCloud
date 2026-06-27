@@ -44,14 +44,12 @@ axecloud.com.br, www.axecloud.com.br {
 			reverse_proxy app:3000
 		}
 
-		@crawlers {
-			header_regexp User-Agent (?i)(googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider)
-		}
-		@diretorio_seo {
+		@diretorio_crawlers {
 			path /terreiro/*
 			path /terreiros/*/*
+			header_regexp User-Agent (?i)(googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider)
 		}
-		handle @diretorio_seo @crawlers {
+		handle @diretorio_crawlers {
 			@terreiro_page path /terreiro/*
 			handle @terreiro_page {
 				rewrite * /api/v1/public/diretorio/render{path}
