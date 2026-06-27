@@ -193,9 +193,19 @@ function resolveRouteSeo(path: string): RouteSeo {
 
   if (path.startsWith(`${ROUTES.terreiros}/`)) {
     return {
+      title: `Terreiros | ${PORTAL_BRAND}`,
+      description:
+        'Terreiros de Umbanda, Candomblé e tradições afro-brasileiras por cidade — diretório público AxéCloud.',
+      canonicalPath: path,
+      robots: 'index, follow',
+    };
+  }
+
+  if (path.startsWith(`${ROUTES.diretorioTerreiro}/`)) {
+    return {
       title: `Terreiro | ${PORTAL_BRAND}`,
       description:
-        'Perfil público de terreiro de Umbanda ou Candomblé — pedidos de reza, eventos e informações com respeito à tradição.',
+        'Informações públicas de terreiro de axé — endereço, telefone e rota no Google Maps.',
       canonicalPath: path,
       robots: 'index, follow',
     };
@@ -243,4 +253,27 @@ export function applyRouteSeo(pathname: string) {
   upsertTwitter('twitter:description', seo.description);
   upsertTwitter('twitter:image', `${SITE_ORIGIN}/og-image.png`);
   document.documentElement.lang = 'pt-BR';
+}
+
+/** SEO dinâmico (páginas de diretório por cidade/terreiro). */
+export function applyCustomPageSeo(input: {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  robots?: string;
+}) {
+  applyRouteSeo(input.canonicalPath);
+  document.title = input.title;
+  upsertMeta('description', input.description);
+  upsertMeta('robots', input.robots || 'index, follow');
+  const canonical =
+    input.canonicalPath === '/'
+      ? `${SITE_ORIGIN}/`
+      : `${SITE_ORIGIN}${input.canonicalPath}`;
+  upsertCanonical(canonical);
+  upsertOg('og:url', canonical);
+  upsertOg('og:title', input.title);
+  upsertOg('og:description', input.description);
+  upsertTwitter('twitter:title', input.title);
+  upsertTwitter('twitter:description', input.description);
 }

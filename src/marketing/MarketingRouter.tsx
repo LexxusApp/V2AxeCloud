@@ -4,6 +4,7 @@ import { usePathname } from '../hooks/usePathname';
 import { appHref, isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { installMarketingClientNavigation } from '../lib/marketingNavigation';
 import { ROUTES, normalizePath } from '../lib/routes';
+import { isValidDiretorioUf } from '../lib/diretorioSlug';
 import { applyRouteSeo } from '../lib/seo';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
 import { parseContentArticleSlug } from '../content/portalContent';
@@ -19,6 +20,8 @@ const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TerreirosDirectoryPage = lazy(() => import('../views/portal/TerreirosDirectoryPage'));
 const TerreiroProfilePage = lazy(() => import('../views/portal/TerreiroProfilePage'));
 const TerreirosCityPage = lazy(() => import('../views/portal/TerreirosCityPage'));
+const DiretorioCityPage = lazy(() => import('../views/portal/DiretorioCityPage'));
+const DiretorioTerreiroPage = lazy(() => import('../views/portal/DiretorioTerreiroPage'));
 const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage'));
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 
@@ -29,6 +32,25 @@ function MarketingSectionFallback() {
       className="landing-v3 landing-mockup-theme min-h-[50vh] w-full bg-[#fdf8f0]"
     />
   );
+}
+
+function parseDiretorioTerreiroPath(path: string): string | null {
+  const p = normalizePath(path);
+  if (!p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return null;
+  const slug = p.slice(`${ROUTES.diretorioTerreiro}/`.length);
+  return slug ? decodeURIComponent(slug) : null;
+}
+
+function parseDiretorioCityPath(path: string): { estado: string; cidade: string } | null {
+  const p = normalizePath(path);
+  if (!p.startsWith(`${ROUTES.terreiros}/`)) return null;
+  const rest = p.slice(`${ROUTES.terreiros}/`.length);
+  if (rest.startsWith('cidade/')) return null;
+  const parts = rest.split('/').filter(Boolean);
+  if (parts.length === 2 && /^[a-z]{2}$/i.test(parts[0]) && isValidDiretorioUf(parts[0])) {
+    return { estado: parts[0].toLowerCase(), cidade: decodeURIComponent(parts[1]) };
+  }
+  return null;
 }
 
 function parseTerreirosPath(path: string): 'directory' | { city: string } | { profile: string } | null {
@@ -63,6 +85,12 @@ function RoutedMarketingPage({ path }: { path: string }) {
   if (normalizePath(path) === LITURGICAL_CALENDAR_PATH) {
     return <LiturgicalCalendarPage />;
   }
+
+  const diretorioSlug = parseDiretorioTerreiroPath(path);
+  if (diretorioSlug) return <DiretorioTerreiroPage />;
+
+  const diretorioCity = parseDiretorioCityPath(path);
+  if (diretorioCity) return <DiretorioCityPage />;
 
   const terreiros = parseTerreirosPath(path);
   if (terreiros === 'directory') return <TerreirosDirectoryPage />;

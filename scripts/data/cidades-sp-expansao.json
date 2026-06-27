@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "objetivo": "Cobrir todos os municípios de SP em fases (645 no total). Começar pelos anéis ao redor das cidades já mapeadas.",
+    "jaMapeadas": [
+      "Suzano - SP",
+      "Mogi das Cruzes - SP",
+      "Itaquaquecetuba - SP",
+      "Ferraz de Vasconcelos - SP",
+      "Poá - SP"
+    ],
+    "regiaoBase": "Alto Tietê / leste da Grande São Paulo"
+  },
+  "anel1_vizinhas_diretas": [
+    "Rio Grande da Serra - SP",
+    "Arujá - SP",
+    "Santa Isabel - SP",
+    "Guararema - SP",
+    "Salesópolis - SP",
+    "Biritiba-Mirim - SP"
+  ],
+  "anel2_abc_e_adjacentes": [
+    "Ribeirão Pires - SP",
+    "Mauá - SP",
+    "Santo André - SP",
+    "São Caetano do Sul - SP",
+    "São Bernardo do Campo - SP",
+    "Diadema - SP",
+    "Guarulhos - SP"
+  ],
+  "anel3_grande_sp_leste": [
+    "São Paulo - SP",
+    "Jacareí - SP",
+    "Caieiras - SP",
+    "Mairiporã - SP",
+    "Ferraz de Vasconcelos - SP"
+  ],
+  "anel4_vale_paraiba_inicio": [
+    "Guaratinguetá - SP",
+    "Taubaté - SP",
+    "Pindamonhangaba - SP",
+    "Lorena - SP",
+    "Cruzeiro - SP"
+  ],
+  "anel5_interior_campinas": [
+    "Campinas - SP",
+    "Sumaré - SP",
+    "Indaiatuba - SP",
+    "Americana - SP",
+    "Piracicaba - SP",
+    "Limeira - SP"
+  ],
+  "anel6_interior_outros": [
+    "Sorocaba - SP",
+    "Ribeirão Preto - SP",
+    "Santos - SP",
+    "São José dos Campos - SP",
+    "São Vicente - SP",
+    "Praia Grande - SP"
+  ]
+}

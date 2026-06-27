@@ -6,6 +6,8 @@ services:
       args:
         GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
         BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
     restart: unless-stopped
     networks:
       - web

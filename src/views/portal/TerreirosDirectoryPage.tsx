@@ -2,11 +2,13 @@
 import { Loader2, Search } from 'lucide-react';
 import { TerreiroCard } from '../../components/portal/TerreiroCard';
 import { TerreirosMapSummary } from '../../components/portal/TerreirosMapSummary';
+import { DiretorioCityGrid } from '../../components/portal/DiretorioCityGrid';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
 import { MarketingMockupPageHeader } from '../../components/marketing/MarketingMockupPageHeader';
 import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { fetchPublicCidades, fetchPublicTerreiros, type PublicTerreiro } from '../../lib/portalPublic';
+import { fetchDiretorioCidades, type DiretorioCidade } from '../../lib/diretorioPublic';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 
@@ -16,11 +18,15 @@ export default function TerreirosDirectoryPage() {
   const [q, setQ] = useState('');
   const [tradicao, setTradicao] = useState('todas');
   const [cidades, setCidades] = useState<Awaited<ReturnType<typeof fetchPublicCidades>>>([]);
+  const [diretorioCidades, setDiretorioCidades] = useState<DiretorioCidade[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchPublicCidades()
       .then(setCidades)
+      .catch(() => undefined);
+    void fetchDiretorioCidades()
+      .then(setDiretorioCidades)
       .catch(() => undefined);
   }, []);
 
@@ -44,7 +50,18 @@ export default function TerreirosDirectoryPage() {
         />
 
         <section className="mt-12">
-          <h2 className="text-lg font-bold text-[#1b1813]">Por cidade</h2>
+          <h2 className="text-lg font-bold text-[#1b1813]">Terreiros por cidade (mapa)</h2>
+          <p className="mt-1 text-sm text-[#1b1813]/65">
+            Casas de axé com endereço e rota no Google Maps — ideal para quem busca um terreiro na região.
+          </p>
+          <div className="mt-4">
+            <DiretorioCityGrid cidades={diretorioCidades} />
+          </div>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="text-lg font-bold text-[#1b1813]">Casas parceiras AxéCloud</h2>
+          <p className="mt-1 text-sm text-[#1b1813]/65">Terreiros com perfil verificado no portal.</p>
           <div className="mt-4">
             <TerreirosMapSummary cidades={cidades} />
           </div>

@@ -58,6 +58,8 @@ import { registerOnboardingRoutes } from "./lib/onboardingRoutes.js";
 import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js";
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
+import { registerDiretorioPublicRoutes } from "./lib/diretorioPublicRoutes.js";
+import { registerDiretorioSeoRoutes } from "./lib/diretorioSeo.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
@@ -3680,6 +3682,8 @@ async function startServer() {
   });
   registerFounderProgramRoutes(app, { supabaseAdmin });
   registerPublicPortalRoutes(app, { supabaseAdmin });
+  registerDiretorioPublicRoutes(app, { supabaseAdmin });
+  registerDiretorioSeoRoutes(app, { supabaseAdmin });
   registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
   registerGiraOperationsRoutes(app, { supabaseAdmin, resolveLeaderId });

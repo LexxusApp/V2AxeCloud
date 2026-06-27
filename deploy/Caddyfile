@@ -40,6 +40,27 @@ axecloud.com.br, www.axecloud.com.br {
 			redir * /sitemap.xml permanent
 		}
 
+		handle /sitemap.xml {
+			reverse_proxy app:3000
+		}
+
+		@crawlers {
+			header_regexp User-Agent (?i)(googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider)
+		}
+		@diretorio_seo {
+			path /terreiro/*
+			path /terreiros/*/*
+		}
+		handle @diretorio_seo @crawlers {
+			@terreiro_page path /terreiro/*
+			handle @terreiro_page {
+				rewrite * /api/v1/public/diretorio/render{path}
+				reverse_proxy app:3000
+			}
+			rewrite /terreiros/{uf}/{city} /api/v1/public/diretorio/render/{uf}/{city}
+			reverse_proxy app:3000
+		}
+
 		crowdsec
 		appsec
 
@@ -119,8 +140,6 @@ axecloud.com.br, www.axecloud.com.br {
 
 		@public_static {
 			path /robots.txt
-			path /sitemap.xml
-			path /sitemap.xm
 			path /og-image.png
 			path /screenshots/*
 		}
@@ -157,6 +176,8 @@ axecloud.com.br, www.axecloud.com.br {
 			path /espaco-do-fiel/*
 			path /terreiros
 			path /terreiros/*
+			path /terreiro
+			path /terreiro/*
 			path /eventos
 			path /eventos/*
 			path /conteudo

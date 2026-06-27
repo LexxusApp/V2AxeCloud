@@ -25,6 +25,8 @@ export const ROUTES = {
   consulentePortal: '/consulente',
   espacoDoFiel: '/espaco-do-fiel',
   terreiros: '/terreiros',
+  /** Página individual do diretório SEO (Google Maps). */
+  diretorioTerreiro: '/terreiro',
   eventosPublicos: '/eventos',
   liturgicalCalendar: '/conteudo/calendario-liturgico',
   eventRsvp: '/convite',
@@ -96,6 +98,7 @@ export function isMarketingSitePath(path: string): boolean {
   const p = normalizePath(path);
   if ((MARKETING_SITE_PATHS as readonly string[]).includes(p)) return true;
   if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
+  if (p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return true;
   return false;
 }
 
