@@ -12,6 +12,7 @@ const APP_SPA_PATHS = [
   ROUTES.login,
   ROUTES.register,
   ROUTES.checkout,
+  ROUTES.renewSubscription,
   ROUTES.dashboard,
   ROUTES.consulentePortal,
   ROUTES.eventRsvp,

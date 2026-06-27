@@ -63,6 +63,12 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/checkout',
     robots: 'noindex, nofollow',
   },
+  [ROUTES.renewSubscription]: {
+    title: `Renovar assinatura | ${BRAND_NAME}`,
+    description: 'Renove a mensalidade Premium do seu terreiro via PIX ou cartão.',
+    canonicalPath: '/assinatura/renovar',
+    robots: 'noindex, nofollow',
+  },
   [ROUTES.dashboard]: {
     title: `Painel | ${BRAND_NAME}`,
     description: DEFAULT_DESCRIPTION,

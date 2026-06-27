@@ -13,6 +13,8 @@ export const ROUTES = {
   loginLegacy: '/login',
   register: '/register',
   checkout: '/checkout',
+  /** Renovação de assinatura (zelador logado) — checkout EFI separado do cadastro. */
+  renewSubscription: '/assinatura/renovar',
   dashboard: '/dashboard',
   terms: '/termos',
   privacy: '/privacidade',
@@ -30,11 +32,18 @@ export const ROUTES = {
   giraSenhas: '/senhas',
 } as const;
 
-/** Checkout EFI exige `?tenant=` (id do zelador / linha em subscriptions). */
+/** Checkout EFI no cadastro (passo 2) — exige `?tenant=` do registro. */
 export function checkoutPathForTenant(tenantId: string | null | undefined): string | null {
   const id = String(tenantId || '').trim();
   if (!id) return null;
   return `${ROUTES.checkout}?tenant=${encodeURIComponent(id)}`;
+}
+
+/** Renovação de assinatura no painel (zelador logado). */
+export function renewSubscriptionPath(tenantId?: string | null): string {
+  const id = String(tenantId || '').trim();
+  if (!id) return ROUTES.renewSubscription;
+  return `${ROUTES.renewSubscription}?tenant=${encodeURIComponent(id)}`;
 }
 
 export function terreiroProfilePath(slug: string): string {

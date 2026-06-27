@@ -9,7 +9,7 @@ import {
 } from '../../constants/plans';
 import { usePlansCatalog } from '../../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../../lib/plansDisplay';
-import { checkoutPathForTenant } from '../../lib/routes';
+import { renewSubscriptionPath } from '../../lib/routes';
 import { supabase } from '../../lib/supabase';
 
 type SettingsSubscriptionPanelProps = {
@@ -106,13 +106,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
         const { data } = await supabase.auth.getSession();
         tenantId = data.session?.user?.id || '';
       }
-      const path = checkoutPathForTenant(tenantId);
-      if (!path) {
-        setRenewError('Não foi possível abrir o checkout. Faça login novamente.');
-        setRenewLoading(false);
-        return;
-      }
-      window.location.href = path;
+      window.location.href = renewSubscriptionPath(tenantId);
     } catch {
       setRenewError('Erro ao abrir o checkout. Tente novamente.');
       setRenewLoading(false);

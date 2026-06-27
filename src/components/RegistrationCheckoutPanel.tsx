@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { appInputClass, appLabelClass } from '../lib/appUiTokens';
 import { supabase } from '../lib/supabase';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { createEfiPaymentToken, detectCardBrand, loadEfiPaymentScript } from '../lib/efiCardToken';
@@ -119,6 +120,24 @@ const themes = {
     footerIcon: 'text-[#f2b90f]',
     disabledField: 'text-[#9a9da6]',
   },
+  app: {
+    radius: 'rounded-xl',
+    fieldShell: appInputClass,
+    labelClass: appLabelClass,
+    panel: 'rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:p-6',
+    tabContainer: 'mb-4 flex rounded-xl border border-[#1E242B] bg-[#12161A] p-1',
+    tabActive: 'bg-primary text-[#080A0D] shadow-sm',
+    tabInactive: 'text-[#94A3B8] hover:text-white',
+    textMuted: 'text-[#94A3B8]',
+    textSubtle: 'text-gray-500',
+    errorBox: 'border-red-500/30 bg-red-950/40 text-red-200',
+    successPanel:
+      'rounded-2xl border border-primary/30 bg-[#13171D] p-8 text-center text-[#F1F5F9]',
+    warnBox: 'rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2.5 text-[13px] text-amber-100',
+    footerText: 'text-[#94A3B8]',
+    footerIcon: 'text-primary',
+    disabledField: 'text-gray-500',
+  },
 } as const;
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -132,6 +151,8 @@ async function authHeaders(): Promise<Record<string, string>> {
 export type RegistrationCheckoutPanelProps = {
   tenantId: string;
   variant?: keyof typeof themes;
+  /** onboarding = cadastro; renewal = zelador renovando assinatura */
+  purpose?: 'onboarding' | 'renewal';
   /** Layout mais baixo para caber no painel do /register sem cortar o topo. */
   compact?: boolean;
   defaultHolderName?: string;
@@ -143,6 +164,7 @@ export type RegistrationCheckoutPanelProps = {
 export function RegistrationCheckoutPanel({
   tenantId,
   variant = 'light',
+  purpose = 'onboarding',
   compact = false,
   defaultHolderName = '',
   defaultPhone = '',
@@ -173,8 +195,19 @@ export function RegistrationCheckoutPanel({
     t.radius,
     isCompactLight ? lightTheme.ctaHCompact : lightTheme.ctaH,
     isCompactLight ? lightTheme.ctaTextCompact : lightTheme.ctaText,
-    'flex w-full items-center justify-center gap-2 font-black uppercase tracking-[0.06em] text-black disabled:opacity-50'
+    'flex w-full items-center justify-center gap-2 font-bold uppercase tracking-[0.06em] disabled:opacity-50',
+    variant === 'app'
+      ? 'bg-primary text-[#080A0D] hover:bg-[#fde047]'
+      : 'text-black'
   );
+
+  const isRenewal = purpose === 'renewal';
+  const pixIntro = isRenewal
+    ? 'Gere o QR Code Pix para renovar sua mensalidade. A confirmação libera o painel automaticamente.'
+    : 'Gere o QR Code na hora. O Pix confirma em segundos e liberamos seu acesso automaticamente.';
+  const cardIntro = isRenewal
+    ? 'Pague com cartão de crédito para renovar o acesso do terreiro. Cobrança recorrente via EFI Bank.'
+    : 'Assinatura mensal com cartão de crédito. Cobrança recorrente via EFI Bank.';
 
   const [method, setMethod] = useState<PayMethod>('pix');
   const [config, setConfig] = useState<EfiConfig | null>(null);
@@ -451,7 +484,10 @@ export function RegistrationCheckoutPanel({
         )}
       >
         <Loader2
-          className={cn('h-8 w-8 animate-spin', variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]')}
+          className={cn(
+            'h-8 w-8 animate-spin',
+            variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]'
+          )}
         />
       </motion.div>
     );
@@ -462,30 +498,48 @@ export function RegistrationCheckoutPanel({
       {paymentConfirmed ? (
         <motion.div initial={{ scale: 0.98 }} animate={{ scale: 1 }} className={t.successPanel}>
           <Check
-            className={cn('mx-auto mb-4 h-10 w-10', variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]')}
+            className={cn(
+              'mx-auto mb-4 h-10 w-10',
+              variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]'
+            )}
           />
           <h2 className="text-xl font-black">Pagamento confirmado!</h2>
-          <p className={cn('mt-2 text-sm', t.textMuted)}>Redirecionando para o painel…</p>
+          <p className={cn('mt-2 text-sm', t.textMuted)}>
+            {isRenewal ? 'Assinatura renovada. Redirecionando para o painel…' : 'Redirecionando para o painel…'}
+          </p>
           <Loader2
             className={cn(
               'mx-auto mt-6 h-6 w-6 animate-spin',
-              variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]'
+              variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]'
             )}
           />
         </motion.div>
       ) : alreadyActive ? (
         <motion.div initial={{ scale: 0.98 }} animate={{ scale: 1 }} className={t.successPanel}>
           <Check
-            className={cn('mx-auto mb-4 h-10 w-10', variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]')}
+            className={cn(
+              'mx-auto mb-4 h-10 w-10',
+              variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]'
+            )}
           />
           <h2 className="text-xl font-black">Assinatura já ativa</h2>
           <p className={cn('mt-2 text-sm', t.textMuted)}>
-            Este terreiro já possui acesso liberado. Não é necessário pagar novamente.
+            {isRenewal
+              ? 'Sua mensalidade já está em dia. Não é necessário pagar novamente.'
+              : 'Este terreiro já possui acesso liberado. Não é necessário pagar novamente.'}
           </p>
           <motion.a
             href="/dashboard"
-            style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
-            className={cn(payCtaClass, 'mt-6 inline-flex px-8')}
+            style={
+              variant === 'app'
+                ? undefined
+                : { background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }
+            }
+            className={cn(
+              payCtaClass,
+              'mt-6 inline-flex px-8',
+              variant === 'app' && 'bg-primary text-[#080A0D] hover:bg-[#fde047]'
+            )}
           >
             Ir para o painel
           </motion.a>
@@ -563,9 +617,7 @@ export function RegistrationCheckoutPanel({
                   </div>
                 ) : !pixQr ? (
                   <>
-                    <p className={introClass}>
-                      Gere o QR Code na hora. O Pix confirma em segundos e liberamos seu acesso automaticamente.
-                    </p>
+                    <p className={introClass}>{pixIntro}</p>
                     <motion.div>
                       <label className={t.labelClass}>Nome do pagador</label>
                       <input
@@ -590,7 +642,11 @@ export function RegistrationCheckoutPanel({
                       disabled={pixLoading}
                       onClick={() => void handleGeneratePix()}
                       whileTap={{ scale: 0.99 }}
-                      style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
+                      style={
+                        variant === 'app'
+                          ? undefined
+                          : { background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }
+                      }
                       className={payCtaClass}
                     >
                       {pixLoading ? (
@@ -624,7 +680,9 @@ export function RegistrationCheckoutPanel({
                         'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-xs font-bold',
                         variant === 'light'
                           ? 'border-amber-300 bg-amber-50 text-amber-900'
-                          : 'border-[#f2b90f]/40 bg-black/40 text-[#f2b90f]'
+                          : variant === 'app'
+                            ? 'border-primary/40 bg-primary/10 text-primary'
+                            : 'border-[#f2b90f]/40 bg-black/40 text-[#f2b90f]'
                       )}
                     >
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -633,7 +691,7 @@ export function RegistrationCheckoutPanel({
                     <Loader2
                       className={cn(
                         'mx-auto mt-6 h-6 w-6 animate-spin',
-                        variant === 'light' ? 'text-amber-600' : 'text-[#f2b90f]/80'
+                        variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]/80'
                       )}
                     />
                     <p className={cn('mt-3 text-[11px]', t.textSubtle)}>Aguardando confirmação do pagamento…</p>
@@ -647,7 +705,7 @@ export function RegistrationCheckoutPanel({
             ) : (
               <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>
                 <p className={introClass}>
-                  Assinatura mensal ({config.amountLabel || catalogPrice.label}
+                  {isRenewal ? cardIntro : 'Assinatura mensal'} ({config.amountLabel || catalogPrice.label}
                   {catalogPrice.period}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
                 </p>
 
@@ -820,7 +878,11 @@ export function RegistrationCheckoutPanel({
                   type="submit"
                   disabled={cardLoading || config.cardTokenizationReady === false}
                   whileTap={{ scale: 0.99 }}
-                  style={{ background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }}
+                  style={
+                    variant === 'app'
+                      ? undefined
+                      : { background: `linear-gradient(180deg, ${GOLD} 0%, #c88900 100%)` }
+                  }
                   className={cn(payCtaClass, isCompactLight ? 'mt-1' : 'mt-2')}
                 >
                   {cardLoading ? (
