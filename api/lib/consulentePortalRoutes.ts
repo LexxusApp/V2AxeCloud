@@ -41,7 +41,7 @@ async function findLeaderBySlug(sb: SupabaseClient, slug: string) {
   if (!s || s.length < 3) return null;
   const { data, error } = await sb
     .from("perfil_lider")
-    .select("id, tenant_id, nome_terreiro, foto_url, tradicao, portal_consulente_ativo, portal_consulente_mensagem, public_slug, nome")
+    .select("id, tenant_id, nome_terreiro, foto_url, tradicao, portal_consulente_ativo, portal_consulente_mensagem, public_slug")
     .eq("portal_consulente_ativo", true)
     .is("deleted_at", null)
     .ilike("public_slug", s)

@@ -81,12 +81,12 @@ export async function enrichGalleryMediaRows(
   if (creatorIds.length > 0) {
     const { data: leaders } = await supabaseAdmin
       .from("perfil_lider")
-      .select("id, nome_terreiro, nome")
+      .select("id, nome_terreiro")
       .in("id", creatorIds);
     nameByUser = Object.fromEntries(
-      (leaders || []).map((leader: { id: string; nome?: string | null; nome_terreiro?: string | null }) => [
+      (leaders || []).map((leader: { id: string; nome_terreiro?: string | null }) => [
         leader.id,
-        String(leader.nome || leader.nome_terreiro || "").trim(),
+        String(leader.nome_terreiro || "").trim(),
       ]),
     );
   }
