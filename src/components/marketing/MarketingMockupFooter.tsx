@@ -75,6 +75,16 @@ export function MarketingMockupFooter() {
               </a>
             </li>
             <li>
+              <a href={ROUTES.whyAxeCloud} className="text-white/60 transition hover:text-[#FFC107]">
+                Por que AxéCloud
+              </a>
+            </li>
+            <li>
+              <a href={`${ROUTES.home}#apps`} className="text-white/60 transition hover:text-[#FFC107]">
+                App PWA instalável
+              </a>
+            </li>
+            <li>
               <a href={appHref(ROUTES.register)} className="text-white/60 transition hover:text-[#FFC107]">
                 Teste grátis 30 dias
               </a>

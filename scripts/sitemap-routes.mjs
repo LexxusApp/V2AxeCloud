@@ -64,6 +64,12 @@ export const SITEMAP_ROUTES = [
     comment: 'Artigo do portal AxéCloud',
   })),
   {
+    path: '/por-que-axecloud',
+    changeFrequency: 'monthly',
+    priority: 0.92,
+    comment: 'Comparativo explícito, módulos e PWA',
+  },
+  {
     path: '/conteudo/glossario',
     changeFrequency: 'monthly',
     priority: 0.8,

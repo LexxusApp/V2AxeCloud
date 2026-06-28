@@ -32,6 +32,8 @@ export const ROUTES = {
   eventRsvp: '/convite',
   giraCheckin: '/checkin',
   giraSenhas: '/senhas',
+  /** Comparativo explícito + módulos + PWA — SEO e conversão. */
+  whyAxeCloud: '/por-que-axecloud',
 } as const;
 
 /** Checkout EFI no cadastro (passo 2) — exige `?tenant=` do registro. */
@@ -74,6 +76,7 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.terreiros,
   ROUTES.eventosPublicos,
   ROUTES.liturgicalCalendar,
+  ROUTES.whyAxeCloud,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
@@ -89,6 +92,7 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.terreiros,
   ROUTES.eventosPublicos,
   ROUTES.liturgicalCalendar,
+  ROUTES.whyAxeCloud,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,

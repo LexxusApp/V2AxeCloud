@@ -61,12 +61,12 @@ function LandingSectionFallback({
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
 
 const premiumFeatures = [
-  'Painel completo para zelador e diretoria',
-  'Filhos de santo, calendário, mural e biblioteca',
-  'Galeria de fotos, financeiro e loja do axé',
+  '14 módulos reais: painel, filhos, giras, financeiro, galeria e mais',
+  'WhatsApp oficial Meta, loja do axé, almoxarifado e biblioteca',
+  'Portal do filho de santo + portal público e diretório de casas',
+  'App instalável (PWA) no celular — sem App Store ou Google Play',
   'Mensalidade com Pix e histórico transparente',
   `${TRIAL_DAYS} dias grátis para testar tudo`,
-  'Pagamento via PIX após o período de teste',
 ] as const;
 
 function ScrollToTopButton() {

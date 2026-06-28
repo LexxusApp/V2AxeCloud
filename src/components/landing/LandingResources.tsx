@@ -24,7 +24,7 @@ export function LandingResources() {
         </motion.div>
 
         <ul
-          className="relative z-10 mt-14 grid list-none grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5"
+          className="relative z-10 mt-14 grid list-none grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"
           role="list"
         >
           {LANDING_RESOURCES.map((item, i) => {

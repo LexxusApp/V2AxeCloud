@@ -16,14 +16,14 @@ export const SITE_ORIGIN = 'https://axecloud.com.br';
 export const HOME_SEO = {
   title: SITE_TITLE,
   description:
-    `${BRAND_NAME} (${BRAND_TAGLINE}) é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria de fotos e portal do filho de santo. Tecnologia com respeito ao sagrado.`,
+    `${BRAND_NAME} (${BRAND_TAGLINE}) é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria, WhatsApp Meta, portal do filho de santo e app instalável (PWA). Tecnologia com respeito ao sagrado.`,
   h1: `${SITE_TITLE} — software de gestão de terreiros para Umbanda, Candomblé e Jurema`,
   heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
   keywords: buildBrandKeywordsMeta(),
   brandRecognition: buildBrandRecognitionParagraph(),
   ogImageAlt: `${BRAND_NAME} — Software de gestão de terreiros de Umbanda e Candomblé`,
   manifestDescription:
-    'Software de gestão de terreiros: financeiro, galeria de fotos, giras e portal do filho de santo.',
+    'Software de gestão de terreiros: financeiro, galeria, giras, portal do filho de santo e app PWA instalável.',
 } as const;
 
 export type HomeFaqItem = { q: string; a: string };
@@ -63,7 +63,11 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
   {
     q: 'Preciso instalar alguma coisa no computador ou celular?',
-    a: `Não. O ${BRAND_NAME} funciona 100% na nuvem pelo navegador — computador, tablet ou celular — sem instalação.`,
+    a: `Não é obrigatório instalar pela App Store ou Google Play. O ${BRAND_NAME} funciona no navegador (Chrome, Safari, Edge) e pode ser fixado na tela inicial como app (PWA) — ícone na home, sem loja de aplicativos. Veja o passo a passo em ${SITE_ORIGIN}/por-que-axecloud#pwa-head.`,
+  },
+  {
+    q: 'Quais módulos já existem no AxéCloud?',
+    a: `Painel do zelador, filhos de santo, calendário de giras, financeiro com Pix, mural, galeria, biblioteca, loja do axé, almoxarifado, WhatsApp Meta, atendimentos, portal público, notificações push e app PWA — tudo incluso no plano Premium. Lista completa em ${SITE_ORIGIN}/por-que-axecloud.`,
   },
   {
     q: 'Meus dados e da comunidade ficam seguros?',

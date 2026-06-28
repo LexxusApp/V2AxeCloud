@@ -9,6 +9,13 @@ import {
   type LegalSection,
 } from '../content/legalTerms';
 import {
+  COMPARISON_INTRO,
+  COMPARISON_PWA,
+  COMPARISON_ROWS,
+  COMPARISON_VS_STATUS_QUO,
+} from './comparisonContent';
+import { LANDING_MODULES } from './landingModules';
+import {
   FOUNDER_BENEFITS,
   FOUNDER_PROGRAM,
   FOUNDER_REQUIREMENTS,
@@ -46,7 +53,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       `Acesse o ${BRAND_NAME} — login para zeladores e filhos de santo. Gestão de terreiros de Umbanda e Candomblé: financeiro, galeria de fotos e mural.`,
     h1: `Entrar no ${BRAND_NAME}`,
     intro:
-      `O ${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema. Nesta página você acessa o painel da sua casa: zeladores e diretoria entram com e-mail e senha; filhos de santo usam o ID da casa e CPF fornecidos pelo zelador. Tudo funciona no navegador, sem instalar aplicativo.`,
+      `O ${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema. Nesta página você acessa o painel da sua casa: zeladores e diretoria entram com e-mail e senha; filhos de santo usam o ID da casa e CPF fornecidos pelo zelador. Funciona no navegador e pode ser instalado como app (PWA) na tela inicial do celular.`,
     sections: [
       {
         heading: 'Acesso para zeladores e diretoria',
@@ -190,29 +197,6 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     },
   })),
   {
-    path: ROUTES.glossary,
-    title: `Glossário do axé — 20 termos essenciais | ${BRAND_NAME}`,
-    description:
-      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
-    h1: 'Glossário do axé — 20 termos essenciais',
-    intro:
-      'Termos fundamentais da vida em terreiros de Umbanda e Candomblé, explicados com respeito à tradição afro-brasileira.',
-    sections: GLOSSARY_TERMS.map((t) => ({ heading: t.term, body: t.definition })),
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'DefinedTermSet',
-      name: `Glossário do axé — ${BRAND_NAME}`,
-      description:
-        'Glossário introdutório de termos de terreiros de Umbanda e Candomblé',
-      inLanguage: 'pt-BR',
-      hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({
-        '@type': 'DefinedTerm',
-        name: t.term,
-        description: t.definition,
-      })),
-    },
-  },
-  {
     path: ROUTES.espacoDoFiel,
     title: `Espaço do Fiel — Pedir Reza | ${BRAND_NAME}`,
     description:
@@ -253,6 +237,54 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       },
     ],
   },
+  {
+    path: ROUTES.glossary,
+    title: `Glossário do axé — 20 termos essenciais | ${BRAND_NAME}`,
+    description:
+      'Glossário introdutório: axé, terreiro, filho de santo, gira, orixá, umbanda, candomblé, exu, firma e mais — linguagem respeitosa para quem está conhecendo a tradição.',
+    h1: 'Glossário do axé — 20 termos essenciais',
+    intro:
+      'Termos fundamentais da vida em terreiros de Umbanda e Candomblé, explicados com respeito à tradição afro-brasileira.',
+    sections: GLOSSARY_TERMS.map((t) => ({ heading: t.term, body: t.definition })),
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'DefinedTermSet',
+      name: `Glossário do axé — ${BRAND_NAME}`,
+      description:
+        'Glossário introdutório de termos de terreiros de Umbanda e Candomblé',
+      inLanguage: 'pt-BR',
+      hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({
+        '@type': 'DefinedTerm',
+        name: t.term,
+        description: t.definition,
+      })),
+    },
+  },
+  {
+    path: ROUTES.whyAxeCloud,
+    title: `Por que ${BRAND_NAME}? Comparativo e módulos`,
+    description: COMPARISON_INTRO.description,
+    h1: COMPARISON_INTRO.h1,
+    intro: COMPARISON_INTRO.lead,
+    sections: [
+      ...COMPARISON_VS_STATUS_QUO.map((block) => ({
+        heading: block.heading,
+        body: block.body,
+      })),
+      ...COMPARISON_ROWS.map((row) => ({
+        heading: row.feature,
+        body: `Planilha/WhatsApp: ${row.planilha}. AxéCloud: ${row.axecloud}. Outros sistemas de terreiro: ${row.outros}.${row.note ? ` ${row.note}` : ''}`,
+      })),
+      {
+        heading: COMPARISON_PWA.title,
+        body: `${COMPARISON_PWA.lead} Passos: ${COMPARISON_PWA.steps.map((s) => s.title).join('; ')}.`,
+      },
+      {
+        heading: 'Módulos incluídos no plano Premium',
+        body: LANDING_MODULES.map((m) => m.title).join(', '),
+      },
+    ],
+  },
 ] as const;
 
 /** Paths com HTML pré-renderizado em dist/{path}/index.html (app bundle). */
@@ -263,6 +295,7 @@ export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] =
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
   { href: `${SITE_ORIGIN}${ROUTES.founderProgram}`, label: 'Programa Fundador' },
   { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
+  { href: `${SITE_ORIGIN}${ROUTES.whyAxeCloud}`, label: 'Por que AxéCloud' },
   { href: `${SITE_ORIGIN}${ROUTES.glossary}`, label: 'Glossário do axé' },
   { href: `${SITE_ORIGIN}${ROUTES.espacoDoFiel}`, label: 'Espaço do Fiel' },
   { href: `${SITE_ORIGIN}${ROUTES.terms}`, label: 'Termos de Uso' },

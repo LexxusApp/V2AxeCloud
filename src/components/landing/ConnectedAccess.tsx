@@ -5,6 +5,7 @@ import {
   LANDING_APPS_HEADING,
   LANDING_PWA_STEPS,
 } from '../../constants/landingApps';
+import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { LandingIconBox, landingIconClass } from './landingIconAccents';
 import { LandingSection, LandingSectionHeader } from './LandingSection';
@@ -90,9 +91,9 @@ export function ConnectedAccess() {
                 <Smartphone className={landingIconClass('emerald', 'h-5 w-5')} aria-hidden />
               </LandingIconBox>
               <div>
-                <h3 className="text-base font-bold text-[#1b1813] sm:text-lg">Como funciona o PWA</h3>
+                <h3 className="text-base font-bold text-[#1b1813] sm:text-lg">App instalável (PWA)</h3>
                 <p className="text-xs text-[#1b1813]/65 sm:text-sm">
-                  Progressive Web App — app na tela inicial, sem instalar pela loja.
+                  Progressive Web App — fixe na tela inicial como ícone. Android, iPhone e computador, sem baixar na loja.
                 </p>
               </div>
             </div>
@@ -112,6 +113,13 @@ export function ConnectedAccess() {
               </li>
             ))}
           </ol>
+          <p className="relative z-10 mt-4 text-center text-xs text-[#1b1813]/60">
+            Comparativo completo e lista de módulos em{' '}
+            <a href={ROUTES.whyAxeCloud} className="font-bold text-[#1b1813] underline decoration-[#FFC107]/60 hover:text-[#FFC107]">
+              Por que AxéCloud
+            </a>
+            .
+          </p>
         </motion.div>
       </div>
     </LandingSection>

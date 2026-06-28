@@ -130,6 +130,13 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/conteudo/calendario-liturgico',
     robots: 'index, follow',
   },
+  [ROUTES.whyAxeCloud]: {
+    title: `Por que AxéCloud? Comparativo e módulos | ${BRAND_NAME}`,
+    description:
+      'Compare o AxéCloud com planilhas e outros softwares de terreiro. 14 módulos reais, app PWA instalável, WhatsApp Meta e portal público — tudo incluso.',
+    canonicalPath: '/por-que-axecloud',
+    robots: 'index, follow',
+  },
 };
 
 function upsertMeta(name: string, content: string) {

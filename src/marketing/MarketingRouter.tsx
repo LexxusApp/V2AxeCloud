@@ -24,6 +24,7 @@ const DiretorioCityPage = lazy(() => import('../views/portal/DiretorioCityPage')
 const DiretorioTerreiroPage = lazy(() => import('../views/portal/DiretorioTerreiroPage'));
 const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage'));
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
+const PorQueAxeCloudPage = lazy(() => import('../views/PorQueAxeCloudPage'));
 
 function MarketingSectionFallback() {
   return (
@@ -112,6 +113,8 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <EspacoDoFielPage />;
     case ROUTES.eventosPublicos:
       return <EventosPublicPage />;
+    case ROUTES.whyAxeCloud:
+      return <PorQueAxeCloudPage />;
     case ROUTES.home:
     default:
       return <Landing />;
