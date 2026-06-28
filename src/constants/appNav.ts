@@ -4,7 +4,6 @@ import {
   CalendarDays,
   ClipboardList,
   Flame,
-  Flower2,
   HandHeart,
   Home,
   Images,
@@ -22,7 +21,7 @@ import {
   UserCircle,
   Wallet,
 } from 'lucide-react';
-import { showAtendimentosModule, showCamarinhaModule } from '../lib/tradicaoModules';
+import { showAtendimentosModule } from '../lib/tradicaoModules';
 
 export type AppNavItem = {
   id: string;
@@ -84,9 +83,6 @@ const ZELADOR_CORE: AppNavItem[] = [
 
 export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {
   const tradition: AppNavItem[] = [];
-  if (showCamarinhaModule(tradicao)) {
-    tradition.push({ id: 'camarinha', label: 'Camarinha', icon: Flower2 });
-  }
   if (showAtendimentosModule(tradicao)) {
     tradition.push({ id: 'atendimentos', label: 'Atendimentos', icon: HandHeart });
   }

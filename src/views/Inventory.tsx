@@ -38,8 +38,6 @@ interface InventoryProps {
   userRole?: string;
   isAdminGlobal?: boolean;
   setActiveTab: (tab: string) => void;
-  presetCategory?: string;
-  moduleTitle?: string;
 }
 
 export default function Inventory({
@@ -47,14 +45,12 @@ export default function Inventory({
   userRole,
   isAdminGlobal,
   setActiveTab,
-  presetCategory,
-  moduleTitle = 'Almoxarifado',
 }: InventoryProps) {
   // Não-filhos são sempre gestores do terreiro (plano determina quais funções de gestão estão disponíveis).
   const isAdmin = userRole !== 'filho';
   const tenantId = tenantData?.tenant_id;
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>(presetCategory || 'Todos');
+  const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -186,7 +182,7 @@ export default function Inventory({
     return { label: 'Em Dia', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
   };
 
-  const visibleCategories = presetCategory ? (['Todos', presetCategory] as const) : categories;
+  const visibleCategories = categories;
 
   const filteredProducts = useMemo(() => products.filter(p => {
     const matchesCat = activeCategory === 'Todos' || p.categoria === activeCategory;
@@ -219,12 +215,8 @@ export default function Inventory({
   return (
     <AppPageShell>
       <AppDemoPanelHeader
-        title={moduleTitle === 'Camarinha' ? 'Camarinha da casa' : 'Almoxarifado'}
-        description={
-          moduleTitle === 'Camarinha'
-            ? 'Itens ritualísticos e preparo da camarinha.'
-            : 'Gestão de estoque e insumos de axé.'
-        }
+        title="Almoxarifado"
+        description="Gestão de estoque e insumos de axé."
         action={
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin ? (

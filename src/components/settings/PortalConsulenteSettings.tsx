@@ -172,7 +172,7 @@ export function PortalConsulenteSettings() {
             ))}
           </select>
           <p className="mt-1.5 text-[11px] text-gray-600">
-            Umbanda destaca Camarinha; Candomblé/Jurema destacam Atendimentos no menu.
+            Candomblé/Jurema destacam Atendimentos no menu.
           </p>
         </div>
 

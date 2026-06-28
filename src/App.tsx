@@ -32,7 +32,6 @@ const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
 const Subscription = lazy(() => import('./views/Subscription'));
 const Atendimentos = lazy(() => import('./views/Atendimentos'));
-const Camarinha = lazy(() => import('./views/Camarinha'));
 const Frequencia = lazy(() => import('./views/Frequencia'));
 const ChatInbox = lazy(() => import('./views/ChatInbox'));
 import { useWebPush } from './hooks/useWebPush';
@@ -1271,7 +1270,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       settings: true,
       profile: true,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
-      camarinha: hasPlanAccess(tenantData?.plan, 'camarinha', isAdminGlobal),
       atendimentos: hasPlanAccess(tenantData?.plan, 'atendimentos', isAdminGlobal),
       gallery: hasPlanAccess(tenantData?.plan, 'gallery', isAdminGlobal),
       library: hasPlanAccess(tenantData?.plan, 'library', isAdminGlobal),
@@ -1301,8 +1299,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
       case 'inventory': 
         return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'camarinha':
-        return <Camarinha tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'atendimentos':
         return <Atendimentos tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'gallery':

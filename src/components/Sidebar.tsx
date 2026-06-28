@@ -15,10 +15,9 @@ import {
   ShoppingBag,
   Lock,
   Wallet,
-  Flower2,
   HandHeart,
 } from 'lucide-react';
-import { showAtendimentosModule, showCamarinhaModule } from '../lib/tradicaoModules';
+import { showAtendimentosModule } from '../lib/tradicaoModules';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -101,9 +100,6 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
   const traditionNavItems =
     userRole === 'admin'
       ? [
-          ...(showCamarinhaModule(tenantData?.tradicao)
-            ? [{ id: 'camarinha' as const, label: 'Camarinha', icon: Flower2 }]
-            : []),
           ...(showAtendimentosModule(tenantData?.tradicao)
             ? [{ id: 'atendimentos' as const, label: 'Atendimentos', icon: HandHeart }]
             : []),

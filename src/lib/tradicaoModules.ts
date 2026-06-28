@@ -7,11 +7,6 @@ export function normalizeTradicao(raw?: string | null): TradicaoSlug {
 }
 
 /** Módulos extras visíveis conforme a tradição configurada na casa. */
-export function showCamarinhaModule(tradicao?: string | null): boolean {
-  const t = normalizeTradicao(tradicao);
-  return t === 'umbanda' || t === 'mista';
-}
-
 export function showAtendimentosModule(tradicao?: string | null): boolean {
   const t = normalizeTradicao(tradicao);
   return t === 'candomble' || t === 'jurema' || t === 'mista' || t === 'outra';
