@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import type { PedidoRezaStatus } from '../../lib/pedidosRezaTypes';
+import { CANDLE_DOT_CLASS } from '../../lib/pedidosRezaTypes';
 import { cn } from '../../lib/utils';
 
 export type DashboardPedidoReza = {
@@ -33,12 +34,13 @@ function formatPedidoDate(iso: string): string {
 }
 
 function baseVelasCount(pedido: DashboardPedidoReza): number {
-  if (pedido.status === 'pendente') return 0;
   const v = String(pedido.vela || '').trim();
+  // Firmeza virtual do fiel (cor escolhida no Espaço do Fiel) conta mesmo enquanto pendente.
   if (v && v !== 'Nenhuma') return 1;
-  return pedido.status === 'aceito' || pedido.status === 'em_oracao' || pedido.status === 'em_atendimento'
-    ? 1
-    : 0;
+  if (pedido.status === 'aceito' || pedido.status === 'em_oracao' || pedido.status === 'em_atendimento') {
+    return 1;
+  }
+  return 0;
 }
 
 export function DashboardPedidosRezaAltar({
@@ -165,6 +167,20 @@ export function DashboardPedidosRezaAltar({
                     <span className="font-mono text-[9.5px] text-[#FACC15]">{formatPedidoDate(req.created_at)}</span>
                   </div>
                   <p className="text-[11px] leading-normal text-gray-400">{motivo}</p>
+                  {req.vela && req.vela !== 'Nenhuma' ? (
+                    <div className="flex items-center gap-1.5 text-[9px] font-medium text-gray-500">
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full border',
+                          CANDLE_DOT_CLASS[req.vela] || 'bg-white border-gray-400',
+                        )}
+                      />
+                      <span>
+                        Vela virtual {req.vela}
+                        {req.status === 'pendente' ? ' (aguardando altar)' : ''}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-3">
