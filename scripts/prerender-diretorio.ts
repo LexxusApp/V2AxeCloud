@@ -15,6 +15,7 @@ import {
   type DiretorioSeoTerreiro,
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
+import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -83,12 +84,9 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data, error } = await sb
-    .from(TABLE)
-    .select("nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug")
-    .order("cidade", { ascending: true });
-
-  if (error) throw error;
+  const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug", (query, { from, to }) =>
+    query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
+  );
 
   const template = fs.readFileSync(indexPath, "utf8");
   const rows = (data || []).map((r) => mapRow(r as Record<string, unknown>));

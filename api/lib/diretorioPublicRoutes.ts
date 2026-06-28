@@ -12,6 +12,7 @@ import {
   shouldGroupCityByBairro,
   slugifyBairro,
 } from "../../lib/diretorioBairro.js";
+import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -47,10 +48,6 @@ function mapRow(row: Record<string, unknown>) {
   };
 }
 
-function matchesCitySlug(rowCidade: string, cidadeSlug: string): boolean {
-  return slugifyCidadeOnly(rowCidade) === slugifyCidadeOnly(cidadeSlug);
-}
-
 function diretorioFotoProxyPath(slug: string): string {
   return `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}`;
 }
@@ -58,8 +55,7 @@ function diretorioFotoProxyPath(slug: string): string {
 export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb }: Deps) {
   app.get("/api/v1/public/diretorio/cidades", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
-      const { data, error } = await sb.from(TABLE).select("cidade, estado, cidade_slug");
-      if (error) throw error;
+      const data = await fetchAllTerreirosRows(sb, TABLE, "cidade, estado, cidade_slug");
 
       const map = new Map<
         string,
@@ -153,17 +149,9 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const { estado, cidadeSlug } = parsed;
 
-        let query = sb.from(TABLE).select(SELECT).order("nome", { ascending: true });
-        if (estado && estado.length === 2) {
-          query = query.ilike("estado", estado.toUpperCase());
-        }
+        const data = await fetchTerreirosByCitySlug(sb, TABLE, SELECT, estado, cidadeSlug);
 
-        const { data, error } = await query;
-        if (error) throw error;
-
-        const items = (data || [])
-          .filter((row) => matchesCitySlug(String(row.cidade || ""), cidadeSlug))
-          .map((row) => mapRow(row as Record<string, unknown>));
+        const items = data.map((row) => mapRow(row));
 
         const first = items[0];
         const cidadeLabel =

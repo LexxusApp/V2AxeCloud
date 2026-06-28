@@ -8,7 +8,7 @@ import {
   buildTerreiroPrerenderPage,
   type DiretorioSeoTerreiro,
 } from "../../lib/diretorioSeoShared.js";
-import { apiReadRateLimit } from "./rateLimit.js";
+import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
 import {
   parseDiretorioCityRoute,
   slugifyCidadeOnly,
@@ -48,13 +48,8 @@ function siteOrigin(): string {
   }
 }
 
-function matchesCitySlug(rowCidade: string, cidadeSlug: string): boolean {
-  return slugifyCidadeOnly(rowCidade) === slugifyCidadeOnly(cidadeSlug);
-}
-
 export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
-  const { data, error } = await sb.from(TABLE).select("cidade, estado, cidade_slug, slug, created_at");
-  if (error) throw error;
+  const data = await fetchAllTerreirosRows(sb, TABLE, "cidade, estado, cidade_slug, slug, created_at");
 
   const routes = STATIC_SITEMAP_PATHS.map((r) => ({
     path: r.path,
@@ -136,15 +131,9 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
         if (!parsed) return res.status(400).send("Cidade inválida");
 
         const { estado, cidadeSlug } = parsed;
-        let query = sb.from(TABLE).select(SELECT).order("nome", { ascending: true });
-        if (estado.length === 2) query = query.ilike("estado", estado.toUpperCase());
+        const data = await fetchTerreirosByCitySlug(sb, TABLE, SELECT, estado, cidadeSlug);
 
-        const { data, error } = await query;
-        if (error) throw error;
-
-        const items = (data || [])
-          .filter((row) => matchesCitySlug(String(row.cidade || ""), cidadeSlug))
-          .map((row) => mapSeoRow(row as Record<string, unknown>));
+        const items = data.map((row) => mapSeoRow(row));
 
         const first = items[0];
         const cidadeLabel =
