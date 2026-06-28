@@ -170,6 +170,8 @@ axecloud.com.br, www.axecloud.com.br {
 			path /privacidade/*
 			path /programa-fundador
 			path /programa-fundador/*
+			path /por-que-axecloud
+			path /por-que-axecloud/*
 			path /espaco-do-fiel
 			path /espaco-do-fiel/*
 			path /terreiros
