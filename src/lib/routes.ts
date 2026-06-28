@@ -15,6 +15,7 @@ export const ROUTES = {
   checkout: '/checkout',
   /** Renovação de assinatura (zelador logado) — checkout EFI separado do cadastro. */
   renewSubscription: '/assinatura/renovar',
+  resetPassword: '/redefinir-senha',
   dashboard: '/dashboard',
   terms: '/termos',
   privacy: '/privacidade',

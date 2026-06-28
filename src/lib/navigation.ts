@@ -13,6 +13,10 @@ export function goToLogin(): void {
   navigateTo(ROUTES.login, true);
 }
 
+export function goToResetPassword(): void {
+  navigateTo(ROUTES.resetPassword, true);
+}
+
 export function goToDashboard(): void {
   navigateTo(ROUTES.dashboard, true);
 }

@@ -12,6 +12,7 @@ import { cleanBrowserUrl } from '../lib/urlHygiene';
 import { applyRouteSeo } from '../lib/seo';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
 import LoginPage from '../pages/LoginPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
@@ -105,6 +106,8 @@ function RoutedPage({ path }: { path: string }) {
     case ROUTES.login:
     case ROUTES.loginLegacy:
       return <LoginPage />;
+    case ROUTES.resetPassword:
+      return <ResetPasswordPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
     default:

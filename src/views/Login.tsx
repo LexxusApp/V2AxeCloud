@@ -193,7 +193,7 @@ export default function Login() {
     setForgotLoading(true);
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}${ROUTES.login}`,
+        redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
       });
       if (resetErr) throw resetErr;
       setInfo('Enviamos um link de recuperação para o seu e-mail.');
