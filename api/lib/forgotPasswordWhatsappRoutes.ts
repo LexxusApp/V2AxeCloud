@@ -8,10 +8,10 @@ import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { resolveAuthenticatedFilho } from "./tenantAccess.js";
 import { sensitiveActionRateLimit } from "./rateLimit.js";
 import { safeErrorMessage } from "./safeError.js";
+import { humanizePasswordPolicyError, validateStrongPassword } from "../../lib/passwordPolicy.js";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
-const MIN_PASSWORD_LEN = 8;
 
 type OtpEntry = {
   userId: string;
@@ -155,10 +155,9 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
         if (!newPassword || !confirmPassword) {
           return res.status(400).json({ error: "Informe e confirme a nova senha." });
         }
-        if (newPassword.length < MIN_PASSWORD_LEN) {
-          return res.status(400).json({
-            error: `A nova senha deve ter pelo menos ${MIN_PASSWORD_LEN} caracteres.`,
-          });
+        const passwordCheck = validateStrongPassword(newPassword);
+        if (!passwordCheck.ok) {
+          return res.status(400).json({ error: passwordCheck.message });
         }
         if (newPassword !== confirmPassword) {
           return res.status(400).json({ error: "A confirmação da nova senha não confere." });
@@ -199,7 +198,9 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
           password: newPassword,
         });
         if (updErr) {
-          return res.status(400).json({ error: safeErrorMessage(updErr, "Erro ao alterar senha.") });
+          return res.status(400).json({
+            error: humanizePasswordPolicyError(updErr, safeErrorMessage(updErr, "Erro ao alterar senha.")),
+          });
         }
 
         otpByUserId.delete(authUser.id);

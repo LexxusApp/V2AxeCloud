@@ -7,9 +7,9 @@ import { requireApiUser } from "./routeAuthHelpers.js";
 import { sensitiveActionRateLimit } from "./rateLimit.js";
 import { safeErrorMessage } from "./safeError.js";
 import { getSupabaseServerAnonKey, getSupabaseServerUrl } from "./supabaseServerEnv.js";
+import { humanizePasswordPolicyError, validateStrongPassword } from "../../lib/passwordPolicy.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LEN = 8;
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -76,8 +76,9 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
         if (!currentPassword || !newPassword || !confirmPassword) {
           return res.status(400).json({ error: "Preencha a senha atual, a nova senha e a confirmação." });
         }
-        if (newPassword.length < MIN_PASSWORD_LEN) {
-          return res.status(400).json({ error: `A nova senha deve ter pelo menos ${MIN_PASSWORD_LEN} caracteres.` });
+        const passwordCheck = validateStrongPassword(newPassword);
+        if (!passwordCheck.ok) {
+          return res.status(400).json({ error: passwordCheck.message });
         }
         if (newPassword !== confirmPassword) {
           return res.status(400).json({ error: "A confirmação da nova senha não confere." });
@@ -96,7 +97,9 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
           password: newPassword,
         });
         if (updErr) {
-          return res.status(400).json({ error: invalidPasswordMessage(safeErrorMessage(updErr, "Erro ao alterar senha.")) });
+          return res.status(400).json({
+            error: humanizePasswordPolicyError(updErr, invalidPasswordMessage(safeErrorMessage(updErr, "Erro ao alterar senha."))),
+          });
         }
 
         void logEvent(supabaseAdmin, {

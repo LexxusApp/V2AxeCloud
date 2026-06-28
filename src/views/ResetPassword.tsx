@@ -8,6 +8,7 @@ import { navigateTo } from '../lib/navigation';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
 import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
+import { humanizePasswordPolicyError, PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
 
 const fontLogin =
   "[font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]";
@@ -30,22 +31,6 @@ const fieldShell = cn(
 
 const labelClass = 'block text-[10px] font-black uppercase tracking-widest text-gray-500';
 
-function humanizeResetError(err: unknown): string {
-  const msg = String((err as { message?: string })?.message || err || '').trim();
-  const lower = msg.toLowerCase();
-  if (!msg) return 'Não foi possível redefinir a senha. Tente solicitar um novo link.';
-  if (lower.includes('same password') || lower.includes('different from')) {
-    return 'A nova senha deve ser diferente da senha anterior.';
-  }
-  if (lower.includes('weak') || lower.includes('at least')) {
-    return 'Escolha uma senha mais forte (mínimo 8 caracteres, com letras e números).';
-  }
-  if (lower.includes('session') || lower.includes('jwt') || lower.includes('expired')) {
-    return 'Este link expirou ou já foi usado. Solicite uma nova recuperação de senha.';
-  }
-  return msg;
-}
-
 export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -57,12 +42,13 @@ export default function ResetPassword() {
     e.preventDefault();
     setError(null);
 
-    if (newPassword.length < 8) {
-      setError('A nova senha deve ter pelo menos 8 caracteres.');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setError('A confirmação da senha não confere.');
+      return;
+    }
+    const passwordCheck = validateStrongPassword(newPassword);
+    if (!passwordCheck.ok) {
+      setError(passwordCheck.message);
       return;
     }
 
@@ -73,7 +59,12 @@ export default function ResetPassword() {
       await supabase.auth.signOut();
       navigateTo(`${ROUTES.login}?updated=true`, true);
     } catch (err: unknown) {
-      setError(humanizeResetError(err));
+      const msg = String((err as { message?: string })?.message || '').toLowerCase();
+      if (msg.includes('session') || msg.includes('jwt') || msg.includes('expired')) {
+        setError('Este link expirou ou já foi usado. Solicite uma nova recuperação de senha.');
+      } else {
+        setError(humanizePasswordPolicyError(err, 'Não foi possível redefinir a senha.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -142,7 +133,7 @@ export default function ResetPassword() {
                   minLength={8}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Ex.: Axé@2026"
                   className={cn(fieldShell, 'pr-12')}
                 />
                 <button
@@ -158,6 +149,7 @@ export default function ResetPassword() {
                   )}
                 </button>
               </div>
+              <p className="text-[10px] leading-relaxed text-gray-500">{PASSWORD_HINT_PT}</p>
             </div>
 
             <div className="space-y-[5px]">

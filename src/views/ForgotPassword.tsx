@@ -17,6 +17,7 @@ import { navigateTo } from '../lib/navigation';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
 import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
+import { humanizePasswordPolicyError, PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
 
 const fontLogin =
   "[font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]";
@@ -103,12 +104,13 @@ export default function ForgotPassword() {
       setError('Preencha e-mail, código e nova senha.');
       return;
     }
-    if (newPassword.length < 8) {
-      setError('A nova senha deve ter pelo menos 8 caracteres.');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setError('A confirmação da nova senha não confere.');
+      return;
+    }
+    const passwordCheck = validateStrongPassword(newPassword);
+    if (!passwordCheck.ok) {
+      setError(passwordCheck.message);
       return;
     }
 
@@ -130,7 +132,7 @@ export default function ForgotPassword() {
 
       navigateTo(`${ROUTES.login}?updated=true`, true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.');
+      setError(humanizePasswordPolicyError(err, err instanceof Error ? err.message : 'Erro ao redefinir senha.'));
     } finally {
       setLoading(false);
     }
@@ -277,7 +279,7 @@ export default function ForgotPassword() {
                     minLength={8}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Ex.: Axé@2026"
                     className={cn(fieldShell, 'pr-12')}
                   />
                   <button
@@ -289,6 +291,7 @@ export default function ForgotPassword() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                <p className="text-[10px] leading-relaxed text-gray-500">{PASSWORD_HINT_PT}</p>
               </div>
 
               <div className="space-y-[5px]">

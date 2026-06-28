@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { PASSWORD_HINT_PT, validateStrongPassword } from '../../../lib/passwordPolicy';
 
 type SettingsAccountCredentialsPanelProps = {
   userEmail?: string | null;
@@ -81,12 +82,13 @@ export function SettingsAccountCredentialsPanel({
       notify('Preencha todos os campos de senha.', 'error');
       return;
     }
-    if (newPassword.length < 8) {
-      notify('A nova senha deve ter pelo menos 8 caracteres.', 'error');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       notify('A confirmação da nova senha não confere.', 'error');
+      return;
+    }
+    const passwordCheck = validateStrongPassword(newPassword);
+    if (!passwordCheck.ok) {
+      notify(passwordCheck.message, 'error');
       return;
     }
 
@@ -233,7 +235,7 @@ export function SettingsAccountCredentialsPanel({
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Ex.: Axé@2026"
                 className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 pr-10 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
               />
               <button
@@ -245,6 +247,7 @@ export function SettingsAccountCredentialsPanel({
                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <p className="text-[10px] leading-relaxed text-gray-500">{PASSWORD_HINT_PT}</p>
           </div>
 
           <div className="space-y-1">
