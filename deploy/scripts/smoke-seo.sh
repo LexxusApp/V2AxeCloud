@@ -7,20 +7,26 @@ BASE="${BASE_URL:-https://axecloud.com.br}"
 
 echo "=== SEO smoke (${BASE}) ==="
 
-# Sem loop de redirect (bug nginx+Caddy que quebrava o Google)
-redirects="$(curl -sS -o /dev/null -w '%{num_redirects}' -L --max-redirs 5 "${BASE}/programa-fundador")"
-if [[ "$redirects" -gt 1 ]]; then
-  echo "FAIL /programa-fundador — ${redirects} redirects (esperado ≤1)"
-  exit 1
-fi
-code="$(curl -sS -o /dev/null -w '%{http_code}' -L --max-redirs 5 "${BASE}/programa-fundador")"
-[[ "$code" == "200" ]] || { echo "FAIL /programa-fundador — HTTP ${code}"; exit 1; }
-echo "OK   /programa-fundador — 200 (${redirects} redirect(s))"
+# URL legada → cadastro (301)
+check_redirect() {
+  local path="$1"
+  local expect="$2"
+  local code
+  code="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE}${path}")"
+  if [[ "$code" != "$expect" ]]; then
+    echo "FAIL ${path} — HTTP ${code} (esperado ${expect}, sem seguir redirect)"
+    exit 1
+  fi
+  echo "OK   ${path} — ${code} (redirect)"
+}
 
-# Barra final → canonical sem barra (1 redirect no máximo)
-trail_code="$(curl -sS -o /dev/null -w '%{http_code}' -L --max-redirs 3 "${BASE}/programa-fundador/")"
-[[ "$trail_code" == "200" ]] || { echo "FAIL /programa-fundador/ — HTTP ${trail_code}"; exit 1; }
-echo "OK   /programa-fundador/ — 200 após canonical"
+check_redirect "/programa-fundador" "301"
+final_url="$(curl -sS -o /dev/null -w '%{url_effective}' -L --max-redirs 3 "${BASE}/programa-fundador")"
+echo "$final_url" | grep -qi '/register' || {
+  echo "FAIL /programa-fundador — redirect não aponta para /register (${final_url})"
+  exit 1
+}
+echo "OK   /programa-fundador — redireciona para cadastro"
 
 # sitemap.xml deve ser XML, não HTML
 sitemap_type="$(curl -sS -I "${BASE}/sitemap.xml" | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}' | tr -d '\r' | head -1)"
@@ -48,12 +54,5 @@ curl -sS "${BASE}/" | grep -qi 'gestão de terreiros' || {
   exit 1
 }
 echo "OK   / — contém \"gestão de terreiros\""
-
-# Pré-render do programa fundador (conteúdo estático para crawlers)
-curl -sS "${BASE}/programa-fundador" | grep -qi 'Programa Fundador' || {
-  echo "FAIL /programa-fundador — falta conteúdo estático"
-  exit 1
-}
-echo "OK   /programa-fundador — conteúdo indexável"
 
 echo "=== SEO smoke passou ==="

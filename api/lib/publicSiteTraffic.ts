@@ -56,7 +56,7 @@ export function bucketPublicPath(path: string): { bucket: string; label: string 
   if (p === "/") return { bucket: "/", label: "Landing (início)" };
   if (p === "/termos") return { bucket: "/termos", label: "Termos de uso" };
   if (p === "/privacidade") return { bucket: "/privacidade", label: "Privacidade" };
-  if (p === "/programa-fundador") return { bucket: "/programa-fundador", label: "Programa Fundador" };
+  if (p === "/programa-fundador") return { bucket: "/register", label: "Cadastro (redirect legado)" };
   if (p === "/espaco-do-fiel") return { bucket: "/espaco-do-fiel", label: "Espaço do Fiel" };
   if (p === "/register") return { bucket: "/register", label: "Cadastro" };
   if (p === "/checkout") return { bucket: "/checkout", label: "Checkout" };
@@ -81,9 +81,8 @@ const BUCKET_LABELS: Record<string, string> = {
   "/": "Landing (início)",
   "/termos": "Termos de uso",
   "/privacidade": "Privacidade",
-  "/programa-fundador": "Programa Fundador",
-  "/espaco-do-fiel": "Espaço do Fiel",
   "/register": "Cadastro",
+  "/espaco-do-fiel": "Espaço do Fiel",
   "/checkout": "Checkout",
   "/terreiros": "Diretório de terreiros",
   "/terreiros/cidade/*": "Terreiros por cidade",

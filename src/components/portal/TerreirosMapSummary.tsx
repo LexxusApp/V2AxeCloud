@@ -7,7 +7,7 @@ export function TerreirosMapSummary({ cidades }: { cidades: PublicCidade[] }) {
   if (cidades.length === 0) {
     return (
       <p className={cn('px-4 py-8 text-center text-sm text-[#1b1813]/65', landingMockupCardClass, 'rounded-2xl border-dashed')}>
-        Ainda não há cidades com terreiros no diretório. As primeiras casas do Programa Fundador aparecem aqui em breve.
+        Ainda não há cidades com terreiros no diretório. Casas parceiras com perfil público aparecem aqui conforme forem activando o portal.
       </p>
     );
   }

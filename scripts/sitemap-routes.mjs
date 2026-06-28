@@ -44,12 +44,6 @@ export const SITEMAP_ROUTES = [
     comment: 'Política de Privacidade pública',
   },
   {
-    path: '/programa-fundador',
-    changeFrequency: 'weekly',
-    priority: 0.95,
-    comment: 'Programa Fundador — inscrição de terreiros',
-  },
-  {
     path: '/espaco-do-fiel',
     changeFrequency: 'weekly',
     priority: 0.9,

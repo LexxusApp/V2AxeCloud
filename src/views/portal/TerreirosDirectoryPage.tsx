@@ -9,8 +9,10 @@ import { MarketingMockupPageHeader } from '../../components/marketing/MarketingM
 import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { fetchPublicCidades, fetchPublicTerreiros, type PublicTerreiro } from '../../lib/portalPublic';
 import { fetchDiretorioCidades, type DiretorioCidade } from '../../lib/diretorioPublic';
+import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
+import { TRIAL_DAYS } from '../../../lib/planPricing';
 
 export default function TerreirosDirectoryPage() {
   const [items, setItems] = useState<PublicTerreiro[]>([]);
@@ -103,8 +105,8 @@ export default function TerreirosDirectoryPage() {
           ) : items.length === 0 ? (
             <div className={cn('mt-8 px-6 py-12 text-center', landingMockupCardClass, 'rounded-2xl border-dashed')}>
               <p className="text-[#1b1813]/70">Nenhum terreiro encontrado com estes filtros.</p>
-              <a href={ROUTES.founderProgram} className="mt-4 inline-block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
-                Inscrever minha casa no Programa Fundador
+              <a href={appHref(ROUTES.register)} className="mt-4 inline-block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
+                Cadastrar meu terreiro — {TRIAL_DAYS} dias grátis
               </a>
             </div>
           ) : (

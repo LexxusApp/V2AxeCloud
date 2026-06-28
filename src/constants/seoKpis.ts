@@ -98,9 +98,9 @@ export const SEO_KPI_PAGE_TARGETS: readonly SeoKpiPageTarget[] = [
     note: 'CTR vs home em consultas de decisão; meta: CTR ≥ 5% quando posição ≤ 10',
   },
   {
-    path: '/programa-fundador',
-    label: 'Programa Fundador',
-    note: 'Conversão orgânica — acompanhar impressões + cliques',
+    path: '/register',
+    label: 'Cadastro (trial)',
+    note: 'Conversão orgânica — meta principal pós-remoção do Programa Fundador público',
   },
   {
     path: '/conteudo',
@@ -130,7 +130,7 @@ export const SEO_KPI_PAGE_TARGETS: readonly SeoKpiPageTarget[] = [
 ] as const;
 
 export const SEO_KPI_INDEXING = {
-  baselinePages: 21,
+  baselinePages: 20,
   target90d: 25,
   target6m: 40,
   /** URLs novas da Fase 2 — pedir indexação manual se "URL não está no Google" */
@@ -174,7 +174,7 @@ export const GBP_KPI_METRICS: readonly GbpKpiMetric[] = [
     id: 'posts',
     label: 'Publicações no perfil',
     gbpPath: 'Adicionar atualização / Novidades',
-    target90d: '1 post quinzenal com link para /programa-fundador ou artigo novo',
+    target90d: '1 post quinzenal com link para /por-que-axecloud ou artigo novo',
   },
 ] as const;
 

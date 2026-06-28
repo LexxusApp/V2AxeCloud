@@ -11,8 +11,10 @@ import { ContentMarketingLayout } from '../components/marketing/ContentMarketing
 import { landingMockupCardClass, landingMockupKickerClass } from '../components/landing/landingMockupUi';
 import { LandingIconBox, landingIconClass, type LandingIconAccent } from '../components/landing/landingIconAccents';
 import { GLOSSARY_TERMS, PORTAL_ARTICLES, contentArticlePath, getPortalGestaoDigitalArticles } from '../content/portalContent';
+import { appHref } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
 import { cn } from '../lib/utils';
+import { TRIAL_DAYS } from '../../lib/planPricing';
 
 const fade = {
   initial: { opacity: 0, y: 16 },
@@ -63,7 +65,7 @@ export default function ContentHubPage() {
     <ContentMarketingLayout
       kicker="Portal de Gestão AxéCloud"
       title="Conteúdo para quem busca entender a tradição"
-      summary="Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé."
+      summary="Artigos e glossário com linguagem respeitosa — base do portal público de terreiros de Umbanda e Candomblé."
       heroExtra={<ContentHeroStats />}
     >
       <motion.section {...fade} aria-labelledby="content-articles">
@@ -252,26 +254,27 @@ export default function ContentHubPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.35 }}
-        aria-labelledby="content-founder"
+        aria-labelledby="content-trial"
       >
         <article className={cn('border-amber-300/20 p-6 sm:p-8', landingMockupCardClass, 'rounded-2xl')}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p id="content-founder" className={landingMockupKickerClass}>
-                Programa Fundador
+              <p id="content-trial" className={landingMockupKickerClass}>
+                Teste grátis
               </p>
               <h3 className="mt-2 text-lg font-bold text-[#1b1813] sm:text-xl">
-                Sua casa quer usar o AxéCloud e aparecer no portal?
+                Quer usar o AxéCloud no seu terreiro?
               </h3>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#1b1813]/65">
-                12 meses gratuitos, onboarding personalizado e prioridade quando o diretório público estiver no ar.
+                {TRIAL_DAYS} dias de Premium completo, sem cartão de crédito — financeiro, calendário, portal do filho e
+                mais.
               </p>
             </div>
             <a
-              href={ROUTES.founderProgram}
+              href={appHref(ROUTES.register)}
               className="landing-btn-primary inline-flex shrink-0 items-center justify-center gap-2 px-6 py-3 text-sm font-bold"
             >
-              Conhecer o programa
+              Cadastrar terreiro
               <ArrowRight className="h-4 w-4" aria-hidden />
             </a>
           </div>

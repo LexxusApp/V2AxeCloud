@@ -20,7 +20,7 @@ function loadKpiHints() {
   const sitemap = src.match(/sitemapUrl: `\$\{SITE_ORIGIN\}(\/sitemap\.xml)`/);
   return {
     baseline,
-    baselinePages: indexing?.[1] ?? '21',
+    baselinePages: indexing?.[1] ?? '20',
     target90d: indexing?.[2] ?? '25',
     target6m: indexing?.[3] ?? '40',
     sitemapPath: sitemap?.[1] ?? '/sitemap.xml',
@@ -56,14 +56,14 @@ function main() {
   console.log('Páginas (filtro "Página ="):');
   console.log('  [ ] /');
   console.log('  [ ] /por-que-axecloud  (CTR vs home)');
-  console.log('  [ ] /programa-fundador');
+  console.log('  [ ] /register (cadastro trial)');
   console.log('  [ ] /conteudo + artigos Fase 2');
   console.log('');
   console.log('Google Business Profile → https://business.google.com');
   console.log('[ ] Visualizações do perfil (28 dias)');
   console.log('[ ] Cliques no site');
   console.log('[ ] Pesquisas que encontraram o perfil');
-  console.log('[ ] 1 post quinzenal (link /programa-fundador ou /conteudo)');
+  console.log('[ ] 1 post quinzenal (link /por-que-axecloud ou /conteudo)');
   console.log('');
   console.log(`Meta indexação: ${baselinePages} → ${target90d} (90d) → ${target6m} (6m)`);
   console.log('');

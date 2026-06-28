@@ -24,7 +24,7 @@ Plano prático para sair de **zero cases visíveis** e competir com [Kanzuá](ht
 - [ ] Tirar 2–3 screenshots reais do painel dessa casa (com autorização)
 - [ ] Configurar **Google Search Console** + enviar sitemap
 - [ ] Rotina **KPIs SEO** (domingo, 10 min) — ver `docs/SEO-KPIS-SEARCH-CONSOLE.md` ou `npm run seo:kpi-checklist`
-- [ ] Revisar bio do Instagram / WhatsApp com link `axecloud.com.br/programa-fundador`
+- [ ] Revisar bio do Instagram / WhatsApp com link `axecloud.com.br/register` (30 dias grátis)
 
 ---
 
@@ -75,7 +75,7 @@ Para cada casa que aceitar:
 - [ ] 3 casas aparecendo em **#portal-axe** na landing
 - [ ] 2–3 depoimentos na seção **Depoimentos**
 - [ ] 1 post no Instagram: “Primeiras casas fundadoras do AxéCloud”
-- [ ] Pedir indexação no Search Console das páginas `/` e `/programa-fundador`
+- [ ] Pedir indexação no Search Console das páginas `/` e `/por-que-axecloud`
 - [ ] Revisar: a landing responde “quem já usa?” em menos de 5 segundos?
 
 ---
@@ -85,7 +85,7 @@ Para cada casa que aceitar:
 - [ ] Lançar diretório vazio com dezenas de slots fake
 - [ ] Copiar preço do Kanzuá antes de ter 3 cases
 - [ ] Construir mapa nacional, API pública ou 50 artigos antes de 5 casas reais
-- [ ] Remover Programa Fundador e ir só para trial 14 dias (pode adicionar depois, em paralelo)
+- [ ] ~~Remover Programa Fundador e ir só para trial~~ (feito — trial 30 dias público; fundador só no admin)
 
 ---
 

@@ -24,7 +24,7 @@ export const LANDING_TESTIMONIALS_FALLBACK: readonly LandingTestimonial[] = [
     quote:
       'O financeiro com Pix e o mural de avisos já mudaram nossa rotina. A diretoria enxerga mensalidades e comunicados num painel só, sem depender só de grupos.',
     authorName: 'Zeladora',
-    authorRole: 'Programa Fundador',
+    authorRole: 'Casa parceira',
     houseName: 'Casa de axé — Grande SP',
     city: 'São Paulo',
     state: 'SP',

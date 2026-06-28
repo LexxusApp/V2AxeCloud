@@ -8,7 +8,6 @@ export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: st
   { path: "/entrar", changeFrequency: "monthly", priority: 0.9 },
   { path: "/termos", changeFrequency: "yearly", priority: 0.5 },
   { path: "/privacidade", changeFrequency: "yearly", priority: 0.5 },
-  { path: "/programa-fundador", changeFrequency: "weekly", priority: 0.95 },
   { path: "/espaco-do-fiel", changeFrequency: "weekly", priority: 0.9 },
   { path: "/conteudo", changeFrequency: "weekly", priority: 0.85 },
   { path: "/conteudo/como-o-axecloud-ajuda-terreiros", changeFrequency: "monthly", priority: 0.8 },

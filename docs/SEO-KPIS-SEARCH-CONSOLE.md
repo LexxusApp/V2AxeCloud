@@ -47,7 +47,7 @@ Filtro: **Performance → Página → Igual a**
 |--------|----------------|
 | `/` | Baseline de marca e termos amplos |
 | `/por-que-axecloud` | CTR vs home em consultas de decisão (meta CTR ≥ 5% se posição ≤ 10) |
-| `/programa-fundador` | Impressões + cliques (conversão) |
+| `/register` | Conversão trial (via CTA orgânico; página noindex) |
 | `/conteudo/*` (artigos Fase 2) | Impressões por artigo; reforçar links internos se zero |
 
 ### Indexação prioritária
@@ -83,7 +83,7 @@ O perfil complementa o GSC: aparece em buscas de marca e pode gerar cliques dire
 - **Site no perfil:** `https://axecloud.com.br` (mesmo domínio verificado no GSC).
 - **Categoria:** Software / Serviços de tecnologia (ou equivalente).
 - **Descrição:** mencionar gestão de terreiros, Umbanda, Candidomblé, trial 30 dias, PWA.
-- **Posts:** linkar `/programa-fundador`, `/por-que-axecloud` ou artigo novo do hub.
+- **Posts:** linkar `/por-que-axecloud`, `/conteudo` ou cadastro trial.
 - **JSON-LD:** opcional — defina `VITE_GOOGLE_BUSINESS_PROFILE_URL` no `.env` para incluir o perfil em `Organization.sameAs` (reforça ligação marca ↔ GBP).
 
 ---

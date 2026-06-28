@@ -46,7 +46,7 @@ check_redirect() {
 echo "=== Smoke AxéCloud (${BASE}) ==="
 
 check "/" "200"
-check "/programa-fundador" "200"
+check_redirect "/programa-fundador" "301"
 check "/termos" "200"
 check "/privacidade" "200"
 check "/conteudo" "200"
@@ -66,7 +66,6 @@ check "/robots.txt" "200"
 
 check_contains "/" "m-assets/"
 check_contains "/" "Gestão de terreiros"
-check_contains "/programa-fundador" "Programa Fundador"
 check_contains "/terreiros" "m-assets/"
 check_contains "/eventos" "m-assets/"
 check_contains "/entrar" "Entrar"

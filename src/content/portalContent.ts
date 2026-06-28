@@ -56,9 +56,9 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
           'Cada terreiro tem ambiente isolado na nuvem. Controles de acesso por perfil, criptografia em trânsito e políticas alinhadas à LGPD. O sagrado continua protegido; a organização ganha ferramentas profissionais.',
       },
       {
-        title: 'Programa Fundador',
+        title: 'Comece com teste grátis',
         body:
-          'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador. Veja também o comparativo completo de módulos em https://axecloud.com.br/por-que-axecloud.',
+          `Todo terreiro novo pode testar o AxéCloud por 30 dias grátis — plano Premium completo, sem cartão de crédito. Cadastre-se em https://axecloud.com.br/register e configure financeiro, calendário, mural e portal do filho de santo no seu ritmo. Veja o comparativo de módulos em https://axecloud.com.br/por-que-axecloud.`,
       },
     ],
   },
@@ -368,7 +368,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Preço e trial',
         body:
-          'Desconfie de preço oculto ou cobrança por médium. No mercado brasileiro, planos ficam entre R$ 50 e R$ 120/mês para gestão completa. O AxéCloud cobra R$ 69,90/mês (ou R$ 49,90 para casas fundadoras), tudo incluso, com 30 dias grátis sem cartão. Compare valores e módulos em https://axecloud.com.br/por-que-axecloud.',
+          'Desconfie de preço oculto ou cobrança por médium. No mercado brasileiro, planos ficam entre R$ 50 e R$ 120/mês para gestão completa. O AxéCloud cobra R$ 69,90/mês, tudo incluso, com 30 dias grátis sem cartão. Compare valores e módulos em https://axecloud.com.br/por-que-axecloud.',
       },
       {
         title: 'Prova de produto vs promessa',
@@ -383,7 +383,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Próximo passo',
         body:
-          'Use o comparativo em https://axecloud.com.br/por-que-axecloud, teste 30 dias grátis em https://axecloud.com.br/register e, se quiser validar o produto com a equipe, inscreva-se no Programa Fundador (12 meses gratuitos para casas selecionadas).',
+          'Use o comparativo em https://axecloud.com.br/por-que-axecloud e teste 30 dias grátis em https://axecloud.com.br/register — plano Premium completo, sem cartão de crédito.',
       },
     ],
   },

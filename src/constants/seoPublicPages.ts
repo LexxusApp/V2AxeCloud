@@ -15,11 +15,7 @@ import {
   COMPARISON_VS_STATUS_QUO,
 } from './comparisonContent';
 import { LANDING_MODULES } from './landingModules';
-import {
-  FOUNDER_BENEFITS,
-  FOUNDER_PROGRAM,
-  FOUNDER_REQUIREMENTS,
-} from './founderProgram';
+import { TRIAL_DAYS } from '../../lib/planPricing';
 import {
   GLOSSARY_TERMS,
   PORTAL_ARTICLES,
@@ -78,7 +74,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       {
         heading: 'Ainda não tem conta?',
         body:
-          `Terreiros novos podem se cadastrar gratuitamente pelo Programa Fundador (${FOUNDER_PROGRAM.freeMonths} meses Premium) ou criar conta em ${SITE_ORIGIN}${ROUTES.register}. Casas já cadastradas entram diretamente por esta página.`,
+          `Terreiros novos podem criar conta em ${SITE_ORIGIN}${ROUTES.register} e testar o plano Premium por ${TRIAL_DAYS} dias grátis, sem cartão de crédito. Casas já cadastradas entram diretamente por esta página.`,
       },
     ],
   },
@@ -101,62 +97,13 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     sections: legalSectionsToStatic(PRIVACY_POLICY_SECTIONS),
   },
   {
-    path: ROUTES.founderProgram,
-    title: `Programa Fundador | ${BRAND_NAME} — 12 meses gratuitos para terreiros`,
-    description:
-      `Inscreva sua casa de axé no Programa Fundador ${BRAND_NAME}: uso gratuito por 12 meses, onboarding personalizado e prioridade no portal público de terreiros de Umbanda e Candomblé.`,
-    h1: 'Programa Fundador — 12 meses gratuitos para terreiros',
-    intro:
-      `Estamos selecionando até ${FOUNDER_PROGRAM.maxSlots} terreiros de Umbanda, Candomblé e Jurema para validar o ${BRAND_NAME} antes do lançamento nacional. Casas aprovadas usam o sistema completo — financeiro com Pix, calendário, galeria, mural, portal do filho e loja do axé — sem pagar nada por ${FOUNDER_PROGRAM.freeMonths} meses. Você recebe onboarding personalizado, selo de Casa Fundadora e prioridade no diretório público quando o portal estiver no ar.`,
-    sections: [
-      {
-        heading: 'Como funciona a inscrição',
-        body:
-          'Preencha o formulário nesta página (leva cerca de dois minutos). Nossa equipe entra em contato pelo WhatsApp para uma conversa inicial, alinha expectativas e libera o acesso Premium gratuito. Configuramos a casa junto com você: cadastros, Pix, mural e calendário.',
-      },
-      ...FOUNDER_BENEFITS.map((body, i) => ({
-        heading: `Benefício ${i + 1}`,
-        body,
-      })),
-      ...FOUNDER_REQUIREMENTS.map((body) => ({
-        heading: 'Requisito para participar',
-        body,
-      })),
-      {
-        heading: 'Região piloto',
-        body: `${FOUNDER_PROGRAM.pilotCity}. ${FOUNDER_PROGRAM.pilotRegionNote}`,
-      },
-      {
-        heading: 'Preços após o período fundador',
-        body:
-          `Depois dos ${FOUNDER_PROGRAM.freeMonths} meses gratuitos, casas aprovadas no programa pagam ${FOUNDER_PROGRAM.founderPriceLabel} vitalício. Demais terreiros: ${FOUNDER_PROGRAM.standardPriceLabel}. Não pedimos cartão de crédito na inscrição — transparência desde o primeiro contato.`,
-      },
-      {
-        heading: 'Por que participar agora',
-        body:
-          `O ${BRAND_NAME} foi pensado ouvindo zeladores e médiuns: termos litúrgicos reais, sigilo do prontuário espiritual e ferramentas que respeitam a rotina da casa. Como Casa Fundadora, você molda o produto e aparece em destaque no portal público de terreiros que estamos construindo.`,
-      },
-    ],
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Offer',
-      name: `Programa Fundador ${BRAND_NAME}`,
-      description: `Uso gratuito do ${BRAND_NAME} por ${FOUNDER_PROGRAM.freeMonths} meses para terreiros selecionados`,
-      price: '0',
-      priceCurrency: 'BRL',
-      url: `${SITE_ORIGIN}${ROUTES.founderProgram}`,
-      seller: { '@type': 'Organization', name: BRAND_NAME, url: SITE_ORIGIN },
-      eligibleRegion: { '@type': 'Country', name: 'Brasil' },
-    },
-  },
-  {
     path: ROUTES.contentHub,
     title: `Conteúdo | ${PORTAL_BRAND} — Umbanda e Candomblé`,
     description:
       `Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do ${PORTAL_BRAND}.`,
     h1: 'Conteúdo para quem busca entender a tradição',
     intro:
-      'Artigos e glossário com linguagem respeitosa — base do portal público que estamos construindo junto com as casas fundadoras de Umbanda e Candomblé.',
+      'Artigos e glossário com linguagem respeitosa — base do portal público de terreiros de Umbanda e Candomblé.',
     sections: [
       ...PORTAL_ARTICLES.map((article) => ({
         heading: article.title,
@@ -167,8 +114,8 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
         body: `${GLOSSARY_TERMS.length} termos essenciais sobre terreiro, filho de santo, gira, orixá e tradições afro-brasileiras. Acesse em ${SITE_ORIGIN}${ROUTES.glossary}.`,
       },
       {
-        heading: 'Programa Fundador',
-        body: `Casas de axé podem se inscrever para usar o ${BRAND_NAME} gratuitamente por ${FOUNDER_PROGRAM.freeMonths} meses em ${SITE_ORIGIN}${ROUTES.founderProgram}.`,
+        heading: 'Teste grátis',
+        body: `Cadastre seu terreiro em ${SITE_ORIGIN}${ROUTES.register} e use o ${BRAND_NAME} por ${TRIAL_DAYS} dias grátis — plano Premium completo, sem cartão de crédito.`,
       },
     ],
   },
@@ -228,7 +175,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       {
         heading: 'Para terreiros que querem activar o portal',
         body:
-          `Casas de axé parceiras do ${BRAND_NAME} ativam o Espaço do Fiel nas configurações do painel. Zeladores gerenciam pedidos, respondem consulentes e mantêm o altar atualizado. Conheça o Programa Fundador em ${SITE_ORIGIN}${ROUTES.founderProgram} para usar o sistema completo.`,
+          `Casas de axé parceiras do ${BRAND_NAME} ativam o Espaço do Fiel nas configurações do painel. Zeladores gerenciam pedidos, respondem consulentes e mantêm o altar atualizado. Para usar o sistema completo, cadastre-se em ${SITE_ORIGIN}${ROUTES.register} — ${TRIAL_DAYS} dias grátis para testar.`,
       },
       {
         heading: 'Outros recursos do portal',
@@ -293,7 +240,7 @@ export const PUBLIC_PRERENDER_PATHS: readonly string[] = PUBLIC_PRERENDER_PAGES.
 export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] = [
   { href: `${SITE_ORIGIN}/`, label: 'Início' },
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
-  { href: `${SITE_ORIGIN}${ROUTES.founderProgram}`, label: 'Programa Fundador' },
+  { href: `${SITE_ORIGIN}${ROUTES.register}`, label: `Teste grátis ${TRIAL_DAYS} dias` },
   { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
   { href: `${SITE_ORIGIN}${ROUTES.whyAxeCloud}`, label: 'Por que AxéCloud' },
   { href: `${SITE_ORIGIN}${ROUTES.glossary}`, label: 'Glossário do axé' },
