@@ -8,8 +8,17 @@ export type DiretorioTerreiro = {
   cidade: string | null;
   estado: string | null;
   cidadeSlug: string | null;
+  bairro: string | null;
+  bairroSlug: string | null;
   perfilUrl: string | null;
   cidadeUrl: string | null;
+};
+
+export type DiretorioBairroGroup = {
+  nome: string;
+  slug: string;
+  total: number;
+  items: DiretorioTerreiro[];
 };
 
 export type DiretorioCidade = {
@@ -29,7 +38,14 @@ export async function fetchDiretorioCidades(): Promise<DiretorioCidade[]> {
 export async function fetchDiretorioCidade(
   estado: string,
   cidadeSlug: string,
-): Promise<{ cidade: string; estado: string | null; cidadeSlug: string; total: number; items: DiretorioTerreiro[] }> {
+): Promise<{
+  cidade: string;
+  estado: string | null;
+  cidadeSlug: string;
+  total: number;
+  items: DiretorioTerreiro[];
+  bairros?: DiretorioBairroGroup[];
+}> {
   const res = await fetch(
     `/api/v1/public/diretorio/${encodeURIComponent(estado)}/${encodeURIComponent(cidadeSlug)}`,
     { cache: 'no-store' },

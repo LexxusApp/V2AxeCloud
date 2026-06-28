@@ -1,0 +1,20 @@
+[
+  { "label": "Itaim Paulista", "cidade": "São Paulo", "estado": "SP", "busca": "Itaim Paulista, São Paulo" },
+  { "label": "São Miguel Paulista", "cidade": "São Paulo", "estado": "SP", "busca": "São Miguel Paulista, São Paulo" },
+  { "label": "Cidade Tiradentes", "cidade": "São Paulo", "estado": "SP", "busca": "Cidade Tiradentes, São Paulo" },
+  { "label": "Guaianazes", "cidade": "São Paulo", "estado": "SP", "busca": "Guaianazes, São Paulo" },
+  { "label": "Ermelino Matarazzo", "cidade": "São Paulo", "estado": "SP", "busca": "Ermelino Matarazzo, São Paulo" },
+  { "label": "Penha", "cidade": "São Paulo", "estado": "SP", "busca": "Penha, São Paulo" },
+  { "label": "Vila Prudente", "cidade": "São Paulo", "estado": "SP", "busca": "Vila Prudente, São Paulo" },
+  { "label": "Sapopemba", "cidade": "São Paulo", "estado": "SP", "busca": "Sapopemba, São Paulo" },
+  { "label": "São Mateus", "cidade": "São Paulo", "estado": "SP", "busca": "São Mateus, São Paulo" },
+  { "label": "Itaquera", "cidade": "São Paulo", "estado": "SP", "busca": "Itaquera, São Paulo" },
+  { "label": "Cidade Líder", "cidade": "São Paulo", "estado": "SP", "busca": "Cidade Líder, São Paulo" },
+  { "label": "José Bonifácio", "cidade": "São Paulo", "estado": "SP", "busca": "José Bonifácio, São Paulo" },
+  { "label": "Iguatemi", "cidade": "São Paulo", "estado": "SP", "busca": "Iguatemi, São Paulo" },
+  { "label": "Lajeado", "cidade": "São Paulo", "estado": "SP", "busca": "Lajeado, São Paulo" },
+  { "label": "Cidade Kemel", "cidade": "São Paulo", "estado": "SP", "busca": "Cidade Kemel, São Paulo" },
+  { "label": "Vila Curuçá", "cidade": "São Paulo", "estado": "SP", "busca": "Vila Curuçá, São Paulo" },
+  { "label": "Vila Jacuí", "cidade": "São Paulo", "estado": "SP", "busca": "Vila Jacuí, São Paulo" },
+  { "label": "Parque do Carmo", "cidade": "São Paulo", "estado": "SP", "busca": "Parque do Carmo, São Paulo" }
+]

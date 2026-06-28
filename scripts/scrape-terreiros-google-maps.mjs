@@ -10,8 +10,11 @@
  * Opções:
  *   --headless false     Navegador visível (útil se aparecer captcha)
  *   --dry-run            Não grava no Supabase
- *   --max N              Limita quantos terreiros processar por cidade (debug)
+ *   --max N              Limita quantos terreiros processar por local (debug)
  *   --enrich             Atualiza foto/telefone dos registros já existentes (sem inserir novos)
+ *   --single-query       Uma busca só ("Terreiros em …") — modo antigo, poucos resultados
+ *   --scroll-rounds N    Rolagens na lista lateral (padrão: 35)
+ *   --terms "a,b,c"      Termos de busca (padrão: terreiro umbanda, casa de umbanda, …)
  *
  * Variáveis (.env):
  *   VITE_SUPABASE_URL ou SUPABASE_URL
@@ -36,6 +39,18 @@ const SUPABASE_SERVICE_KEY =
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 const TABLE = "terreiros_diretorio";
+
+/** Termos padrão — uma busca por termo × local (deduplica por link_maps) */
+const DEFAULT_SEARCH_TERMS = [
+  "terreiro umbanda",
+  "terreiro de umbanda",
+  "casa de umbanda",
+  "templo de umbanda",
+  "terreiro candomblé",
+  "centro espírita umbanda",
+];
+
+const FEED_SELECTORS = ['div[role="feed"]', 'div.m6QErb[role="feed"]'];
 
 function slugifyText(raw, maxLen = 80) {
   return String(raw || "")
@@ -68,6 +83,9 @@ function parseArgs(argv) {
     dryRun: false,
     max: Infinity,
     enrich: false,
+    singleQuery: false,
+    scrollRounds: 35,
+    terms: null,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -82,6 +100,15 @@ function parseArgs(argv) {
       args.dryRun = true;
     } else if (a === "--enrich") {
       args.enrich = true;
+    } else if (a === "--single-query") {
+      args.singleQuery = true;
+    } else if (a === "--scroll-rounds" && argv[i + 1]) {
+      args.scrollRounds = Math.max(5, parseInt(argv[++i], 10) || 35);
+    } else if (a === "--terms" && argv[i + 1]) {
+      args.terms = argv[++i]
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
     } else if (a === "--max" && argv[i + 1]) {
       args.max = Math.max(1, parseInt(argv[++i], 10) || 1);
     } else if (a === "--help" || a === "-h") {
@@ -98,7 +125,8 @@ Scraping Google Maps → Supabase (${TABLE})
 
   node scripts/scrape-terreiros-google-maps.mjs --cidade "Suzano - SP"
   node scripts/scrape-terreiros-google-maps.mjs --cidades-file scripts/data/cidades-terreiros-exemplo.json
-  node scripts/scrape-terreiros-google-maps.mjs --cidade "Suzano - SP" --enrich
+  node scripts/scrape-terreiros-google-maps.mjs --cidades-file scripts/data/bairros-sp-zona-leste.json
+  node scripts/scrape-terreiros-google-maps.mjs --cidade "Suzano - SP" --scroll-rounds 50
 `);
 }
 
@@ -210,8 +238,22 @@ function highResGooglePhotoUrl(url, width = 1200) {
   return `${base}=w${width}-h${height}-k-no`;
 }
 
-/** @returns {{ label: string, cidade: string, estado: string | null }} */
+/** @returns {{ label: string, cidade: string, estado: string | null, busca?: string, terms?: string[] }} */
 function parseCidadeInput(raw) {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const label = String(raw.label || raw.busca || raw.cidade || "").trim();
+    const cidade = String(raw.cidade || label).trim();
+    const estado = raw.estado ? String(raw.estado).trim().toUpperCase() : null;
+    if (!label && !cidade) throw new Error("Entrada de local inválida (objeto sem label/cidade)");
+    return {
+      label: label || `${cidade}${estado ? ` - ${estado}` : ""}`,
+      cidade,
+      estado,
+      busca: raw.busca ? String(raw.busca).trim() : undefined,
+      terms: Array.isArray(raw.terms) ? raw.terms.map(String) : undefined,
+    };
+  }
+
   const label = String(raw || "").trim();
   if (!label) throw new Error("Cidade vazia");
 
@@ -254,9 +296,45 @@ function normalizeMapsUrl(href) {
   }
 }
 
-function buildSearchUrl(cidadeLabel) {
-  const q = encodeURIComponent(`Terreiros em ${cidadeLabel}`);
-  return `https://www.google.com/maps/search/${q}`;
+function buildSearchUrl(query) {
+  return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
+
+function slugifyBairro(raw) {
+  return String(raw || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+function resolveBairroForScrape(meta, endereco, cidade) {
+  const label = String(meta.label || "").trim();
+  const city = String(meta.cidade || "").trim();
+  if (meta.busca && label && city && label.toLowerCase() !== city.toLowerCase()) {
+    return label;
+  }
+  const addr = String(endereco || "").trim();
+  if (!addr) return null;
+  const dashMatch = addr.match(/-\s*([^,]+),\s*S[aã]o Paulo/i);
+  if (dashMatch) {
+    const candidate = dashMatch[1].trim();
+    if (candidate.length >= 3 && candidate.length <= 80 && !/^\d/.test(candidate)) return candidate;
+  }
+  return null;
+}
+
+/** @returns {string[]} */
+function buildQueriesForLocation(meta, options) {
+  if (options.singleQuery) {
+    return [`Terreiros em ${meta.label}`];
+  }
+
+  const target = meta.busca || meta.label;
+  const terms = meta.terms?.length ? meta.terms : options.terms?.length ? options.terms : DEFAULT_SEARCH_TERMS;
+  return terms.map((term) => `${term} em ${target}`);
 }
 
 function isStreetViewMapsUrl(url) {
@@ -331,7 +409,7 @@ async function loadCidades(args) {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error(`Arquivo de cidades inválido ou vazio: ${filePath}`);
     }
-    return parsed.map(String);
+    return parsed;
   }
 
   throw new Error('Informe --cidade "Nome - UF" ou --cidades-file caminho.json');
@@ -361,34 +439,77 @@ async function detectBlock(page) {
   return captcha.first().isVisible().catch(() => false);
 }
 
-/** Rolagem gradual na barra lateral até estabilizar a contagem de resultados */
-async function scrollResultsFeed(page) {
-  const feed = page.locator('div[role="feed"]');
-  const visible = await feed.waitFor({ state: "visible", timeout: 45000 }).catch(() => null);
-  if (!visible) {
-    console.warn("    ⚠ Lista de resultados não encontrada — cidade pode não ter terreiros no Maps");
-    return 0;
-  }
-
-  let previousCount = 0;
-  let stableRounds = 0;
-
-  while (stableRounds < 4) {
-    await feed.evaluate((el) => {
-      el.scrollBy({ top: 800, behavior: "smooth" });
-    });
-    await randomDelay();
-
-    const count = await page.locator('a[href*="/maps/place/"]').count();
-    if (count <= previousCount) {
-      stableRounds += 1;
-    } else {
-      stableRounds = 0;
-      previousCount = count;
+/** Rolagem profunda na barra lateral até estabilizar ou atingir o fim da lista */
+async function scrollResultsFeed(page, scrollRounds = 35) {
+  let feed = null;
+  for (const sel of FEED_SELECTORS) {
+    const loc = page.locator(sel).first();
+    if (await loc.isVisible({ timeout: 12000 }).catch(() => false)) {
+      feed = loc;
+      break;
     }
   }
 
-  return previousCount;
+  if (!feed) {
+    const count = await page.locator('a[href*="/maps/place/"]').count();
+    console.warn(
+      `    ⚠ Painel lateral (role=feed) não encontrado — só ${count} link(s) visíveis (sem scroll profundo)`,
+    );
+    return count;
+  }
+
+  let lastCount = 0;
+  let lastHeight = 0;
+  let noProgressRounds = 0;
+
+  for (let round = 0; round < scrollRounds; round++) {
+    const countBefore = await page.locator('a[href*="/maps/place/"]').count();
+
+    await feed.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await page.waitForTimeout(2200);
+
+    const endMarker = page.locator(
+      "text=/chegou ao final|reached the end|Não há mais resultados|No more results/i",
+    );
+    if (await endMarker.isVisible({ timeout: 400 }).catch(() => false)) {
+      lastCount = await page.locator('a[href*="/maps/place/"]').count();
+      break;
+    }
+
+    const countAfter = await page.locator('a[href*="/maps/place/"]').count();
+    const height = await feed.evaluate((el) => el.scrollHeight).catch(() => 0);
+
+    if (countAfter <= countBefore && height <= lastHeight) {
+      noProgressRounds += 1;
+      if (noProgressRounds >= 4) break;
+    } else {
+      noProgressRounds = 0;
+    }
+
+    lastCount = countAfter;
+    lastHeight = height;
+  }
+
+  return lastCount;
+}
+
+async function collectPlaceLinksFromSearch(page, searchQuery, scrollRounds) {
+  const searchUrl = buildSearchUrl(searchQuery);
+  console.log(`    → busca: ${searchQuery}`);
+  await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+  await randomDelay(1800, 3200);
+  await dismissConsentIfPresent(page);
+
+  if (await detectBlock(page)) {
+    throw new Error("Google bloqueou a navegação (captcha/consent). Tente --headless false.");
+  }
+
+  const listed = await scrollResultsFeed(page, scrollRounds);
+  const links = await collectPlaceLinks(page);
+  console.log(`    → ${links.length} link(s) únicos (${listed} na lista após scroll)`);
+  return links;
 }
 
 async function collectPlaceLinks(page) {
@@ -453,12 +574,20 @@ async function extractPlaceDetails(page, placeUrl, hints = {}) {
 async function upsertTerreiro(supabase, row, usedSlugs) {
   const { data: existing, error: selectErr } = await supabase
     .from(TABLE)
-    .select("id")
+    .select("id, bairro")
     .eq("link_maps", row.link_maps)
     .maybeSingle();
 
   if (selectErr) throw selectErr;
-  if (existing) return { action: "skipped", id: existing.id };
+  if (existing) {
+    if (!existing.bairro && row.bairro) {
+      await supabase
+        .from(TABLE)
+        .update({ bairro: row.bairro, bairro_slug: row.bairro_slug })
+        .eq("id", existing.id);
+    }
+    return { action: "skipped", id: existing.id };
+  }
 
   const payload = {
     ...row,
@@ -533,22 +662,27 @@ async function enrichCidade(page, supabase, meta, options) {
 
 async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
   const { label, cidade, estado } = meta;
-  const searchUrl = buildSearchUrl(label);
+  const queries = buildQueriesForLocation(meta, options);
 
-  console.log(`\n[${label}] Abrindo busca: ${searchUrl}`);
-  await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
-  await randomDelay();
-  await dismissConsentIfPresent(page);
+  console.log(`\n[${label}] ${queries.length} busca(s) planejada(s)`);
 
-  if (await detectBlock(page)) {
-    throw new Error(`[${label}] Bloqueio do Google detectado. Execute com --headless false e resolva manualmente.`);
+  const allLinks = new Set();
+  for (const query of queries) {
+    try {
+      const links = await collectPlaceLinksFromSearch(page, query, options.scrollRounds);
+      for (const link of links) allLinks.add(link);
+    } catch (err) {
+      console.error(`    ✗ busca falhou: ${err instanceof Error ? err.message : err}`);
+    }
+    await randomDelay(2500, 4000);
   }
 
-  const totalListed = await scrollResultsFeed(page);
-  const links = await collectPlaceLinks(page);
+  const links = [...allLinks];
   const limited = links.slice(0, options.max);
 
-  console.log(`[${label}] ${links.length} link(s) na lista (${totalListed} cards visíveis). Processando ${limited.length}.`);
+  console.log(
+    `[${label}] ${links.length} link(s) únicos no total (após ${queries.length} buscas). Processando ${limited.length}.`,
+  );
 
   const stats = { inserted: 0, skipped: 0, errors: 0 };
 
@@ -564,6 +698,7 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         continue;
       }
 
+      const bairro = resolveBairroForScrape(meta, details.endereco, cidade);
       const row = {
         nome: details.nome,
         endereco: details.endereco,
@@ -572,6 +707,8 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         link_maps: details.link_maps,
         cidade,
         estado,
+        bairro,
+        bairro_slug: bairro ? slugifyBairro(bairro) : null,
       };
 
       if (options.dryRun) {

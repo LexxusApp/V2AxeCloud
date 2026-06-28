@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
+import { DiretorioCityByBairro } from '../../components/portal/DiretorioCityByBairro';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
 import { landingMockupShellClass } from '../../components/landing/landingMockupUi';
-import { fetchDiretorioCidade, type DiretorioTerreiro } from '../../lib/diretorioPublic';
+import { fetchDiretorioCidade, type DiretorioBairroGroup, type DiretorioTerreiro } from '../../lib/diretorioPublic';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 import { getCitySeoContent } from '../../lib/diretorioCityContent';
@@ -21,6 +22,7 @@ function parseCityRoute(): { estado: string; cidade: string } {
 export default function DiretorioCityPage() {
   const { estado, cidade: cidadeSlug } = parseCityRoute();
   const [items, setItems] = useState<DiretorioTerreiro[]>([]);
+  const [bairros, setBairros] = useState<DiretorioBairroGroup[] | null>(null);
   const [meta, setMeta] = useState<{ cidade: string; estado: string | null; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,7 @@ export default function DiretorioCityPage() {
       .then((res) => {
         setMeta({ cidade: res.cidade, estado: res.estado, total: res.total });
         setItems(res.items);
+        setBairros(res.bairros && res.bairros.length > 1 ? res.bairros : null);
         const uf = res.estado || estado.toUpperCase();
         applyCustomPageSeo({
           title: `Terreiros de Umbanda e Candomblé em ${res.cidade} - ${uf} | AxéCloud`,
@@ -64,7 +67,9 @@ export default function DiretorioCityPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#1b1813]/68">
             {meta
-              ? `${meta.total} casa${meta.total === 1 ? '' : 's'} de axé com endereço, telefone e foto quando disponível no Google Maps.`
+              ? bairros
+                ? `${meta.total} casas de axé em ${bairros.length} bairros — navegue pelos bairros abaixo ou use o índice no topo.`
+                : `${meta.total} casa${meta.total === 1 ? '' : 's'} de axé com endereço, telefone e foto quando disponível no Google Maps.`
               : 'Carregando terreiros da região…'}
           </p>
         </header>
@@ -99,11 +104,15 @@ export default function DiretorioCityPage() {
                 </div>
               </section>
             ) : null}
-            <ul className="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((t) => (
-              <DiretorioTerreiroCard key={t.slug} terreiro={t} />
-            ))}
-          </ul>
+            {bairros ? (
+              <DiretorioCityByBairro bairros={bairros} />
+            ) : (
+              <ul className="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((t) => (
+                  <DiretorioTerreiroCard key={t.slug} terreiro={t} />
+                ))}
+              </ul>
+            )}
           </>
         )}
       </main>

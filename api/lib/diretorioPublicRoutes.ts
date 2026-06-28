@@ -6,19 +6,30 @@ import {
   slugifyCidadeOnly,
   slugifyTerreiroNome,
 } from "./diretorioSlug.js";
-import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
+import {
+  groupItemsByBairro,
+  resolveTerreiroBairro,
+  shouldGroupCityByBairro,
+  slugifyBairro,
+} from "../../lib/diretorioBairro.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, created_at";
+  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, created_at";
 
 function mapRow(row: Record<string, unknown>) {
   const slug = String(row.slug || "").trim();
   const cidade = String(row.cidade || "").trim();
   const estado = row.estado ? String(row.estado).trim().toUpperCase() : null;
   const cidadeSlug = String(row.cidade_slug || slugifyCidadeOnly(cidade)).trim();
+  const bairroRaw = row.bairro ? String(row.bairro).trim() : null;
+  const bairro =
+    bairroRaw ||
+    resolveTerreiroBairro({ endereco: row.endereco ? String(row.endereco) : null, cidade }) ||
+    null;
+  const bairroSlug = bairro ? String(row.bairro_slug || slugifyBairro(bairro)).trim() : null;
   return {
     slug,
     nome: String(row.nome || "Terreiro").trim(),
@@ -29,6 +40,8 @@ function mapRow(row: Record<string, unknown>) {
     cidade: cidade || null,
     estado,
     cidadeSlug,
+    bairro,
+    bairroSlug,
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
@@ -157,6 +170,10 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           first?.cidade ||
           cidadeSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+        const bairros = shouldGroupCityByBairro(cidadeSlug, items)
+          ? groupItemsByBairro(items)
+          : undefined;
+
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
         res.json({
           estado: first?.estado || estado.toUpperCase(),
@@ -164,6 +181,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           cidadeSlug,
           total: items.length,
           items,
+          bairros,
         });
       } catch (e: unknown) {
         console.error("[public/diretorio/cidade]", e);
