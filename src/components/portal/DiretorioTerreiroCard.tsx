@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MapPin, Phone } from 'lucide-react';
 import { landingMockupCardClass } from '../landing/landingMockupUi';
 import { formatTelefoneBr, telefoneHref } from '../../lib/formatTelefone';
@@ -11,6 +12,8 @@ type Props = {
 
 export function DiretorioTerreiroCard({ terreiro }: Props) {
   const href = diretorioTerreiroPath(terreiro.slug);
+  const [fotoFalhou, setFotoFalhou] = useState(false);
+  const mostrarFoto = Boolean(terreiro.fotoUrl) && !fotoFalhou;
 
   return (
     <li
@@ -20,12 +23,13 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
       )}
     >
       <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8]">
-        {terreiro.fotoUrl ? (
+        {mostrarFoto ? (
           <img
-            src={terreiro.fotoUrl}
+            src={terreiro.fotoUrl!}
             alt=""
             className="h-full w-full object-cover"
             loading="lazy"
+            onError={() => setFotoFalhou(true)}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-[#1b1813]/25">

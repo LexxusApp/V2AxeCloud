@@ -68,7 +68,7 @@ export default function DiretorioCityPage() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#1b1813]/68">
             {meta
               ? bairros
-                ? `${meta.total} casas de axé em ${bairros.length} bairros — navegue pelos bairros abaixo ou use o índice no topo.`
+                ? `${meta.total} casas de axé em ${bairros.length} bairros — use o seletor acima para escolher o bairro.`
                 : `${meta.total} casa${meta.total === 1 ? '' : 's'} de axé com endereço, telefone e foto quando disponível no Google Maps.`
               : 'Carregando terreiros da região…'}
           </p>

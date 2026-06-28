@@ -13,6 +13,7 @@ import {
   slugifyBairro,
 } from "../../lib/diretorioBairro.js";
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
+import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
