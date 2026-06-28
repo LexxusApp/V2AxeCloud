@@ -13,6 +13,7 @@ import { applyRouteSeo } from '../lib/seo';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
 import LoginPage from '../pages/LoginPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 
 const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
@@ -108,6 +109,8 @@ function RoutedPage({ path }: { path: string }) {
       return <LoginPage />;
     case ROUTES.resetPassword:
       return <ResetPasswordPage />;
+    case ROUTES.forgotPassword:
+      return <ForgotPasswordPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
     default:
