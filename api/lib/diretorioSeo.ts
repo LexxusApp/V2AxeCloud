@@ -9,6 +9,7 @@ import {
   type DiretorioSeoTerreiro,
 } from "../../lib/diretorioSeoShared.js";
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
+import { apiReadRateLimit } from "./rateLimit.js";
 import {
   parseDiretorioCityRoute,
   slugifyCidadeOnly,
