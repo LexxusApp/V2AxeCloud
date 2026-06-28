@@ -64,7 +64,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       {
         heading: 'Recuperação de senha',
         body:
-          'Esqueceu a senha do zelador? Use a opção de recuperação na tela de entrada com o mesmo e-mail da conta. Filhos de santo devem solicitar novo acesso ao zelador da casa, que pode reemitir as credenciais pelo painel.',
+          'Esqueceu a senha do zelador? Na tela de entrada, use "Esqueceu sua senha?" com o e-mail de login e o WhatsApp cadastrado no terreiro — enviamos um código de 6 dígitos. Filhos de santo devem solicitar novo acesso ao zelador da casa.',
       },
       {
         heading: 'Segurança e privacidade',

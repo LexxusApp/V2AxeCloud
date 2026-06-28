@@ -14,6 +14,7 @@ import {
   Users,
   ShieldCheck,
   ArrowLeft,
+  Phone,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -141,6 +142,13 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'request' | 'confirm'>('request');
+  const [forgotWhatsapp, setForgotWhatsapp] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotShowPassword, setForgotShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -177,28 +185,93 @@ export default function Login() {
     setShowAlert(false);
   };
 
-  const handleForgotPassword = async () => {
+  const openForgotPassword = () => {
     setError(null);
     setInfo(null);
-    const raw = email.trim();
-    if (!raw) {
-      setError('Preencha seu e-mail acima para receber o link de recuperação.');
+    setForgotOpen(true);
+    setForgotStep('request');
+    setForgotWhatsapp('');
+    setForgotCode('');
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
+  };
+
+  const handleRequestForgotCode = async () => {
+    setError(null);
+    setInfo(null);
+    const loginEmail = email.trim().toLowerCase();
+    if (!loginEmail || !loginEmail.includes('@')) {
+      setError('Informe o e-mail de login cadastrado acima.');
       return;
     }
-    if (!raw.includes('@')) {
-      setError('A recuperação de senha é enviada por e-mail. Informe o endereço cadastrado.');
+    if (!forgotWhatsapp.replace(/\D/g, '').match(/^\d{10,13}$/)) {
+      setError('Informe o WhatsApp cadastrado no terreiro, com DDD.');
       return;
     }
-    const targetEmail = raw;
+
     setForgotLoading(true);
     try {
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
+      const res = await fetch('/api/v1/auth/forgot-password/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginEmail, whatsapp: forgotWhatsapp }),
       });
-      if (resetErr) throw resetErr;
-      setInfo('Enviamos um link de recuperação para o seu e-mail.');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao solicitar código.');
+
+      setInfo(
+        String(data.message || 'Se os dados coincidirem com o cadastro, enviamos um código de 6 dígitos no WhatsApp.')
+      );
+      setForgotStep('confirm');
     } catch (err: unknown) {
-      setError(humanizeAuthError(err));
+      setError(err instanceof Error ? err.message : 'Erro ao solicitar código.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleConfirmForgotPassword = async () => {
+    setError(null);
+    setInfo(null);
+    const loginEmail = email.trim().toLowerCase();
+    if (!loginEmail || !forgotCode.trim() || !forgotNewPassword || !forgotConfirmPassword) {
+      setError('Preencha e-mail, código e nova senha.');
+      return;
+    }
+    if (forgotNewPassword.length < 8) {
+      setError('A nova senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setError('A confirmação da nova senha não confere.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/v1/auth/forgot-password/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loginEmail,
+          whatsapp: forgotWhatsapp,
+          code: forgotCode,
+          newPassword: forgotNewPassword,
+          confirmPassword: forgotConfirmPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao redefinir senha.');
+
+      setForgotOpen(false);
+      setPassword('');
+      setForgotStep('request');
+      setForgotCode('');
+      setForgotNewPassword('');
+      setForgotConfirmPassword('');
+      setInfo(String(data.message || 'Senha redefinida! Entre com a nova senha.'));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.');
     } finally {
       setForgotLoading(false);
     }
@@ -463,11 +536,11 @@ export default function Login() {
                       <label className={labelClass}>Senha</label>
                       <button
                         type="button"
-                        onClick={handleForgotPassword}
+                        onClick={openForgotPassword}
                         disabled={forgotLoading}
                         className="pb-[1px] text-[11px] font-medium text-primary hover:text-primary/80 disabled:opacity-50 transition-colors"
                       >
-                        {forgotLoading ? 'Enviando...' : 'Esqueceu sua senha?'}
+                        Esqueceu sua senha?
                       </button>
                     </div>
                     <div className="relative">
@@ -498,6 +571,138 @@ export default function Login() {
                       </button>
                     </div>
                   </div>
+
+                  {forgotOpen && !filhoSurface ? (
+                    <div className="rounded-lg border border-primary/25 bg-primary/5 p-3 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                            Recuperar via WhatsApp
+                          </p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
+                            O e-mail de login pode ser fictício — enviamos um código no WhatsApp cadastrado no terreiro.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForgotOpen(false)}
+                          className="rounded p-1 text-gray-500 hover:text-white"
+                          aria-label="Fechar recuperação"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {forgotStep === 'request' ? (
+                        <>
+                          <div className="space-y-[5px]">
+                            <label className={labelClass}>WhatsApp do terreiro</label>
+                            <div className="relative">
+                              <Phone
+                                className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                                strokeWidth={1.5}
+                              />
+                              <input
+                                type="tel"
+                                inputMode="numeric"
+                                autoComplete="tel"
+                                value={forgotWhatsapp}
+                                onChange={(e) => setForgotWhatsapp(e.target.value)}
+                                placeholder="(11) 99999-9999"
+                                className={fieldShell}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={forgotLoading}
+                            onClick={() => void handleRequestForgotCode()}
+                            className="flex h-[38px] w-full items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/15 text-xs font-bold text-primary hover:bg-primary/25 disabled:opacity-50"
+                          >
+                            {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            {forgotLoading ? 'Enviando código…' : 'Enviar código no WhatsApp'}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-[5px]">
+                            <label className={labelClass}>Código de 6 dígitos</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={forgotCode}
+                              onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              placeholder="000000"
+                              className={cn(fieldShell, 'pl-3 tracking-[0.3em]')}
+                            />
+                          </div>
+                          <div className="space-y-[5px]">
+                            <label className={labelClass}>Nova senha</label>
+                            <div className="relative">
+                              <Lock
+                                className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                                strokeWidth={1.5}
+                              />
+                              <input
+                                type={forgotShowPassword ? 'text' : 'password'}
+                                autoComplete="new-password"
+                                value={forgotNewPassword}
+                                onChange={(e) => setForgotNewPassword(e.target.value)}
+                                placeholder="Mínimo 8 caracteres"
+                                className={cn(fieldShell, 'pr-12')}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setForgotShowPassword((v) => !v)}
+                                className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-500"
+                                aria-label={forgotShowPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                              >
+                                {forgotShowPassword ? (
+                                  <EyeOff className="h-5 w-5" />
+                                ) : (
+                                  <Eye className="h-5 w-5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="space-y-[5px]">
+                            <label className={labelClass}>Confirmar nova senha</label>
+                            <input
+                              type="password"
+                              autoComplete="new-password"
+                              value={forgotConfirmPassword}
+                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                              placeholder="Repita a nova senha"
+                              className={fieldShell}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <button
+                              type="button"
+                              disabled={forgotLoading}
+                              onClick={() => {
+                                setForgotStep('request');
+                                setForgotCode('');
+                              }}
+                              className="flex h-[38px] flex-1 items-center justify-center rounded-lg border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                            >
+                              Reenviar código
+                            </button>
+                            <button
+                              type="button"
+                              disabled={forgotLoading}
+                              onClick={() => void handleConfirmForgotPassword()}
+                              className="flex h-[38px] flex-1 items-center justify-center gap-2 rounded-lg bg-primary text-xs font-black text-black hover:opacity-90 disabled:opacity-50"
+                            >
+                              {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                              {forgotLoading ? 'Salvando…' : 'Salvar nova senha'}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
 
                   <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
                     <span
