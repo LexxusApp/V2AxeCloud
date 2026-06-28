@@ -69,6 +69,7 @@ import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { registerChatRoutes } from "./lib/chatRoutes.js";
+import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 import {
   getSupabaseServerAnonKey,
@@ -3663,6 +3664,7 @@ async function startServer() {
   });
 
   registerAuthAuditRoutes(app, { supabaseAdmin, verifyUser });
+  registerAccountCredentialsRoutes(app, { supabaseAdmin });
 
   app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {
     void handleFilhoLoginRoute(req, res);

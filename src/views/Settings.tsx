@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { PortalConsulenteSettings } from '../components/settings/PortalConsulenteSettings';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
+import { SettingsAccountCredentialsPanel } from '../components/settings/SettingsAccountCredentialsPanel';
 import { SettingsSubNav, SettingsTabHeader, type SettingsSection } from '../components/settings/SettingsSubNav';
 import { SettingsWhatsAppPanel } from '../components/settings/SettingsWhatsAppPanel';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -31,6 +32,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [accountEmail, setAccountEmail] = useState<string>(String(user?.email || ''));
 
   useEffect(() => {
     const handleOpenSubscription = () => {
@@ -40,6 +42,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
     window.addEventListener('open-subscription-tab', handleOpenSubscription);
     return () => window.removeEventListener('open-subscription-tab', handleOpenSubscription);
   }, []);
+
+  useEffect(() => {
+    setAccountEmail(String(user?.email || profile?.email || '').trim());
+  }, [user?.email, profile?.email]);
 
   useEffect(() => {
     if (user) {
@@ -162,6 +168,13 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                 onProfileChange={setProfile}
                 onRefresh={onRefresh}
                 onOpenPortal={() => setActiveSection('portal')}
+              />
+              <SettingsAccountCredentialsPanel
+                userEmail={accountEmail}
+                onEmailChanged={(email) => {
+                  setAccountEmail(email);
+                  if (profile) setProfile({ ...profile, email });
+                }}
               />
             </>
           ) : activeSection === 'whatsapp' ? (
