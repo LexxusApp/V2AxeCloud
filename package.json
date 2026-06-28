@@ -10,6 +10,7 @@
     "dev:with-admin": "npm run dev:admin",
     "generate:sitemap": "node scripts/generate-sitemap.mjs",
     "submit:sitemap": "node scripts/submit-sitemap.mjs",
+    "seo:kpi-checklist": "node scripts/seo-kpi-checklist.mjs",
     "smoke:routes": "bash deploy/scripts/smoke-routes.sh",
     "smoke:seo": "bash deploy/scripts/smoke-seo.sh",
     "generate:favicons": "node scripts/generate-favicons.mjs",

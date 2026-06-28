@@ -10,7 +10,7 @@ import {
 import { ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
 import { landingMockupCardClass, landingMockupKickerClass } from '../components/landing/landingMockupUi';
 import { LandingIconBox, landingIconClass, type LandingIconAccent } from '../components/landing/landingIconAccents';
-import { GLOSSARY_TERMS, PORTAL_ARTICLES, contentArticlePath } from '../content/portalContent';
+import { GLOSSARY_TERMS, PORTAL_ARTICLES, contentArticlePath, getPortalGestaoDigitalArticles } from '../content/portalContent';
 import { ROUTES } from '../lib/routes';
 import { cn } from '../lib/utils';
 
@@ -57,6 +57,8 @@ function ContentHeroStats() {
 }
 
 export default function ContentHubPage() {
+  const gestaoArticles = getPortalGestaoDigitalArticles();
+
   return (
     <ContentMarketingLayout
       kicker="Portal de Gestão AxéCloud"
@@ -121,6 +123,55 @@ export default function ContentHubPage() {
               </motion.li>
             );
           })}
+        </ul>
+      </motion.section>
+
+      <motion.section
+        {...fade}
+        transition={{ ...fade.transition, delay: 0.12 }}
+        aria-labelledby="content-gestao-digital"
+      >
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <h2 id="content-gestao-digital" className={landingMockupKickerClass}>
+              Gestão digital do terreiro
+            </h2>
+            <p className="mt-1 text-sm text-[#1b1813]/65">
+              Software, PWA, Pix, WhatsApp e como escolher o sistema certo — com links para o comparativo.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={ROUTES.whyAxeCloud}
+          className={cn('group mb-5 block p-5 sm:p-6', landingMockupCardClass, 'rounded-2xl border-amber-300/30 bg-amber-50/40')}
+        >
+          <p className="text-xs font-black uppercase tracking-wider text-amber-700">Comparativo</p>
+          <p className="mt-1 text-lg font-bold text-[#1b1813] group-hover:text-amber-800">
+            Por que AxéCloud? Tabela vs planilha e outros sistemas
+          </p>
+          <p className="mt-2 text-sm text-[#1b1813]/70">
+            14 módulos reais, app PWA instalável e checklist objetivo — tudo em uma página.
+          </p>
+        </a>
+
+        <ul className="grid list-none gap-4 sm:grid-cols-2" role="list">
+          {gestaoArticles.map((article) => (
+            <li key={article.slug}>
+              <a href={contentArticlePath(article.slug)} className="group block h-full">
+                <article className={cn('h-full p-5', landingMockupCardClass, 'rounded-xl')}>
+                  <h3 className="text-sm font-bold leading-snug text-[#1b1813] group-hover:text-amber-700 sm:text-base">
+                    {article.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[#1b1813]/68 sm:text-sm">{article.summary}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-600">
+                    <Clock className="h-3 w-3" aria-hidden />
+                    {article.readingMinutes} min
+                  </span>
+                </article>
+              </a>
+            </li>
+          ))}
         </ul>
       </motion.section>
 

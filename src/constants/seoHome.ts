@@ -8,7 +8,7 @@ import {
 } from './seoBrandKeywords';
 import { buildPublicSiteNavHtml } from './seoPublicPages';
 import { LANDING_SCREENSHOT_VERSION } from './landingScreenshots';
-import { SOCIAL_SAME_AS } from './socialLinks';
+import { buildOrganizationSameAs } from './socialLinks';
 
 /** Metadados e conteúdo estático da home — fonte única para HTML, JSON-LD e landing. */
 export const SITE_ORIGIN = 'https://axecloud.com.br';
@@ -132,7 +132,7 @@ export function buildHomeJsonLd(): string {
       url: `${SITE_ORIGIN}/`,
       logo: `${SITE_ORIGIN}/pwa-512.png`,
       description: HOME_SEO.description,
-      sameAs: [...SOCIAL_SAME_AS],
+      sameAs: buildOrganizationSameAs(),
     },
     {
       '@type': 'WebSite',

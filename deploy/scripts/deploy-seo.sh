@@ -31,4 +31,5 @@ fi
 echo ""
 echo "Deploy SEO concluído."
 echo "Search Console: envie https://axecloud.com.br/sitemap.xml (com .xml no final)"
-echo "Inspeção de URL: solicite indexação de / e /programa-fundador"
+echo "KPIs semanais: npm run seo:kpi-checklist  (docs/SEO-KPIS-SEARCH-CONSOLE.md)"
+echo "Inspeção de URL: solicite indexação de /por-que-axecloud e artigos /conteudo/"

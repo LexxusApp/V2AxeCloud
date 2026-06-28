@@ -23,6 +23,7 @@ Plano prático para sair de **zero cases visíveis** e competir com [Kanzuá](ht
 - [ ] Publicar **depoimento** da casa no admin (`depoimento_publicado = true`) para aparecer em Depoimentos
 - [ ] Tirar 2–3 screenshots reais do painel dessa casa (com autorização)
 - [ ] Configurar **Google Search Console** + enviar sitemap
+- [ ] Rotina **KPIs SEO** (domingo, 10 min) — ver `docs/SEO-KPIS-SEARCH-CONSOLE.md` ou `npm run seo:kpi-checklist`
 - [ ] Revisar bio do Instagram / WhatsApp com link `axecloud.com.br/programa-fundador`
 
 ---
@@ -98,11 +99,24 @@ Hoje a prova é: **casas fundadoras reais, com nome e cidade, no site.**
 
 ## KPIs semanais (5 minutos todo domingo)
 
+### Comercial (WhatsApp / fundadores)
+
 1. Quantas casas **accepted** no admin?
 2. Quantas aparecem em `/api/v1/landing/founder-houses`?
 3. Quantos depoimentos publicados?
 4. Quantos leads novos no WhatsApp?
 5. Alguém pediu demo depois de ver a seção **Casas**?
+
+### SEO (Search Console + Google Business Profile)
+
+Ver checklist completo: **`docs/SEO-KPIS-SEARCH-CONSOLE.md`** · terminal: `npm run seo:kpi-checklist` · planilha: `docs/seo-kpi-snapshot.template.csv`
+
+Resumo:
+1. GSC Performance (28d): impressões, cliques, CTR, posição média
+2. GSC Indexação: páginas indexadas (meta **25+** em 90 dias)
+3. Consultas: marca · genérico (`software terreiro`) · comparativo
+4. Páginas: `/` vs `/por-que-axecloud` (CTR)
+5. GBP: visualizações, cliques no site, 1 post quinzenal
 
 ---
 

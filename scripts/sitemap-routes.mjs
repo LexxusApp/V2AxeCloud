@@ -12,6 +12,10 @@ const PORTAL_ARTICLE_PATHS = [
   '/conteudo/mensalidade-na-casa-de-axe-organizacao',
   '/conteudo/giras-festas-e-calendario-da-casa',
   '/conteudo/como-visitar-um-terreiro-com-respeito',
+  '/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro',
+  '/conteudo/como-instalar-axecloud-celular-pwa',
+  '/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro',
+  '/conteudo/melhor-software-terreiro-2026-o-que-avaliar',
 ];
 
 export const SITEMAP_ROUTES = [

@@ -51,6 +51,8 @@ function printSearchConsoleGuide(siteUrl, sitemapUrl) {
   console.log('   ⚠ NÃO use sitemap.xm (sem o l) — o Google rejeita como HTML');
   console.log('');
   console.log('Dica: após verificar, use este script após cada deploy: npm run submit:sitemap');
+  console.log('KPIs semanais (Search Console + GBP): npm run seo:kpi-checklist');
+  console.log('Guia: docs/SEO-KPIS-SEARCH-CONSOLE.md');
   console.log('');
 }
 

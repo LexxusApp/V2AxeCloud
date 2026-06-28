@@ -58,7 +58,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Programa Fundador',
         body:
-          'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador.',
+          'Estamos convidando as primeiras casas a usar o AxéCloud gratuitamente por 12 meses, com onboarding personalizado. É a fase de validação antes de abrir o portal público com diretório de terreiros e agenda cultural. Se sua casa quer participar, inscreva-se no Programa Fundador. Veja também o comparativo completo de módulos em https://axecloud.com.br/por-que-axecloud.',
       },
     ],
   },
@@ -108,7 +108,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
     summary:
       'Por que as casas cobram contribuição mensal, como evitar conflitos na cobrança e o que muda quando a gestão financeira fica transparente para filhos de santo e diretoria.',
     publishedAt: '2026-06-01',
-    readingMinutes: 6,
+    readingMinutes: 8,
     sections: [
       {
         title: 'Para que serve a mensalidade',
@@ -138,7 +138,17 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Tecnologia a serviço da casa',
         body:
-          'O financeiro do AxéCloud foi pensado para terreiros: mensalidades, Pix, histórico, relatórios e configuração por casa. Menos tempo em cobrança manual, mais tempo para o que importa — girar, acolher e cuidar do axé.',
+          'O financeiro do AxéCloud foi pensado para terreiros: mensalidades, Pix, histórico, relatórios e configuração por casa. Menos tempo em cobrança manual, mais tempo para o que importa — girar, acolher e cuidar do axé. Compare funcionalidades e módulos reais em https://axecloud.com.br/por-que-axecloud.',
+      },
+      {
+        title: 'Mensalidade com Pix no celular',
+        body:
+          'Quando o filho de santo paga via Pix direto no portal, o comprovante fica registrado e a diretoria vê o crédito em tempo real — sem print perdido no WhatsApp. O zelador acompanha quem está em dia, quem está pendente e o saldo da casa num painel único. Para casas que ainda usam planilha, o artigo sobre mensalidade e Pix complementa este tema; veja também o comparativo entre planilha e software em https://axecloud.com.br/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro.',
+      },
+      {
+        title: 'Lembretes sem constranger',
+        body:
+          'Cobrança em grupo público gera desconforto. Com WhatsApp via API oficial Meta, o AxéCloud envia lembrete de mensalidade de forma privada — template aprovado, nome do terreiro na mensagem, histórico no sistema. A comunicação fica profissional; o respeito com filhos de santo continua. Saiba mais em https://axecloud.com.br/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro.',
       },
     ],
   },
@@ -232,6 +242,151 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       },
     ],
   },
+  {
+    slug: 'planilha-ou-software-quando-migrar-gestao-terreiro',
+    title: 'Planilha ou software: quando migrar a gestão do terreiro',
+    summary:
+      'Sinais de que cadernos e WhatsApp não bastam mais, o que um software de gestão de terreiro resolve na prática e como fazer a transição sem trauma na casa.',
+    publishedAt: '2026-06-28',
+    readingMinutes: 7,
+    sections: [
+      {
+        title: 'Planilha funciona — até certo ponto',
+        body:
+          'No começo, uma planilha no Google Sheets ou anotações no caderno resolvem: poucos filhos de santo, uma gira fixa por semana, mensalidade simbólica. O problema não é a ferramenta — é o momento em que a casa cresce e a informação se espalha entre grupos, prints de Pix e listas de presença em papel.',
+      },
+      {
+        title: 'Sinais de que chegou a hora',
+        body:
+          'Vale considerar um sistema quando: (1) ninguém sabe ao certo quem pagou a mensalidade; (2) avisos de gira se perdem no WhatsApp; (3) fotos de festas ficam em celulares diferentes; (4) mais de uma pessoa precisa administrar e cada um usa um método; (5) filhos de santo pedem transparência sobre contribuições. São sinais de maturidade da casa, não de “frieza”.',
+      },
+      {
+        title: 'O que muda com um software de gestão',
+        body:
+          'Um software para terreiro centraliza filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho de santo — cada um vê o que precisa, sem expor o que é sigiloso. O zelador deixa de repetir a mesma informação dez vezes e ganha tempo para cuidar do chão do terreiro.',
+      },
+      {
+        title: 'Como migrar sem assustar a comunidade',
+        body:
+          'Comece pela diretoria: cadastre filhos de santo, importe o que já existe na planilha e teste o financeiro por um mês. Explique que o sistema não substitui o pai ou a mãe de santo — organiza a burocracia. Ofereça 30 dias de teste antes de cobrar mensalidade do software. No AxéCloud, o trial é completo e sem cartão de crédito.',
+      },
+      {
+        title: 'Compare antes de decidir',
+        body:
+          'Nem todo software de terreiro entrega o mesmo: alguns cobram por médium, outros não têm portal público ou galeria. Veja o comparativo explícito — planilha vs AxéCloud vs outros sistemas — em https://axecloud.com.br/por-que-axecloud, com tabela de funcionalidades e lista dos 14 módulos reais do plano Premium.',
+      },
+    ],
+  },
+  {
+    slug: 'como-instalar-axecloud-celular-pwa',
+    title: 'Como instalar o AxéCloud no celular (PWA passo a passo)',
+    summary:
+      'Guia para fixar o AxéCloud na tela inicial do Android ou iPhone como app (PWA) — sem baixar na App Store ou Google Play.',
+    publishedAt: '2026-06-28',
+    readingMinutes: 5,
+    sections: [
+      {
+        title: 'O que é um PWA',
+        body:
+          'PWA significa Progressive Web App: o AxéCloud abre no navegador, mas pode ser fixado na tela inicial como um ícone — igual a um app instalado. Funciona para zelador e filho de santo, no Android, iPhone ou computador, com atualizações automáticas quando a casa publica novidades.',
+      },
+      {
+        title: 'No Android (Chrome)',
+        body:
+          'Abra https://axecloud.com.br no Chrome, faça login como zelador ou filho de santo. Toque no menu (⋮) e escolha “Adicionar à tela inicial” ou “Instalar app”. Confirme o nome — pronto, o ícone aparece na home. Abra por ele nas próximas vezes; a experiência é de app nativo.',
+      },
+      {
+        title: 'No iPhone (Safari)',
+        body:
+          'Abra o site no Safari (não no Chrome do iOS para este passo). Toque em Compartilhar (quadrado com seta) e “Adicionar à Tela de Início”. O ícone do AxéCloud ficará ao lado dos outros apps. Filhos de santo acompanham mural, giras e mensalidades por ali; zeladores acessam o painel completo.',
+      },
+      {
+        title: 'No computador',
+        body:
+          'No Chrome ou Edge, acesse o site e clique no ícone de instalação na barra de endereço (ou menu → “Instalar AxéCloud”). Útil para o zelador que administra a casa no notebook do terreiro e quer janela dedicada, sem abas misturadas.',
+      },
+      {
+        title: 'Notificações e atualizações',
+        body:
+          'Com o PWA instalado, o AxéCloud pode enviar notificações push quando há aviso no mural ou novidade da casa — se você autorizar no navegador. Não precisa atualizar manualmente: o service worker mantém a versão mais recente. Detalhes e comparativo com outros apps de terreiro em https://axecloud.com.br/por-que-axecloud#pwa-head.',
+      },
+    ],
+  },
+  {
+    slug: 'whatsapp-oficial-vs-grupos-comunicacao-terreiro',
+    title: 'WhatsApp oficial vs grupos: comunicação na casa de axé',
+    summary:
+      'Por que grupos de WhatsApp falham na gestão do terreiro, o que muda com a API oficial Meta e como avisar giras e mensalidades sem spam.',
+    publishedAt: '2026-06-28',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'O limite dos grupos',
+        body:
+          'Grupos de WhatsApp são ótimos para conversa informal — mas péssimos como sistema: mensagens somem, quem entrou tarde perde avisos, cobrança de mensalidade vira constrangimento público e fotos de gira poluem a timeline. Quando a casa passa de 30 filhos de santo, o caos é quase inevitável.',
+      },
+      {
+        title: 'WhatsApp Business vs API Meta',
+        body:
+          'WhatsApp Business no celular do zelador ajuda, mas ainda depende de uma pessoa enviando manualmente. A API oficial Meta (Cloud API) permite automação controlada: templates aprovados para lembrete de gira, convite com link de confirmar presença, aviso de mensalidade e alerta de estoque crítico — sempre com o nome do terreiro e opt-in do filho.',
+      },
+      {
+        title: 'O que o AxéCloud envia',
+        body:
+          'Com WhatsApp Meta integrado, o AxéCloud dispara: lembrete quando uma gira é criada ou quando o filho é convidado; aviso antes do vencimento da mensalidade; confirmação quando o pagamento é registrado; alerta de estoque baixo no almoxarifado. Cada terreiro usa seu próprio canal — sem misturar casas.',
+      },
+      {
+        title: 'Privacidade e respeito',
+        body:
+          'Mensagens vão só para filhos com WhatsApp cadastrado e consentimento da casa. Não é spam em massa: são templates revisados, horários adequados e conteúdo ligado à rotina litúrgica. Cobrança sensível fica no portal privado do filho; o WhatsApp complementa, não expõe.',
+      },
+      {
+        title: 'Grupos ainda têm lugar',
+        body:
+          'O software não proíbe grupos para conversa fraterna — só tira deles a responsabilidade de ser “sistema oficial”. Use o AxéCloud para avisos, calendário e financeiro; deixe o grupo para acolhimento espiritual e bate-papo. Veja módulos e comparativo em https://axecloud.com.br/por-que-axecloud.',
+      },
+    ],
+  },
+  {
+    slug: 'melhor-software-terreiro-2026-o-que-avaliar',
+    title: 'Melhor software para terreiro em 2026 — o que avaliar',
+    summary:
+      'Checklist objetivo para escolher sistema de gestão de terreiro: preço, módulos, PWA, portal do filho, WhatsApp, liturgia e prova de que o produto existe de verdade.',
+    publishedAt: '2026-06-28',
+    readingMinutes: 8,
+    sections: [
+      {
+        title: 'Por que “melhor” depende da sua casa',
+        body:
+          'Não existe ranking universal. Um terreiro pequeno de Umbanda precisa de calendário, mensalidade e mural; uma casa grande pode exigir loja do axé, almoxarifado, portal público e pedidos de reza. O melhor software para terreiro em 2026 é o que cobre sua rotina real — sem cobrar extra por cada filho de santo.',
+      },
+      {
+        title: 'Checklist de funcionalidades',
+        body:
+          'Avalie se o sistema tem: financeiro com Pix integrado; portal do filho de santo; calendário de giras com convite RSVP; galeria de fotos; biblioteca de estudos; loja ou cantina; almoxarifado; WhatsApp oficial (não só grupo); app instalável (PWA); termos litúrgicos da sua tradição; ambiente isolado por terreiro (multi-tenant seguro).',
+      },
+      {
+        title: 'Preço e trial',
+        body:
+          'Desconfie de preço oculto ou cobrança por médium. No mercado brasileiro, planos ficam entre R$ 50 e R$ 120/mês para gestão completa. O AxéCloud cobra R$ 69,90/mês (ou R$ 49,90 para casas fundadoras), tudo incluso, com 30 dias grátis sem cartão. Compare valores e módulos em https://axecloud.com.br/por-que-axecloud.',
+      },
+      {
+        title: 'Prova de produto vs promessa',
+        body:
+          'Peça demo, teste no celular, instale o PWA e veja se os módulos existem hoje — não só no roadmap. Telas reais, comparativo explícito e artigos técnicos (como este hub em https://axecloud.com.br/conteudo) indicam maturidade. Evite sistemas genéricos de “gestão empresarial” adaptados com nomes trocados.',
+      },
+      {
+        title: 'Portal público e visibilidade',
+        body:
+          'Poucos softwares de terreiro oferecem diretório público, eventos divulgados e portal de pedidos de reza. Se sua casa quer ser encontrada com respeito no Google — sem expor endereço sem consentimento — vale priorizar plataformas que pensam além do ERP interno. O AxéCloud combina gestão + portal AxéCloud em um só produto.',
+      },
+      {
+        title: 'Próximo passo',
+        body:
+          'Use o comparativo em https://axecloud.com.br/por-que-axecloud, teste 30 dias grátis em https://axecloud.com.br/register e, se quiser validar o produto com a equipe, inscreva-se no Programa Fundador (12 meses gratuitos para casas selecionadas).',
+      },
+    ],
+  },
 ] as const;
 
 /** Primeiro artigo — compatibilidade com imports antigos. */
@@ -240,6 +395,20 @@ export const PORTAL_ARTICLE = PORTAL_ARTICLES[0];
 export const PORTAL_ARTICLE_PATHS: readonly string[] = PORTAL_ARTICLES.map((a) =>
   contentArticlePath(a.slug),
 );
+
+/** Artigos da fase SEO — gestão digital, PWA, comparativo (hub /conteudo). */
+export const PORTAL_GESTAO_DIGITAL_SLUGS = [
+  'planilha-ou-software-quando-migrar-gestao-terreiro',
+  'como-instalar-axecloud-celular-pwa',
+  'whatsapp-oficial-vs-grupos-comunicacao-terreiro',
+  'melhor-software-terreiro-2026-o-que-avaliar',
+] as const;
+
+export function getPortalGestaoDigitalArticles(): PortalArticle[] {
+  return PORTAL_GESTAO_DIGITAL_SLUGS.map((slug) => getPortalArticleBySlug(slug)).filter(
+    (a): a is PortalArticle => Boolean(a),
+  );
+}
 
 export function getPortalArticleBySlug(slug: string): PortalArticle | undefined {
   return PORTAL_ARTICLES.find((a) => a.slug === slug);
