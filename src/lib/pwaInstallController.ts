@@ -7,10 +7,24 @@ export type BeforeInstallPromptEvent = Event & {
 
 type Listener = () => void;
 
+type WindowWithEarlyInstall = Window & {
+  __axecloudDeferredInstall?: BeforeInstallPromptEvent | null;
+};
+
+const EARLY_INSTALL_EVENT = 'axecloud:beforeinstallprompt';
+
 let initialized = false;
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let installedHint = false;
 const listeners = new Set<Listener>();
+
+function adoptEarlyDeferredPrompt(): void {
+  if (typeof window === 'undefined' || deferredPrompt) return;
+  const early = (window as WindowWithEarlyInstall).__axecloudDeferredInstall;
+  if (!early) return;
+  deferredPrompt = early;
+  notify();
+}
 
 /** Referência estável — useSyncExternalStore exige igualdade por referência entre renders. */
 let snapshot = { canInstall: false, isInstalled: false };
@@ -29,12 +43,15 @@ function notify(): void {
 
 async function refreshInstalledHint(): Promise<void> {
   if (isStandalonePwa()) {
-    installedHint = true;
-    notify();
+    if (!installedHint) {
+      installedHint = true;
+      notify();
+    }
     return;
   }
   const related = await isInstalledRelatedWebApp();
-  if (related !== installedHint) {
+  // Com prompt ativo o Chrome ainda oferece instalação — não esconder o banner.
+  if (related && !deferredPrompt && related !== installedHint) {
     installedHint = related;
     notify();
   }
@@ -45,8 +62,10 @@ export function initPwaInstallController(): void {
   if (initialized || typeof window === 'undefined') return;
   initialized = true;
 
+  adoptEarlyDeferredPrompt();
+  window.addEventListener(EARLY_INSTALL_EVENT, adoptEarlyDeferredPrompt);
+
   void refreshInstalledHint();
-  window.setTimeout(() => void refreshInstalledHint(), 500);
   window.setTimeout(() => void refreshInstalledHint(), 2000);
 
   const displayModes = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'] as const;
@@ -57,6 +76,7 @@ export function initPwaInstallController(): void {
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredPrompt = event as BeforeInstallPromptEvent;
+    (window as WindowWithEarlyInstall).__axecloudDeferredInstall = deferredPrompt;
     notify();
   });
 

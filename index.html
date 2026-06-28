@@ -10,6 +10,24 @@
         }
       })();
     </script>
+    <script>
+      (function () {
+        var host = location.hostname;
+        if (host !== 'axecloud.com.br' && host !== 'axecloud.app' && host !== 'localhost' && host !== '127.0.0.1') {
+          return;
+        }
+        window.__axecloudDeferredInstall = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          window.__axecloudDeferredInstall = e;
+          try {
+            window.dispatchEvent(new Event('axecloud:beforeinstallprompt'));
+          } catch (err) {
+            /* */
+          }
+        });
+      })();
+    </script>
     <meta charset="UTF-8" />
     <!-- RUNTIME_CONFIG_INJECT -->
     <script>document.documentElement.classList.add('js');</script>
