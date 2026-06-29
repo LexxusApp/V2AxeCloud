@@ -132,7 +132,7 @@ export default function DiretorioCityPage() {
             ) : null}
 
             {bairros ? (
-              <DiretorioCityByBairro bairros={bairros} itemLabel={tabLabel} />
+              <DiretorioCityByBairro bairros={bairros} itemLabel={tab} />
             ) : (
               <ul className="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredItems.map((t) => (
