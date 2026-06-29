@@ -14,12 +14,13 @@ import {
 } from "../../lib/diretorioBairro.js";
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
 import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
+import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, created_at";
+  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, created_at";
 
 function mapRow(row: Record<string, unknown>) {
   const slug = String(row.slug || "").trim();
@@ -32,9 +33,10 @@ function mapRow(row: Record<string, unknown>) {
     resolveTerreiroBairro({ endereco: row.endereco ? String(row.endereco) : null, cidade }) ||
     null;
   const bairroSlug = bairro ? String(row.bairro_slug || slugifyBairro(bairro)).trim() : null;
+  const nome = String(row.nome || "Terreiro").trim();
   return {
     slug,
-    nome: String(row.nome || "Terreiro").trim(),
+    nome,
     endereco: row.endereco ? String(row.endereco).trim() : null,
     telefone: row.telefone ? String(row.telefone).trim() : null,
     fotoUrl: row.foto_url && slug ? `${diretorioFotoProxyPath(slug)}?v=2` : null,
@@ -44,6 +46,7 @@ function mapRow(row: Record<string, unknown>) {
     cidadeSlug,
     bairro,
     bairroSlug,
+    tipo: resolveDiretorioTipo(row.tipo, nome),
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
@@ -163,12 +166,17 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           ? groupItemsByBairro(items)
           : undefined;
 
+        const totalTerreiros = items.filter((i) => i.tipo === "terreiro").length;
+        const totalLojas = items.filter((i) => i.tipo === "loja").length;
+
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
         res.json({
           estado: first?.estado || estado.toUpperCase(),
           cidade: cidadeLabel,
           cidadeSlug,
           total: items.length,
+          totalTerreiros,
+          totalLojas,
           items,
           bairros,
         });

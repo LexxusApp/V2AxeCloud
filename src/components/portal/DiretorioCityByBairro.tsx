@@ -6,10 +6,11 @@ import { cn } from '../../lib/utils';
 
 type Props = {
   bairros: DiretorioBairroGroup[];
+  itemLabel?: 'terreiro' | 'loja';
   className?: string;
 };
 
-export function DiretorioCityByBairro({ bairros, className }: Props) {
+export function DiretorioCityByBairro({ bairros, itemLabel = 'terreiro', className }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedSlug, setSelectedSlug] = useState<string | null>(bairros[0]?.slug ?? null);
@@ -22,6 +23,10 @@ export function DiretorioCityByBairro({ bairros, className }: Props) {
   }, [bairros, query]);
 
   const selected = bairros.find((b) => b.slug === selectedSlug) ?? bairros[0];
+
+  useEffect(() => {
+    setSelectedSlug(bairros[0]?.slug ?? null);
+  }, [bairros]);
 
   useEffect(() => {
     if (!open) return;
@@ -127,7 +132,8 @@ export function DiretorioCityByBairro({ bairros, className }: Props) {
           </div>
 
           <p className="text-xs text-[#1b1813]/50">
-            {bairros.length} bairro{bairros.length === 1 ? '' : 's'} · escolha um para ver os terreiros
+            {bairros.length} bairro{bairros.length === 1 ? '' : 's'} · escolha um para ver{' '}
+            {itemLabel === 'loja' ? 'as lojas' : 'os terreiros'}
           </p>
         </div>
       </div>
@@ -137,7 +143,8 @@ export function DiretorioCityByBairro({ bairros, className }: Props) {
           <header className="mb-5 border-b border-[#ece4d2]/80 pb-3">
             <h2 className="font-display text-xl font-black text-[#1b1813] sm:text-2xl">{selected.nome}</h2>
             <p className="mt-1 text-sm text-[#1b1813]/55">
-              {selected.total} terreiro{selected.total === 1 ? '' : 's'} neste bairro
+              {selected.total} {itemLabel}
+              {selected.total === 1 ? '' : 's'} neste bairro
             </p>
           </header>
           <ul className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
 import { DiretorioCityByBairro } from '../../components/portal/DiretorioCityByBairro';
+import { DiretorioCityTipoTabs } from '../../components/portal/DiretorioCityTipoTabs';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
 import { landingMockupShellClass } from '../../components/landing/landingMockupUi';
-import { fetchDiretorioCidade, type DiretorioBairroGroup, type DiretorioTerreiro } from '../../lib/diretorioPublic';
+import {
+  fetchDiretorioCidade,
+  type DiretorioEstabelecimentoTipo,
+  type DiretorioTerreiro,
+} from '../../lib/diretorioPublic';
+import { groupItemsByBairro, shouldGroupCityByBairro } from '../../../lib/diretorioBairro';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 import { getCitySeoContent } from '../../lib/diretorioCityContent';
@@ -22,8 +28,9 @@ function parseCityRoute(): { estado: string; cidade: string } {
 export default function DiretorioCityPage() {
   const { estado, cidade: cidadeSlug } = parseCityRoute();
   const [items, setItems] = useState<DiretorioTerreiro[]>([]);
-  const [bairros, setBairros] = useState<DiretorioBairroGroup[] | null>(null);
-  const [meta, setMeta] = useState<{ cidade: string; estado: string | null; total: number } | null>(null);
+  const [totals, setTotals] = useState({ total: 0, terreiros: 0, lojas: 0 });
+  const [tab, setTab] = useState<DiretorioEstabelecimentoTipo>('terreiro');
+  const [meta, setMeta] = useState<{ cidade: string; estado: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,13 +43,17 @@ export default function DiretorioCityPage() {
 
     void fetchDiretorioCidade(estado, cidadeSlug)
       .then((res) => {
-        setMeta({ cidade: res.cidade, estado: res.estado, total: res.total });
+        setMeta({ cidade: res.cidade, estado: res.estado });
         setItems(res.items);
-        setBairros(res.bairros && res.bairros.length > 1 ? res.bairros : null);
+        setTotals({
+          total: res.total,
+          terreiros: res.totalTerreiros ?? res.items.filter((i) => i.tipo === 'terreiro').length,
+          lojas: res.totalLojas ?? res.items.filter((i) => i.tipo === 'loja').length,
+        });
         const uf = res.estado || estado.toUpperCase();
         applyCustomPageSeo({
-          title: `Terreiros de Umbanda e Candomblé em ${res.cidade} - ${uf} | AxéCloud`,
-          description: `Encontre ${res.total} terreiro${res.total === 1 ? '' : 's'} de Umbanda, Candomblé e tradições afro-brasileiras em ${res.cidade}, ${uf}. Endereços, telefones e rotas no Google Maps.`,
+          title: `Terreiros e lojas de axé em ${res.cidade} - ${uf} | AxéCloud`,
+          description: `Encontre ${res.totalTerreiros ?? 0} terreiro${(res.totalTerreiros ?? 0) === 1 ? '' : 's'} e ${res.totalLojas ?? 0} loja${(res.totalLojas ?? 0) === 1 ? '' : 's'} de artigos religiosos em ${res.cidade}, ${uf}. Endereços, telefones e rotas no Google Maps.`,
           canonicalPath: `/terreiros/${estado.toLowerCase()}/${cidadeSlug}`,
         });
       })
@@ -50,7 +61,15 @@ export default function DiretorioCityPage() {
       .finally(() => setLoading(false));
   }, [estado, cidadeSlug]);
 
-  const citySeo = meta ? getCitySeoContent(meta.cidade, meta.estado, meta.total) : null;
+  const filteredItems = useMemo(() => items.filter((i) => i.tipo === tab), [items, tab]);
+
+  const bairros = useMemo(() => {
+    if (!shouldGroupCityByBairro(cidadeSlug, filteredItems)) return null;
+    const groups = groupItemsByBairro(filteredItems);
+    return groups.length > 1 ? groups : null;
+  }, [cidadeSlug, filteredItems]);
+
+  const citySeo = meta ? getCitySeoContent(meta.cidade, meta.estado, totals.terreiros) : null;
 
   return (
     <MarketingMockupLayout>
@@ -67,11 +86,18 @@ export default function DiretorioCityPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#1b1813]/68">
             {meta
-              ? bairros
-                ? `${meta.total} casas de axé em ${bairros.length} bairros — use o seletor acima para escolher o bairro.`
-                : `${meta.total} casa${meta.total === 1 ? '' : 's'} de axé com endereço, telefone e foto quando disponível no Google Maps.`
-              : 'Carregando terreiros da região…'}
+              ? `${totals.terreiros} terreiro${totals.terreiros === 1 ? '' : 's'} e ${totals.lojas} loja${totals.lojas === 1 ? '' : 's'} de artigos religiosos — endereço, telefone e foto quando disponível no Google Maps.`
+              : 'Carregando estabelecimentos da região…'}
           </p>
+
+          {!loading && !error && totals.total > 0 ? (
+            <DiretorioCityTipoTabs
+              value={tab}
+              onChange={setTab}
+              totalTerreiros={totals.terreiros}
+              totalLojas={totals.lojas}
+            />
+          ) : null}
         </header>
 
         {loading ? (
@@ -80,15 +106,15 @@ export default function DiretorioCityPage() {
           </div>
         ) : error ? (
           <p className="py-10 text-red-600">{error}</p>
-        ) : items.length === 0 ? (
-          <p className="py-10 text-[#1b1813]/65">Nenhum terreiro encontrado nesta cidade ainda.</p>
+        ) : filteredItems.length === 0 ? (
+          <p className="py-10 text-[#1b1813]/65">
+            Nenhum{tab === 'loja' ? 'a loja' : ' terreiro'} encontrad{tab === 'loja' ? 'a' : 'o'} nesta cidade ainda.
+          </p>
         ) : (
           <>
-            {citySeo ? (
+            {tab === 'terreiro' && citySeo ? (
               <section className="mt-8 max-w-3xl space-y-6">
-                <p className="text-sm leading-relaxed text-[#1b1813]/72">
-                  {citySeo.intro}
-                </p>
+                <p className="text-sm leading-relaxed text-[#1b1813]/72">{citySeo.intro}</p>
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-widest text-[#1b1813]/55">
                     Perguntas frequentes
@@ -104,11 +130,12 @@ export default function DiretorioCityPage() {
                 </div>
               </section>
             ) : null}
+
             {bairros ? (
-              <DiretorioCityByBairro bairros={bairros} />
+              <DiretorioCityByBairro bairros={bairros} itemLabel={tabLabel} />
             ) : (
               <ul className="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((t) => (
+                {filteredItems.map((t) => (
                   <DiretorioTerreiroCard key={t.slug} terreiro={t} />
                 ))}
               </ul>

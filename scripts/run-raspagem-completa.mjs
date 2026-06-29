@@ -8,6 +8,7 @@
  * Logs: scripts/logs/raspagem-completa.log + raspagem-fase-NN.log
  */
 
+import "dotenv/config";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -122,6 +123,28 @@ function runScraper(phase, options, phaseLog, dataFileOverride) {
   });
 }
 
+const PAGE_SIZE = 1000;
+
+/** Busca todas as linhas paginando (Supabase limita 1000 por request). */
+async function fetchAllTerreirosRows(sb, table, select) {
+  const all = [];
+  let offset = 0;
+
+  while (true) {
+    const from = offset;
+    const to = offset + PAGE_SIZE - 1;
+    const { data, error } = await sb.from(table).select(select).range(from, to);
+    if (error) throw error;
+
+    const batch = data || [];
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return all;
+}
+
 async function enrichAllCities(mainLog, headless) {
   const { createClient } = await import("@supabase/supabase-js");
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -129,22 +152,37 @@ async function enrichAllCities(mainLog, headless) {
   if (!url || !key) throw new Error("Supabase não configurado no .env");
 
   const sb = createClient(url, key, { auth: { persistSession: false } });
-  const { data, error } = await sb.from("terreiros_diretorio").select("cidade, estado");
-  if (error) throw error;
+  const rows = await fetchAllTerreirosRows(sb, "terreiros_diretorio", "cidade, estado, foto_url");
 
-  const seen = new Set();
-  const cities = [];
-  for (const r of data || []) {
-    const label = `${r.cidade} - ${r.estado || "SP"}`;
-    if (!seen.has(label)) {
-      seen.add(label);
-      cities.push(label);
+  const cityMeta = new Map();
+  let semFotoTotal = 0;
+  for (const r of rows) {
+    const cidade = String(r.cidade || "").trim();
+    if (!cidade) continue;
+    const label = `${cidade} - ${r.estado || "SP"}`;
+    if (!cityMeta.has(label)) cityMeta.set(label, { label, semFoto: 0 });
+    if (!r.foto_url) {
+      cityMeta.get(label).semFoto += 1;
+      semFotoTotal += 1;
     }
   }
 
+  const cities = [...cityMeta.values()]
+    .filter((m) => m.semFoto > 0)
+    .sort((a, b) => b.semFoto - a.semFoto || a.label.localeCompare(b.label, "pt-BR"))
+    .map((m) => m.label);
+
   const tmpFile = path.join(LOG_DIR, "_enrich-all-cities.json");
   await fs.writeFile(tmpFile, JSON.stringify(cities, null, 2), "utf8");
-  await appendLog(mainLog, `Enrich global: ${cities.length} cidade(s) distintas no banco`);
+  await appendLog(
+    mainLog,
+    `Enrich global: ${cities.length} cidade(s) com sem foto (${semFotoTotal} registro(s) de ${rows.length} no banco)`,
+  );
+
+  if (cities.length === 0) {
+    await appendLog(mainLog, "Enrich global: nada pendente — todas as fichas já têm foto_url.");
+    return 0;
+  }
 
   const phaseLog = path.join(LOG_DIR, "raspagem-fase-09-enrich-global.log");
   return runScraper(

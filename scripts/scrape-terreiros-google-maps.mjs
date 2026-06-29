@@ -23,6 +23,7 @@
 
 import "dotenv/config";
 import fs from "node:fs/promises";
+import { classifyDiretorioEstabelecimento } from "../lib/diretorioTipo.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -631,18 +632,35 @@ async function enrichExisting(page, supabase, row, options, meta) {
   return { action: "updated" };
 }
 
+async function fetchRowsWithoutPhoto(supabase, meta) {
+  const PAGE = 1000;
+  const all = [];
+  let offset = 0;
+
+  while (true) {
+    let query = supabase
+      .from(TABLE)
+      .select("id, nome, link_maps, foto_url, telefone, endereco, cidade")
+      .eq("cidade", meta.cidade)
+      .is("foto_url", null)
+      .order("nome", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (meta.estado) query = query.eq("estado", meta.estado);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const batch = data || [];
+    all.push(...batch);
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+  }
+
+  return all;
+}
+
 async function enrichCidade(page, supabase, meta, options) {
-  let query = supabase
-    .from(TABLE)
-    .select("id, nome, link_maps, foto_url, telefone, endereco, cidade")
-    .eq("cidade", meta.cidade)
-    .is("foto_url", null);
-  if (meta.estado) query = query.eq("estado", meta.estado);
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const rows = (data || []).slice(0, options.max);
+  const rows = (await fetchRowsWithoutPhoto(supabase, meta)).slice(0, options.max);
   console.log(`\n[${meta.label}] Enriquecendo ${rows.length} registro(s) sem foto…`);
 
   const stats = { updated: 0, skipped: 0, errors: 0 };
@@ -709,6 +727,7 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         estado,
         bairro,
         bairro_slug: bairro ? slugifyBairro(bairro) : null,
+        tipo: classifyDiretorioEstabelecimento(details.nome),
       };
 
       if (options.dryRun) {

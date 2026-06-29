@@ -43,6 +43,11 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+        {terreiro.tipo === 'loja' ? (
+          <span className="mb-2 inline-flex w-fit rounded-full bg-[#1b1813]/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/55">
+            Loja
+          </span>
+        ) : null}
         <h2 className="line-clamp-2 min-h-[2.75rem] text-base font-black leading-snug text-[#1b1813]">
           {terreiro.nome}
         </h2>

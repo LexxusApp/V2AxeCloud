@@ -1,3 +1,5 @@
+export type DiretorioEstabelecimentoTipo = 'terreiro' | 'loja';
+
 export type DiretorioTerreiro = {
   slug: string;
   nome: string;
@@ -10,6 +12,7 @@ export type DiretorioTerreiro = {
   cidadeSlug: string | null;
   bairro: string | null;
   bairroSlug: string | null;
+  tipo: DiretorioEstabelecimentoTipo;
   perfilUrl: string | null;
   cidadeUrl: string | null;
 };
@@ -43,6 +46,8 @@ export async function fetchDiretorioCidade(
   estado: string | null;
   cidadeSlug: string;
   total: number;
+  totalTerreiros: number;
+  totalLojas: number;
   items: DiretorioTerreiro[];
   bairros?: DiretorioBairroGroup[];
 }> {
