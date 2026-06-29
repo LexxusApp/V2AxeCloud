@@ -4,73 +4,42 @@
     <meta charset="UTF-8" />
     <script>
       (function () {
-        function agentLog(payload) {
-          payload.sessionId = '37bbb6';
-          payload.timestamp = Date.now();
-          console.info('[axecloud-debug]', payload);
-          // #region agent log
-          fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '37bbb6' },
-            body: JSON.stringify(payload),
-          }).catch(function () {});
-          // #endregion
-        }
+        if (!('serviceWorker' in navigator)) return;
 
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.addEventListener('message', function (event) {
-            if (event.data && event.data.sessionId === '37bbb6') {
-              agentLog(event.data);
-            }
-          });
+        var attempts = parseInt(sessionStorage.getItem('axecloud_marketing_redirect_attempts') || '0', 10);
 
-          var controller = navigator.serviceWorker.controller;
-          // #region agent log
-          agentLog({
-            hypothesisId: 'B',
-            location: 'marketing/index.html:head',
-            message: 'marketing boot SW state',
-            data: {
-              hasController: !!controller,
-              scriptUrl: controller ? controller.scriptURL : null,
-              path: location.pathname,
-            },
-          });
-          // #endregion
-
-          var attempts = parseInt(sessionStorage.getItem('axecloud_marketing_redirect_attempts') || '0', 10);
-          if (attempts >= 3) return;
-
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
+        function purgeAppServiceWorker(reloadAfter) {
+          return navigator.serviceWorker.getRegistrations().then(function (regs) {
             var hasSw = regs.length > 0 || !!navigator.serviceWorker.controller;
-            if (!hasSw) return;
+            if (!hasSw) return false;
 
-            sessionStorage.setItem('axecloud_marketing_redirect_attempts', String(attempts + 1));
-            // #region agent log
-            agentLog({
-              hypothesisId: 'C',
-              location: 'marketing/index.html:head',
-              message: 'purging app SW on marketing',
-              data: { registrations: regs.length, hasController: !!navigator.serviceWorker.controller },
-            });
-            // #endregion
-            return Promise.all(regs.map(function (r) { return r.unregister(); }));
-          }).then(function (didPurge) {
-            if (!didPurge) return;
-            if ('caches' in window) {
-              return caches.keys().then(function (keys) {
-                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-              });
+            if (reloadAfter) {
+              sessionStorage.setItem('axecloud_marketing_redirect_attempts', String(attempts + 1));
             }
-          }).then(function (cleared) {
-            if (cleared === undefined) return;
-            var u = new URL(location.href);
-            ['_reload', '_swfix', '_nocache', '_boot'].forEach(function (k) {
-              while (u.searchParams.has(k)) u.searchParams.delete(k);
-            });
-            location.replace(u.pathname + u.search + u.hash);
+
+            return Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+              if ('caches' in window) {
+                return caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                });
+              }
+            }).then(function () {
+              if (!reloadAfter) return;
+              var u = new URL(location.href);
+              ['_reload', '_swfix', '_nocache', '_boot'].forEach(function (k) {
+                while (u.searchParams.has(k)) u.searchParams.delete(k);
+              });
+              location.replace(u.pathname + u.search + u.hash);
+            }).then(function () { return true; });
           });
         }
+
+        if (attempts >= 3) {
+          void purgeAppServiceWorker(false);
+          return;
+        }
+
+        void purgeAppServiceWorker(true);
       })();
     </script>
     <script>document.documentElement.classList.add('js');</script>

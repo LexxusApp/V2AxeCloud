@@ -105,7 +105,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v117',
+          cacheId: 'axecloud-v118',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           /** Sem fallback de navegação — evita no-response do Workbox em /dashboard e outras rotas do app. */
@@ -127,7 +127,7 @@ export default defineConfig(({mode}) => {
                 sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v117',
+                cacheName: 'axecloud-runtime-network-first-v118',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },
