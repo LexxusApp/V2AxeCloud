@@ -17,7 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { excludeObrigacaoEvents } from '../../lib/calendarEventFilters';
-import { CALENDAR_EVENT_LEGEND, getCalendarEventDotClass } from '../../lib/calendarEventColors';
+import { CALENDAR_EVENT_LEGEND, getCalendarEventCellClass } from '../../lib/calendarEventColors';
 import { setCalendarFocusEventId } from '../../lib/calendarFocus';
 
 export type DashboardCalendarEvent = {
@@ -138,6 +138,7 @@ export function DashboardCalendar({ tenantId, onOpenCalendar }: DashboardCalenda
           const dayKey = format(day, 'yyyy-MM-dd');
           const dayEvents = eventsByDay.get(dayKey) ?? [];
           const hasEvents = dayEvents.length > 0;
+          const primaryTipo = dayEvents[0]?.tipo;
 
           return (
             <button
@@ -150,37 +151,22 @@ export function DashboardCalendar({ tenantId, onOpenCalendar }: DashboardCalenda
                   : undefined
               }
               className={cn(
-                'flex min-h-[2rem] flex-col items-center justify-center gap-0.5 rounded-md p-0.5 transition-colors sm:min-h-[2.25rem] sm:rounded-lg sm:p-1',
-                hasEvents && 'hover:bg-white/[0.04]',
+                'flex min-h-[2rem] items-center justify-center rounded-md p-0.5 transition-colors sm:min-h-[2.25rem] sm:rounded-lg sm:p-1',
                 !inMonth && 'opacity-35',
                 isTodayCell && 'bg-primary text-black shadow-[0_0_15px_rgba(250,204,21,0.35)]',
+                !isTodayCell && hasEvents && getCalendarEventCellClass(primaryTipo),
+                !isTodayCell && !hasEvents && 'hover:bg-white/[0.04]',
               )}
             >
               <span
                 className={cn(
                   'text-[11px] font-bold sm:text-xs',
-                  !inMonth && 'text-gray-700',
-                  inMonth && !isTodayCell && (hasEvents ? 'text-white' : 'text-gray-400'),
+                  !inMonth && !hasEvents && !isTodayCell && 'text-gray-700',
+                  !isTodayCell && !hasEvents && inMonth && 'text-gray-400',
                 )}
               >
                 {format(day, 'd')}
               </span>
-              {hasEvents ? (
-                <div className="flex max-w-full justify-center gap-0.5 px-0.5">
-                  {dayEvents.slice(0, 3).map((event) => (
-                    <span
-                      key={event.id}
-                      className={cn('h-1 w-1 shrink-0 rounded-full', getCalendarEventDotClass(event.tipo))}
-                      aria-hidden
-                    />
-                  ))}
-                  {dayEvents.length > 3 ? (
-                    <span className="text-[7px] font-bold leading-none text-gray-500">+</span>
-                  ) : null}
-                </div>
-              ) : (
-                <span className="h-1" aria-hidden />
-              )}
             </button>
           );
         })}
@@ -189,7 +175,7 @@ export function DashboardCalendar({ tenantId, onOpenCalendar }: DashboardCalenda
       <div className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-white/5 pt-4">
         {CALENDAR_EVENT_LEGEND.map((item) => (
           <div key={item.tipo} className="flex items-center gap-1.5">
-            <span className={cn('h-2 w-2 rounded-full', item.dotClass)} aria-hidden />
+            <span className={cn('h-2 w-2 rounded-full', item.swatchClass)} aria-hidden />
             <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
               {item.label}
             </span>
