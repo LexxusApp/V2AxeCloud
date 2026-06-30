@@ -1275,7 +1275,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               </button>
             </div>
           ) : null}
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3 sm:grid sm:grid-cols-[repeat(auto-fill,minmax(17.5rem,20rem))] sm:justify-items-stretch">
               {eventsNewestFirst.map((event) => {
                 const passed = isEventPassed(event.data, event.hora);
                 const isEspecial =
@@ -1284,7 +1284,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   <article
                     key={event.id}
                     className={cn(
-                      'group flex w-full max-w-[20rem] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] transition-all hover:border-[#2F3643] hover:shadow-lg',
+                      'group flex w-full max-w-[20rem] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] transition-all hover:border-[#2F3643] hover:shadow-lg sm:max-w-none',
                       passed && 'opacity-70',
                     )}
                   >
@@ -1406,7 +1406,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 );
               })}
               {eventsNewestFirst.length === 0 && !eventsFetchError ? (
-                <div className="w-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
+                <div className="col-span-full w-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
               </div>
               ) : null}
