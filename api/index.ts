@@ -65,6 +65,7 @@ import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
+import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroValidarComprovanteRoutes.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
@@ -3693,6 +3694,11 @@ async function startServer() {
   registerGiraOperationsRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFinancialCaixinhaRoutes(app, { supabaseAdmin, resolveLeaderId });
+  registerFinanceiroValidarComprovanteRoutes(app, {
+    supabaseAdmin,
+    resolveLeaderId,
+    liquidarMensalidadePendente,
+  });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerFilhoHomeRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });

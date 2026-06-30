@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   DollarSign, 
   Wallet, 
@@ -9,7 +9,8 @@ import {
   Loader2, 
   Receipt,
   ArrowRight,
-  CalendarDays
+  CalendarDays,
+  Upload,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -32,6 +33,19 @@ interface MensalidadeFilhoProps {
 }
 
 const MENSALIDADE_VALOR_PADRAO = 89.9;
+
+function comprovanteFileToBase64(file: File): Promise<{ base64: string; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const base64 = result.includes(',') ? result.split(',')[1]! : result;
+      resolve({ base64, contentType: file.type || 'image/jpeg' });
+    };
+    reader.onerror = () => reject(new Error('Falha ao ler a imagem do comprovante.'));
+    reader.readAsDataURL(file);
+  });
+}
 
 type MensalidadeCachePayload = {
   filho: any;
@@ -56,6 +70,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   const [pixFetched, setPixFetched] = useState(false);
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
+  const [comprovanteUploading, setComprovanteUploading] = useState(false);
+  const comprovanteInputRef = useRef<HTMLInputElement>(null);
 
   const tenantId = tenantData?.tenant_id;
   const userId = user?.id;
@@ -271,6 +287,47 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     await ensurePixConfig();
   };
 
+  async function handleEnviarComprovante(file: File) {
+    if (!tenantId) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Envie uma imagem do comprovante (JPEG, PNG ou WebP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5 MB.');
+      return;
+    }
+
+    setComprovanteUploading(true);
+    try {
+      const { base64, contentType } = await comprovanteFileToBase64(file);
+      const res = await authFetch('/api/v1/financeiro/validar-comprovante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          fileData: base64,
+          contentType,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) {
+        throw new Error(String(body.error || 'Não foi possível validar o comprovante.'));
+      }
+
+      setPendingMensalidade(null);
+      await fetchData();
+      alert('Comprovante validado! Sua mensalidade foi confirmada. Axé!');
+    } catch (error: unknown) {
+      console.error('Erro ao enviar comprovante:', error);
+      const msg = error instanceof Error ? error.message : 'Erro ao validar comprovante.';
+      alert(msg);
+    } finally {
+      setComprovanteUploading(false);
+      if (comprovanteInputRef.current) comprovanteInputRef.current.value = '';
+    }
+  }
+
   if (loading && filho == null) {
     return (
       <AppPageShell>
@@ -364,6 +421,33 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                       <Zap className="h-4 w-4 fill-current" />
                       Visualizar QR Code Pix
                     </AppPrimaryButton>
+                    <input
+                      ref={comprovanteInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/*"
+                      className="hidden"
+                      disabled={comprovanteUploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleEnviarComprovante(file);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={comprovanteUploading}
+                      onClick={() => comprovanteInputRef.current?.click()}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#13171D] px-8 py-3.5 text-xs font-bold uppercase tracking-widest text-[#F1F5F9] transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {comprovanteUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Upload className="h-4 w-4" aria-hidden />
+                      )}
+                      {comprovanteUploading ? 'Analisando comprovante…' : 'Enviar comprovante'}
+                    </button>
+                    <p className="text-center text-[10px] font-medium leading-relaxed text-[#64748B]">
+                      Já pagou? Envie o print do Pix para confirmar automaticamente.
+                    </p>
                     {pixNotConfigured ? (
                       <p className="text-center text-[10px] font-bold uppercase tracking-wider text-amber-400">
                         Terreiro ainda não cadastrou chave Pix

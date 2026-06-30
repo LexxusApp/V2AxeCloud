@@ -107,6 +107,13 @@ export const sensitiveActionRateLimit = createRateLimit({
   message: { error: "Limite de ações sensíveis excedido. Aguarde alguns minutos." },
 });
 
+export const comprovanteVisionRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  keyPrefix: "comprovante-vision",
+  message: { error: "Limite de validação de comprovantes excedido. Aguarde alguns minutos." },
+});
+
 export const whatsappSendRateLimit = createRateLimit({
   windowMs: 60 * 60 * 1000,
   max: 25,
