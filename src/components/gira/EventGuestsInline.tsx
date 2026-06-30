@@ -140,7 +140,7 @@ export function EventGuestsInline({
           value={newGuestName}
           onChange={(e) => setNewGuestName(e.target.value)}
           placeholder="Nome do convidado"
-          className={cn(appInputClass, 'flex-1')}
+          className={cn(appInputClass, 'flex-1 py-2 text-sm')}
         />
         {hasWhatsApp ? (
           <input
@@ -148,20 +148,22 @@ export function EventGuestsInline({
             value={newGuestPhone}
             onChange={(e) => setNewGuestPhone(e.target.value)}
             placeholder="WhatsApp"
-            className={cn(appInputClass, 'flex-1')}
+            className={cn(appInputClass, 'flex-1 py-2 text-sm')}
           />
         ) : null}
-        <AppPrimaryButton type="button" onClick={() => void addGuest()}>
+        <AppPrimaryButton type="button" className="shrink-0" onClick={() => void addGuest()}>
           <UserPlus className="h-4 w-4" />
         </AppPrimaryButton>
       </div>
-      <input
-        type="search"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Buscar convidado…"
-        className={cn(appInputClass, 'py-2 text-sm')}
-      />
+      {guests.length > 3 ? (
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Buscar convidado…"
+          className={cn(appInputClass, 'py-2 text-sm')}
+        />
+      ) : null}
       {loading ? (
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
       ) : filtered.length === 0 ? (

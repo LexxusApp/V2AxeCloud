@@ -48,11 +48,11 @@ type Props = {
   setActiveTab?: (tab: string) => void;
 };
 
-const TABS: { id: TabId; label: string; icon: typeof Users }[] = [
-  { id: 'frequencia', label: 'Frequência', icon: Users },
-  { id: 'senhas', label: 'Senhas', icon: Ticket },
-  { id: 'velas', label: 'Mapa de velas', icon: Flame },
-  { id: 'qr', label: 'QR Check-in', icon: QrCode },
+const TABS: { id: TabId; label: string; shortLabel: string; icon: typeof Users }[] = [
+  { id: 'frequencia', label: 'Frequência', shortLabel: 'Freq.', icon: Users },
+  { id: 'senhas', label: 'Senhas', shortLabel: 'Senhas', icon: Ticket },
+  { id: 'velas', label: 'Mapa de velas', shortLabel: 'Velas', icon: Flame },
+  { id: 'qr', label: 'QR Check-in', shortLabel: 'QR', icon: QrCode },
 ];
 
 function participantesToVelas(participantes: EventoParticipante[]): MapaVelaItem[] {
@@ -96,6 +96,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [mobileConfigOpen, setMobileConfigOpen] = useState(false);
 
   const loadCore = useCallback(async () => {
     setLoading(true);
@@ -269,31 +270,30 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
 
   return (
     <BodyPortal>
-      <div className="fixed inset-0 z-[120] overflow-y-auto overscroll-contain">
+      <div className="fixed inset-0 z-[120] flex flex-col justify-end sm:justify-center sm:p-4">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
-        <div className="relative z-10 flex min-h-full justify-center px-4 pb-8 pt-20 sm:px-6 sm:pb-10 sm:pt-24">
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="gira-ops-title"
-          className="my-auto flex w-full max-w-2xl flex-col rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
+          className="relative z-10 flex max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:mx-auto sm:max-h-[min(85vh,900px)] sm:max-w-2xl sm:rounded-2xl"
         >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] px-4 py-3 sm:px-5">
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[#1E242B] px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Operações da gira</p>
-            <h3 id="gira-ops-title" className="truncate text-base font-black text-white sm:text-lg">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-primary sm:text-[10px]">Operações da gira</p>
+            <h3 id="gira-ops-title" className="truncate text-sm font-black text-white sm:text-lg">
               {event.titulo}
             </h3>
-            <p className="text-[11px] text-[#94A3B8] sm:text-xs">
+            <p className="truncate text-[10px] text-[#94A3B8] sm:text-xs">
               {event.data} · {event.hora} · {event.tipo}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 text-gray-400 hover:bg-white/5" aria-label="Fechar">
+          <button type="button" onClick={onClose} className="shrink-0 rounded-xl p-1.5 text-gray-400 hover:bg-white/5 sm:p-2" aria-label="Fechar">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#1E242B] px-3 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="grid shrink-0 grid-cols-4 border-b border-[#1E242B] px-1 py-1 sm:px-3 sm:py-1.5">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -301,19 +301,23 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
+                title={t.label}
+                aria-label={t.label}
+                aria-current={tab === t.id ? 'page' : undefined}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                  'flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold leading-tight transition-all sm:flex-row sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs',
                   tab === t.id ? 'bg-primary text-[#080A0D]' : 'text-[#94A3B8] hover:bg-white/5',
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {t.label}
+                <Icon className="h-3.5 w-3.5 shrink-0 sm:h-3.5 sm:w-3.5" />
+                <span className="max-w-full truncate sm:hidden">{t.shortLabel}</span>
+                <span className="hidden max-w-full truncate sm:inline">{t.label}</span>
               </button>
             );
           })}
         </div>
 
-        <div className="p-3 sm:p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4">
           {loading && tab === 'frequencia' ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -321,8 +325,8 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
           ) : error ? (
             <p className="text-sm text-red-400">{error}</p>
           ) : tab === 'frequencia' ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-1.5">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
                 {[
                   { label: 'Filhos', value: stats.total },
                   { label: 'Confirmados', value: stats.confirmados },
@@ -332,17 +336,32 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                     value: stats.vagas_maximas != null ? `${stats.confirmados}/${stats.vagas_maximas}` : '∞',
                   },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-lg border border-[#1E242B] bg-[#12161A] px-2 py-2 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{s.label}</p>
-                    <p className="text-lg font-black text-white tabular-nums">{s.value}</p>
+                  <div key={s.label} className="rounded-lg border border-[#1E242B] bg-[#12161A] px-1.5 py-1.5 text-center sm:px-2 sm:py-2">
+                    <p className="text-[8px] font-bold uppercase tracking-wider text-[#64748B] sm:text-[9px]">{s.label}</p>
+                    <p className="text-base font-black text-white tabular-nums sm:text-lg">{s.value}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 space-y-2.5">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Configuração de vagas</p>
-                  <div className="space-y-2.5">
+              <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
+                <div className="rounded-xl border border-[#1E242B] bg-[#12161A]">
+                  <p className="hidden px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#94A3B8] lg:block">
+                    Configuração de vagas
+                  </p>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left lg:hidden"
+                    onClick={() => setMobileConfigOpen((v) => !v)}
+                    aria-expanded={mobileConfigOpen}
+                  >
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">
+                      Configuração de vagas
+                    </span>
+                    <span className="text-[10px] font-normal normal-case text-[#64748B]">
+                      {mobileConfigOpen ? 'Recolher' : 'Expandir'}
+                    </span>
+                  </button>
+                  <div className={cn('space-y-2.5 px-3 pb-3 pt-0 lg:border-t lg:border-[#1E242B] lg:pt-2.5', mobileConfigOpen ? 'block' : 'hidden lg:block')}>
                     <div>
                       <label className="text-[10px] font-bold uppercase text-gray-500">Máximo de participantes</label>
                       <input
@@ -374,15 +393,15 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                         Ativar emissão pública de senhas para consulentes
                       </span>
                     </label>
+                    <AppPrimaryButton
+                      type="button"
+                      disabled={savingConfig}
+                      className="w-full"
+                      onClick={() => void handleSaveConfig()}
+                    >
+                      {savingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar configuração'}
+                    </AppPrimaryButton>
                   </div>
-                  <AppPrimaryButton
-                    type="button"
-                    disabled={savingConfig}
-                    className="w-full"
-                    onClick={() => void handleSaveConfig()}
-                  >
-                    {savingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar configuração'}
-                  </AppPrimaryButton>
                 </div>
 
                 <div className="flex flex-col space-y-2">
@@ -659,7 +678,6 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
               ) : null}
             </div>
           ) : null}
-        </div>
         </div>
         </div>
       </div>
