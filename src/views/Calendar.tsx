@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus, Pencil, Trash2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -532,6 +532,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eventsFetchError, setEventsFetchError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedEventForOps, setSelectedEventForOps] = useState<Event | null>(null);
   const [participacoes, setParticipacoes] = useState<
@@ -652,6 +653,21 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   }, isFilho ? [currentMonth, effectiveTenantId, isFilho] : [effectiveTenantId, isFilho]);
 
   useEffect(() => {
+    if (!eventsFetchError || !effectiveTenantId) return;
+    const retryIfReady = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        void fetchEvents();
+      }
+    };
+    document.addEventListener('visibilitychange', retryIfReady);
+    window.addEventListener('online', retryIfReady);
+    return () => {
+      document.removeEventListener('visibilitychange', retryIfReady);
+      window.removeEventListener('online', retryIfReady);
+    };
+  }, [eventsFetchError, effectiveTenantId]);
+
+  useEffect(() => {
     if (!isFilho || !effectiveTenantId) return;
     const monthStart = startOfMonth(currentMonth);
     const rangeEnd = addDays(endOfMonth(currentMonth), 7);
@@ -730,6 +746,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       try {
         const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&scope=calendar`;
         const response = await authFetch(url);
+        // #region agent log
+        fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f205b9'},body:JSON.stringify({sessionId:'f205b9',location:'Calendar.tsx:fetchEvents:gestor',message:'events fetch response',data:{status:response.status,ok:response.ok,url,role:'gestor'},timestamp:Date.now(),hypothesisId:'H1-H2',runId:'post-fix'})}).catch(()=>{});
+        // #endregion
         if (!response.ok) {
           const body = await response.text().catch(() => '');
           throw new Error(`Failed to fetch events (${response.status}): ${body}`);
@@ -737,10 +756,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         const { data } = await response.json();
         const list = excludeObrigacaoEvents(data || []);
         setEvents(list);
+        setEventsFetchError(null);
         writeStaleCache(cacheKey, list);
       } catch (error) {
         console.error('Error fetching events:', error);
-        setEvents([]);
+        if (cached == null) setEvents([]);
+        setEventsFetchError('Não foi possível carregar as giras. O servidor pode estar atualizando — tente novamente.');
       } finally {
         setLoading(false);
       }
@@ -763,6 +784,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     try {
       const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(rangeEnd, 'yyyy-MM-dd')}&scope=calendar`;
       const response = await authFetch(url);
+      // #region agent log
+      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f205b9'},body:JSON.stringify({sessionId:'f205b9',location:'Calendar.tsx:fetchEvents:filho',message:'events fetch response',data:{status:response.status,ok:response.ok,url,role:'filho'},timestamp:Date.now(),hypothesisId:'H1-H2',runId:'post-fix'})}).catch(()=>{});
+      // #endregion
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         throw new Error(`Failed to fetch events (${response.status}): ${body}`);
@@ -770,10 +794,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       const { data } = await response.json();
       const list = excludeObrigacaoEvents(data || []);
       setEvents(list);
+      setEventsFetchError(null);
       writeStaleCache(cacheKey, list);
     } catch (error) {
       console.error('Error fetching events:', error);
-      setEvents([]);
+      if (cached == null) setEvents([]);
+      setEventsFetchError('Não foi possível carregar as giras. O servidor pode estar atualizando — tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -957,6 +983,19 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             </button>
           }
         />
+
+        {eventsFetchError ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
+            <p>{eventsFetchError}</p>
+            <button
+              type="button"
+              onClick={() => void fetchEvents()}
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-200"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : null}
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
@@ -1201,7 +1240,17 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           title="Calendário de giras"
           description="Agende trabalhos espirituais, festas e giras — com lembretes automáticos no WhatsApp."
           action={
-                <button 
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void fetchEvents()}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9]"
+                title="Atualizar"
+              >
+                <Loader2 className={cn('h-4 w-4', loading && 'animate-spin')} />
+                Atualizar
+              </button>
+              <button 
               type="button"
               onClick={() => openCreateEventModal()}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
@@ -1209,25 +1258,41 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Adicionar
                 </button>
+            </div>
           }
         />
 
         <div className="space-y-3">
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(17.5rem,20rem))] gap-3">
+          {eventsFetchError ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
+              <p>{eventsFetchError}</p>
+              <button
+                type="button"
+                onClick={() => void fetchEvents()}
+                className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-200"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap justify-center gap-3">
               {eventsNewestFirst.map((event) => {
                 const passed = isEventPassed(event.data, event.hora);
                 const isEspecial =
                   event.status_confirmacao === 'Especial' || event.tipo === 'Obrigação';
                 return (
-                  <button
-                    type="button"
+                  <article
                     key={event.id}
-                    onClick={() => setEventDetailModal(event)}
                     className={cn(
-                      'group relative w-full cursor-pointer overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] text-left transition-all hover:border-[#2F3643] hover:shadow-lg',
+                      'group flex w-full max-w-[20rem] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] transition-all hover:border-[#2F3643] hover:shadow-lg',
                       passed && 'opacity-70',
                     )}
                   >
+                    <button
+                      type="button"
+                      onClick={() => setEventDetailModal(event)}
+                      className="relative w-full cursor-pointer text-left"
+                    >
                     <div className="relative h-36 w-full overflow-hidden bg-[#0d0d0d] sm:h-40">
                     {event.banner_url ? (
                         <img
@@ -1241,58 +1306,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       </div>
                     )}
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                      <div
-                        className="absolute right-2 top-2 flex gap-0.5 rounded-lg bg-black/50 p-0.5 backdrop-blur-sm"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        role="presentation"
-                      >
-                        {!passed ? (
-                            <button 
-                              type="button"
-                            onClick={() => void handleNotifyAll(event)}
-                              disabled={isNotifying === event.id}
-                            className="rounded p-1.5 text-primary hover:bg-white/10 disabled:opacity-50"
-                            title="Notificar push no app"
-                          >
-                            {isNotifying === event.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Bell className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        ) : null}
-                          <button
-                            type="button"
-                            onClick={() => openEditEventModal(event)}
-                            className="rounded p-1.5 text-sky-400 hover:bg-white/10"
-                            title="Editar evento"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button 
-                            type="button"
-                          onClick={() => setSelectedEventForOps(event)}
-                          className={cn(
-                            'rounded p-1.5 hover:bg-white/10',
-                            hasAccess ? 'text-primary' : 'text-zinc-600',
-                          )}
-                          title={hasAccess ? 'Frequência, senhas, velas e QR' : 'Plano Oirô'}
-                          disabled={!hasAccess}
-                        >
-                          <Ticket className="h-3.5 w-3.5" />
-                          </button>
-                          <button 
-                            type="button"
-                          onClick={() =>
-                            setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
-                          }
-                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-rose-400"
-                          aria-label="Remover gira"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
                       <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-1.5">
                         <span
                           className={cn(
@@ -1332,11 +1345,63 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         Toque para ver detalhes
                       </p>
                     </div>
-                </button>
+                    </button>
+                    <div className="grid grid-cols-2 gap-2 border-t border-[#1E242B] p-3 sm:flex sm:flex-wrap">
+                      {!passed ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleNotifyAll(event)}
+                          disabled={isNotifying === event.id}
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50 sm:min-h-9"
+                        >
+                          {isNotifying === event.id ? (
+                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                          ) : (
+                            <Bell className="h-4 w-4 shrink-0" aria-hidden />
+                          )}
+                          <span>Avisar</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => openEditEventModal(event)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold text-sky-400 transition-colors hover:border-sky-500/30 hover:bg-sky-500/10 sm:min-h-9"
+                      >
+                        <Pencil className="h-4 w-4 shrink-0" aria-hidden />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEventForOps(event)}
+                        className={cn(
+                          'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold transition-colors sm:min-h-9',
+                          hasAccess
+                            ? 'text-primary hover:border-primary/30 hover:bg-primary/10'
+                            : 'cursor-not-allowed text-zinc-600 opacity-60',
+                        )}
+                        title={hasAccess ? 'Frequência, senhas, velas e QR' : 'Plano Oirô'}
+                        disabled={!hasAccess}
+                      >
+                        <Ticket className="h-4 w-4 shrink-0" aria-hidden />
+                        <span>Convite</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 text-xs font-bold text-rose-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 sm:min-h-9"
+                        aria-label="Excluir gira"
+                      >
+                        <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                        <span>Excluir</span>
+                      </button>
+                    </div>
+                  </article>
                 );
               })}
-              {eventsNewestFirst.length === 0 ? (
-                <div className="col-span-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
+              {eventsNewestFirst.length === 0 && !eventsFetchError ? (
+                <div className="w-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
               </div>
               ) : null}
