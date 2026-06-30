@@ -1279,6 +1279,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           event={selectedEventForOps}
           tenantId={effectiveTenantId}
           onClose={() => setSelectedEventForOps(null)}
+          setActiveTab={setActiveTab}
           guestsSlot={
             <EventGuestsInline
               eventId={selectedEventForOps.id}
