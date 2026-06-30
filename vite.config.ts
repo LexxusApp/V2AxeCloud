@@ -49,6 +49,7 @@ export default defineConfig(({mode}) => {
           'pwa-96.png',
           'pwa-192.png',
           'pwa-512.png',
+          'notification-badge.png',
           'login-bg.png',
           'login-bg-premium.png',
           'login-bg-desktop.png',

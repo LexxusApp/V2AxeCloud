@@ -7,7 +7,7 @@ self.addEventListener('push', function(event) {
       const options = {
         body: payload.body || 'Você tem uma nova notificação.',
         icon: '/pwa-192.png',
-        badge: '/pwa-192.png',
+        badge: '/notification-badge.png',
         data: {
           url: payload.url || '/'
         },
