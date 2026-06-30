@@ -1346,13 +1346,18 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       </p>
                     </div>
                     </button>
-                    <div className="grid grid-cols-2 gap-2 border-t border-[#1E242B] p-3 sm:flex sm:flex-wrap">
+                    <div
+                      className={cn(
+                        'grid gap-2 border-t border-[#1E242B] p-3 sm:flex',
+                        passed ? 'grid-cols-3' : 'grid-cols-2',
+                      )}
+                    >
                       {!passed ? (
                         <button
                           type="button"
                           onClick={() => void handleNotifyAll(event)}
                           disabled={isNotifying === event.id}
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50 sm:min-h-9"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50 sm:min-h-9 sm:flex-1 sm:px-3"
                         >
                           {isNotifying === event.id ? (
                             <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
@@ -1365,7 +1370,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       <button
                         type="button"
                         onClick={() => openEditEventModal(event)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold text-sky-400 transition-colors hover:border-sky-500/30 hover:bg-sky-500/10 sm:min-h-9"
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold text-sky-400 transition-colors hover:border-sky-500/30 hover:bg-sky-500/10 sm:min-h-9 sm:flex-1 sm:px-3"
                       >
                         <Pencil className="h-4 w-4 shrink-0" aria-hidden />
                         <span>Editar</span>
@@ -1374,7 +1379,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         type="button"
                         onClick={() => setSelectedEventForOps(event)}
                         className={cn(
-                          'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 text-xs font-bold transition-colors sm:min-h-9',
+                          'inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold transition-colors sm:min-h-9 sm:flex-1 sm:px-3',
                           hasAccess
                             ? 'text-primary hover:border-primary/30 hover:bg-primary/10'
                             : 'cursor-not-allowed text-zinc-600 opacity-60',
@@ -1390,7 +1395,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         onClick={() =>
                           setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
                         }
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 text-xs font-bold text-rose-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 sm:min-h-9"
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 px-2 text-xs font-bold text-rose-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 sm:min-h-9 sm:flex-1 sm:px-3"
                         aria-label="Excluir gira"
                       >
                         <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
