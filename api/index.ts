@@ -4144,6 +4144,120 @@ async function startServer() {
     }
   });
 
+  // API Route: Update Event
+  app.patch("/api/events/:id", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const { data: sub } = await supabaseAdmin
+        .from('subscriptions')
+        .select('plan, status, expires_at')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const { data: profile } = await supabaseAdmin
+        .from('perfil_lider')
+        .select('is_admin_global, tenant_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const isGlobalAdmin = !!profile?.is_admin_global;
+      const role = String(user.user_metadata?.role || "").toLowerCase();
+      if (role === "filho") {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
+        return res.status(403).json({ error: "Assinatura inativa" });
+      }
+
+      const access = await userCanModifyCalendarEvent(supabaseAdmin, user, req.params.id);
+      if (access.notFound) {
+        return res.status(404).json({ error: "Evento não encontrado." });
+      }
+      if (!access.allowed) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const { data: existing, error: fetchErr } = await supabaseAdmin
+        .from('calendario_axe')
+        .select('id, senhas_ativas, senhas_public_token, checkin_qr_token')
+        .eq('id', req.params.id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (!existing) {
+        return res.status(404).json({ error: "Evento não encontrado." });
+      }
+
+      const eventTipo = String(req.body?.tipo ?? '').trim();
+      if (eventTipo === 'Obrigação') {
+        return res.status(400).json({
+          error: 'Obrigações devem ser cadastradas no perfil do filho de santo, não no calendário de giras.',
+        });
+      }
+
+      const rawBanner = req.body?.banner_url;
+      const removeBanner = req.body?.remove_banner === true;
+      const banner_url = removeBanner
+        ? null
+        : typeof rawBanner === 'string' && rawBanner.trim().length > 0
+          ? rawBanner.trim()
+          : undefined;
+
+      const senhas_ativas = Boolean(req.body?.senhas_ativas);
+      const patch: Record<string, unknown> = {
+        titulo: String(req.body?.titulo || '').trim(),
+        data: req.body?.data,
+        hora: req.body?.hora,
+        tipo: req.body?.tipo,
+        descricao: req.body?.descricao ?? '',
+        status_confirmacao: req.body?.status_confirmacao ?? 'Confirmado',
+        evento_publico: Boolean(req.body?.evento_publico),
+        vagas_maximas:
+          req.body?.vagas_maximas != null && req.body?.vagas_maximas !== ''
+            ? Math.max(0, Number(req.body.vagas_maximas) || 0)
+            : null,
+        senhas_ativas,
+      };
+
+      if (!patch.titulo || !patch.data || !patch.hora || !patch.tipo) {
+        return res.status(400).json({ error: 'Preencha nome, data, horário e tipo.' });
+      }
+
+      if (banner_url !== undefined) {
+        patch.banner_url = banner_url;
+      }
+
+      if (senhas_ativas && !existing.senhas_public_token) {
+        patch.senhas_public_token = newPublicToken();
+      }
+      if (!existing.checkin_qr_token) {
+        patch.checkin_qr_token = newPublicToken();
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('calendario_axe')
+        .update(patch)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const mapped = data
+        ? {
+            ...data,
+            banner_url: resolvePublicMediaUrl(data.banner_url) || data.banner_url || null,
+          }
+        : data;
+
+      res.json({ success: true, data: mapped });
+    } catch (error: any) {
+      console.error("[SERVER] Error updating event:", error.message || error);
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
+    }
+  });
+
   // API Route: Delete Event (Verifies Plan)
   app.delete("/api/events/:id", async (req, res) => {
     try {

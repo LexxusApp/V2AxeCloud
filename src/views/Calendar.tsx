@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus, Pencil } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,6 +37,9 @@ interface Event {
   descricao: string;
   status_confirmacao: string;
   banner_url?: string | null;
+  evento_publico?: boolean;
+  vagas_maximas?: number | null;
+  senhas_ativas?: boolean;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -127,7 +130,19 @@ function formatHoraEvento(hora?: string): string {
   return raw.slice(0, 5);
 }
 
-function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () => void }) {
+function horaToInput(hora?: string | null): string {
+  return formatHoraEvento(hora) || '20:00';
+}
+
+function EventDetailModalPanel({
+  event,
+  onClose,
+  onEdit,
+}: {
+  event: Event;
+  onClose: () => void;
+  onEdit?: () => void;
+}) {
   const hasBanner = Boolean(event.banner_url?.trim());
   const descricao = (event.descricao || '').trim();
   const horaFmt = formatHoraEvento(event.hora);
@@ -199,14 +214,26 @@ function EventDetailModalPanel({ event, onClose }: { event: Event; onClose: () =
                 <p className="truncate text-xs font-medium uppercase tracking-widest text-gray-500">{event.tipo}</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
-              aria-label="Fechar"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {onEdit ? (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
+                >
+                  <Pencil className="h-3.5 w-3.5" aria-hidden />
+                  Editar
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
@@ -250,6 +277,7 @@ type EventFormData = {
 };
 
 type AddEventModalPanelProps = {
+  mode: 'create' | 'edit';
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   formData: EventFormData;
@@ -258,9 +286,12 @@ type AddEventModalPanelProps = {
   bannerInputRef: React.RefObject<HTMLInputElement | null>;
   bannerPreview: string | null;
   onBannerFile: (file: File) => void;
+  onRemoveBanner?: () => void;
+  hasExistingBanner?: boolean;
 };
 
 function AddEventModalPanel({
+  mode,
   onClose,
   onSubmit,
   formData,
@@ -269,6 +300,8 @@ function AddEventModalPanel({
   bannerInputRef,
   bannerPreview,
   onBannerFile,
+  onRemoveBanner,
+  hasExistingBanner,
 }: AddEventModalPanelProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
@@ -299,10 +332,10 @@ function AddEventModalPanel({
             </div>
             <div className="min-w-0">
               <h3 id="add-event-title" className="text-base font-black text-white sm:text-lg">
-                Nova gira / evento
+                {mode === 'edit' ? 'Editar gira / evento' : 'Nova gira / evento'}
               </h3>
               <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
-                Agendar no calendário do terreiro
+                {mode === 'edit' ? 'Atualizar dados no calendário' : 'Agendar no calendário do terreiro'}
               </p>
             </div>
           </div>
@@ -443,14 +476,25 @@ function AddEventModalPanel({
                   className="mt-2 max-h-28 w-full rounded-lg object-contain"
                 />
               ) : null}
-              <button
-                type="button"
-                onClick={() => bannerInputRef.current?.click()}
-                className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
-              >
-                <ImagePlus className="h-3.5 w-3.5 text-primary" />
-                {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
-              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
+                >
+                  <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                  {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
+                </button>
+                {bannerPreview && onRemoveBanner ? (
+                  <button
+                    type="button"
+                    onClick={onRemoveBanner}
+                    className="text-xs font-bold text-rose-400 hover:text-rose-300"
+                  >
+                    Remover banner
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
           <AppPrimaryButton
@@ -458,7 +502,13 @@ function AddEventModalPanel({
             disabled={isSubmitting}
             className="mt-5 inline-flex w-full items-center justify-center sm:mt-6"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Marcar na agenda'}
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : mode === 'edit' ? (
+              'Salvar alterações'
+            ) : (
+              'Marcar na agenda'
+            )}
           </AppPrimaryButton>
         </form>
       </motion.div>
@@ -497,6 +547,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
   const [addEventModalOpen, setAddEventModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [removeBannerOnSave, setRemoveBannerOnSave] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
@@ -538,6 +590,58 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     vagas_maximas: '',
     senhas_ativas: false,
   });
+
+  const resetEventForm = () => {
+    setFormData({
+      titulo: '',
+      data: format(new Date(), 'yyyy-MM-dd'),
+      hora: '20:00',
+      tipo: 'Gira',
+      descricao: '',
+      status_confirmacao: 'Confirmado',
+      evento_publico: false,
+      vagas_maximas: '',
+      senhas_ativas: false,
+    });
+    setBannerFile(null);
+    setRemoveBannerOnSave(false);
+    setBannerPreview((prev) => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setEditingEvent(null);
+  };
+
+  const openCreateEventModal = () => {
+    resetEventForm();
+    setAddEventModalOpen(true);
+  };
+
+  const openEditEventModal = (event: Event) => {
+    setEditingEvent(event);
+    setFormData({
+      titulo: event.titulo,
+      data: event.data,
+      hora: horaToInput(event.hora),
+      tipo: event.tipo || 'Gira',
+      descricao: event.descricao || '',
+      status_confirmacao: event.status_confirmacao || 'Confirmado',
+      evento_publico: Boolean(event.evento_publico),
+      vagas_maximas:
+        event.vagas_maximas != null && event.vagas_maximas > 0 ? String(event.vagas_maximas) : '',
+      senhas_ativas: Boolean(event.senhas_ativas),
+    });
+    setBannerFile(null);
+    setRemoveBannerOnSave(false);
+    setBannerPreview(event.banner_url?.trim() || null);
+    setEventDetailModal(null);
+    setAddEventModalOpen(true);
+  };
+
+  const closeEventFormModal = () => {
+    setAddEventModalOpen(false);
+    resetEventForm();
+  };
 
   useEffect(() => {
     if (!effectiveTenantId) {
@@ -699,49 +803,44 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         if (uploadJson.publicUrl) banner_url = uploadJson.publicUrl;
       }
 
-      const eventData = {
+      const payload = {
         ...formData,
         ...(banner_url ? { banner_url } : {}),
+        ...(editingEvent && removeBannerOnSave && !banner_url ? { remove_banner: true } : {}),
         lider_id: user?.id,
-        tenant_id: effectiveTenantId || user?.id
+        tenant_id: effectiveTenantId || user?.id,
       };
 
-      const response = await authFetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      });
+      const response = editingEvent
+        ? await authFetch(`/api/events/${editingEvent.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        : await authFetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || 'Failed to create event');
+        throw new Error(errData.error || (editingEvent ? 'Failed to update event' : 'Failed to create event'));
       }
-      
+
       const result = await response.json();
-      const feedback = formatGiraWhatsAppFeedback(result.whatsapp as EventWhatsAppFeedback | undefined);
-      setToast(feedback);
-      
-      setBannerFile(null);
-      setBannerPreview((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setFormData({
-        titulo: '',
-        data: format(new Date(), 'yyyy-MM-dd'),
-        hora: '20:00',
-        tipo: 'Gira',
-        descricao: '',
-        status_confirmacao: 'Confirmado',
-        evento_publico: false,
-        vagas_maximas: '',
-        senhas_ativas: false,
-      });
-      setAddEventModalOpen(false);
+      if (editingEvent) {
+        setToast({ message: 'Evento atualizado com sucesso!', type: 'success' });
+      } else {
+        const feedback = formatGiraWhatsAppFeedback(result.whatsapp as EventWhatsAppFeedback | undefined);
+        setToast(feedback);
+      }
+
+      closeEventFormModal();
       fetchEvents();
     } catch (error: any) {
-      console.error('Error adding event:', error);
-      alert(error.message || 'Erro ao criar evento.');
+      console.error('Error saving event:', error);
+      alert(error.message || (editingEvent ? 'Erro ao atualizar evento.' : 'Erro ao criar evento.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -1104,7 +1203,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           action={
                 <button 
               type="button"
-              onClick={() => setAddEventModalOpen(true)}
+              onClick={() => openCreateEventModal()}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
                 >
               <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -1163,6 +1262,14 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                             )}
                           </button>
                         ) : null}
+                          <button
+                            type="button"
+                            onClick={() => openEditEventModal(event)}
+                            className="rounded p-1.5 text-sky-400 hover:bg-white/10"
+                            title="Editar evento"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                           <button 
                             type="button"
                           onClick={() => setSelectedEventForOps(event)}
@@ -1253,24 +1360,39 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       <AnimatePresence>
         {addEventModalOpen ? (
           <AddEventModalPanel
-            onClose={() => setAddEventModalOpen(false)}
+            mode={editingEvent ? 'edit' : 'create'}
+            onClose={closeEventFormModal}
             onSubmit={handleSubmit}
             formData={formData}
             setFormData={setFormData}
             isSubmitting={isSubmitting}
             bannerInputRef={bannerInputRef}
             bannerPreview={bannerPreview}
+            hasExistingBanner={Boolean(editingEvent?.banner_url?.trim())}
+            onRemoveBanner={() => {
+              setRemoveBannerOnSave(true);
+              setBannerFile(null);
+              setBannerPreview((prev) => {
+                if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+                return null;
+              });
+            }}
             onBannerFile={(f) => {
-                      setBannerFile(f);
-                      setBannerPreview((prev) => {
-                        if (prev) URL.revokeObjectURL(prev);
-                        return URL.createObjectURL(f);
-                      });
+              setRemoveBannerOnSave(false);
+              setBannerFile(f);
+              setBannerPreview((prev) => {
+                if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+                return URL.createObjectURL(f);
+              });
             }}
           />
         ) : null}
         {eventDetailModal && (
-          <EventDetailModalPanel event={eventDetailModal} onClose={() => setEventDetailModal(null)} />
+          <EventDetailModalPanel
+            event={eventDetailModal}
+            onClose={() => setEventDetailModal(null)}
+            onEdit={() => openEditEventModal(eventDetailModal)}
+          />
         )}
       </AnimatePresence>
 
