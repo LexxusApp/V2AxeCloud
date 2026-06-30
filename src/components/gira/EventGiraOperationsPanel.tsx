@@ -44,6 +44,8 @@ type Props = {
   onClose: () => void;
   /** Convidados externos — painel legado embutido via slot */
   guestsSlot?: React.ReactNode;
+  /** Navega para Filhos de Santo (cadastro da corrente) */
+  setActiveTab?: (tab: string) => void;
 };
 
 const TABS: { id: TabId; label: string; icon: typeof Users }[] = [
@@ -53,7 +55,21 @@ const TABS: { id: TabId; label: string; icon: typeof Users }[] = [
   { id: 'qr', label: 'QR Check-in', icon: QrCode },
 ];
 
-export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot }: Props) {
+function participantesToVelas(participantes: EventoParticipante[]): MapaVelaItem[] {
+  return participantes.map((p) => ({
+    id: null,
+    filho_id: p.filho_id,
+    nome: p.filhos_de_santo?.nome || 'Filho',
+    cargo: p.filhos_de_santo?.cargo ?? null,
+    foto_url: p.filhos_de_santo?.foto_url ?? null,
+    vela: null,
+    quantidade: 1,
+    entregue: false,
+    observacao: '',
+  }));
+}
+
+export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot, setActiveTab }: Props) {
   const [tab, setTab] = useState<TabId>('frequencia');
   const [loading, setLoading] = useState(true);
   const [participantes, setParticipantes] = useState<EventoParticipante[]>([]);
@@ -74,6 +90,8 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [senhas, setSenhas] = useState<EventoSenha[]>([]);
   const [velas, setVelas] = useState<MapaVelaItem[]>([]);
+  const [velasLoading, setVelasLoading] = useState(false);
+  const [velasError, setVelasError] = useState<string | null>(null);
   const [novaSenhaNome, setNovaSenhaNome] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,12 +128,17 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
   }, [event.id, tenantId]);
 
   const loadVelas = useCallback(async () => {
+    setVelasLoading(true);
+    setVelasError(null);
     try {
       setVelas(await fetchMapaVelas(event.id, tenantId));
-    } catch {
-      /* silencioso */
+    } catch (e: unknown) {
+      setVelasError(e instanceof Error ? e.message : 'Erro ao carregar mapa de velas');
+      setVelas((prev) => (prev.length > 0 ? prev : participantesToVelas(participantes)));
+    } finally {
+      setVelasLoading(false);
     }
-  }, [event.id, tenantId]);
+  }, [event.id, tenantId, participantes]);
 
   useEffect(() => {
     void loadCore();
@@ -246,13 +269,14 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
 
   return (
     <BodyPortal>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pt-20 pb-4 sm:p-6 sm:pt-24">
+      <div className="fixed inset-0 z-[120] overflow-y-auto overscroll-contain">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
+        <div className="flex min-h-full items-start justify-center p-4 pt-20 pb-6 sm:items-center sm:p-6 sm:pt-24">
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="gira-ops-title"
-          className="relative z-10 flex max-h-[min(calc(100dvh-5.5rem),calc(100dvh-7rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
+          className="relative z-10 my-auto flex h-[min(calc(100dvh-5.5rem),calc(100dvh-7rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:h-[min(calc(100dvh-7rem),900px)]"
         >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] px-4 py-3 sm:px-5">
           <div className="min-w-0">
@@ -289,7 +313,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-5 sm:p-4 sm:pb-6">
           {loading && tab === 'frequencia' ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -361,9 +385,9 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
                   </AppPrimaryButton>
                 </div>
 
-                <div className="flex min-h-0 flex-col space-y-2">
+                <div className="flex flex-col space-y-2">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Corrente — presença</p>
-                  <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="max-h-44 space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-52">
                     {participantes.length === 0 ? (
                       <p className="text-sm text-gray-500 italic">Nenhum filho cadastrado.</p>
                     ) : (
@@ -498,7 +522,38 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
               <p className="text-xs text-[#94A3B8]">
                 Defina a cor e quantidade de velas de obrigação por filho de santo nesta gira.
               </p>
-              {velas.map((v, idx) => (
+              {velasLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                </div>
+              ) : velasError ? (
+                <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                  {velasError}
+                </p>
+              ) : null}
+              {!velasLoading && velas.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-4 py-8 text-center">
+                  <Flame className="mx-auto mb-3 h-8 w-8 text-[#64748B]" aria-hidden />
+                  <p className="text-sm font-bold text-[#F1F5F9]">Nenhum filho de santo na corrente</p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-[#94A3B8]">
+                    Cadastre os médiums em Filhos de Santo para definir as velas de obrigação desta gira.
+                  </p>
+                  {setActiveTab ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        setActiveTab('children');
+                      }}
+                      className="mt-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/20"
+                    >
+                      Ir para Filhos de Santo
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {!velasLoading
+                ? velas.map((v, idx) => (
                 <div
                   key={v.filho_id}
                   className="flex flex-wrap items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3"
@@ -571,10 +626,13 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
                     Entregue
                   </label>
                 </div>
-              ))}
-              <AppPrimaryButton type="button" disabled={busy} className="w-full" onClick={() => void handleSaveVelas()}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar mapa de velas'}
-              </AppPrimaryButton>
+              ))
+                : null}
+              {!velasLoading && velas.length > 0 ? (
+                <AppPrimaryButton type="button" disabled={busy} className="w-full" onClick={() => void handleSaveVelas()}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar mapa de velas'}
+                </AppPrimaryButton>
+              ) : null}
             </div>
           ) : null}
 
@@ -601,6 +659,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot 
               ) : null}
             </div>
           ) : null}
+        </div>
         </div>
         </div>
       </div>
