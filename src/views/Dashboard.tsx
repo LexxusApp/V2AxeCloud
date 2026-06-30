@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
+import { DashboardCalendar } from '../components/dashboard/DashboardCalendar';
 import {
   DashboardProximaGira,
   pickNextUpcomingEvent,
@@ -18,10 +19,7 @@ import {
   format,
   startOfMonth,
   endOfMonth,
-  startOfWeek,
-  endOfWeek,
   eachDayOfInterval,
-  isSameMonth,
   isSameDay,
   subMonths,
 } from 'date-fns';
@@ -346,18 +344,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   );
   /** Último bundle válido — evita “sumir” dados durante revalidação SWR ou HMR. */
   const lastBundleRef = useRef<DashboardBundle | null>(null);
-
-  const dashboardCalendar = useMemo(() => {
-    const anchor = new Date();
-    const monthStart = startOfMonth(anchor);
-    const monthEnd = endOfMonth(anchor);
-    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
-    const rawMonth = format(anchor, 'MMMM yyyy', { locale: ptBR });
-    const monthTitle = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
-    return { days, monthTitle, anchor };
-  }, []);
 
   const [flowPeriod, setFlowPeriod] = useState<'6months' | 'month'>('6months');
   const [flowPeriodOpen, setFlowPeriodOpen] = useState(false);
@@ -893,43 +879,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         {/* Right Section (35%) */}
         <div className="lg:col-span-4 space-y-8">
           
-          {/* Card: Calendário */}
-          <div className="app-v3-panel p-8">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Calendário</h3>
-                <ChevronRight className="w-5 h-5 text-gray-600" />
-             </div>
-             
-             <p className="text-xs font-bold text-primary text-center mb-6 uppercase tracking-widest">
-                {dashboardCalendar.monthTitle}
-             </p>
-             
-             <div className="grid grid-cols-7 gap-y-1 gap-x-0 text-center sm:gap-y-2">
-                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day) => (
-                  <span key={day} className="col-span-1 text-[8px] font-bold uppercase text-gray-600 sm:text-[9px]">
-                    <span className="sm:hidden">{day.charAt(0)}</span>
-                    <span className="hidden sm:inline">{day}</span>
-                  </span>
-                ))}
-                {dashboardCalendar.days.map(day => {
-                  const inMonth = isSameMonth(day, dashboardCalendar.anchor);
-                  const isTodayCell = isSameDay(day, new Date());
-                  return (
-                    <span
-                      key={day.toISOString()}
-                      className={cn(
-                        'flex min-h-[1.75rem] items-center justify-center rounded-md p-1 text-[11px] font-bold sm:min-h-[2rem] sm:rounded-lg sm:p-2 sm:text-xs',
-                        !inMonth && 'text-gray-700 opacity-35',
-                        inMonth && !isTodayCell && 'text-gray-400',
-                        isTodayCell && 'bg-primary text-black shadow-[0_0_15px_rgba(250,204,21,0.35)]'
-                      )}
-                    >
-                      {format(day, 'd')}
-                    </span>
-                  );
-                })}
-             </div>
-          </div>
+          <DashboardCalendar
+            tenantId={tenantId}
+            onOpenCalendar={() => setActiveTab('calendar')}
+          />
 
           <DashboardProximaGira
             event={nextEvent}
