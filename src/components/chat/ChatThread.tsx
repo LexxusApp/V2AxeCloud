@@ -7,6 +7,7 @@ import type { ChatConversationSummary, ChatMessage, ChatParticipantSummary } fro
 import { readStaleCache, writeStaleCache } from '../../lib/staleCache';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
+import Avatar from '../Avatar';
 
 function guessChatMimeType(file: File): string {
   const direct = String(file.type || '').trim();
@@ -144,8 +145,6 @@ export function ChatThread({
     conversation.type === 'group'
       ? conversation.title || 'Corrente'
       : conversation.peer?.nome || 'Conversa';
-
-  const displayPhoto = conversation.type === 'group' ? null : conversation.peer?.fotoUrl;
 
   const loadMessages = useCallback(async () => {
     try {
@@ -413,12 +412,18 @@ export function ChatThread({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        {displayPhoto ? (
-          <img src={displayPhoto} alt="" className="h-10 w-10 rounded-full object-cover" />
-        ) : (
+        {conversation.type === 'group' ? (
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-sm font-black text-primary">
-            {displayTitle.charAt(0).toUpperCase()}
+            {(displayTitle.charAt(0) || 'C').toUpperCase()}
           </div>
+        ) : (
+          <Avatar
+            src={conversation.peer?.fotoUrl}
+            name={displayTitle}
+            shape="circle"
+            textSize="text-sm"
+            className="h-10 w-10"
+          />
         )}
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-display text-sm font-black text-white">{displayTitle}</h2>

@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import Avatar from '../components/Avatar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -117,15 +118,13 @@ export default function FilhoHome({ user, tenantData, setActiveTab }: FilhoHomeP
           <div className="flex flex-col sm:flex-row items-center gap-8">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-yellow-500/40 p-1 bg-black/40 shadow-2xl overflow-hidden ring-8 ring-yellow-500/5">
-                <img 
-                  src={displayChild.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayNameToRender)}`} 
+                <Avatar
+                  src={displayChild.foto_url}
+                  name={displayNameToRender}
                   alt={displayNameToRender}
-                  className="w-full h-full object-cover rounded-full"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayNameToRender)}`;
-                  }}
+                  shape="circle"
+                  textSize="text-3xl"
+                  className="h-full w-full"
                 />
               </div>
               <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-yellow-500 rounded-full border-4 border-black flex items-center justify-center shadow-lg">

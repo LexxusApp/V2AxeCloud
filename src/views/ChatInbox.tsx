@@ -2,6 +2,7 @@ import { Loader2, MessageCircle, Plus, Search, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { ChatThread } from '../components/chat/ChatThread';
 import { ChatContactRow } from '../components/chat/ChatContactRow';
+import Avatar from '../components/Avatar';
 import { authFetch } from '../lib/authenticatedFetch';
 import type { ChatContact, ChatConversationSummary } from '../lib/chatTypes';
 import { formatChatTime } from '../lib/chatTypes';
@@ -251,7 +252,6 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
               conversations.map((c) => {
                 const title =
                   c.type === 'group' ? c.title || 'Corrente' : c.peer?.nome || 'Conversa';
-                const photo = c.type === 'group' ? null : c.peer?.fotoUrl;
                 const preview = c.lastMessagePreview || 'Sem mensagens';
 
                 return (
@@ -264,12 +264,18 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
                       selectedId === c.id ? 'bg-primary/15' : 'hover:bg-white/5',
                     )}
                   >
-                    {photo ? (
-                      <img src={photo} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-black text-white">
-                        {c.type === 'group' ? <Users className="h-5 w-5 text-primary" /> : title.charAt(0)}
+                    {c.type === 'group' ? (
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/20">
+                        <Users className="h-5 w-5 text-primary" />
                       </div>
+                    ) : (
+                      <Avatar
+                        src={c.peer?.fotoUrl}
+                        name={title}
+                        shape="circle"
+                        textSize="text-sm"
+                        className="h-11 w-11 shrink-0"
+                      />
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">

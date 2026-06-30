@@ -4,6 +4,7 @@ import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import { fetchFrequenciaReport } from '../lib/giraOperations';
 import { cn } from '../lib/utils';
+import Avatar from '../components/Avatar';
 
 type Props = {
   tenantData?: { tenant_id?: string | null; plan?: string; is_admin_global?: boolean };
@@ -69,13 +70,13 @@ export default function Frequencia({ tenantData, setActiveTab }: Props) {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
                 {idx + 1}
               </span>
-              {r.foto_url ? (
-                <img src={r.foto_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#12161A] text-sm font-bold text-gray-500">
-                  {String(r.nome || '?')[0]}
-                </div>
-              )}
+              <Avatar
+                src={r.foto_url}
+                name={r.nome}
+                shape="circle"
+                textSize="text-xs"
+                className="h-10 w-10 shrink-0"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold text-white">{r.nome}</p>
                 <p className="text-[10px] text-gray-500">{r.cargo || 'Filho de santo'}</p>

@@ -1,5 +1,6 @@
 import { cn } from '../lib/utils';
 import { performFastLogout } from '../lib/logout';
+import Avatar from './Avatar';
 
 type ZeladorIdentityBadgeProps = {
   tenantData?: {
@@ -28,32 +29,20 @@ export function ZeladorIdentityBadge({
   fotoUrl,
   displayName: displayNameProp,
 }: ZeladorIdentityBadgeProps) {
-  const isZelador = tenantData?.role !== 'filho';
   const displayName = displayNameProp?.trim() || tenantData?.nome?.trim() || 'Zelador';
-  const initial = (displayName[0] || 'Z').toUpperCase();
   const roleLine =
     tenantData?.role === 'filho' ? 'Filho de Santo' : tenantData?.cargo?.trim() || null;
   const avatarSrc = fotoUrl ?? tenantData?.foto_url;
 
   const avatar = (
-    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-primary bg-primary text-sm font-black text-background shadow-lg shadow-primary/20 md:h-9 md:w-9">
-      {avatarSrc ? (
-        <img
-          src={avatarSrc}
-          alt={displayName}
-          className="h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent) parent.textContent = initial;
-          }}
-        />
-      ) : (
-        initial
-      )}
-    </div>
+    <Avatar
+      src={avatarSrc}
+      name={displayName}
+      alt={displayName}
+      shape="circle"
+      textSize="text-xs"
+      className="h-8 w-8 border border-primary shadow-lg shadow-primary/20 md:h-9 md:w-9"
+    />
   );
 
   const logoutBtn = showLogout ? (

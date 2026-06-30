@@ -165,13 +165,11 @@ export function ChildProfileV3View({
   const cargo = String(child.cargo || 'Filho de Santo');
   const orixaFrente = String(child.orixa_frente || '');
   const status = String(child.status || 'Ativo');
-  const fotoUrl = child.foto_url ? String(child.foto_url) : null;
   const userId = child.user_id ? String(child.user_id) : '';
   const quizilas = quizilasText(child);
   const waLink = whatsappHref(contato);
   const registro = matricula(child);
   const maturity = maturityPercent(anosDeCasa);
-  const initials = nome.substring(0, 2).toUpperCase();
 
   async function openObligationPdf(url: string) {
     try {
@@ -231,54 +229,32 @@ export function ChildProfileV3View({
         <div className="relative flex flex-col items-center justify-between gap-6 p-6 md:flex-row md:p-8">
           <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:w-auto">
             <div className="group relative shrink-0">
-              {fotoUrl ? (
-                <div className="relative">
-                  <Avatar
-                    src={fotoUrl}
-                    name={nome}
-                    shape="square"
-                    className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-28 md:w-28"
-                    textSize="text-2xl"
-                  />
-                  {!isSelfView && (
-                    <button
-                      type="button"
-                      onClick={onPhotoClick}
-                      disabled={isUploadingPhoto}
-                      className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center rounded-2xl bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
-                    >
-                      {isUploadingPhoto ? (
-                        <Loader2 className="h-6 w-6 animate-spin text-white" />
-                      ) : (
-                        <>
-                          <Camera className="mb-1 h-5 w-5 text-white" />
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-white">Alterar</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border border-[#2B3545] bg-gradient-to-tr from-[#1E2530] via-[#12161E] to-[#1E2530] shadow-xl md:h-28 md:w-28">
-                  <div className="pointer-events-none absolute inset-1 animate-[spin_12s_linear_infinite] rounded-xl border border-dashed border-[#FACC15]/25" />
-                  <div className="pointer-events-none absolute inset-2.5 rounded-lg border border-[#FACC15]/10" />
-                  <div className="relative text-center">
-                    <span className="mb-1.5 block text-[9px] font-black uppercase leading-none tracking-widest text-[#FACC15]">
-                      TERREIRO
-                    </span>
-                    <span className="block font-display text-2xl font-black tracking-widest text-white">{initials}</span>
-                  </div>
-                  {!isSelfView && (
-                    <button
-                      type="button"
-                      onClick={onPhotoClick}
-                      className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-2xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      <Camera className="h-5 w-5 text-white" />
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="relative">
+                <Avatar
+                  src={child.foto_url}
+                  name={nome}
+                  shape="square"
+                  className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-28 md:w-28"
+                  textSize="text-2xl"
+                />
+                {!isSelfView && (
+                  <button
+                    type="button"
+                    onClick={onPhotoClick}
+                    disabled={isUploadingPhoto}
+                    className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center rounded-2xl bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                  >
+                    {isUploadingPhoto ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    ) : (
+                      <>
+                        <Camera className="mb-1 h-5 w-5 text-white" />
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-white">Alterar</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
               <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={onPhotoChange} />
               <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#13171D] bg-[#10B981] px-3 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#080A0D] shadow-md">
                 ● {status.toUpperCase()} NA CORRENTE

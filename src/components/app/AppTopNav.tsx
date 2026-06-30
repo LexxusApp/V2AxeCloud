@@ -2,7 +2,6 @@
   Camera,
   ChevronDown,
   Download,
-  Flame,
   Loader2,
   Lock,
   LogOut,
@@ -24,6 +23,7 @@ import {
   type ZeladorNavEntry,
 } from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
+import Avatar from '../Avatar';
 
 type AppTopNavProps = {
   activeTab: string;
@@ -469,22 +469,19 @@ export default function AppTopNav({
   const profileAvatar = (
     <div
       className={cn(
-        'grid place-items-center overflow-hidden rounded-full border bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10',
+        'overflow-hidden rounded-full border bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10',
         isFilhoProfile
           ? 'h-12 w-12 border-2 border-primary/50 shadow-md shadow-primary/15'
           : 'h-9 w-9 border-primary/40',
       )}
     >
-      {profileFoto ? (
-        <img
-          src={profileFoto}
-          alt=""
-          className="h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <Flame className={cn('text-[#13171D]', isFilhoProfile ? 'h-5 w-5' : 'h-4 w-4')} aria-hidden />
-      )}
+      <Avatar
+        src={profileFoto}
+        name={isFilhoProfile ? userDisplayName || 'Filho de Santo' : terreiroNome}
+        alt=""
+        className="h-full w-full"
+        textSize={isFilhoProfile ? 'text-sm' : 'text-xs'}
+      />
     </div>
   );
 

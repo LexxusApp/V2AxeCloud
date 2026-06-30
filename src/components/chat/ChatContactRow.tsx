@@ -1,6 +1,7 @@
 import { Lock } from 'lucide-react';
 import type { ChatContact } from '../../lib/chatTypes';
 import { cn } from '../../lib/utils';
+import Avatar from '../Avatar';
 
 type ChatContactRowProps = {
   contact: ChatContact;
@@ -42,22 +43,13 @@ export function ChatContactRow({
         disabled && canChat && 'disabled:opacity-50',
       )}
     >
-      {contact.fotoUrl ? (
-        <img
-          src={contact.fotoUrl}
-          alt=""
-          className={cn('shrink-0 rounded-full object-cover', avatarClass)}
-        />
-      ) : (
-        <div
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-full bg-white/10 font-bold text-white',
-            avatarClass,
-          )}
-        >
-          {contact.nome.charAt(0)}
-        </div>
-      )}
+      <Avatar
+        src={contact.fotoUrl}
+        name={contact.nome}
+        shape="circle"
+        textSize={avatarSize === 'sm' ? 'text-[10px]' : 'text-xs'}
+        className={cn('shrink-0', avatarClass)}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-white">{contact.nome}</p>
         {canChat ? (
