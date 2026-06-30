@@ -271,12 +271,12 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
     <BodyPortal>
       <div className="fixed inset-0 z-[120] overflow-y-auto overscroll-contain">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
-        <div className="flex min-h-full items-start justify-center p-4 pt-20 pb-6 sm:items-center sm:p-6 sm:pt-24">
+        <div className="relative z-10 flex min-h-full justify-center px-4 pb-8 pt-20 sm:px-6 sm:pb-10 sm:pt-24">
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="gira-ops-title"
-          className="relative z-10 my-auto flex h-[min(calc(100dvh-5.5rem),calc(100dvh-7rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:h-[min(calc(100dvh-7rem),900px)]"
+          className="my-auto flex w-full max-w-2xl flex-col rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
         >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#1E242B] px-4 py-3 sm:px-5">
           <div className="min-w-0">
@@ -313,7 +313,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-5 sm:p-4 sm:pb-6">
+        <div className="p-3 sm:p-4">
           {loading && tab === 'frequencia' ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -387,7 +387,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
 
                 <div className="flex flex-col space-y-2">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Corrente — presença</p>
-                  <div className="max-h-44 space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-52">
+                  <div className="space-y-1.5">
                     {participantes.length === 0 ? (
                       <p className="text-sm text-gray-500 italic">Nenhum filho cadastrado.</p>
                     ) : (
@@ -476,7 +476,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                 </AppPrimaryButton>
               </div>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2">
                 {senhas.map((s) => (
                   <div
                     key={s.id}

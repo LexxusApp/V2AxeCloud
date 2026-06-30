@@ -167,7 +167,7 @@ export function EventGuestsInline({
       ) : filtered.length === 0 ? (
         <p className="text-xs text-gray-500 italic">Nenhum convidado externo.</p>
       ) : (
-        <div className="max-h-28 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="space-y-1">
         {filtered.map((guest) => (
           <div
             key={guest.id}
