@@ -270,13 +270,14 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
 
   return (
     <BodyPortal>
-      <div className="fixed inset-0 z-[120] flex flex-col justify-end sm:justify-center sm:p-4">
+      <div className="fixed inset-0 z-[120] overflow-y-auto overscroll-contain">
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(4.5rem,env(safe-area-inset-top))] sm:p-6 sm:pt-24">
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="gira-ops-title"
-          className="relative z-10 flex max-h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:mx-auto sm:max-h-[min(85vh,900px)] sm:max-w-2xl sm:rounded-2xl"
+          className="flex max-h-[min(88dvh,calc(100dvh-2.5rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
         >
         <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[#1E242B] px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
           <div className="min-w-0">
@@ -678,6 +679,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
               ) : null}
             </div>
           ) : null}
+        </div>
         </div>
         </div>
       </div>
