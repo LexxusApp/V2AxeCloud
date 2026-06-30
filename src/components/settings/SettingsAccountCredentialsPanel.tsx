@@ -137,8 +137,8 @@ export function SettingsAccountCredentialsPanel({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-stretch">
+        <div className="flex h-full flex-col gap-4">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Mail className="h-4 w-4 text-[#3B82F6]" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar e-mail</span>
@@ -188,14 +188,14 @@ export function SettingsAccountCredentialsPanel({
             type="button"
             onClick={() => void handleChangeEmail()}
             disabled={isChangingEmail}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#3B82F6]/30 bg-blue-950/30 px-4 py-2.5 text-xs font-bold text-blue-300 transition-all hover:border-[#3B82F6]/50 hover:bg-blue-950/50 disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-[#3B82F6]/30 bg-blue-950/30 px-4 py-2.5 text-xs font-bold text-blue-300 transition-all hover:border-[#3B82F6]/50 hover:bg-blue-950/50 disabled:opacity-50"
           >
             {isChangingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {isChangingEmail ? 'Alterando e-mail…' : 'Salvar novo e-mail'}
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex h-full flex-col gap-4">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Lock className="h-4 w-4 text-amber-400" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar senha</span>
@@ -268,7 +268,7 @@ export function SettingsAccountCredentialsPanel({
             type="button"
             onClick={() => void handleChangePassword()}
             disabled={isChangingPassword}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600/90 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/10 transition-all hover:bg-amber-500 disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600/90 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/10 transition-all hover:bg-amber-500 disabled:opacity-50"
           >
             {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
             {isChangingPassword ? 'Alterando senha…' : 'Salvar nova senha'}
