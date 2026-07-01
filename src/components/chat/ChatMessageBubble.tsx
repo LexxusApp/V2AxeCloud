@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from '../../lib/chatTypes';
 import { formatChatTime } from '../../lib/chatTypes';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { resolveChatMediaAccess } from '../../lib/chatMediaUrl';
 import { canPlayAudioMime, normalizeAudioMime } from '../../lib/microphoneAccess';
 import { cn } from '../../lib/utils';
 
@@ -44,20 +45,21 @@ function useAuthMediaUrl(
 ): AuthMediaState {
   const lazy = options?.lazy === true;
   const raw = String(url || '').trim();
-  const needsAuth = raw.includes('/api/v1/chat/media');
+  const { directSrc, fetchUrl } = resolveChatMediaAccess(raw);
 
   const objectUrlRef = useRef<string | null>(null);
   const loadPromiseRef = useRef<Promise<string | null> | null>(null);
 
   const [state, setState] = useState(() => ({
-    src: !raw || needsAuth ? null : raw,
-    loading: Boolean(raw && needsAuth && !lazy),
+    src: directSrc,
+    loading: Boolean(fetchUrl && !lazy),
     failed: false,
   }));
 
   const ensureLoaded = useCallback(async (): Promise<string | null> => {
     if (!raw) return null;
-    if (!needsAuth) return raw;
+    if (directSrc) return directSrc;
+    if (!fetchUrl) return null;
     if (objectUrlRef.current) return objectUrlRef.current;
     if (loadPromiseRef.current) return loadPromiseRef.current;
 
@@ -65,7 +67,7 @@ function useAuthMediaUrl(
 
     loadPromiseRef.current = (async () => {
       try {
-        const nextUrl = await fetchAuthMediaBlobUrl(raw, mimeHint);
+        const nextUrl = await fetchAuthMediaBlobUrl(fetchUrl, mimeHint);
         if (!nextUrl) {
           setState((prev) => ({ ...prev, loading: false, failed: true, src: null }));
           return null;
@@ -82,7 +84,7 @@ function useAuthMediaUrl(
     })();
 
     return loadPromiseRef.current;
-  }, [raw, needsAuth, mimeHint]);
+  }, [raw, directSrc, fetchUrl, mimeHint]);
 
   useEffect(() => {
     if (!raw) {
@@ -90,8 +92,13 @@ function useAuthMediaUrl(
       return;
     }
 
-    if (!needsAuth) {
-      setState((prev) => ({ ...prev, src: raw, loading: false, failed: false }));
+    if (directSrc) {
+      setState((prev) => ({ ...prev, src: directSrc, loading: false, failed: false }));
+      return;
+    }
+
+    if (!fetchUrl) {
+      setState((prev) => ({ ...prev, src: null, loading: false, failed: true }));
       return;
     }
 
@@ -105,7 +112,7 @@ function useAuthMediaUrl(
 
     void (async () => {
       try {
-        const nextUrl = await fetchAuthMediaBlobUrl(raw, mimeHint);
+        const nextUrl = await fetchAuthMediaBlobUrl(fetchUrl, mimeHint);
         if (cancelled) {
           if (nextUrl) URL.revokeObjectURL(nextUrl);
           return;
@@ -129,7 +136,7 @@ function useAuthMediaUrl(
       }
       loadPromiseRef.current = null;
     };
-  }, [raw, needsAuth, mimeHint, lazy]);
+  }, [raw, directSrc, fetchUrl, mimeHint, lazy]);
 
   useEffect(() => {
     return () => {

@@ -68,11 +68,7 @@ function extractConversationIdFromChatKey(storageKey: string): string | null {
 }
 
 function buildChatPublicUrl(storageKey: string): string {
-  const built = buildR2PublicUrlFromKey(storageKey);
-  if (built.includes("/api/v1/public/media")) {
-    return `/api/v1/chat/media?key=${encodeURIComponent(storageKey)}`;
-  }
-  return built;
+  return `/api/v1/chat/media?key=${encodeURIComponent(storageKey)}`;
 }
 
 type Deps = {

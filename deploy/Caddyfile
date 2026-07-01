@@ -17,6 +17,9 @@
 		health_interval 5s
 		health_timeout 3s
 		fail_duration 15s
+		# Durante restart do container app, retenta em vez de 503 imediato
+		lb_try_duration 30s
+		lb_try_interval 250ms
 	}
 }
 
@@ -39,7 +42,7 @@ axecloud.com.br, www.axecloud.com.br {
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(self), geolocation=()"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev; frame-src 'self' https://*.efi.com.br https://*.gerencianet.com.br; object-src 'none'; base-uri 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev; frame-src 'self' https://*.efi.com.br https://*.gerencianet.com.br; object-src 'none'; base-uri 'self'"
 		-Server
 	}
 
@@ -156,6 +159,9 @@ axecloud.com.br, www.axecloud.com.br {
 		# Ícones PWA/favicon: sempre do container app (dist atualizado no deploy)
 		@pwa_icons {
 			path /favicon.ico
+			path /manifest.webmanifest
+			path /sw.js
+			path /build-info.json
 			path /axecloud_*.png
 			path /pwa-*.png
 			path /logo-axecloud.png
