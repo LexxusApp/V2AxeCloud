@@ -1,6 +1,7 @@
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatAttachMenu } from './ChatAttachMenu';
+import { ChatAudioRecorder } from './ChatAudioRecorder';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { authFetch } from '../../lib/authenticatedFetch';
 import type { ChatConversationSummary, ChatMessage, ChatParticipantSummary } from '../../lib/chatTypes';
@@ -396,8 +397,11 @@ export function ChatThread({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl',
-        isFloating ? 'h-[min(72dvh,420px)] w-full' : 'h-full min-h-[480px]',
+        'flex flex-col overflow-hidden rounded-2xl border bg-[#13171D] shadow-2xl',
+        isFloating
+          ? 'h-[min(72dvh,420px)] w-full border-white/12 bg-[#1A1F27] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_64px_rgba(0,0,0,0.85)] ring-1 ring-primary/15'
+          : 'border-[#1E242B]',
+        !isFloating && 'h-full min-h-[480px]',
       )}
     >
       <div className="flex items-center gap-3 border-b border-[#1E242B] bg-[#12161A] px-4 py-3">
@@ -431,6 +435,11 @@ export function ChatThread({
             <p className="truncate text-[10px] text-[#64748B]">{conversation.peer.cargo}</p>
           )}
         </div>
+        <ChatAttachMenu
+          disabled={uploading}
+          placement="header"
+          onPick={(f) => void uploadAndSend(f)}
+        />
       </div>
 
       <div ref={listRef} className="relative flex-1 space-y-3 overflow-y-auto p-4">
@@ -455,11 +464,6 @@ export function ChatThread({
           </p>
         )}
         <div className="flex items-end gap-2">
-          <ChatAttachMenu
-            disabled={uploading}
-            onPick={(f) => void uploadAndSend(f)}
-            onRecorded={(file, dur) => void uploadAndSend(file, dur)}
-          />
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -473,6 +477,10 @@ export function ChatThread({
             rows={1}
             className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:border-primary/50 focus:outline-none"
             disabled={uploading}
+          />
+          <ChatAudioRecorder
+            disabled={uploading}
+            onRecorded={(file, dur) => void uploadAndSend(file, dur)}
           />
           <button
             type="button"

@@ -87,12 +87,13 @@ export function ChatAudioRecorder({ disabled, onRecorded }: ChatAudioRecorderPro
       disabled={disabled}
       onClick={recording ? stopRecording : () => void startRecording()}
       className={cn(
-        'flex items-center gap-1 rounded-lg p-2 transition-colors disabled:opacity-40',
+        'flex shrink-0 items-center justify-center gap-1 transition-colors disabled:opacity-40',
         recording
-          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-          : 'text-[#94A3B8] hover:bg-white/5 hover:text-white',
+          ? 'min-h-[42px] rounded-xl bg-red-500/20 px-2 text-red-400 hover:bg-red-500/30'
+          : 'h-[42px] w-[42px] rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white',
       )}
       title={recording ? 'Parar gravação' : 'Gravar áudio'}
+      aria-label={recording ? 'Parar gravação' : 'Gravar áudio'}
     >
       {recording ? <Square className="h-5 w-5 fill-current" /> : <Mic className="h-5 w-5" />}
       {recording && <span className="text-xs font-bold tabular-nums">{formatSec(seconds)}</span>}
