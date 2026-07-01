@@ -69,9 +69,10 @@ function NavTab({
   isActive: boolean;
   isLocked: boolean;
   onSelect: () => void;
-  layout?: 'inline' | 'grid' | 'dropdown' | 'drawer';
+  layout?: 'inline' | 'grid' | 'dropdown' | 'drawer' | 'drawer-sub';
 }) {
   const Icon = item.icon;
+  const isDrawerLayout = layout === 'drawer' || layout === 'drawer-sub';
   return (
     <button
       type="button"
@@ -79,36 +80,47 @@ function NavTab({
       aria-selected={layout === 'dropdown' ? undefined : isActive}
       onClick={onSelect}
       className={cn(
-        'inline-flex shrink-0 items-center font-bold transition-colors touch-manipulation',
+        'inline-flex shrink-0 items-center transition-colors touch-manipulation',
+        layout === 'drawer-sub' ? 'font-semibold' : 'font-bold',
         layout === 'drawer'
           ? 'w-full min-h-[48px] gap-3 rounded-xl px-4 py-3 text-left text-sm'
-          : layout === 'grid'
-            ? 'w-full min-h-[44px] gap-1.5 rounded-xl border px-3 py-3 text-xs'
-            : layout === 'dropdown'
-              ? 'w-full min-h-[44px] gap-1.5 rounded-lg px-3 py-3 text-left text-sm'
-              : 'gap-1.5 rounded-lg px-3 py-2 text-xs',
+          : layout === 'drawer-sub'
+            ? 'w-full min-h-[42px] gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px]'
+            : layout === 'grid'
+              ? 'w-full min-h-[44px] gap-1.5 rounded-xl border px-3 py-3 text-xs'
+              : layout === 'dropdown'
+                ? 'w-full min-h-[44px] gap-1.5 rounded-lg px-3 py-3 text-left text-sm'
+                : 'gap-1.5 rounded-lg px-3 py-2 text-xs',
         isActive
           ? layout === 'grid'
             ? 'border-primary/40 bg-primary text-[#080A0D] shadow-sm'
-            : layout === 'drawer'
+            : isDrawerLayout
               ? 'bg-primary text-[#080A0D] shadow-sm'
               : layout === 'dropdown'
                 ? 'bg-primary/15 text-primary'
                 : 'bg-primary text-[#080A0D] shadow-sm'
           : layout === 'grid'
             ? 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-[#94A3B8]/30 hover:text-[#F1F5F9]'
-            : layout === 'drawer'
-              ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
-              : layout === 'dropdown'
+            : layout === 'drawer-sub'
+              ? 'text-[#7B8798] hover:bg-white/[0.04] hover:text-[#F1F5F9]'
+              : layout === 'drawer'
                 ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
-                : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+                : layout === 'dropdown'
+                  ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
+                  : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
         isLocked && 'opacity-50',
       )}
     >
       <Icon
         className={cn(
           'shrink-0',
-          layout === 'drawer' ? 'h-5 w-5' : layout === 'grid' || layout === 'dropdown' ? 'h-4 w-4' : 'h-3.5 w-3.5',
+          layout === 'drawer'
+            ? 'h-5 w-5'
+            : layout === 'drawer-sub'
+              ? 'h-4 w-4'
+              : layout === 'grid' || layout === 'dropdown'
+                ? 'h-4 w-4'
+                : 'h-3.5 w-3.5',
         )}
         aria-hidden
         strokeWidth={isActive ? 2.25 : 1.75}
@@ -118,7 +130,7 @@ function NavTab({
         className={
           layout === 'grid'
             ? 'line-clamp-2 text-left leading-tight'
-            : layout === 'dropdown' || layout === 'drawer'
+            : isDrawerLayout || layout === 'dropdown'
               ? 'min-w-0 flex-1 leading-snug'
               : 'whitespace-nowrap'
         }
@@ -137,6 +149,7 @@ function NavGroupMobileSection({
   activeTab,
   isItemLocked,
   onSelect,
+  menuLabel,
   variant = 'grid',
 }: {
   label: string;
@@ -145,6 +158,7 @@ function NavGroupMobileSection({
   activeTab: string;
   isItemLocked: (item: AppNavItem) => boolean;
   onSelect: (item: AppNavItem) => void;
+  menuLabel?: string;
   variant?: 'grid' | 'drawer';
 }) {
   const isGroupActive = items.some((i) => i.id === activeTab);
@@ -156,13 +170,14 @@ function NavGroupMobileSection({
 
   if (variant === 'drawer') {
     return (
-      <div className="space-y-1.5">
+      <div className={cn(expanded && 'rounded-xl bg-white/[0.02]')}>
         <button
           type="button"
           onClick={() => setExpanded((o) => !o)}
           aria-expanded={expanded}
           className={cn(
-            'flex w-full min-h-[48px] items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition-colors touch-manipulation',
+            'flex w-full min-h-[48px] items-center gap-3 px-4 py-3 text-left text-sm font-bold transition-colors touch-manipulation',
+            expanded ? 'rounded-t-xl' : 'rounded-xl',
             isGroupActive || expanded
               ? 'bg-primary/15 text-primary'
               : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
@@ -176,12 +191,16 @@ function NavGroupMobileSection({
           />
         </button>
         {expanded ? (
-          <div className="flex flex-col gap-1.5 pl-2">
+          <div
+            role="group"
+            aria-label={menuLabel ?? label}
+            className="ml-3 mt-1 space-y-0.5 rounded-b-xl border border-[#1E242B] border-l-2 border-l-primary/30 bg-[#12161A]/70 py-1.5 pl-2 pr-1"
+          >
             {items.map((item) => (
               <NavTab
                 key={item.id}
                 item={item}
-                layout="drawer"
+                layout="drawer-sub"
                 isActive={activeTab === item.id}
                 isLocked={isItemLocked(item)}
                 onSelect={() => onSelect(item)}
@@ -537,6 +556,7 @@ export default function AppTopNav({
         activeTab={activeTab}
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
+        menuLabel={entry.type === 'casa' ? 'Módulos da casa' : 'Módulos financeiros'}
       />
     );
   };
