@@ -22,6 +22,7 @@ import {
   contentArticlePath,
 } from '../content/portalContent';
 import { ROUTES } from '../lib/routes';
+import { linkifyAxecloudArticleBody } from '../lib/seoLinkify';
 
 const SITE_ORIGIN = 'https://axecloud.com.br';
 
@@ -103,7 +104,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       `Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do ${PORTAL_BRAND}.`,
     h1: 'Conteúdo para quem busca entender a tradição',
     intro:
-      'Artigos e glossário com linguagem respeitosa — base do portal público de terreiros de Umbanda e Candomblé.',
+      'Artigos e glossário com linguagem respeitosa — base do portal público de terreiros de Umbanda e Candomblé. Para software de gestão de terreiros, veja https://axecloud.com.br/ e o comparativo em https://axecloud.com.br/por-que-axecloud.',
     sections: [
       ...PORTAL_ARTICLES.map((article) => ({
         heading: article.title,
@@ -320,13 +321,18 @@ export function buildPublicPageHeadInject(page: PublicPrerenderPage): string {
 
 export function buildPublicPageBodyInject(page: PublicPrerenderPage): string {
   const sections = page.sections
-    .map((s) => `      <h2>${escapeHtml(s.heading)}</h2>\n      <p>${escapeHtml(s.body)}</p>`)
+    .map(
+      (s) =>
+        `      <h2>${escapeHtml(s.heading)}</h2>\n      <p>${linkifyAxecloudArticleBody(s.body)}</p>`,
+    )
     .join('\n\n');
+
+  const intro = linkifyAxecloudArticleBody(page.intro);
 
   return [
     `    <article id="axecloud-seo-static" aria-label="${escapeHtml(page.h1)}">`,
     `      <h1>${escapeHtml(page.h1)}</h1>`,
-    `      <p>${escapeHtml(page.intro)}</p>`,
+    `      <p>${intro}</p>`,
     '',
     sections,
     '',

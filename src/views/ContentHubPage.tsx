@@ -145,6 +145,19 @@ export default function ContentHubPage() {
         </div>
 
         <a
+          href={ROUTES.home}
+          className={cn('group mb-4 block p-5 sm:p-6', landingMockupCardClass, 'rounded-2xl')}
+        >
+          <p className="text-xs font-black uppercase tracking-wider text-amber-700">Gestão de terreiros</p>
+          <p className="mt-1 text-lg font-bold text-[#1b1813] group-hover:text-amber-800">
+            Software AxéCloud para Umbanda, Candomblé e Jurema
+          </p>
+          <p className="mt-2 text-sm text-[#1b1813]/70">
+            Financeiro com Pix, calendário de giras, portal do filho de santo e app PWA — tudo em um só lugar.
+          </p>
+        </a>
+
+        <a
           href={ROUTES.whyAxeCloud}
           className={cn('group mb-5 block p-5 sm:p-6', landingMockupCardClass, 'rounded-2xl border-amber-300/30 bg-amber-50/40')}
         >

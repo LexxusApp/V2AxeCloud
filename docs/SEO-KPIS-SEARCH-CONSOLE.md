@@ -33,7 +33,7 @@ Filtro: **Performance → Resultados da pesquisa → + Novo → Consulta → Con
 | Grupo | Exemplos de filtro | Meta 90 dias |
 |-------|-------------------|--------------|
 | **Marca** | `axecloud`, `axécloud` | Posição ≤ 1,5 · CTR ≥ 35% |
-| **Produto genérico** | `software terreiro`, `gestão terreiro`, `sistema terreiro` | Impressões +30% · posição ≤ 8 |
+| **Produto genérico** | `gestão de terreiros`, `software terreiro`, `sistema terreiro` | “gestão de terreiros” na home ≤ 5 · impressões +30% |
 | **Funcionalidade** | `mensalidade pix`, `portal filho de santo`, `pwa terreiro` | ≥ 1 URL `/conteudo/` com impressões |
 | **Comparativo** | `melhor software terreiro`, `planilha terreiro` | `/por-que-axecloud` ≥ 50 imp/mês |
 

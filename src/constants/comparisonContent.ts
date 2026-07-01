@@ -15,7 +15,7 @@ export type ComparisonRow = {
 
 export const COMPARISON_INTRO = {
   title: `Por que ${BRAND_NAME}?`,
-  h1: `Por que escolher o ${BRAND_NAME} para gestão do terreiro`,
+  h1: `Gestão de terreiros: por que escolher o ${BRAND_NAME}`,
   description:
     `Compare o ${BRAND_NAME} com planilhas, WhatsApp e outros softwares de terreiro. Módulos reais, app PWA instalável, portal público e WhatsApp oficial Meta — tudo incluso.`,
   lead:

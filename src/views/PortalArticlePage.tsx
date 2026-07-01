@@ -2,7 +2,7 @@
 import { Calendar, Clock } from 'lucide-react';
 import { ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
 import { landingMockupCardClass } from '../components/landing/landingMockupUi';
-import { cn } from '../lib/utils';
+import { linkifyAxecloudArticleBody } from '../lib/seoLinkify';
 import { getPortalArticleBySlug } from '../content/portalContent';
 import { appHref } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
@@ -65,7 +65,10 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
             className="landing-mockup-card p-5 sm:p-6"
           >
             <h2 className="landing-mockup-kicker inline-flex text-[10px]">{section.title}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#1b1813]/65 sm:text-[15px]">{section.body}</p>
+            <p
+              className="mt-3 text-sm leading-relaxed text-[#1b1813]/65 sm:text-[15px]"
+              dangerouslySetInnerHTML={{ __html: linkifyAxecloudArticleBody(section.body) }}
+            />
           </motion.section>
         ))}
       </article>
@@ -94,10 +97,20 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
             href={ROUTES.whyAxeCloud}
             className="mt-5 inline-flex items-center justify-center rounded-xl border border-[#e8dfd0] bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#1b1813] transition hover:border-amber-300/50"
           >
-            Por que AxéCloud
+            Comparativo de gestão de terreiros
           </a>
         </div>
       </div>
+
+      <p className="mt-6 text-center text-sm text-[#1b1813]/60">
+        <a href={ROUTES.home} className="font-semibold text-amber-700 hover:text-amber-800">
+          Gestão de terreiros
+        </a>
+        {' · '}
+        <a href={ROUTES.contentHub} className="font-semibold text-amber-700 hover:text-amber-800">
+          Mais artigos
+        </a>
+      </p>
     </ContentMarketingLayout>
   );
 }

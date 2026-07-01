@@ -48,14 +48,16 @@ export const SEO_KPI_QUERY_GROUPS: readonly SeoKpiQueryGroup[] = [
     id: 'generic-product',
     label: 'Produto genérico',
     queries: [
+      'gestão de terreiros',
+      'gestao de terreiros',
       'software gestão terreiro',
       'software para terreiro',
       'sistema para terreiro',
       'gestão terreiro',
       'sistema gestão terreiro umbanda',
     ],
-    target90d: 'Impressões +30% vs baseline · posição média ≤ 8',
-    target6m: 'Top 3 em pelo menos 2 termos deste grupo',
+    target90d: '“gestão de terreiros” na home: posição média ≤ 5 · impressões +30% no grupo',
+    target6m: 'Top 3 em “gestão de terreiros” e em ≥ 2 termos do grupo',
   },
   {
     id: 'feature-intent',
@@ -82,6 +84,18 @@ export const SEO_KPI_QUERY_GROUPS: readonly SeoKpiQueryGroup[] = [
     ],
     target90d: '/por-que-axecloud indexada · ≥ 50 impressões/mês',
     target6m: 'Posição ≤ 5 para "melhor software terreiro"',
+  },
+  {
+    id: 'diretorio-local',
+    label: 'Diretório local (terreiros)',
+    queries: [
+      'terreiro umbanda',
+      'terreiro candomblé',
+      'terreiros em suzano',
+      'terreiro perto de mim',
+    ],
+    target90d: '≥ 10 páginas /terreiros/* ou /terreiro/* com impressões no GSC',
+    target6m: 'Cidades com ≥ 50 impressões/mês; perfis /terreiro/* com CTR ≥ 3%',
   },
 ] as const;
 
@@ -246,7 +260,7 @@ export function buildWeeklySeoKpiChecklistLines(): string[] {
     '── Ações se algo estiver abaixo da meta ──',
     '• URL nova sem indexação: Inspeção de URL → Solicitar indexação',
     '• CTR baixo com posição ≤ 10: revisar title/description da página',
-    '• Impressões zero em termo genérico: reforçar link interno a partir de /conteudo e /por-que-axecloud',
+    '• Impressões zero em “gestão de terreiros”: reforçar link interno da home a partir de /conteudo e /por-que-axecloud',
     '• GBP: post quinzenal + link do site apontando para axecloud.com.br (mesmo domínio verificado no GSC)',
     '',
     `Meta indexação: ${SEO_KPI_INDEXING.baselinePages} → ${SEO_KPI_INDEXING.target90d} (90d) → ${SEO_KPI_INDEXING.target6m} (6m)`,

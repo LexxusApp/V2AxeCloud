@@ -28,7 +28,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O desafio da administração na casa de axé',
         body:
-          'Dirigir um terreiro exige cuidado espiritual e organização prática ao mesmo tempo: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce.',
+          'Dirigir um terreiro exige cuidado espiritual e gestão de terreiros no dia a dia: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce. O software de gestão de terreiros do AxéCloud centraliza essa rotina em https://axecloud.com.br/.',
       },
       {
         title: 'Financeiro com transparência',
@@ -98,7 +98,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Organização e espiritualidade',
         body:
-          'Casas que crescem precisam de registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade.',
+          'Casas que crescem precisam de gestão de terreiros com registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade. Saiba mais em https://axecloud.com.br/.',
       },
     ],
   },
@@ -263,7 +263,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O que muda com um software de gestão',
         body:
-          'Um software para terreiro centraliza filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho de santo — cada um vê o que precisa, sem expor o que é sigiloso. O zelador deixa de repetir a mesma informação dez vezes e ganha tempo para cuidar do chão do terreiro.',
+          'Um software para terreiro centraliza filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho de santo — cada um vê o que precisa, sem expor o que é sigiloso. O zelador deixa de repetir a mesma informação dez vezes e ganha tempo para cuidar do chão do terreiro. Veja como o AxéCloud faz gestão de terreiros em https://axecloud.com.br/.',
       },
       {
         title: 'Como migrar sem assustar a comunidade',
@@ -323,7 +323,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O limite dos grupos',
         body:
-          'Grupos de WhatsApp são ótimos para conversa informal — mas péssimos como sistema: mensagens somem, quem entrou tarde perde avisos, cobrança de mensalidade vira constrangimento público e fotos de gira poluem a timeline. Quando a casa passa de 30 filhos de santo, o caos é quase inevitável.',
+          'Grupos de WhatsApp são ótimos para conversa informal — mas péssimos como sistema de gestão de terreiros: mensagens somem, quem entrou tarde perde avisos, cobrança de mensalidade vira constrangimento público e fotos de gira poluem a timeline. Quando a casa passa de 30 filhos de santo, o caos é quase inevitável. Veja alternativas em https://axecloud.com.br/.',
       },
       {
         title: 'WhatsApp Business vs API Meta',
@@ -358,7 +358,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Por que “melhor” depende da sua casa',
         body:
-          'Não existe ranking universal. Um terreiro pequeno de Umbanda precisa de calendário, mensalidade e mural; uma casa grande pode exigir loja do axé, almoxarifado, portal público e pedidos de reza. O melhor software para terreiro em 2026 é o que cobre sua rotina real — sem cobrar extra por cada filho de santo.',
+          'Não existe ranking universal. Um terreiro pequeno de Umbanda precisa de calendário, mensalidade e mural; uma casa grande pode exigir loja do axé, almoxarifado, portal público e pedidos de reza. O melhor software para gestão de terreiros em 2026 é o que cobre sua rotina real — sem cobrar extra por cada filho de santo. Compare opções em https://axecloud.com.br/por-que-axecloud.',
       },
       {
         title: 'Checklist de funcionalidades',

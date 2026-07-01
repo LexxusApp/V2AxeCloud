@@ -11,6 +11,15 @@
 	}
 }
 
+(app_upstream) {
+	reverse_proxy app:3000 {
+		health_uri /api/health-check
+		health_interval 5s
+		health_timeout 3s
+		fail_duration 15s
+	}
+}
+
 axecloud.com.br, www.axecloud.com.br {
 	@www host www.axecloud.com.br
 	redir @www https://axecloud.com.br{uri} permanent
@@ -41,7 +50,7 @@ axecloud.com.br, www.axecloud.com.br {
 		}
 
 		handle /sitemap.xml {
-			reverse_proxy app:3000
+			import app_upstream
 		}
 
 		@diretorio_crawlers {
@@ -53,10 +62,13 @@ axecloud.com.br, www.axecloud.com.br {
 			@terreiro_page path /terreiro/*
 			handle @terreiro_page {
 				rewrite * /api/v1/public/diretorio/render{path}
-				reverse_proxy app:3000
+				import app_upstream
 			}
-			rewrite /terreiros/{uf}/{city} /api/v1/public/diretorio/render/{uf}/{city}
-			reverse_proxy app:3000
+			@city_page path /terreiros/*/*
+			handle @city_page {
+				rewrite * /api/v1/public/diretorio/render/{path.1}/{path.2}
+				import app_upstream
+			}
 		}
 
 		crowdsec
@@ -99,7 +111,7 @@ axecloud.com.br, www.axecloud.com.br {
 					window 1m
 				}
 			}
-			reverse_proxy app:3000
+			import app_upstream
 		}
 
 		@api path /api/*
@@ -111,7 +123,7 @@ axecloud.com.br, www.axecloud.com.br {
 					window 1m
 				}
 			}
-			reverse_proxy app:3000
+			import app_upstream
 		}
 
 		@evolution_webhook path /webhook/*
@@ -149,7 +161,7 @@ axecloud.com.br, www.axecloud.com.br {
 			path /logo-axecloud.png
 		}
 		handle @pwa_icons {
-			reverse_proxy app:3000
+			import app_upstream
 		}
 		handle @public_static {
 			reverse_proxy marketing:80
@@ -194,7 +206,7 @@ axecloud.com.br, www.axecloud.com.br {
 		}
 
 		handle {
-			reverse_proxy app:3000
+			import app_upstream
 		}
 	}
 }
@@ -230,7 +242,7 @@ admin.axecloud.com.br {
 					window 1m
 				}
 			}
-			reverse_proxy app:3000
+			import app_upstream
 		}
 
 		handle {

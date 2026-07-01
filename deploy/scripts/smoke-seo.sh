@@ -55,4 +55,16 @@ curl -sS "${BASE}/" | grep -qi 'gestão de terreiros' || {
 }
 echo "OK   / — contém \"gestão de terreiros\""
 
+# Página de cidade do diretório — Googlebot deve receber HTML SEO (não a home)
+city_tmp="$(mktemp)"
+curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \
+  -o "$city_tmp" "${BASE}/terreiros/sp/suzano"
+grep -qi 'Terreiros em Suzano' "$city_tmp" || {
+  echo "FAIL /terreiros/sp/suzano (Googlebot) — HTML não contém título da cidade (possível fallback da home)"
+  rm -f "$city_tmp"
+  exit 1
+}
+rm -f "$city_tmp"
+echo "OK   /terreiros/sp/suzano (Googlebot) — HTML SEO da cidade"
+
 echo "=== SEO smoke passou ==="
