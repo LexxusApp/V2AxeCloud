@@ -276,10 +276,20 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
     [conversations],
   );
 
+  const chatOpen = membersOpen || !!activeConversation;
+
   if (!tenantId) return null;
 
   return (
-    <div ref={rootRef} className="pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+    <>
+      {chatOpen ? (
+        <div
+          className="fixed inset-0 z-[88] bg-black/65 backdrop-blur-[2px] animate-in fade-in duration-200"
+          aria-hidden
+        />
+      ) : null}
+
+      <div ref={rootRef} className="pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {activeConversation ? (
         <div className="pointer-events-auto w-[min(calc(100vw-2.5rem),380px)] animate-in fade-in slide-in-from-bottom-2 duration-200">
           <ChatThread
@@ -295,7 +305,7 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
 
       {membersOpen && !activeConversation ? (
         <div
-          className="pointer-events-auto flex w-[min(calc(100vw-2.5rem),320px)] max-h-[min(60dvh,420px)] animate-in fade-in slide-in-from-bottom-2 flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl duration-200"
+          className="pointer-events-auto flex w-[min(calc(100vw-2.5rem),320px)] max-h-[min(60dvh,420px)] animate-in fade-in slide-in-from-bottom-2 flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#1A1F27] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_64px_rgba(0,0,0,0.85)] ring-1 ring-primary/15 duration-200"
           role="dialog"
           aria-label="Membros disponíveis"
         >
@@ -389,5 +399,6 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
         ) : null}
       </button>
     </div>
+    </>
   );
 }
