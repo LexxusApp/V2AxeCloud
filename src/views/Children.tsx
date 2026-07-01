@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle } from 'lucide-react';
+import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle, MoreVertical, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -60,6 +60,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [resendingWelcome, setResendingWelcome] = useState(false);
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
+  const [sendingCredentialsId, setSendingCredentialsId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({ ...EMPTY_CHILD_FORM, data_entrada: new Date().toISOString().split('T')[0] });
@@ -77,6 +79,24 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   useEffect(() => {
     fetchChildren();
   }, [tenantId]);
+
+  useEffect(() => {
+    if (!openActionsId) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-child-actions-root]')) return;
+      setOpenActionsId(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenActionsId(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openActionsId]);
 
   async function fetchChildren() {
     setLoading(true);
@@ -193,7 +213,48 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     }
   }
 
+  async function handleSendCredentials(childId: string, childName: string) {
+    if (!user?.id) return;
+    const ok = confirm(
+      `Enviar dados de acesso (login, senha e link) via WhatsApp para ${childName}?\n\nA senha enviada são os 6 primeiros dígitos do CPF cadastrado.`,
+    );
+    if (!ok) return;
+
+    setOpenActionsId(null);
+    setSendingCredentialsId(childId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const response = await fetch(whatsappApiUrl('/whatsapp/send'), {
+        method: 'POST',
+        headers: whatsappRailwayHeaders(token, user.id),
+        body: JSON.stringify({
+          tipo: 'boas_vindas',
+          filhoId: childId,
+          variables: {
+            nome_filho: childName,
+            nome_terreiro: tenantData?.nome || 'AxéCloud',
+            nome_sistema: 'AxéCloud',
+          },
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Não foi possível enviar os dados de acesso.');
+      }
+      alert('Dados de acesso enviados via WhatsApp.');
+    } catch (error) {
+      console.error('[Children] send credentials WA:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao enviar dados via WhatsApp.');
+    } finally {
+      setSendingCredentialsId(null);
+    }
+  }
+
   async function handleDelete(id: string, name: string) {
+    setOpenActionsId(null);
     if (!confirm(`Deseja realmente excluir o perfil de ${name}? Esta ação é irreversível.`)) return;
 
     const snapshot = children;
@@ -325,66 +386,118 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             <table className="min-w-full divide-y divide-[#1E242B] text-xs">
               <thead className="bg-[#12161A]">
                 <tr>
-                  {['Filho', 'Cargo', 'Orixá', 'Guia', 'Status', ''].map((h) => (
-                    <th
-                      key={h || 'actions'}
-                      className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]"
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:px-4">
+                    Filho
+                  </th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:px-4">
+                    Cargo
+                  </th>
+                  <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:table-cell">
+                    Orixá
+                  </th>
+                  <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:table-cell">
+                    Guia
+                  </th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:px-4">
+                    Status
+                  </th>
+                  <th className="w-10 px-2 py-3 md:px-4" aria-label="Ações" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1E242B]">
-                {filteredChildren.map((child) => (
+                {filteredChildren.map((child) => {
+                  const isMenuOpen = openActionsId === child.id;
+                  const isRowBusy = deletingId === child.id || sendingCredentialsId === child.id;
+
+                  return (
                   <tr
                     key={child.id}
                     className="cursor-pointer transition-colors hover:bg-[#1E242B]/40"
                     onClick={() => {
+                      setOpenActionsId(null);
                       setSelectedChildId(child.id);
                       setActiveTab('profile');
                     }}
                   >
-                    <td className="whitespace-nowrap px-4 py-3.5 font-medium text-[#F1F5F9]">
+                    <td className="whitespace-nowrap px-3 py-3.5 font-medium text-[#F1F5F9] md:px-4">
                       <div className="flex items-center gap-2">
                         <Avatar
                           src={child.foto_url}
                           name={child.nome}
                           shape="circle"
                           textSize="text-[10px]"
-                          className="h-7 w-7"
+                          className="h-7 w-7 shrink-0"
                         />
-                        {child.nome}
+                        <span className="max-w-[9.5rem] truncate sm:max-w-none">{child.nome}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-[#94A3B8]">{child.cargo || '—'}</td>
-                    <td className="px-4 py-3.5 font-semibold text-primary">{child.orixa_frente || '—'}</td>
-                    <td className="px-4 py-3.5 italic text-[#94A3B8]">
+                    <td className="px-3 py-3.5 text-[#94A3B8] md:px-4">{child.cargo || '—'}</td>
+                    <td className="hidden px-4 py-3.5 font-semibold text-primary md:table-cell">
+                      {child.orixa_frente || '—'}
+                    </td>
+                    <td className="hidden px-4 py-3.5 italic text-[#94A3B8] md:table-cell">
                       {child.quizilas?.[0] || '—'}
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-3 py-3.5 md:px-4">
                       <span className={childStatusClass(child.status)}>{child.status}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleDelete(child.id, child.nome);
-                        }}
-                        disabled={deletingId === child.id}
-                        className="rounded p-1 text-rose-400 hover:bg-white/5 hover:text-rose-300 disabled:opacity-50"
-                        aria-label={`Remover ${child.nome}`}
-                      >
-                        {deletingId === child.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </button>
+                    <td className="relative px-2 py-3.5 text-right md:px-4">
+                      <div className="relative inline-block text-left" data-child-actions-root>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenActionsId((prev) => (prev === child.id ? null : child.id));
+                          }}
+                          disabled={isRowBusy}
+                          className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-[#94A3B8] transition-colors hover:bg-white/5 hover:text-[#F1F5F9] disabled:opacity-50"
+                          aria-label={`Ações para ${child.nome}`}
+                          aria-expanded={isMenuOpen}
+                          aria-haspopup="menu"
+                        >
+                          {isRowBusy ? (
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                          ) : (
+                            <MoreVertical className="h-4 w-4" aria-hidden />
+                          )}
+                        </button>
+                        {isMenuOpen ? (
+                          <div
+                            role="menu"
+                            className="absolute right-0 z-20 mt-1 min-w-[11.5rem] overflow-hidden rounded-xl border border-[#1E242B] bg-[#13171D] py-1 shadow-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleSendCredentials(child.id, child.nome);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-emerald-400 transition-colors hover:bg-white/5"
+                            >
+                              <Send className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Enviar dados
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleDelete(child.id, child.nome);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-rose-400 transition-colors hover:bg-white/5"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Excluir
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filteredChildren.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-[#94A3B8]">
@@ -399,8 +512,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
             <span>
               Cada terreiro tem ambiente isolado (RLS). Clique na linha para abrir o perfil completo do filho.
-              Use &quot;Enviar acesso via WhatsApp&quot; para reenviar registro, senha e link de login aos filhos
-              com WhatsApp e CPF cadastrados.
+              No celular, use os três pontos para enviar dados de acesso ou excluir. O botão verde reenvia acesso
+              em massa para quem tem WhatsApp e CPF cadastrados.
             </span>
           </div>
         </div>
