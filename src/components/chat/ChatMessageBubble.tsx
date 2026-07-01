@@ -1,74 +1,146 @@
 import { Loader2, Pause, Play } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from '../../lib/chatTypes';
 import { formatChatTime } from '../../lib/chatTypes';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { canPlayAudioMime, normalizeAudioMime } from '../../lib/microphoneAccess';
 import { cn } from '../../lib/utils';
 
 type AuthMediaState = {
   src: string | null;
   loading: boolean;
   failed: boolean;
+  ensureLoaded: () => Promise<string | null>;
 };
 
-function useAuthMediaUrl(url: string | null | undefined, mimeHint?: string | null): AuthMediaState {
+function normalizeMediaContentType(contentType: string, mimeHint?: string | null): string {
+  const raw = String(contentType || mimeHint || '').trim().toLowerCase();
+  if (raw.startsWith('audio/')) return normalizeAudioMime(raw);
+  if (raw.startsWith('video/') || raw.startsWith('image/')) return raw.split(';')[0] || raw;
+  if (mimeHint) return normalizeAudioMime(mimeHint);
+  return contentType || 'application/octet-stream';
+}
+
+async function fetchAuthMediaBlobUrl(
+  raw: string,
+  mimeHint?: string | null,
+): Promise<string | null> {
+  const res = await authFetch(raw);
+  if (!res.ok) return null;
+
+  const contentType = normalizeMediaContentType(res.headers.get('content-type') || '', mimeHint);
+  const blob = await res.blob();
+  const typedBlob =
+    blob.type && blob.type !== 'application/octet-stream'
+      ? blob
+      : new Blob([blob], { type: contentType });
+  return URL.createObjectURL(typedBlob);
+}
+
+function useAuthMediaUrl(
+  url: string | null | undefined,
+  mimeHint?: string | null,
+  options?: { lazy?: boolean },
+): AuthMediaState {
+  const lazy = options?.lazy === true;
   const raw = String(url || '').trim();
   const needsAuth = raw.includes('/api/v1/chat/media');
 
-  const [state, setState] = useState<AuthMediaState>(() => ({
+  const objectUrlRef = useRef<string | null>(null);
+  const loadPromiseRef = useRef<Promise<string | null> | null>(null);
+
+  const [state, setState] = useState(() => ({
     src: !raw || needsAuth ? null : raw,
-    loading: Boolean(raw && needsAuth),
+    loading: Boolean(raw && needsAuth && !lazy),
     failed: false,
   }));
 
+  const ensureLoaded = useCallback(async (): Promise<string | null> => {
+    if (!raw) return null;
+    if (!needsAuth) return raw;
+    if (objectUrlRef.current) return objectUrlRef.current;
+    if (loadPromiseRef.current) return loadPromiseRef.current;
+
+    setState((prev) => ({ ...prev, loading: true, failed: false }));
+
+    loadPromiseRef.current = (async () => {
+      try {
+        const nextUrl = await fetchAuthMediaBlobUrl(raw, mimeHint);
+        if (!nextUrl) {
+          setState((prev) => ({ ...prev, loading: false, failed: true, src: null }));
+          return null;
+        }
+        objectUrlRef.current = nextUrl;
+        setState((prev) => ({ ...prev, src: nextUrl, loading: false, failed: false }));
+        return nextUrl;
+      } catch {
+        setState((prev) => ({ ...prev, loading: false, failed: true, src: null }));
+        return null;
+      } finally {
+        loadPromiseRef.current = null;
+      }
+    })();
+
+    return loadPromiseRef.current;
+  }, [raw, needsAuth, mimeHint]);
+
   useEffect(() => {
     if (!raw) {
-      setState({ src: null, loading: false, failed: false });
+      setState((prev) => ({ ...prev, src: null, loading: false, failed: false }));
       return;
     }
 
     if (!needsAuth) {
-      setState({ src: raw, loading: false, failed: false });
+      setState((prev) => ({ ...prev, src: raw, loading: false, failed: false }));
       return;
     }
 
-    let objectUrl: string | null = null;
+    if (lazy) {
+      setState((prev) => ({ ...prev, src: null, loading: false, failed: false }));
+      return;
+    }
+
     let cancelled = false;
-    setState({ src: null, loading: true, failed: false });
+    setState((prev) => ({ ...prev, src: null, loading: true, failed: false }));
 
     void (async () => {
       try {
-        const res = await authFetch(raw);
-        if (!res.ok || cancelled) {
-          if (!cancelled) setState({ src: null, loading: false, failed: true });
+        const nextUrl = await fetchAuthMediaBlobUrl(raw, mimeHint);
+        if (cancelled) {
+          if (nextUrl) URL.revokeObjectURL(nextUrl);
           return;
         }
-
-        const contentType =
-          res.headers.get('content-type') ||
-          mimeHint ||
-          'application/octet-stream';
-        const blob = await res.blob();
-        if (cancelled) return;
-
-        const typedBlob =
-          blob.type && blob.type !== 'application/octet-stream'
-            ? blob
-            : new Blob([blob], { type: contentType });
-        objectUrl = URL.createObjectURL(typedBlob);
-        setState({ src: objectUrl, loading: false, failed: false });
+        if (!nextUrl) {
+          setState((prev) => ({ ...prev, src: null, loading: false, failed: true }));
+          return;
+        }
+        objectUrlRef.current = nextUrl;
+        setState((prev) => ({ ...prev, src: nextUrl, loading: false, failed: false }));
       } catch {
-        if (!cancelled) setState({ src: null, loading: false, failed: true });
+        if (!cancelled) setState((prev) => ({ ...prev, src: null, loading: false, failed: true }));
       }
     })();
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      loadPromiseRef.current = null;
     };
-  }, [raw, needsAuth, mimeHint]);
+  }, [raw, needsAuth, mimeHint, lazy]);
 
-  return state;
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, [raw]);
+
+  return { ...state, ensureLoaded };
 }
 
 function formatAudioTime(totalSec: number): string {
@@ -161,7 +233,16 @@ function ChatMediaVideo({ url, mimeHint }: { url: string; mimeHint?: string | nu
   const { src, loading, failed } = useAuthMediaUrl(url, mimeHint);
   if (loading) return <p className="text-xs text-[#94A3B8]">Carregando vídeo...</p>;
   if (failed || !src) return <p className="text-xs text-[#94A3B8]">Não foi possível carregar o vídeo.</p>;
-  return <video src={src} controls className="max-h-64 w-full rounded-xl" preload="metadata" />;
+  return <video src={src} controls className="max-h-64 w-full rounded-xl" preload="none" playsInline />;
+}
+
+let activeChatAudio: HTMLAudioElement | null = null;
+
+function pauseOtherChatAudio(current: HTMLAudioElement) {
+  if (activeChatAudio && activeChatAudio !== current && !activeChatAudio.paused) {
+    activeChatAudio.pause();
+  }
+  activeChatAudio = current;
 }
 
 function ChatAudioPlayer({
@@ -176,16 +257,20 @@ function ChatAudioPlayer({
   isOwn: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { src, loading, failed } = useAuthMediaUrl(url, mimeHint);
+  const userTriedPlayRef = useRef(false);
+  const { src, loading, failed, ensureLoaded } = useAuthMediaUrl(url, mimeHint, { lazy: true });
   const [playing, setPlaying] = useState(false);
   const [currentSec, setCurrentSec] = useState(0);
   const [totalSec, setTotalSec] = useState(durationSec ?? 0);
-  const [playError, setPlayError] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
+
+  const unsupportedFormat = Boolean(mimeHint && src && !canPlayAudioMime(mimeHint));
 
   useEffect(() => {
     setPlaying(false);
     setCurrentSec(0);
-    setPlayError(false);
+    setPlayError(null);
+    userTriedPlayRef.current = false;
     if (durationSec && durationSec > 0) setTotalSec(durationSec);
   }, [src, durationSec]);
 
@@ -199,15 +284,26 @@ function ChatAudioPlayer({
         setTotalSec(Math.ceil(el.duration));
       }
     };
-    const onPlay = () => setPlaying(true);
+    const onPlay = () => {
+      pauseOtherChatAudio(el);
+      setPlaying(true);
+      setPlayError(null);
+    };
     const onPause = () => setPlaying(false);
     const onEnded = () => {
       setPlaying(false);
       setCurrentSec(0);
+      if (activeChatAudio === el) activeChatAudio = null;
     };
     const onError = () => {
       setPlaying(false);
-      setPlayError(true);
+      if (userTriedPlayRef.current) {
+        setPlayError(
+          unsupportedFormat
+            ? 'Formato não suportado neste dispositivo'
+            : 'Erro ao reproduzir',
+        );
+      }
     };
 
     el.addEventListener('timeupdate', onTimeUpdate);
@@ -224,45 +320,73 @@ function ChatAudioPlayer({
       el.removeEventListener('pause', onPause);
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', onError);
+      if (activeChatAudio === el) activeChatAudio = null;
+      el.pause();
     };
-  }, [src]);
+  }, [src, unsupportedFormat]);
 
   const progress = totalSec > 0 ? Math.min(100, (currentSec / totalSec) * 100) : 0;
-  const disabled = loading || failed || !src || playError;
+  const fetchBlocked = failed;
+  const playBlocked = failed || unsupportedFormat;
 
   const toggle = async () => {
     const el = audioRef.current;
-    if (!el || disabled) return;
+    if (!el) return;
 
-    setPlayError(false);
+    if (unsupportedFormat) {
+      userTriedPlayRef.current = true;
+      setPlayError('Formato não suportado neste dispositivo');
+      return;
+    }
+
+    userTriedPlayRef.current = true;
+    setPlayError(null);
+
     if (playing) {
       el.pause();
       return;
     }
 
     try {
+      const playableSrc = src || (await ensureLoaded());
+      if (!playableSrc) {
+        setPlayError('Não foi possível carregar');
+        return;
+      }
+
+      if (el.src !== playableSrc) {
+        el.src = playableSrc;
+      }
+
+      if (el.readyState < HTMLMediaElement.HAVE_METADATA) {
+        el.load();
+      }
+      pauseOtherChatAudio(el);
       await el.play();
     } catch {
       setPlaying(false);
-      setPlayError(true);
+      setPlayError('Erro ao reproduzir');
     }
   };
 
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = audioRef.current;
-    if (!el || !totalSec || disabled) return;
+    if (!el || !totalSec || playBlocked || playError) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     el.currentTime = ratio * totalSec;
     setCurrentSec(el.currentTime);
   };
 
-  const timeLabel =
-    playing || currentSec > 0
-      ? `${formatAudioTime(currentSec)} / ${formatAudioTime(totalSec)}`
-      : totalSec > 0
-        ? formatAudioTime(totalSec)
-        : 'Áudio';
+  const statusLabel = loading
+    ? 'Carregando...'
+    : failed
+      ? 'Não foi possível carregar'
+      : playError
+        ? playError
+        : unsupportedFormat
+          ? 'Formato não suportado'
+          : timeLabel(playing, currentSec, totalSec);
 
   return (
     <div className="min-w-[200px] space-y-1.5">
@@ -270,12 +394,12 @@ function ChatAudioPlayer({
         <button
           type="button"
           onClick={() => void toggle()}
-          disabled={disabled}
+          disabled={loading}
           className={cn(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95',
             isOwn ? 'bg-black/15 text-black' : 'bg-white/10 text-white',
-            disabled && 'opacity-40',
-            playing && !disabled && 'ring-2 ring-current/30',
+            loading && 'opacity-40',
+            playing && !loading && 'ring-2 ring-current/30',
           )}
           aria-label={playing ? 'Pausar áudio' : 'Reproduzir áudio'}
         >
@@ -299,7 +423,7 @@ function ChatAudioPlayer({
             className={cn(
               'group h-1.5 cursor-pointer overflow-hidden rounded-full',
               isOwn ? 'bg-black/15' : 'bg-white/10',
-              disabled && 'cursor-not-allowed opacity-50',
+              (playBlocked || playError) && 'cursor-not-allowed opacity-50',
             )}
           >
             <div
@@ -312,12 +436,20 @@ function ChatAudioPlayer({
             />
           </div>
           <span className={cn('text-[11px] font-medium tabular-nums', isOwn ? 'text-black/70' : 'text-[#CBD5E1]')}>
-            {loading ? 'Carregando...' : failed || playError ? 'Erro ao reproduzir' : timeLabel}
+            {statusLabel}
           </span>
         </div>
       </div>
 
-      {src ? <audio ref={audioRef} src={src} preload="metadata" className="hidden" /> : null}
+      <audio ref={audioRef} src={src || undefined} preload="none" className="hidden" />
     </div>
   );
+}
+
+function timeLabel(playing: boolean, currentSec: number, totalSec: number): string {
+  if (playing || currentSec > 0) {
+    return `${formatAudioTime(currentSec)} / ${formatAudioTime(totalSec)}`;
+  }
+  if (totalSec > 0) return formatAudioTime(totalSec);
+  return 'Áudio';
 }

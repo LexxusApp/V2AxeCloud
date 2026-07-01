@@ -30,9 +30,26 @@ export async function requestMicrophoneStream(): Promise<MediaStream> {
 }
 
 export function pickAudioMimeType(): string {
+  // Safari/iOS não reproduz WebM — priorizar MP4 quando disponível.
+  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
   if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
   if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
-  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
   if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) return 'audio/ogg;codecs=opus';
   return '';
+}
+
+export function normalizeAudioMime(mime?: string | null): string {
+  const raw = String(mime || '').trim().toLowerCase();
+  if (!raw) return 'audio/webm';
+  const base = raw.split(';')[0]?.trim() || raw;
+  if (base.startsWith('audio/')) return base;
+  return 'audio/webm';
+}
+
+export function canPlayAudioMime(mime?: string | null): boolean {
+  if (typeof document === 'undefined') return true;
+  const normalized = normalizeAudioMime(mime);
+  const probe = document.createElement('audio');
+  const result = probe.canPlayType(normalized);
+  return result === 'probably' || result === 'maybe';
 }
