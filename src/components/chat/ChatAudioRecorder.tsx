@@ -19,6 +19,7 @@ export function ChatAudioRecorder({ disabled, onRecorded }: ChatAudioRecorderPro
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const secondsRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -66,14 +67,22 @@ export function ChatAudioRecorder({ disabled, onRecorded }: ChatAudioRecorderPro
         const blob = new Blob(chunksRef.current, { type: mimeType });
         const ext = mimeType.includes('webm') ? 'webm' : 'm4a';
         const file = new File([blob], `audio_${Date.now()}.${ext}`, { type: mimeType });
-        onRecorded(file, seconds);
+        onRecorded(file, secondsRef.current);
         setSeconds(0);
+        secondsRef.current = 0;
       };
 
       recorder.start(200);
       setRecording(true);
       setSeconds(0);
-      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      secondsRef.current = 0;
+      timerRef.current = setInterval(() => {
+        setSeconds((s) => {
+          const next = s + 1;
+          secondsRef.current = next;
+          return next;
+        });
+      }, 1000);
     } catch (err) {
       alert(microphoneAccessErrorMessage(err));
     }
