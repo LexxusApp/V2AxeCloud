@@ -1,5 +1,10 @@
 import { Mic, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import {
+  microphoneAccessErrorMessage,
+  pickAudioMimeType,
+  requestMicrophoneStream,
+} from '../../lib/microphoneAccess';
 import { cn } from '../../lib/utils';
 
 type ChatAudioRecorderProps = {
@@ -37,15 +42,16 @@ export function ChatAudioRecorder({ disabled, onRecorded }: ChatAudioRecorderPro
   const startRecording = async () => {
     if (disabled || recording) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await requestMicrophoneStream();
       streamRef.current = stream;
       chunksRef.current = [];
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4';
+      const mimeType = pickAudioMimeType();
+      if (!mimeType) {
+        stream.getTracks().forEach((t) => t.stop());
+        alert('Seu navegador não suporta gravação de áudio.');
+        return;
+      }
 
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
@@ -68,8 +74,8 @@ export function ChatAudioRecorder({ disabled, onRecorded }: ChatAudioRecorderPro
       setRecording(true);
       setSeconds(0);
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-    } catch {
-      alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+    } catch (err) {
+      alert(microphoneAccessErrorMessage(err));
     }
   };
 
