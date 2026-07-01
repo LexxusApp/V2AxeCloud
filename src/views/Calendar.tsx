@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Ticket, MessageSquare, ImagePlus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Check, Ticket, MessageSquare, ImagePlus, Pencil, Trash2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1209,24 +1209,32 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                               Não vou
                             </span>
                           ) : (
-                            <>
+                            <div className="flex gap-2 px-1">
                               <button
                                 type="button"
                                 disabled={partBusy === event.id}
                                 onClick={() => void handleFilhoParticipacao(event.id, 'confirmar')}
-                                className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400"
+                                aria-label="Confirmar presença"
+                                title="Confirmar presença"
+                                className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-emerald-500/35 bg-emerald-500/15 text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                               >
-                                Confirmar vaga
+                                {partBusy === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                ) : (
+                                  <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                                )}
                               </button>
                               <button
                                 type="button"
                                 disabled={partBusy === event.id}
                                 onClick={() => void handleFilhoParticipacao(event.id, 'declinar')}
-                                className="rounded-lg border border-[#1E242B] px-2 py-1 text-[10px] font-bold text-[#94A3B8]"
+                                aria-label="Não vou"
+                                title="Não vou"
+                                className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-red-500/35 bg-red-500/15 text-red-400 transition-colors hover:bg-red-500/25 disabled:opacity-50"
                               >
-                                Não vou
+                                <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
                               </button>
-                            </>
+                            </div>
                           )}
                         </div>
                       ) : null}
