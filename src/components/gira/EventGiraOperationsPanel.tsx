@@ -1,20 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import {
-  CheckCircle2,
   ClipboardCopy,
   Flame,
   Loader2,
   QrCode,
   Ticket,
-  UserCheck,
   Users,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
-  approveParticipante,
-  checkinParticipante,
   emitirSenhaZelador,
   fetchMapaVelas,
   fetchParticipantes,
@@ -185,30 +181,6 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
     }
   }
 
-  async function handleCheckin(filhoId: string) {
-    setBusy(true);
-    try {
-      await checkinParticipante(event.id, tenantId, filhoId);
-      await loadCore();
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erro no check-in');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleApprove(participanteId: string) {
-    setBusy(true);
-    try {
-      await approveParticipante(event.id, tenantId, participanteId);
-      await loadCore();
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erro ao aprovar');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleEmitirSenha() {
     if (!novaSenhaNome.trim()) return;
     setBusy(true);
@@ -255,16 +227,6 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
       setBusy(false);
     }
   }
-
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      pendente: 'bg-amber-500/15 text-amber-400',
-      confirmado: 'bg-emerald-500/15 text-emerald-400',
-      recusado: 'bg-red-500/15 text-red-400',
-      presente: 'bg-primary/15 text-primary',
-    };
-    return map[status] || 'bg-white/10 text-gray-400';
-  };
 
   const velaOptions = useMemo(() => Array.from(VELAS_VALIDAS), []);
 
@@ -344,8 +306,7 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                 ))}
               </div>
 
-              <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
-                <div className="rounded-xl border border-[#1E242B] bg-[#12161A]">
+              <div className="rounded-xl border border-[#1E242B] bg-[#12161A]">
                   <p className="hidden px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-[#94A3B8] lg:block">
                     Configuração de vagas
                   </p>
@@ -405,57 +366,9 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#94A3B8]">Corrente — presença</p>
-                  <div className="space-y-1.5">
-                    {participantes.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic">Nenhum filho cadastrado.</p>
-                    ) : (
-                      participantes.map((p) => (
-                        <div
-                          key={p.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#1E242B] bg-[#12161A] px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-white">
-                              {p.filhos_de_santo?.nome || 'Filho'}
-                            </p>
-                            <p className="text-[10px] text-gray-500">{p.filhos_de_santo?.cargo || '—'}</p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-black uppercase', statusBadge(p.status))}>
-                              {p.status}
-                            </span>
-                            {p.status === 'pendente' && p.justificativa?.includes('aprovação') ? (
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void handleApprove(p.id)}
-                                className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400"
-                              >
-                                Aprovar
-                              </button>
-                            ) : null}
-                            {p.status !== 'presente' ? (
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void handleCheckin(p.filho_id)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary"
-                              >
-                                <UserCheck className="h-3 w-3" />
-                                Check-in
-                              </button>
-                            ) : (
-                              <CheckCircle2 className="h-4 w-4 text-primary" aria-label="Presente" />
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+              <p className="text-[11px] leading-relaxed text-[#64748B]">
+                As confirmações dos filhos aparecem nos cards do calendário. Use a aba QR para check-in na portaria.
+              </p>
 
               {guestsSlot ? <div className="border-t border-[#1E242B] pt-3">{guestsSlot}</div> : null}
             </div>

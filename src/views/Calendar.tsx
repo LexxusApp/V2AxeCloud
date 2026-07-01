@@ -20,11 +20,14 @@ import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
 import { hasPlanAccess } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { EventGiraOperationsPanel } from '../components/gira/EventGiraOperationsPanel';
+import { EventConfirmedAvatars } from '../components/gira/EventConfirmedAvatars';
 import { EventGuestsInline } from '../components/gira/EventGuestsInline';
 import {
   checkinParticipante,
+  fetchConfirmadosResumo as fetchConfirmadosResumoApi,
   fetchMinhasParticipacoes,
   respondParticipacao,
+  type EventoConfirmadoResumo,
   type ParticipanteStatus,
 } from '../lib/giraOperations';
 
@@ -539,6 +542,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     Record<string, { status: ParticipanteStatus; id: string }>
   >({});
   const [partBusy, setPartBusy] = useState<string | null>(null);
+  const [confirmadosByEvent, setConfirmadosByEvent] = useState<Record<string, EventoConfirmadoResumo[]>>({});
 
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'event'; title?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -730,6 +734,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     if (ev) setEventDetailModal(ev);
   }, [loading, events]);
 
+  async function loadConfirmadosResumo() {
+    if (!effectiveTenantId || isFilho) return;
+    try {
+      const data = await fetchConfirmadosResumoApi(effectiveTenantId);
+      setConfirmadosByEvent(data || {});
+    } catch {
+      /* badge opcional — falha silenciosa */
+    }
+  }
+
   async function fetchEvents() {
     if (!effectiveTenantId) return;
 
@@ -740,6 +754,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       if (cached != null) {
         setEvents(excludeObrigacaoEvents(cached));
         setLoading(false);
+        void loadConfirmadosResumo();
       } else {
         setLoading(true);
       }
@@ -758,6 +773,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         setEvents(list);
         setEventsFetchError(null);
         writeStaleCache(cacheKey, list);
+        void loadConfirmadosResumo();
       } catch (error) {
         console.error('Error fetching events:', error);
         if (cached == null) setEvents([]);
@@ -1402,6 +1418,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         <span>Excluir</span>
                       </button>
                     </div>
+                    <EventConfirmedAvatars members={confirmadosByEvent[event.id] ?? []} />
                   </article>
                 );
               })}
@@ -1470,7 +1487,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         <EventGiraOperationsPanel
           event={selectedEventForOps}
           tenantId={effectiveTenantId}
-          onClose={() => setSelectedEventForOps(null)}
+          onClose={() => {
+            setSelectedEventForOps(null);
+            void loadConfirmadosResumo();
+          }}
           setActiveTab={setActiveTab}
           guestsSlot={
             <EventGuestsInline

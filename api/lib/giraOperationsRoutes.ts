@@ -240,6 +240,62 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
   });
 
   // ── Participantes / frequência ──
+  app.get("/api/v1/events/confirmados-resumo", async (req: Request, res: Response) => {
+    const access = await requireTenantReadAccess(sb, req, res, req.query.tenantId);
+    if (!access) return;
+    try {
+      const leaderId = await resolveLeader(access.tenantId);
+      const scopeIds = Array.from(new Set([access.tenantId, leaderId].filter(Boolean)));
+      const orFilter = scopeIds
+        .flatMap((id) => [`tenant_id.eq.${id}`, `lider_id.eq.${id}`])
+        .join(",");
+
+      const { data: events, error: evErr } = await sb
+        .from("calendario_axe")
+        .select("id")
+        .or(orFilter);
+      if (evErr) throw evErr;
+
+      const eventIds = (events || []).map((e) => String((e as { id: string }).id));
+      if (eventIds.length === 0) {
+        return res.json({ data: {} });
+      }
+
+      const { data: parts, error } = await sb
+        .from("evento_participantes")
+        .select("event_id, filho_id, filhos_de_santo(nome, foto_url)")
+        .in("event_id", eventIds)
+        .in("status", ["confirmado", "presente"])
+        .order("responded_at", { ascending: true });
+      if (error) throw error;
+
+      const grouped: Record<
+        string,
+        Array<{ filho_id: string; nome: string; foto_url: string | null }>
+      > = {};
+
+      for (const row of parts || []) {
+        const r = row as {
+          event_id: string;
+          filho_id: string;
+          filhos_de_santo?: { nome?: string; foto_url?: string | null } | null;
+        };
+        const eventId = String(r.event_id);
+        if (!grouped[eventId]) grouped[eventId] = [];
+        grouped[eventId].push({
+          filho_id: String(r.filho_id),
+          nome: String(r.filhos_de_santo?.nome || "Filho"),
+          foto_url: r.filhos_de_santo?.foto_url ?? null,
+        });
+      }
+
+      res.json({ data: grouped });
+    } catch (e: unknown) {
+      console.error("[confirmados-resumo]", e);
+      res.status(500).json({ error: "Erro ao carregar confirmações." });
+    }
+  });
+
   app.get("/api/v1/events/:eventId/participantes", async (req: Request, res: Response) => {
     const access = await requireTenantReadAccess(sb, req, res, req.query.tenantId);
     if (!access) return;

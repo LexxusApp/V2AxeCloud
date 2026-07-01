@@ -50,6 +50,21 @@ export type GiraEventConfig = {
   senhas_public_token?: string | null;
 };
 
+export type EventoConfirmadoResumo = {
+  filho_id: string;
+  nome: string;
+  foto_url: string | null;
+};
+
+export async function fetchConfirmadosResumo(tenantId: string) {
+  const res = await authFetch(
+    `/api/v1/events/confirmados-resumo?tenantId=${encodeURIComponent(tenantId)}`,
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Erro ao carregar confirmações');
+  return json.data as Record<string, EventoConfirmadoResumo[]>;
+}
+
 export async function fetchParticipantes(eventId: string, tenantId: string) {
   const res = await authFetch(
     `/api/v1/events/${encodeURIComponent(eventId)}/participantes?tenantId=${encodeURIComponent(tenantId)}`,
