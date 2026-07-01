@@ -126,6 +126,17 @@ export function isBoasVindasTemplate(tipo: string): boolean {
     .replace(/[^a-z0-9_]/g, "_") === "boas_vindas";
 }
 
+export function isDadosAcessoTemplate(tipo: string): boolean {
+  return String(tipo || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_") === "dados_acesso";
+}
+
+export function isCredentialsAccessTemplate(tipo: string): boolean {
+  return isBoasVindasTemplate(tipo) || isDadosAcessoTemplate(tipo);
+}
+
 /** @deprecated Use formatFilhoMatricula — mantido para compatibilidade interna. */
 export function filhoLoginIdShort(uuid: string): string {
   return String(uuid || "")
@@ -578,12 +589,14 @@ export function buildWhatsAppAuditMessage(
     return `Gira (corrente): ${titulo} — ${v.data_evento || ""} ${v.hora_evento || ""}${bannerPart}`.trim();
   }
 
-  if (normalized === "boas_vindas") {
+  if (normalized === "boas_vindas" || normalized === "dados_acesso") {
     const nome = String(v.nome_filho || nomeMembro);
     const loginId = String(v.filho_login_id || "");
+    const senha = String(v.senha_acesso || "");
     const loginUrl = String(v.login_url || resolveLoginPublicUrl());
-    const idPart = loginId ? ` · ID: ${loginId}` : "";
-    return `Boas-vindas: ${nome} · ${loginUrl}${idPart} · CPF: 6 primeiros dígitos`;
+    const idPart = loginId ? ` · Registro: ${loginId}` : "";
+    const senhaPart = senha ? ` · Senha: ${senha}` : "";
+    return `${normalized === "dados_acesso" ? "Dados de acesso" : "Boas-vindas"}: ${nome}${idPart}${senhaPart} · ${loginUrl}`;
   }
 
   if (normalized === "mural_aviso") {

@@ -21,6 +21,8 @@ import {
   isAvisoGiraTemplate,
   isBoasVindasTemplate,
   isConviteEventoTemplate,
+  isCredentialsAccessTemplate,
+  isDadosAcessoTemplate,
   resolveLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
@@ -142,6 +144,26 @@ export function buildWhatsAppMessage(
       "Você tem uma nova atualização sigilosa no seu prontuário. Acesse o AxéCloud para conferir.";
   }
   return message;
+}
+
+function messageIncludesCredentials(
+  body: string,
+  variables: Record<string, string | number> | undefined
+): boolean {
+  const loginId = String(variables?.filho_login_id || "").trim();
+  const senha = String(variables?.senha_acesso || "").trim();
+  if (!loginId) return false;
+  const hasLogin = body.includes(loginId);
+  const hasSenha = senha ? body.includes(senha) : /\bsenha\b/i.test(body);
+  return hasLogin && hasSenha;
+}
+
+function buildCredentialsAccessBlock(variables: Record<string, string | number>): string {
+  const loginId = String(variables.filho_login_id || "").trim();
+  const senha = String(variables.senha_acesso || "").trim();
+  const loginUrl = String(variables.login_url || resolveLoginPublicUrl()).trim();
+  if (!loginId) return "";
+  return `\n\n🔐 *Seu acesso:*\nRegistro: ${loginId}\nSenha: ${senha}\nEntrar: ${loginUrl}`;
 }
 
 /** @deprecated Use resolveMemberWhatsAppTarget — mantido para compatibilidade interna. */
@@ -329,6 +351,10 @@ export function buildWhatsAppDeliverableText(
     if (banner) body += `\n\n${banner}`;
   }
 
+  if (isCredentialsAccessTemplate(normalized) && !messageIncludesCredentials(body, mergedVars)) {
+    body += buildCredentialsAccessBlock(mergedVars);
+  }
+
   return body.slice(0, 4096);
 }
 
@@ -427,7 +453,7 @@ export async function sendWhatsAppForTenant(
   if (isConviteEventoTemplate(input.tipo) || isAvisoGiraTemplate(input.tipo)) {
     variables = await enrichEventCalendarVariables(sb, ctx.leaderId, variables);
   }
-  if (isBoasVindasTemplate(input.tipo)) {
+  if (isCredentialsAccessTemplate(input.tipo)) {
     variables = await enrichBoasVindasVariables(sb, ctx.leaderId, filhoId, variables);
   }
 
@@ -615,7 +641,7 @@ export async function resendBoasVindasWhatsAppForTenant(
       await sendWhatsAppForTenant(sb, {
         tenantId,
         filhoId: String(filho.id),
-        tipo: "boas_vindas",
+        tipo: "dados_acesso",
         variables: {
           nome_filho: nomeMembro,
           nome_terreiro: ctx.nomeTerreiro,

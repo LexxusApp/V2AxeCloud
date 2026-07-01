@@ -231,7 +231,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         method: 'POST',
         headers: whatsappRailwayHeaders(token, user.id),
         body: JSON.stringify({
-          tipo: 'boas_vindas',
+          tipo: 'dados_acesso',
           filhoId: childId,
           variables: {
             nome_filho: childName,
