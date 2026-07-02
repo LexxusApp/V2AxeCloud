@@ -27,12 +27,12 @@ function formatData(data: string): string {
   }
 }
 
-function EventoBanner({ url, alt }: { url: string | null; alt: string }) {
+function EventoThumb({ url, alt }: { url: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) {
     return (
-      <div className="flex h-full min-h-[180px] w-full items-center justify-center bg-gradient-to-br from-amber-100/40 to-[#f3ebe0] md:min-h-full">
-        <CalendarDays className="h-12 w-12 text-[#1b1813]/15" aria-hidden />
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-100/40 to-[#f3ebe0]">
+        <CalendarDays className="h-7 w-7 text-[#1b1813]/15" aria-hidden />
       </div>
     );
   }
@@ -40,7 +40,7 @@ function EventoBanner({ url, alt }: { url: string | null; alt: string }) {
     <img
       src={url}
       alt={alt}
-      className="h-full min-h-[180px] w-full object-cover md:min-h-full"
+      className="h-full w-full object-cover object-center"
       loading="eager"
       onError={() => setFailed(true)}
     />
@@ -50,8 +50,8 @@ function EventoBanner({ url, alt }: { url: string | null; alt: string }) {
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <MarketingMockupLayout showFooter={false}>
-      <main className="px-4 py-6 sm:py-10">
-        <div className="mx-auto w-full max-w-3xl">{children}</div>
+      <main className="px-4 py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-lg">{children}</div>
       </main>
     </MarketingMockupLayout>
   );
@@ -103,8 +103,8 @@ export default function EventoPublicPage() {
   if (loading) {
     return (
       <PageShell>
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-amber-600" />
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
         </div>
       </PageShell>
     );
@@ -113,9 +113,9 @@ export default function EventoPublicPage() {
   if (error && !info) {
     return (
       <PageShell>
-        <div className="rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
-          <XCircle className="mx-auto h-9 w-9 text-red-500" />
-          <p className="mt-3 text-sm text-red-600">{error}</p>
+        <div className={cn('rounded-xl p-5 text-center', landingMockupCardClass)}>
+          <XCircle className="mx-auto h-8 w-8 text-red-500" />
+          <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </PageShell>
     );
@@ -133,16 +133,16 @@ export default function EventoPublicPage() {
   if (senha != null) {
     return (
       <PageShell>
-        <article className="overflow-hidden rounded-2xl border border-[#1b1813]/8 bg-white shadow-sm">
-          <div className="border-b border-[#1b1813]/6 bg-emerald-50 px-5 py-6 text-center">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-emerald-800/70">
+        <article className={cn('rounded-xl', landingMockupCardClass)}>
+          <div className="border-b border-[#1b1813]/6 bg-emerald-50 px-4 py-5 text-center">
+            <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-800/70">
               Senha confirmada
             </p>
-            <p className="mt-4 text-5xl font-black tabular-nums text-[#1b1813]">{senha}</p>
-            <p className="mt-2 text-sm font-semibold text-[#1b1813]">{nome}</p>
+            <p className="mt-3 text-4xl font-black tabular-nums text-[#1b1813]">{senha}</p>
+            <p className="mt-1 text-sm font-medium text-[#1b1813]">{nome}</p>
           </div>
-          <div className="space-y-2 px-5 py-4 text-center text-sm leading-relaxed text-[#1b1813]/65">
+          <div className="space-y-1.5 px-4 py-3 text-center text-xs leading-relaxed text-[#1b1813]/60">
             <p>Enviamos sua senha e o link de check-in no WhatsApp.</p>
             <p>Na portaria, abra o link e aponte para o QR Code do terreiro.</p>
           </div>
@@ -153,37 +153,35 @@ export default function EventoPublicPage() {
 
   return (
     <PageShell>
-      <article className={cn('overflow-hidden rounded-2xl', landingMockupCardClass)}>
-        <div className="flex flex-col md:flex-row md:min-h-[280px]">
-          <div className="md:w-1/2 md:shrink-0">
-            <EventoBanner url={info.bannerUrl} alt={info.titulo} />
+      <article className={cn('rounded-xl', landingMockupCardClass)}>
+        <div className="flex gap-3.5 p-4 sm:gap-4 sm:p-5">
+          <div className="h-24 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-[#f3ebe0] sm:h-28 sm:w-24">
+            <EventoThumb url={info.bannerUrl} alt={info.titulo} />
           </div>
 
-          <div className="flex flex-1 flex-col justify-center p-5 sm:p-6 md:w-1/2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
-                {info.tipo}
-              </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{info.tipo}</span>
               {info.senhasAtivas && info.senhasMaximas != null ? (
-                <span className="text-[11px] text-[#1b1813]/45">
-                  {info.esgotado ? 'Senhas esgotadas' : `${info.senhasRestantes ?? 0} senhas restantes`}
+                <span className="text-[10px] text-[#1b1813]/40">
+                  {info.esgotado ? 'Esgotado' : `${info.senhasRestantes ?? 0} restantes`}
                 </span>
               ) : null}
             </div>
 
-            <h1 className="mt-2 text-xl font-bold leading-snug text-[#1b1813] sm:text-2xl">{info.titulo}</h1>
+            <h1 className="mt-1 text-base font-bold leading-snug text-[#1b1813] sm:text-lg">{info.titulo}</h1>
 
-            <ul className="mt-4 space-y-2.5 text-sm text-[#1b1813]/70">
-              <li className="flex items-start gap-2.5">
-                <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+            <ul className="mt-2 space-y-1 text-xs text-[#1b1813]/65 sm:text-sm">
+              <li className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
                 <span className="capitalize">{dataFmt}</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+              <li className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
                 <span>{horaFmt}</span>
               </li>
-              <li className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+              <li className="flex items-start gap-1.5">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
                 <a
                   href={terreiroProfilePath(info.terreiro.slug)}
                   className="font-medium text-[#1b1813] underline-offset-2 hover:text-amber-700 hover:underline"
@@ -194,43 +192,43 @@ export default function EventoPublicPage() {
             </ul>
 
             {info.descricao ? (
-              <p className="mt-4 text-sm leading-relaxed text-[#1b1813]/60">{info.descricao}</p>
+              <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#1b1813]/55 sm:text-sm">
+                {info.descricao}
+              </p>
             ) : null}
           </div>
         </div>
 
         {info.senhasAtivas ? (
-          <section className="border-t border-[#1b1813]/8 bg-[#fdf8f0]/80 p-5 sm:p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <Ticket className="h-4 w-4 text-amber-600" aria-hidden />
-              <h2 className="text-sm font-bold text-[#1b1813]">Receber senha</h2>
+          <section className="border-t border-[#1b1813]/8 px-4 py-4 sm:px-5">
+            <div className="mb-3 flex items-center gap-1.5">
+              <Ticket className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+              <h2 className="text-xs font-bold text-[#1b1813] sm:text-sm">Receber senha</h2>
             </div>
 
             {info.esgotado ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 sm:text-sm">
                 Todas as senhas deste evento já foram emitidas.
               </p>
             ) : (
-              <form onSubmit={(e) => void handleEmitir(e)} className="grid gap-3 sm:grid-cols-2">
-                {error ? (
-                  <p className="text-sm text-red-600 sm:col-span-2">{error}</p>
-                ) : null}
+              <form onSubmit={(e) => void handleEmitir(e)} className="space-y-2.5">
+                {error ? <p className="text-xs text-red-600 sm:text-sm">{error}</p> : null}
                 <div>
-                  <label htmlFor="evento-nome" className="text-[11px] font-semibold text-[#1b1813]/55">
+                  <label htmlFor="evento-nome" className="text-[10px] font-semibold text-[#1b1813]/50">
                     Nome completo
                   </label>
                   <input
                     id="evento-nome"
                     required
                     autoComplete="name"
-                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
+                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2 text-sm text-[#1b1813] outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Seu nome"
                   />
                 </div>
                 <div>
-                  <label htmlFor="evento-whatsapp" className="text-[11px] font-semibold text-[#1b1813]/55">
+                  <label htmlFor="evento-whatsapp" className="text-[10px] font-semibold text-[#1b1813]/50">
                     WhatsApp
                   </label>
                   <input
@@ -239,42 +237,40 @@ export default function EventoPublicPage() {
                     type="tel"
                     autoComplete="tel"
                     inputMode="tel"
-                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
+                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2 text-sm text-[#1b1813] outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
                     placeholder="(00) 00000-0000"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className={cn(
-                      'flex w-full items-center justify-center rounded-lg bg-[#1b1813] py-3 text-sm font-bold text-white transition',
-                      'hover:bg-[#2d261c] disabled:opacity-60',
-                    )}
-                  >
-                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Receber senha no WhatsApp'}
-                  </button>
-                  <p className="mt-2 text-center text-[11px] leading-relaxed text-[#1b1813]/45">
-                    A senha e o link de check-in serão enviados no seu WhatsApp.
-                  </p>
-                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={cn(
+                    'flex w-full items-center justify-center rounded-lg bg-[#1b1813] py-2.5 text-sm font-bold text-white transition',
+                    'hover:bg-[#2d261c] disabled:opacity-60',
+                  )}
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Receber senha no WhatsApp'}
+                </button>
+                <p className="text-center text-[10px] text-[#1b1813]/40">
+                  A senha e o link de check-in serão enviados no seu WhatsApp.
+                </p>
               </form>
             )}
           </section>
         ) : (
-          <div className="border-t border-[#1b1813]/8 px-5 py-4 sm:px-6">
-            <p className="text-sm text-[#1b1813]/55">
+          <div className="border-t border-[#1b1813]/8 px-4 py-3 sm:px-5">
+            <p className="text-xs text-[#1b1813]/50 sm:text-sm">
               Confirme horário e endereço diretamente com o terreiro.
             </p>
           </div>
         )}
       </article>
 
-      <p className="mt-6 text-center text-[11px] text-[#1b1813]/35">
+      <p className="mt-4 text-center text-[10px] text-[#1b1813]/30">
         Divulgado via{' '}
-        <a href="/" className="font-medium hover:text-amber-700">
+        <a href="/" className="hover:text-amber-700">
           AxéCloud
         </a>
       </p>
