@@ -42,7 +42,7 @@ function EventoBanner({ url, alt }: { url: string; alt: string }) {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <MarketingMockupLayout showSideRails={false} showFooter={false}>
+    <MarketingMockupLayout showFooter={false}>
       <main className="px-4 py-6 sm:py-10">
         <div className="mx-auto w-full max-w-md">{children}</div>
       </main>
