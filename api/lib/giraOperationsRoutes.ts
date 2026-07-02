@@ -125,7 +125,7 @@ async function ensureEventTokens(sb: SupabaseClient, event: Record<string, unkno
   if (event.senhas_ativas && !event.senhas_public_token) {
     patch.senhas_public_token = newPublicToken();
   }
-  if (event.evento_publico && !event.evento_public_token) {
+  if ((event.senhas_ativas || event.evento_publico) && !event.evento_public_token) {
     patch.evento_public_token = newPublicToken();
   }
   if (Object.keys(patch).length === 0) return event;
@@ -388,15 +388,17 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       }
       if (typeof req.body?.senhas_ativas === "boolean") {
         patch.senhas_ativas = req.body.senhas_ativas;
-        if (req.body.senhas_ativas && !event.senhas_public_token) {
-          patch.senhas_public_token = newPublicToken();
+        if (req.body.senhas_ativas) {
+          patch.evento_publico = true;
+          if (!event.senhas_public_token) patch.senhas_public_token = newPublicToken();
+          if (!event.evento_public_token) patch.evento_public_token = newPublicToken();
         }
       }
       if (req.body?.senhas_maximas !== undefined) {
         const v = req.body.senhas_maximas;
         patch.senhas_maximas = v === null || v === "" ? null : Math.max(1, Number(v) || 0);
       }
-      if (event.evento_publico && !event.evento_public_token) {
+      if ((event.senhas_ativas || event.evento_publico) && !event.evento_public_token) {
         patch.evento_public_token = newPublicToken();
       }
       if (!event.checkin_qr_token) patch.checkin_qr_token = newPublicToken();
@@ -509,12 +511,8 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         checkinUrl: updatedEvent.checkin_qr_token
           ? buildCheckinPortariaUrl(String(updatedEvent.checkin_qr_token))
           : null,
-        senhasUrl:
-          updatedEvent.senhas_ativas && updatedEvent.senhas_public_token
-            ? buildSenhasPublicUrl(String(updatedEvent.senhas_public_token))
-            : null,
         eventoPublicUrl:
-          updatedEvent.evento_publico && updatedEvent.evento_public_token
+          updatedEvent.senhas_ativas && updatedEvent.evento_public_token
             ? buildEventoPublicUrl(String(updatedEvent.evento_public_token))
             : null,
       });
@@ -1088,19 +1086,21 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       const token = String(req.params.token || "").trim();
       const { data: event } = await sb
         .from("calendario_axe")
-        .select("id, titulo, data, hora, senhas_ativas, senhas_maximas, tenant_id, lider_id")
+        .select("*")
         .eq("senhas_public_token", token)
         .maybeSingle();
       if (!event || !event.senhas_ativas) {
         return res.status(404).json({ error: "Emissão de senhas não disponível." });
       }
 
+      const updatedEvent = await ensureEventTokens(sb, event);
+
       const { count } = await sb
         .from("evento_senhas")
         .select("id", { count: "exact", head: true })
-        .eq("event_id", event.id);
+        .eq("event_id", updatedEvent.id);
 
-      const leaderId = String(event.lider_id || event.tenant_id || "");
+      const leaderId = String(updatedEvent.lider_id || updatedEvent.tenant_id || "");
       let terreiroName = "Terreiro";
       if (leaderId) {
         const { data: profile } = await sb
@@ -1113,21 +1113,27 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
 
       const emitidas = count ?? 0;
       const max =
-        event.senhas_maximas != null && Number(event.senhas_maximas) > 0
-          ? Number(event.senhas_maximas)
+        updatedEvent.senhas_maximas != null && Number(updatedEvent.senhas_maximas) > 0
+          ? Number(updatedEvent.senhas_maximas)
+          : null;
+
+      const eventoPageUrl =
+        updatedEvent.evento_public_token
+          ? buildEventoPublicUrl(String(updatedEvent.evento_public_token))
           : null;
 
       res.setHeader("Cache-Control", "private, no-store");
       res.json({
-        eventId: event.id,
-        titulo: event.titulo,
-        data: event.data,
-        hora: event.hora,
+        eventId: updatedEvent.id,
+        titulo: updatedEvent.titulo,
+        data: updatedEvent.data,
+        hora: updatedEvent.hora,
         terreiroName,
         senhasEmitidas: emitidas,
         senhasMaximas: max,
         senhasRestantes: max != null ? Math.max(0, max - emitidas) : null,
         esgotado: max != null && emitidas >= max,
+        eventoPageUrl,
       });
     } catch (e: unknown) {
       res.status(500).json({ error: "Erro ao carregar gira." });

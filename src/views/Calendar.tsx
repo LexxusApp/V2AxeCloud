@@ -446,7 +446,13 @@ function AddEventModalPanel({
               <input
                 type="checkbox"
                 checked={formData.senhas_ativas}
-                onChange={(e) => setFormData({ ...formData, senhas_ativas: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    senhas_ativas: e.target.checked,
+                    ...(e.target.checked ? { evento_publico: true } : {}),
+                  })
+                }
                 className="h-4 w-4 accent-[#FBBC00]"
               />
               <span className="text-xs text-[#94A3B8]">Senhas online para visitantes</span>

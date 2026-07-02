@@ -85,7 +85,6 @@ export async function fetchParticipantes(eventId: string, tenantId: string) {
       vagas_restantes: number | null;
     };
     checkinUrl: string | null;
-    senhasUrl: string | null;
     eventoPublicUrl: string | null;
     event: GiraEventConfig & { id: string; titulo?: string };
   };

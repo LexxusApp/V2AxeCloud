@@ -4116,7 +4116,9 @@ async function startServer() {
             ? Math.max(1, Number(req.body.senhas_maximas) || 0)
             : null,
         checkin_qr_token: newPublicToken(),
-        ...(Boolean(req.body?.evento_publico) ? { evento_public_token: newPublicToken() } : {}),
+        ...(Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas)
+          ? { evento_public_token: newPublicToken(), evento_publico: Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas) }
+          : {}),
         ...(Boolean(req.body?.senhas_ativas)
           ? { senhas_public_token: newPublicToken() }
           : {}),
@@ -4243,10 +4245,11 @@ async function startServer() {
         patch.banner_url = banner_url;
       }
 
-      if (senhas_ativas && !existing.senhas_public_token) {
-        patch.senhas_public_token = newPublicToken();
-      }
-      if (Boolean(req.body?.evento_publico) && !existing.evento_public_token) {
+      if (senhas_ativas) {
+        patch.evento_publico = true;
+        if (!existing.senhas_public_token) patch.senhas_public_token = newPublicToken();
+        if (!existing.evento_public_token) patch.evento_public_token = newPublicToken();
+      } else if (Boolean(req.body?.evento_publico) && !existing.evento_public_token) {
         patch.evento_public_token = newPublicToken();
       }
       if (!existing.checkin_qr_token) {

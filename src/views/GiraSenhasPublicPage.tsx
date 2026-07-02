@@ -37,6 +37,10 @@ export default function GiraSenhasPublicPage() {
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Indisponível');
+        if (typeof json.eventoPageUrl === 'string' && json.eventoPageUrl) {
+          window.location.replace(json.eventoPageUrl);
+          return;
+        }
         setInfo(json);
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Erro'))

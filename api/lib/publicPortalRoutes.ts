@@ -278,7 +278,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
         .maybeSingle();
       if (error) throw error;
 
-      if (!event || !event.evento_publico) {
+      if (!event || (!event.evento_publico && !event.senhas_ativas)) {
         return res.status(404).json({ error: "Evento não encontrado ou não está público." });
       }
 

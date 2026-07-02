@@ -83,7 +83,6 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
     senhas_ativas: false,
   });
   const [checkinUrl, setCheckinUrl] = useState<string | null>(null);
-  const [senhasUrl, setSenhasUrl] = useState<string | null>(null);
   const [eventoPublicUrl, setEventoPublicUrl] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [kioskOpen, setKioskOpen] = useState(false);
@@ -105,7 +104,6 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
       setParticipantes(res.data);
       setStats(res.stats);
       setCheckinUrl(res.checkinUrl);
-      setSenhasUrl(res.senhasUrl);
       setEventoPublicUrl(res.eventoPublicUrl);
       const ev = res.event;
       setConfig({
@@ -368,7 +366,12 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                       <input
                         type="checkbox"
                         checked={config.senhas_ativas}
-                        onChange={(e) => setConfig((c) => ({ ...c, senhas_ativas: e.target.checked }))}
+                        onChange={(e) =>
+                          setConfig((c) => ({
+                            ...c,
+                            senhas_ativas: e.target.checked,
+                          }))
+                        }
                         className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                       />
                       <span className="text-[11px] leading-snug text-[#94A3B8]">
@@ -412,7 +415,9 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
             <div className="space-y-4">
               {eventoPublicUrl ? (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Link para divulgar</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                    Link da página do evento
+                  </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <code className="flex-1 truncate text-xs text-[#F1F5F9]">{eventoPublicUrl}</code>
                     <button
@@ -423,26 +428,14 @@ export function EventGiraOperationsPanel({ event, tenantId, onClose, guestsSlot,
                       <ClipboardCopy className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="mt-2 text-[10px] text-[#64748B]">Use este link no TikTok, Instagram e Facebook.</p>
-                </div>
-              ) : null}
-              {senhasUrl ? (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Link direto de senhas</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <code className="flex-1 truncate text-xs text-[#F1F5F9]">{senhasUrl}</code>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-[#1E242B] p-2 text-[#94A3B8] hover:text-white"
-                      onClick={() => void navigator.clipboard.writeText(senhasUrl)}
-                    >
-                      <ClipboardCopy className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <p className="mt-2 text-[10px] text-[#64748B]">
+                    Página com banner, data e botão &quot;Receber senha&quot; — use no TikTok, Instagram e Facebook.
+                  </p>
                 </div>
               ) : (
                 <p className="text-sm text-amber-400/90">
-                  Ative &quot;Emissão pública de senhas&quot; na aba Frequência e salve a configuração.
+                  Ative &quot;Emissão pública de senhas&quot; na aba Frequência e salve a configuração para gerar o
+                  link.
                 </p>
               )}
 
