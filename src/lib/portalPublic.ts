@@ -26,6 +26,8 @@ export type PublicEvento = {
   tipo: string;
   descricao: string;
   bannerUrl: string | null;
+  senhasAtivas?: boolean;
+  eventoPageUrl?: string | null;
   terreiro: {
     nome: string;
     slug: string;
@@ -34,6 +36,28 @@ export type PublicEvento = {
     perfilUrl: string;
   };
   cidadeSlug: string | null;
+};
+
+export type PublicEventoDetail = {
+  id: string;
+  titulo: string;
+  data: string;
+  hora: string;
+  tipo: string;
+  descricao: string;
+  bannerUrl: string | null;
+  senhasAtivas: boolean;
+  senhasEmitidas: number;
+  senhasMaximas: number | null;
+  senhasRestantes: number | null;
+  esgotado: boolean;
+  terreiro: {
+    nome: string;
+    slug: string;
+    cidade: string | null;
+    estado: string | null;
+    perfilUrl: string;
+  };
 };
 
 export type PublicCidade = {
@@ -96,6 +120,13 @@ export async function fetchPublicEventos(cidade?: string): Promise<PublicEvento[
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'Erro ao carregar eventos');
   return json.items || [];
+}
+
+export async function fetchPublicEvento(token: string): Promise<PublicEventoDetail> {
+  const res = await fetch(`/api/v1/public/evento/${encodeURIComponent(token)}`, { cache: 'no-store' });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Evento não encontrado');
+  return json;
 }
 
 export async function fetchPublicCidades(): Promise<PublicCidade[]> {

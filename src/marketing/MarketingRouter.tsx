@@ -23,6 +23,7 @@ const TerreirosCityPage = lazy(() => import('../views/portal/TerreirosCityPage')
 const DiretorioCityPage = lazy(() => import('../views/portal/DiretorioCityPage'));
 const DiretorioTerreiroPage = lazy(() => import('../views/portal/DiretorioTerreiroPage'));
 const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage'));
+const EventoPublicPage = lazy(() => import('../views/portal/EventoPublicPage'));
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 const PorQueAxeCloudPage = lazy(() => import('../views/PorQueAxeCloudPage'));
 
@@ -52,6 +53,13 @@ function parseDiretorioCityPath(path: string): { estado: string; cidade: string 
     return { estado: parts[0].toLowerCase(), cidade: decodeURIComponent(parts[1]) };
   }
   return null;
+}
+
+function parseEventoPublicPath(path: string): string | null {
+  const p = normalizePath(path);
+  if (!p.startsWith(`${ROUTES.eventoPublico}/`)) return null;
+  const token = p.slice(`${ROUTES.eventoPublico}/`.length);
+  return token ? decodeURIComponent(token) : null;
 }
 
 function parseTerreirosPath(path: string): 'directory' | { city: string } | { profile: string } | null {
@@ -92,6 +100,9 @@ function RoutedMarketingPage({ path }: { path: string }) {
 
   const diretorioCity = parseDiretorioCityPath(path);
   if (diretorioCity) return <DiretorioCityPage />;
+
+  const eventoToken = parseEventoPublicPath(path);
+  if (eventoToken) return <EventoPublicPage />;
 
   const terreiros = parseTerreirosPath(path);
   if (terreiros === 'directory') return <TerreirosDirectoryPage />;

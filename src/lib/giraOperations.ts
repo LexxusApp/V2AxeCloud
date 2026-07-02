@@ -25,9 +25,10 @@ export type EventoSenha = {
   numero: number;
   nome: string;
   telefone?: string | null;
-  status: 'aguardando' | 'chamado' | 'atendido' | 'cancelado';
+  status: 'aguardando' | 'presente' | 'chamado' | 'atendido' | 'cancelado';
   called_at?: string | null;
   attended_at?: string | null;
+  checked_in_at?: string | null;
 };
 
 export type MapaVelaItem = {
@@ -44,10 +45,13 @@ export type MapaVelaItem = {
 
 export type GiraEventConfig = {
   vagas_maximas?: number | null;
+  senhas_maximas?: number | null;
   confirmacao_automatica?: boolean;
   senhas_ativas?: boolean;
   checkin_qr_token?: string | null;
   senhas_public_token?: string | null;
+  evento_public_token?: string | null;
+  evento_publico?: boolean;
 };
 
 export type EventoConfirmadoResumo = {
@@ -82,6 +86,7 @@ export async function fetchParticipantes(eventId: string, tenantId: string) {
     };
     checkinUrl: string | null;
     senhasUrl: string | null;
+    eventoPublicUrl: string | null;
     event: GiraEventConfig & { id: string; titulo?: string };
   };
 }
@@ -118,20 +123,6 @@ export async function respondParticipacao(
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'Erro ao registrar resposta');
   return json;
-}
-
-export async function checkinParticipante(eventId: string, tenantId: string, filhoId?: string) {
-  const res = await authFetch(
-    `/api/v1/events/${encodeURIComponent(eventId)}/participantes/checkin`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId, filhoId }),
-    },
-  );
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Erro no check-in');
-  return json.data;
 }
 
 export async function approveParticipante(

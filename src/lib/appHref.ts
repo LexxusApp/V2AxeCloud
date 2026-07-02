@@ -16,6 +16,10 @@ const APP_SPA_PATHS = [
   ROUTES.dashboard,
   ROUTES.consulentePortal,
   ROUTES.eventRsvp,
+  ROUTES.giraCheckin,
+  ROUTES.giraSenhas,
+  ROUTES.visitantePresenca,
+  ROUTES.checkinPortaria,
   '/widget',
 ] as const;
 

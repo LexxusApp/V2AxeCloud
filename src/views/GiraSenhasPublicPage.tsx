@@ -45,7 +45,7 @@ export default function GiraSenhasPublicPage() {
 
   async function handleEmitir(e: React.FormEvent) {
     e.preventDefault();
-    if (!token || !nome.trim()) return;
+    if (!token || !nome.trim() || !telefone.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -83,7 +83,10 @@ export default function GiraSenhasPublicPage() {
           <p className="text-sm text-[#94A3B8]">{info.titulo}</p>
           <p className="mt-6 text-6xl font-black tabular-nums text-primary">{senha}</p>
           <p className="mt-2 text-lg font-bold text-white">{nome}</p>
-          <p className="mt-4 text-xs text-[#64748B]">Apresente esta senha na portaria da gira.</p>
+          <p className="mt-4 text-xs text-[#64748B]">
+            Enviamos sua senha e o link de check-in no WhatsApp. Na portaria, abra o link e aponte para o QR do
+            terreiro.
+          </p>
           <CheckCircle2 className="mx-auto mt-6 h-8 w-8 text-emerald-400" />
         </div>
       </div>
@@ -123,18 +126,20 @@ export default function GiraSenhasPublicPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">WhatsApp (opcional)</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">WhatsApp</label>
                 <input
+                  required
+                  type="tel"
                   className="mt-1 w-full rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 text-sm text-white"
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
-                  placeholder="11999999999"
+                  placeholder="(00) 00000-0000"
                 />
               </div>
               {error ? <p className="text-xs text-red-400">{error}</p> : null}
               <button
                 type="submit"
-                disabled={submitting || !nome.trim()}
+                disabled={submitting || !nome.trim() || !telefone.trim()}
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-black text-[#080A0D]',
                   submitting && 'opacity-70',

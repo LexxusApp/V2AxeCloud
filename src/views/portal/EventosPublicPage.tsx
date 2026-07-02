@@ -78,15 +78,15 @@ export default function EventosPublicPage() {
               }
               return (
                 <li key={ev.id}>
-                  <button
-                    type="button"
-                    onClick={() => setDetail(ev)}
-                    className={cn(
-                      'group flex w-full cursor-pointer gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
-                      landingMockupCardClass,
-                      'rounded-2xl',
-                    )}
-                  >
+                  {ev.eventoPageUrl ? (
+                    <a
+                      href={ev.eventoPageUrl}
+                      className={cn(
+                        'group flex w-full gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
+                        landingMockupCardClass,
+                        'rounded-2xl',
+                      )}
+                    >
                     <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f3ebe0] sm:h-28 sm:w-32">
                       <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
                     </div>
@@ -110,10 +110,48 @@ export default function EventosPublicPage() {
                         <p className="mt-2 line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
                       ) : null}
                       <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
-                        Toque para ver detalhes
+                        {ev.senhasAtivas ? 'Receber senha' : 'Ver evento'}
                       </p>
                     </div>
-                  </button>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDetail(ev)}
+                      className={cn(
+                        'group flex w-full cursor-pointer gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
+                        landingMockupCardClass,
+                        'rounded-2xl',
+                      )}
+                    >
+                      <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f3ebe0] sm:h-28 sm:w-32">
+                        <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{ev.tipo}</span>
+                        <h2 className="mt-1 text-base font-bold leading-snug text-[#1b1813] group-hover:text-[#FFC107] sm:text-lg">
+                          {ev.titulo}
+                        </h2>
+                        <p className="mt-1.5 flex items-center gap-2 text-sm text-[#1b1813]/65">
+                          <Calendar className="h-4 w-4 shrink-0" />
+                          {dataFmt} · {ev.hora}
+                        </p>
+                        <span className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            {ev.terreiro.nome}
+                            {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
+                          </span>
+                        </span>
+                        {ev.descricao ? (
+                          <p className="mt-2 line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
+                        ) : null}
+                        <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
+                          Toque para ver detalhes
+                        </p>
+                      </div>
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -215,6 +253,14 @@ export default function EventosPublicPage() {
                       <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed text-[#1b1813]/65">
                         {detail.descricao}
                       </p>
+                    ) : null}
+                    {detail.eventoPageUrl ? (
+                      <a
+                        href={detail.eventoPageUrl}
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-4 py-3 text-sm font-black text-[#1b1813] hover:bg-[#e6ac00]"
+                      >
+                        {detail.senhasAtivas ? 'Ver evento e receber senha' : 'Ver página do evento'}
+                      </a>
                     ) : null}
                   </div>
                 </div>

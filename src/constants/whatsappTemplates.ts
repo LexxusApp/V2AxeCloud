@@ -6,6 +6,7 @@
   | 'mensalidade_confirmada'
   | 'mural_aviso'
   | 'convite_evento'
+  | 'senha_evento_visitante'
   | 'estoque_critico'
   | 'pedido_reza_novo_zelador'
   | 'pedido_reza_aceito_fiel';
@@ -35,6 +36,11 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Paz e Luz, {{nome_filho}}! Há um novo aviso no Mural do terreiro {{nome_terreiro}}:\n\n*{{titulo_aviso}}*\n\nAcesse o sistema para ver os detalhes. Axé!',
   convite_evento:
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
+  senha_evento_visitante:
+    'Saravá, {{nome_visitante}}! 🙏\n' +
+    'Sua senha para *{{nome_evento}}* no {{nome_terreiro}} é: *{{numero_senha}}*\n' +
+    '{{data_evento}} às {{hora_evento}}\n\n' +
+    'Na portaria, use este link para confirmar presença:\n{{link_checkin}}\n\nAxé!',
   estoque_critico:
     '⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.',
   pedido_reza_novo_zelador:
@@ -50,6 +56,7 @@ export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'mensalidade_confirmada',
   'mural_aviso',
   'convite_evento',
+  'senha_evento_visitante',
   'estoque_critico',
   'pedido_reza_novo_zelador',
   'pedido_reza_aceito_fiel',

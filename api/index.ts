@@ -4111,7 +4111,12 @@ async function startServer() {
             : null,
         confirmacao_automatica: req.body?.confirmacao_automatica !== false,
         senhas_ativas: Boolean(req.body?.senhas_ativas),
+        senhas_maximas:
+          req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ""
+            ? Math.max(1, Number(req.body.senhas_maximas) || 0)
+            : null,
         checkin_qr_token: newPublicToken(),
+        ...(Boolean(req.body?.evento_publico) ? { evento_public_token: newPublicToken() } : {}),
         ...(Boolean(req.body?.senhas_ativas)
           ? { senhas_public_token: newPublicToken() }
           : {}),
@@ -4187,7 +4192,7 @@ async function startServer() {
 
       const { data: existing, error: fetchErr } = await supabaseAdmin
         .from('calendario_axe')
-        .select('id, senhas_ativas, senhas_public_token, checkin_qr_token')
+        .select('id, senhas_ativas, senhas_public_token, checkin_qr_token, evento_publico, evento_public_token')
         .eq('id', req.params.id)
         .maybeSingle();
       if (fetchErr) throw fetchErr;
@@ -4224,6 +4229,10 @@ async function startServer() {
             ? Math.max(0, Number(req.body.vagas_maximas) || 0)
             : null,
         senhas_ativas,
+        senhas_maximas:
+          req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ''
+            ? Math.max(1, Number(req.body.senhas_maximas) || 0)
+            : null,
       };
 
       if (!patch.titulo || !patch.data || !patch.hora || !patch.tipo) {
@@ -4236,6 +4245,9 @@ async function startServer() {
 
       if (senhas_ativas && !existing.senhas_public_token) {
         patch.senhas_public_token = newPublicToken();
+      }
+      if (Boolean(req.body?.evento_publico) && !existing.evento_public_token) {
+        patch.evento_public_token = newPublicToken();
       }
       if (!existing.checkin_qr_token) {
         patch.checkin_qr_token = newPublicToken();

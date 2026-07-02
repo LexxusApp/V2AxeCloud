@@ -30,6 +30,9 @@ export const ROUTES = {
   /** Página individual do diretório SEO (Google Maps). */
   diretorioTerreiro: '/terreiro',
   eventosPublicos: '/eventos',
+  eventoPublico: '/evento',
+  visitantePresenca: '/presenca',
+  checkinPortaria: '/checkin-portaria',
   liturgicalCalendar: '/conteudo/calendario-liturgico',
   eventRsvp: '/convite',
   giraCheckin: '/checkin',
@@ -68,6 +71,18 @@ export function consulentePortalPath(slug: string): string {
   return `/consulente/${encodeURIComponent(slug)}`;
 }
 
+export function eventoPublicPath(token: string): string {
+  return `/evento/${encodeURIComponent(token)}`;
+}
+
+export function visitantePresencaPath(token: string): string {
+  return `/presenca/${encodeURIComponent(token)}`;
+}
+
+export function checkinPortariaPath(token: string): string {
+  return `/checkin-portaria/${encodeURIComponent(token)}`;
+}
+
 /** Rotas servidas pelo site de marketing estático (Caddy → container marketing). */
 export const MARKETING_SITE_PATHS = [
   ROUTES.home,
@@ -103,6 +118,7 @@ export function isMarketingSitePath(path: string): boolean {
   if ((MARKETING_SITE_PATHS as readonly string[]).includes(p)) return true;
   if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
   if (p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return true;
+  if (p.startsWith(`${ROUTES.eventoPublico}/`)) return true;
   return false;
 }
 

@@ -9,6 +9,19 @@ import {
   resolveLeaderId,
 } from "./tenantAccess.js";
 import { resolvePublicAppUrl } from "./tenantOnboarding.js";
+import { getOfficialWhatsAppStatus } from "../../src/services/evolution.service.js";
+import {
+  buildWhatsAppDeliverableText,
+  buildWhatsAppMessage,
+  logAndSendWhatsApp,
+  resolveTerreiroWhatsAppContext,
+} from "./whatsappSendCore.js";
+
+function normalizeBrPhone(raw: string): string {
+  let digits = String(raw).replace(/\D/g, "");
+  if (!digits.startsWith("55")) digits = `55${digits}`;
+  return digits;
+}
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -112,6 +125,9 @@ async function ensureEventTokens(sb: SupabaseClient, event: Record<string, unkno
   if (event.senhas_ativas && !event.senhas_public_token) {
     patch.senhas_public_token = newPublicToken();
   }
+  if (event.evento_publico && !event.evento_public_token) {
+    patch.evento_public_token = newPublicToken();
+  }
   if (Object.keys(patch).length === 0) return event;
   const { data } = await sb
     .from("calendario_axe")
@@ -122,14 +138,168 @@ async function ensureEventTokens(sb: SupabaseClient, event: Record<string, unkno
   return data || { ...event, ...patch };
 }
 
-export function buildCheckinPublicUrl(token: string): string {
+export async function emitirSenhaVisitante(
+  sb: SupabaseClient,
+  event: Record<string, unknown>,
+  nome: string,
+  telefone: string,
+): Promise<{ data: Record<string, unknown>; numero: number }> {
+  const eventId = String(event.id);
+  const tenantId = String(event.tenant_id);
+
+  const senhasMaximas =
+    event.senhas_maximas != null && Number(event.senhas_maximas) > 0
+      ? Number(event.senhas_maximas)
+      : null;
+
+  if (senhasMaximas != null) {
+    const { count } = await sb
+      .from("evento_senhas")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId);
+    if ((count ?? 0) >= senhasMaximas) {
+      throw Object.assign(new Error("Todas as senhas deste evento já foram emitidas."), { statusCode: 409 });
+    }
+  }
+
+  const phoneDigits = telefone.replace(/\D/g, "");
+  if (phoneDigits.length < 10) {
+    throw Object.assign(new Error("WhatsApp inválido."), { statusCode: 400 });
+  }
+
+  const { data: existingPhone } = await sb
+    .from("evento_senhas")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("telefone", phoneDigits)
+    .maybeSingle();
+  if (existingPhone) {
+    throw Object.assign(new Error("Este WhatsApp já recebeu uma senha para este evento."), { statusCode: 409 });
+  }
+
+  const { data: last } = await sb
+    .from("evento_senhas")
+    .select("numero")
+    .eq("event_id", eventId)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const numero = (last?.numero ?? 0) + 1;
+  const checkinToken = newPublicToken();
+
+  const { data, error } = await sb
+    .from("evento_senhas")
+    .insert({
+      event_id: eventId,
+      tenant_id: tenantId,
+      numero,
+      nome,
+      telefone: phoneDigits,
+      checkin_token: checkinToken,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+
+  return { data: data as Record<string, unknown>, numero };
+}
+
+export async function sendSenhaVisitanteWhatsApp(
+  sb: SupabaseClient,
+  event: Record<string, unknown>,
+  senha: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const tenantId = String(event.tenant_id);
+    const leaderId = String(event.lider_id || tenantId);
+    const phone = String(senha.telefone || "");
+    if (phone.replace(/\D/g, "").length < 10) return;
+
+    const st = await getOfficialWhatsAppStatus();
+    if (st.status !== "CONNECTED") return;
+
+    const ctx = await resolveTerreiroWhatsAppContext(sb, leaderId, tenantId);
+    const { data: waCfg } = await sb
+      .from("whatsapp_config")
+      .select("templates")
+      .eq("tenant_id", leaderId)
+      .maybeSingle();
+
+    const linkCheckin = buildPresencaPublicUrl(String(senha.checkin_token));
+    const variables: Record<string, string | number> = {
+      nome_visitante: String(senha.nome),
+      numero_senha: Number(senha.numero),
+      nome_evento: String(event.titulo || ""),
+      data_evento: String(event.data || ""),
+      hora_evento: String(event.hora || ""),
+      nome_terreiro: ctx.nomeTerreiro,
+      link_checkin: linkCheckin,
+    };
+
+    const message = buildWhatsAppMessage(waCfg?.templates, "senha_evento_visitante", variables);
+    const deliverableText = buildWhatsAppDeliverableText(
+      waCfg?.templates,
+      "senha_evento_visitante",
+      String(senha.nome),
+      ctx.nomeTerreiro,
+      variables,
+      ctx.zelador,
+    );
+
+    await logAndSendWhatsApp(sb, {
+      tenantId,
+      tipo: "senha_evento_visitante",
+      phone: normalizeBrPhone(phone),
+      message,
+      deliverableText,
+      nomeMembro: String(senha.nome),
+      nomeTerreiro: ctx.nomeTerreiro,
+      idTerreiro: ctx.idTerreiro,
+      zelador: ctx.zelador,
+      variables,
+    });
+  } catch (err) {
+    console.error("[senha-visitante-whatsapp]", err);
+  }
+}
+
+export function buildCheckinPortariaUrl(token: string): string {
   const base = resolvePublicAppUrl().replace(/\/$/, "");
-  return `${base}/checkin/${encodeURIComponent(token)}`;
+  return `${base}/checkin-portaria/${encodeURIComponent(token)}`;
+}
+
+/** @deprecated Use buildCheckinPortariaUrl — mantido para compatibilidade de imports */
+export function buildCheckinPublicUrl(token: string): string {
+  return buildCheckinPortariaUrl(token);
 }
 
 export function buildSenhasPublicUrl(token: string): string {
   const base = resolvePublicAppUrl().replace(/\/$/, "");
   return `${base}/senhas/${encodeURIComponent(token)}`;
+}
+
+export function buildEventoPublicUrl(token: string): string {
+  const base = resolvePublicAppUrl().replace(/\/$/, "");
+  return `${base}/evento/${encodeURIComponent(token)}`;
+}
+
+export function buildPresencaPublicUrl(token: string): string {
+  const base = resolvePublicAppUrl().replace(/\/$/, "");
+  return `${base}/presenca/${encodeURIComponent(token)}`;
+}
+
+function extractVenueTokenFromScan(raw: string): string {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    const parts = url.pathname.replace(/\/+$/, "").split("/");
+    const idx = parts.indexOf("checkin-portaria");
+    if (idx >= 0 && parts[idx + 1]) return decodeURIComponent(parts[idx + 1]);
+  } catch {
+    /* not a URL */
+  }
+  return trimmed;
 }
 
 export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
@@ -221,6 +391,13 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         if (req.body.senhas_ativas && !event.senhas_public_token) {
           patch.senhas_public_token = newPublicToken();
         }
+      }
+      if (req.body?.senhas_maximas !== undefined) {
+        const v = req.body.senhas_maximas;
+        patch.senhas_maximas = v === null || v === "" ? null : Math.max(1, Number(v) || 0);
+      }
+      if (event.evento_publico && !event.evento_public_token) {
+        patch.evento_public_token = newPublicToken();
       }
       if (!event.checkin_qr_token) patch.checkin_qr_token = newPublicToken();
 
@@ -314,10 +491,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         .order("created_at", { ascending: true });
       if (error) throw error;
 
-      const confirmed = (data || []).filter((p) =>
-        ["confirmado", "presente"].includes(String(p.status))
-      ).length;
-      const present = (data || []).filter((p) => String(p.status) === "presente").length;
+      const confirmed = (data || []).filter((p) => String(p.status) === "confirmado").length;
 
       res.json({
         data: data || [],
@@ -325,7 +499,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         stats: {
           total: (data || []).length,
           confirmados: confirmed,
-          presentes: present,
+          presentes: 0,
           vagas_maximas: event.vagas_maximas ?? null,
           vagas_restantes:
             event.vagas_maximas != null
@@ -333,11 +507,15 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
               : null,
         },
         checkinUrl: updatedEvent.checkin_qr_token
-          ? buildCheckinPublicUrl(String(updatedEvent.checkin_qr_token))
+          ? buildCheckinPortariaUrl(String(updatedEvent.checkin_qr_token))
           : null,
         senhasUrl:
           updatedEvent.senhas_ativas && updatedEvent.senhas_public_token
             ? buildSenhasPublicUrl(String(updatedEvent.senhas_public_token))
+            : null,
+        eventoPublicUrl:
+          updatedEvent.evento_publico && updatedEvent.evento_public_token
+            ? buildEventoPublicUrl(String(updatedEvent.evento_public_token))
             : null,
       });
     } catch (e: unknown) {
@@ -462,46 +640,6 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     }
   });
 
-  app.post("/api/v1/events/:eventId/participantes/checkin", async (req: Request, res: Response) => {
-    try {
-      const user = await requireAuthenticatedUser(sb, req, res);
-      if (!user) return;
-      const tenantId = normalizeQueryTenantId(req.body?.tenantId || req.query.tenantId);
-      if (!tenantId) return res.status(400).json({ error: "tenantId required" });
-
-      const eventId = String(req.params.eventId || "");
-      const event = await loadEvent(eventId, tenantId);
-      if (!event) return res.status(404).json({ error: "Evento não encontrado" });
-
-      let filhoId = String(req.body?.filhoId || "").trim();
-      const role = String(user.user_metadata?.role || "").toLowerCase();
-      if (role === "filho") {
-        const filho = await resolveFilho(user.id, tenantId);
-        if (!filho) return res.status(403).json({ error: "Filho não encontrado." });
-        filhoId = filho.id;
-      } else {
-        const ok = await assertZeladorTenantAccess(sb, user.id, tenantId);
-        if (!ok) return res.status(403).json({ error: "Acesso negado" });
-        if (!filhoId) return res.status(400).json({ error: "filhoId required" });
-      }
-
-      const { data, error } = await sb
-        .from("evento_participantes")
-        .update({
-          status: "presente",
-          checked_in_at: new Date().toISOString(),
-        })
-        .eq("event_id", eventId)
-        .eq("filho_id", filhoId)
-        .select("*")
-        .single();
-      if (error) throw error;
-      res.json({ success: true, data });
-    } catch (e: unknown) {
-      res.status(500).json({ error: "Erro no check-in." });
-    }
-  });
-
   // Relatório de frequência geral
   app.get("/api/v1/frequencia", async (req: Request, res: Response) => {
     const access = await requireTenantReadAccess(sb, req, res, req.query.tenantId);
@@ -523,10 +661,9 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
 
       const byFilho = (filhos || []).map((f) => {
         const rows = (participacoes || []).filter((p) => p.filho_id === f.id);
-        const presentes = rows.filter((r) => r.status === "presente").length;
-        const confirmados = rows.filter((r) => ["confirmado", "presente"].includes(String(r.status))).length;
+        const confirmados = rows.filter((r) => String(r.status) === "confirmado").length;
         const total = rows.length;
-        const assiduidade = total > 0 ? Math.round((presentes / total) * 100) : 0;
+        const assiduidade = total > 0 ? Math.round((confirmados / total) * 100) : 0;
         return {
           filho_id: f.id,
           nome: f.nome,
@@ -534,7 +671,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
           foto_url: f.foto_url,
           total_eventos: total,
           confirmados,
-          presentes,
+          presentes: confirmados,
           faltas: rows.filter((r) => r.status === "recusado").length,
           assiduidade_pct: assiduidade,
         };
@@ -625,7 +762,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
 
       const status = String(req.body?.status || "");
       const patch: Record<string, unknown> = {};
-      if (["aguardando", "chamado", "atendido", "cancelado"].includes(status)) {
+      if (["aguardando", "presente", "chamado", "atendido", "cancelado"].includes(status)) {
         patch.status = status;
         if (status === "chamado") patch.called_at = new Date().toISOString();
         if (status === "atendido") patch.attended_at = new Date().toISOString();
@@ -766,7 +903,44 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     }
   });
 
-  // ── Público: check-in QR ──
+  // ── Público: QR da portaria (kiosk) ──
+  app.get("/api/v1/public/checkin-portaria/:token", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = String(req.params.token || "").trim();
+      const { data: event } = await sb
+        .from("calendario_axe")
+        .select("id, titulo, data, hora, tipo, tenant_id, lider_id")
+        .eq("checkin_qr_token", token)
+        .maybeSingle();
+      if (!event) return res.status(404).json({ error: "QR inválido ou expirado." });
+
+      const leaderId = String(event.lider_id || event.tenant_id || "");
+      let terreiroName = "Terreiro";
+      if (leaderId) {
+        const { data: profile } = await sb
+          .from("perfil_lider")
+          .select("nome_terreiro")
+          .eq("id", leaderId)
+          .maybeSingle();
+        if (profile?.nome_terreiro) terreiroName = String(profile.nome_terreiro);
+      }
+
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.json({
+        eventId: event.id,
+        titulo: event.titulo,
+        data: event.data,
+        hora: event.hora,
+        tipo: event.tipo,
+        terreiroName,
+        venueToken: token,
+      });
+    } catch (e: unknown) {
+      res.status(500).json({ error: "Erro ao carregar check-in." });
+    }
+  });
+
+  // Legado: mesma resposta do QR da portaria
   app.get("/api/v1/public/checkin/:token", apiReadRateLimit, async (req: Request, res: Response) => {
     try {
       const token = String(req.params.token || "").trim();
@@ -788,6 +962,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         if (profile?.nome_terreiro) terreiroName = String(profile.nome_terreiro);
       }
 
+      res.setHeader("Cache-Control", "public, max-age=60");
       res.json({
         eventId: event.id,
         titulo: event.titulo,
@@ -795,72 +970,115 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         hora: event.hora,
         tipo: event.tipo,
         terreiroName,
+        venueToken: token,
       });
     } catch (e: unknown) {
       res.status(500).json({ error: "Erro ao carregar check-in." });
     }
   });
 
-  app.post("/api/v1/public/checkin/:token", apiReadRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/v1/public/checkin/:token", apiReadRateLimit, async (_req: Request, res: Response) => {
+    res.status(410).json({
+      error: "Check-in de filhos de santo foi descontinuado. Visitantes devem usar o link recebido no WhatsApp.",
+    });
+  });
+
+  // ── Público: presença do visitante (link do WhatsApp) ──
+  app.get("/api/v1/public/presenca/:token", apiReadRateLimit, async (req: Request, res: Response) => {
     try {
       const token = String(req.params.token || "").trim();
-      const cpf = String(req.body?.cpf || "").replace(/\D/g, "");
-      const telefone = String(req.body?.telefone || "").replace(/\D/g, "");
-      const checkinToken = String(req.body?.checkinToken || "").trim();
+      const { data: senha } = await sb
+        .from("evento_senhas")
+        .select("id, numero, nome, checked_in_at, status, event_id")
+        .eq("checkin_token", token)
+        .maybeSingle();
+      if (!senha) return res.status(404).json({ error: "Link inválido ou expirado." });
 
       const { data: event } = await sb
         .from("calendario_axe")
-        .select("id, titulo, tenant_id")
-        .eq("checkin_qr_token", token)
+        .select("id, titulo, data, hora, tenant_id, lider_id")
+        .eq("id", senha.event_id)
         .maybeSingle();
-      if (!event) return res.status(404).json({ error: "QR inválido." });
+      if (!event) return res.status(404).json({ error: "Evento não encontrado." });
 
-      if (checkinToken) {
-        const { data: part } = await sb
-          .from("evento_participantes")
-          .select("id, filhos_de_santo(nome)")
-          .eq("checkin_token", checkinToken)
-          .eq("event_id", event.id)
+      const leaderId = String(event.lider_id || event.tenant_id || "");
+      let terreiroName = "Terreiro";
+      if (leaderId) {
+        const { data: profile } = await sb
+          .from("perfil_lider")
+          .select("nome_terreiro")
+          .eq("id", leaderId)
           .maybeSingle();
-        if (!part) return res.status(404).json({ error: "Token de check-in inválido." });
-        await sb
-          .from("evento_participantes")
-          .update({ status: "presente", checked_in_at: new Date().toISOString() })
-          .eq("id", part.id);
-        const nome =
-          (part as { filhos_de_santo?: { nome?: string } }).filhos_de_santo?.nome || "Participante";
-        return res.json({ success: true, nome, eventTitle: event.titulo });
+        if (profile?.nome_terreiro) terreiroName = String(profile.nome_terreiro);
       }
 
-      if (!cpf && !telefone) {
-        return res.status(400).json({ error: "Informe CPF ou telefone." });
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        senha: senha.numero,
+        nome: senha.nome,
+        checkedIn: Boolean(senha.checked_in_at),
+        eventTitle: event.titulo,
+        data: event.data,
+        hora: event.hora,
+        terreiroName,
+      });
+    } catch (e: unknown) {
+      res.status(500).json({ error: "Erro ao carregar presença." });
+    }
+  });
+
+  app.post("/api/v1/public/presenca/:token/confirmar", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = String(req.params.token || "").trim();
+      const venueToken = extractVenueTokenFromScan(String(req.body?.venueToken || ""));
+
+      if (!venueToken) {
+        return res.status(400).json({ error: "QR da portaria inválido." });
       }
 
-      const leaderId = await resolveLeader(String(event.tenant_id));
-      let filhoQuery = sb.from("filhos_de_santo").select("id, nome");
-      if (cpf) filhoQuery = filhoQuery.eq("cpf", cpf);
-      else filhoQuery = filhoQuery.eq("whatsapp_phone", telefone);
-
-      const { data: filho } = await filhoQuery
-        .or(
-          `tenant_id.eq.${event.tenant_id},tenant_id.eq.${leaderId},lider_id.eq.${event.tenant_id},lider_id.eq.${leaderId}`
-        )
+      const { data: senha } = await sb
+        .from("evento_senhas")
+        .select("*")
+        .eq("checkin_token", token)
         .maybeSingle();
+      if (!senha) return res.status(404).json({ error: "Link inválido." });
 
-      if (!filho) return res.status(404).json({ error: "Filho não encontrado nesta casa." });
+      const { data: event } = await sb
+        .from("calendario_axe")
+        .select("id, titulo, checkin_qr_token")
+        .eq("id", senha.event_id)
+        .maybeSingle();
+      if (!event || String(event.checkin_qr_token) !== venueToken) {
+        return res.status(400).json({ error: "QR não corresponde a este evento." });
+      }
 
-      await syncParts(String(event.id), String(event.tenant_id));
+      if (senha.checked_in_at) {
+        return res.json({
+          success: true,
+          alreadyCheckedIn: true,
+          senha: senha.numero,
+          nome: senha.nome,
+          eventTitle: event.titulo,
+        });
+      }
+
+      const now = new Date().toISOString();
       const { error } = await sb
-        .from("evento_participantes")
-        .update({ status: "presente", checked_in_at: new Date().toISOString() })
-        .eq("event_id", event.id)
-        .eq("filho_id", filho.id);
+        .from("evento_senhas")
+        .update({ checked_in_at: now, status: "presente" })
+        .eq("id", senha.id);
       if (error) throw error;
 
-      res.json({ success: true, nome: filho.nome, eventTitle: event.titulo });
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        success: true,
+        senha: senha.numero,
+        nome: senha.nome,
+        eventTitle: event.titulo,
+      });
     } catch (e: unknown) {
-      console.error("[public checkin]", e);
-      res.status(500).json({ error: "Erro no check-in." });
+      console.error("[public presenca confirmar]", e);
+      res.status(500).json({ error: "Erro ao confirmar presença." });
     }
   });
 
@@ -870,7 +1088,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
       const token = String(req.params.token || "").trim();
       const { data: event } = await sb
         .from("calendario_axe")
-        .select("id, titulo, data, hora, senhas_ativas, tenant_id, lider_id")
+        .select("id, titulo, data, hora, senhas_ativas, senhas_maximas, tenant_id, lider_id")
         .eq("senhas_public_token", token)
         .maybeSingle();
       if (!event || !event.senhas_ativas) {
@@ -893,13 +1111,23 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         if (profile?.nome_terreiro) terreiroName = String(profile.nome_terreiro);
       }
 
+      const emitidas = count ?? 0;
+      const max =
+        event.senhas_maximas != null && Number(event.senhas_maximas) > 0
+          ? Number(event.senhas_maximas)
+          : null;
+
+      res.setHeader("Cache-Control", "private, no-store");
       res.json({
         eventId: event.id,
         titulo: event.titulo,
         data: event.data,
         hora: event.hora,
         terreiroName,
-        senhasEmitidas: count ?? 0,
+        senhasEmitidas: emitidas,
+        senhasMaximas: max,
+        senhasRestantes: max != null ? Math.max(0, max - emitidas) : null,
+        esgotado: max != null && emitidas >= max,
       });
     } catch (e: unknown) {
       res.status(500).json({ error: "Erro ao carregar gira." });
@@ -910,46 +1138,42 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     try {
       const token = String(req.params.token || "").trim();
       const nome = String(req.body?.nome || "").trim();
+      const telefone = String(req.body?.telefone || "").trim();
       if (!nome) return res.status(400).json({ error: "Nome obrigatório." });
+      if (!telefone) return res.status(400).json({ error: "WhatsApp obrigatório." });
 
       const { data: event } = await sb
         .from("calendario_axe")
-        .select("id, titulo, senhas_ativas, tenant_id")
+        .select("*")
         .eq("senhas_public_token", token)
         .maybeSingle();
       if (!event || !event.senhas_ativas) {
         return res.status(404).json({ error: "Emissão indisponível." });
       }
 
-      const { data: last } = await sb
-        .from("evento_senhas")
-        .select("numero")
-        .eq("event_id", event.id)
-        .order("numero", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const numero = (last?.numero ?? 0) + 1;
+      let senhaRow: Record<string, unknown>;
+      let numero: number;
+      try {
+        const result = await emitirSenhaVisitante(sb, event, nome, telefone);
+        senhaRow = result.data;
+        numero = result.numero;
+      } catch (err: unknown) {
+        const e = err as Error & { statusCode?: number };
+        return res.status(e.statusCode || 500).json({ error: e.message || "Erro ao emitir senha." });
+      }
 
-      const { data, error } = await sb
-        .from("evento_senhas")
-        .insert({
-          event_id: event.id,
-          tenant_id: event.tenant_id,
-          numero,
-          nome,
-          telefone: req.body?.telefone ? String(req.body.telefone).replace(/\D/g, "") : null,
-        })
-        .select("*")
-        .single();
-      if (error) throw error;
+      void sendSenhaVisitanteWhatsApp(sb, event, senhaRow);
 
+      res.setHeader("Cache-Control", "private, no-store");
       res.json({
         success: true,
-        senha: data.numero,
-        nome: data.nome,
+        senha: numero,
+        nome: senhaRow.nome,
         eventTitle: event.titulo,
+        whatsappEnviado: true,
       });
     } catch (e: unknown) {
+      console.error("[public senhas emitir]", e);
       res.status(500).json({ error: "Erro ao emitir senha." });
     }
   });

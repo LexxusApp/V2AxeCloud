@@ -23,7 +23,6 @@ import { EventGiraOperationsPanel } from '../components/gira/EventGiraOperations
 import { EventConfirmedAvatars } from '../components/gira/EventConfirmedAvatars';
 import { EventGuestsInline } from '../components/gira/EventGuestsInline';
 import {
-  checkinParticipante,
   fetchConfirmadosResumo as fetchConfirmadosResumoApi,
   fetchMinhasParticipacoes,
   respondParticipacao,
@@ -43,6 +42,7 @@ interface Event {
   evento_publico?: boolean;
   vagas_maximas?: number | null;
   senhas_ativas?: boolean;
+  senhas_maximas?: number | null;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -277,6 +277,7 @@ type EventFormData = {
   evento_publico: boolean;
   vagas_maximas: string;
   senhas_ativas: boolean;
+  senhas_maximas: string;
 };
 
 type AddEventModalPanelProps = {
@@ -448,8 +449,21 @@ function AddEventModalPanel({
                 onChange={(e) => setFormData({ ...formData, senhas_ativas: e.target.checked })}
                 className="h-4 w-4 accent-[#FBBC00]"
               />
-              <span className="text-xs text-[#94A3B8]">Senhas online para consulentes</span>
+              <span className="text-xs text-[#94A3B8]">Senhas online para visitantes</span>
             </label>
+            {formData.senhas_ativas ? (
+              <div>
+                <label className={appLabelClass}>Senhas disponíveis (visitantes)</label>
+                <input
+                  type="number"
+                  min={1}
+                  className={appInputClass}
+                  placeholder="Ex: 50"
+                  value={formData.senhas_maximas}
+                  onChange={(e) => setFormData({ ...formData, senhas_maximas: e.target.value })}
+                />
+              </div>
+            ) : null}
             <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 sm:col-span-2">
               <label className={appLabelClass}>Banner (opcional)</label>
               <input
@@ -594,6 +608,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     evento_publico: false,
     vagas_maximas: '',
     senhas_ativas: false,
+    senhas_maximas: '',
   });
 
   const resetEventForm = () => {
@@ -607,6 +622,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       evento_publico: false,
       vagas_maximas: '',
       senhas_ativas: false,
+      senhas_maximas: '',
     });
     setBannerFile(null);
     setRemoveBannerOnSave(false);
@@ -635,6 +651,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       vagas_maximas:
         event.vagas_maximas != null && event.vagas_maximas > 0 ? String(event.vagas_maximas) : '',
       senhas_ativas: Boolean(event.senhas_ativas),
+      senhas_maximas:
+        event.senhas_maximas != null && event.senhas_maximas > 0 ? String(event.senhas_maximas) : '',
     });
     setBannerFile(null);
     setRemoveBannerOnSave(false);
@@ -690,15 +708,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       .catch(() => setParticipacoes({}));
   }, [isFilho, effectiveTenantId, currentMonth, events.length]);
 
-  async function handleFilhoParticipacao(eventId: string, action: 'confirmar' | 'declinar' | 'checkin') {
+  async function handleFilhoParticipacao(eventId: string, action: 'confirmar' | 'declinar') {
     if (!effectiveTenantId) return;
     setPartBusy(eventId);
     try {
-      if (action === 'checkin') {
-        await checkinParticipante(eventId, effectiveTenantId);
-      } else {
-        await respondParticipacao(eventId, effectiveTenantId, action);
-      }
+      await respondParticipacao(eventId, effectiveTenantId, action);
       const monthStart = startOfMonth(currentMonth);
       const rangeEnd = addDays(endOfMonth(currentMonth), 7);
       const rows = await fetchMinhasParticipacoes(
@@ -711,7 +725,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       setParticipacoes(map);
       setToast({
         type: 'success',
-        message: action === 'checkin' ? 'Presença registrada!' : action === 'confirmar' ? 'Participação confirmada!' : 'Resposta registrada.',
+        message: action === 'confirmar' ? 'Participação confirmada!' : 'Resposta registrada.',
       });
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Erro');
@@ -1186,24 +1200,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       </button>
                       {!passed ? (
                         <div className="flex flex-wrap gap-2 px-1">
-                          {partStatus === 'presente' ? (
-                            <span className="rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase text-primary">
-                              Presente na gira
+                          {partStatus === 'confirmado' ? (
+                            <span className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400">
+                              Confirmado
                             </span>
-                          ) : partStatus === 'confirmado' ? (
-                            <>
-                              <span className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-400">
-                                Confirmado
-                              </span>
-                              <button
-                                type="button"
-                                disabled={partBusy === event.id}
-                                onClick={() => void handleFilhoParticipacao(event.id, 'checkin')}
-                                className="rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary"
-                              >
-                                Fazer check-in
-                              </button>
-                            </>
                           ) : partStatus === 'recusado' ? (
                             <span className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400">
                               Não vou

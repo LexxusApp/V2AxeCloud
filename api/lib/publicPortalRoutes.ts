@@ -6,6 +6,11 @@ import { slugifyPublicSlug } from "./consulentePortalRoutes.js";
 import { parseCitySlug, slugifyCity } from "./portalCitySlug.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
+import { newPublicToken, emitirSenhaVisitante, sendSenhaVisitanteWhatsApp } from "./giraOperationsRoutes.js";
+
+function buildEventoPublicPagePath(token: string): string {
+  return `/evento/${encodeURIComponent(token)}`;
+}
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -202,7 +207,9 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
 
       const { data: events, error } = await sb
         .from("calendario_axe")
-        .select("id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico")
+        .select(
+          "id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico, evento_public_token, senhas_ativas, senhas_maximas"
+        )
         .eq("evento_publico", true)
         .gte("data", today)
         .order("data", { ascending: true })
@@ -232,6 +239,10 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
             tipo: ev.tipo,
             descricao: ev.descricao || "",
             bannerUrl: resolvePublicMediaUrl(ev.banner_url) || null,
+            senhasAtivas: Boolean(ev.senhas_ativas),
+            eventoPageUrl: ev.evento_public_token
+              ? buildEventoPublicPagePath(String(ev.evento_public_token))
+              : null,
             terreiro: {
               nome: leader.nome_terreiro,
               slug: leader.public_slug,
@@ -252,6 +263,147 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
     } catch (e: unknown) {
       console.error("[public/eventos]", e);
       res.status(500).json({ error: "Erro ao listar eventos." });
+    }
+  });
+
+  app.get("/api/v1/public/evento/:token", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = String(req.params.token || "").trim();
+      let { data: event, error } = await sb
+        .from("calendario_axe")
+        .select(
+          "id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico, evento_public_token, senhas_ativas, senhas_maximas, senhas_public_token"
+        )
+        .eq("evento_public_token", token)
+        .maybeSingle();
+      if (error) throw error;
+
+      if (!event || !event.evento_publico) {
+        return res.status(404).json({ error: "Evento não encontrado ou não está público." });
+      }
+
+      if (!event.evento_public_token) {
+        const newToken = newPublicToken();
+        const { data: patched } = await sb
+          .from("calendario_axe")
+          .update({ evento_public_token: newToken })
+          .eq("id", event.id)
+          .select(
+            "id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico, evento_public_token, senhas_ativas, senhas_maximas, senhas_public_token"
+          )
+          .single();
+        if (patched) event = patched;
+      }
+
+      const leaderId = String(event.lider_id || event.tenant_id || "");
+      const { data: leader } = await sb
+        .from("perfil_lider")
+        .select("nome_terreiro, public_slug, cidade_publica, estado_publico, portal_publico_ativo")
+        .eq("id", leaderId)
+        .maybeSingle();
+
+      if (!leader?.portal_publico_ativo || !leader.public_slug) {
+        return res.status(404).json({ error: "Terreiro não disponível no portal." });
+      }
+
+      const { count } = await sb
+        .from("evento_senhas")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event.id);
+
+      const emitidas = count ?? 0;
+      const max =
+        event.senhas_maximas != null && Number(event.senhas_maximas) > 0
+          ? Number(event.senhas_maximas)
+          : null;
+
+      if (event.senhas_ativas && !event.senhas_public_token) {
+        const senhasToken = newPublicToken();
+        const { data: patchedSenhas } = await sb
+          .from("calendario_axe")
+          .update({ senhas_public_token: senhasToken })
+          .eq("id", event.id)
+          .select("senhas_public_token")
+          .single();
+        if (patchedSenhas?.senhas_public_token) {
+          event.senhas_public_token = patchedSenhas.senhas_public_token;
+        }
+      }
+
+      const cidade = leader.cidade_publica ? String(leader.cidade_publica) : null;
+      const estado = leader.estado_publico ? String(leader.estado_publico) : null;
+
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.json({
+        id: event.id,
+        titulo: event.titulo,
+        data: event.data,
+        hora: event.hora,
+        tipo: event.tipo,
+        descricao: event.descricao || "",
+        bannerUrl: resolvePublicMediaUrl(event.banner_url) || null,
+        senhasAtivas: Boolean(event.senhas_ativas),
+        senhasEmitidas: emitidas,
+        senhasMaximas: max,
+        senhasRestantes: max != null ? Math.max(0, max - emitidas) : null,
+        esgotado: max != null && emitidas >= max,
+        senhasPublicToken: event.senhas_public_token || null,
+        terreiro: {
+          nome: leader.nome_terreiro,
+          slug: leader.public_slug,
+          cidade,
+          estado,
+          perfilUrl: `/terreiros/${leader.public_slug}`,
+        },
+      });
+    } catch (e: unknown) {
+      console.error("[public/evento]", e);
+      res.status(500).json({ error: "Erro ao carregar evento." });
+    }
+  });
+
+  app.post("/api/v1/public/evento/:token/emitir-senha", apiReadRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = String(req.params.token || "").trim();
+      const nome = String(req.body?.nome || "").trim();
+      const telefone = String(req.body?.telefone || "").trim();
+      if (!nome) return res.status(400).json({ error: "Nome obrigatório." });
+      if (!telefone) return res.status(400).json({ error: "WhatsApp obrigatório." });
+
+      const { data: event } = await sb
+        .from("calendario_axe")
+        .select("*")
+        .eq("evento_public_token", token)
+        .eq("evento_publico", true)
+        .maybeSingle();
+      if (!event || !event.senhas_ativas || !event.senhas_public_token) {
+        return res.status(404).json({ error: "Emissão de senhas indisponível." });
+      }
+
+      let senhaRow: Record<string, unknown>;
+      let numero: number;
+      try {
+        const result = await emitirSenhaVisitante(sb, event, nome, telefone);
+        senhaRow = result.data;
+        numero = result.numero;
+      } catch (err: unknown) {
+        const e = err as Error & { statusCode?: number };
+        return res.status(e.statusCode || 500).json({ error: e.message || "Erro ao emitir senha." });
+      }
+
+      void sendSenhaVisitanteWhatsApp(sb, event, senhaRow);
+
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        success: true,
+        senha: numero,
+        nome: senhaRow.nome,
+        eventTitle: event.titulo,
+        whatsappEnviado: true,
+      });
+    } catch (e: unknown) {
+      console.error("[public/evento emitir-senha]", e);
+      res.status(500).json({ error: "Erro ao emitir senha." });
     }
   });
 
