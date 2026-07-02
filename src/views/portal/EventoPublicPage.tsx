@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, CheckCircle2, Clock, Loader2, MapPin, Ticket, XCircle } from 'lucide-react';
+import { Calendar, CalendarDays, CheckCircle2, Clock, Loader2, MapPin, Ticket, XCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
+import { landingMockupCardClass } from '../../components/landing/landingMockupUi';
 import { fetchPublicEvento, terreiroProfilePath, type PublicEventoDetail } from '../../lib/portalPublic';
 
 function parseEventoPath(): string {
@@ -26,14 +27,20 @@ function formatData(data: string): string {
   }
 }
 
-function EventoBanner({ url, alt }: { url: string; alt: string }) {
+function EventoBanner({ url, alt }: { url: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
-  if (failed) return null;
+  if (!url || failed) {
+    return (
+      <div className="flex h-full min-h-[180px] w-full items-center justify-center bg-gradient-to-br from-amber-100/40 to-[#f3ebe0] md:min-h-full">
+        <CalendarDays className="h-12 w-12 text-[#1b1813]/15" aria-hidden />
+      </div>
+    );
+  }
   return (
     <img
       src={url}
       alt={alt}
-      className="h-full w-full object-cover"
+      className="h-full min-h-[180px] w-full object-cover md:min-h-full"
       loading="eager"
       onError={() => setFailed(true)}
     />
@@ -44,7 +51,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <MarketingMockupLayout showFooter={false}>
       <main className="px-4 py-6 sm:py-10">
-        <div className="mx-auto w-full max-w-md">{children}</div>
+        <div className="mx-auto w-full max-w-3xl">{children}</div>
       </main>
     </MarketingMockupLayout>
   );
@@ -146,95 +153,99 @@ export default function EventoPublicPage() {
 
   return (
     <PageShell>
-      <article className="overflow-hidden rounded-2xl border border-[#1b1813]/8 bg-white shadow-sm">
-        {info.bannerUrl ? (
-          <div className="h-36 w-full overflow-hidden bg-[#f3ebe0] sm:h-40">
+      <article className={cn('overflow-hidden rounded-2xl', landingMockupCardClass)}>
+        <div className="flex flex-col md:flex-row md:min-h-[280px]">
+          <div className="md:w-1/2 md:shrink-0">
             <EventoBanner url={info.bannerUrl} alt={info.titulo} />
           </div>
-        ) : null}
 
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
-              {info.tipo}
-            </span>
-            {info.senhasAtivas && info.senhasMaximas != null ? (
-              <span className="text-[11px] text-[#1b1813]/45">
-                {info.esgotado ? 'Senhas esgotadas' : `${info.senhasRestantes ?? 0} senhas restantes`}
+          <div className="flex flex-1 flex-col justify-center p-5 sm:p-6 md:w-1/2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                {info.tipo}
               </span>
+              {info.senhasAtivas && info.senhasMaximas != null ? (
+                <span className="text-[11px] text-[#1b1813]/45">
+                  {info.esgotado ? 'Senhas esgotadas' : `${info.senhasRestantes ?? 0} senhas restantes`}
+                </span>
+              ) : null}
+            </div>
+
+            <h1 className="mt-2 text-xl font-bold leading-snug text-[#1b1813] sm:text-2xl">{info.titulo}</h1>
+
+            <ul className="mt-4 space-y-2.5 text-sm text-[#1b1813]/70">
+              <li className="flex items-start gap-2.5">
+                <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+                <span className="capitalize">{dataFmt}</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+                <span>{horaFmt}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+                <a
+                  href={terreiroProfilePath(info.terreiro.slug)}
+                  className="font-medium text-[#1b1813] underline-offset-2 hover:text-amber-700 hover:underline"
+                >
+                  {local}
+                </a>
+              </li>
+            </ul>
+
+            {info.descricao ? (
+              <p className="mt-4 text-sm leading-relaxed text-[#1b1813]/60">{info.descricao}</p>
             ) : null}
           </div>
+        </div>
 
-          <h1 className="mt-2 text-xl font-bold leading-snug text-[#1b1813] sm:text-2xl">{info.titulo}</h1>
+        {info.senhasAtivas ? (
+          <section className="border-t border-[#1b1813]/8 bg-[#fdf8f0]/80 p-5 sm:p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-amber-600" aria-hidden />
+              <h2 className="text-sm font-bold text-[#1b1813]">Receber senha</h2>
+            </div>
 
-          <ul className="mt-4 space-y-2.5 text-sm text-[#1b1813]/70">
-            <li className="flex items-start gap-2.5">
-              <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-              <span className="capitalize">{dataFmt}</span>
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-              <span>{horaFmt}</span>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-              <a
-                href={terreiroProfilePath(info.terreiro.slug)}
-                className="font-medium text-[#1b1813] underline-offset-2 hover:text-amber-700 hover:underline"
-              >
-                {local}
-              </a>
-            </li>
-          </ul>
-
-          {info.descricao ? (
-            <p className="mt-4 text-sm leading-relaxed text-[#1b1813]/60">{info.descricao}</p>
-          ) : null}
-
-          {info.senhasAtivas ? (
-            <section className="mt-6 rounded-xl border border-[#1b1813]/8 bg-[#fdf8f0]/80 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <Ticket className="h-4 w-4 text-amber-600" aria-hidden />
-                <h2 className="text-sm font-bold text-[#1b1813]">Receber senha</h2>
-              </div>
-
-              {info.esgotado ? (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
-                  Todas as senhas deste evento já foram emitidas.
-                </p>
-              ) : (
-                <form onSubmit={(e) => void handleEmitir(e)} className="space-y-3">
-                  {error ? <p className="text-sm text-red-600">{error}</p> : null}
-                  <div>
-                    <label htmlFor="evento-nome" className="text-[11px] font-semibold text-[#1b1813]/55">
-                      Nome completo
-                    </label>
-                    <input
-                      id="evento-nome"
-                      required
-                      autoComplete="name"
-                      className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      placeholder="Seu nome"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="evento-whatsapp" className="text-[11px] font-semibold text-[#1b1813]/55">
-                      WhatsApp
-                    </label>
-                    <input
-                      id="evento-whatsapp"
-                      required
-                      type="tel"
-                      autoComplete="tel"
-                      inputMode="tel"
-                      className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
-                      value={telefone}
-                      onChange={(e) => setTelefone(e.target.value)}
-                      placeholder="(00) 00000-0000"
-                    />
-                  </div>
+            {info.esgotado ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                Todas as senhas deste evento já foram emitidas.
+              </p>
+            ) : (
+              <form onSubmit={(e) => void handleEmitir(e)} className="grid gap-3 sm:grid-cols-2">
+                {error ? (
+                  <p className="text-sm text-red-600 sm:col-span-2">{error}</p>
+                ) : null}
+                <div>
+                  <label htmlFor="evento-nome" className="text-[11px] font-semibold text-[#1b1813]/55">
+                    Nome completo
+                  </label>
+                  <input
+                    id="evento-nome"
+                    required
+                    autoComplete="name"
+                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Seu nome"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="evento-whatsapp" className="text-[11px] font-semibold text-[#1b1813]/55">
+                    WhatsApp
+                  </label>
+                  <input
+                    id="evento-whatsapp"
+                    required
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2.5 text-sm text-[#1b1813] outline-none ring-amber-400/40 focus:border-amber-400 focus:ring-2"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <button
                     type="submit"
                     disabled={submitting}
@@ -245,18 +256,20 @@ export default function EventoPublicPage() {
                   >
                     {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Receber senha no WhatsApp'}
                   </button>
-                  <p className="text-center text-[11px] leading-relaxed text-[#1b1813]/45">
+                  <p className="mt-2 text-center text-[11px] leading-relaxed text-[#1b1813]/45">
                     A senha e o link de check-in serão enviados no seu WhatsApp.
                   </p>
-                </form>
-              )}
-            </section>
-          ) : (
-            <p className="mt-5 text-sm text-[#1b1813]/55">
+                </div>
+              </form>
+            )}
+          </section>
+        ) : (
+          <div className="border-t border-[#1b1813]/8 px-5 py-4 sm:px-6">
+            <p className="text-sm text-[#1b1813]/55">
               Confirme horário e endereço diretamente com o terreiro.
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </article>
 
       <p className="mt-6 text-center text-[11px] text-[#1b1813]/35">
