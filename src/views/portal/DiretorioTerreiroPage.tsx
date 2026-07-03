@@ -93,7 +93,7 @@ export default function DiretorioTerreiroPage() {
 
   return (
     <MarketingMockupLayout>
-      <main className={cn('relative z-[1] py-8 sm:py-10', landingMockupShellClass, 'max-w-3xl')}>
+      <main className={cn('relative z-[1] py-8 sm:py-10', landingMockupShellClass, 'max-w-xl')}>
         <a
           href={cityHref}
           className="inline-flex items-center gap-2 text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]"
@@ -103,28 +103,37 @@ export default function DiretorioTerreiroPage() {
         </a>
 
         <article className={cn('mt-6 overflow-hidden rounded-2xl', landingMockupCardClass)}>
-          <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] sm:h-56">
-            {terreiro.fotoUrl ? (
+          {terreiro.fotoUrl ? (
+            <div className="relative bg-[#f3ebe0]">
               <img
                 src={terreiro.fotoUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover"
+                className="block w-full h-auto"
               />
-            ) : (
-              <div className="flex h-full items-center justify-center text-5xl text-[#1b1813]/20" aria-hidden>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-5 pb-4 pt-14">
+                <h1 className="font-display text-lg font-black leading-snug text-white sm:text-xl">
+                  {terreiro.nome}
+                </h1>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                  {terreiro.cidade}
+                  {terreiro.estado ? ` · ${terreiro.estado}` : ''}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] px-5 pb-4 pt-8">
+              <div className="mb-4 flex justify-center text-5xl text-[#1b1813]/20" aria-hidden>
                 ☀
               </div>
-            )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent px-5 pb-4 pt-16">
-              <h1 className="line-clamp-3 font-display text-xl font-black leading-tight text-white sm:text-2xl">
+              <h1 className="font-display text-lg font-black leading-snug text-[#1b1813] sm:text-xl">
                 {terreiro.nome}
               </h1>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/55">
                 {terreiro.cidade}
                 {terreiro.estado ? ` · ${terreiro.estado}` : ''}
               </p>
             </div>
-          </div>
+          )}
 
           <div className="p-5 sm:p-6">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#1b1813]/45">Informações de contato</h2>
