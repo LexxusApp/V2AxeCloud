@@ -93,7 +93,7 @@ export default function DiretorioTerreiroPage() {
 
   return (
     <MarketingMockupLayout>
-      <main className={cn('relative z-[1] py-8 sm:py-10', landingMockupShellClass, 'mx-auto max-w-sm')}>
+      <main className={cn('relative z-[1] py-8 sm:py-10', landingMockupShellClass, 'mx-auto w-full max-w-md')}>
         <a
           href={cityHref}
           className="inline-flex items-center gap-2 text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]"
@@ -102,32 +102,32 @@ export default function DiretorioTerreiroPage() {
           Voltar
         </a>
 
-        <article className={cn('mt-6 overflow-hidden rounded-2xl', landingMockupCardClass)}>
+        <article className={cn('mt-6 w-full overflow-hidden rounded-2xl', landingMockupCardClass)}>
           {terreiro.fotoUrl ? (
-            <div className="flex max-h-40 items-center justify-center bg-[#f3ebe0] px-3 py-3 sm:max-h-44">
+            <div className="h-44 w-full overflow-hidden bg-[#f3ebe0] sm:h-48">
               <img
                 src={terreiro.fotoUrl}
                 alt=""
-                className="max-h-full max-w-full object-contain"
+                className="block h-full w-full object-contain"
               />
             </div>
           ) : (
-            <div className="flex h-28 items-center justify-center bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] text-4xl text-[#1b1813]/20" aria-hidden>
+            <div className="flex h-32 items-center justify-center bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] text-4xl text-[#1b1813]/20" aria-hidden>
               ☀
             </div>
           )}
 
-          <div className="border-b border-[#ece4d2]/70 px-4 pb-3 pt-4">
-            <h1 className="font-display text-base font-black leading-snug text-[#1b1813]">
+          <div className="border-b border-[#ece4d2]/70 px-5 pb-4 pt-5">
+            <h1 className="font-display text-lg font-black leading-snug text-[#1b1813]">
               {terreiro.nome}
             </h1>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#1b1813]/55">
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/55">
               {terreiro.cidade}
               {terreiro.estado ? ` · ${terreiro.estado}` : ''}
             </p>
           </div>
 
-          <div className="p-4">
+          <div className="p-5">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#1b1813]/45">Informações de contato</h2>
 
             <div className="mt-2">
