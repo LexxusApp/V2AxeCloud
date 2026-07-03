@@ -1,14 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, Check, ExternalLink, Loader2, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, MapPin, Phone } from 'lucide-react';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
 import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
 import { fetchDiretorioTerreiro, type DiretorioTerreiro } from '../../lib/diretorioPublic';
 import { formatTelefoneBr, telefoneHref } from '../../lib/formatTelefone';
-import { appHref } from '../../lib/appHref';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
-import { PLAN_PRICE_STANDARD_LABEL, TRIAL_DAYS } from '../../../lib/planPricing';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 
 function slugFromPath(): string {
@@ -103,55 +101,6 @@ export default function DiretorioTerreiroPage() {
           <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
           Voltar
         </a>
-
-        <section
-          className={cn(
-            'relative mt-6 overflow-hidden rounded-2xl border border-[#FFC107]/35 bg-[#1b1813] p-5 text-white shadow-lg sm:p-6',
-          )}
-        >
-          <div
-            className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FFC107]/10 blur-2xl"
-            aria-hidden
-          />
-          <div className="relative">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#FFC107]">
-              Você administra este terreiro?
-            </p>
-            <h2 className="mt-2 font-display text-lg font-black leading-snug text-white sm:text-xl">
-              O AxéCloud é o sistema de gestão online do seu terreiro
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-white/78">
-              Esta página foi gerada automaticamente a partir do Google Maps. Se você faz parte da diretoria ou
-              zeladoria de <span className="font-semibold text-white">{terreiro.nome}</span>, pode reivindicá-la no
-              AxéCloud e transformá-la no cartão oficial da casa — com dados corretos e visibilidade para quem busca
-              um terreiro na região.
-            </p>
-
-            <ul className="mt-4 space-y-2.5 text-sm text-white/88">
-              {[
-                'Atualize foto, endereço e telefone oficiais da casa',
-                'Apareça no diretório público do portal AxéCloud',
-                'Gerencie filhos de santo, giras, mural e financeiro num só lugar',
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#FFC107]" aria-hidden />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <a
-              href={appHref(ROUTES.register)}
-              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-5 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00] sm:w-auto"
-            >
-              Assumir este perfil — {TRIAL_DAYS} dias grátis
-            </a>
-            <p className="mt-2 text-[11px] leading-relaxed text-white/45">
-              Sem cartão de crédito · teste o plano completo por {TRIAL_DAYS} dias · depois{' '}
-              {PLAN_PRICE_STANDARD_LABEL} via PIX
-            </p>
-          </div>
-        </section>
 
         <article className={cn('mt-6 overflow-hidden rounded-2xl', landingMockupCardClass)}>
           <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] sm:h-56">
