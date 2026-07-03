@@ -93,76 +93,78 @@ export default function DiretorioTerreiroPage() {
 
   return (
     <MarketingMockupLayout>
-      <main className={cn('relative z-[1] py-8 sm:py-10', landingMockupShellClass, 'mx-auto w-full max-w-md')}>
-        <a
-          href={cityHref}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]"
-        >
-          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-          Voltar
-        </a>
+      <main className="relative z-[1] px-4 py-8 sm:py-10">
+        <div className="mx-auto w-full max-w-sm">
+          <a
+            href={cityHref}
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+            Voltar
+          </a>
 
-        <article className={cn('mt-6 w-full overflow-hidden rounded-2xl', landingMockupCardClass)}>
-          {terreiro.fotoUrl ? (
-            <div className="h-44 w-full overflow-hidden bg-[#f3ebe0] sm:h-48">
-              <img
-                src={terreiro.fotoUrl}
-                alt=""
-                className="block h-full w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="flex h-32 items-center justify-center bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] text-4xl text-[#1b1813]/20" aria-hidden>
-              ☀
-            </div>
-          )}
+          <article className={cn('mt-5 overflow-hidden rounded-2xl', landingMockupCardClass)}>
+            {terreiro.fotoUrl ? (
+              <div className="flex h-48 items-center justify-center overflow-hidden bg-[#f3ebe0]">
+                <img
+                  src={terreiro.fotoUrl}
+                  alt=""
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-32 items-center justify-center bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] text-4xl text-[#1b1813]/20" aria-hidden>
+                ☀
+              </div>
+            )}
 
-          <div className="border-b border-[#ece4d2]/70 px-5 pb-4 pt-5">
-            <h1 className="font-display text-lg font-black leading-snug text-[#1b1813]">
-              {terreiro.nome}
-            </h1>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/55">
-              {terreiro.cidade}
-              {terreiro.estado ? ` · ${terreiro.estado}` : ''}
-            </p>
-          </div>
+            <div className="p-5">
+              <h1 className="font-display text-lg font-black leading-snug text-[#1b1813]">
+                {terreiro.nome}
+              </h1>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/55">
+                {terreiro.cidade}
+                {terreiro.estado ? ` · ${terreiro.estado}` : ''}
+              </p>
 
-          <div className="p-5">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#1b1813]/45">Informações de contato</h2>
+              <h2 className="mt-5 text-xs font-bold uppercase tracking-widest text-[#1b1813]/45">
+                Informações de contato
+              </h2>
 
-            <div className="mt-2">
-              {terreiro.endereco ? (
-                <InfoRow icon={MapPin} label="Endereço">
-                  {terreiro.endereco}
-                </InfoRow>
+              <div className="mt-2">
+                {terreiro.endereco ? (
+                  <InfoRow icon={MapPin} label="Endereço">
+                    {terreiro.endereco}
+                  </InfoRow>
+                ) : null}
+
+                {terreiro.telefone ? (
+                  <InfoRow icon={Phone} label="Telefone">
+                    <a href={telefoneHref(terreiro.telefone)} className="font-semibold text-[#1b1813] hover:text-[#FFC107]">
+                      {formatTelefoneBr(terreiro.telefone)}
+                    </a>
+                  </InfoRow>
+                ) : (
+                  <InfoRow icon={Phone} label="Telefone">
+                    <span className="text-[#1b1813]/50">Não informado no Google Maps</span>
+                  </InfoRow>
+                )}
+              </div>
+
+              {terreiro.linkMaps ? (
+                <a
+                  href={terreiro.linkMaps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-4 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00]"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir no Google Maps — como chegar
+                </a>
               ) : null}
-
-              {terreiro.telefone ? (
-                <InfoRow icon={Phone} label="Telefone">
-                  <a href={telefoneHref(terreiro.telefone)} className="font-semibold text-[#1b1813] hover:text-[#FFC107]">
-                    {formatTelefoneBr(terreiro.telefone)}
-                  </a>
-                </InfoRow>
-              ) : (
-                <InfoRow icon={Phone} label="Telefone">
-                  <span className="text-[#1b1813]/50">Não informado no Google Maps</span>
-                </InfoRow>
-              )}
             </div>
-
-            {terreiro.linkMaps ? (
-              <a
-                href={terreiro.linkMaps}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-4 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00]"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Abrir no Google Maps — como chegar
-              </a>
-            ) : null}
-          </div>
-        </article>
+          </article>
+        </div>
       </main>
     </MarketingMockupLayout>
   );
