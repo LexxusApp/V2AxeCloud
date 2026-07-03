@@ -110,8 +110,8 @@ export default function DiretorioTerreiroPage() {
             Voltar
           </a>
 
-          <article className={cn('mt-5 flex items-stretch overflow-hidden rounded-2xl', landingMockupCardClass)}>
-            <div className="flex w-44 shrink-0 items-center justify-center self-stretch bg-[#f3ebe0] p-2 sm:w-52">
+          <article className={cn('mt-5 grid grid-cols-2 items-stretch overflow-hidden rounded-2xl', landingMockupCardClass)}>
+            <div className="flex min-h-[15rem] items-center justify-center bg-[#f3ebe0] p-2 sm:min-h-[16rem]">
               {terreiro.fotoUrl ? (
                 <img
                   src={terreiro.fotoUrl}
@@ -125,7 +125,7 @@ export default function DiretorioTerreiroPage() {
               )}
             </div>
 
-            <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+            <div className="flex min-w-0 flex-col p-3 sm:p-4">
               <h1 className="font-display text-base font-black leading-snug text-[#1b1813] sm:text-lg">
                 {terreiro.nome}
               </h1>
