@@ -154,20 +154,22 @@ export default function DiretorioTerreiroPage() {
         </section>
 
         <article className={cn('mt-6 overflow-hidden rounded-2xl', landingMockupCardClass)}>
-          <div className="relative aspect-[21/9] max-h-52 overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] sm:max-h-60">
+          <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] sm:h-56">
             {terreiro.fotoUrl ? (
               <img
                 src={terreiro.fotoUrl}
                 alt=""
-                className="h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-5xl text-[#1b1813]/20" aria-hidden>
                 ☀
               </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent px-5 pb-4 pt-12">
-              <h1 className="font-display text-xl font-black leading-tight text-white sm:text-2xl">{terreiro.nome}</h1>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent px-5 pb-4 pt-16">
+              <h1 className="line-clamp-3 font-display text-xl font-black leading-tight text-white sm:text-2xl">
+                {terreiro.nome}
+              </h1>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/80">
                 {terreiro.cidade}
                 {terreiro.estado ? ` · ${terreiro.estado}` : ''}
@@ -203,7 +205,7 @@ export default function DiretorioTerreiroPage() {
                 href={terreiro.linkMaps}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-4 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00] sm:w-auto"
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-4 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00]"
               >
                 <ExternalLink className="h-4 w-4" />
                 Abrir no Google Maps — como chegar
