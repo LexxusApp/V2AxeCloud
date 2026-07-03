@@ -19,19 +19,26 @@ function InfoRow({
   icon: Icon,
   label,
   children,
+  compact,
 }: {
   icon: typeof MapPin;
   label: string;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex gap-3 border-b border-[#ece4d2]/80 py-4 last:border-0 last:pb-0">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FFC107]/15">
-        <Icon className="h-4 w-4 text-[#1b1813]" aria-hidden />
+    <div
+      className={cn(
+        'flex gap-2.5 border-b border-[#ece4d2]/80 last:border-0',
+        compact ? 'py-2.5 last:pb-0' : 'py-4 last:pb-0',
+      )}
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FFC107]/15">
+        <Icon className="h-3.5 w-3.5 text-[#1b1813]" aria-hidden />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/50">{label}</p>
-        <div className="mt-1 text-sm leading-relaxed text-[#1b1813]/85">{children}</div>
+        <div className="mt-0.5 text-sm leading-relaxed text-[#1b1813]/85">{children}</div>
       </div>
     </div>
   );
@@ -94,7 +101,7 @@ export default function DiretorioTerreiroPage() {
   return (
     <MarketingMockupLayout>
       <main className="relative z-[1] px-4 py-8 sm:py-10">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-xl">
           <a
             href={cityHref}
             className="inline-flex items-center gap-2 text-sm font-bold text-[#1b1813]/66 transition hover:text-[#FFC107]"
@@ -103,49 +110,49 @@ export default function DiretorioTerreiroPage() {
             Voltar
           </a>
 
-          <article className={cn('mt-5 overflow-hidden rounded-2xl', landingMockupCardClass)}>
-            {terreiro.fotoUrl ? (
-              <div className="flex h-48 items-center justify-center overflow-hidden bg-[#f3ebe0]">
+          <article className={cn('mt-5 flex items-stretch overflow-hidden rounded-2xl', landingMockupCardClass)}>
+            <div className="flex w-44 shrink-0 items-center justify-center self-stretch bg-[#f3ebe0] p-2 sm:w-52">
+              {terreiro.fotoUrl ? (
                 <img
                   src={terreiro.fotoUrl}
                   alt=""
                   className="max-h-full max-w-full object-contain"
                 />
-              </div>
-            ) : (
-              <div className="flex h-32 items-center justify-center bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8] text-4xl text-[#1b1813]/20" aria-hidden>
-                ☀
-              </div>
-            )}
+              ) : (
+                <span className="text-4xl text-[#1b1813]/20" aria-hidden>
+                  ☀
+                </span>
+              )}
+            </div>
 
-            <div className="p-5">
-              <h1 className="font-display text-lg font-black leading-snug text-[#1b1813]">
+            <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+              <h1 className="font-display text-base font-black leading-snug text-[#1b1813] sm:text-lg">
                 {terreiro.nome}
               </h1>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#1b1813]/55">
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#1b1813]/55">
                 {terreiro.cidade}
                 {terreiro.estado ? ` · ${terreiro.estado}` : ''}
               </p>
 
-              <h2 className="mt-5 text-xs font-bold uppercase tracking-widest text-[#1b1813]/45">
+              <h2 className="mt-4 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/45">
                 Informações de contato
               </h2>
 
-              <div className="mt-2">
+              <div className="mt-1">
                 {terreiro.endereco ? (
-                  <InfoRow icon={MapPin} label="Endereço">
+                  <InfoRow icon={MapPin} label="Endereço" compact>
                     {terreiro.endereco}
                   </InfoRow>
                 ) : null}
 
                 {terreiro.telefone ? (
-                  <InfoRow icon={Phone} label="Telefone">
+                  <InfoRow icon={Phone} label="Telefone" compact>
                     <a href={telefoneHref(terreiro.telefone)} className="font-semibold text-[#1b1813] hover:text-[#FFC107]">
                       {formatTelefoneBr(terreiro.telefone)}
                     </a>
                   </InfoRow>
                 ) : (
-                  <InfoRow icon={Phone} label="Telefone">
+                  <InfoRow icon={Phone} label="Telefone" compact>
                     <span className="text-[#1b1813]/50">Não informado no Google Maps</span>
                   </InfoRow>
                 )}
@@ -156,9 +163,9 @@ export default function DiretorioTerreiroPage() {
                   href={terreiro.linkMaps}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-4 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00]"
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC107] px-3 py-2.5 text-xs font-black text-[#1b1813] transition hover:bg-[#e6ac00] sm:text-sm sm:py-3"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="h-4 w-4 shrink-0" />
                   Abrir no Google Maps — como chegar
                 </a>
               ) : null}
