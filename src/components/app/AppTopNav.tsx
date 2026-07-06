@@ -667,7 +667,7 @@ export default function AppTopNav({
 
       <header
         ref={headerRef}
-        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D]"
+        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D] pt-[env(safe-area-inset-top,0px)]"
       >
         <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">

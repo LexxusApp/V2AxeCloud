@@ -400,7 +400,7 @@ export function SettingsWhatsAppPanel() {
   ];
 
   return (
-    <div className="wa-settings-panel space-y-6">
+    <div className="wa-settings-panel isolate space-y-6">
       {toast && (
         <div
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
@@ -440,9 +440,9 @@ export function SettingsWhatsAppPanel() {
         </div>
       </div>
 
-      <div className="grid min-w-0 grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
+      <div className="wa-settings-panel__layout grid min-w-0 grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
         <div className="min-w-0 space-y-6 lg:col-span-7">
-          <div className="wa-settings-panel__card relative overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+          <div className="wa-settings-panel__card relative rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:overflow-hidden">
             <div
               className="pointer-events-none absolute right-0 top-0 hidden h-32 w-32 rounded-full bg-[#10B981]/10 sm:block"
               aria-hidden
@@ -487,7 +487,7 @@ export function SettingsWhatsAppPanel() {
             </div>
           </div>
 
-          <div className="wa-settings-panel__card overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+          <div className="wa-settings-panel__card rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:overflow-hidden">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
               <Settings className="h-4 w-4" />
               2. Filhos de Santo & Fiel: Preferências de Gatilho
@@ -505,7 +505,7 @@ export function SettingsWhatsAppPanel() {
                   onClick={() => togglePref(card.key, card.toastLabel)}
                   onKeyDown={(e) => e.key === 'Enter' && togglePref(card.key, card.toastLabel)}
                   className={cn(
-                    'wa-settings-pref-card relative z-[1] flex cursor-pointer items-start gap-3 overflow-hidden rounded-xl border p-3.5 transition-colors',
+                    'wa-settings-pref-card flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors',
                     preferences[card.key]
                       ? 'border-emerald-500/30 bg-[#1E252E]'
                       : 'border-[#1E242B] bg-[#0F1216] text-[#94A3B8]',
@@ -517,10 +517,10 @@ export function SettingsWhatsAppPanel() {
                     readOnly
                     className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded accent-emerald-500"
                   />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h6
                       className={cn(
-                        'text-xs font-bold',
+                        'text-xs font-bold leading-snug',
                         preferences[card.key] ? 'text-[#F1F5F9]' : 'text-[#94A3B8]',
                       )}
                     >
@@ -528,7 +528,7 @@ export function SettingsWhatsAppPanel() {
                     </h6>
                     <p
                       className={cn(
-                        'mt-1 text-[10px] leading-snug',
+                        'mt-1 break-words text-[10px] leading-relaxed',
                         preferences[card.key] ? 'text-gray-400' : 'text-[#64748B]',
                       )}
                     >
@@ -632,7 +632,7 @@ export function SettingsWhatsAppPanel() {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 lg:col-span-5">
+        <div className="wa-settings-panel__logs flex min-w-0 flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 lg:col-span-5 lg:overflow-hidden">
           <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">
@@ -649,7 +649,7 @@ export function SettingsWhatsAppPanel() {
               de execução:
             </p>
 
-            <div className="max-h-[350px] space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-none space-y-3 pr-1 lg:max-h-[350px] lg:overflow-y-auto">
               {logs.length === 0 ? (
                 <p className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-center text-[10px] text-gray-500">
                   Nenhuma transmissão registrada ainda. Conecte o WhatsApp e envie a primeira mensagem.

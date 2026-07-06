@@ -2960,6 +2960,18 @@ html:has(.app-v3) {
 
   .app-v3 .app-v3-scroll {
     -webkit-overflow-scrolling: touch;
+    overflow-anchor: none;
+  }
+
+  .app-v3 [class*='mix-blend-'] {
+    mix-blend-mode: normal !important;
+  }
+
+  .app-v3 .wa-settings-panel {
+    isolation: isolate;
+    position: relative;
+    z-index: 1;
+    transform: translateZ(0);
   }
 
   .app-v3 .wa-settings-panel [class*='blur-'],
@@ -2974,17 +2986,39 @@ html:has(.app-v3) {
 
   .app-v3 .wa-settings-panel__card,
   .app-v3 .wa-settings-pref-card {
-    contain: none;
-    isolation: auto;
-    overflow: hidden;
+    contain: layout style;
+    isolation: isolate;
+    overflow: visible;
     transform: none;
     will-change: auto;
     backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+  }
+
+  .app-v3 .wa-settings-panel__card {
+    background-color: #13171d;
+  }
+
+  .app-v3 .wa-settings-pref-card {
+    background-color: inherit;
   }
 
   .app-v3 .wa-settings-panel__card::before,
-  .app-v3 .wa-settings-panel__card::after {
-    display: none;
+  .app-v3 .wa-settings-panel__card::after,
+  .app-v3 .wa-settings-pref-card::before,
+  .app-v3 .wa-settings-pref-card::after {
+    display: none !important;
+  }
+
+  .app-v3 .wa-settings-panel .wa-settings-panel__layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .app-v3 .wa-settings-panel .wa-settings-panel__logs {
+    max-height: none;
+    overflow: visible;
   }
 }
 

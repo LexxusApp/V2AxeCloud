@@ -1429,7 +1429,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         onFilhoFotoUpdated={setFilhoFotoUrl}
       />
 
-      <div className="app-v3-scroll relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12]">
+      <div className="app-v3-scroll relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12] pb-[env(safe-area-inset-bottom,0px)]">
           <main
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
