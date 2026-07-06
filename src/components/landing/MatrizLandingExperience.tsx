@@ -686,7 +686,7 @@ function Hero() {
                 />
               </motion.div>
               <div
-                className="absolute bottom-2 left-2 max-w-[12rem] sm:-bottom-4 sm:-left-6 overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-3 shadow-lg sm:-left-6"
+                className="absolute bottom-2 left-2 max-w-[12rem] overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-3 shadow-lg sm:-bottom-4 sm:-left-6"
               >
                 <div className="matriz-float-y">
                 <img src={landingScreenshot('financeiro.png')} alt="Financeiro atual do AxéCloud" className="rounded-lg" loading="lazy" />
@@ -877,7 +877,7 @@ function AgendaSection() {
                   loading="lazy"
                 />
               </motion.div>
-              <div className="absolute bottom-2 right-2 max-w-[11rem] sm:-bottom-4 sm:-right-6 rounded-2xl border border-[#e8dfd0] bg-white px-3 py-2.5 shadow-lg sm:-right-6">
+              <div className="absolute bottom-2 right-2 max-w-[11rem] rounded-2xl border border-[#e8dfd0] bg-white px-3 py-2.5 shadow-lg sm:-bottom-4 sm:-right-6">
                 <div className="matriz-float-y flex items-center gap-2">
                   <div className="grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50">
                     <CalendarDays className="h-4 w-4 text-rose-600" aria-hidden />
