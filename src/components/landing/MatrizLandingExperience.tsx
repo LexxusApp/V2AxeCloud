@@ -26,7 +26,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { landingScreenshot } from '../../constants/landingScreenshots';
 import { MatrizTopNav } from '../marketing/MatrizTopNav';
@@ -38,6 +38,7 @@ import { TRIAL_DAYS } from '../../../lib/planPricing';
 type GlowStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 const glowStyles = `
+  @media (hover: hover) and (pointer: fine) {
   [data-matriz-glow]::before,
   [data-matriz-glow]::after {
     pointer-events: none;
@@ -46,7 +47,7 @@ const glowStyles = `
     inset: calc(var(--border-size) * -1);
     border: var(--border-size) solid transparent;
     border-radius: calc(var(--radius) * 1px);
-    background-attachment: fixed;
+    background-attachment: scroll;
     background-size: calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)));
     background-repeat: no-repeat;
     background-position: 50% 50%;
@@ -90,6 +91,7 @@ const glowStyles = `
   [data-matriz-glow] > [data-matriz-glow]::before {
     inset: -10px;
     border-width: 10px;
+  }
   }
 `;
 
@@ -394,24 +396,42 @@ function TextReveal({
   );
 }
 
+function usePointerGlowEnabled() {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setEnabled(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return enabled;
+}
+
+const staticModuleCardClass =
+  'relative grid h-full grid-rows-[1fr_auto] gap-4 overflow-hidden rounded-2xl border border-white/10 bg-[#14110d] p-5 shadow-[0_1rem_2rem_-1rem_black]';
+
 function GlowCard({ children, className }: { children: ReactNode; className?: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const glowEnabled = usePointerGlowEnabled();
 
   useEffect(() => {
+    if (!glowEnabled) return;
     const syncPointer = (e: PointerEvent) => {
+      if (!cardRef.current) return;
       const { clientX: x, clientY: y } = e;
-
-      if (cardRef.current) {
-        cardRef.current.style.setProperty('--x', x.toFixed(2));
-        cardRef.current.style.setProperty('--xp', (x / window.innerWidth).toFixed(2));
-        cardRef.current.style.setProperty('--y', y.toFixed(2));
-        cardRef.current.style.setProperty('--yp', (y / window.innerHeight).toFixed(2));
-      }
+      cardRef.current.style.setProperty('--x', x.toFixed(2));
+      cardRef.current.style.setProperty('--xp', (x / window.innerWidth).toFixed(2));
+      cardRef.current.style.setProperty('--y', y.toFixed(2));
+      cardRef.current.style.setProperty('--yp', (y / window.innerHeight).toFixed(2));
     };
-
-    document.addEventListener('pointermove', syncPointer);
+    document.addEventListener('pointermove', syncPointer, { passive: true });
     return () => document.removeEventListener('pointermove', syncPointer);
-  }, []);
+  }, [glowEnabled]);
+
+  if (!glowEnabled) {
+    return <div className={cn(staticModuleCardClass, className)}>{children}</div>;
+  }
 
   const style: GlowStyle = {
     '--base': 42,
@@ -439,10 +459,9 @@ function GlowCard({ children, className }: { children: ReactNode; className?: st
     backgroundColor: 'var(--backdrop, transparent)',
     backgroundSize: 'calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)))',
     backgroundPosition: '50% 50%',
-    backgroundAttachment: 'fixed',
+    backgroundAttachment: 'scroll',
     border: 'var(--border-size) solid var(--backup-border)',
     position: 'relative',
-    touchAction: 'pan-y',
   };
 
   return (
