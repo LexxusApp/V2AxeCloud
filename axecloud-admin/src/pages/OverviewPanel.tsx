@@ -518,7 +518,7 @@ export function OverviewPanel({
             }
           >
             {publicDailySeries.length ? (
-              <div className="overview-chart">
+              <div className="overview-chart overview-chart-scroll">
                 <div className="overview-chart-bars">
                   {publicDailySeries.map(([day, count]) => {
                     const h = 12 + Math.round((count / maxPublicDaily) * 148);

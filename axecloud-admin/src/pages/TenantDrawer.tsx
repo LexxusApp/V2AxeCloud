@@ -171,17 +171,15 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
   if (!tenantId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
+    <>
       <button
         type="button"
         aria-label="Fechar"
         onClick={onClose}
-        className="flex-1 bg-[rgba(16,24,40,0.4)] backdrop-blur-sm"
+        className="admin-drawer-overlay"
       />
-      {/* Drawer */}
-      <aside className="admin-drawer">
-        <header className="flex items-start justify-between gap-4 border-b border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-5 py-4">
+      <aside className="admin-drawer" role="dialog" aria-modal="true" aria-label="Detalhes do terreiro">
+        <header className="flex items-start justify-between gap-4 border-b border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-4 py-4 sm:px-5">
           <div className="min-w-0">
             <p className="admin-label">Terreiro</p>
             <h3 className="mt-0.5 truncate text-lg font-bold text-[var(--ac-text)]">
@@ -201,7 +199,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
           </button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
           {loading && (
             <div className="admin-alert-info flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-[var(--ac-text-muted)]" /> A carregar dados…
@@ -392,7 +390,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
           )}
         </div>
       </aside>
-    </div>
+    </>
   );
 }
 

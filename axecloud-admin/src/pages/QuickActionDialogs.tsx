@@ -33,7 +33,7 @@ function ModalShell({
   children: ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-[rgba(16,24,40,0.4)]"
@@ -43,8 +43,9 @@ function ModalShell({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 w-full max-w-lg rounded-2xl border border-[var(--ac-paper-border)] bg-white p-6 shadow-xl"
+        className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--ac-paper-border)] bg-white shadow-xl sm:max-w-lg sm:rounded-2xl"
       >
+        <div className="overflow-y-auto overscroll-contain p-5 sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-[var(--ac-text)]">{title}</h3>
@@ -59,6 +60,7 @@ function ModalShell({
           </button>
         </div>
         {children}
+        </div>
       </div>
     </div>
   );

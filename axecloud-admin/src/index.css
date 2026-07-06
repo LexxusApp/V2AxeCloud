@@ -54,12 +54,22 @@ body,
   height: 100%;
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--ac-font);
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   background: var(--ac-paper);
   color: var(--ac-text);
+  overflow-x: clip;
+}
+
+body.admin-scroll-lock {
+  overflow: hidden;
+  touch-action: none;
 }
 
 button,
@@ -84,7 +94,9 @@ textarea {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  min-height: 100dvh;
   background: var(--ac-paper);
+  overflow-x: clip;
 }
 
 .admin-topbar {
@@ -204,17 +216,38 @@ textarea {
 .admin-body {
   display: flex;
   flex: 1;
-  min-height: 100vh;
   min-height: 0;
+  min-width: 0;
 }
 
 .admin-mobile-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 1rem;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
   background: var(--ac-paper-surface);
   border-bottom: 1px solid var(--ac-paper-border);
+}
+
+.admin-mobile-bar-title {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ac-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-mobile-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 @media (min-width: 1024px) {
@@ -312,12 +345,15 @@ textarea {
   width: 100%;
   max-width: 80rem;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .admin-main {
   flex: 1;
-  padding: 1.25rem 1rem 3rem;
+  padding: 1rem 0.85rem 2.5rem;
+  overflow-x: clip;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--ac-paper);
   color: var(--ac-text);
 }
@@ -604,13 +640,22 @@ a.admin-metric-hero:hover {
 
 .admin-table-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--ac-paper-border);
   background: var(--ac-paper-surface);
+}
+
+@media (min-width: 640px) {
+  .admin-table-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+  }
 }
 
 .admin-row-menu {
@@ -670,10 +715,16 @@ a.admin-metric-hero:hover {
 }
 
 .admin-dashboard-greeting {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ac-text);
+}
+
+@media (min-width: 640px) {
+  .admin-dashboard-greeting {
+    font-size: 1.5rem;
+  }
 }
 
 .admin-dashboard-date {
@@ -1010,15 +1061,113 @@ a.admin-metric-hero:hover {
 }
 
 /* ─── Drawer ─── */
+.admin-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(16, 24, 40, 0.4);
+  backdrop-filter: blur(2px);
+}
+
 .admin-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
-  max-width: 28rem;
+  max-width: 100%;
   background: var(--ac-paper-surface);
   border-left: 1px solid var(--ac-paper-border);
   box-shadow: -8px 0 24px rgba(16, 24, 40, 0.12);
+  animation: admin-drawer-in 0.22s ease-out;
+}
+
+@media (min-width: 640px) {
+  .admin-drawer {
+    max-width: 28rem;
+  }
+}
+
+@keyframes admin-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ─── Mobile tenant cards ─── */
+.admin-tenant-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .admin-tenant-cards {
+    display: none;
+  }
+}
+
+.admin-tenant-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--ac-radius-sm);
+  border: 1px solid var(--ac-paper-border);
+  background: var(--ac-paper-surface);
+}
+
+.admin-tenant-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin-tenant-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.admin-tenant-card-meta dt {
+  color: var(--ac-text-faint);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-tenant-card-meta dd {
+  margin: 0.1rem 0 0;
+  color: var(--ac-text);
+}
+
+.admin-tenant-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--ac-paper-border);
+}
+
+.admin-table-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .admin-table-desktop {
+    display: block;
+  }
 }
 
 /* ─── Login ─── */
@@ -1141,8 +1290,9 @@ a.admin-metric-hero:hover {
 
 .overview-alert {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.65rem 0.75rem;
   padding: 0.85rem 1rem;
   border-radius: var(--ac-radius-sm);
   border: 1px solid var(--ac-paper-border);
@@ -1182,12 +1332,20 @@ a.admin-metric-hero:hover {
   opacity: 1;
 }
 
+.overview-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+
 .overview-chart-bars {
   display: flex;
   align-items: flex-end;
   gap: 0.35rem;
   height: 200px;
   padding-top: 1.5rem;
+  min-width: min(100%, 480px);
 }
 
 .overview-chart-col {

@@ -219,6 +219,90 @@ function RowActionsMenu({
   );
 }
 
+function TenantMobileCard({
+  row,
+  compact,
+  busy,
+  onManage,
+  onBlock,
+  onRenewMonth,
+  onLifetime,
+  onDelete,
+}: {
+  row: TenantTableRow;
+  compact?: boolean;
+  busy?: boolean;
+  onManage: (id: string) => void;
+  onBlock: (id: string, blocked: boolean) => void;
+  onRenewMonth: (id: string) => void;
+  onLifetime: (id: string) => void;
+  onDelete?: (id: string) => void;
+}) {
+  return (
+    <article className="admin-tenant-card">
+      <div className="admin-tenant-card-head">
+        <div
+          className={cn("admin-tenant-avatar", row.is_blocked && "admin-tenant-avatar--blocked")}
+        >
+          {tenantInitials(row.nome_terreiro)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-[var(--ac-text)] truncate">{row.nome_terreiro || "Sem nome"}</p>
+          <p className="text-[11px] text-[var(--ac-text-muted)] truncate">{row.email || "—"}</p>
+        </div>
+        <RowActionsMenu
+          row={row}
+          compact={compact}
+          busy={busy}
+          onManage={onManage}
+          onBlock={onBlock}
+          onRenewMonth={onRenewMonth}
+          onLifetime={onLifetime}
+          onDelete={onDelete}
+        />
+      </div>
+      <dl className="admin-tenant-card-meta">
+        <div>
+          <dt>Plano</dt>
+          <dd>{planLabel(row.plan)}</dd>
+        </div>
+        <div>
+          <dt>Cadastro</dt>
+          <dd>{cadastroLabel(row.created_at)}</dd>
+        </div>
+        {!compact && (
+          <>
+            <div>
+              <dt>Membros</dt>
+              <dd className="admin-mono">{row.totalChildren ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Expira</dt>
+              <dd>{expiraLabel(row.expires_at)}</dd>
+            </div>
+          </>
+        )}
+      </dl>
+      <div className="admin-tenant-card-foot">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            row.is_blocked
+              ? "bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]"
+              : "bg-[var(--ac-success-soft)] text-[var(--ac-success)]"
+          )}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          {row.is_blocked ? "Bloqueado" : "Activo"}
+        </span>
+        <button type="button" className="admin-btn-secondary !py-1.5 text-xs" onClick={() => onManage(row.id)}>
+          Gerenciar
+        </button>
+      </div>
+    </article>
+  );
+}
+
 type TenantsTableProps = {
   rows: TenantTableRow[];
   search: string;
@@ -267,7 +351,33 @@ export function TenantsTable({
           className="admin-input !py-2 !text-sm w-full sm:max-w-xs"
         />
       </div>
-      <div className="overflow-x-auto">
+      <div className="admin-tenant-cards">
+        {rows.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-sm font-medium text-[var(--ac-text)]">
+              {busy ? "A carregar terreiros…" : "Nenhum terreiro encontrado"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--ac-text-muted)]">
+              {search ? "Tente outro termo de busca." : "Os novos cadastros aparecerão aqui."}
+            </p>
+          </div>
+        ) : (
+          rows.map((row) => (
+            <TenantMobileCard
+              key={row.id}
+              row={row}
+              compact={compact}
+              busy={busy}
+              onManage={onManage}
+              onBlock={onBlock}
+              onRenewMonth={onRenewMonth}
+              onLifetime={onLifetime}
+              onDelete={onDelete}
+            />
+          ))
+        )}
+      </div>
+      <div className="admin-table-desktop overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className={cn(admin.thead, "text-left")}>

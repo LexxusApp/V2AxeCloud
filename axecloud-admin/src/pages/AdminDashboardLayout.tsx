@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -227,6 +227,12 @@ export function AdminDashboardLayout({
   const subtitle = SECTION_SUBTITLES[tab];
   const showPageHeader = tab !== "overview";
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    document.body.classList.add("admin-scroll-lock");
+    return () => document.body.classList.remove("admin-scroll-lock");
+  }, [mobileOpen]);
+
   const sessionFooter = (
     <SidebarSession
       displayName={displayName}
@@ -243,12 +249,25 @@ export function AdminDashboardLayout({
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="admin-btn-secondary !p-2"
+          className="admin-btn-secondary !p-2 shrink-0"
           aria-label="Abrir menu"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <p className="text-sm font-semibold text-[var(--ac-text)] truncate">{sectionLabel(tab)}</p>
+        <p className="admin-mobile-bar-title">{sectionLabel(tab)}</p>
+        <div className="admin-mobile-bar-actions">
+          <button
+            type="button"
+            onClick={() => onTab("create")}
+            className="admin-btn-secondary !p-2"
+            aria-label="Novo terreiro"
+          >
+            <PlusCircle className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={onLogout} className="admin-btn-secondary !p-2" aria-label="Sair">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
