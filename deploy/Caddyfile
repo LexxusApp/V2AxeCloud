@@ -154,6 +154,7 @@ axecloud.com.br, www.axecloud.com.br {
 		@public_static {
 			path /robots.txt
 			path /og-image.png
+			path /logo-topo-matriz.png
 			path /screenshots/*
 		}
 		# Ícones PWA/favicon: sempre do container app (dist atualizado no deploy)

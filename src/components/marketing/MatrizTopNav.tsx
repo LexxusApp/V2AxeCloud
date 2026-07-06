@@ -44,8 +44,9 @@ export function MatrizTopNav() {
         <a href={ROUTES.home} className="flex shrink-0 items-center gap-2.5 rounded-full pr-3" aria-label="AxéCloud — início">
           <img
             src={landingBrandLogo()}
-            alt="AxéCloud — Gestão de Terreiros"
-            className="h-10 w-10 object-contain drop-shadow-sm sm:h-11 sm:w-11"
+            alt=""
+            aria-hidden
+            className="h-10 w-10 rounded-full object-cover ring-1 ring-[#ffc107]/25 drop-shadow-sm sm:h-11 sm:w-11"
           />
           <span className="hidden leading-tight sm:block">
             <span className="block text-sm font-black tracking-tight text-[#1b1813]">AxéCloud</span>
