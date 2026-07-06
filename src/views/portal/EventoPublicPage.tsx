@@ -1,11 +1,31 @@
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, CalendarDays, CheckCircle2, Clock, Loader2, MapPin, Ticket, XCircle } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
-import { landingMockupCardClass } from '../../components/landing/landingMockupUi';
+import {
+  Calendar,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Info,
+  Loader2,
+  MapPin,
+  Ticket,
+  XCircle,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
 import { fetchPublicEvento, terreiroProfilePath, type PublicEventoDetail } from '../../lib/portalPublic';
+import { applyCustomPageSeo } from '../../lib/seo';
+import { cn } from '../../lib/utils';
+
+function MatrizKicker({ children }: { children: ReactNode }) {
+  return (
+    <span className="matriz-kicker-pulse inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1b1813]">
+      {children}
+    </span>
+  );
+}
 
 function parseEventoPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -31,8 +51,8 @@ function EventoThumb({ url, alt }: { url: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-100/40 to-[#f3ebe0]">
-        <CalendarDays className="h-7 w-7 text-[#1b1813]/15" aria-hidden />
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ffc107]/10 to-[#f3ebe0]">
+        <CalendarDays className="h-10 w-10 text-[#1b1813]/15" aria-hidden />
       </div>
     );
   }
@@ -47,13 +67,14 @@ function EventoThumb({ url, alt }: { url: string | null; alt: string }) {
   );
 }
 
-function PageShell({ children }: { children: React.ReactNode }) {
+function PageWrapper({ children }: { children: ReactNode }) {
   return (
-    <MarketingMockupLayout showFooter={false}>
-      <main className="px-4 py-8 sm:py-12">
-        <div className="mx-auto w-full max-w-lg">{children}</div>
+    <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
+      <MatrizPageBackground />
+      <main className="relative z-[1] mx-auto w-full max-w-lg px-5 pb-24 pt-32 md:px-8 md:pt-36">
+        {children}
       </main>
-    </MarketingMockupLayout>
+    </div>
   );
 }
 
@@ -79,6 +100,16 @@ export default function EventoPublicPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  useEffect(() => {
+    if (!info) return;
+    applyCustomPageSeo({
+      title: `${info.titulo} | Evento`,
+      description: info.descricao || `${info.tipo} em ${info.terreiro.nome}.`,
+      canonicalPath: window.location.pathname,
+      robots: 'noindex, follow',
+    });
+  }, [info]);
+
   async function handleEmitir(e: React.FormEvent) {
     e.preventDefault();
     if (!token || !nome.trim() || !telefone.trim()) return;
@@ -102,22 +133,23 @@ export default function EventoPublicPage() {
 
   if (loading) {
     return (
-      <PageShell>
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+      <PageWrapper>
+        <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
+          <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
+          <p className="mt-4 text-sm font-bold text-[#1b1813]/55">Carregando evento...</p>
         </div>
-      </PageShell>
+      </PageWrapper>
     );
   }
 
   if (error && !info) {
     return (
-      <PageShell>
-        <div className={cn('rounded-xl p-5 text-center', landingMockupCardClass)}>
-          <XCircle className="mx-auto h-8 w-8 text-red-500" />
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+      <PageWrapper>
+        <div className="rounded-[2rem] border border-red-200 bg-white/80 p-8 text-center">
+          <XCircle className="mx-auto h-10 w-10 text-red-500" />
+          <p className="mt-3 text-sm font-semibold text-red-600">{error}</p>
         </div>
-      </PageShell>
+      </PageWrapper>
     );
   }
 
@@ -132,103 +164,128 @@ export default function EventoPublicPage() {
 
   if (senha != null) {
     return (
-      <PageShell>
-        <article className={cn('rounded-xl', landingMockupCardClass)}>
-          <div className="border-b border-[#1b1813]/6 bg-emerald-50 px-4 py-5 text-center">
-            <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-800/70">
+      <PageWrapper>
+        <motion.article
+          initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/90 shadow-xl shadow-black/5 backdrop-blur-sm"
+        >
+          <div className="border-b border-[#e8dfd0] bg-[#ffc107]/10 px-6 py-8 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-[#a87400]" />
+            <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">
               Senha confirmada
             </p>
-            <p className="mt-3 text-4xl font-black tabular-nums text-[#1b1813]">{senha}</p>
-            <p className="mt-1 text-sm font-medium text-[#1b1813]">{nome}</p>
+            <p className="mt-4 text-5xl font-black tabular-nums text-[#a87400]">{senha}</p>
+            <p className="mt-2 text-base font-bold text-[#1b1813]">{nome}</p>
           </div>
-          <div className="space-y-1.5 px-4 py-3 text-center text-xs leading-relaxed text-[#1b1813]/60">
+          <div className="space-y-2 px-6 py-5 text-center text-sm leading-relaxed text-[#1b1813]/65">
             <p>Enviamos sua senha e o link de check-in no WhatsApp.</p>
             <p>Na portaria, abra o link e aponte para o QR Code do terreiro.</p>
           </div>
-        </article>
-      </PageShell>
+        </motion.article>
+      </PageWrapper>
     );
   }
 
   return (
-    <PageShell>
-      <article className={cn('rounded-xl', landingMockupCardClass)}>
-        <div className="flex gap-3.5 p-4 sm:gap-4 sm:p-5">
-          <div className="h-24 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-[#f3ebe0] sm:h-28 sm:w-24">
+    <PageWrapper>
+      <motion.article
+        initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/90 shadow-xl shadow-black/5 backdrop-blur-sm"
+      >
+        {info.bannerUrl ? (
+          <div className="aspect-[16/9] w-full overflow-hidden bg-[#f3ebe0]">
             <EventoThumb url={info.bannerUrl} alt={info.titulo} />
           </div>
+        ) : null}
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{info.tipo}</span>
-              {info.senhasAtivas && info.senhasMaximas != null ? (
-                <span className="text-[10px] text-[#1b1813]/40">
-                  {info.esgotado ? 'Esgotado' : `${info.senhasRestantes ?? 0} restantes`}
-                </span>
-              ) : null}
-            </div>
+        <div className="p-5 sm:p-6">
+          <MatrizKicker>{info.tipo}</MatrizKicker>
 
-            <h1 className="mt-1 text-base font-bold leading-snug text-[#1b1813] sm:text-lg">{info.titulo}</h1>
+          {info.senhasAtivas && info.senhasMaximas != null ? (
+            <p
+              className={cn(
+                'mt-4 inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest',
+                info.esgotado
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-[#ffc107]/14 text-[#a87400]',
+              )}
+            >
+              {info.esgotado ? 'Senhas esgotadas' : `${info.senhasRestantes ?? 0} senhas restantes`}
+            </p>
+          ) : null}
 
-            <ul className="mt-2 space-y-1 text-xs text-[#1b1813]/65 sm:text-sm">
-              <li className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-                <span className="capitalize">{dataFmt}</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-                <span>{horaFmt}</span>
-              </li>
-              <li className="flex items-start gap-1.5">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-                <a
-                  href={terreiroProfilePath(info.terreiro.slug)}
-                  className="font-medium text-[#1b1813] underline-offset-2 hover:text-amber-700 hover:underline"
-                >
-                  {local}
-                </a>
-              </li>
-            </ul>
+          <h1 className="mt-4 text-2xl font-black leading-tight text-[#1b1813] sm:text-3xl">{info.titulo}</h1>
 
-            {info.descricao ? (
-              <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#1b1813]/55 sm:text-sm">
-                {info.descricao}
-              </p>
-            ) : null}
-          </div>
+          <ul className="mt-5 space-y-2.5 text-sm text-[#1b1813]/70">
+            <li className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
+              <span className="capitalize font-semibold">{dataFmt}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
+              <span className="font-semibold">{horaFmt}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
+              <a
+                href={terreiroProfilePath(info.terreiro.slug)}
+                className="font-semibold text-[#1b1813] underline-offset-2 hover:text-[#a87400] hover:underline"
+              >
+                {local}
+              </a>
+            </li>
+          </ul>
+
+          {info.descricao ? (
+            <p className="mt-4 text-sm leading-relaxed text-[#1b1813]/60">{info.descricao}</p>
+          ) : null}
         </div>
 
         {info.senhasAtivas ? (
-          <section className="border-t border-[#1b1813]/8 px-4 py-4 sm:px-5">
-            <div className="mb-3 flex items-center gap-1.5">
-              <Ticket className="h-3.5 w-3.5 text-amber-600" aria-hidden />
-              <h2 className="text-xs font-bold text-[#1b1813] sm:text-sm">Receber senha</h2>
+          <section className="border-t border-[#e8dfd0] px-5 py-5 sm:px-6 sm:py-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-[#a87400]" aria-hidden />
+              <h2 className="text-sm font-black text-[#1b1813]">Receber senha</h2>
+            </div>
+
+            <div className="mb-5 flex gap-3 rounded-2xl border border-[#e8dfd0] bg-[#ffc107]/8 p-4">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
+              <p className="text-xs leading-relaxed text-[#1b1813]/70 sm:text-sm">
+                Informe nome e WhatsApp. O sistema gera sua senha numérica e envia no WhatsApp com link
+                de presença.
+              </p>
             </div>
 
             {info.esgotado ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 sm:text-sm">
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900">
                 Todas as senhas deste evento já foram emitidas.
               </p>
             ) : (
-              <form onSubmit={(e) => void handleEmitir(e)} className="space-y-2.5">
-                {error ? <p className="text-xs text-red-600 sm:text-sm">{error}</p> : null}
+              <form onSubmit={(e) => void handleEmitir(e)} className="space-y-4">
+                {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : null}
                 <div>
-                  <label htmlFor="evento-nome" className="text-[10px] font-semibold text-[#1b1813]/50">
+                  <label htmlFor="evento-nome" className="text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">
                     Nome completo
                   </label>
                   <input
                     id="evento-nome"
                     required
                     autoComplete="name"
-                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2 text-sm text-[#1b1813] outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
+                    className="mt-1.5 w-full rounded-2xl border border-[#e8dfd0] bg-white px-4 py-3 text-sm font-semibold text-[#1b1813] outline-none transition focus:border-[#ffc107]/60 focus:ring-4 focus:ring-[#ffc107]/15"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Seu nome"
                   />
                 </div>
                 <div>
-                  <label htmlFor="evento-whatsapp" className="text-[10px] font-semibold text-[#1b1813]/50">
+                  <label
+                    htmlFor="evento-whatsapp"
+                    className="text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45"
+                  >
                     WhatsApp
                   </label>
                   <input
@@ -237,7 +294,7 @@ export default function EventoPublicPage() {
                     type="tel"
                     autoComplete="tel"
                     inputMode="tel"
-                    className="mt-1 w-full rounded-lg border border-[#1b1813]/12 bg-white px-3 py-2 text-sm text-[#1b1813] outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
+                    className="mt-1.5 w-full rounded-2xl border border-[#e8dfd0] bg-white px-4 py-3 text-sm font-semibold text-[#1b1813] outline-none transition focus:border-[#ffc107]/60 focus:ring-4 focus:ring-[#ffc107]/15"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
                     placeholder="(00) 00000-0000"
@@ -246,34 +303,31 @@ export default function EventoPublicPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={cn(
-                    'flex w-full items-center justify-center rounded-lg bg-[#1b1813] py-2.5 text-sm font-bold text-white transition',
-                    'hover:bg-[#2d261c] disabled:opacity-60',
-                  )}
+                  className="flex w-full items-center justify-center rounded-full bg-[#ffc107] py-3.5 text-sm font-black text-[#1b1813] shadow-md shadow-[#ffc107]/15 transition hover:bg-[#ffcd38] disabled:opacity-60"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Receber senha no WhatsApp'}
                 </button>
-                <p className="text-center text-[10px] text-[#1b1813]/40">
+                <p className="text-center text-[10px] font-semibold text-[#1b1813]/40">
                   A senha e o link de check-in serão enviados no seu WhatsApp.
                 </p>
               </form>
             )}
           </section>
         ) : (
-          <div className="border-t border-[#1b1813]/8 px-4 py-3 sm:px-5">
-            <p className="text-xs text-[#1b1813]/50 sm:text-sm">
+          <div className="border-t border-[#e8dfd0] px-5 py-5 sm:px-6">
+            <p className="text-center text-sm text-[#1b1813]/55">
               Confirme horário e endereço diretamente com o terreiro.
             </p>
           </div>
         )}
-      </article>
+      </motion.article>
 
-      <p className="mt-4 text-center text-[10px] text-[#1b1813]/30">
+      <p className="mt-6 text-center text-[10px] text-[#1b1813]/35">
         Divulgado via{' '}
-        <a href="/" className="hover:text-amber-700">
+        <a href="/" className="font-semibold hover:text-[#a87400]">
           AxéCloud
         </a>
       </p>
-    </PageShell>
+    </PageWrapper>
   );
 }

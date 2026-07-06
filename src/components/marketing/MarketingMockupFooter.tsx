@@ -2,8 +2,9 @@
 import { TikTokIcon } from '../icons/TikTokIcon';
 import { landingMockupShellClass } from '../landing/landingMockupUi';
 import { SOCIAL_LINKS } from '../../constants/socialLinks';
-import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
+import { LoginLink } from './LoginLink';
+import { RegisterTrialLink } from './RegisterTrialLink';
 import { LandingMockupLogo } from './MarketingTopNav';
 
 const CNPJ = '66.335.964/0001-07';
@@ -85,9 +86,9 @@ export function MarketingMockupFooter() {
               </a>
             </li>
             <li>
-              <a href={appHref(ROUTES.register)} className="text-white/60 transition hover:text-[#FFC107]">
+              <RegisterTrialLink className="text-white/60 transition hover:text-[#FFC107]">
                 Teste grátis 30 dias
-              </a>
+              </RegisterTrialLink>
             </li>
             <li>
               <a href={`${ROUTES.home}#mensalidade`} className="text-white/60 transition hover:text-[#FFC107]">
@@ -101,14 +102,12 @@ export function MarketingMockupFooter() {
           <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Conta</h6>
           <ul className="space-y-2 text-xs">
             <li>
-              <a href={appHref(ROUTES.login)} className="text-white/60 transition hover:text-[#FFC107]">
-                Entrar
-              </a>
+              <LoginLink className="text-white/60 transition hover:text-[#FFC107]">Entrar</LoginLink>
             </li>
             <li>
-              <a href={appHref(ROUTES.register)} className="text-white/60 transition hover:text-[#FFC107]">
+              <RegisterTrialLink className="text-white/60 transition hover:text-[#FFC107]">
                 Cadastrar terreiro
-              </a>
+              </RegisterTrialLink>
             </li>
             <li>
               <a href={ROUTES.contentHub} className="text-white/60 transition hover:text-[#FFC107]">

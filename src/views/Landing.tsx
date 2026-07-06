@@ -1,51 +1,17 @@
-﻿import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { ArrowUp, Check, MessageCircle } from 'lucide-react';
-import { MarketingMockupFooter } from '../components/marketing/MarketingMockupFooter';
-import { PortalHomeHub } from '../components/landing/PortalHomeHub';
-import { LandingReveal } from '../components/landing/LandingReveal';
-import { LandingSection, LandingSectionHeader } from '../components/landing/LandingSection';
-import { appHref } from '../lib/appHref';
+﻿import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ArrowRight, ArrowUp, Check, MessageCircle } from 'lucide-react';
+import { MatrizLandingExperience } from '../components/landing/MatrizLandingExperience';
+import { LoginLink } from '../components/marketing/LoginLink';
+import { RegisterTrialLink } from '../components/marketing/RegisterTrialLink';
+import { landingBrandLogo } from '../constants/landingScreenshots';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
-import { landingMockupShellClass } from '../components/landing/landingMockupUi';
-import { LandingMockupSideRails } from '../components/landing/LandingMockupSideRails';
 
-const LandingPhilosophy = lazy(() =>
-  import('../components/landing/LandingPhilosophy').then((m) => ({ default: m.LandingPhilosophy }))
-);
-const LandingResources = lazy(() =>
-  import('../components/landing/LandingResources').then((m) => ({ default: m.LandingResources }))
-);
-const LandingPortalPreview = lazy(() =>
-  import('../components/landing/LandingPortalPreview').then((m) => ({ default: m.LandingPortalPreview }))
-);
-const LandingInteractiveDemo = lazy(() =>
-  import('../components/landing/LandingInteractiveDemo').then((m) => ({
-    default: m.LandingInteractiveDemo,
-  }))
-);
-const ConnectedAccess = lazy(() =>
-  import('../components/landing/ConnectedAccess').then((m) => ({ default: m.ConnectedAccess }))
-);
-const WhatsAppAutomation = lazy(() =>
-  import('../components/landing/WhatsAppAutomation').then((m) => ({ default: m.WhatsAppAutomation }))
-);
-const LandingAudience = lazy(() =>
-  import('../components/landing/LandingAudience').then((m) => ({ default: m.LandingAudience }))
-);
-const LandingSecurity = lazy(() =>
-  import('../components/landing/LandingSecurity').then((m) => ({ default: m.LandingSecurity }))
-);
 const LandingFaq = lazy(() =>
   import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
-);
-const LandingTestimonials = lazy(() =>
-  import('../components/landing/LandingTestimonials').then((m) => ({ default: m.LandingTestimonials }))
-);
-const LandingBeforeAfter = lazy(() =>
-  import('../components/landing/LandingBeforeAfter').then((m) => ({ default: m.LandingBeforeAfter }))
 );
 
 function LandingSectionFallback({
@@ -59,6 +25,7 @@ function LandingSectionFallback({
 }
 
 const WA_COMERCIAL = 'https://wa.me/5511912276156';
+const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
   '14 módulos reais: painel, filhos, giras, financeiro, galeria e mais',
@@ -68,6 +35,220 @@ const premiumFeatures = [
   'Mensalidade com Pix e histórico transparente',
   `${TRIAL_DAYS} dias grátis para testar tudo`,
 ] as const;
+
+function PricingSection({
+  landingPrice,
+}: {
+  landingPrice: ReturnType<typeof usePlansCatalog>['premium'];
+}) {
+  return (
+    <section id="mensalidade" className="relative z-[1] overflow-hidden bg-[#fdf8f0] py-20 font-display text-[#1b1813] md:py-28">
+      <div className="pointer-events-none absolute inset-x-0 top-10 mx-auto h-72 max-w-4xl rounded-full bg-[#ffc107]/15 blur-3xl" aria-hidden />
+      <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+        <motion.div
+          className="mx-auto max-w-2xl text-center"
+          initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
+          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1b1813]">
+            Mensalidade
+          </span>
+          <h2 id="mensalidade-head" className="mt-5 text-3xl font-extrabold tracking-tight md:text-4xl">
+            Um valor. Todo o AxéCloud.
+          </h2>
+          <p className="mt-4 text-[#1b1813]/60">{landingPrice.description}</p>
+        </motion.div>
+
+        <motion.div
+          className="relative z-10 mx-auto mt-12 grid max-w-4xl overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white shadow-xl shadow-[#ffc107]/10 md:grid-cols-[0.9fr_1.1fr]"
+          initial={{ opacity: 0, y: 42, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="flex flex-col justify-between bg-[#0b0906] p-8 text-white sm:p-10">
+            <div>
+              <span className="inline-flex w-max rounded-full border border-[#ffc107]/35 bg-[#ffc107]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#ffc107]">
+                Plano Premium
+              </span>
+              <h3 className="mt-5 text-lg font-bold text-white/80">Mensalidade do terreiro</h3>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="font-display text-5xl font-black tracking-tight text-[#ffc107]">{landingPrice.label}</span>
+                <span className="text-lg text-white/50">{landingPrice.period}</span>
+              </div>
+              <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
+                Tudo incluso, sem taxa por filho de santo. Teste grátis por {TRIAL_DAYS} dias, depois mensalidade via PIX.
+              </p>
+            </div>
+            <RegisterTrialLink className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#ffc107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]">
+              Cadastrar, {TRIAL_DAYS} dias grátis
+            </RegisterTrialLink>
+          </div>
+
+          <div className="bg-white p-8 sm:p-10">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/62">O que está incluso</p>
+            <ul className="mt-5 space-y-3.5 text-left text-sm text-[#1b1813]/75" role="list">
+              {premiumFeatures.map((line) => (
+                <li key={line} className="flex gap-3">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#ffc107]/20">
+                    <Check className="h-3.5 w-3.5 text-[#1b1813]" strokeWidth={2.5} />
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-7 border-t border-[#e8dfd0] pt-5 text-[11px] text-[#1b1813]/66">
+              Dúvidas?{' '}
+              <a href={WA_COMERCIAL} target="_blank" rel="noreferrer" className="font-bold text-[#1b1813] hover:text-[#a87400]">
+                Fale com o comercial
+              </a>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function ClosingSection() {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const scale = useTransform(scrollYProgress, [0, 1], [0.96, 1]);
+
+  return (
+    <section ref={ref} id="cta" className="relative z-[1] px-5 pb-20 font-display text-[#1b1813] md:pb-28">
+      <motion.div
+        style={{ scale }}
+        className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-[#e8dfd0] bg-[#0b0906] px-8 py-12 text-center shadow-2xl shadow-black/15 md:px-14 md:py-16"
+      >
+        <div
+          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#ffc107]/12 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-[#a87400]/10 blur-3xl"
+          aria-hidden
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
+          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <img
+            src="/ile-ase-logo.png"
+            alt=""
+            className="relative z-10 mx-auto h-12 brightness-0 invert opacity-90 md:h-14"
+            aria-hidden
+          />
+          <h2 className="relative z-10 mt-6 text-3xl font-extrabold tracking-tight text-[#fdf8f0] md:text-4xl">
+            Organize sua casa de axé com o AxéCloud
+          </h2>
+          <p className="relative z-10 mx-auto mt-4 max-w-lg text-base leading-relaxed text-[#fdf8f0]/60">
+            Teste o sistema real por {TRIAL_DAYS} dias, sem cartão. Financeiro, giras, portal do filho e memória da
+            casa — tudo no mesmo lugar.
+          </p>
+          <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <RegisterTrialLink className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#ffc107] px-7 py-3.5 text-sm font-bold text-[#1b1813] shadow-md shadow-[#ffc107]/25 transition hover:bg-[#ffcd38] hover:shadow-lg sm:w-auto">
+              Criar conta grátis
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </RegisterTrialLink>
+            <a
+              href={WA_COMERCIAL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#fdf8f0]/20 px-7 py-3.5 text-sm font-bold text-[#fdf8f0]/80 transition hover:border-[#ffc107]/50 hover:text-[#ffc107] sm:w-auto"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              WhatsApp comercial
+            </a>
+          </div>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+function MatrizFooter() {
+  const portalLinks = [
+    { href: ROUTES.terreiros, label: 'Terreiros' },
+    { href: ROUTES.eventosPublicos, label: 'Eventos públicos' },
+    { href: ROUTES.espacoDoFiel, label: 'Pedir reza' },
+    { href: ROUTES.liturgicalCalendar, label: 'Calendário litúrgico' },
+  ];
+  const platformLinks = [
+    { href: `${ROUTES.home}#recursos`, label: 'Módulos' },
+    { href: `${ROUTES.home}#mensalidade`, label: 'Planos' },
+    { href: ROUTES.whyAxeCloud, label: 'Por que AxéCloud' },
+    { href: ROUTES.register, label: 'Teste grátis', trial: true as const },
+  ];
+  const accountLinks = [
+    { href: ROUTES.login, label: 'Entrar', login: true as const },
+    { href: ROUTES.register, label: 'Cadastrar terreiro', trial: true as const },
+    { href: ROUTES.contentHub, label: 'Conteúdo' },
+    { href: ROUTES.glossary, label: 'Glossário do axé' },
+  ];
+
+  return (
+    <footer className="relative z-[1] border-t border-[#e8dfd0] bg-white py-12 font-display text-[#1b1813]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">
+        <div>
+          <a href={ROUTES.home} className="inline-flex items-center gap-2.5" aria-label="AxéCloud — início">
+            <img
+              src={landingBrandLogo()}
+              alt=""
+              className="h-11 w-11 object-contain"
+              aria-hidden
+            />
+            <span className="leading-tight">
+              <span className="block text-sm font-black tracking-tight text-[#1b1813]">AxéCloud</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-[#a87400]">
+                Gestão de terreiros
+              </span>
+            </span>
+          </a>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#1b1813]/55">
+            Portal e software para terreiros de Umbanda, Candomblé e Jurema, com gestão da casa,
+            eventos públicos, pedidos de reza e portal do filho de santo.
+          </p>
+          <p className="mt-5 text-xs font-semibold text-[#1b1813]/35">CNPJ {CNPJ}</p>
+        </div>
+
+        {[
+          ['Portal', portalLinks],
+          ['Plataforma', platformLinks],
+          ['Conta', accountLinks],
+        ].map(([title, links]) => (
+          <div key={title as string}>
+            <h6 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[#a87400]">{title as string}</h6>
+            <ul className="space-y-2 text-sm">
+              {(links as Array<{ href: string; label: string; trial?: true; login?: true }>).map((link) => (
+                <li key={link.label}>
+                  {link.trial ? (
+                    <RegisterTrialLink className="text-[#1b1813]/55 transition hover:text-[#a87400]">
+                      {link.label}
+                    </RegisterTrialLink>
+                  ) : link.login ? (
+                    <LoginLink className="text-[#1b1813]/55 transition hover:text-[#a87400]">
+                      {link.label}
+                    </LoginLink>
+                  ) : (
+                    <a href={link.href} className="text-[#1b1813]/55 transition hover:text-[#a87400]">
+                      {link.label}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </footer>
+  );
+}
 
 function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
@@ -100,21 +281,6 @@ function ScrollToTopButton() {
   );
 }
 
-function LandingSoftwareDivider() {
-  return (
-    <section className="landing-mockup-divider border-y border-[#e8dfd0] bg-[#fdf8f0] py-10" aria-label="Transição para o software">
-      <div className={landingMockupShellClass}>
-        <div className="relative flex items-center justify-center">
-          <div className="absolute inset-x-0 top-1/2 h-px bg-[#e8dfd0]" aria-hidden />
-          <p className="relative bg-[#fdf8f0] px-4 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[#1b1813]/62 sm:text-xs">
-            Software de gestão para o seu terreiro
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
 
@@ -122,172 +288,21 @@ export default function Landing() {
     <>
       <span id="top" className="sr-only" aria-hidden />
 
-      <LandingMockupSideRails />
-
       <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] text-[#1b1813]">
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
-        <PortalHomeHub />
+        <MatrizLandingExperience />
 
-        <LandingSoftwareDivider />
-
-        <Suspense
-          fallback={
-            <LandingSectionFallback
-              minHeight="44rem"
-              className="landing-section landing-section--alt"
-            />
-          }
-        >
-          <LandingPhilosophy />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
-          <LandingResources />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="32rem" />}>
-          <LandingInteractiveDemo />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
-          <LandingBeforeAfter />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="24rem" />}>
-          <LandingPortalPreview />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
-          <ConnectedAccess />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="20rem" />}>
-          <WhatsAppAutomation />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
-          <LandingAudience />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="18rem" />}>
-          <LandingSecurity />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="22rem" />}>
-          <LandingTestimonials />
-        </Suspense>
-
-        <LandingSection id="mensalidade" variant="alt" aria-labelledby="mensalidade-head">
-          <div className="landing-section-inner mx-auto">
-            <LandingReveal>
-              <LandingSectionHeader
-                kicker="Mensalidade"
-                title="Um valor. Todo o AxéCloud."
-                titleId="mensalidade-head"
-                lead={landingPrice.description}
-              />
-            </LandingReveal>
-            <LandingReveal delayMs={80} className="relative z-10 mx-auto mt-12 max-w-4xl">
-              <div className="landing-mockup-card grid overflow-hidden md:grid-cols-[0.9fr_1.1fr]">
-                <div className="flex flex-col justify-between bg-black p-8 text-white sm:p-10">
-                  <div>
-                    <span className="landing-mockup-kicker inline-flex w-max">
-                  Plano Premium
-                </span>
-                    <h3 className="mt-5 text-lg font-bold text-white/80">Mensalidade do terreiro</h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="font-display text-5xl font-black tracking-tight text-[#FFC107]">{landingPrice.label}</span>
-                      <span className="text-lg text-white/50">{landingPrice.period}</span>
-                    </div>
-                    <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-                      Tudo incluso, sem taxa por filho de santo. Teste grátis por {TRIAL_DAYS} dias — depois,
-                      mensalidade via PIX.
-                    </p>
-                  </div>
-                  <a
-                    href={appHref(ROUTES.register)}
-                    className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]"
-                  >
-                    Cadastrar — {TRIAL_DAYS} dias grátis
-                  </a>
-                </div>
-
-                <div className="bg-white p-8 sm:p-10">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/62">O que está incluso</p>
-                  <ul className="mt-5 space-y-3.5 text-left text-sm text-[#1b1813]/75" role="list">
-                  {premiumFeatures.map((line) => (
-                      <li key={line} className="flex gap-3">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FFC107]/20">
-                          <Check className="h-3.5 w-3.5 text-[#1b1813]" strokeWidth={2.5} />
-                        </span>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-                  <p className="mt-7 border-t border-[#e8dfd0] pt-5 text-[11px] text-[#1b1813]/66">
-                  Dúvidas?{' '}
-                  <a
-                    href={WA_COMERCIAL}
-                    target="_blank"
-                    rel="noreferrer"
-                      className="font-bold text-[#1b1813] hover:text-[#FFC107]"
-                  >
-                    Fale com o comercial
-                  </a>
-                </p>
-                </div>
-              </div>
-            </LandingReveal>
-          </div>
-        </LandingSection>
+        <PricingSection landingPrice={landingPrice} />
 
         <Suspense fallback={<LandingSectionFallback minHeight="16rem" />}>
           <LandingFaq />
         </Suspense>
 
-        <LandingSection aria-label="Fechamento">
-          <div className="landing-section-inner mx-auto">
-            <LandingReveal className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-black p-10 text-center md:rounded-[2.25rem] md:p-16">
-              <p className="relative z-10 text-xs font-black uppercase tracking-[0.2em] text-[#FFC107]">Que o axé acompanhe</p>
-              <p className="relative z-10 mx-auto mt-4 max-w-2xl font-display text-3xl font-black leading-tight text-white md:text-4xl">
-                Paz na casa, luz no caminho e organização no que é sagrado
-              </p>
-              <p className="relative z-10 mx-auto mt-4 max-w-lg text-base text-white/70">
-                Leve transparência financeira, portal do filho de santo e memória da casa para o seu terreiro.
-              </p>
-              <div className="relative z-10 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <a
-                  href={appHref(ROUTES.register)}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-6 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38] sm:w-auto"
-                >
-                  Teste grátis por {TRIAL_DAYS} dias
-                </a>
-                <a
-                  href={WA_COMERCIAL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/5 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Falar com o comercial
-              </a>
-              <a
-                href={WA_COMERCIAL}
-                target="_blank"
-                rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white/80 transition hover:text-[#FFC107]"
-              >
-                  <MessageCircle className="h-4 w-4" aria-hidden />
-                Falar com o comercial
-              </a>
-              </div>
-            </LandingReveal>
-          </div>
-        </LandingSection>
+        <ClosingSection />
       </main>
 
-      <MarketingMockupFooter />
+      <MatrizFooter />
 
       <ScrollToTopButton />
     </div>

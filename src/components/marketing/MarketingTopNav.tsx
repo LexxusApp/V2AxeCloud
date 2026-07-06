@@ -301,8 +301,8 @@ export function LandingTopNav() {
   }, [mobileMenuOpen]);
 
   return (
-    <nav className="landing-mockup-nav sticky top-0 z-50 min-h-[var(--landing-mockup-nav-height,4.5rem)] bg-black">
-      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[var(--landing-mockup-nav-height,4.5rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-1 md:py-1.5 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
+    <nav className="landing-mockup-nav sticky top-0 z-50 bg-transparent px-3 py-3">
+      <div className="landing-mockup-nav__bar landing-mockup-nav__inner grid min-h-[4.35rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-full border border-[#e8dfd0]/90 bg-[#fdf8f0]/88 px-3 py-2 shadow-xl shadow-black/5 backdrop-blur-xl transition-all duration-300 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-x-8">
         <a href={ROUTES.home} className="block shrink-0 leading-none xl:col-start-1" aria-label="AXÉCLOUD — início">
           <LandingMockupLogo />
         </a>
@@ -343,7 +343,7 @@ export function LandingTopNav() {
 
           <button
             type="button"
-            className="rounded-lg p-2 text-white transition-colors hover:text-[#FFC107] xl:hidden"
+            className="rounded-full border border-[#e8dfd0] bg-white p-2 text-[#1b1813] transition-colors hover:text-[#a87400] xl:hidden"
             onClick={() => setMobileMenuOpen((open) => !open)}
             aria-expanded={mobileMenuOpen}
             aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -354,7 +354,7 @@ export function LandingTopNav() {
       </div>
 
       {mobileMenuOpen ? (
-        <div className="max-h-[calc(100dvh-var(--landing-mockup-nav-height))] overflow-y-auto border-t border-white/10 bg-black xl:hidden">
+        <div className="mx-auto mt-3 max-h-[calc(100dvh-6rem)] max-w-sm overflow-y-auto rounded-3xl border border-[#e8dfd0] bg-[#fdf8f0]/96 p-2 shadow-2xl shadow-black/10 backdrop-blur-xl xl:hidden">
           <div className="space-y-1 px-4 py-4">
             {LANDING_MOCKUP_NAV.map((item) => {
               const isActive = isLandingMockupNavItemActive(item.href, activeHash);
@@ -376,7 +376,7 @@ export function LandingTopNav() {
             <a
               href={appHref(ROUTES.login)}
               onClick={() => setMobileMenuOpen(false)}
-              className="mt-3 block rounded-lg px-3 py-3 text-center text-lg font-semibold text-white hover:bg-white/5 hover:text-[#FFC107]"
+              className="mt-3 block rounded-lg px-3 py-3 text-center text-lg font-semibold text-[#1b1813]/75 hover:bg-[#ffc107]/10 hover:text-[#a87400]"
             >
               Entrar
             </a>

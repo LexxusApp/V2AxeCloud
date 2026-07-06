@@ -1,22 +1,47 @@
-import { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, Clock, Loader2, MapPin, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../../lib/utils';
-import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
-import { MarketingMockupPageHeader } from '../../components/marketing/MarketingMockupPageHeader';
-import { landingMockupCardClass, landingMockupShellClass } from '../../components/landing/landingMockupUi';
+import {
+  ArrowRight,
+  Calendar,
+  CalendarDays,
+  Clock,
+  Loader2,
+  MapPin,
+  Search,
+  X,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
+import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../../lib/modalMotion';
 import { fetchPublicEventos, terreiroProfilePath, type PublicEvento } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
-import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../../lib/modalMotion';
+import { applyCustomPageSeo } from '../../lib/seo';
+import { PORTAL_BRAND } from '../../constants/seoBrandKeywords';
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function MatrizKicker({ children }: { children: ReactNode }) {
+  return (
+    <span className="matriz-kicker-pulse inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1b1813]">
+      {children}
+    </span>
+  );
+}
 
 function EventListThumb({ url, alt }: { url: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-[#f3ebe0]">
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ffc107]/10 to-[#f3ebe0]">
         <CalendarDays className="h-8 w-8 text-[#1b1813]/15" aria-hidden />
       </div>
     );
@@ -32,11 +57,77 @@ function EventListThumb({ url, alt }: { url: string | null; alt: string }) {
   );
 }
 
+function formatEventDate(data: string) {
+  try {
+    return format(parseISO(data), "EEEE, d 'de' MMMM", { locale: ptBR });
+  } catch {
+    return data;
+  }
+}
+
+function EventCardContent({ ev, dataFmt }: { ev: PublicEvento; dataFmt: string }) {
+  return (
+    <>
+      <div className="h-36 w-full shrink-0 overflow-hidden rounded-2xl bg-[#f3ebe0] sm:h-40">
+        <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
+      </div>
+      <div className="mt-4 min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">{ev.tipo}</span>
+          <span className="rounded-full bg-[#ffc107]/14 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#a87400]">
+            {ev.senhasAtivas ? 'Receber senha' : 'Ver evento'}
+          </span>
+        </div>
+        <h2 className="mt-2 text-lg font-black leading-snug text-[#1b1813] group-hover:text-[#a87400]">
+          {ev.titulo}
+        </h2>
+        <p className="mt-2 flex items-center gap-2 text-sm text-[#1b1813]/65">
+          <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="capitalize">{dataFmt}</span>
+          <span className="text-[#1b1813]/30">·</span>
+          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {ev.hora}
+        </p>
+        <p className="mt-2 flex items-start gap-1.5 text-sm font-semibold text-[#1b1813]/75">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="line-clamp-2">
+            {ev.terreiro.nome}
+            {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
+          </span>
+        </p>
+        {ev.descricao ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#1b1813]/58">{ev.descricao}</p>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+const cardMotionProps = (index: number) => ({
+  className:
+    'group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-[#e8dfd0] bg-white/80 p-5 text-left shadow-sm shadow-black/5 backdrop-blur-sm transition hover:-translate-y-1 hover:border-[#ffc107]/50 hover:shadow-xl hover:shadow-[#ffc107]/10',
+  initial: { opacity: 0, y: 24, filter: 'blur(8px)' },
+  animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+  whileHover: { y: -8, scale: 1.018 },
+  whileTap: { scale: 0.985 },
+  transition: { delay: Math.min(index * 0.025, 0.28), duration: 0.5 },
+});
+
 export default function EventosPublicPage() {
   const [items, setItems] = useState<PublicEvento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<PublicEvento | null>(null);
+  const [q, setQ] = useState('');
+
+  useEffect(() => {
+    applyCustomPageSeo({
+      title: `Eventos públicos | ${PORTAL_BRAND}`,
+      description:
+        'Giras e festas divulgadas pelas casas de axé — confirme horário e endereço diretamente com o terreiro.',
+      canonicalPath: ROUTES.eventosPublicos,
+    });
+  }, []);
 
   useEffect(() => {
     void fetchPublicEventos()
@@ -45,153 +136,181 @@ export default function EventosPublicPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredItems = useMemo(() => {
+    const term = normalizeSearch(q);
+    if (!term) return items;
+    return items.filter((ev) =>
+      normalizeSearch(`${ev.titulo} ${ev.terreiro.nome} ${ev.terreiro.cidade || ''}`).includes(term),
+    );
+  }, [items, q]);
+
+  const stats = useMemo(() => {
+    const comSenha = items.filter((ev) => ev.senhasAtivas).length;
+    const cidades = new Set(
+      items.map((ev) => ev.terreiro.cidade).filter((cidade): cidade is string => Boolean(cidade)),
+    ).size;
+    return { total: items.length, comSenha, cidades };
+  }, [items]);
+
   return (
-    <MarketingMockupLayout>
-      <main className={cn('relative z-[1] py-10 sm:py-14', landingMockupShellClass, 'max-w-4xl')}>
-        <MarketingMockupPageHeader
-          kicker="Agenda cultural"
-          title="Eventos públicos"
-          summary="Giras e festas que as casas optaram por divulgar no portal — confirme horário e endereço directamente com o terreiro."
-        />
+    <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
+      <MatrizPageBackground />
+      <main className="relative z-[1] mx-auto w-full max-w-7xl px-5 pb-24 pt-32 md:px-8 md:pt-36">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-10 lg:items-start">
+          <motion.div
+            className="contents"
+            initial={{ opacity: 0, y: 34, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="lg:col-start-1 lg:row-start-1">
+              <MatrizKicker>Agenda cultural</MatrizKicker>
+            </div>
+            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-4xl font-black leading-[1.05] tracking-tight text-[#1b1813] md:text-6xl">
+              Eventos públicos
+            </h1>
+            <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">
+              Giras e festas que as casas optaram por divulgar no portal — confirme horário e endereço
+              diretamente com o terreiro.
+            </p>
+            <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
+              <div className="rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-5 shadow-xl shadow-black/5 backdrop-blur-sm">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl bg-[#ffc107]/14 p-4">
+                  <p className="text-2xl font-black text-[#a87400]">{stats.total}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">
+                    Eventos
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[#ffc107]/14 p-4">
+                  <p className="text-2xl font-black text-[#a87400]">{stats.comSenha}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">
+                    Com senha
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[#ffc107]/14 p-4">
+                  <p className="text-2xl font-black text-[#a87400]">{stats.cidades}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">
+                    Cidades
+                  </p>
+                </div>
+              </div>
+              <label className="relative mt-5 block">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1b1813]/40" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar por evento, terreiro ou cidade..."
+                  className="w-full rounded-full border border-[#e8dfd0] bg-white py-3 pl-11 pr-4 text-sm font-semibold text-[#1b1813] outline-none transition placeholder:text-[#1b1813]/35 focus:border-[#ffc107]/60 focus:ring-4 focus:ring-[#ffc107]/15"
+                />
+              </label>
+              </div>
+            </div>
+          </motion.div>
+        </section>
 
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-          </div>
-        ) : error ? (
-          <p className="py-10 text-red-400">{error}</p>
-        ) : items.length === 0 ? (
-          <div className={cn('mt-10 px-6 py-12 text-center text-[#1b1813]/70', landingMockupCardClass, 'rounded-2xl border-dashed')}>
-            Nenhum evento público agendado no momento.
-            <a href={ROUTES.terreiros} className="mt-4 block text-sm font-bold text-[#1b1813] hover:text-[#FFC107]">
-              Explorar terreiros
-            </a>
-          </div>
-        ) : (
-          <ul className="mx-auto mt-10 flex max-w-2xl flex-col gap-4">
-            {items.map((ev) => {
-              let dataFmt = ev.data;
-              try {
-                dataFmt = format(parseISO(ev.data), "EEEE, d 'de' MMMM", { locale: ptBR });
-              } catch {
-                /* keep raw */
-              }
-              return (
-                <li key={ev.id}>
-                  {ev.eventoPageUrl ? (
-                    <a
-                      href={ev.eventoPageUrl}
-                      className={cn(
-                        'group flex w-full gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
-                        landingMockupCardClass,
-                        'rounded-2xl',
-                      )}
-                    >
-                    <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f3ebe0] sm:h-28 sm:w-32">
-                      <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{ev.tipo}</span>
-                      <h2 className="mt-1 text-base font-bold leading-snug text-[#1b1813] group-hover:text-[#FFC107] sm:text-lg">
-                        {ev.titulo}
-                      </h2>
-                      <p className="mt-1.5 flex items-center gap-2 text-sm text-[#1b1813]/65">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        {dataFmt} · {ev.hora}
-                      </p>
-                      <span className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">
-                          {ev.terreiro.nome}
-                          {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
-                        </span>
-                      </span>
-                      {ev.descricao ? (
-                        <p className="mt-2 line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
-                      ) : null}
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
-                        {ev.senhasAtivas ? 'Receber senha' : 'Ver evento'}
-                      </p>
-                    </div>
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDetail(ev)}
-                      className={cn(
-                        'group flex w-full cursor-pointer gap-4 overflow-hidden p-4 text-left transition hover:-translate-y-0.5 sm:gap-5 sm:p-5',
-                        landingMockupCardClass,
-                        'rounded-2xl',
-                      )}
-                    >
-                      <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f3ebe0] sm:h-28 sm:w-32">
-                        <EventListThumb url={ev.bannerUrl} alt={ev.titulo} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#FFC107]">{ev.tipo}</span>
-                        <h2 className="mt-1 text-base font-bold leading-snug text-[#1b1813] group-hover:text-[#FFC107] sm:text-lg">
-                          {ev.titulo}
-                        </h2>
-                        <p className="mt-1.5 flex items-center gap-2 text-sm text-[#1b1813]/65">
-                          <Calendar className="h-4 w-4 shrink-0" />
-                          {dataFmt} · {ev.hora}
-                        </p>
-                        <span className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#1b1813]/75 group-hover:text-[#FFC107]">
-                          <MapPin className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">
-                            {ev.terreiro.nome}
-                            {ev.terreiro.cidade ? ` — ${ev.terreiro.cidade}` : ''}
-                          </span>
-                        </span>
-                        {ev.descricao ? (
-                          <p className="mt-2 line-clamp-2 text-sm text-[#1b1813]/68">{ev.descricao}</p>
-                        ) : null}
-                        <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
-                          Toque para ver detalhes
-                        </p>
-                      </div>
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <section className="mt-14">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
+              <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
+              <p className="mt-4 text-sm font-bold text-[#1b1813]/55">Carregando eventos públicos...</p>
+            </div>
+          ) : error ? (
+            <div className="rounded-[2rem] border border-red-200 bg-white/80 p-8 text-center text-red-600">
+              {error}
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="rounded-[2rem] border border-dashed border-[#e8dfd0] bg-white/70 p-10 text-center">
+              <p className="font-bold text-[#1b1813]/70">
+                {items.length === 0
+                  ? 'Nenhum evento público agendado no momento.'
+                  : 'Nenhum evento encontrado para essa busca.'}
+              </p>
+              {items.length === 0 ? (
+                <a
+                  href={ROUTES.terreiros}
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#a87400] hover:text-[#1b1813]"
+                >
+                  Explorar terreiros
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              ) : null}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredItems.map((ev, index) => {
+                const dataFmt = formatEventDate(ev.data);
+                const motionProps = cardMotionProps(index);
 
-        <section className={cn('mt-16 p-6', landingMockupCardClass, 'rounded-2xl')}>
-          <h2 className="font-bold text-[#1b1813]">Receber a agenda por e-mail</h2>
-          <div className="mt-4">
+                if (ev.eventoPageUrl) {
+                  return (
+                    <motion.a key={ev.id} href={ev.eventoPageUrl} {...motionProps}>
+                      <motion.div
+                        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ffc107]/70 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 3.2, repeat: Infinity, delay: index * 0.08, ease: 'easeInOut' }}
+                        aria-hidden
+                      />
+                      <EventCardContent ev={ev} dataFmt={dataFmt} />
+                    </motion.a>
+                  );
+                }
+
+                return (
+                  <motion.button
+                    key={ev.id}
+                    type="button"
+                    onClick={() => setDetail(ev)}
+                    {...motionProps}
+                  >
+                    <motion.div
+                      className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ffc107]/70 to-transparent"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 3.2, repeat: Infinity, delay: index * 0.08, ease: 'easeInOut' }}
+                      aria-hidden
+                    />
+                    <EventCardContent ev={ev} dataFmt={dataFmt} />
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-16 rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-6 shadow-xl shadow-black/5 backdrop-blur-sm md:p-8">
+          <h2 className="text-xl font-black text-[#1b1813]">Receber a agenda por e-mail</h2>
+          <p className="mt-2 text-sm text-[#1b1813]/58">
+            Cadastre-se para ser avisado quando novas giras e festas forem publicadas.
+          </p>
+          <div className="mt-5">
             <PortalNewsletterForm />
           </div>
         </section>
       </main>
 
       <AnimatePresence>
-        {detail && (
+        {detail ? (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setDetail(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#1b1813]/60 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className={cn(
-                'relative z-10 w-full overflow-hidden rounded-3xl bg-white shadow-2xl',
-                landingMockupCardClass,
-                detail.bannerUrl ? 'max-w-[min(96vw,42rem)]' : 'max-w-lg',
-              )}
+              className={`relative z-10 w-full overflow-hidden rounded-3xl border border-[#e8dfd0] bg-white shadow-2xl shadow-black/10 ${
+                detail.bannerUrl ? 'max-w-[min(96vw,42rem)]' : 'max-w-lg'
+              }`}
             >
               <div
-                className={cn(
-                  'flex max-h-[min(92dvh,32rem)] w-full overflow-hidden',
-                  detail.bannerUrl ? 'flex-row' : 'flex-col',
-                )}
+                className={`flex max-h-[min(92dvh,32rem)] w-full overflow-hidden ${
+                  detail.bannerUrl ? 'flex-row' : 'flex-col'
+                }`}
               >
                 {detail.bannerUrl ? (
                   <div className="w-[38%] min-w-[8.5rem] max-w-[15rem] shrink-0 self-stretch bg-[#f3ebe0]">
@@ -203,45 +322,53 @@ export default function EventosPublicPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex aspect-[16/9] shrink-0 items-center justify-center bg-gradient-to-br from-[#FBBC00]/10 to-transparent">
+                  <div className="flex aspect-[16/9] shrink-0 items-center justify-center bg-gradient-to-br from-[#ffc107]/10 to-transparent">
                     <CalendarDays className="h-12 w-12 text-[#1b1813]/15" />
                   </div>
                 )}
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-5">
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wide text-[#FFC107]">{detail.tipo}</p>
-                      <h3 className="text-lg font-black leading-snug text-[#1b1813] sm:text-xl">{detail.titulo}</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">
+                        {detail.tipo}
+                      </p>
+                      <h3 className="mt-1 text-lg font-black leading-snug text-[#1b1813] sm:text-xl">
+                        {detail.titulo}
+                      </h3>
                     </div>
                     <button
                       type="button"
                       onClick={() => setDetail(null)}
-                      className="shrink-0 rounded-lg p-2 text-[#1b1813]/68 hover:bg-[#1b1813]/5"
+                      className="shrink-0 rounded-full border border-[#e8dfd0] p-2 text-[#1b1813]/68 transition hover:bg-[#ffc107]/10"
                       aria-label="Fechar"
                     >
                       <X className="h-5 w-5" />
                     </button>
                   </div>
-                  <div className="mt-4 space-y-3 overflow-hidden">
+                  <div className="mt-4 space-y-3 overflow-y-auto">
                     <div className="space-y-2 text-sm text-[#1b1813]">
                       <p className="flex items-start gap-2 font-bold leading-snug">
-                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#FFC107]" />
-                        {(() => {
-                          try {
-                            return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR });
-                          } catch {
-                            return detail.data;
-                          }
-                        })()}
+                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#a87400]" />
+                        <span className="capitalize">
+                          {(() => {
+                            try {
+                              return format(parseISO(detail.data), "EEEE, dd 'de' MMMM yyyy", {
+                                locale: ptBR,
+                              });
+                            } catch {
+                              return detail.data;
+                            }
+                          })()}
+                        </span>
                       </p>
                       <p className="flex items-center gap-2 font-bold">
-                        <Clock className="h-4 w-4 shrink-0 text-[#FFC107]" />
+                        <Clock className="h-4 w-4 shrink-0 text-[#a87400]" />
                         {detail.hora}
                       </p>
                     </div>
                     <a
                       href={terreiroProfilePath(detail.terreiro.slug)}
-                      className="inline-flex items-start gap-2 text-sm font-semibold leading-snug text-[#1b1813]/75 hover:text-[#FFC107]"
+                      className="inline-flex items-start gap-2 text-sm font-semibold leading-snug text-[#1b1813]/75 hover:text-[#a87400]"
                     >
                       <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>
@@ -257,7 +384,7 @@ export default function EventosPublicPage() {
                     {detail.eventoPageUrl ? (
                       <a
                         href={detail.eventoPageUrl}
-                        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#FFC107] px-4 py-3 text-sm font-black text-[#1b1813] hover:bg-[#e6ac00]"
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#ffc107] px-4 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38]"
                       >
                         {detail.senhasAtivas ? 'Ver evento e receber senha' : 'Ver página do evento'}
                       </a>
@@ -267,8 +394,8 @@ export default function EventosPublicPage() {
               </div>
             </motion.div>
           </div>
-        )}
+        ) : null}
       </AnimatePresence>
-    </MarketingMockupLayout>
+    </div>
   );
 }
