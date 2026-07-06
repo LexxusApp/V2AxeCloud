@@ -440,10 +440,13 @@ export function SettingsWhatsAppPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-        <div className="space-y-6 lg:col-span-7">
-          <div className="wa-settings-panel__card relative rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#10B981]/10" aria-hidden />
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
+        <div className="min-w-0 space-y-6 lg:col-span-7">
+          <div className="wa-settings-panel__card relative overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+            <div
+              className="pointer-events-none absolute right-0 top-0 hidden h-32 w-32 rounded-full bg-[#10B981]/10 sm:block"
+              aria-hidden
+            />
 
             <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Shield className="h-4 w-4" />
@@ -484,7 +487,7 @@ export function SettingsWhatsAppPanel() {
             </div>
           </div>
 
-          <div className="wa-settings-panel__card rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
+          <div className="wa-settings-panel__card overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
               <Settings className="h-4 w-4" />
               2. Filhos de Santo & Fiel: Preferências de Gatilho
@@ -493,7 +496,7 @@ export function SettingsWhatsAppPanel() {
               Escolha quais acontecimentos administrativos ou religiosos gerarão mensagens automáticas enviadas para os
               respectivos celulares dos filhos de santo ou fiéis:
             </p>
-            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+            <div className="grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2">
               {prefCards.map((card) => (
                 <div
                   key={card.key}
@@ -502,10 +505,10 @@ export function SettingsWhatsAppPanel() {
                   onClick={() => togglePref(card.key, card.toastLabel)}
                   onKeyDown={(e) => e.key === 'Enter' && togglePref(card.key, card.toastLabel)}
                   className={cn(
-                    'wa-settings-pref-card flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors',
+                    'wa-settings-pref-card relative z-[1] flex cursor-pointer items-start gap-3 overflow-hidden rounded-xl border p-3.5 transition-colors',
                     preferences[card.key]
                       ? 'border-emerald-500/30 bg-[#1E252E]'
-                      : 'border-[#1E242B] bg-[#0F1216] opacity-60',
+                      : 'border-[#1E242B] bg-[#0F1216] text-[#94A3B8]',
                   )}
                 >
                   <input
@@ -515,8 +518,22 @@ export function SettingsWhatsAppPanel() {
                     className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded accent-emerald-500"
                   />
                   <div>
-                    <h6 className="text-xs font-bold text-[#F1F5F9]">{card.title}</h6>
-                    <p className="mt-1 text-[10px] leading-snug text-gray-400">{card.desc}</p>
+                    <h6
+                      className={cn(
+                        'text-xs font-bold',
+                        preferences[card.key] ? 'text-[#F1F5F9]' : 'text-[#94A3B8]',
+                      )}
+                    >
+                      {card.title}
+                    </h6>
+                    <p
+                      className={cn(
+                        'mt-1 text-[10px] leading-snug',
+                        preferences[card.key] ? 'text-gray-400' : 'text-[#64748B]',
+                      )}
+                    >
+                      {card.desc}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -615,7 +632,7 @@ export function SettingsWhatsAppPanel() {
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 lg:col-span-5">
+        <div className="flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 lg:col-span-5">
           <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">

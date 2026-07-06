@@ -2969,8 +2969,22 @@ html:has(.app-v3) {
   }
 
   .app-v3 .wa-settings-panel .wa-live-dot__halo {
-    animation: none;
-    opacity: 0.45;
+    display: none;
+  }
+
+  .app-v3 .wa-settings-panel__card,
+  .app-v3 .wa-settings-pref-card {
+    contain: none;
+    isolation: auto;
+    overflow: hidden;
+    transform: none;
+    will-change: auto;
+    backface-visibility: visible;
+  }
+
+  .app-v3 .wa-settings-panel__card::before,
+  .app-v3 .wa-settings-panel__card::after {
+    display: none;
   }
 }
 
@@ -2990,8 +3004,9 @@ html:has(.app-v3) {
 
 .app-v3 .wa-settings-panel__card,
 .app-v3 .wa-settings-pref-card {
-  contain: layout paint;
-  transform: none;
+  position: relative;
+  z-index: 0;
+  background-color: #13171d;
 }
 
 @media (prefers-reduced-motion: reduce) {
