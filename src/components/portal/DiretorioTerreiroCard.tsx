@@ -18,7 +18,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
   return (
     <li
       className={cn(
-        'flex h-full flex-col overflow-hidden rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md',
+        'group flex h-full flex-col overflow-hidden rounded-2xl transition duration-300 hover:-translate-y-1 hover:border-[#ffc107]/45 hover:shadow-xl hover:shadow-[#ffc107]/10',
         landingMockupCardClass,
       )}
     >
@@ -27,7 +27,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
           <img
             src={terreiro.fotoUrl!}
             alt=""
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.045]"
             loading="lazy"
             onError={() => setFotoFalhou(true)}
           />
@@ -40,6 +40,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,193,7,0.2),transparent_48%)]" />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
@@ -82,7 +83,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
 
         <a
           href={href}
-          className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-[#FFC107] px-4 py-2.5 text-sm font-black text-[#1b1813] transition hover:bg-[#e6ac00]"
+          className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-[#FFC107] px-4 py-2.5 text-sm font-black text-[#1b1813] transition group-hover:bg-[#ffcd38] hover:bg-[#e6ac00]"
         >
           Ver detalhes
         </a>

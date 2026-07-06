@@ -442,7 +442,7 @@ function GlowCard({ children, className }: { children: ReactNode; className?: st
     backgroundAttachment: 'fixed',
     border: 'var(--border-size) solid var(--backup-border)',
     position: 'relative',
-    touchAction: 'none',
+    touchAction: 'pan-y',
   };
 
   return (
@@ -600,12 +600,12 @@ function Hero() {
   const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0.32]);
 
   return (
-    <section ref={ref} id="plataforma" className="relative z-10 pb-16 pt-28 md:pb-24 md:pt-36">
+    <section ref={ref} id="plataforma" className="relative z-10 overflow-x-clip pb-16 pt-28 md:pb-24 md:pt-36">
       <Shell>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <motion.div style={{ y: copyY, opacity }}>
             <Reveal>
-              <span className="matriz-kicker-pulse inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#1b1813]">
+              <span className="matriz-kicker-pulse inline-flex max-w-full rounded-full bg-[#ffc107] px-3.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-[#1b1813] sm:text-left sm:text-[10px]">
                 Gestão de Terreiros de Umbanda e Candomblé
               </span>
             </Reveal>
@@ -686,7 +686,7 @@ function Hero() {
                 />
               </motion.div>
               <div
-                className="absolute -bottom-4 -left-4 max-w-[12rem] overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-3 shadow-lg sm:-left-6"
+                className="absolute bottom-2 left-2 max-w-[12rem] sm:-bottom-4 sm:-left-6 overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-3 shadow-lg sm:-left-6"
               >
                 <div className="matriz-float-y">
                 <img src={landingScreenshot('financeiro.png')} alt="Financeiro atual do AxéCloud" className="rounded-lg" loading="lazy" />
@@ -772,7 +772,7 @@ function RoutineSection() {
       </Shell>
 
       <motion.div
-        className="mx-auto grid max-w-6xl grid-flow-col auto-cols-[min(85vw,320px)] gap-5 overflow-x-auto px-5 pb-4 md:grid-flow-row md:grid-cols-2 md:overflow-visible md:px-8 lg:grid-cols-4"
+        className="mx-auto grid max-w-6xl grid-flow-col auto-cols-[min(85vw,320px)] gap-5 overflow-x-auto px-5 pb-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-2 md:overflow-visible md:px-8 lg:grid-cols-4"
         initial={{ opacity: 0, x: 40 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.2 }}
@@ -877,7 +877,7 @@ function AgendaSection() {
                   loading="lazy"
                 />
               </motion.div>
-              <div className="absolute -bottom-4 -right-4 max-w-[11rem] rounded-2xl border border-[#e8dfd0] bg-white px-3 py-2.5 shadow-lg sm:-right-6">
+              <div className="absolute bottom-2 right-2 max-w-[11rem] sm:-bottom-4 sm:-right-6 rounded-2xl border border-[#e8dfd0] bg-white px-3 py-2.5 shadow-lg sm:-right-6">
                 <div className="matriz-float-y flex items-center gap-2">
                   <div className="grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50">
                     <CalendarDays className="h-4 w-4 text-rose-600" aria-hidden />

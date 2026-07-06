@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { appHref } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
@@ -93,7 +94,7 @@ export default function Register() {
         throw new Error('Conta criada, mas o login automático falhou. Entre com seu e-mail e senha.');
       }
 
-      window.location.href = ROUTES.dashboard;
+      window.location.href = appHref(ROUTES.dashboard);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {

@@ -86,6 +86,7 @@ export function checkinPortariaPath(token: string): string {
 /** Rotas servidas pelo site de marketing estático (Caddy → container marketing). */
 export const MARKETING_SITE_PATHS = [
   ROUTES.home,
+  ROUTES.register,
   ROUTES.terms,
   ROUTES.privacy,
   ROUTES.espacoDoFiel,
@@ -97,6 +98,13 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
 ] as const;
+
+/** Cadastro trial servido pelo bundle marketing (mesma origem que a landing). */
+export const MARKETING_HOSTED_APP_PATHS = [ROUTES.register] as const;
+
+export function isMarketingHostedAppPath(path: string): boolean {
+  return (MARKETING_HOSTED_APP_PATHS as readonly string[]).includes(normalizePath(path));
+}
 
 /** Rotas de marketing indexáveis (portal + landing). */
 export const PUBLIC_MARKETING_PATHS = [
@@ -116,6 +124,7 @@ export const PUBLIC_MARKETING_PATHS = [
 export function isMarketingSitePath(path: string): boolean {
   const p = normalizePath(path);
   if ((MARKETING_SITE_PATHS as readonly string[]).includes(p)) return true;
+  if (isMarketingHostedAppPath(p)) return true;
   if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
   if (p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return true;
   if (p.startsWith(`${ROUTES.eventoPublico}/`)) return true;

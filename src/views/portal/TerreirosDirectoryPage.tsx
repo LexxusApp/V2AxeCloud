@@ -90,7 +90,7 @@ export default function TerreirosDirectoryPage() {
             <div className="lg:col-start-1 lg:row-start-1">
               <MatrizKicker>Diretório de terreiros</MatrizKicker>
             </div>
-            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-4xl font-black leading-[1.05] tracking-tight text-[#1b1813] md:text-6xl">
+            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-3xl font-black leading-[1.05] tracking-tight text-[#1b1813] sm:text-4xl md:text-6xl">
               Primeiro escolha uma cidade
             </h1>
             <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">

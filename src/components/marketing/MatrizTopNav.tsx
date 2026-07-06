@@ -31,24 +31,24 @@ export function MatrizTopNav() {
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-x-0 top-4 z-[60] px-4 transition-all duration-300"
+      className="fixed inset-x-0 top-3 z-[60] px-3 transition-all duration-300 sm:top-4 sm:px-4"
     >
       <nav
         className={cn(
-          'mx-auto flex w-full max-w-6xl items-center justify-between rounded-full border px-3 py-2 shadow-xl backdrop-blur-xl transition-all duration-300',
+          'mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between gap-2 rounded-full border px-2 py-1.5 shadow-xl backdrop-blur-xl transition-all duration-300 sm:gap-3 sm:px-3 sm:py-2',
           scrolled
             ? 'border-[#ffc107]/25 bg-[#fdf8f0]/88 shadow-[#ffc107]/10'
             : 'border-[#e8dfd0]/80 bg-white/68 shadow-black/5',
         )}
       >
-        <a href={ROUTES.home} className="flex shrink-0 items-center gap-2.5 rounded-full pr-3" aria-label="AxéCloud — início">
+        <a href={ROUTES.home} className="flex min-w-0 shrink items-center gap-2 rounded-full pr-1 sm:gap-2.5 sm:pr-3" aria-label="AxéCloud — início">
           <img
             src={landingBrandLogo()}
             alt=""
             aria-hidden
-            className="h-10 w-10 rounded-full object-cover ring-1 ring-[#ffc107]/25 drop-shadow-sm sm:h-11 sm:w-11"
+            className="h-9 w-9 shrink-0 object-contain sm:h-11 sm:w-11"
           />
-          <span className="hidden leading-tight sm:block">
+          <span className="hidden min-w-0 leading-tight sm:block">
             <span className="block text-sm font-black tracking-tight text-[#1b1813]">AxéCloud</span>
             <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-[#a87400]">
               Gestão de terreiros
@@ -89,7 +89,7 @@ export function MatrizTopNav() {
         <motion.div
           initial={{ opacity: 0, y: -10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="mx-auto mt-3 max-w-sm rounded-3xl border border-[#e8dfd0] bg-[#fdf8f0]/95 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl md:hidden"
+          className="mx-auto mt-3 w-[calc(100vw-1.5rem)] max-w-md rounded-3xl border border-[#e8dfd0] bg-[#fdf8f0]/95 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl md:hidden"
         >
           <ul className="space-y-2">
             {navLinks.map((link) => (

@@ -114,17 +114,35 @@ export async function fetchPublicTerreiro(slug: string): Promise<PublicTerreiro>
   return json;
 }
 
+async function readApiJson<T>(res: Response, fallbackError: string): Promise<T> {
+  const text = await res.text();
+  if (!text.trim()) {
+    throw new Error(res.ok ? fallbackError : 'Servidor indisponível. Tente novamente em instantes.');
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(res.ok ? fallbackError : 'Servidor indisponível. Tente novamente em instantes.');
+  }
+}
+
 export async function fetchPublicEventos(cidade?: string): Promise<PublicEvento[]> {
   const qs = cidade ? `?cidade=${encodeURIComponent(cidade)}` : '';
   const res = await fetch(`/api/v1/public/eventos${qs}`, { cache: 'no-store' });
-  const json = await res.json();
+  const json = await readApiJson<{ error?: string; items?: PublicEvento[] }>(
+    res,
+    'Erro ao carregar eventos',
+  );
   if (!res.ok) throw new Error(json.error || 'Erro ao carregar eventos');
   return json.items || [];
 }
 
 export async function fetchPublicEvento(token: string): Promise<PublicEventoDetail> {
   const res = await fetch(`/api/v1/public/evento/${encodeURIComponent(token)}`, { cache: 'no-store' });
-  const json = await res.json();
+  const json = await readApiJson<{ error?: string } & PublicEventoDetail>(
+    res,
+    'Evento não encontrado',
+  );
   if (!res.ok) throw new Error(json.error || 'Evento não encontrado');
   return json;
 }

@@ -191,7 +191,7 @@ export default function DiretorioCityPage() {
                 Cidade selecionada
               </p>
             </div>
-            <h1 className="lg:col-start-1 lg:row-start-2 mt-5 max-w-none text-balance text-4xl font-black tracking-tight text-[#1b1813] md:text-6xl">
+            <h1 className="lg:col-start-1 lg:row-start-2 mt-5 max-w-none text-balance text-3xl font-black tracking-tight text-[#1b1813] sm:text-4xl md:text-6xl">
               {cidade?.cidade || cidadeSlug.replace(/-/g, ' ')}
               {cidade?.estado ? `, ${cidade.estado}` : ''}
             </h1>

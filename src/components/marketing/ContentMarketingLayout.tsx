@@ -76,7 +76,7 @@ export function ContentMarketingLayout({
             <div className="lg:col-start-1 lg:row-start-1">
               <MatrizKicker>{kicker}</MatrizKicker>
             </div>
-            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-4xl font-black leading-[1.05] tracking-tight text-[#1b1813] md:text-5xl lg:text-6xl">
+            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-3xl font-black leading-[1.05] tracking-tight text-[#1b1813] sm:text-4xl md:text-5xl lg:text-6xl">
               {title}
             </h1>
             {summary ? (
@@ -85,7 +85,7 @@ export function ContentMarketingLayout({
               </p>
             ) : null}
             {heroExtra ? (
-              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
+              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full max-w-none lg:w-auto lg:max-w-md">
                 {heroExtra}
               </div>
             ) : null}

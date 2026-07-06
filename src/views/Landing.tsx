@@ -200,7 +200,7 @@ function MatrizFooter() {
             <img
               src={landingBrandLogo()}
               alt=""
-              className="h-11 w-11 rounded-full object-cover ring-1 ring-[#ffc107]/25"
+              className="h-11 w-11 shrink-0 object-contain"
               aria-hidden
             />
             <span className="leading-tight">

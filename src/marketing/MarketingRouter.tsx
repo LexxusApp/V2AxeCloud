@@ -1,9 +1,9 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { LandingTopNav } from '../components/marketing/MarketingTopNav';
+import { MatrizTopNav } from '../components/marketing/MatrizTopNav';
 import { usePathname } from '../hooks/usePathname';
 import { appHref, isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
 import { installMarketingClientNavigation } from '../lib/marketingNavigation';
-import { ROUTES, normalizePath } from '../lib/routes';
+import { ROUTES, isMarketingHostedAppPath, normalizePath } from '../lib/routes';
 import { isValidDiretorioUf } from '../lib/diretorioSlug';
 import { applyRouteSeo } from '../lib/seo';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
@@ -26,6 +26,7 @@ const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage')
 const EventoPublicPage = lazy(() => import('../views/portal/EventoPublicPage'));
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 const PorQueAxeCloudPage = lazy(() => import('../views/PorQueAxeCloudPage'));
+const Register = lazy(() => import('../views/Register'));
 
 function MarketingSectionFallback() {
   return (
@@ -126,6 +127,8 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <EventosPublicPage />;
     case ROUTES.whyAxeCloud:
       return <PorQueAxeCloudPage />;
+    case ROUTES.register:
+      return <Register />;
     case ROUTES.home:
     default:
       return <Landing />;
@@ -147,6 +150,8 @@ function MarketingAppRouteRedirect({ path }: { path: string }) {
 /** SPA leve — só páginas de marketing (sem login, dashboard, API client pesado). */
 export default function MarketingRouter() {
   const path = usePathname();
+  const isHome = normalizePath(path) === ROUTES.home;
+  const showTopNav = !isHome && !isMarketingHostedAppPath(path);
 
   useEffect(() => installMarketingClientNavigation(), []);
 
@@ -158,13 +163,13 @@ export default function MarketingRouter() {
     void trackPublicVisit(path);
   }, [path]);
 
-  if (import.meta.env.DEV && isAppSpaPath(path)) {
+  if (import.meta.env.DEV && isAppSpaPath(path) && !isMarketingHostedAppPath(path)) {
     return <MarketingAppRouteRedirect path={path} />;
   }
 
   return (
     <>
-      <LandingTopNav />
+      {showTopNav ? <MatrizTopNav /> : null}
       <Suspense fallback={<MarketingSectionFallback />}>
         <RoutedMarketingPage path={path} />
       </Suspense>

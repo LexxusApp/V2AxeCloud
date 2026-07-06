@@ -24,6 +24,7 @@ import { cn } from '../../lib/utils';
 import { DEMO_HOUSE_NAME } from '../../constants/landingDemo';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../constants/seoBrandKeywords';
 import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
+export type PainelPreviewTab =
   | 'dashboard'
   | 'filhos'
   | 'financeiro'
@@ -40,7 +41,7 @@ const TABS: { id: PainelPreviewTab; label: string; icon: LucideIcon }[] = [
   { id: 'reza', label: 'Pedidos de Reza', icon: Heart },
 ];
 
-export type PainelPreviewTab =
+type PainelPreviewShellProps = {
   activeTab: PainelPreviewTab;
   onTabChange: (tab: PainelPreviewTab) => void;
   children: ReactNode;

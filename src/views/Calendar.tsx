@@ -1376,23 +1376,18 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       </p>
                     </div>
                     </button>
-                    <div
-                      className={cn(
-                        'grid gap-2 border-t border-[#1E242B] p-3 sm:flex',
-                        passed ? 'grid-cols-3' : 'grid-cols-2',
-                      )}
-                    >
+                    <div className="grid grid-cols-2 gap-2 border-t border-[#1E242B] p-3">
                       {!passed ? (
                         <button
                           type="button"
                           onClick={() => void handleNotifyAll(event)}
                           disabled={isNotifying === event.id}
-                          className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50 sm:min-h-9 sm:flex-1 sm:px-3"
+                          className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-[11px] font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
                         >
                           {isNotifying === event.id ? (
-                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
                           ) : (
-                            <Bell className="h-4 w-4 shrink-0" aria-hidden />
+                            <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           )}
                           <span>Avisar</span>
                         </button>
@@ -1400,16 +1395,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       <button
                         type="button"
                         onClick={() => openEditEventModal(event)}
-                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold text-sky-400 transition-colors hover:border-sky-500/30 hover:bg-sky-500/10 sm:min-h-9 sm:flex-1 sm:px-3"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-[11px] font-bold text-sky-400 transition-colors hover:border-sky-500/30 hover:bg-sky-500/10"
                       >
-                        <Pencil className="h-4 w-4 shrink-0" aria-hidden />
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         <span>Editar</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedEventForOps(event)}
                         className={cn(
-                          'inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-xs font-bold transition-colors sm:min-h-9 sm:flex-1 sm:px-3',
+                          'inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-[11px] font-bold transition-colors',
                           hasAccess
                             ? 'text-primary hover:border-primary/30 hover:bg-primary/10'
                             : 'cursor-not-allowed text-zinc-600 opacity-60',
@@ -1417,7 +1412,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         title={hasAccess ? 'Frequência, senhas, velas e QR' : 'Plano Oirô'}
                         disabled={!hasAccess}
                       >
-                        <Ticket className="h-4 w-4 shrink-0" aria-hidden />
+                        <Ticket className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         <span>Convite</span>
                       </button>
                       <button
@@ -1425,10 +1420,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         onClick={() =>
                           setItemToDelete({ id: event.id, type: 'event', title: event.titulo })
                         }
-                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 px-2 text-xs font-bold text-rose-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 sm:min-h-9 sm:flex-1 sm:px-3"
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border border-rose-500/20 bg-rose-500/5 px-2 text-[11px] font-bold text-rose-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10"
                         aria-label="Excluir gira"
                       >
-                        <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         <span>Excluir</span>
                       </button>
                     </div>

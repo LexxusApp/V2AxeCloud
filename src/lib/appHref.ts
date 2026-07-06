@@ -1,4 +1,4 @@
-import { normalizePath, ROUTES } from './routes';
+import { isMarketingHostedAppPath, normalizePath, ROUTES } from './routes';
 
 const APP_DEV_ORIGIN =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_DEV_ORIGIN) ||
@@ -55,8 +55,11 @@ export function appHref(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   if (!import.meta.env.DEV || typeof window === 'undefined') return p;
   if (isAppDevServer()) return p;
-  if (isMarketingDevServer() && isAppSpaPath(p)) {
-    return `${APP_DEV_ORIGIN.replace(/\/$/, '')}${p}`;
+  if (isMarketingDevServer()) {
+    if (isMarketingHostedAppPath(p)) return p;
+    if (isAppSpaPath(p)) {
+      return `${APP_DEV_ORIGIN.replace(/\/$/, '')}${p}`;
+    }
   }
   return p;
 }
@@ -74,7 +77,7 @@ export function marketingHref(path: string): string {
 
 export function redirectToAppDevOriginIfNeeded(path: string): boolean {
   if (!import.meta.env.DEV || typeof window === 'undefined') return false;
-  if (!isMarketingDevServer() || !isAppSpaPath(path)) return false;
+  if (!isMarketingDevServer() || !isAppSpaPath(path) || isMarketingHostedAppPath(path)) return false;
   const target = appHref(path) + window.location.search + window.location.hash;
   if (window.location.href === target) return false;
   window.location.replace(target);
