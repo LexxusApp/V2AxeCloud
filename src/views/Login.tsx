@@ -9,10 +9,7 @@ import {
   X,
   Eye,
   EyeOff,
-  ChevronRight,
   UserCircle,
-  Users,
-  ShieldCheck,
   ArrowLeft,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -73,21 +70,6 @@ const fieldShell = cn(
 
 const labelClass =
   'block text-[10px] font-black uppercase tracking-widest text-gray-500';
-
-/** Ícone inferior: três silhuetas dentro de círculo com aro dourado (mockup). */
-function UsersCircleBadge({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 shadow-[0_0_18px_rgba(212,175,55,0.12)]',
-        className
-      )}
-      aria-hidden
-    >
-      <Users className="h-5 w-5 text-primary" strokeWidth={1.45} />
-    </div>
-  );
-}
 
 function humanizeAuthError(err: unknown): string {
   const msg = String((err as { message?: string })?.message || err || '').trim();
@@ -627,32 +609,7 @@ export default function Login() {
               </button>
             </div>
           )}
-
-          <a
-            href="/register"
-            className={cn(
-              'group flex w-full items-center gap-2.5 rounded-lg border border-white/10 bg-background px-3 py-2.5',
-              'transition-colors hover:border-primary/20'
-            )}
-          >
-            <UsersCircleBadge />
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-sm font-bold leading-snug text-white">Cadastre seu terreiro</p>
-              <p className="mt-0.5 text-[10px] font-medium leading-snug text-gray-400">
-                Crie sua conta, pague com Pix e libere o painel na hora.
-              </p>
-            </div>
-            <ChevronRight
-              className="h-[18px] w-[18px] shrink-0 text-primary transition-transform duration-200 group-hover:translate-x-0.5"
-              strokeWidth={1.85}
-            />
-          </a>
         </div>
-
-        <p className="flex items-center justify-center gap-2 border-t border-white/5 pt-3 text-[9px] font-black uppercase tracking-[0.28em] text-gray-600 sm:pt-4">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-primary/40" strokeWidth={1.55} />
-          Seguro, confiável e feito para terreiros
-        </p>
         </div>
       </motion.div>
     </div>
