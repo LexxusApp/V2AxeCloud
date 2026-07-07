@@ -26,17 +26,22 @@ export async function isInstalledRelatedWebApp(
 ): Promise<boolean> {
   if (typeof navigator === 'undefined') return false;
   const api = navigator as Navigator & {
-    getInstalledRelatedApps?: () => Promise<Array<{ id?: string; platform?: string }>>;
+    getInstalledRelatedApps?: () => Promise<Array<{ id?: string; url?: string; platform?: string }>>;
   };
   if (typeof api.getInstalledRelatedApps !== 'function') return false;
 
+  const normalizedId = manifestId.replace(/\/$/, '');
+
   try {
     const related = await api.getInstalledRelatedApps();
-    return related.some(
-      (app) =>
-        app.platform === 'webapp' &&
-        (app.id === manifestId || app.id === manifestId.replace(/\/$/, '')),
-    );
+    return related.some((app) => {
+      if (app.platform !== 'webapp') return false;
+      // Só o próprio PWA está listado em related_applications; qualquer webapp
+      // instalado retornado aqui é o AxéCloud. Ainda assim confirmamos por id/url.
+      if (app.id === manifestId || app.id === normalizedId) return true;
+      if (typeof app.url === 'string' && app.url.startsWith(normalizedId)) return true;
+      return true;
+    });
   } catch {
     return false;
   }

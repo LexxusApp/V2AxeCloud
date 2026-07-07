@@ -67,6 +67,18 @@ export default defineConfig(({mode}) => {
           scope: '/',
           lang: 'pt-BR',
           prefer_related_applications: false,
+          /**
+           * Auto-referência ao próprio PWA: permite que getInstalledRelatedApps()
+           * detecte que o app já está instalado no aparelho mesmo abrindo pelo navegador,
+           * escondendo o botão «Instalar aplicativo» para quem já instalou.
+           */
+          related_applications: [
+            {
+              platform: 'webapp',
+              url: 'https://axecloud.com.br/manifest.webmanifest',
+              id: 'https://axecloud.com.br/',
+            },
+          ],
           theme_color: '#000000',
           background_color: '#000000',
           display: 'standalone',
