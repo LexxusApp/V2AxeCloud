@@ -2952,7 +2952,10 @@ html:has(.app-v3) {
   transition-property: color, background-color, border-color, opacity, box-shadow, filter !important;
 }
 
-/* Android/Chrome: evita corrupção de camadas GPU com gráficos sob o menu mobile */
+/* Android/Chrome: corrige corrupção de camada GPU no painel WhatsApp mobile.
+   Causa: elementos altos promovidos a camada própria (transform/contain/isolation/
+   filter/backdrop/blend) geram uma textura maior que o limite da GPU e corrompem.
+   Solução: NENHUM elemento do painel pode virar camada própria no mobile. */
 @media (max-width: 1023px) {
   .app-v3 .recharts-responsive-container {
     contain: layout paint;
@@ -2963,44 +2966,30 @@ html:has(.app-v3) {
     overflow-anchor: none;
   }
 
-  .app-v3 [class*='mix-blend-'] {
-    mix-blend-mode: normal !important;
-  }
-
-  .app-v3 .wa-settings-panel {
-    isolation: isolate;
-    position: relative;
-    z-index: 1;
-    transform: translateZ(0);
-  }
-
-  .app-v3 .wa-settings-panel [class*='blur-'],
-  .app-v3 .wa-settings-panel [class*='filter'] {
+  .app-v3 .wa-settings-panel,
+  .app-v3 .wa-settings-panel * {
+    transform: none !important;
+    will-change: auto !important;
+    contain: none !important;
+    isolation: auto !important;
     filter: none !important;
     backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    mix-blend-mode: normal !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+    perspective: none !important;
+    animation: none !important;
+    content-visibility: visible !important;
   }
 
   .app-v3 .wa-settings-panel .wa-live-dot__halo {
-    display: none;
+    display: none !important;
   }
 
   .app-v3 .wa-settings-panel__card,
   .app-v3 .wa-settings-pref-card {
-    contain: layout style;
-    isolation: isolate;
-    overflow: visible;
-    transform: none;
-    will-change: auto;
-    backface-visibility: visible;
-    -webkit-backface-visibility: visible;
-  }
-
-  .app-v3 .wa-settings-panel__card {
-    background-color: #13171d;
-  }
-
-  .app-v3 .wa-settings-pref-card {
-    background-color: inherit;
+    overflow: visible !important;
   }
 
   .app-v3 .wa-settings-panel__card::before,
