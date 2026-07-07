@@ -2966,9 +2966,18 @@ html:has(.app-v3) {
     overflow-anchor: none;
   }
 
+  /* Causa raiz: a animação de opacity do wrapper de Configurações promove todo o
+     subtree (página alta) a UMA camada GPU gigante, estourando o limite de textura
+     do Android e corrompendo o miolo. No mobile não animamos essa entrada. */
+  .app-v3 .animate-fadeIn {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
   .app-v3 .wa-settings-panel,
   .app-v3 .wa-settings-panel * {
     transform: none !important;
+    transition: none !important;
     will-change: auto !important;
     contain: none !important;
     isolation: auto !important;
