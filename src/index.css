@@ -2952,60 +2952,24 @@ html:has(.app-v3) {
   transition-property: color, background-color, border-color, opacity, box-shadow, filter !important;
 }
 
-/* Android/Chrome: corrige corrupção de camada GPU no painel WhatsApp mobile.
-   Causa: elementos altos promovidos a camada própria (transform/contain/isolation/
-   filter/backdrop/blend) geram uma textura maior que o limite da GPU e corrompem.
-   Solução: NENHUM elemento do painel pode virar camada própria no mobile. */
+/* Android/Chrome — painel WhatsApp mobile.
+   Causa raiz da corrupção de GPU: o wrapper de Configurações usa `animate-fadeIn`
+   (animação de opacity) que promove TODA a página a uma única camada GPU. Numa
+   página alta essa textura passa do limite do Android e corrompe o miolo.
+   Solução: não animar a entrada no mobile. Nada mais precisa ser mexido no
+   compositor — hacks de de-promoção causavam fantasmas de repaint ao rolar. */
 @media (max-width: 1023px) {
   .app-v3 .recharts-responsive-container {
     contain: layout paint;
   }
 
-  .app-v3 .app-v3-scroll {
-    -webkit-overflow-scrolling: touch;
-    overflow-anchor: none;
-  }
-
-  /* Causa raiz: a animação de opacity do wrapper de Configurações promove todo o
-     subtree (página alta) a UMA camada GPU gigante, estourando o limite de textura
-     do Android e corrompendo o miolo. No mobile não animamos essa entrada. */
   .app-v3 .animate-fadeIn {
     animation: none !important;
     opacity: 1 !important;
   }
 
-  .app-v3 .wa-settings-panel,
-  .app-v3 .wa-settings-panel * {
-    transform: none !important;
-    transition: none !important;
-    will-change: auto !important;
-    contain: none !important;
-    isolation: auto !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    mix-blend-mode: normal !important;
-    backface-visibility: visible !important;
-    -webkit-backface-visibility: visible !important;
-    perspective: none !important;
-    animation: none !important;
-    content-visibility: visible !important;
-  }
-
   .app-v3 .wa-settings-panel .wa-live-dot__halo {
-    display: none !important;
-  }
-
-  .app-v3 .wa-settings-panel__card,
-  .app-v3 .wa-settings-pref-card {
-    overflow: visible !important;
-  }
-
-  .app-v3 .wa-settings-panel__card::before,
-  .app-v3 .wa-settings-panel__card::after,
-  .app-v3 .wa-settings-pref-card::before,
-  .app-v3 .wa-settings-pref-card::after {
-    display: none !important;
+    display: none;
   }
 
   .app-v3 .wa-settings-panel .wa-settings-panel__layout {
