@@ -496,11 +496,12 @@ export function SettingsWhatsAppPanel() {
               Escolha quais acontecimentos administrativos ou religiosos gerarão mensagens automáticas enviadas para os
               respectivos celulares dos filhos de santo ou fiéis:
             </p>
-            <div className="grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2">
+            <div className="wa-settings-pref-grid grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2">
               {prefCards.map((card) => (
                 <div
                   key={card.key}
                   role="button"
+                  aria-pressed={preferences[card.key]}
                   tabIndex={0}
                   onClick={() => togglePref(card.key, card.toastLabel)}
                   onKeyDown={(e) => e.key === 'Enter' && togglePref(card.key, card.toastLabel)}
@@ -511,12 +512,17 @@ export function SettingsWhatsAppPanel() {
                       : 'border-[#1E242B] bg-[#0F1216] text-[#94A3B8]',
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={preferences[card.key]}
-                    readOnly
-                    className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded accent-emerald-500"
-                  />
+                  <span
+                    className={cn(
+                      'wa-settings-pref-check mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border text-[10px] font-black leading-none',
+                      preferences[card.key]
+                        ? 'border-emerald-500 bg-emerald-500 text-[#06251B]'
+                        : 'border-[#334155] bg-[#111827] text-transparent',
+                    )}
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
                   <div className="min-w-0 flex-1">
                     <h6
                       className={cn(

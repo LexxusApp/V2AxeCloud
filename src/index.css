@@ -2982,6 +2982,47 @@ html:has(.app-v3) {
     max-height: none;
     overflow: visible;
   }
+
+  .app-v3 .wa-settings-panel,
+  .app-v3 .wa-settings-panel__card,
+  .app-v3 .wa-settings-pref-grid,
+  .app-v3 .wa-settings-pref-card {
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .app-v3 .wa-settings-panel__card {
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .app-v3 .wa-settings-pref-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .app-v3 .wa-settings-pref-card {
+    min-height: 6.25rem;
+    contain: layout paint;
+    background-color: #121821;
+    transition: none !important;
+  }
+
+  .app-v3 .wa-settings-pref-card *,
+  .app-v3 .wa-settings-pref-card *::before,
+  .app-v3 .wa-settings-pref-card *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .app-v3 .wa-settings-pref-check {
+    font-family: Arial, sans-serif;
+  }
 }
 
 @keyframes wa-live-dot-opacity {
