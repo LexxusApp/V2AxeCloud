@@ -806,6 +806,11 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </div>
           </div>
 
+          <DashboardCalendar
+            tenantId={tenantId}
+            onOpenCalendar={() => setActiveTab('calendar')}
+          />
+
           {userRole !== 'filho' && tenantId && (
             <DashboardPedidosRezaAltar
               pedidos={pedidosData}
@@ -865,24 +870,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 ))}
              </div>
           </div>
-
-          <DashboardAcoesAdministrativas
-            transactions={transactions}
-            children={recentChildrenForActions}
-            notices={noticesData}
-            pedidos={pedidosData}
-            onOpenFinancial={() => setActiveTab('financial')}
-            onOpenMural={() => setActiveTab('mural')}
-          />
         </div>
 
         {/* Right Section (35%) */}
         <div className="lg:col-span-4 space-y-8">
-          
-          <DashboardCalendar
-            tenantId={tenantId}
-            onOpenCalendar={() => setActiveTab('calendar')}
-          />
 
           <DashboardProximaGira
             event={nextEvent}
@@ -953,6 +944,17 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </div>
         </div>
 
+      </div>
+
+      <div className="mt-8">
+        <DashboardAcoesAdministrativas
+          transactions={transactions}
+          children={recentChildrenForActions}
+          notices={noticesData}
+          pedidos={pedidosData}
+          onOpenFinancial={() => setActiveTab('financial')}
+          onOpenMural={() => setActiveTab('mural')}
+        />
       </div>
     </AppPageShell>
   );
