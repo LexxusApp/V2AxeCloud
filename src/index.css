@@ -3011,8 +3011,15 @@ html:has(.app-v3) {
   }
 
   .app-v3 .wa-settings-panel .wa-settings-panel__logs {
-    max-height: none;
-    overflow: visible;
+    max-height: min(34rem, 62dvh);
+    overflow: hidden;
+  }
+
+  .app-v3 .wa-settings-panel .wa-settings-panel__logs-list {
+    max-height: min(26rem, 48dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .app-v3 .wa-settings-panel,

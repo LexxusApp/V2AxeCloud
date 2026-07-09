@@ -143,12 +143,15 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "logs" && method === "GET") {
+      const requestUrl = new URL(req.url || "/api/whatsapp/logs", "http://localhost");
+      const requestedLimit = Number(requestUrl.searchParams.get("limit") || 12);
+      const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 20) : 12;
       const { data, error } = await sb
         .from("whatsapp_logs")
         .select("id, telefone, mensagem, tipo, status, created_at")
         .eq("tenant_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(40);
+        .limit(logLimit);
       if (error) throw error;
       return sendJson(res, 200, { success: true, logs: data || [] });
     }

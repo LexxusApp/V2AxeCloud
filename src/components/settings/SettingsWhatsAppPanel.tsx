@@ -42,6 +42,8 @@ const DEFAULT_PREFS: WaPreferences = {
 };
 
 const DEFAULT_TEST_MSG = '';
+const MAX_VISIBLE_LOGS = 8;
+const LOG_FETCH_LIMIT = 12;
 
 function buildComunicadoPreview(text: string, nomeTerreiro: string, zelador: string): string {
   const msg = text.trim();
@@ -145,7 +147,7 @@ export function SettingsWhatsAppPanel() {
     try {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
-      const res = await fetch(whatsappApiUrl('/whatsapp/logs'), {
+      const res = await fetch(whatsappApiUrl(`/whatsapp/logs?limit=${LOG_FETCH_LIMIT}`), {
         headers: whatsappRailwayAuthHeaders(token, userId),
         cache: 'no-store',
       });
@@ -268,6 +270,8 @@ export function SettingsWhatsAppPanel() {
   }, [checkStatus, loadConfig, loadCorrenteCount, loadLogs, loadTerreiroContext]);
 
   const messagePreview = buildComunicadoPreview(testMessage, nomeTerreiro, zeladorNome);
+  const visibleLogs = logs.slice(0, MAX_VISIBLE_LOGS);
+  const hiddenLogsCount = Math.max(logs.length - visibleLogs.length, 0);
 
   const persistPreferences = (next: WaPreferences) => {
     if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
@@ -646,22 +650,22 @@ export function SettingsWhatsAppPanel() {
                 <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Painel de Transmissões Recentes</h6>
               </div>
               <span className="rounded border border-emerald-500/20 bg-[#12161A] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-[#10B981]">
-                Logs Dinâmicos
+                Últimas {visibleLogs.length || 0}
               </span>
             </div>
 
             <p className="text-[11px] font-light text-gray-400">
-              Abaixo você confere o monitoramento das mensagens de trânsito enviadas pelo webhook do terreiro em tempo
-              de execução:
+              Abaixo ficam apenas as transmissões mais recentes. Registros antigos saem desta lista automaticamente para
+              manter a página leve no celular.
             </p>
 
-            <div className="max-h-none space-y-3 pr-1 lg:max-h-[350px] lg:overflow-y-auto">
-              {logs.length === 0 ? (
+            <div className="wa-settings-panel__logs-list max-h-[min(26rem,48dvh)] space-y-3 overflow-y-auto pr-1">
+              {visibleLogs.length === 0 ? (
                 <p className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-center text-[10px] text-gray-500">
                   Nenhuma transmissão registrada ainda. Conecte o WhatsApp e envie a primeira mensagem.
                 </p>
               ) : (
-                logs.map((log) => (
+                visibleLogs.map((log) => (
                   <div
                     key={log.id}
                     className="space-y-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 transition-colors hover:bg-[#1E242B]/20"
@@ -692,6 +696,11 @@ export function SettingsWhatsAppPanel() {
                 ))
               )}
             </div>
+            {hiddenLogsCount > 0 ? (
+              <p className="rounded-lg border border-[#1E242B] bg-[#12161A]/70 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-[#64748B]">
+                {hiddenLogsCount} registro(s) antigo(s) ocultos nesta tela.
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-6 space-y-1.5 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] leading-relaxed text-gray-400">
