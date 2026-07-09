@@ -137,7 +137,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
   return (
     <AppPageShell>
-      <div className="animate-fadeIn space-y-6 text-[#F1F5F9]">
+      <div className="settings-render-shell animate-fadeIn space-y-6 text-[#F1F5F9]">
         <SettingsTabHeader />
 
         <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">

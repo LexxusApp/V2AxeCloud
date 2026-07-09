@@ -97,7 +97,7 @@ function NavButton({
 export function SettingsSubNav({ active, onChange, onDeleteAccount }: SettingsSubNavProps) {
   return (
     <>
-      <div className="lg:hidden">
+      <div className="settings-subnav lg:hidden">
         <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Sub-Menus</p>
         <div className="flex flex-wrap gap-2 px-1">
           {ITEMS.map((item) => (
@@ -142,7 +142,7 @@ export function SettingsSubNav({ active, onChange, onDeleteAccount }: SettingsSu
 
 export function SettingsTabHeader() {
   return (
-    <div className="flex flex-col gap-4 border-b border-[#1E242B] pb-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="settings-tab-header flex flex-col gap-4 border-b border-[#1E242B] pb-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h5 className="flex items-center gap-2 font-display text-lg font-bold text-[#F1F5F9]">
           <Settings className="h-5 w-5 text-[#3B82F6]" aria-hidden />

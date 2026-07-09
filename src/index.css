@@ -2968,6 +2968,38 @@ html:has(.app-v3) {
     opacity: 1 !important;
   }
 
+  .app-v3 .settings-render-shell,
+  .app-v3 .settings-render-shell *,
+  .app-v3 .settings-render-shell *::before,
+  .app-v3 .settings-render-shell *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .app-v3 .settings-render-shell {
+    isolation: isolate;
+    overflow: hidden;
+    contain: layout paint style;
+  }
+
+  .app-v3 .settings-tab-header,
+  .app-v3 .settings-subnav,
+  .app-v3 .settings-subnav button,
+  .app-v3 .settings-subnav > div,
+  .app-v3 .settings-render-shell .app-demo-card,
+  .app-v3 .settings-render-shell [class*='rounded-2xl'],
+  .app-v3 .settings-render-shell [class*='rounded-xl'] {
+    backface-visibility: hidden;
+    contain: layout paint;
+  }
+
+  .app-v3 .settings-subnav button {
+    min-height: 3.5rem;
+  }
+
   .app-v3 .wa-settings-panel .wa-live-dot__halo {
     display: none;
   }
