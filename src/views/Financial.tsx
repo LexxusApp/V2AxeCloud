@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useSWR from 'swr';
-import { DollarSign, Download, Plus, Loader2, X, CheckCircle2, MessageCircle, Lock, Smartphone, Bell, Target, Save, Undo2, Trash2 } from 'lucide-react';
+import { DollarSign, Download, Plus, Loader2, X, CheckCircle2, MessageCircle, Lock, Smartphone, Bell, Target, Save, Undo2, Trash2, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
@@ -203,6 +203,7 @@ export default function Financial({
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [openTransactionActions, setOpenTransactionActions] = useState<string | null>(null);
 
   // Pix Config State
   const [pixConfig, setPixConfig] = useState({
@@ -855,6 +856,37 @@ export default function Financial({
     }
   }
 
+  async function handleSendFinancialReminder(t: Transaction) {
+    try {
+      const filhoId = (t as Transaction & { filho_id?: string }).filho_id;
+      if (!filhoId) return;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const uid = session?.user?.id;
+      if (!token || !uid) throw new Error('Sessão expirada');
+      await fetch(whatsappApiUrl('/whatsapp/send'), {
+        method: 'POST',
+        headers: whatsappRailwayHeaders(token, uid),
+        body: JSON.stringify({
+          tipo: 'financeiro',
+          filhoId,
+          variables: {
+            nome_filho: t.descricao.split(' ').slice(1).join(' ') || 'Filho',
+            valor_mensalidade: t.valor.toString(),
+            data_vencimento: new Date(t.data).toLocaleDateString('pt-BR'),
+            nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
+          },
+        }),
+      });
+      alert('Lembrete enviado com sucesso!');
+    } catch (e) {
+      console.error('Error sending financial reminder:', e);
+      alert('Erro ao enviar lembrete.');
+    }
+  }
+
   const stats = useMemo(() => {
     return transactions.reduce((acc, curr) => {
       if (!countsTowardSaldo(curr)) return acc;
@@ -870,6 +902,61 @@ export default function Financial({
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  function renderTransactionActions(t: Transaction) {
+    const hasReminder = t.categoria === 'Mensalidade' && !!(t as Transaction & { filho_id?: string }).filho_id;
+    const isOpen = openTransactionActions === t.id;
+    if (!hasReminder && !isAdmin) {
+      return <span className="text-xs text-[#64748B]">—</span>;
+    }
+
+    return (
+      <div className="relative inline-flex">
+        <button
+          type="button"
+          onClick={() => setOpenTransactionActions((current) => (current === t.id ? null : t.id))}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E242B] bg-[#12161A] text-[#94A3B8] transition hover:border-primary/40 hover:text-primary"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label="Abrir ações do lançamento"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+        {isOpen ? (
+          <div className="absolute right-0 top-10 z-30 w-56 overflow-hidden rounded-xl border border-[#1E242B] bg-[#0F1318] p-1.5 text-left shadow-2xl shadow-black/40">
+            {hasReminder ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenTransactionActions(null);
+                  void handleSendFinancialReminder(t);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-[#25D366] transition hover:bg-[#25D366]/10"
+                role="menuitem"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Cobrar pelo WhatsApp
+              </button>
+            ) : null}
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenTransactionActions(null);
+                  void handleDelete(t.id);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-rose-300 transition hover:bg-rose-500/10"
+                role="menuitem"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir lançamento
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   if (loading && transactions.length === 0) {
     return (
@@ -1053,110 +1140,126 @@ export default function Financial({
             ) : null}
 
             <div className={cn(isAdmin ? 'lg:col-span-2' : 'lg:col-span-3')}>
-            <AppDemoTableShell>
-              <table className="min-w-full divide-y divide-[#1E242B] text-xs">
-                <thead className="bg-[#12161A]">
-                  <tr>
-                    {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
-                      <th
-                        key={h || 'act'}
-                        className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1E242B]">
-                  {transactions.map((t) => (
-                    <tr key={t.id} className="hover:bg-[#1E242B]/40">
-                      <td className="px-4 py-3.5 font-medium text-[#F1F5F9]">{t.descricao}</td>
-                      <td className="px-4 py-3.5 text-[#94A3B8]">{t.categoria}</td>
-                      <td className="px-4 py-3.5 text-[#94A3B8]">
-                        {new Date(t.data).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-4 py-3.5">
+              <div className="space-y-3 sm:hidden">
+                {transactions.map((t) => (
+                  <article key={t.id} className="rounded-2xl border border-[#1E242B] bg-[#12161A] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-3 break-words text-sm font-bold leading-snug text-[#F1F5F9]">
+                          {t.descricao}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-[#94A3B8]">{t.categoria || 'Sem categoria'}</p>
+                      </div>
+                      {renderTransactionActions(t)}
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                      <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Data</span>
+                        <span className="mt-1 block font-bold text-[#CBD5E1]">
+                          {new Date(t.data).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Fluxo</span>
                         <span
-                          className={
+                          className={cn(
+                            'mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold',
                             t.tipo === 'entrada'
-                              ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
-                              : 'rounded-full border border-rose-500/30 bg-rose-950/50 px-2 py-0.5 text-[9px] font-bold text-rose-300'
-                          }
+                              ? 'border-emerald-500/30 bg-emerald-950/50 text-emerald-300'
+                              : 'border-rose-500/30 bg-rose-950/50 text-rose-300',
+                          )}
                         >
                           {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
-                      </td>
-                      <td
-                        className={cn(
-                          'px-4 py-3.5 text-right font-bold',
-                          t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400',
-                        )}
-                      >
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Valor</span>
+                      <span className={cn('text-base font-black', t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400')}>
                         {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {t.categoria === 'Mensalidade' && (t as Transaction & { filho_id?: string }).filho_id ? (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const {
-                                    data: { session },
-                                  } = await supabase.auth.getSession();
-                                  const token = session?.access_token;
-                                  const uid = session?.user?.id;
-                                  if (!token || !uid) throw new Error('Sessão expirada');
-                                  await fetch(whatsappApiUrl('/whatsapp/send'), {
-                                    method: 'POST',
-                                    headers: whatsappRailwayHeaders(token, uid),
-                                    body: JSON.stringify({
-                                      tipo: 'financeiro',
-                                      filhoId: (t as Transaction & { filho_id?: string }).filho_id,
-                                      variables: {
-                                        nome_filho: t.descricao.split(' ').slice(1).join(' ') || 'Filho',
-                                        valor_mensalidade: t.valor.toString(),
-                                        data_vencimento: new Date(t.data).toLocaleDateString('pt-BR'),
-                                        nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
-                                      },
-                                    }),
-                                  });
-                                  alert('Lembrete enviado com sucesso!');
-                                } catch (e) {
-                                  console.error('Error sending financial reminder:', e);
-                                  alert('Erro ao enviar lembrete.');
-                                }
-                              }}
-                              className="rounded p-1 text-primary hover:bg-white/5"
-                              title="Enviar lembrete WhatsApp"
+                      </span>
+                    </div>
+                  </article>
+                ))}
+                {transactions.length === 0 ? (
+                  <div className="rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-12 text-center text-sm text-[#94A3B8]">
+                    Nenhum lançamento registrado ainda.
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="hidden sm:block">
+                <AppDemoTableShell>
+                  <table className="w-full table-fixed divide-y divide-[#1E242B] text-xs">
+                    <colgroup>
+                      <col className="w-[34%]" />
+                      <col className="w-[17%]" />
+                      <col className="w-[14%]" />
+                      <col className="w-[13%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[6%]" />
+                    </colgroup>
+                    <thead className="bg-[#12161A]">
+                      <tr>
+                        {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
+                          <th
+                            key={h || 'act'}
+                            className={cn(
+                              'px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]',
+                              h === 'Valor' && 'text-right',
+                              !h && 'text-right',
+                            )}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1E242B]">
+                      {transactions.map((t) => (
+                        <tr key={t.id} className="hover:bg-[#1E242B]/40">
+                          <td className="px-4 py-3.5">
+                            <p className="line-clamp-2 break-words font-medium leading-snug text-[#F1F5F9]">{t.descricao}</p>
+                          </td>
+                          <td className="px-4 py-3.5 text-[#94A3B8]">
+                            <span className="line-clamp-1 break-words">{t.categoria}</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-[#94A3B8]">
+                            {new Date(t.data).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span
+                              className={
+                                t.tipo === 'entrada'
+                                  ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
+                                  : 'rounded-full border border-rose-500/30 bg-rose-950/50 px-2 py-0.5 text-[9px] font-bold text-rose-300'
+                              }
                             >
-                              <MessageCircle className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                          {isAdmin ? (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(t.id)}
-                              className="rounded p-1 text-rose-400 hover:bg-white/5"
-                              aria-label="Remover lançamento"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {transactions.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
-                        Nenhum lançamento registrado ainda.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </AppDemoTableShell>
+                              {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                            </span>
+                          </td>
+                          <td
+                            className={cn(
+                              'px-4 py-3.5 text-right font-bold',
+                              t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400',
+                            )}
+                          >
+                            {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
+                          </td>
+                          <td className="px-4 py-3.5 text-right">{renderTransactionActions(t)}</td>
+                        </tr>
+                      ))}
+                      {transactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
+                            Nenhum lançamento registrado ainda.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </AppDemoTableShell>
+              </div>
             </div>
           </div>
         </>
