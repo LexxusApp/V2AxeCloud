@@ -75,6 +75,7 @@ function RowActionsMenu({
   compact,
   busy,
   onManage,
+  onSendData,
   onBlock,
   onRenewMonth,
   onLifetime,
@@ -84,6 +85,7 @@ function RowActionsMenu({
   compact?: boolean;
   busy?: boolean;
   onManage: (id: string) => void;
+  onSendData?: (id: string) => void;
   onBlock: (id: string, blocked: boolean) => void;
   onRenewMonth: (id: string) => void;
   onLifetime: (id: string) => void;
@@ -147,6 +149,20 @@ function RowActionsMenu({
       >
         Gerenciar terreiro
       </button>
+      {onSendData && (
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy}
+          className="admin-row-menu-item"
+          onClick={() => {
+            setOpen(false);
+            onSendData(row.id);
+          }}
+        >
+          Enviar Dados
+        </button>
+      )}
       <button
         type="button"
         role="menuitem"
@@ -224,6 +240,7 @@ function TenantMobileCard({
   compact,
   busy,
   onManage,
+  onSendData,
   onBlock,
   onRenewMonth,
   onLifetime,
@@ -233,6 +250,7 @@ function TenantMobileCard({
   compact?: boolean;
   busy?: boolean;
   onManage: (id: string) => void;
+  onSendData?: (id: string) => void;
   onBlock: (id: string, blocked: boolean) => void;
   onRenewMonth: (id: string) => void;
   onLifetime: (id: string) => void;
@@ -255,6 +273,7 @@ function TenantMobileCard({
           compact={compact}
           busy={busy}
           onManage={onManage}
+          onSendData={onSendData}
           onBlock={onBlock}
           onRenewMonth={onRenewMonth}
           onLifetime={onLifetime}
@@ -308,6 +327,7 @@ type TenantsTableProps = {
   search: string;
   onSearchChange: (v: string) => void;
   onManage: (id: string) => void;
+  onSendData?: (id: string) => void;
   onBlock: (id: string, blocked: boolean) => void;
   onRenewMonth: (id: string) => void;
   onLifetime: (id: string) => void;
@@ -321,6 +341,7 @@ export function TenantsTable({
   search,
   onSearchChange,
   onManage,
+  onSendData,
   onBlock,
   onRenewMonth,
   onLifetime,
@@ -369,6 +390,7 @@ export function TenantsTable({
               compact={compact}
               busy={busy}
               onManage={onManage}
+              onSendData={onSendData}
               onBlock={onBlock}
               onRenewMonth={onRenewMonth}
               onLifetime={onLifetime}
@@ -465,6 +487,7 @@ export function TenantsTable({
                       compact={compact}
                       busy={busy}
                       onManage={onManage}
+                      onSendData={onSendData}
                       onBlock={onBlock}
                       onRenewMonth={onRenewMonth}
                       onLifetime={onLifetime}

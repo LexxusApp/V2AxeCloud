@@ -193,6 +193,32 @@ export function CommandShell({ session }: { session: Session }) {
     }
   }
 
+  async function sendTenantAccessData(targetUserId: string) {
+    const row = tenants.find((t) => t.id === targetUserId);
+    const label = row?.nome_terreiro || row?.email || targetUserId;
+    if (
+      !window.confirm(
+        `Enviar dados de acesso para "${label}"?\n\nO sistema vai gerar uma nova senha e enviar WhatsApp ao zelador com link, login e senha atualizados.`
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    setMsg(null);
+    try {
+      await apiJson(`/api/admin-console/tenant/${targetUserId}/send-access-data`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setMsg("Dados de acesso enviados no WhatsApp do zelador.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Erro ao enviar dados de acesso");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const filteredTenants = useMemo(() => {
     const q = tenantSearch.trim().toLowerCase();
     if (!q) return tenants;
@@ -281,6 +307,7 @@ export function CommandShell({ session }: { session: Session }) {
             onRenewMonth={(id) => void manageTenant(id, "renew", { amount: "1", unit: "months" })}
             onLifetime={(id) => void manageTenant(id, "set-lifetime")}
             onDelete={(id) => void deleteTenant(id)}
+            onSendData={(id) => void sendTenantAccessData(id)}
           />
         )}
 

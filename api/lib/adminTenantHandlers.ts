@@ -1,8 +1,25 @@
 import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { CONSOLE_ADMIN_INSTANCE_NAME } from "../../src/services/evolution.service.js";
 import { logEvent } from "./auditLog.js";
+import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
+import {
+  loadWelcomeMessageConfig,
+  normalizeBrazilMsisdn,
+  renderWelcomeMessage,
+} from "./welcomeMessage.js";
 
 type R2Ctx = { client: S3Client; bucket: string } | null;
+
+function generateAccessPassword(): string {
+  const bytes = new Uint8Array(8);
+  try {
+    (globalThis as { crypto?: { getRandomValues: (a: Uint8Array) => void } }).crypto?.getRandomValues(bytes);
+  } catch {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes, (b) => String((b ?? 0) % 10)).join("");
+}
 
 export async function runTenantDetail(
   supabaseAdmin: SupabaseClient,
@@ -170,13 +187,7 @@ export async function runTenantResetPassword(
   const id = String(tenantId || "").trim();
   if (!id) throw new Error("id obrigatório");
 
-  const bytes = new Uint8Array(8);
-  try {
-    (globalThis as { crypto?: { getRandomValues: (a: Uint8Array) => void } }).crypto?.getRandomValues(bytes);
-  } catch {
-    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  const newPassword = Array.from(bytes, (b) => String((b ?? 0) % 10)).join("");
+  const newPassword = generateAccessPassword();
 
   const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(id, {
     password: newPassword,
@@ -195,4 +206,76 @@ export async function runTenantResetPassword(
   });
 
   return { success: true, password: newPassword };
+}
+
+export async function runTenantSendAccessData(
+  supabaseAdmin: SupabaseClient,
+  user: User,
+  req: any,
+  tenantId: string
+): Promise<{ success: boolean; queued: boolean; phone: string }> {
+  const id = String(tenantId || "").trim();
+  if (!id) throw new Error("id obrigatorio");
+
+  const [{ data: authData, error: authErr }, { data: profile, error: profileErr }] = await Promise.all([
+    supabaseAdmin.auth.admin.getUserById(id),
+    supabaseAdmin
+      .from("perfil_lider")
+      .select("id, email, nome_terreiro, cargo, whatsapp_publico")
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
+
+  if (authErr) throw authErr;
+  if (profileErr) throw profileErr;
+
+  const targetUser = authData.user;
+  if (!targetUser) throw new Error("Zelador nao encontrado no Auth.");
+
+  const meta = (targetUser.user_metadata || {}) as Record<string, unknown>;
+  const email = String(targetUser.email || profile?.email || "").trim().toLowerCase();
+  const nomeTerreiro = String(profile?.nome_terreiro || meta.nome_terreiro || "").trim();
+  const nomeZelador = String(profile?.cargo || meta.nome_zelador || "").trim();
+  const rawWhatsapp = String(meta.whatsapp || meta.phone || targetUser.phone || profile?.whatsapp_publico || "").trim();
+  const msisdn = normalizeBrazilMsisdn(rawWhatsapp);
+
+  if (!email) throw new Error("E-mail do zelador nao encontrado.");
+  if (!msisdn) throw new Error("WhatsApp do zelador nao encontrado ou invalido.");
+
+  const newPassword = generateAccessPassword();
+  const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(id, {
+    password: newPassword,
+  });
+  if (updErr) throw updErr;
+
+  const cfg = await loadWelcomeMessageConfig(supabaseAdmin);
+  const text = renderWelcomeMessage(cfg.template, {
+    nome_terreiro: nomeTerreiro,
+    nome_zelador: nomeZelador,
+    email,
+    senha: newPassword,
+    site: cfg.loginUrl,
+    assinatura: cfg.signature,
+  });
+
+  await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
+
+  void logEvent(supabaseAdmin, {
+    eventType: "tenant.access-data-sent",
+    userId: user.id,
+    userEmail: user.email,
+    targetType: "tenant",
+    targetId: id,
+    tenantId: id,
+    description: `Dados de acesso do terreiro ${id} enviados por WhatsApp pelo admin.`,
+    metadata: {
+      email,
+      nome_terreiro: nomeTerreiro,
+      phone: `${msisdn.slice(0, 4)}...`,
+      passwordReset: true,
+    },
+    req,
+  });
+
+  return { success: true, queued: true, phone: msisdn };
 }

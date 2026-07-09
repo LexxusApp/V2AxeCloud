@@ -20,12 +20,13 @@ import { safeErrorMessage } from "./lib/safeError.js";
 import {
   runTenantDetail,
   runTenantResetPassword,
+  runTenantSendAccessData,
   runTenantSetRole,
 } from "./lib/adminTenantHandlers.js";
 
 type ExpressApp = import("express").Express;
 
-const TENANT_PATH_RE = /^tenant\/([^/]+)(?:\/(set-role|reset-password))?$/;
+const TENANT_PATH_RE = /^tenant\/([^/]+)(?:\/(set-role|reset-password|send-access-data))?$/;
 
 function parseBody(req: any): Record<string, unknown> {
   return typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {}) || {};
@@ -59,6 +60,10 @@ async function handleTenantRoutes(target: string, method: string, req: any, res:
     }
     if (sub === "reset-password" && method === "POST") {
       sendJson(res, 200, await runTenantResetPassword(sb, ctx.user, req, tenantId));
+      return true;
+    }
+    if (sub === "send-access-data" && method === "POST") {
+      sendJson(res, 200, await runTenantSendAccessData(sb, ctx.user, req, tenantId));
       return true;
     }
     sendJson(res, 405, { error: "Método não permitido para este terreiro" });
