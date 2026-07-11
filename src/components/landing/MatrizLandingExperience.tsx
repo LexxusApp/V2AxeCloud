@@ -698,22 +698,12 @@ function Hero() {
                 transition={{ type: 'spring', stiffness: 200 }}
               >
                 <img
-                  src={landingScreenshot('painel-inicio.png')}
-                  alt="Painel do zelador AxéCloud"
+                  src={landingScreenshot('painel-dashboard-landing.png')}
+                  alt="Dashboard do AxéCloud — painel real de gestão do terreiro"
                   className="w-full rounded-xl"
                   loading="eager"
                 />
               </motion.div>
-              <div
-                className="absolute bottom-2 left-2 max-w-[12rem] overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-3 shadow-lg sm:-bottom-4 sm:-left-6"
-              >
-                <div className="matriz-float-y">
-                <img src={landingScreenshot('financeiro.png')} alt="Financeiro atual do AxéCloud" className="rounded-lg" loading="lazy" />
-                <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/50">
-                  Financeiro atual
-                </p>
-                </div>
-              </div>
             </motion.div>
             <div className="matriz-drift-x mt-6">
               <GuiasPattern className="h-4 w-full opacity-80" />
@@ -825,50 +815,6 @@ function RoutineSection() {
   );
 }
 
-const agendaCalendarDots = [3, 7, 12, 15, 19, 22, 26] as const;
-
-function MiniMonthCalendar() {
-  const days = Array.from({ length: 28 }, (_, i) => i + 1);
-
-  return (
-    <div
-      className="pointer-events-none absolute -right-2 -top-6 hidden w-36 rounded-2xl border border-[#e8dfd0] bg-white/95 p-3 shadow-lg shadow-rose-200/30 backdrop-blur-sm sm:block lg:-right-8 lg:-top-8"
-      aria-hidden
-    >
-      <div className="flex items-center justify-between border-b border-[#e8dfd0] pb-2">
-        <CalendarDays className="h-3.5 w-3.5 text-rose-500" />
-        <span className="text-[9px] font-black uppercase tracking-wider text-[#1b1813]/45">Julho</span>
-      </div>
-      <div className="mt-2 grid grid-cols-7 gap-1">
-        {days.map((day) => {
-          const hasEvent = (agendaCalendarDots as readonly number[]).includes(day);
-          return (
-            <span
-              key={day}
-              className={cn(
-                'relative grid h-3.5 w-3.5 place-items-center text-[7px] font-bold text-[#1b1813]/35',
-                hasEvent && 'text-rose-600',
-              )}
-            >
-              {day}
-              {hasEvent ? (
-                <span
-                  className={cn(
-                    'absolute -bottom-0.5 h-1 w-1 rounded-full bg-rose-500',
-                    day % 3 === 0 && 'matriz-server-led',
-                    day % 3 === 1 && 'matriz-server-led--delay-1',
-                    day % 3 === 2 && 'matriz-server-led--delay-2',
-                  )}
-                />
-              ) : null}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function AgendaSection() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
@@ -883,7 +829,6 @@ function AgendaSection() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal direction="right" delay={0.1} className="relative order-2 lg:order-1">
             <motion.div style={{ y: imgY, scale: imgScale }} className="relative">
-              <MiniMonthCalendar />
               <motion.div
                 className="overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-2 shadow-lg shadow-rose-200/25"
                 whileHover={{ y: -6 }}
@@ -896,16 +841,6 @@ function AgendaSection() {
                   loading="lazy"
                 />
               </motion.div>
-              <div className="absolute bottom-2 right-2 max-w-[11rem] rounded-2xl border border-[#e8dfd0] bg-white px-3 py-2.5 shadow-lg sm:-bottom-4 sm:-right-6">
-                <div className="matriz-float-y flex items-center gap-2">
-                  <div className="grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50">
-                    <CalendarDays className="h-4 w-4 text-rose-600" aria-hidden />
-                  </div>
-                  <p className="text-[10px] font-bold leading-tight text-[#1b1813]/70">
-                    Agenda e giras integradas
-                  </p>
-                </div>
-              </div>
             </motion.div>
             <div className="matriz-drift-x mt-6">
               <GuiasPattern className="h-4 w-full opacity-80" />
