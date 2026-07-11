@@ -3,19 +3,10 @@ import { ArrowRight, BookOpen, Building2, CalendarDays, Heart, Loader2, MapPin, 
 import { LandingMockupHero } from './LandingMockupHero';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TerreiroCard } from '../portal/TerreiroCard';
-import {
-  fetchPublicEventos,
-  fetchPublicTerreiros,
-  terreiroProfilePath,
-  type PublicEvento,
-  type PublicTerreiro,
-} from '../../lib/portalPublic';
+import { fetchPublicEventos, type PublicEvento } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
-import { appHref } from '../../lib/appHref';
-import { TRIAL_DAYS } from '../../../lib/planPricing';
 import { cn } from '../../lib/utils';
-import { landingMockupCardClass, landingMockupInsetCardClass, landingMockupKickerClass, landingMockupLinkClass, landingMockupShellClass } from './landingMockupUi';
+import { landingMockupCardClass, landingMockupKickerClass, landingMockupLinkClass, landingMockupShellClass } from './landingMockupUi';
 
 type PortalTile = {
   id: string;
@@ -176,95 +167,15 @@ function SectionLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function PortalTerreirosShowcase({
-  terreiros,
-}: {
-  terreiros: PublicTerreiro[];
-}) {
-  const [principal, ...outros] = terreiros;
-  const totalLabel = terreiros.length === 1 ? '1 casa publicada' : `${terreiros.length} casas publicadas`;
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-      <div className="mx-auto w-full max-w-sm min-w-0 lg:mx-0">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <span className={landingMockupKickerClass}>Casa em destaque</span>
-          <span className="text-xs font-bold text-slate-500">{totalLabel}</span>
-        </div>
-        <TerreiroCard terreiro={principal} href={terreiroProfilePath(principal.slug)} />
-      </div>
-
-      <div className={cn('flex min-w-0 flex-col justify-between p-6 sm:p-7', landingMockupCardClass, 'rounded-[1.75rem]')}>
-        <div>
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FFC107]/35 bg-white">
-            <Building2 className="h-6 w-6 text-[#FFC107]" aria-hidden />
-          </div>
-          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#FFC107]">
-            Diretório em expansão
-          </p>
-          <h3 className="mt-3 font-display text-2xl font-black leading-tight text-[#1b1813] sm:text-3xl">
-            Casas de axé ganhando presença pública com mais cuidado.
-          </h3>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#1b1813]/65">
-            Cada perfil reúne tradição, localização e recursos ativados pela casa. O portal está crescendo com
-            novos cadastros em destaque.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className={cn('p-4', landingMockupInsetCardClass, 'rounded-2xl')}>
-            <p className="text-2xl font-black text-[#1b1813]">{terreiros.length}</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#1b1813]/62">no portal</p>
-          </div>
-          <a
-            href={appHref(ROUTES.register)}
-            className="group rounded-2xl border border-[#FFC107]/40 bg-[#FFC107] p-4 text-[#1b1813] transition hover:bg-[#ffcd38]"
-          >
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-neutral-900/70">Cadastre sua casa</p>
-            <span className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-neutral-900">
-              {TRIAL_DAYS} dias grátis
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
-            </span>
-          </a>
-        </div>
-
-        {outros.length > 0 ? (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {outros.map((t) => (
-              <TerreiroCard key={t.slug} terreiro={t} href={terreiroProfilePath(t.slug)} />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
-            <p className="text-sm font-bold text-slate-900">Sua casa pode aparecer aqui.</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Cadastre sua casa e teste o AxéCloud por {TRIAL_DAYS} dias sem pagar. Depois, ative o perfil público no portal.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function PortalHomeHubSections() {
   const [eventos, setEventos] = useState<PublicEvento[]>([]);
-  const [terreiros, setTerreiros] = useState<PublicTerreiro[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(true);
-  const [loadingTerreiros, setLoadingTerreiros] = useState(true);
 
   useEffect(() => {
     void fetchPublicEventos()
       .then((items) => setEventos(items.slice(0, 3)))
       .catch(() => setEventos([]))
       .finally(() => setLoadingEventos(false));
-  }, []);
-
-  useEffect(() => {
-    void fetchPublicTerreiros({ page: 1 })
-      .then((res) => setTerreiros(res.items.slice(0, 3)))
-      .catch(() => setTerreiros([]))
-      .finally(() => setLoadingTerreiros(false));
   }, []);
 
   return (
@@ -326,41 +237,6 @@ export function PortalHomeHubSections() {
                   <EventPreviewCard key={ev.id} event={ev} />
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-section relative z-[1]" aria-labelledby="terreiros-preview-title">
-        <div className="landing-section-inner mx-auto max-w-7xl">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="landing-kicker">Diretório</p>
-              <h2 id="terreiros-preview-title" className="landing-title text-left">
-                Mais de 2 mil terreiros mapeados
-              </h2>
-              <p className="landing-lead mx-0 mt-2 max-w-xl text-left">
-                Encontre casas por cidade e bairro. Perfis públicos com tradição, localização e pedidos de reza online quando activos.
-              </p>
-            </div>
-            <SectionLink href={ROUTES.terreiros} label="Explorar diretório completo" />
-          </div>
-
-          <div className="mt-8">
-            {loadingTerreiros ? (
-              <div className="flex justify-center py-12" aria-busy="true">
-                <Loader2 className="h-7 w-7 animate-spin text-amber-500" />
-              </div>
-            ) : terreiros.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
-                <Building2 className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
-                <p className="mt-3 text-slate-600">Explore o diretório por cidade — milhares de casas já mapeadas.</p>
-                <a href={ROUTES.terreiros} className="landing-btn-secondary mt-5 inline-flex text-sm">
-                  Abrir diretório de terreiros
-                </a>
-              </div>
-            ) : (
-              <PortalTerreirosShowcase terreiros={terreiros} />
             )}
           </div>
         </div>
