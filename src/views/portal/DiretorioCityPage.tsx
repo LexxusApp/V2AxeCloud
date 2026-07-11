@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
 import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
 import type { DiretorioBairroGroup } from '../../lib/diretorioPublic';
-import { fetchDiretorioCidadeSnapshot, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
+import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 
@@ -124,7 +124,7 @@ export default function DiretorioCityPage() {
       setLoading(true);
       setError(null);
       try {
-        const snapshotCity = await fetchDiretorioCidadeSnapshot(estado, cidadeSlug);
+        const snapshotCity = await loadDiretorioCidadeDetail(estado, cidadeSlug);
         if (cancelled) return;
         if (!snapshotCity) {
           throw new Error('Não foi possível carregar os dados desta cidade. Atualize a página.');

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { diretorioCityPath } from '../../lib/diretorioSlug';
 import {
-  fetchDiretorioCidadesSnapshot,
+  loadDiretorioCidadesResumo,
   type DiretorioCidadeResumo,
 } from '../../lib/diretorioSnapshot';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
@@ -39,7 +39,7 @@ export default function TerreirosDirectoryPage() {
       setLoading(true);
       setError(null);
       try {
-        const snapshot = await fetchDiretorioCidadesSnapshot();
+        const snapshot = await loadDiretorioCidadesResumo();
         if (cancelled) return;
         if (!snapshot?.length) {
           throw new Error('Não foi possível carregar o diretório de cidades. Atualize a página.');
@@ -94,7 +94,7 @@ export default function TerreirosDirectoryPage() {
               Primeiro escolha uma cidade
             </h1>
             <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">
-              Para ficar rápido e organizado, os bairros e terreiros aparecem dentro da página da cidade selecionada.
+              Mais de 2 mil terreiros mapeados por cidade e bairro. Escolha uma cidade para ver a lista completa.
             </p>
             <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
               <div className="rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-5 shadow-xl shadow-black/5 backdrop-blur-sm">
@@ -104,7 +104,9 @@ export default function TerreirosDirectoryPage() {
                   <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">Cidades</p>
                 </div>
                 <div className="rounded-2xl bg-[#ffc107]/14 p-4">
-                  <p className="text-2xl font-black text-[#a87400]">{totalBairros}</p>
+                  <p className="text-2xl font-black text-[#a87400]">
+                    {totalBairros > 0 ? totalBairros : '—'}
+                  </p>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">Bairros</p>
                 </div>
                 <div className="rounded-2xl bg-[#ffc107]/14 p-4">
@@ -171,8 +173,10 @@ export default function TerreirosDirectoryPage() {
                         {cidade.estado ? `, ${cidade.estado}` : ''}
                       </h2>
                       <p className="mt-2 text-sm text-[#1b1813]/58">
-                        {cidade.totalTerreiros} terreiro{cidade.totalTerreiros === 1 ? '' : 's'} em{' '}
-                        {cidade.totalBairros} bairro{cidade.totalBairros === 1 ? '' : 's'}.
+                        {cidade.totalTerreiros} terreiro{cidade.totalTerreiros === 1 ? '' : 's'}
+                        {cidade.totalBairros > 0
+                          ? ` em ${cidade.totalBairros} bairro${cidade.totalBairros === 1 ? '' : 's'}.`
+                          : '.'}
                       </p>
                     </div>
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ffc107] text-[#1b1813] transition group-hover:translate-x-1">

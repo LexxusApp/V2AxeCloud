@@ -1,4 +1,5 @@
 import type { DiretorioBairroGroup, DiretorioCidade, DiretorioTerreiro } from './diretorioPublic';
+import { fetchDiretorioCidade, fetchDiretorioCidades } from './diretorioPublic';
 
 export type DiretorioCidadeResumo = DiretorioCidade & {
   total: number;
@@ -79,4 +80,59 @@ export async function fetchDiretorioCidadeSnapshot(
 
 export function flattenCidadeTerreiros(cidade: DiretorioCidadeSnapshot): DiretorioTerreiro[] {
   return cidade.bairros.flatMap((bairro) => bairro.items);
+}
+
+/** Lista de cidades: JSON estático (rápido) ou API (2000+ terreiros no Supabase). */
+export async function loadDiretorioCidadesResumo(signal?: AbortSignal): Promise<DiretorioCidadeResumo[]> {
+  const snapshot = await fetchDiretorioCidadesSnapshot(signal);
+  if (snapshot?.length) return snapshot;
+
+  const cidades = await fetchDiretorioCidades();
+  if (!cidades.length) return [];
+
+  return cidades.map((cidade) => ({
+    ...cidade,
+    total: cidade.count,
+    totalTerreiros: cidade.count,
+    totalBairros: 0,
+  }));
+}
+
+function itemsToBairros(items: DiretorioTerreiro[]): DiretorioBairroGroup[] {
+  if (!items.length) return [];
+  return [
+    {
+      nome: 'Todos os terreiros',
+      slug: 'todos',
+      total: items.length,
+      items,
+    },
+  ];
+}
+
+/** Detalhe da cidade: snapshot JSON ou API pública. */
+export async function loadDiretorioCidadeDetail(
+  estado: string,
+  cidadeSlug: string,
+  signal?: AbortSignal,
+): Promise<DiretorioCidadeSnapshot | null> {
+  const snapshot = await fetchDiretorioCidadeSnapshot(estado, cidadeSlug, signal);
+  if (snapshot) return snapshot;
+
+  try {
+    const api = await fetchDiretorioCidade(estado, cidadeSlug);
+    const bairros =
+      api.bairros && api.bairros.length > 0 ? api.bairros : itemsToBairros(api.items || []);
+
+    return {
+      cidade: api.cidade,
+      estado: api.estado,
+      cidadeSlug: api.cidadeSlug,
+      total: api.total,
+      totalTerreiros: api.totalTerreiros,
+      bairros,
+    };
+  } catch {
+    return null;
+  }
 }

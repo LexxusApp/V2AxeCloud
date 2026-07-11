@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Building2, CalendarDays, Heart, Loader2, MapPin, Sun } from 'lucide-react';
+import { ArrowRight, BookOpen, Building2, CalendarDays, Heart, Loader2, MapPin, Sparkles, Sun } from 'lucide-react';
 import { LandingMockupHero } from './LandingMockupHero';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -81,6 +81,17 @@ const EXPLORAR_TILES: PortalTile[] = [
     icon: BookOpen,
     accent: 'text-[#7c3aed]',
     iconBg: 'bg-[#7c3aed]/12 border-[#7c3aed]/25',
+  },
+  {
+    id: 'comparativo',
+    eyebrow: 'Decisão informada',
+    title: 'Por que AxéCloud?',
+    description: 'Compare módulos, PWA, WhatsApp Meta e portal público com planilhas e outros sistemas.',
+    href: ROUTES.whyAxeCloud,
+    icon: Sparkles,
+    accent: 'text-[#a87400]',
+    iconBg: 'bg-[#FFC107]/18 border-[#FFC107]/35',
+    featured: true,
   },
 ];
 
@@ -236,7 +247,7 @@ function PortalTerreirosShowcase({
   );
 }
 
-export function PortalHomeHub() {
+export function PortalHomeHubSections() {
   const [eventos, setEventos] = useState<PublicEvento[]>([]);
   const [terreiros, setTerreiros] = useState<PublicTerreiro[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(true);
@@ -258,17 +269,15 @@ export function PortalHomeHub() {
 
   return (
     <>
-      <LandingMockupHero />
-
-      <section className="border-b border-[#e0d4c0] bg-[#fdf8f0] py-16 sm:py-20" aria-labelledby="explorar-title">
+      <section className="relative z-[1] border-b border-[#e8dfd0] bg-[#fdf8f0] py-16 sm:py-20" aria-labelledby="explorar-title">
         <div className={landingMockupShellClass}>
           <div className="mx-auto max-w-2xl text-center">
             <p className={landingMockupKickerClass}>Explorar o portal</p>
             <h2 id="explorar-title" className="mt-5 font-display text-3xl font-black tracking-tight text-[#1b1813] sm:text-4xl">
-              O que você quer fazer agora?
+              Portal público do axé — tudo em um lugar
             </h2>
             <p className="mt-3 text-base text-[#1b1813]/65">
-              Tudo o que a comunidade do axé precisa, reunido e fácil de acessar.
+              Diretório com milhares de terreiros mapeados, pedidos de reza, eventos, conteúdo educativo e comparativo de funcionalidades.
             </p>
           </div>
 
@@ -280,7 +289,7 @@ export function PortalHomeHub() {
         </div>
       </section>
 
-      <section className="landing-section landing-section--alt" aria-labelledby="eventos-preview-title">
+      <section className="landing-section landing-section--alt relative z-[1]" aria-labelledby="eventos-preview-title">
         <div className="landing-section-inner mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -322,19 +331,19 @@ export function PortalHomeHub() {
         </div>
       </section>
 
-      <section className="landing-section" aria-labelledby="terreiros-preview-title">
+      <section className="landing-section relative z-[1]" aria-labelledby="terreiros-preview-title">
         <div className="landing-section-inner mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="landing-kicker">Diretório</p>
               <h2 id="terreiros-preview-title" className="landing-title text-left">
-                Casas no portal
+                Mais de 2 mil terreiros mapeados
               </h2>
               <p className="landing-lead mx-0 mt-2 max-w-xl text-left">
-                Perfis públicos de terreiros — tradição, localização e, quando activo, pedidos de reza online.
+                Encontre casas por cidade e bairro. Perfis públicos com tradição, localização e pedidos de reza online quando activos.
               </p>
             </div>
-            <SectionLink href={ROUTES.terreiros} label="Explorar todas as casas" />
+            <SectionLink href={ROUTES.terreiros} label="Explorar diretório completo" />
           </div>
 
           <div className="mt-8">
@@ -345,9 +354,9 @@ export function PortalHomeHub() {
             ) : terreiros.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
                 <Building2 className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
-                <p className="mt-3 text-slate-600">As primeiras casas estão a activar o perfil público.</p>
-                <a href={appHref(ROUTES.register)} className="landing-btn-secondary mt-5 inline-flex text-sm">
-                  Teste grátis por {TRIAL_DAYS} dias
+                <p className="mt-3 text-slate-600">Explore o diretório por cidade — milhares de casas já mapeadas.</p>
+                <a href={ROUTES.terreiros} className="landing-btn-secondary mt-5 inline-flex text-sm">
+                  Abrir diretório de terreiros
                 </a>
               </div>
             ) : (
@@ -356,6 +365,15 @@ export function PortalHomeHub() {
           </div>
         </div>
       </section>
+    </>
+  );
+}
+
+export function PortalHomeHub() {
+  return (
+    <>
+      <LandingMockupHero />
+      <PortalHomeHubSections />
     </>
   );
 }

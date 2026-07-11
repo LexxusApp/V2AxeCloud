@@ -2,6 +2,8 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUp, Check, MessageCircle } from 'lucide-react';
 import { MatrizLandingExperience } from '../components/landing/MatrizLandingExperience';
+import { PortalHomeHubSections } from '../components/landing/PortalHomeHub';
+import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
 import { LoginLink } from '../components/marketing/LoginLink';
 import { RegisterTrialLink } from '../components/marketing/RegisterTrialLink';
 import { landingBrandLogo } from '../constants/landingScreenshots';
@@ -292,6 +294,10 @@ export default function Landing() {
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <MatrizLandingExperience />
+
+        <PortalHomeHubSections />
+
+        <WhatsAppAutomation />
 
         <PricingSection landingPrice={landingPrice} />
 

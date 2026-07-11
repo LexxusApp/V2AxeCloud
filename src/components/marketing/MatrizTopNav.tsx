@@ -10,9 +10,9 @@ import { RegisterTrialLink } from './RegisterTrialLink';
 const navLinks = [
   { href: ROUTES.terreiros, label: 'Terreiros' },
   { href: ROUTES.eventosPublicos, label: 'Eventos' },
-  { href: `${ROUTES.home}#agenda`, label: 'Agenda' },
-  { href: `${ROUTES.home}#umbanda-candomble`, label: 'Umbanda & Candomblé' },
+  { href: ROUTES.espacoDoFiel, label: 'Pedir reza' },
   { href: ROUTES.contentHub, label: 'Conteúdo' },
+  { href: ROUTES.whyAxeCloud, label: 'Por que AxéCloud' },
 ] as const;
 
 export function MatrizTopNav() {
