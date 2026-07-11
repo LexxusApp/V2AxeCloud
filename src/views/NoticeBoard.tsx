@@ -9,10 +9,8 @@ import {
   Info, 
   Calendar as CalendarIcon,
   X,
-  Send,
   Loader2,
   Trash2,
-  MessageCircle,
   Copy,
   CheckCircle2,
   Share2
@@ -20,7 +18,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
-import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -89,8 +86,9 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastPostedNotice, setLastPostedNotice] = useState<{titulo: string, conteudo: string} | null>(null);
+  const [lastWhatsappResult, setLastWhatsappResult] = useState<{ sent: number; errors: number; skipped: number; status?: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isNotifyingWA, setIsNotifyingWA] = useState(false);
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -173,7 +171,8 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           ...insertData,
           tenantId: tenantId || user.id,
           autorId: user.id,
-          autorNome: tenantData?.nome_zelador || 'Zelador'
+          autorNome: tenantData?.nome_zelador || 'Zelador',
+          notifyWhatsApp,
         })
       });
 
@@ -191,7 +190,18 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         throw new Error(errorMsg);
       }
       
+      const payload = await response.json().catch(() => ({}));
       setLastPostedNotice({ titulo: formData.titulo, conteudo: formData.conteudo });
+      setLastWhatsappResult(
+        notifyWhatsApp && payload.whatsapp
+          ? {
+              sent: Number(payload.whatsapp.sent || 0),
+              errors: Number(payload.whatsapp.errors || 0),
+              skipped: Number(payload.whatsapp.skipped || 0),
+              status: String(payload.whatsapp.status || ''),
+            }
+          : null
+      );
 
       setShowSuccessModal(true);
       setFormData({ titulo: '', conteudo: '', categoria: 'Geral', expiracao: '' });
@@ -205,60 +215,6 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       }
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  async function handleMassWhatsAppNotification(titulo: string) {
-    if (isNotifyingWA) return;
-    setIsNotifyingWA(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const childrenRes = await authFetch(`/api/children?userId=${user.id}&tenantId=${tenantId || ''}`);
-      if (!childrenRes.ok) throw new Error('Não foi possível buscar a lista de filhos');
-      
-      const { data: childrenData } = await childrenRes.json();
-      
-      if (childrenData && childrenData.length > 0) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        const uid = session?.user?.id ?? user.id;
-        if (!token || !uid) throw new Error('Sessão inválida para envio de WhatsApp');
-
-        let count = 0;
-        for (const child of childrenData) {
-          if (child.whatsapp_phone) {
-            count++;
-            fetch(whatsappApiUrl('/whatsapp/send'), {
-              method: 'POST',
-              headers: whatsappRailwayHeaders(token, uid),
-              body: JSON.stringify({
-                tipo: 'mural_aviso',
-                filhoId: child.id,
-                variables: {
-                  nome_filho: child.nome,
-                  nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
-                  titulo_aviso: titulo
-                }
-              })
-            }).catch(e => console.error('Error sending individual WhatsApp:', e));
-          }
-        }
-        
-        if (count > 0) {
-          alert(`✅ Sucesso! ${count} notificações estão sendo processadas.`);
-          setShowSuccessModal(false);
-        } else {
-          alert('Nenhum filho de santo encontrado com WhatsApp cadastrado.');
-        }
-      }
-    } catch (error: any) {
-      console.error('Error in handleMassWhatsAppNotification:', error);
-      alert('Erro ao enviar notificações: ' + error.message);
-    } finally {
-      setIsNotifyingWA(false);
     }
   }
 
@@ -325,8 +281,8 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   return (
     <AppPageShell>
       <AppDemoPanelHeader
-        title="Mural de avisos"
-        description="Comunicados para filhos de santo e diretoria — substitui grupos espalhados no WhatsApp."
+        title="Transmissão Aviso"
+        description="Publique avisos para a corrente no app e, se quiser, envie automaticamente via WhatsApp."
         action={searchBar}
       />
 
@@ -389,8 +345,19 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                   placeholder="Texto visível para a comunidade da casa..."
                 />
               </div>
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-950/20 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked={notifyWhatsApp}
+                  onChange={(e) => setNotifyWhatsApp(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span className="text-xs leading-relaxed text-[#94A3B8]">
+                  <strong className="text-emerald-300">Transmitir via WhatsApp</strong> para filhos com número cadastrado (com proteção anti-spam).
+                </span>
+              </label>
               <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
-                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Publicar aviso'}
+                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Publicar e transmitir'}
               </AppPrimaryButton>
             </form>
           </AppDemoCard>
@@ -444,18 +411,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-[#1E242B] pt-3">
                     <button
                       type="button"
-                      disabled={isNotifyingWA}
-                      onClick={() => void handleMassWhatsAppNotification(notice.titulo)}
-                      className="rounded-lg border border-emerald-500/25 bg-emerald-950/40 px-2 py-1 text-[10px] font-bold text-emerald-300"
-                    >
-                      WhatsApp em massa
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => void copyToClipboard(notice.titulo, notice.conteudo, notice.id)}
                       className="rounded-lg border border-[#1E242B] px-2 py-1 text-[10px] font-bold text-[#94A3B8]"
                     >
-                      {copiedId === notice.id ? 'Copiado' : 'Copiar'}
+                      {copiedId === notice.id ? 'Copiado' : 'Copiar texto'}
                     </button>
                   </div>
                 ) : null}
@@ -492,27 +451,30 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-black text-white leading-tight">Aviso <span className="text-primary">Publicado!</span></h3>
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">O que deseja fazer agora?</p>
+                  <h3 className="text-lg sm:text-xl font-black text-white leading-tight">Aviso <span className="text-primary">publicado!</span></h3>
+                  {lastWhatsappResult ? (
+                    <p className="text-xs sm:text-sm text-emerald-400 font-medium">
+                      WhatsApp: {lastWhatsappResult.sent} enviado(s)
+                      {lastWhatsappResult.errors > 0 ? `, ${lastWhatsappResult.errors} falha(s)` : ''}
+                      {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} fora do lote` : ''}.
+                    </p>
+                  ) : (
+                    <p className="text-xs sm:text-sm text-gray-400 font-medium">Publicado no app sem disparo WhatsApp.</p>
+                  )}
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Compartilhe manualmente se precisar.</p>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:gap-2.5">
-                  <button disabled={isNotifyingWA}
-                    onClick={() => handleMassWhatsAppNotification(lastPostedNotice.titulo)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-3 py-2.5 font-black text-xs sm:text-sm text-white shadow-[0_0_16px_rgba(16,185,129,0.1)] transition-all hover:bg-emerald-500 active:scale-95 disabled:opacity-50">
-                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                    {isNotifyingWA ? 'Enviando...' : 'Notificar Todos via WhatsApp'}
-                  </button>
                   <a href={generateWhatsAppLink(lastPostedNotice.titulo, lastPostedNotice.conteudo)}
                     target="_blank" rel="noopener noreferrer"
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-primary bg-black px-3 py-2.5 font-black text-xs sm:text-sm text-primary shadow-[0_0_16px_rgba(251,188,0,0.08)] transition-all hover:bg-primary/5 active:scale-95">
                     <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Compartilhar Manualmente
+                    Compartilhar manualmente
                   </a>
                   <button onClick={() => copyToClipboard(lastPostedNotice.titulo, lastPostedNotice.conteudo)}
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/5 px-3 py-2.5 font-black text-xs sm:text-sm text-white transition-all hover:bg-white/10 active:scale-95">
                     <Copy className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Copiar Texto para WhatsApp
+                    Copiar texto
                   </button>
                 </div>
 
@@ -520,7 +482,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                   onClick={() => setShowSuccessModal(false)}
                   className="text-gray-500 text-sm font-bold hover:text-white transition-colors pt-1"
                 >
-                  Fechar e voltar ao mural
+                  Fechar e voltar
                 </button>
               </div>
             </motion.div>

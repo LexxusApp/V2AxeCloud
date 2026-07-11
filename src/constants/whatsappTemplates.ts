@@ -4,6 +4,7 @@
   | 'cobranca_mensalidade'
   | 'financeiro'
   | 'mensalidade_confirmada'
+  | 'transmissao_aviso'
   | 'mural_aviso'
   | 'convite_evento'
   | 'senha_evento_visitante'
@@ -32,8 +33,10 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Olá, {{nome_filho}}! Lembramos do pagamento de sua mensalidade no valor de R$ {{valor_mensalidade}}, com vencimento em {{data_vencimento}}, para o terreiro {{nome_terreiro}}. Axé!',
   mensalidade_confirmada:
     'Olá, {{nome_filho}}! Confirmamos o recebimento da sua mensalidade de {{competencia}} no valor de R$ {{valor}} no {{nome_terreiro}}. Obrigado pela contribuição. Axé! 🙏',
+  transmissao_aviso:
+    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nAcesse o AxéCloud para ver o aviso completo. Axé!',
   mural_aviso:
-    'Paz e Luz, {{nome_filho}}! Há um novo aviso no Mural do terreiro {{nome_terreiro}}:\n\n*{{titulo_aviso}}*\n\nAcesse o sistema para ver os detalhes. Axé!',
+    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nAcesse o AxéCloud para ver o aviso completo. Axé!',
   convite_evento:
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
   senha_evento_visitante:
@@ -54,6 +57,7 @@ export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'cobranca_mensalidade',
   'financeiro',
   'mensalidade_confirmada',
+  'transmissao_aviso',
   'mural_aviso',
   'convite_evento',
   'senha_evento_visitante',
@@ -78,6 +82,9 @@ export function resolveWhatsAppTemplate(templates: unknown, tipo: string): strin
     return WHATSAPP_TEMPLATE_DEFAULTS.dados_acesso;
   }
   const merged = normalizeWhatsAppTemplates(templates);
+  if (normalized === 'transmissao_aviso' || normalized === 'mural_aviso') {
+    return merged.transmissao_aviso;
+  }
   if (tipo in merged) return merged[tipo as WhatsAppTemplateType];
   return 'Mensagem do AxéCloud';
 }

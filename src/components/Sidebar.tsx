@@ -47,7 +47,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, filledWhenActive: true },
   { id: 'children', label: 'Membros', icon: User },
   { id: 'calendar', label: 'Giras / Eventos', icon: CalendarDays },
-  { id: 'mural', label: 'Comunicados', icon: Newspaper },
+  { id: 'mural', label: 'Transmissão Aviso', icon: Newspaper },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
   { id: 'financial', label: 'Financeiro', icon: PieChart },

@@ -9,8 +9,12 @@ import {
   assertBroadcastCooldown,
   assertBroadcastRecipientLimit,
   assertTenantWhatsAppDailyQuota,
+  assertWhatsAppOutboundAllowed,
+  capAndShuffleRecipients,
   validateWhatsAppOutboundMessage,
 } from "./whatsappSendGuards.js";
+import { buildSendMeta, humanizeWhatsAppMessage } from "./whatsappAntiSpam.js";
+import { appendFingerprintMarker } from "./whatsappPersistentLimits.js";
 import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
@@ -286,7 +290,7 @@ async function enrichBoasVindasVariables(
 
 function isBroadcastLikeTipo(tipo: string): boolean {
   const t = String(tipo || "").toLowerCase();
-  return t === "broadcast" || t === "teste";
+  return t === "broadcast" || t === "teste" || t === "transmissao_aviso" || t === "mural_aviso";
 }
 
 function resolveBroadcastRawText(
@@ -328,7 +332,7 @@ export function buildWhatsAppDeliverableText(
   if (isBroadcastLikeTipo(tipo)) {
     const rawMessage = resolveBroadcastRawText(variables, "");
     return buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, rawMessage, zelador, {
-      includeGreeting: false,
+      includeGreeting: true,
     });
   }
 
@@ -358,10 +362,46 @@ export function buildWhatsAppDeliverableText(
   return body.slice(0, 4096);
 }
 
-async function sendWhatsAppTextMessage(phone: string, text: string): Promise<{ messageId?: string }> {
-  const safeText = validateWhatsAppOutboundMessage(text);
-  const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, phone, safeText);
-  console.log(`[WHATSAPP] text via Evolution (fila) → ${phone.slice(0, 4)}…`);
+async function sendWhatsAppTextMessage(
+  phone: string,
+  text: string,
+  opts?: {
+    tipo?: string;
+    tenantId?: string;
+    filhoId?: string | null;
+    nomeMembro?: string;
+    batchIndex?: number;
+    batchTotal?: number;
+    sb?: SupabaseClient;
+    skipSendWindow?: boolean;
+  }
+): Promise<{ messageId?: string }> {
+  const tipo = String(opts?.tipo || "notification");
+  const humanized = humanizeWhatsAppMessage(text, {
+    nomeMembro: opts?.nomeMembro || "Membro",
+    tipo,
+    tenantId: opts?.tenantId,
+    filhoId: opts?.filhoId,
+    phone,
+    forceGreeting:
+      tipo === "broadcast" ||
+      tipo === "transmissao_aviso" ||
+      tipo === "mural_aviso" ||
+      tipo === "aviso_gira",
+  });
+  const safeText = validateWhatsAppOutboundMessage(humanized);
+  const meta = buildSendMeta(tipo, {
+    tenantId: opts?.tenantId,
+    filhoId: opts?.filhoId,
+    batchIndex: opts?.batchIndex,
+    batchTotal: opts?.batchTotal,
+  });
+  const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, phone, safeText, {
+    ...meta,
+    sb: opts?.sb,
+    skipSendWindow: opts?.skipSendWindow,
+  });
+  console.log(`[WHATSAPP] ${meta.category} via Evolution (fila) → ${phone.slice(0, 4)}…`);
   return out;
 }
 
@@ -380,7 +420,6 @@ export async function logAndSendWhatsApp(
   await ensureOfficialWhatsAppReady();
 
   const { tipo, phone, message, deliverableText, filhoId, tenantId } = input;
-  await assertTenantWhatsAppDailyQuota(sb, tenantId, 1);
   const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
   const textToSend =
     deliverableText ||
@@ -390,15 +429,31 @@ export async function logAndSendWhatsApp(
           input.nomeTerreiro,
           resolveBroadcastRawText(input.variables, message),
           zelador,
-          { includeGreeting: false }
+          { includeGreeting: true }
         )
       : message);
 
-  const sent = await sendWhatsAppTextMessage(phone, textToSend);
+  const { fingerprint } = await assertWhatsAppOutboundAllowed(sb, {
+    tenantId,
+    tipo,
+    messageText: textToSend,
+    plannedSends: 1,
+  });
+
+  const sent = await sendWhatsAppTextMessage(phone, textToSend, {
+    tipo,
+    tenantId,
+    filhoId,
+    nomeMembro: input.nomeMembro,
+    sb,
+  });
   const messageId = sent.messageId;
-  const auditMessage = isBroadcastLikeTipo(tipo)
+  let auditMessage = isBroadcastLikeTipo(tipo)
     ? textToSend
     : buildWhatsAppAuditMessage(tipo, input.variables, input.nomeMembro, input.nomeTerreiro) || textToSend;
+  if (fingerprint) {
+    auditMessage = appendFingerprintMarker(auditMessage, fingerprint);
+  }
 
   const externalId = messageId || `msg_${Math.random().toString(36).substr(2, 9)}`;
   await sb.from("whatsapp_logs").insert({
@@ -512,17 +567,22 @@ export async function broadcastWhatsAppForTenant(
     return true;
   });
 
-  validateWhatsAppOutboundMessage(messageText);
-  assertBroadcastRecipientLimit(uniqueTargets.length);
+  const shuffled = capAndShuffleRecipients(uniqueTargets, uniqueTargets.length);
+  assertBroadcastRecipientLimit(shuffled.length);
   await assertBroadcastCooldown(sb, tenantId);
-  await assertTenantWhatsAppDailyQuota(sb, tenantId, uniqueTargets.length);
+  await assertWhatsAppOutboundAllowed(sb, {
+    tenantId,
+    tipo: "broadcast",
+    messageText: messageText,
+    plannedSends: shuffled.length,
+  });
 
   let sent = 0;
   let failed = 0;
   let lastError: string | undefined;
 
-  for (let i = 0; i < uniqueTargets.length; i++) {
-    const filho = uniqueTargets[i];
+  for (let i = 0; i < shuffled.length; i++) {
+    const filho = shuffled[i];
     const phone = normalizeBrPhone(String(filho.whatsapp_phone));
     try {
       await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
@@ -579,7 +639,7 @@ export async function broadcastWhatsAppForTenant(
     });
   }
 
-  return { sent, failed, total: uniqueTargets.length, lastError };
+  return { sent, failed, total: shuffled.length, lastError };
 }
 
 /** Reenvia boas-vindas com registro, senha (6 dígitos CPF) e link de login para filhos com WhatsApp. */

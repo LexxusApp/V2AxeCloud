@@ -46,7 +46,7 @@ import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
 import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendBoasVindasWhatsAppForTenant } from "./lib/whatsappSendCore.js";
 import { validateWhatsAppOutboundMessage } from "./lib/whatsappSendGuards.js";
-import { dispatchGiraWhatsApp, dispatchMuralWhatsApp } from "./lib/cronWhatsAppJobs.js";
+import { dispatchGiraWhatsApp, dispatchTransmissaoAviso } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
 import { resolveFilhoRowIdForFinance } from "./lib/resolveFilhoRowIdForFinance.js";
@@ -1591,7 +1591,7 @@ async function startServer() {
 
   // API Route: Create Notice (Mural) and Trigger Push
   app.post("/api/notices", async (req, res) => {
-    const { titulo, conteudo, categoria, tenantId: _bodyTenantIgnored, expiracao } = req.body;
+    const { titulo, conteudo, categoria, tenantId: _bodyTenantIgnored, expiracao, notifyWhatsApp } = req.body;
 
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
@@ -1679,14 +1679,21 @@ async function startServer() {
         .select("nome_terreiro")
         .eq("id", zeladorId)
         .maybeSingle();
-      void dispatchMuralWhatsApp(
-        supabaseAdmin,
-        zeladorId,
-        titulo,
-        String(leaderProfile?.nome_terreiro || "Terreiro")
-      ).catch((err) => console.error("[MURAL WA] auto-dispatch:", err));
+      let whatsappDispatch: Awaited<ReturnType<typeof dispatchTransmissaoAviso>> | null = null;
+      if (notifyWhatsApp !== false) {
+        whatsappDispatch = await dispatchTransmissaoAviso(
+          supabaseAdmin,
+          zeladorId,
+          titulo,
+          conteudo,
+          String(leaderProfile?.nome_terreiro || "Terreiro")
+        ).catch((err) => {
+          console.error("[TRANSMISSAO AVISO] auto-dispatch:", err);
+          return { sent: 0, errors: 1, skipped: 0, status: "skipped" as const };
+        });
+      }
 
-      res.json({ success: true, data: notice, push: pushResult });
+      res.json({ success: true, data: notice, push: pushResult, whatsapp: whatsappDispatch });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar aviso:", error);
       res.status(500).json({ error: safeErrorMessage(error) });

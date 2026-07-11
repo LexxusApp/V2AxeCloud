@@ -3699,7 +3699,7 @@ async function startServer() {
         return res.status(401).json({ error: "Sessão inválida" });
       }
 
-      const { titulo, conteudo, categoria, data_publicacao, expiracao } = req.body;
+      const { titulo, conteudo, categoria, data_publicacao, expiracao, notifyWhatsApp } = req.body;
 
       if (!titulo || !conteudo) {
         return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
@@ -3791,7 +3791,27 @@ async function startServer() {
         console.error('[SERVER] Push após mural:', pushErr?.message || pushErr);
       }
 
-      res.json({ data: inserted });
+      let whatsappDispatch = null;
+      if (notifyWhatsApp !== false) {
+        const { dispatchTransmissaoAviso } = await import("./api/lib/cronWhatsAppJobs.js");
+        const { data: leaderProfile } = await supabaseAdmin
+          .from("perfil_lider")
+          .select("nome_terreiro")
+          .eq("id", zeladorId)
+          .maybeSingle();
+        whatsappDispatch = await dispatchTransmissaoAviso(
+          supabaseAdmin,
+          zeladorId,
+          titulo,
+          conteudo,
+          String(leaderProfile?.nome_terreiro || "Terreiro")
+        ).catch((err) => {
+          console.error("[TRANSMISSAO AVISO] auto-dispatch:", err);
+          return { sent: 0, errors: 1, skipped: 0, status: "skipped" as const };
+        });
+      }
+
+      res.json({ data: inserted, whatsapp: whatsappDispatch });
     } catch (error: any) {
       console.error("[SERVER] Error creating notice:", error.message || error);
       res.status(500).json({ error: error.message || "Erro ao publicar aviso" });

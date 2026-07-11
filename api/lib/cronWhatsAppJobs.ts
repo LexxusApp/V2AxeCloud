@@ -9,6 +9,18 @@ import {
   assertFilhoBelongsToTerreiro,
 } from "./whatsappSendCore.js";
 import { resolveLeaderId } from "./tenantAccess.js";
+import {
+  assertFanoutCooldown,
+  capAndShuffleRecipients,
+} from "./whatsappSendGuards.js";
+import { isWithinAllowedSendWindow } from "./whatsappAntiSpam.js";
+
+function envInt(name: string, fallback: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : fallback;
+}
+
+const FANOUT_MAX_RECIPIENTS = envInt("WA_FANOUT_MAX_RECIPIENTS", 30);
 
 async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
   const leaderId = await resolveLeaderId(sb, tenantId);
@@ -49,6 +61,10 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
   let errors = 0;
 
   if (!(await isOfficialChannelReady())) {
+    return { sent: 0, skipped: 0, errors: 0 };
+  }
+  if (!isWithinAllowedSendWindow()) {
+    console.warn("[CRON WA] mensalidade — fora da janela horária");
     return { sent: 0, skipped: 0, errors: 0 };
   }
 
@@ -247,37 +263,52 @@ async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; ski
   return { sent, skipped, errors };
 }
 
-export async function dispatchMuralWhatsApp(
+export async function dispatchTransmissaoAviso(
   sb: SupabaseClient,
   tenantId: string,
   titulo: string,
+  conteudo: string,
   nomeTerreiro: string
-): Promise<{ sent: number; errors: number }> {
+): Promise<{ sent: number; errors: number; skipped: number; status: "sent" | "skipped" | "offline" }> {
   let sent = 0;
   let errors = 0;
+  let skipped = 0;
 
   try {
-    if (!(await isOfficialChannelReady())) return { sent: 0, errors: 0 };
+    if (!(await isOfficialChannelReady())) {
+      return { sent: 0, errors: 0, skipped: 0, status: "offline" };
+    }
+    if (!isWithinAllowedSendWindow()) {
+      console.warn(`[TRANSMISSAO AVISO] fora da janela horária — tenant=${tenantId}`);
+      return { sent: 0, errors: 0, skipped: 1, status: "skipped" };
+    }
+
+    await assertFanoutCooldown(sb, tenantId, "transmissao_aviso");
 
     const ctx = await resolveCronTerreiroContext(sb, tenantId);
     const terreiroNome = nomeTerreiro || ctx.nomeTerreiro;
-
-    const { data: cfg } = await sb
-      .from("whatsapp_config")
-      .select("templates")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    const tituloSafe = String(titulo || "").trim();
+    const conteudoSafe = String(conteudo || "").trim();
+    const excerpt =
+      conteudoSafe.length > 400 ? `${conteudoSafe.slice(0, 400).trim()}…` : conteudoSafe;
+    const comunicado = [`*${tituloSafe}*`, excerpt].filter(Boolean).join("\n\n");
 
     const { data: children } = await sb
       .from("filhos_de_santo")
       .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
       .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
 
-    for (const child of children || []) {
+    const eligible = (children || []).filter((child) => {
       const st = String(child.status || "Ativo").trim().toLowerCase();
-      if (st === "inativo" || st === "desligado" || st === "falecido") continue;
-      if (!child.whatsapp_phone) continue;
+      if (st === "inativo" || st === "desligado" || st === "falecido") return false;
+      return Boolean(child.whatsapp_phone);
+    });
 
+    const batch = capAndShuffleRecipients(eligible, FANOUT_MAX_RECIPIENTS);
+    skipped = Math.max(0, eligible.length - batch.length);
+
+    for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
+      const child = batch[batchIndex];
       try {
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
 
@@ -285,39 +316,55 @@ export async function dispatchMuralWhatsApp(
         if (!digits.startsWith("55")) digits = `55${digits}`;
 
         const nomeMembro = String(child.nome || "Filho");
-        const message = buildWhatsAppMessage(cfg?.templates, "mural_aviso", {
-          nome_filho: nomeMembro,
-          nome_terreiro: terreiroNome,
-          titulo_aviso: titulo,
-        });
-
         await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: child.id,
-          tipo: "mural_aviso",
+          tipo: "transmissao_aviso",
           phone: digits,
-          message,
+          message: comunicado,
           nomeMembro,
           nomeTerreiro: terreiroNome,
           idTerreiro: ctx.idTerreiro,
+          zelador: ctx.zelador,
           variables: {
             nome_filho: nomeMembro,
             nome_terreiro: terreiroNome,
-            titulo_aviso: titulo,
+            titulo_aviso: tituloSafe,
+            conteudo_aviso: excerpt,
+            comunicado,
+            zelador: ctx.zelador || "",
+            nome_zelador: ctx.zelador || "",
           },
         });
         sent++;
       } catch (err) {
         errors++;
-        console.error(`[MURAL WA] filho=${child.id}:`, err);
+        console.error(`[TRANSMISSAO AVISO] filho=${child.id}:`, err);
+        const code = (err as { code?: string })?.code || "";
+        if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
+          break;
+        }
       }
     }
   } catch (err) {
-    console.error("[MURAL WA] dispatch:", err);
+    console.error("[TRANSMISSAO AVISO] dispatch:", err);
     errors++;
   }
 
-  return { sent, errors };
+  const status: "sent" | "skipped" | "offline" =
+    sent > 0 ? "sent" : errors > 0 ? "skipped" : "skipped";
+  return { sent, errors, skipped, status };
+}
+
+/** @deprecated Use dispatchTransmissaoAviso */
+export async function dispatchMuralWhatsApp(
+  sb: SupabaseClient,
+  tenantId: string,
+  titulo: string,
+  nomeTerreiro: string
+): Promise<{ sent: number; errors: number; skipped: number }> {
+  const out = await dispatchTransmissaoAviso(sb, tenantId, titulo, titulo, nomeTerreiro);
+  return { sent: out.sent, errors: out.errors, skipped: out.skipped };
 }
 
 function formatEventDateBr(isoDate: string): string {
@@ -357,6 +404,12 @@ export async function dispatchGiraWhatsApp(
     if (!(await isOfficialChannelReady())) {
       return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
     }
+    if (!isWithinAllowedSendWindow()) {
+      console.warn(`[GIRA WA] fora da janela horária — tenant=${tenantId}`);
+      return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
+    }
+
+    await assertFanoutCooldown(sb, tenantId, "aviso_gira");
 
     const { data: cfg } = await sb
       .from("whatsapp_config")
@@ -397,12 +450,17 @@ export async function dispatchGiraWhatsApp(
       .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
       .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
 
-    for (const child of children || []) {
+    const eligibleChildren = (children || []).filter((child) => {
       const st = String(child.status || "Ativo").trim().toLowerCase();
-      if (st === "inativo" || st === "desligado" || st === "falecido") continue;
-      if (!child.whatsapp_phone) continue;
+      if (st === "inativo" || st === "desligado" || st === "falecido") return false;
+      return Boolean(child.whatsapp_phone);
+    });
 
-      eligible++;
+    const batch = capAndShuffleRecipients(eligibleChildren, FANOUT_MAX_RECIPIENTS);
+    eligible = batch.length;
+
+    for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
+      const child = batch[batchIndex];
 
       try {
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
@@ -426,6 +484,10 @@ export async function dispatchGiraWhatsApp(
       } catch (err) {
         errors++;
         console.error(`[GIRA WA] filho=${child.id}:`, err);
+        const code = (err as { code?: string })?.code || "";
+        if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
+          break;
+        }
       }
     }
   } catch (err) {

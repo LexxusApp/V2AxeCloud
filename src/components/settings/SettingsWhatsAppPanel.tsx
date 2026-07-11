@@ -1,7 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
-  MessageSquare,
   Send,
   Settings,
   Shield,
@@ -16,7 +15,7 @@ import {
   whatsappRailwayJsonBody,
 } from '../../lib/whatsappApiUrl';
 
-type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'broadcast' | 'teste';
+type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'transmissao' | 'broadcast' | 'teste';
 
 type WaLogUi = {
   id: string;
@@ -41,18 +40,8 @@ const DEFAULT_PREFS: WaPreferences = {
   notifAniversarios: true,
 };
 
-const DEFAULT_TEST_MSG = '';
 const MAX_VISIBLE_LOGS = 8;
 const LOG_FETCH_LIMIT = 12;
-
-function buildComunicadoPreview(text: string, nomeTerreiro: string, zelador: string): string {
-  const msg = text.trim();
-  const casa = nomeTerreiro.trim() || 'Terreiro';
-  const lider = zelador.trim();
-  const assinatura = lider ? `— ${lider} · ${casa}` : `— ${casa}`;
-  if (!msg) return assinatura;
-  return `${msg}\n\n${assinatura}`;
-}
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
@@ -60,6 +49,7 @@ const BADGE_COLORS: Record<WaLogTipo, string> = {
   reza: 'bg-rose-950/40 text-rose-400 border-rose-600/10',
   teste: 'bg-amber-950/40 text-[#FACC15] border-amber-600/10',
   broadcast: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
+  transmissao: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
 };
 
 function mapLogTipo(raw: string | null | undefined): WaLogTipo {
@@ -68,6 +58,7 @@ function mapLogTipo(raw: string | null | undefined): WaLogTipo {
   if (t.includes('financ') || t.includes('mensal') || t.includes('cobran')) return 'financeiro';
   if (t.includes('reza') || t.includes('altar') || t.includes('vela')) return 'reza';
   if (t === 'broadcast') return 'broadcast';
+  if (t === 'transmissao_aviso' || t === 'mural_aviso') return 'transmissao';
   if (t === 'teste') return 'teste';
   return 'teste';
 }
@@ -106,15 +97,10 @@ export function SettingsWhatsAppPanel() {
   const [connected, setConnected] = useState(false);
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
-  const [testMessage, setTestMessage] = useState(DEFAULT_TEST_MSG);
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
-  const [correnteCount, setCorrenteCount] = useState<number | null>(null);
-  const [nomeTerreiro, setNomeTerreiro] = useState('');
-  const [zeladorNome, setZeladorNome] = useState('');
   const [logs, setLogs] = useState<WaLogUi[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
-  const [broadcasting, setBroadcasting] = useState(false);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -214,62 +200,17 @@ export function SettingsWhatsAppPanel() {
     }
   }, []);
 
-  const loadCorrenteCount = useCallback(async () => {
-    try {
-      const userId = await getSessionUserId();
-      const { data, error } = await supabase
-        .from('filhos_de_santo')
-        .select('id, whatsapp_phone, status')
-        .or(`tenant_id.eq.${userId},lider_id.eq.${userId}`)
-        .not('whatsapp_phone', 'is', null);
-      if (error) return;
-      const seen = new Set<string>();
-      const total = (data || []).filter((f) => {
-        const st = String(f.status || 'Ativo').trim().toLowerCase();
-        if (st === 'inativo' || st === 'desligado' || st === 'falecido') return false;
-        const phone = String(f.whatsapp_phone || '').replace(/\D/g, '');
-        if (phone.length < 10) return false;
-        if (seen.has(phone)) return false;
-        seen.add(phone);
-        return true;
-      }).length;
-      setCorrenteCount(total);
-    } catch {
-      /* silencioso */
-    }
-  }, []);
-
-  const loadTerreiroContext = useCallback(async () => {
-    try {
-      const userId = await getSessionUserId();
-      const { data, error } = await supabase
-        .from('perfil_lider')
-        .select('nome_terreiro, cargo')
-        .eq('id', userId)
-        .maybeSingle();
-      if (error) return;
-      setNomeTerreiro(String(data?.nome_terreiro || '').trim());
-      setZeladorNome(String(data?.cargo || '').trim());
-    } catch {
-      /* silencioso */
-    }
-  }, []);
-
   useEffect(() => {
     void loadConfig();
     void loadLogs();
-    void loadCorrenteCount();
-    void loadTerreiroContext();
     void checkStatus();
     const id = window.setInterval(() => {
       void checkStatus();
       void loadLogs();
-      void loadCorrenteCount();
     }, 15000);
     return () => window.clearInterval(id);
-  }, [checkStatus, loadConfig, loadCorrenteCount, loadLogs, loadTerreiroContext]);
+  }, [checkStatus, loadConfig, loadLogs]);
 
-  const messagePreview = buildComunicadoPreview(testMessage, nomeTerreiro, zeladorNome);
   const visibleLogs = logs.slice(0, MAX_VISIBLE_LOGS);
   const hiddenLogsCount = Math.max(logs.length - visibleLogs.length, 0);
 
@@ -327,52 +268,10 @@ export function SettingsWhatsAppPanel() {
         'success',
       );
       void loadLogs();
-      void loadCorrenteCount();
     } catch (e: unknown) {
       notify(e instanceof Error ? e.message : 'Erro ao enviar teste', 'error');
     } finally {
       setSendingTest(false);
-    }
-  };
-
-  const handleBroadcast = async () => {
-    if (!connected) {
-      notify('Canal oficial indisponível no momento. Tente novamente em instantes.', 'error');
-      return;
-    }
-    if (!testMessage.trim()) {
-      notify('Por favor, digite alguma mensagem para poder testar o disparo.', 'error');
-      return;
-    }
-    setBroadcasting(true);
-    try {
-      const token = await getAccessToken();
-      const userId = await getSessionUserId();
-      const res = await fetch(whatsappApiUrl('/whatsapp/broadcast'), {
-        method: 'POST',
-        headers: whatsappRailwayHeaders(token, userId),
-        body: whatsappRailwayJsonBody(userId, { message: testMessage.trim() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(String(data.error || 'Falha na transmissão'));
-      }
-      const destino = String(data.destino || 'Corrente Geral');
-      const sent = Number(data.sent ?? 0);
-      const failed = Number(data.failed ?? 0);
-      const total = Number(data.total ?? 0);
-      setTestMessage('');
-      if (failed > 0) {
-        notify(`Transmitido para ${sent} de ${total} médiuns (${failed} falha(s)). Confira os logs ao lado.`, 'info');
-      } else {
-        notify(`Mensagem transmitida para ${sent || total} filho(s) com WhatsApp cadastrado (${destino}).`, 'success');
-      }
-      void loadLogs();
-      void loadCorrenteCount();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? e.message : 'Erro ao transmitir', 'error');
-    } finally {
-      setBroadcasting(false);
     }
   };
 
@@ -582,63 +481,14 @@ export function SettingsWhatsAppPanel() {
           </div>
 
           <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400">
+            <h6 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400">
               <Send className="h-4 w-4" />
-              4. Transmissão para a Corrente
+              4. Transmissão Aviso
             </h6>
-            <div className="space-y-4">
-              <p className="text-[11px] leading-relaxed text-gray-400">
-                Escreva o comunicado livremente — o filho recebe exatamente o que você digitar, com uma{' '}
-                <strong className="text-gray-300">assinatura automática da casa</strong> no final.
-                Dispara para cada filho com WhatsApp cadastrado na Corrente (não inclui o zelador automaticamente).
-                {correnteCount !== null && correnteCount > 0 ? (
-                  <span className="mt-1 block text-violet-300">
-                    Destinatários únicos agora: {correnteCount} número(s) com WhatsApp cadastrado.
-                  </span>
-                ) : null}
-                {correnteCount === 0 ? (
-                  <span className="mt-1 block text-amber-300">
-                    Nenhum filho com WhatsApp válido cadastrado — cadastre um número na Corrente para habilitar o
-                    disparo.
-                  </span>
-                ) : null}
-              </p>
-              <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">
-                  Mensagem de Comunicado Geral da Casa
-                </label>
-                <textarea
-                  rows={4}
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  placeholder="Digite aqui o comunicado da casa — texto livre, sem modelo fixo."
-                  className="w-full resize-none rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs leading-relaxed text-[#F1F5F9] placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#10B981]"
-                />
-              </div>
-              <div className="rounded-lg border border-violet-500/15 bg-violet-950/20 p-3">
-                <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-violet-300">
-                  Prévia do que o filho receberá
-                </p>
-                <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-gray-300">{messagePreview}</p>
-                <p className="mt-2 text-[10px] leading-relaxed text-gray-500">
-                  A assinatura aparece na prévia para você conferir. No WhatsApp, o template da Meta já identifica o
-                  terreiro no cabeçalho — evite disparar várias vezes seguidas para o mesmo número.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleBroadcast()}
-                disabled={broadcasting || !connected || !testMessage.trim() || correnteCount === 0}
-                className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-xs font-bold transition-colors ${
-                  connected && correnteCount !== 0
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
-                    : 'cursor-not-allowed border border-[#1E242B]/85 bg-[#12161A] text-gray-500 hover:bg-[#12161A]'
-                }`}
-              >
-                <Send className="h-3.5 w-3.5" />
-                {broadcasting ? 'Transmitindo…' : 'Disparar Mensagem para a Corrente (Grupo)'}
-              </button>
-            </div>
+            <p className="text-[11px] leading-relaxed text-gray-400">
+              Para avisar a corrente via WhatsApp, use o menu <strong className="text-gray-300">Transmissão Aviso</strong>.
+              Lá você publica o aviso no app e pode marcar a opção de transmitir automaticamente — com proteção anti-spam integrada.
+            </p>
           </div>
         </div>
 

@@ -72,7 +72,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'financial', label: 'Financeiro', icon: PieChart },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
-  { id: 'mural', label: 'Mural', icon: Megaphone },
+  { id: 'mural', label: 'Transmissão Aviso', icon: Megaphone },
   { id: 'chat', label: 'Mensagens', icon: MessageCircle },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
@@ -149,7 +149,7 @@ export const FILHO_NAV: AppNavItem[] = [
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
-  { id: 'mural', label: 'Mural', icon: Newspaper },
+  { id: 'mural', label: 'Transmissão Aviso', icon: Newspaper },
   { id: 'chat', label: 'Conversas', icon: MessageCircle },
 ];
 

@@ -18,6 +18,9 @@ import { verifyUser } from "./verifyUser.js";
 import { verifyWhatsAppWebhook } from "./secureRoutes.js";
 import { consumeRateLimit } from "./rateLimit.js";
 import { validateWhatsAppOutboundMessage } from "./whatsappSendGuards.js";
+import { getEvolutionQueueStats } from "./evolutionSendQueue.js";
+import { isWithinAllowedSendWindow } from "./whatsappAntiSpam.js";
+import { getPersistentQuotaSnapshot } from "./whatsappPersistentLimits.js";
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 
@@ -296,11 +299,21 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
 
     if (act === "status" && method === "GET") {
       const official = await getOfficialWhatsAppStatus();
+      const queue = getEvolutionQueueStats();
+      const quota = await getPersistentQuotaSnapshot(sb);
       return sendJson(res, 200, {
         status: official.status,
         qrcode: null,
         channel: "official",
         pairingCode: null,
+        antiSpam: {
+          sendWindowOpen: isWithinAllowedSendWindow(),
+          queuePending: queue.pending,
+          sentLastHour: quota.sentLastHour,
+          sentToday: quota.sentToday,
+          hourlyMax: quota.hourlyMax,
+          dailyMax: quota.dailyMax,
+        },
         message:
           official.status === "CONNECTED"
             ? "Canal oficial AxéCloud ativo. Suas notificações serão enviadas pelo número verificado da plataforma."

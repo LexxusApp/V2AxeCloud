@@ -1,9 +1,33 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEvolutionTextByInstance } from "../../src/services/evolution.service.js";
+import {
+  assertWithinSendWindow,
+  isWithinAllowedSendWindow,
+  msUntilNextSendWindow,
+  resolveSendDelayMs,
+  resolveSendPriority,
+  resolveSendCategory,
+  type WhatsAppSendMeta,
+} from "./whatsappAntiSpam.js";
+import {
+  assertPersistentGlobalQuota,
+  waitForPersistentPhoneCooldown,
+} from "./whatsappPersistentLimits.js";
+
+export type WhatsAppQueueOptions = Partial<WhatsAppSendMeta> & {
+  /** Cliente Supabase para cotas persistentes (recomendado em produção). */
+  sb?: SupabaseClient;
+  /** Pula verificação de janela horária (só OTP/crítico). */
+  skipSendWindow?: boolean;
+};
 
 type QueueJob = {
   instanceName: string;
   phone: string;
   text: string;
+  meta: WhatsAppSendMeta;
+  sb?: SupabaseClient;
+  skipSendWindow: boolean;
   resolve: (value: { messageId?: string }) => void;
   reject: (error: Error) => void;
   retries: number;
@@ -17,6 +41,7 @@ export type EvolutionQueueStats = {
   sentToday: number;
   consecutiveFailures: number;
   circuitOpenUntil: number | null;
+  sendWindowOpen: boolean;
 };
 
 function envInt(name: string, fallback: number): number {
@@ -24,14 +49,13 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : fallback;
 }
 
-const MIN_DELAY_MS = envInt("WA_SEND_MIN_DELAY_MS", 3500);
-const MAX_DELAY_MS = Math.max(MIN_DELAY_MS, envInt("WA_SEND_MAX_DELAY_MS", 8000));
-const PHONE_COOLDOWN_MS = envInt("WA_SEND_PHONE_COOLDOWN_MS", 45000);
-const HOURLY_MAX = envInt("WA_SEND_HOURLY_MAX", 70);
-const DAILY_MAX = envInt("WA_SEND_DAILY_MAX", 450);
+const PHONE_COOLDOWN_MS = envInt("WA_SEND_PHONE_COOLDOWN_MS", 120_000);
+const HOURLY_MAX = envInt("WA_SEND_HOURLY_MAX", 40);
+const DAILY_MAX = envInt("WA_SEND_DAILY_MAX", 250);
 const MAX_RETRIES = envInt("WA_SEND_MAX_RETRIES", 2);
 const CIRCUIT_FAIL_THRESHOLD = envInt("WA_SEND_CIRCUIT_FAIL_THRESHOLD", 4);
-const CIRCUIT_PAUSE_MS = envInt("WA_SEND_CIRCUIT_PAUSE_MS", 90_000);
+const CIRCUIT_PAUSE_MS = envInt("WA_SEND_CIRCUIT_PAUSE_MS", 120_000);
+const MAX_QUEUE_WAIT_MS = envInt("WA_SEND_MAX_QUEUE_WAIT_MS", 30 * 60_000);
 
 const queue: QueueJob[] = [];
 let processing = false;
@@ -54,11 +78,6 @@ function startOfNextUtcDay(): number {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function jitterDelayMs(): number {
-  if (MAX_DELAY_MS <= MIN_DELAY_MS) return MIN_DELAY_MS;
-  return MIN_DELAY_MS + Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1));
 }
 
 function normalizePhone(phone: string): string {
@@ -84,7 +103,7 @@ function refreshQuotaWindows(): void {
   }
 }
 
-function assertGlobalQuota(): void {
+function assertInMemoryGlobalQuota(): void {
   refreshQuotaWindows();
   if (hourlyCount >= HOURLY_MAX) {
     throw quotaError(
@@ -110,7 +129,9 @@ function isRetryableError(err: unknown): boolean {
     message.includes("504") ||
     message.includes("429") ||
     message.includes("rate") ||
-    message.includes("temporar")
+    message.includes("temporar") ||
+    message.includes("ban") ||
+    message.includes("restrict")
   );
 }
 
@@ -121,15 +142,19 @@ async function waitForCircuit(): Promise<void> {
   }
 }
 
-async function waitForSendSpacing(): Promise<void> {
-  const delay = jitterDelayMs();
+async function waitForSendSpacing(meta: WhatsAppSendMeta, phone: string): Promise<void> {
+  const delay = resolveSendDelayMs(meta, `${phone}:${meta.batchIndex ?? 0}`);
   const elapsed = Date.now() - lastSendFinishedAt;
   if (elapsed < delay) {
     await sleep(delay - elapsed);
   }
 }
 
-async function waitForPhoneCooldown(phone: string): Promise<void> {
+async function waitForPhoneCooldown(phone: string, sb?: SupabaseClient): Promise<void> {
+  if (sb) {
+    await waitForPersistentPhoneCooldown(sb, phone);
+    return;
+  }
   if (PHONE_COOLDOWN_MS <= 0) return;
   const last = phoneLastSentAt.get(phone) || 0;
   const elapsed = Date.now() - last;
@@ -138,11 +163,35 @@ async function waitForPhoneCooldown(phone: string): Promise<void> {
   }
 }
 
+async function waitForSendWindow(skip: boolean, category: WhatsAppSendMeta["category"]): Promise<void> {
+  if (skip || category === "critical") return;
+  if (isWithinAllowedSendWindow()) return;
+  const waitMs = msUntilNextSendWindow();
+  if (waitMs <= 0) return;
+  if (waitMs > MAX_QUEUE_WAIT_MS) {
+    assertWithinSendWindow();
+  }
+  console.warn(`[WHATSAPP_QUEUE] aguardando janela de envio (${Math.round(waitMs / 60000)} min)`);
+  await sleep(waitMs);
+}
+
 async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
+  const waitMs = Date.now() - job.enqueuedAt;
+  if (waitMs > MAX_QUEUE_WAIT_MS) {
+    throw quotaError("WA_QUEUE_TIMEOUT", "Mensagem expirou na fila (muita demanda). Tente novamente.");
+  }
+
   await waitForCircuit();
-  assertGlobalQuota();
-  await waitForSendSpacing();
-  await waitForPhoneCooldown(job.phone);
+  await waitForSendWindow(job.skipSendWindow, job.meta.category);
+
+  if (job.sb) {
+    await assertPersistentGlobalQuota(job.sb);
+  } else {
+    assertInMemoryGlobalQuota();
+  }
+
+  await waitForSendSpacing(job.meta, job.phone);
+  await waitForPhoneCooldown(job.phone, job.sb);
 
   try {
     const out = await sendEvolutionTextByInstance(job.instanceName, job.phone, job.text);
@@ -166,11 +215,21 @@ async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
   }
 }
 
+function sortQueueByPriority(): void {
+  queue.sort((a, b) => {
+    const pa = resolveSendPriority(a.meta.category);
+    const pb = resolveSendPriority(b.meta.category);
+    if (pa !== pb) return pa - pb;
+    return a.enqueuedAt - b.enqueuedAt;
+  });
+}
+
 async function processQueue(): Promise<void> {
   if (processing) return;
   processing = true;
   try {
     while (queue.length > 0) {
+      sortQueueByPriority();
       const job = queue.shift();
       if (!job) break;
 
@@ -181,12 +240,13 @@ async function processQueue(): Promise<void> {
         const error = err instanceof Error ? err : new Error(String(err));
         if (job.retries < MAX_RETRIES && isRetryableError(error)) {
           job.retries += 1;
-          const backoff = Math.min(30_000, 2000 * 2 ** job.retries);
+          const backoff = Math.min(60_000, 3000 * 2 ** job.retries);
           console.warn(
-            `[WHATSAPP_QUEUE] retry ${job.retries}/${MAX_RETRIES} para ${job.phone.slice(0, 4)}… em ${backoff}ms`
+            `[WHATSAPP_QUEUE] retry ${job.retries}/${MAX_RETRIES} (${job.meta.category}) → ${job.phone.slice(0, 4)}… em ${backoff}ms`
           );
           await sleep(backoff);
-          queue.unshift(job);
+          queue.push(job);
+          sortQueueByPriority();
           continue;
         }
         job.reject(error);
@@ -200,22 +260,44 @@ async function processQueue(): Promise<void> {
   }
 }
 
-/** Enfileira envio serializado com espaçamento, cooldown por número e cotas globais. */
+function resolveJobMeta(options?: WhatsAppQueueOptions): WhatsAppSendMeta {
+  const tipo = options?.tipo || "notification";
+  return {
+    category: options?.category || resolveSendCategory(tipo),
+    tipo,
+    tenantId: options?.tenantId,
+    filhoId: options?.filhoId,
+    batchIndex: options?.batchIndex,
+    batchTotal: options?.batchTotal,
+  };
+}
+
+/** Enfileira envio com prioridade, espaçamento humano, cooldown e cotas globais. */
 export function sendEvolutionTextQueued(
   instanceName: string,
   phoneDigits: string,
-  text: string
+  text: string,
+  options?: WhatsAppQueueOptions
 ): Promise<{ messageId?: string }> {
   const phone = normalizePhone(phoneDigits);
   const body = String(text || "").trim();
   if (!phone) return Promise.reject(new Error("Número inválido para envio WhatsApp."));
   if (!body) return Promise.reject(new Error("Mensagem vazia."));
 
+  const meta = resolveJobMeta(options);
+  if (meta.category !== "critical" && !options?.skipSendWindow && !isWithinAllowedSendWindow()) {
+    const waitMin = Math.ceil(msUntilNextSendWindow() / 60_000);
+    console.warn(`[WHATSAPP_QUEUE] fora da janela (${meta.tipo}) — enfileirado, envio em ~${waitMin} min`);
+  }
+
   return new Promise((resolve, reject) => {
     queue.push({
       instanceName,
       phone,
       text: body,
+      meta,
+      sb: options?.sb,
+      skipSendWindow: Boolean(options?.skipSendWindow),
       resolve,
       reject,
       retries: 0,
@@ -234,5 +316,6 @@ export function getEvolutionQueueStats(): EvolutionQueueStats {
     sentToday: dailyCount,
     consecutiveFailures,
     circuitOpenUntil: circuitOpenUntil > Date.now() ? circuitOpenUntil : null,
+    sendWindowOpen: isWithinAllowedSendWindow(),
   };
 }

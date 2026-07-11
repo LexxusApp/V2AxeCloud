@@ -52,7 +52,15 @@ export function resolveMetaTemplateName(tipo: string): string {
   if (normalized === "aviso_gira") {
     return String(process.env.WA_META_TEMPLATE_AVISO_GIRA || "").trim() || AVISO_GIRA_TEMPLATE;
   }
-  if (normalized === "mural_aviso") {
+  if (normalized === "transmissao_aviso" || normalized === "mural_aviso") {
+    const livre = String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim();
+    if (livre) return livre;
+    return (
+      String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_MURAL_AVISO || "")
+        .trim() || COMUNICADO_TERREIRO_TEMPLATE
+    );
+  }
+  if (normalized === "mural_aviso_legacy") {
     return String(process.env.WA_META_TEMPLATE_MURAL_AVISO || "").trim() || MURAL_AVISO_TEMPLATE;
   }
   if (normalized === "boas_vindas") {
@@ -599,9 +607,15 @@ export function buildWhatsAppAuditMessage(
     return `${normalized === "dados_acesso" ? "Dados de acesso" : "Boas-vindas"}: ${nome}${idPart}${senhaPart} · ${loginUrl}`;
   }
 
-  if (normalized === "mural_aviso") {
+  if (normalized === "transmissao_aviso" || normalized === "mural_aviso") {
     const titulo = String(v.titulo_aviso || v.titulo || "Novo aviso");
-    return `Mural: ${nomeMembro} · ${nomeTerreiro} · "${titulo}"`;
+    const corpo = String(v.conteudo_aviso || v.comunicado || "").trim();
+    return `Transmissão: ${nomeMembro} · ${nomeTerreiro} · "${titulo}"${corpo ? ` · ${corpo.slice(0, 80)}` : ""}`;
+  }
+
+  if (normalized === "broadcast" || normalized === "teste") {
+    const msg = String(v.comunicado || v.mensagem || v.message || "").trim();
+    return `Comunicado: ${nomeMembro} · ${nomeTerreiro}${msg ? ` · "${msg.slice(0, 80)}${msg.length > 80 ? "…" : ""}"` : ""}`;
   }
 
   if (normalized === "financeiro") {
@@ -618,11 +632,6 @@ export function buildWhatsAppAuditMessage(
 
   if (normalized === "estoque_critico") {
     return `Estoque: ${v.item_nome || v.item || "—"} · qty ${v.quantidade ?? "—"} · ${v.nome_terreiro || nomeTerreiro}`;
-  }
-
-  if (normalized === "broadcast" || normalized === "teste") {
-    const msg = String(v.comunicado || v.mensagem || v.message || "").trim();
-    return `Comunicado: ${nomeMembro} · ${nomeTerreiro}${msg ? ` · "${msg.slice(0, 80)}${msg.length > 80 ? "…" : ""}"` : ""}`;
   }
 
   return `[${tipo}] ${nomeMembro} · ${nomeTerreiro}`;

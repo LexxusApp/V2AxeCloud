@@ -110,7 +110,12 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
           `*${code}*\n\n` +
           `Válido por 10 minutos. Se não solicitou, ignore esta mensagem.`;
 
-        void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, whatsappInput, text).catch((err) => {
+        void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, whatsappInput, text, {
+          category: "critical",
+          tipo: "forgot_password",
+          skipSendWindow: true,
+          sb: supabaseAdmin,
+        }).catch((err) => {
           console.error("[forgot-password/request] WhatsApp:", err?.message || err);
         });
 
