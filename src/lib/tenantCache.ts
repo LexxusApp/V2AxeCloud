@@ -2,19 +2,53 @@
 const LS_PREFIX = 'axecloud_tenant_cache_v1';
 const SS_PREFIX = 'axecloud_tenant_ss_v1';
 
-function parseTenantPayload(raw: string | null): string {
-  if (!raw) return '';
+type TenantCachePayload = {
+  tenant_id?: string;
+  nome_terreiro?: string;
+  t?: number;
+};
+
+function parseTenantPayload(raw: string | null): TenantCachePayload | null {
+  if (!raw) return null;
   try {
-    const j = JSON.parse(raw) as { tenant_id?: string };
-    return String(j?.tenant_id || '').trim();
+    const j = JSON.parse(raw) as TenantCachePayload;
+    return j && typeof j === 'object' ? j : null;
   } catch {
-    return '';
+    return null;
   }
 }
 
-export function writeCachedTenantIdForUser(userId: string, tenantId: string) {
+function readTenantCachePayload(userId: string): TenantCachePayload | null {
+  if (!userId || typeof window === 'undefined') return null;
+  try {
+    const ls = parseTenantPayload(localStorage.getItem(`${LS_PREFIX}:${userId}`));
+    if (ls?.tenant_id) return ls;
+  } catch {
+    /* */
+  }
+  try {
+    return parseTenantPayload(sessionStorage.getItem(`${SS_PREFIX}:${userId}`));
+  } catch {
+    return null;
+  }
+}
+
+export function writeCachedTenantIdForUser(
+  userId: string,
+  tenantId: string,
+  nomeTerreiro?: string | null
+) {
   if (!userId || !tenantId || typeof window === 'undefined') return;
-  const payload = JSON.stringify({ tenant_id: tenantId, t: Date.now() });
+  const existing = readTenantCachePayload(userId);
+  const nome =
+    String(nomeTerreiro || '').trim() ||
+    String(existing?.nome_terreiro || '').trim() ||
+    undefined;
+  const payload = JSON.stringify({
+    tenant_id: tenantId,
+    ...(nome ? { nome_terreiro: nome } : {}),
+    t: Date.now(),
+  });
   try {
     localStorage.setItem(`${LS_PREFIX}:${userId}`, payload);
   } catch {
@@ -39,7 +73,7 @@ export function readCachedTenantIdForUser(
   const rejectSelfId = !!opts?.rejectSelfId;
 
   const pick = (raw: string | null): string => {
-    const tid = parseTenantPayload(raw);
+    const tid = String(parseTenantPayload(raw)?.tenant_id || '').trim();
     if (!tid) return '';
     if (rejectSelfId && tid === userId) return '';
     return tid;
@@ -78,6 +112,11 @@ export function clearCachedTenantIdForUser(userId: string) {
  */
 export function peekCachedTenantId(userId: string): string {
   return readCachedTenantIdForUser(userId);
+}
+
+/** Nome do terreiro gravado no cache local (login filho / tenant-info). */
+export function peekCachedTerreiroNome(userId: string): string {
+  return String(readTenantCachePayload(userId)?.nome_terreiro || '').trim();
 }
 
 /**

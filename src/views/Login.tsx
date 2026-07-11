@@ -231,9 +231,11 @@ export default function Login() {
               postSession.access_token
             );
             let tenantId = '';
+            let nomeTerreiro = '';
             if (r.ok) {
               const j = await r.json();
               tenantId = String(j.tenant_id || '').trim();
+              nomeTerreiro = String(j.nome_terreiro || '').trim();
             }
             if (!tenantId || tenantId === postSession.user.id) {
               tenantId = await resolveTenantFromSupabase(
@@ -242,7 +244,7 @@ export default function Login() {
               );
             }
             if (tenantId && tenantId !== postSession.user.id) {
-              writeCachedTenantIdForUser(postSession.user.id, tenantId);
+              writeCachedTenantIdForUser(postSession.user.id, tenantId, nomeTerreiro || undefined);
             }
             void postAuthAuditLog(
               {

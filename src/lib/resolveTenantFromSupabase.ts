@@ -96,3 +96,30 @@ export async function resolveTenantFromSupabase(
 
   return '';
 }
+
+/** Resolve o nome do terreiro a partir do id do líder/tenant (fallback quando tenant-info falha). */
+export async function resolveTerreiroNomeFromSupabase(
+  tenantId: string
+): Promise<string> {
+  const tid = String(tenantId || '').trim();
+  if (!tid) return 'Meu Terreiro';
+
+  const { data: byId } = await supabase
+    .from('perfil_lider')
+    .select('nome_terreiro')
+    .eq('id', tid)
+    .maybeSingle();
+
+  const nomeById = String(byId?.nome_terreiro || '').trim();
+  if (nomeById) return nomeById;
+
+  const { data: byTenant } = await supabase
+    .from('perfil_lider')
+    .select('nome_terreiro')
+    .eq('tenant_id', tid)
+    .limit(1)
+    .maybeSingle();
+
+  const nomeByTenant = String(byTenant?.nome_terreiro || '').trim();
+  return nomeByTenant || 'Meu Terreiro';
+}

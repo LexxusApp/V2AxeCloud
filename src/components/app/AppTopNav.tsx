@@ -446,7 +446,7 @@ export default function AppTopNav({
     setMobileOpen(false);
   };
 
-  const terreiroNome = tenantData?.nome || 'AxéCloud';
+  const terreiroNome = tenantData?.nome?.trim() || 'Meu Terreiro';
   const subtitle =
     userRole === 'filho'
       ? userDisplayName || 'Filho de Santo'

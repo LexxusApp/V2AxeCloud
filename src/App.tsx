@@ -39,10 +39,11 @@ import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
   clearCachedTenantIdForUser,
   peekCachedTenantId,
+  peekCachedTerreiroNome,
   readCachedTenantIdForUser,
   writeCachedTenantIdForUser,
 } from './lib/tenantCache';
-import { resolveTenantFromSupabase } from './lib/resolveTenantFromSupabase';
+import { resolveTenantFromSupabase, resolveTerreiroNomeFromSupabase } from './lib/resolveTenantFromSupabase';
 import LegalTermsModal from './components/LegalTermsModal';
 import AppFooter from './components/AppFooter';
 import { ChatFloatingWidget } from './components/chat/ChatFloatingWidget';
@@ -146,6 +147,16 @@ function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
 
 function normalizeFilhoTab(tab: string) {
   return FILHO_ALLOWED_TABS.has(tab) ? tab : 'profile';
+}
+
+function resolveTerreiroNomeFallback(userId?: string | null, nome?: string | null): string {
+  const direct = String(nome || '').trim();
+  if (direct) return direct;
+  if (userId) {
+    const cached = peekCachedTerreiroNome(userId);
+    if (cached) return cached;
+  }
+  return 'Meu Terreiro';
 }
 
 function isFilhoIdentity(user?: { email?: string | null; user_metadata?: any } | null, emailFallback?: string, roleFallback?: string) {
@@ -296,7 +307,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       prev
         ? { ...prev, tenant_id: tenantAnchorId }
         : {
-            nome: '',
+            nome: resolveTerreiroNomeFallback(session.user.id),
             plan: 'premium',
             tenant_id: tenantAnchorId,
             role: userRole ?? undefined,
@@ -429,16 +440,18 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       persistFilhoFlag(isFilhoAuth, userId);
 
       if (tid) {
+        const nomeTerreiro = await resolveTerreiroNomeFromSupabase(tid);
         setSession(fresh);
         setUserRole(isFilhoAuth ? 'filho' : 'admin');
         writeUserRoleAnchor(isFilhoAuth ? 'filho' : 'admin');
         setRoleAnchor(isFilhoAuth ? 'filho' : 'admin');
         setTenantData({
-          nome: '',
+          nome: resolveTerreiroNomeFallback(userId, nomeTerreiro),
           plan: 'premium',
           tenant_id: tid,
           role: isFilhoAuth ? 'filho' : 'admin',
         });
+        writeCachedTenantIdForUser(userId, tid, nomeTerreiro);
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
         setLegalTermsAccepted(
@@ -457,7 +470,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         writeUserRoleAnchor('admin');
         setRoleAnchor('admin');
         setTenantData({
-          nome: '',
+          nome: resolveTerreiroNomeFallback(userId),
           plan: 'premium',
           tenant_id: userId,
           role: 'admin',
@@ -500,7 +513,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const cachedSnap = peekCachedTenantId(userId);
     if (cachedSnap) {
       setTenantData((prev) => ({
-        nome: prev?.nome ?? '',
+        nome: prev?.nome?.trim() ? prev.nome : resolveTerreiroNomeFallback(userId),
         plan: prev?.plan ?? 'premium',
         tenant_id: cachedSnap,
         expires_at: prev?.expires_at,
@@ -571,7 +584,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         // 2. Tenant Info
         const plan = (data.plan || 'premium').toLowerCase().trim();
         const isGlobalAdmin = !!data.is_admin_global;
-        let nome = data.nome_terreiro || (role === 'filho' ? '' : 'Meu Terreiro');
+        let nome = resolveTerreiroNomeFallback(userId, data.nome_terreiro);
         let tenantId = role === 'filho' ? (data.tenant_id || '') : (data.tenant_id || userId);
         let tenantFotoUrl = data.foto_url;
 
@@ -640,7 +653,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           tradicao: data.tradicao || 'mista',
         });
         if (String(tenantId || '').trim()) {
-          writeCachedTenantIdForUser(userId, String(tenantId));
+          writeCachedTenantIdForUser(userId, String(tenantId), nome);
         }
 
           setIsAdminGlobal(isGlobalAdmin);
@@ -795,7 +808,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             if (hasFullCache) {
               setUserRole(cachedRoleAnchor);
               setTenantData({
-                nome: '',
+                nome: resolveTerreiroNomeFallback(session.user.id),
                 plan: 'premium',
                 tenant_id: cachedImmediate,
                 role: cachedRoleAnchor,
@@ -810,7 +823,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               setIsSessionHydrating(true);
               if (cachedImmediate) {
                 setTenantData({
-                  nome: '',
+                  nome: resolveTerreiroNomeFallback(session.user.id),
                   plan: 'premium',
                   tenant_id: cachedImmediate,
                 });
@@ -947,7 +960,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           prev
             ? { ...prev, tenant_id: storageAnchor }
             : {
-                nome: '',
+                nome: resolveTerreiroNomeFallback(session.user.id),
                 plan: 'premium',
                 tenant_id: storageAnchor,
                 role: userRole ?? undefined,
