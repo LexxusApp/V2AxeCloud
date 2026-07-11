@@ -15,14 +15,6 @@ import { TRIAL_DAYS } from '../../lib/planPricing';
 const LandingFaq = lazy(() =>
   import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
 );
-const LandingInteractiveDemo = lazy(() =>
-  import('../components/landing/LandingInteractiveDemo').then((m) => ({
-    default: m.LandingInteractiveDemo,
-  }))
-);
-const SystemTour = lazy(() =>
-  import('../components/landing/SystemTour').then((m) => ({ default: m.SystemTour }))
-);
 
 function LandingSectionFallback({
   minHeight = '16rem',
@@ -302,14 +294,6 @@ export default function Landing() {
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <MatrizLandingExperience />
-
-        <Suspense fallback={<LandingSectionFallback minHeight="32rem" className="landing-section landing-section--alt" />}>
-          <LandingInteractiveDemo />
-        </Suspense>
-
-        <Suspense fallback={<LandingSectionFallback minHeight="40rem" />}>
-          <SystemTour />
-        </Suspense>
 
         <PortalHomeHubSections />
 
