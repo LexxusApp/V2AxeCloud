@@ -12,6 +12,7 @@ const navLinks = [
   { href: ROUTES.eventosPublicos, label: 'Eventos' },
   { href: ROUTES.espacoDoFiel, label: 'Pedir reza' },
   { href: ROUTES.contentHub, label: 'Conteúdo' },
+  { href: `${ROUTES.home}#mensalidade`, label: 'Mensalidade' },
   { href: ROUTES.whyAxeCloud, label: 'Por que AxéCloud' },
 ] as const;
 
