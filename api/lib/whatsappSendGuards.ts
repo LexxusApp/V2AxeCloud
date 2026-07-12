@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
-import { assertWithinSendWindow, isCampaignTipo } from "./whatsappAntiSpam.js";
+import { assertWithinSendWindow, isCampaignTipo, shouldEnforceSendWindow } from "./whatsappAntiSpam.js";
 import { assertCampaignFingerprintQuota } from "./whatsappPersistentLimits.js";
 
 function envInt(name: string, fallback: number): number {
@@ -159,8 +159,8 @@ export async function assertWhatsAppOutboundAllowed(
     skipSendWindow?: boolean;
   }
 ): Promise<{ fingerprint?: string }> {
-  if (!opts.skipSendWindow) {
-    assertWithinSendWindow();
+  if (!opts.skipSendWindow && shouldEnforceSendWindow(opts.tipo)) {
+    assertWithinSendWindow(opts.tipo);
   }
 
   validateWhatsAppOutboundMessage(opts.messageText);

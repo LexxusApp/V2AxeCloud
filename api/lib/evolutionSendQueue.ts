@@ -163,13 +163,13 @@ async function waitForPhoneCooldown(phone: string, sb?: SupabaseClient): Promise
   }
 }
 
-async function waitForSendWindow(skip: boolean, category: WhatsAppSendMeta["category"]): Promise<void> {
-  if (skip || category === "critical") return;
+async function waitForSendWindow(skip: boolean, meta: WhatsAppSendMeta): Promise<void> {
+  if (skip || meta.category !== "campaign") return;
   if (isWithinAllowedSendWindow()) return;
   const waitMs = msUntilNextSendWindow();
   if (waitMs <= 0) return;
   if (waitMs > MAX_QUEUE_WAIT_MS) {
-    assertWithinSendWindow();
+    assertWithinSendWindow(meta.tipo);
   }
   console.warn(`[WHATSAPP_QUEUE] aguardando janela de envio (${Math.round(waitMs / 60000)} min)`);
   await sleep(waitMs);
@@ -182,7 +182,7 @@ async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
   }
 
   await waitForCircuit();
-  await waitForSendWindow(job.skipSendWindow, job.meta.category);
+  await waitForSendWindow(job.skipSendWindow, job.meta);
 
   if (job.sb) {
     await assertPersistentGlobalQuota(job.sb);
@@ -285,9 +285,13 @@ export function sendEvolutionTextQueued(
   if (!body) return Promise.reject(new Error("Mensagem vazia."));
 
   const meta = resolveJobMeta(options);
-  if (meta.category !== "critical" && !options?.skipSendWindow && !isWithinAllowedSendWindow()) {
+  if (
+    meta.category === "campaign" &&
+    !options?.skipSendWindow &&
+    !isWithinAllowedSendWindow()
+  ) {
     const waitMin = Math.ceil(msUntilNextSendWindow() / 60_000);
-    console.warn(`[WHATSAPP_QUEUE] fora da janela (${meta.tipo}) — enfileirado, envio em ~${waitMin} min`);
+    console.warn(`[WHATSAPP_QUEUE] campanha fora da janela (${meta.tipo}) — enfileirado, envio em ~${waitMin} min`);
   }
 
   return new Promise((resolve, reject) => {

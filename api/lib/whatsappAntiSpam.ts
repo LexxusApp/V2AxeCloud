@@ -137,6 +137,20 @@ export function isWithinAllowedSendWindow(at: Date = nowBrasilia()): boolean {
   return hour >= start && hour < end;
 }
 
+/** Janela horária só para campanhas em massa — envios pontuais (acesso, boas-vindas, etc.) podem a qualquer hora. */
+export function shouldEnforceSendWindow(tipo?: string): boolean {
+  if (!ENFORCE_SEND_WINDOW) return false;
+  if (!tipo) return false;
+  return resolveSendCategory(tipo) === "campaign";
+}
+
+function sendWindowLabel(): string {
+  const weekend = isWeekendBr(nowBrasilia());
+  const start = weekend ? SEND_WINDOW_WEEKEND_START : SEND_WINDOW_START;
+  const end = weekend ? SEND_WINDOW_WEEKEND_END : SEND_WINDOW_END;
+  return `${start}h e ${end}h`;
+}
+
 /** Milissegundos até a próxima janela de envio (0 se já dentro). */
 export function msUntilNextSendWindow(at: Date = nowBrasilia()): number {
   if (isWithinAllowedSendWindow(at)) return 0;
@@ -148,11 +162,12 @@ export function msUntilNextSendWindow(at: Date = nowBrasilia()): number {
   return hoursUntil * 60 * 60 * 1000;
 }
 
-export function assertWithinSendWindow(): void {
+export function assertWithinSendWindow(tipo?: string): void {
+  if (!shouldEnforceSendWindow(tipo)) return;
   if (isWithinAllowedSendWindow()) return;
   const waitMin = Math.ceil(msUntilNextSendWindow() / 60_000);
   const err = new Error(
-    `Envios WhatsApp permitidos apenas entre ${SEND_WINDOW_START}h e ${SEND_WINDOW_END}h (horário de Brasília). Tente em ~${waitMin} min.`
+    `Transmissões em massa permitidas apenas entre ${sendWindowLabel()} (horário de Brasília). Tente novamente amanhã ou aguarde ~${waitMin} min.`
   ) as Error & { statusCode: number; code: string };
   err.statusCode = 429;
   err.code = "WA_SEND_WINDOW_CLOSED";
