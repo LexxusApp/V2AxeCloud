@@ -2,8 +2,8 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUp, Check, MessageCircle } from 'lucide-react';
 import { MatrizLandingExperience } from '../components/landing/MatrizLandingExperience';
-import { PortalHomeHubSections } from '../components/landing/PortalHomeHub';
 import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
+import { LandingStoryProof } from '../components/landing/LandingStoryProof';
 import { LoginLink } from '../components/marketing/LoginLink';
 import { RegisterTrialLink } from '../components/marketing/RegisterTrialLink';
 import { landingBrandLogo } from '../constants/landingScreenshots';
@@ -12,6 +12,7 @@ import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
+import { trackConversionEvent } from '../lib/trackConversion';
 
 const LandingFaq = lazy(() =>
   import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
@@ -103,7 +104,16 @@ function PricingSection({
             </ul>
             <p className="mt-7 border-t border-[#e8dfd0] pt-5 text-[11px] text-[#1b1813]/66">
               Dúvidas?{' '}
-              <a href={COMMERCIAL_WHATSAPP_URL} target="_blank" rel="noreferrer" className="font-bold text-[#1b1813] hover:text-[#a87400]">
+              <a
+                href={COMMERCIAL_WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => void trackConversionEvent('cta_click', {
+                  ctaId: 'pricing-commercial-whatsapp',
+                  ctaLabel: 'Falar com o comercial',
+                })}
+                className="font-bold text-[#1b1813] hover:text-[#a87400]"
+              >
                 Fale com o comercial
               </a>
             </p>
@@ -162,10 +172,14 @@ function ClosingSection() {
               href={COMMERCIAL_WHATSAPP_URL}
               target="_blank"
               rel="noreferrer"
+              onClick={() => void trackConversionEvent('cta_click', {
+                ctaId: 'closing-commercial-whatsapp',
+                ctaLabel: 'Falar com o comercial',
+              })}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#fdf8f0]/20 px-7 py-3.5 text-sm font-bold text-[#fdf8f0]/80 transition hover:border-[#ffc107]/50 hover:text-[#ffc107] sm:w-auto"
             >
               <MessageCircle className="h-4 w-4" aria-hidden />
-              WhatsApp comercial
+              Falar com o comercial
             </a>
           </div>
         </motion.div>
@@ -295,7 +309,7 @@ export default function Landing() {
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <MatrizLandingExperience />
 
-        <PortalHomeHubSections />
+        <LandingStoryProof />
 
         <WhatsAppAutomation />
 
@@ -305,7 +319,6 @@ export default function Landing() {
           <LandingFaq />
         </Suspense>
 
-        <ClosingSection />
       </main>
 
       <MatrizFooter />

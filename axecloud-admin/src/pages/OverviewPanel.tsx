@@ -94,6 +94,19 @@ type OverviewPanelProps = {
     publicSiteVisitorsLast30Days?: number;
     publicSiteVisitorsToday?: number;
     publicSiteTopPages?: { bucket: string; label: string; visitors: number; sharePct: number }[];
+    publicConversionFunnel?: {
+      available: boolean;
+      periodDays: number;
+      visitors: number;
+      ctaClicks: number;
+      registerViews: number;
+      registerStarted: number;
+      registerCompleted: number;
+      visitToClickPct: number;
+      clickToStartPct: number;
+      startToCompletePct: number;
+      visitToCompletePct: number;
+    };
   } | null;
   plansCatalog: Record<string, unknown>;
   busy: boolean;
@@ -550,6 +563,47 @@ export function OverviewPanel({
                     públicas (landing, terreiros, cadastro, etc.) sem estar logado.
                   </>
                 )}
+              </div>
+            )}
+          </AdminPanel>
+
+          <AdminPanel
+            kicker="Conversão comercial"
+            title="Funil dos últimos 30 dias"
+            action={
+              <span className="text-xs text-[var(--ac-text-faint)]">
+                {activity?.publicConversionFunnel?.available
+                  ? `${activity.publicConversionFunnel.visitToCompletePct}% visita → cadastro`
+                  : "iniciando coleta"}
+              </span>
+            }
+          >
+            {activity?.publicConversionFunnel?.available ? (
+              <div>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  {[
+                    ["Visitas", activity.publicConversionFunnel.visitors, "100%"],
+                    ["Cliques nos CTAs", activity.publicConversionFunnel.ctaClicks, `${activity.publicConversionFunnel.visitToClickPct}%`],
+                    ["Cadastro iniciado", activity.publicConversionFunnel.registerStarted, `${activity.publicConversionFunnel.clickToStartPct}%`],
+                    ["Cadastro concluído", activity.publicConversionFunnel.registerCompleted, `${activity.publicConversionFunnel.startToCompletePct}%`],
+                  ].map(([label, value, rate], index) => (
+                    <div key={String(label)} className="relative rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{label}</p>
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        <strong className="admin-mono text-2xl text-[var(--ac-text)]">{value}</strong>
+                        <span className="text-xs font-semibold text-[var(--ac-accent)]">{rate}</span>
+                      </div>
+                      {index < 3 ? <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)] sm:block" /> : null}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-[var(--ac-text-faint)]">
+                  A conclusão é confirmada pelo servidor somente depois que a conta é criada.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-[var(--ac-radius-sm)] border border-dashed border-[var(--ac-paper-border)] p-6 text-center text-sm text-[var(--ac-text-muted)]">
+                A coleta começa com a publicação desta versão. Os percentuais aparecerão após os primeiros acessos.
               </div>
             )}
           </AdminPanel>

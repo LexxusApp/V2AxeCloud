@@ -21,7 +21,13 @@ echo "=== [4/5] Smoke rotas + SEO ==="
 bash deploy/scripts/smoke-routes.sh
 bash deploy/scripts/smoke-seo.sh
 
-echo "=== [5/5] Notificar sitemap (opcional) ==="
+echo "=== [5/6] Ativar monitoramento comercial (5 min) ==="
+chmod +x deploy/scripts/vps-external-healthcheck.sh
+sed -i 's/\r$//' deploy/scripts/vps-external-healthcheck.sh 2>/dev/null || true
+(crontab -l 2>/dev/null | grep -v vps-external-healthcheck; echo "*/5 * * * * /opt/axecloud/deploy/scripts/vps-external-healthcheck.sh") | crontab -
+deploy/scripts/vps-external-healthcheck.sh
+
+echo "=== [6/6] Notificar sitemap (opcional) ==="
 if $COMPOSE exec -T app node scripts/submit-sitemap.mjs; then
   echo "Sitemap ping enviado."
 else

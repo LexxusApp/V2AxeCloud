@@ -1,5 +1,7 @@
-import { LocateFixed, MapPinned, Navigation } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { LocateFixed, MapPinned, Navigation, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
 import { diretorioCityPath } from '../../lib/diretorioSlug';
 
@@ -14,13 +16,20 @@ type GeoPoint = {
 
 function parseGoogleMapsCoordinates(link: string | null): { lat: number; lng: number } | null {
   if (!link) return null;
-  const at = link.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-  const data = link.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/);
-  const match = at || data;
-  if (!match) return null;
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  const decoded = decodeURIComponent(link);
+  const patterns = [
+    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
+    /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+    /[?&](?:q|query|ll)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern);
+    if (!match) continue;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  return null;
 }
 
 function cityPoints(cidades: DiretorioCidadeSnapshot[]): GeoPoint[] {
@@ -29,7 +38,6 @@ function cityPoints(cidades: DiretorioCidadeSnapshot[]): GeoPoint[] {
       .flatMap((bairro) => bairro.items)
       .map((item) => parseGoogleMapsCoordinates(item.linkMaps))
       .filter((point): point is { lat: number; lng: number } => Boolean(point));
-
     if (coordinates.length === 0) return [];
     return [{
       cidade: cidade.cidade,
@@ -52,64 +60,109 @@ function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-export function DirectoryCoverageMap({ cidades }: { cidades: DiretorioCidadeSnapshot[] }) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[char] || char);
+}
+
+export function DirectoryCoverageMap({
+  cidades,
+  loading = false,
+}: {
+  cidades: DiretorioCidadeSnapshot[];
+  loading?: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Array<{ point: GeoPoint; marker: L.CircleMarker }>>([]);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const points = useMemo(() => cityPoints(cidades).sort((a, b) => b.total - a.total), [cidades]);
 
-  const bounds = useMemo(() => {
-    if (points.length === 0) return null;
-    const lats = points.map((point) => point.lat);
-    const lngs = points.map((point) => point.lng);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    return {
-      minLat,
-      maxLat,
-      minLng,
-      maxLng,
-      latSpan: Math.max(maxLat - minLat, 0.3),
-      lngSpan: Math.max(maxLng - minLng, 0.3),
+  useEffect(() => {
+    if (!containerRef.current || points.length === 0) return;
+    if (mapRef.current) mapRef.current.remove();
+
+    const map = L.map(containerRef.current, {
+      zoomControl: true,
+      scrollWheelZoom: false,
+      minZoom: 7,
+    });
+    mapRef.current = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+
+    markersRef.current = points.map((point) => {
+      const radius = Math.min(19, 7 + Math.sqrt(Math.max(point.total, 1)) * 0.75);
+      const marker = L.circleMarker([point.lat, point.lng], {
+        radius,
+        color: '#5f4300',
+        weight: 2,
+        fillColor: '#ffc107',
+        fillOpacity: 0.92,
+      }).addTo(map);
+      const href = diretorioCityPath(point.estado, point.cidadeSlug);
+      marker.bindTooltip(`${point.cidade}: ${point.total} terreiros`, { direction: 'top' });
+      marker.bindPopup(`
+        <div style="min-width:190px;font-family:system-ui,sans-serif;color:#1b1813">
+          <strong style="font-size:15px">${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}</strong>
+          <p style="margin:6px 0 12px;color:#665f55">${point.total} terreiro${point.total === 1 ? '' : 's'} mapeado${point.total === 1 ? '' : 's'}</p>
+          <a href="${href}" style="display:inline-block;border-radius:999px;background:#1b1813;color:#fff;padding:8px 12px;text-decoration:none;font-weight:700">Ver terreiros</a>
+        </div>
+      `);
+      return { point, marker };
+    });
+
+    const bounds = L.latLngBounds(points.map((point) => [point.lat, point.lng] as [number, number]));
+    map.fitBounds(bounds, { padding: [34, 34], maxZoom: 11 });
+    window.setTimeout(() => map.invalidateSize(), 80);
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markersRef.current = [];
     };
   }, [points]);
-
-  if (!bounds || points.length === 0) return null;
 
   const locateNearest = () => {
     if (!navigator.geolocation) {
       setLocationStatus('Localização não disponível neste navegador.');
       return;
     }
-    setLocationStatus('Buscando a cidade mais próxima…');
+    if (points.length === 0) {
+      setLocationStatus('O mapa ainda está carregando.');
+      return;
+    }
+    setLocationStatus('Localizando você…');
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        const nearest = points.reduce((best, point) => (
-          distanceKm({ lat: coords.latitude, lng: coords.longitude }, point) <
-          distanceKm({ lat: coords.latitude, lng: coords.longitude }, best)
-            ? point
-            : best
-        ));
-        window.location.href = diretorioCityPath(nearest.estado, nearest.cidadeSlug);
+        const origin = { lat: coords.latitude, lng: coords.longitude };
+        const nearest = points.reduce((best, point) =>
+          distanceKm(origin, point) < distanceKm(origin, best) ? point : best,
+        );
+        const item = markersRef.current.find(({ point }) => point.cidadeSlug === nearest.cidadeSlug);
+        mapRef.current?.flyTo([nearest.lat, nearest.lng], 12, { duration: 1.1 });
+        item?.marker.openPopup();
+        setLocationStatus(`${nearest.cidade} é a região mapeada mais próxima.`);
       },
-      () => setLocationStatus('Permita a localização para encontrar a cidade mais próxima.'),
+      () => setLocationStatus('Permita a localização no navegador para usar “perto de mim”.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
   };
 
   return (
-    <section className="mt-12 overflow-hidden rounded-[2rem] border border-[#2e281f] bg-[#17130e] text-white shadow-2xl shadow-black/15" aria-labelledby="coverage-map-title">
-      <div className="grid gap-6 border-b border-white/10 px-6 py-6 md:grid-cols-[1fr_auto] md:items-end md:px-8">
+    <section className="mt-10 overflow-hidden rounded-[2rem] border border-[#ded4c5] bg-white shadow-2xl shadow-black/10" aria-labelledby="coverage-map-title">
+      <div className="grid gap-5 border-b border-[#e8dfd0] bg-[#17130e] px-6 py-6 text-white md:grid-cols-[1fr_auto] md:items-end md:px-8">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#ffc107]">
             <MapPinned className="h-4 w-4" aria-hidden />
-            Visão geográfica
+            Mapa interativo
           </p>
-          <h2 id="coverage-map-title" className="mt-2 text-2xl font-black md:text-3xl">
-            Onde estão as casas mapeadas
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/58">
-            Veja a distribuição aproximada das cidades e escolha uma região. O tamanho do ponto indica a quantidade de terreiros cadastrados.
+          <h2 id="coverage-map-title" className="mt-2 text-2xl font-black md:text-3xl">Terreiros no mapa</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65">
+            Navegue pelo mapa, aproxime uma região ou use sua localização para encontrar as cidades mais próximas.
           </p>
         </div>
         <div>
@@ -121,51 +174,28 @@ export function DirectoryCoverageMap({ cidades }: { cidades: DiretorioCidadeSnap
             <LocateFixed className="h-4 w-4" aria-hidden />
             Encontrar perto de mim
           </button>
-          {locationStatus ? <p className="mt-2 max-w-xs text-xs text-white/55" role="status">{locationStatus}</p> : null}
+          {locationStatus ? <p className="mt-2 max-w-xs text-xs text-white/65" role="status">{locationStatus}</p> : null}
         </div>
       </div>
 
-      <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_45%,rgba(255,193,7,0.09),transparent_58%)] p-3 sm:p-6">
-        <svg viewBox="0 0 1000 520" className="h-auto min-h-[310px] w-full" role="img" aria-label={`Mapa com ${points.length} cidades mapeadas`}>
-          <defs>
-            <pattern id="directory-map-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.055)" strokeWidth="1" />
-            </pattern>
-            <filter id="directory-map-glow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="7" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          </defs>
-          <rect width="1000" height="520" rx="28" fill="url(#directory-map-grid)" />
-          <path d="M90 330 C190 145 390 90 560 135 C700 172 795 105 920 205 C840 385 665 448 475 420 C300 395 190 455 90 330Z" fill="rgba(255,255,255,0.025)" stroke="rgba(255,193,7,0.16)" strokeWidth="2" />
-
-          {points.map((point, index) => {
-            const x = 70 + ((point.lng - bounds.minLng) / bounds.lngSpan) * 860;
-            const y = 455 - ((point.lat - bounds.minLat) / bounds.latSpan) * 390;
-            const radius = Math.min(22, 7 + Math.sqrt(Math.max(point.total, 1)) * 1.35);
-            const showLabel = index < 12;
-            return (
-              <a key={`${point.estado}-${point.cidadeSlug}`} href={diretorioCityPath(point.estado, point.cidadeSlug)} aria-label={`${point.cidade}: ${point.total} terreiros`}>
-                <g className="group cursor-pointer" transform={`translate(${x} ${y})`}>
-                  <circle r={radius + 7} fill="rgba(255,193,7,0.08)" className="transition group-hover:fill-[rgba(255,193,7,0.2)]" />
-                  <circle r={radius} fill="#ffc107" stroke="#fff4c7" strokeWidth="2" filter="url(#directory-map-glow)" />
-                  <text y="4" textAnchor="middle" fontSize={Math.max(9, radius * 0.78)} fontWeight="900" fill="#1b1813">{point.total}</text>
-                  {showLabel ? (
-                    <text y={radius + 20} textAnchor="middle" fontSize="13" fontWeight="800" fill="rgba(255,255,255,0.82)" paintOrder="stroke" stroke="#17130e" strokeWidth="5">
-                      {point.cidade}
-                    </text>
-                  ) : null}
-                  <title>{point.cidade}, {point.estado} — {point.total} terreiros</title>
-                </g>
-              </a>
-            );
-          })}
-        </svg>
-        <p className="mt-1 flex items-center justify-center gap-2 text-center text-[11px] text-white/40">
-          <Navigation className="h-3.5 w-3.5" aria-hidden />
-          Posições aproximadas, calculadas a partir dos endereços públicos do diretório.
-        </p>
+      <div className="relative min-h-[390px] bg-[#eee9df] md:min-h-[520px]">
+        <div ref={containerRef} className="absolute inset-0 z-0" aria-label={`Mapa interativo com ${points.length} cidades`} />
+        {points.length === 0 ? (
+          <div className="absolute inset-0 z-10 grid place-items-center bg-[#f4efe7] px-6 text-center">
+            <div>
+              <RotateCcw className={`mx-auto h-7 w-7 text-[#a87400] ${loading ? 'animate-spin' : ''}`} aria-hidden />
+              <p className="mt-3 font-bold text-[#1b1813]">
+                {loading ? 'Carregando o mapa dos terreiros…' : 'Não foi possível carregar os pontos do mapa.'}
+              </p>
+              {!loading ? <p className="mt-1 text-sm text-[#1b1813]/60">A lista por cidades continua disponível logo abaixo.</p> : null}
+            </div>
+          </div>
+        ) : null}
       </div>
+      <p className="flex items-center justify-center gap-2 border-t border-[#e8dfd0] px-4 py-3 text-center text-[11px] text-[#1b1813]/50">
+        <Navigation className="h-3.5 w-3.5" aria-hidden />
+        {points.length} cidades no mapa · posições aproximadas a partir dos endereços públicos do diretório.
+      </p>
     </section>
   );
 }

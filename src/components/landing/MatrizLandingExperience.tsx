@@ -34,6 +34,7 @@ import { MatrizTopNav } from '../marketing/MatrizTopNav';
 import { RegisterTrialLink } from '../marketing/RegisterTrialLink';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
+import { trackConversionEvent } from '../../lib/trackConversion';
 import { TRIAL_DAYS } from '../../../lib/planPricing';
 
 type GlowStyle = CSSProperties & Record<`--${string}`, string | number>;
@@ -683,12 +684,16 @@ function Hero() {
                   href={HERO_COMMERCIAL_URL}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => void trackConversionEvent('cta_click', {
+                    ctaId: 'hero-commercial-whatsapp',
+                    ctaLabel: 'Falar com o comercial',
+                  })}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8dfd0] bg-white px-7 py-3.5 text-sm font-bold text-[#1b1813] transition hover:border-[#ffc107]/50 hover:text-[#a87400]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <MessageCircle className="h-4 w-4 text-emerald-600" aria-hidden />
-                  Falar com uma pessoa
+                  Falar com o comercial
                 </motion.a>
               </div>
               <a

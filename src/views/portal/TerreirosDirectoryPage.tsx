@@ -137,7 +137,7 @@ export default function TerreirosDirectoryPage() {
           </motion.div>
         </section>
 
-        <DirectoryCoverageMap cidades={coverage} />
+        <DirectoryCoverageMap cidades={coverage} loading={loading} />
 
         <section className="mt-14">
           {loading ? (

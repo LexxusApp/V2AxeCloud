@@ -43,7 +43,7 @@ export function LandingFaq() {
           />
 
           <div className="relative z-10 mt-8 space-y-3 sm:mt-10">
-          {HOME_FAQ.map((item, i) => (
+          {HOME_FAQ.slice(0, 7).map((item, i) => (
             <FaqItem
               key={item.q}
               q={item.q}

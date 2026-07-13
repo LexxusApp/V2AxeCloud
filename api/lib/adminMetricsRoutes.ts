@@ -6,6 +6,7 @@ import { requireApiUser, requireApiGlobalAdmin } from "./routeAuthHelpers.js";
 import { consumeRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
 import { trackPublicSiteVisit } from "./publicSiteTraffic.js";
 import { safeErrorMessage } from "./safeError.js";
+import { insertConversionEvent } from './publicConversionTracking.js';
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -33,6 +34,21 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
     } catch (error) {
       console.error("[METRICS] Error tracking public visit:", error);
       res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
+  app.post('/api/metrics/conversion-event', async (req, res) => {
+    if (applyDiscreteRouteCors(req, res)) return;
+    const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 180, keyPrefix: 'conversion-event' });
+    if (!rl.allowed) return res.status(429).json({ error: 'Limite de registros excedido.' });
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+      const ok = await insertConversionEvent(supabaseAdmin, req, body);
+      if (!ok) return res.status(400).json({ error: 'Evento inválido.' });
+      return res.status(202).json({ success: true });
+    } catch (error) {
+      console.error('[METRICS] Error tracking conversion:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
   });
 

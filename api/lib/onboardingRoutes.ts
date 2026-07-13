@@ -22,12 +22,28 @@ type Deps = {
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const { email, password, nome_terreiro, nome_zelador, whatsapp } = req.body || {};
+      const { email, password, nome_terreiro, nome_zelador, whatsapp, conversion } = req.body || {};
       const result = await registerNewTenant(
         supabaseAdmin,
         { email, password, nome_terreiro, nome_zelador, whatsapp },
         resolveEfiEnv()
       );
+
+      try {
+        const { insertConversionEvent } = await import('./publicConversionTracking.js');
+        await insertConversionEvent(
+          supabaseAdmin,
+          req,
+          {
+            ...(conversion || {}),
+            eventName: 'register_completed',
+            metadata: { registrationSource: 'public-register' },
+          },
+          { allowCompleted: true, tenantId: result.tenantId },
+        );
+      } catch (metricError) {
+        console.warn('[register] conversion metric failed:', metricError);
+      }
 
       if (!resolveEfiEnv()) {
         return res.status(503).json({

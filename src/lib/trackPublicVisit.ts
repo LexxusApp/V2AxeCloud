@@ -13,7 +13,7 @@ export function shouldTrackPublicVisit(path: string): boolean {
   return false;
 }
 
-function getOrCreateVisitorId(): string {
+export function getOrCreateVisitorId(): string {
   let visitorId = localStorage.getItem(VISITOR_KEY);
   if (visitorId && /^[0-9a-f-]{36}$/i.test(visitorId)) return visitorId;
   visitorId = crypto.randomUUID();

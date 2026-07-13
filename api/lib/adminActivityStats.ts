@@ -17,6 +17,19 @@ export type AdminActivityStats = {
   publicSiteVisitorsLast30Days: number;
   publicSiteVisitorsToday: number;
   publicSiteTopPages: { bucket: string; label: string; visitors: number; sharePct: number }[];
+  publicConversionFunnel: {
+    available: boolean;
+    periodDays: number;
+    visitors: number;
+    ctaClicks: number;
+    registerViews: number;
+    registerStarted: number;
+    registerCompleted: number;
+    visitToClickPct: number;
+    clickToStartPct: number;
+    startToCompletePct: number;
+    visitToCompletePct: number;
+  };
 };
 
 function bumpDaily(bucket: Record<string, number>, createdAt: string | null | undefined) {
@@ -137,6 +150,8 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
 
   const { fetchPublicSiteTrafficStats } = await import("./publicSiteTraffic.js");
   const publicTraffic = await fetchPublicSiteTrafficStats(sb);
+  const { fetchConversionFunnelStats } = await import('./publicConversionTracking.js');
+  const publicConversionFunnel = await fetchConversionFunnelStats(sb, publicTraffic.visitorsLast30Days);
 
   return {
     childrenPerTenant,
@@ -154,5 +169,6 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
     publicSiteVisitorsLast30Days: publicTraffic.visitorsLast30Days,
     publicSiteVisitorsToday: publicTraffic.visitorsToday,
     publicSiteTopPages: publicTraffic.topPages,
+    publicConversionFunnel,
   };
 }

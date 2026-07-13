@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import {
   Loader2,
   AlertCircle,
@@ -16,6 +17,7 @@ import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { getConversionContext, trackConversionEvent } from '../lib/trackConversion';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
@@ -46,6 +48,11 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const startedTracked = useRef(false);
+
+  useEffect(() => {
+    void trackConversionEvent('register_view');
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -78,11 +85,13 @@ export default function Register() {
           email: email.trim(),
           password,
           whatsapp: whatsapp.trim(),
+          conversion: getConversionContext(),
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        void trackConversionEvent('register_failed', { metadata: { status: res.status } });
         throw new Error(data.error || 'Não foi possível concluir o cadastro.');
       }
 
@@ -202,7 +211,15 @@ export default function Register() {
             </p>
           </header>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            onChangeCapture={() => {
+              if (startedTracked.current) return;
+              startedTracked.current = true;
+              void trackConversionEvent('register_started');
+            }}
+            className="space-y-4"
+          >
             {error && (
               <motion.div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-800">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
