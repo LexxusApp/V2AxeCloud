@@ -29,6 +29,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { landingScreenshot } from '../../constants/landingScreenshots';
+import { commercialWhatsAppUrl } from '../../constants/commercialContact';
 import { MatrizTopNav } from '../marketing/MatrizTopNav';
 import { RegisterTrialLink } from '../marketing/RegisterTrialLink';
 import { ROUTES } from '../../lib/routes';
@@ -103,6 +104,12 @@ const heroHighlights = [
   { icon: Users, label: 'Portal do filho' },
   { icon: Shield, label: 'Dados protegidos' },
 ] as const;
+
+const heroTrust = ['30 dias grátis', 'Sem cartão', 'Suporte humano', 'Dados privados'] as const;
+
+const HERO_COMMERCIAL_URL = commercialWhatsAppUrl(
+  'Olá! Quero conhecer o AxéCloud e entender como implantar na minha casa de axé.',
+);
 
 const routine = [
   { step: '01', title: 'Mensalidade Pix', desc: 'Filho paga, diretoria acompanha em tempo real.' },
@@ -655,6 +662,17 @@ function Hero() {
               </div>
             </Reveal>
 
+            <Reveal delay={0.31}>
+              <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-2" aria-label="Condições para começar">
+                {heroTrust.map((item) => (
+                  <li key={item} className="flex items-center gap-1.5 text-xs font-bold text-[#1b1813]/62">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+
             <Reveal delay={0.34}>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <RegisterTrialLink className="inline-flex items-center justify-center gap-2 rounded-full bg-[#ffc107] px-7 py-3.5 text-sm font-bold text-[#1b1813] shadow-md shadow-[#ffc107]/25 transition hover:bg-[#ffcd38]">
@@ -662,14 +680,24 @@ function Hero() {
                   <ArrowRight className="h-4 w-4" />
                 </RegisterTrialLink>
                 <motion.a
-                  href={ROUTES.terreiros}
+                  href={HERO_COMMERCIAL_URL}
+                  target="_blank"
+                  rel="noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8dfd0] bg-white px-7 py-3.5 text-sm font-bold text-[#1b1813] transition hover:border-[#ffc107]/50 hover:text-[#a87400]"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Ver terreiros
+                  <MessageCircle className="h-4 w-4 text-emerald-600" aria-hidden />
+                  Falar com uma pessoa
                 </motion.a>
               </div>
+              <a
+                href={ROUTES.terreiros}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#a87400] transition hover:text-[#1b1813]"
+              >
+                Explorar o diretório público
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </a>
             </Reveal>
 
             <Reveal delay={0.4}>
@@ -1301,14 +1329,9 @@ export function MatrizLandingExperience() {
       <Hero />
       <LiturgyMarquee />
       <AtabaqueDivider />
-      <PhilosophySection />
-      <RoutineSection />
       <AgendaSection />
       <SecuritySection />
-      <TraditionsSection />
-      <LiturgyMarquee />
       <ModulesSection />
-      <CommunitySection />
     </div>
   );
 }

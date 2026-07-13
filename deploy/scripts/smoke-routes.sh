@@ -68,8 +68,14 @@ check_contains "/" "m-assets/"
 check_contains "/" "Gestão de terreiros"
 check_contains "/terreiros" "m-assets/"
 check_contains "/eventos" "m-assets/"
+check_contains "/register" "m-assets/"
+check_contains "/register" "https://axecloud.com.br/register"
 check_contains "/entrar" "Entrar"
 check_contains "/entrar" "/assets/"
+curl -sSL "${BASE}/register" | grep -q '/assets/' && {
+  echo "FAIL /register — não deve servir o bundle do app"
+  exit 1
+} || echo "OK   /register — servido pelo marketing"
 curl -sSL "${BASE}/entrar" | grep -q 'm-assets/' && {
   echo "FAIL /entrar — não deve servir bundle de marketing (m-assets)"
   exit 1

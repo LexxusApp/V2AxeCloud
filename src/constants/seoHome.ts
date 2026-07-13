@@ -1,6 +1,5 @@
 import {
   BRAND_NAME,
-  BRAND_TAGLINE,
   SITE_TITLE,
   buildBrandAlternateNamesJsonLd,
   buildBrandKeywordsMeta,
@@ -16,7 +15,7 @@ export const SITE_ORIGIN = 'https://axecloud.com.br';
 export const HOME_SEO = {
   title: SITE_TITLE,
   description:
-    `${BRAND_NAME} (${BRAND_TAGLINE}) é o software de gestão de terreiros para Umbanda, Candomblé e Jurema: financeiro com Pix, calendário de giras, galeria, WhatsApp Meta, portal do filho de santo e app instalável (PWA). Tecnologia com respeito ao sagrado.`,
+    `${BRAND_NAME} é o software de gestão para terreiros: financeiro com Pix, giras, WhatsApp e portal do filho. Teste grátis por 30 dias, sem cartão.`,
   h1: `Gestão de terreiros para Umbanda, Candomblé e Jurema — ${BRAND_NAME}`,
   heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
   keywords: buildBrandKeywordsMeta(),

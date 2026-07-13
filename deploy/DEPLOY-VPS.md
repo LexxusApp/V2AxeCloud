@@ -28,8 +28,8 @@ O deploy sobe **dois frontends** no mesmo domínio:
 
 | Serviço | Rotas | Função |
 |---------|-------|--------|
-| `marketing` | `/`, `/termos`, `/privacidade`, `/programa-fundador`, `/espaco-do-fiel`, `/conteudo/*` | Site leve (nginx + `landing-dist`) |
-| `app` | `/login`, `/register`, `/dashboard`, `/api/*`, etc. | SPA + API Node |
+| `marketing` | `/`, `/register`, `/termos`, `/privacidade`, `/espaco-do-fiel`, `/terreiros/*`, `/eventos/*`, `/conteudo/*` | Site leve e cadastro (nginx + `landing-dist`) |
+| `app` | `/entrar`, `/dashboard`, `/checkout`, `/api/*`, etc. | SPA + API Node |
 
 ```bash
 cd /opt/axecloud

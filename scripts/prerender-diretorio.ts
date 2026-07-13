@@ -16,6 +16,11 @@ import {
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
 import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
+import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
+import {
+  resolveDiretorioTipo,
+  type DiretorioEstabelecimentoTipo,
+} from "../lib/diretorioTipo.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -32,14 +37,26 @@ const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-function mapRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
+type SnapshotRow = DiretorioSeoTerreiro & {
+  bairro: string | null;
+  bairroSlug: string | null;
+  tipo: DiretorioEstabelecimentoTipo;
+};
+
+function mapRow(row: Record<string, unknown>): SnapshotRow {
   const slug = String(row.slug || "").trim();
   const cidade = String(row.cidade || "").trim();
   const estado = row.estado ? String(row.estado).trim().toUpperCase() : null;
   const cidadeSlug = String(row.cidade_slug || slugifyCidadeOnly(cidade)).trim();
+  const bairroRaw = row.bairro ? String(row.bairro).trim() : null;
+  const bairro = bairroRaw || resolveTerreiroBairro({
+    endereco: row.endereco ? String(row.endereco) : null,
+    cidade,
+  });
+  const nome = String(row.nome || "Terreiro").trim();
   return {
     slug,
-    nome: String(row.nome || "Terreiro").trim(),
+    nome,
     endereco: row.endereco ? String(row.endereco).trim() : null,
     telefone: row.telefone ? String(row.telefone).trim() : null,
     fotoUrl: row.foto_url && slug ? `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}` : null,
@@ -47,8 +64,68 @@ function mapRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
     cidade: cidade || null,
     estado,
     cidadeSlug,
+    bairro: bairro || null,
+    bairroSlug: bairro ? String(row.bairro_slug || slugifyBairro(bairro)).trim() : null,
+    tipo: resolveDiretorioTipo(row.tipo, nome),
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
+}
+
+function publicSnapshotItem(row: SnapshotRow) {
+  return {
+    slug: row.slug,
+    nome: row.nome,
+    endereco: row.endereco,
+    telefone: row.telefone,
+    fotoUrl: row.fotoUrl,
+    linkMaps: row.linkMaps,
+    cidade: row.cidade,
+    estado: row.estado,
+    cidadeSlug: row.cidadeSlug,
+    bairro: row.bairro,
+    bairroSlug: row.bairroSlug,
+    tipo: row.tipo,
+    perfilUrl: row.slug ? `/terreiro/${row.slug}` : null,
+    cidadeUrl: row.cidadeUrl,
+  };
+}
+
+function writeDirectorySnapshots(cityMap: Map<string, SnapshotRow[]>) {
+  const cidades = [...cityMap.values()].map((items) => {
+    const first = items[0];
+    const bairroMap = new Map<string, { nome: string; slug: string; items: ReturnType<typeof publicSnapshotItem>[] }>();
+
+    for (const row of items) {
+      const nome = row.bairro || 'Outros bairros';
+      const slug = row.bairroSlug || 'outros';
+      const group = bairroMap.get(slug) || { nome, slug, items: [] };
+      group.items.push(publicSnapshotItem(row));
+      bairroMap.set(slug, group);
+    }
+
+    const bairros = [...bairroMap.values()]
+      .sort((a, b) => b.items.length - a.items.length || a.nome.localeCompare(b.nome, 'pt-BR'))
+      .map((bairro) => ({ ...bairro, total: bairro.items.length }));
+    const totalTerreiros = items.filter((row) => row.tipo === 'terreiro').length;
+
+    return {
+      cidade: first.cidade || '',
+      estado: first.estado,
+      cidadeSlug: first.cidadeSlug || '',
+      count: items.length,
+      total: items.length,
+      totalTerreiros,
+      totalBairros: bairros.filter((bairro) => bairro.slug !== 'outros').length,
+      bairros,
+    };
+  }).sort((a, b) => b.totalTerreiros - a.totalTerreiros || a.cidade.localeCompare(b.cidade, 'pt-BR'));
+
+  fs.writeFileSync(
+    path.join(OUT_DIR, 'diretorio-cidades.json'),
+    JSON.stringify({ cidades: cidades.map(({ bairros: _bairros, ...cidade }) => cidade) }),
+    'utf8',
+  );
+  fs.writeFileSync(path.join(OUT_DIR, 'diretorio-snapshot.json'), JSON.stringify({ cidades }), 'utf8');
 }
 
 function writePrerenderPage(template: string, page: ReturnType<typeof buildTerreiroPrerenderPage>) {
@@ -84,14 +161,14 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug", (query, { from, to }) =>
+  const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo", (query, { from, to }) =>
     query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
   );
 
   const template = fs.readFileSync(indexPath, "utf8");
   const rows = (data || []).map((r) => mapRow(r as Record<string, unknown>));
 
-  const cityMap = new Map<string, DiretorioSeoTerreiro[]>();
+  const cityMap = new Map<string, SnapshotRow[]>();
   for (const row of rows) {
     if (!row.cidade || !row.estado || !row.cidadeSlug) continue;
     const key = `${row.estado.toLowerCase()}:${row.cidadeSlug}`;
@@ -116,6 +193,8 @@ async function main() {
     writePrerenderPage(template, page);
     cityPages += 1;
   }
+
+  writeDirectorySnapshots(cityMap);
 
   let terreiroPages = 0;
   for (const row of rows) {

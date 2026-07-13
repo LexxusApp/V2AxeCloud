@@ -35,6 +35,7 @@ type LandingSectionHeaderProps = {
   center?: boolean;
   icon?: ReactNode;
   className?: string;
+  headingLevel?: 'h1' | 'h2';
 };
 
 export function LandingSectionHeader({
@@ -45,16 +46,18 @@ export function LandingSectionHeader({
   center = true,
   icon,
   className,
+  headingLevel = 'h2',
 }: LandingSectionHeaderProps) {
+  const Heading = headingLevel;
   return (
     <div className={cn(center && 'flex w-full flex-col items-center text-center', !center && 'w-full', className)}>
       <span className="landing-mockup-kicker inline-flex items-center gap-1.5">
         {icon}
         {kicker}
       </span>
-      <h2 id={titleId} className="landing-title mt-5 font-display font-black tracking-tight text-[#1b1813]">
+      <Heading id={titleId} className="landing-title mt-5 font-display font-black tracking-tight text-[#1b1813]">
         {title}
-      </h2>
+      </Heading>
       <span
         className={cn('mt-4 block h-1 w-10 rounded-full bg-[#FFC107]', center ? 'mx-auto' : '')}
         aria-hidden

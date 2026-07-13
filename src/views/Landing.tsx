@@ -7,6 +7,7 @@ import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
 import { LoginLink } from '../components/marketing/LoginLink';
 import { RegisterTrialLink } from '../components/marketing/RegisterTrialLink';
 import { landingBrandLogo } from '../constants/landingScreenshots';
+import { COMMERCIAL_WHATSAPP_URL } from '../constants/commercialContact';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
@@ -26,7 +27,6 @@ function LandingSectionFallback({
   return <div aria-hidden className={cn('w-full', className)} style={{ minHeight }} />;
 }
 
-const WA_COMERCIAL = 'https://wa.me/5511912276156';
 const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
@@ -103,7 +103,7 @@ function PricingSection({
             </ul>
             <p className="mt-7 border-t border-[#e8dfd0] pt-5 text-[11px] text-[#1b1813]/66">
               Dúvidas?{' '}
-              <a href={WA_COMERCIAL} target="_blank" rel="noreferrer" className="font-bold text-[#1b1813] hover:text-[#a87400]">
+              <a href={COMMERCIAL_WHATSAPP_URL} target="_blank" rel="noreferrer" className="font-bold text-[#1b1813] hover:text-[#a87400]">
                 Fale com o comercial
               </a>
             </p>
@@ -159,7 +159,7 @@ function ClosingSection() {
               <ArrowRight className="h-4 w-4" aria-hidden />
             </RegisterTrialLink>
             <a
-              href={WA_COMERCIAL}
+              href={COMMERCIAL_WHATSAPP_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#fdf8f0]/20 px-7 py-3.5 text-sm font-bold text-[#fdf8f0]/80 transition hover:border-[#ffc107]/50 hover:text-[#ffc107] sm:w-auto"

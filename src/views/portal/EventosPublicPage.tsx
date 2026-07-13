@@ -3,11 +3,14 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowRight,
+  BookOpen,
+  Building2,
   Calendar,
   CalendarDays,
   Clock,
   Loader2,
   MapPin,
+  MessageCircle,
   Search,
   X,
 } from 'lucide-react';
@@ -20,6 +23,8 @@ import { fetchPublicEventos, terreiroProfilePath, type PublicEvento } from '../.
 import { ROUTES } from '../../lib/routes';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { PORTAL_BRAND } from '../../constants/seoBrandKeywords';
+import { commercialWhatsAppUrl } from '../../constants/commercialContact';
+import { appHref } from '../../lib/appHref';
 
 function normalizeSearch(value: string) {
   return value
@@ -220,20 +225,55 @@ export default function EventosPublicPage() {
               {error}
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="rounded-[2rem] border border-dashed border-[#e8dfd0] bg-white/70 p-10 text-center">
-              <p className="font-bold text-[#1b1813]/70">
+            <div className="overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-6 shadow-xl shadow-black/5 md:p-9">
+              <div className="mx-auto max-w-2xl text-center">
+                <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#ffc107]/18 text-[#a87400]">
+                  <CalendarDays className="h-7 w-7" aria-hidden />
+                </span>
+                <h2 className="mt-5 text-2xl font-black text-[#1b1813]">
+                  {items.length === 0 ? 'A próxima gira pode aparecer aqui' : 'Nenhum resultado encontrado'}
+                </h2>
+                <p className="mt-3 leading-relaxed text-[#1b1813]/62">
                 {items.length === 0
-                  ? 'Nenhum evento público agendado no momento.'
-                  : 'Nenhum evento encontrado para essa busca.'}
-              </p>
+                  ? 'A agenda é publicada pelas próprias casas. Enquanto não há um evento aberto, explore o calendário de referência, conheça os terreiros mapeados ou cadastre sua casa para divulgar a próxima atividade pública.'
+                  : 'Tente buscar por outro evento, terreiro ou cidade.'}
+                </p>
+              </div>
               {items.length === 0 ? (
-                <a
-                  href={ROUTES.terreiros}
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#a87400] hover:text-[#1b1813]"
-                >
-                  Explorar terreiros
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+                <>
+                  <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                    <a href={ROUTES.liturgicalCalendar} className="group rounded-2xl border border-[#e8dfd0] bg-[#fdf8f0] p-5 text-left transition hover:-translate-y-1 hover:border-[#ffc107]/55">
+                      <BookOpen className="h-5 w-5 text-violet-600" aria-hidden />
+                      <h3 className="mt-4 font-black text-[#1b1813]">Calendário litúrgico</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/58">Consulte datas culturais e observâncias de referência.</p>
+                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[#a87400]">Abrir <ArrowRight className="h-3.5 w-3.5" /></span>
+                    </a>
+                    <a href={ROUTES.terreiros} className="group rounded-2xl border border-[#e8dfd0] bg-[#fdf8f0] p-5 text-left transition hover:-translate-y-1 hover:border-[#ffc107]/55">
+                      <Building2 className="h-5 w-5 text-sky-600" aria-hidden />
+                      <h3 className="mt-4 font-black text-[#1b1813]">Encontrar uma casa</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/58">Veja terreiros por cidade, bairro e localização.</p>
+                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[#a87400]">Explorar <ArrowRight className="h-3.5 w-3.5" /></span>
+                    </a>
+                    <a href={appHref(ROUTES.register)} className="group rounded-2xl border border-[#ffc107]/45 bg-[#ffc107]/12 p-5 text-left transition hover:-translate-y-1 hover:bg-[#ffc107]/20">
+                      <CalendarDays className="h-5 w-5 text-emerald-700" aria-hidden />
+                      <h3 className="mt-4 font-black text-[#1b1813]">Publicar um evento</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/58">Cadastre sua casa e ative a divulgação pública pelo painel.</p>
+                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[#a87400]">Começar grátis <ArrowRight className="h-3.5 w-3.5" /></span>
+                    </a>
+                  </div>
+                  <p className="mt-6 text-center text-sm text-[#1b1813]/55">
+                    Precisa de ajuda?{' '}
+                    <a
+                      href={commercialWhatsAppUrl('Olá! Quero saber como publicar eventos da minha casa no portal AxéCloud.')}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 font-black text-emerald-700 hover:text-emerald-800"
+                    >
+                      <MessageCircle className="h-4 w-4" aria-hidden />
+                      Fale com o comercial
+                    </a>
+                  </p>
+                </>
               ) : null}
             </div>
           ) : (

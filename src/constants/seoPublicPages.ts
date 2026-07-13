@@ -35,6 +35,7 @@ export type PublicPrerenderPage = {
   sections: readonly { heading: string; body: string }[];
   /** JSON-LD opcional (Article, Offer, DefinedTermSet, etc.) */
   jsonLd?: Record<string, unknown> | readonly Record<string, unknown>[];
+  robots?: 'index, follow' | 'noindex, follow' | 'noindex, nofollow';
 };
 
 function legalSectionsToStatic(sections: readonly LegalSection[]): { heading: string; body: string }[] {
@@ -76,6 +77,33 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
         heading: 'Ainda não tem conta?',
         body:
           `Terreiros novos podem criar conta em ${SITE_ORIGIN}${ROUTES.register} e testar o plano Premium por ${TRIAL_DAYS} dias grátis, sem cartão de crédito. Casas já cadastradas entram diretamente por esta página.`,
+      },
+    ],
+  },
+  {
+    path: ROUTES.register,
+    title: `Cadastrar terreiro | ${BRAND_NAME}`,
+    description:
+      `Cadastre sua casa no ${BRAND_NAME} e teste financeiro com Pix, giras, WhatsApp e portal do filho por ${TRIAL_DAYS} dias grátis, sem cartão.`,
+    h1: `Cadastre seu terreiro no ${BRAND_NAME}`,
+    intro:
+      `Crie o ambiente privado da sua casa de axé e experimente o plano Premium completo por ${TRIAL_DAYS} dias. O cadastro não exige cartão de crédito.`,
+    robots: 'noindex, follow',
+    sections: [
+      {
+        heading: 'Tudo liberado durante o teste',
+        body:
+          'Use painel do zelador, cadastro de filhos, financeiro com Pix, calendário de giras, mural, galeria, biblioteca, WhatsApp oficial e portal do filho de santo.',
+      },
+      {
+        heading: 'Comece sem cartão de crédito',
+        body:
+          `O período de ${TRIAL_DAYS} dias é gratuito. Você conhece a rotina real do sistema antes de decidir pela mensalidade.`,
+      },
+      {
+        heading: 'Ambiente privado para cada casa',
+        body:
+          'Os dados da diretoria, dos filhos de santo e da rotina interna ficam separados por terreiro, com acesso autenticado e conexão HTTPS.',
       },
     ],
   },
@@ -298,7 +326,7 @@ export function buildPublicPageHeadInject(page: PublicPrerenderPage): string {
     '',
     `<meta name="description" content="${escapeHtml(d)}" />`,
     `<meta name="keywords" content="${escapeHtml(buildBrandKeywordsMeta())}" />`,
-    `<meta name="robots" content="index, follow" />`,
+    `<meta name="robots" content="${page.robots || 'index, follow'}" />`,
     `<link rel="canonical" href="${url}" />`,
     '',
     `<meta property="og:type" content="${ogType}" />`,

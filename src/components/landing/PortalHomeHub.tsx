@@ -32,7 +32,7 @@ const EXPLORAR_TILES: PortalTile[] = [
     id: 'eventos',
     eyebrow: 'Agenda aberta',
     title: 'Eventos públicos',
-    description: 'Veja giras, festas e encontros divulgados pelas casas.',
+    description: 'Veja eventos divulgados pelas casas e consulte o calendário litúrgico.',
     href: ROUTES.eventosPublicos,
     icon: CalendarDays,
     accent: 'text-[#2563eb]',

@@ -52,6 +52,7 @@ export default function PorQueAxeCloudPage() {
                 title={COMPARISON_INTRO.title}
                 titleId="comparativo-head"
                 lead={COMPARISON_INTRO.lead}
+                headingLevel="h1"
               />
             </motion.div>
 

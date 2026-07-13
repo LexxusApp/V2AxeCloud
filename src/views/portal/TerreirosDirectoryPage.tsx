@@ -1,13 +1,17 @@
 ﻿import { motion } from 'framer-motion';
-import { ArrowRight, Loader2, MapPin, Search } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Loader2, MapPin, MessageCircle, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { diretorioCityPath } from '../../lib/diretorioSlug';
 import {
   loadDiretorioCidadesResumo,
+  fetchDiretorioSnapshot,
   type DiretorioCidadeResumo,
+  type DiretorioCidadeSnapshot,
 } from '../../lib/diretorioSnapshot';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
+import { DirectoryCoverageMap } from '../../components/portal/DirectoryCoverageMap';
+import { commercialWhatsAppUrl } from '../../constants/commercialContact';
 
 function normalizeSearch(value: string) {
   return value
@@ -28,6 +32,7 @@ function MatrizKicker({ children }: { children: ReactNode }) {
 
 export default function TerreirosDirectoryPage() {
   const [cidades, setCidades] = useState<DiretorioCidadeResumo[]>([]);
+  const [coverage, setCoverage] = useState<DiretorioCidadeSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +44,16 @@ export default function TerreirosDirectoryPage() {
       setLoading(true);
       setError(null);
       try {
-        const snapshot = await loadDiretorioCidadesResumo();
+        const [snapshot, detailSnapshot] = await Promise.all([
+          loadDiretorioCidadesResumo(),
+          fetchDiretorioSnapshot().catch(() => null),
+        ]);
         if (cancelled) return;
         if (!snapshot?.length) {
           throw new Error('Não foi possível carregar o diretório de cidades. Atualize a página.');
         }
         setCidades(snapshot);
+        setCoverage(detailSnapshot || []);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar cidades');
       } finally {
@@ -128,6 +137,8 @@ export default function TerreirosDirectoryPage() {
           </motion.div>
         </section>
 
+        <DirectoryCoverageMap cidades={coverage} />
+
         <section className="mt-14">
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
@@ -187,6 +198,29 @@ export default function TerreirosDirectoryPage() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mt-16 grid gap-6 overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/82 p-7 shadow-xl shadow-black/5 md:grid-cols-[1fr_auto] md:items-center md:p-9" aria-labelledby="claim-profile-title">
+          <div className="flex gap-4">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <BadgeCheck className="h-6 w-6" aria-hidden />
+            </span>
+            <div>
+              <h2 id="claim-profile-title" className="text-xl font-black text-[#1b1813]">Sua casa já aparece no diretório?</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#1b1813]/62">
+                Fale com o AxéCloud para corrigir informações, identificar sua casa e conhecer o perfil público com eventos e contato oficial.
+              </p>
+            </div>
+          </div>
+          <a
+            href={commercialWhatsAppUrl('Olá! Encontrei minha casa no diretório do AxéCloud e quero reivindicar ou atualizar o perfil.')}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1b1813] px-6 py-3.5 text-sm font-black text-white transition hover:bg-[#a87400]"
+          >
+            <MessageCircle className="h-4 w-4 text-[#ffc107]" aria-hidden />
+            Reivindicar perfil
+          </a>
         </section>
       </main>
     </div>
