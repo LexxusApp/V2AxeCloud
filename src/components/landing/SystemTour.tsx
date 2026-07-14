@@ -41,7 +41,7 @@ const TOUR_STEPS: TourStep[] = [
     shortLabel: 'Giras',
     icon: CalendarDays,
     accent: 'rose',
-    src: landingScreenshot('calendario-eventos.png'),
+    src: landingScreenshot('calendario-eventos.webp'),
     desc: 'Giras, compromissos e a agenda alinhada à casa — tudo visível para a diretoria.',
   },
   {

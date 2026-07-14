@@ -764,8 +764,8 @@ function AgendaSection() {
                 transition={{ type: 'spring', stiffness: 200 }}
               >
                 <img
-                  src={landingScreenshot('painel-inicio.webp')}
-                  alt="Painel do zelador com calendário de giras e eventos do terreiro"
+                  src={landingScreenshot('calendario-eventos.webp')}
+                  alt="Calendário de Axé com giras, festas, obrigações e eventos do terreiro"
                   className="w-full rounded-xl"
                   loading="lazy"
                 />
