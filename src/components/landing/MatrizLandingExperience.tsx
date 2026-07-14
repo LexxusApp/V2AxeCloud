@@ -764,8 +764,8 @@ function AgendaSection() {
                 transition={{ type: 'spring', stiffness: 200 }}
               >
                 <img
-                  src={landingScreenshot('calendario-eventos.webp')}
-                  alt="Calendário de Axé com giras, festas, obrigações e eventos do terreiro"
+                  src={landingScreenshot('agenda-casa-atual.webp')}
+                  alt="Calendário de giras do AxéCloud com eventos, confirmados e convites pelo WhatsApp"
                   className="w-full rounded-xl"
                   loading="lazy"
                 />
