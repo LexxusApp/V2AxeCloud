@@ -25,6 +25,8 @@ import {
 } from "./metaCloudSend.js";
 import {
   buildCredentialsFollowUpText,
+  buildCredenciaisAcessoComponents,
+  buildCredentialsPackedInAvisoGeralComponents,
   buildMetaTemplateComponentsForTipo,
   buildSignedWhatsAppBody,
   buildTransmissaoFollowUpText,
@@ -34,6 +36,7 @@ import {
   isConviteEventoTemplate,
   isCredentialsAccessTemplate,
   resolveCredentialsFollowUpDelayMs,
+  resolveCredenciaisTemplateName,
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
   resolveTransmissaoFollowUpDelayMs,
@@ -480,7 +483,77 @@ async function sendCredentialsFollowUpMessage(
   return out;
 }
 
-/** Template conta_ativa_axecloud + texto livre com senha/link (janela 24h). */
+/**
+ * 2ª mensagem de dados_acesso: template Meta (obrigatório fora da janela do cliente).
+ * Preferência: credenciais_acesso_axecloud → senão empacota em aviso_geral_axecloud → por último texto livre.
+ */
+async function sendCredentialsFollowUpReliable(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  variables: Record<string, string | number>,
+  opts?: {
+    tenantId?: string;
+    filhoId?: string | null;
+    sb?: SupabaseClient;
+  }
+): Promise<{ messageId?: string }> {
+  const followUpText = buildCredentialsFollowUpText(variables);
+  if (!followUpText.trim()) {
+    throw httpError("Registro/senha do filho não encontrados para envio de credenciais.", 400);
+  }
+
+  const language = resolveMetaTemplateLanguage();
+  const dedicatedName = resolveCredenciaisTemplateName();
+  const packedName = String(process.env.WA_META_TEMPLATE_DEFAULT || "aviso_geral_axecloud").trim();
+
+  if (isMetaCloudDirectConfigured()) {
+    try {
+      const out = await sendMetaCloudTemplate(
+        phone,
+        dedicatedName,
+        language,
+        buildCredenciaisAcessoComponents(variables)
+      );
+      console.log(`[WHATSAPP] credenciais template Meta (${dedicatedName}) → ${phone.slice(0, 4)}…`);
+      return out;
+    } catch (err) {
+      console.warn(
+        `[WHATSAPP] template ${dedicatedName} indisponível, empacotando em ${packedName}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+
+    try {
+      const out = await sendMetaCloudTemplate(
+        phone,
+        packedName,
+        language,
+        buildCredentialsPackedInAvisoGeralComponents(nomeMembro, variables)
+      );
+      console.log(`[WHATSAPP] credenciais template Meta (${packedName} pack) → ${phone.slice(0, 4)}…`);
+      return out;
+    } catch (err) {
+      console.warn(
+        `[WHATSAPP] pack ${packedName} falhou, tentando texto livre:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+
+    // Último recurso — só entrega se o destinatário já tiver janela de 24h aberta.
+    return sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
+      ...opts,
+      nomeMembro,
+    });
+  }
+
+  return sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
+    ...opts,
+    nomeMembro,
+  });
+}
+
+/** Template conta_ativa_axecloud + credenciais (2ª msg via template Meta). */
 async function sendCredentialsAccessPair(
   phone: string,
   tipo: string,
@@ -496,27 +569,17 @@ async function sendCredentialsAccessPair(
 ): Promise<{ messageId?: string; templateMessageId?: string; followUpMessageId?: string }> {
   const followUpText = buildCredentialsFollowUpText(variables);
   if (!followUpText.trim()) {
-    throw httpError("Registro do filho não encontrado para envio de credenciais.", 400);
+    throw httpError("Registro/senha do filho não encontrados para envio de credenciais.", 400);
   }
 
+  let templateOut: { messageId?: string } | null = null;
   try {
-    const templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
-    await sleepMs(resolveCredentialsFollowUpDelayMs());
-    const followUpOut = await sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
-      ...opts,
-      nomeMembro,
-    });
-
-    return {
-      messageId: followUpOut.messageId || templateOut.messageId,
-      templateMessageId: templateOut.messageId,
-      followUpMessageId: followUpOut.messageId,
-    };
+    templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
   } catch (err) {
     const fallback = String(opts?.fallbackText || "").trim();
     if (!fallback) throw err;
     console.error(
-      `[WHATSAPP] fluxo conta_ativa falhou (${tipo}), fallback texto único:`,
+      `[WHATSAPP] template conta_ativa falhou (${tipo}), fallback texto único:`,
       err instanceof Error ? err.message : err
     );
     const out = await sendWhatsAppTextMessage(phone, fallback, {
@@ -527,6 +590,25 @@ async function sendCredentialsAccessPair(
       sb: opts?.sb,
     });
     return { messageId: out.messageId };
+  }
+
+  // Aguarda a Meta processar o 1º template antes do 2º.
+  await sleepMs(Math.max(resolveCredentialsFollowUpDelayMs(), 5000));
+
+  try {
+    const followUpOut = await sendCredentialsFollowUpReliable(phone, tipo, nomeMembro, variables, opts);
+    return {
+      messageId: followUpOut.messageId || templateOut.messageId,
+      templateMessageId: templateOut.messageId,
+      followUpMessageId: followUpOut.messageId,
+    };
+  } catch (err) {
+    console.error(
+      `[WHATSAPP] 2ª mensagem (credenciais) falhou após conta_ativa:`,
+      err instanceof Error ? err.message : err
+    );
+    // Conta_ativa já foi enviada — não mascara o erro com fallback de texto (Meta bloquearia).
+    throw err;
   }
 }
 

@@ -417,20 +417,55 @@ export function buildTransmissaoFollowUpText(
   return `${raw}\n\n${assinatura}`.trim().slice(0, 4096);
 }
 
-/** 2ª mensagem (texto livre): senha + link após template conta_ativa_axecloud. */
+/** 2ª mensagem: só Registro + Senha (entregue preferencialmente via template Meta). */
 export function buildCredentialsFollowUpText(
   variables: Record<string, string | number>
 ): string {
   const loginId = String(variables.filho_login_id || "").trim();
   const senha = String(variables.senha_acesso || "").trim();
-  const loginUrl = String(variables.login_url || resolveLoginPublicUrl()).trim();
-  if (!loginId) return "";
+  if (!loginId || !senha) return "";
+  return `Registro: ${loginId}\nSenha: ${senha}`;
+}
+
+/** Components para template de credenciais: {{1}} registro, {{2}} senha/código. */
+export function buildCredenciaisAcessoComponents(
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  const loginId = String(v.filho_login_id || "").trim() || "—";
+  const senha = String(v.senha_acesso || "").trim() || "—";
+  return [
+    {
+      type: "body",
+      parameters: [textParam(loginId), textParam(senha)],
+    },
+  ];
+}
+
+/**
+ * Fallback em aviso_geral_axecloud: {{1}} nome, {{2}} "Registro: … | Senha: …"
+ * Usado enquanto o template dedicado de credenciais não estiver aprovado.
+ */
+export function buildCredentialsPackedInAvisoGeralComponents(
+  nomeMembro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const text = buildCredentialsFollowUpText(variables || {});
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(variables?.nome_filho || nomeMembro || "Membro")),
+        textParam(text.replace(/\n+/g, " · ") || "Dados de acesso no AxéCloud", 256),
+      ],
+    },
+  ];
+}
+
+export function resolveCredenciaisTemplateName(): string {
   return (
-    `🔐 *Seu acesso:*\n` +
-    `Registro: ${loginId}\n` +
-    `Senha: ${senha}\n` +
-    `Entrar: ${loginUrl}\n\n` +
-    `Na tela de login, use o registro e a senha acima. Axé!`
+    String(process.env.WA_META_TEMPLATE_CREDENCIAIS_ACESSO || "").trim() ||
+    "credenciais_acesso_axecloud"
   );
 }
 

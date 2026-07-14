@@ -13,12 +13,7 @@
 
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
   dados_acesso:
-    'Olá, {{nome_filho}}! Seguem seus dados de acesso ao {{nome_sistema}} do terreiro {{nome_terreiro}}.\n\n' +
-    '🔐 *Seu acesso:*\n' +
-    'Registro: {{filho_login_id}}\n' +
-    'Senha: {{senha_acesso}}\n' +
-    'Entrar: {{login_url}}\n\n' +
-    'Na tela de login, use o registro e a senha acima. Axé!',
+    'Registro: {{filho_login_id}}\nSenha: {{senha_acesso}}',
   cobranca_mensalidade:
     'Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!',
   financeiro:
