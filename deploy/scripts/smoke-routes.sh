@@ -61,6 +61,8 @@ check "/register" "200"
 check "/api/plans" "200"
 check "/api/v1/public/terreiros" "200"
 check "/api/v1/public/eventos" "200"
+check "/diretorio-cidades.json" "200"
+check "/diretorio-snapshot.json" "200"
 check "/sitemap.xml" "200"
 check "/robots.txt" "200"
 
@@ -68,6 +70,8 @@ check_contains "/" "m-assets/"
 check_contains "/" "Gestão de terreiros"
 check_contains "/terreiros" "m-assets/"
 check_contains "/eventos" "m-assets/"
+check_contains "/diretorio-cidades.json" '"totalTerreiros"'
+check_contains "/diretorio-snapshot.json" '"bairros"'
 check_contains "/register" "m-assets/"
 check_contains "/register" "https://axecloud.com.br/register"
 check_contains "/entrar" "Entrar"
