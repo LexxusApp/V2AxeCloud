@@ -290,12 +290,30 @@ export async function getConsoleInstanceStatus(instanceName: string): Promise<{
   return { status: "DISCONNECTED", number: null };
 }
 
+/** Meta Cloud API direta (token + phone number id) — não depende do estado Baileys da Evolution. */
+export function isMetaCloudEnvConfigured(): boolean {
+  const token = String(
+    process.env.WA_META_TOKEN || process.env.META_WHATSAPP_ACCESS_TOKEN || ""
+  ).trim();
+  const phoneId = String(
+    process.env.WA_PHONE_NUMBER_ID || process.env.META_WHATSAPP_PHONE_NUMBER_ID || ""
+  ).trim();
+  return Boolean(token && phoneId);
+}
+
 /** Status da instância oficial — usado por todos os terreiros. */
 export async function getOfficialWhatsAppStatus(): Promise<{ status: UiStatus; number: string | null }> {
+  if (isMetaCloudEnvConfigured()) {
+    const phoneId = String(
+      process.env.WA_PHONE_NUMBER_ID || process.env.META_WHATSAPP_PHONE_NUMBER_ID || ""
+    ).trim();
+    return { status: "CONNECTED", number: phoneId || null };
+  }
   return getConsoleInstanceStatus(CONSOLE_ADMIN_INSTANCE_NAME);
 }
 
 export async function ensureOfficialWhatsAppReady(): Promise<void> {
+  if (isMetaCloudEnvConfigured()) return;
   const st = await getOfficialWhatsAppStatus();
   if (st.status !== "CONNECTED") {
     const err = new Error(WHATSAPP_INITIALIZING_MESSAGE_PT) as Error & { code?: string };

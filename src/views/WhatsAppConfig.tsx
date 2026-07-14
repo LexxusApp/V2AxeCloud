@@ -77,13 +77,13 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
   const pairingRef = useRef<string | null>(pairingCode);
   const qrRef = useRef<string | null>(qrCode);
   const templateMeta: Record<WhatsAppTemplateType, { title: string; hint: string }> = {
-    boas_vindas: {
-      title: 'Boas-vindas',
-      hint: 'Enviada ao cadastrar novo filho ou pelo botão na lista de Filhos de Santo. Variáveis: {{filho_login_id}}, {{senha_acesso}}, {{login_url}}.',
+    dados_acesso: {
+      title: 'Dados de acesso',
+      hint: 'Enviado ao cadastrar filho, reenvio em massa ou botão na ficha. Template Meta conta_ativa_axecloud + senha em texto livre.',
     },
     cobranca_mensalidade: {
       title: 'Cobrança de Mensalidade',
-      hint: 'Usada no botão de cobrar mensalidade.',
+      hint: 'Template Meta cobranca_mensalidade_axecloud — botão Gerar cobrança no Financeiro.',
     },
     financeiro: {
       title: 'Financeiro (Lembrete)',
@@ -91,7 +91,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
     },
     mensalidade_confirmada: {
       title: 'Mensalidade Confirmada',
-      hint: 'Enviada ao confirmar pagamento no financeiro.',
+      hint: 'Template Meta mensalidade_confirmada_axecloud — ao confirmar pagamento no financeiro.',
     },
     mural_aviso: {
       title: 'Aviso de Mural',

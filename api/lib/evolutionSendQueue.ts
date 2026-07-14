@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendEvolutionTextByInstance } from "../../src/services/evolution.service.js";
+import {
+  sendEvolutionTemplateByInstance,
+  sendEvolutionTextByInstance,
+  type MetaTemplateComponent,
+} from "../../src/services/evolution.service.js";
 import {
   assertWithinSendWindow,
   isWithinAllowedSendWindow,
@@ -19,15 +23,22 @@ export type WhatsAppQueueOptions = Partial<WhatsAppSendMeta> & {
   sb?: SupabaseClient;
   /** Pula verificação de janela horária (só OTP/crítico). */
   skipSendWindow?: boolean;
+  /** Pula cooldown por telefone (ex.: 2ª mensagem de credenciais após template Meta). */
+  skipPhoneCooldown?: boolean;
 };
 
 type QueueJob = {
+  kind: "text" | "template";
   instanceName: string;
   phone: string;
   text: string;
+  templateName?: string;
+  templateLanguage?: string;
+  templateComponents?: MetaTemplateComponent[];
   meta: WhatsAppSendMeta;
   sb?: SupabaseClient;
   skipSendWindow: boolean;
+  skipPhoneCooldown: boolean;
   resolve: (value: { messageId?: string }) => void;
   reject: (error: Error) => void;
   retries: number;
@@ -150,7 +161,12 @@ async function waitForSendSpacing(meta: WhatsAppSendMeta, phone: string): Promis
   }
 }
 
-async function waitForPhoneCooldown(phone: string, sb?: SupabaseClient): Promise<void> {
+async function waitForPhoneCooldown(
+  phone: string,
+  sb?: SupabaseClient,
+  skip?: boolean
+): Promise<void> {
+  if (skip) return;
   if (sb) {
     await waitForPersistentPhoneCooldown(sb, phone);
     return;
@@ -191,10 +207,19 @@ async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
   }
 
   await waitForSendSpacing(job.meta, job.phone);
-  await waitForPhoneCooldown(job.phone, job.sb);
+  await waitForPhoneCooldown(job.phone, job.sb, job.skipPhoneCooldown);
 
   try {
-    const out = await sendEvolutionTextByInstance(job.instanceName, job.phone, job.text);
+    const out =
+      job.kind === "template"
+        ? await sendEvolutionTemplateByInstance(
+            job.instanceName,
+            job.phone,
+            String(job.templateName || ""),
+            String(job.templateLanguage || "pt_BR"),
+            job.templateComponents || []
+          )
+        : await sendEvolutionTextByInstance(job.instanceName, job.phone, job.text);
     hourlyCount += 1;
     dailyCount += 1;
     consecutiveFailures = 0;
@@ -296,12 +321,52 @@ export function sendEvolutionTextQueued(
 
   return new Promise((resolve, reject) => {
     queue.push({
+      kind: "text",
       instanceName,
       phone,
       text: body,
       meta,
       sb: options?.sb,
       skipSendWindow: Boolean(options?.skipSendWindow),
+      skipPhoneCooldown: Boolean(options?.skipPhoneCooldown),
+      resolve,
+      reject,
+      retries: 0,
+      enqueuedAt: Date.now(),
+    });
+    void processQueue();
+  });
+}
+
+/** Enfileira envio de template Meta via Evolution (Cloud API). */
+export function sendEvolutionTemplateQueued(
+  instanceName: string,
+  phoneDigits: string,
+  templateName: string,
+  language: string,
+  components: MetaTemplateComponent[],
+  options?: WhatsAppQueueOptions
+): Promise<{ messageId?: string }> {
+  const phone = normalizePhone(phoneDigits);
+  const name = String(templateName || "").trim();
+  if (!phone) return Promise.reject(new Error("Número inválido para envio WhatsApp."));
+  if (!name) return Promise.reject(new Error("Nome do template Meta inválido."));
+
+  const meta = resolveJobMeta(options);
+
+  return new Promise((resolve, reject) => {
+    queue.push({
+      kind: "template",
+      instanceName,
+      phone,
+      text: `[template:${name}]`,
+      templateName: name,
+      templateLanguage: language,
+      templateComponents: components,
+      meta,
+      sb: options?.sb,
+      skipSendWindow: Boolean(options?.skipSendWindow),
+      skipPhoneCooldown: Boolean(options?.skipPhoneCooldown),
       resolve,
       reject,
       retries: 0,

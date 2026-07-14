@@ -54,7 +54,6 @@ const CRITICAL_TIPOS = new Set([
 ]);
 
 const TRANSACTIONAL_TIPOS = new Set([
-  "boas_vindas",
   "dados_acesso",
   "pedido_reza_novo_zelador",
   "pedido_reza_aceito_fiel",
@@ -68,7 +67,7 @@ const CAMPAIGN_TIPOS = new Set([
   "transmissao_aviso",
   "mural_aviso",
   "aviso_gira",
-  "resend_boas_vindas",
+  "resend_dados_acesso",
 ]);
 
 const GREETING_VARIANTS: Array<(nome: string) => string> = [
@@ -137,7 +136,7 @@ export function isWithinAllowedSendWindow(at: Date = nowBrasilia()): boolean {
   return hour >= start && hour < end;
 }
 
-/** Janela horária só para campanhas em massa — envios pontuais (acesso, boas-vindas, etc.) podem a qualquer hora. */
+/** Janela horária só para campanhas em massa — envios pontuais (acesso, financeiro, etc.) podem a qualquer hora. */
 export function shouldEnforceSendWindow(tipo?: string): boolean {
   if (!ENFORCE_SEND_WINDOW) return false;
   if (!tipo) return false;

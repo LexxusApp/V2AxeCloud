@@ -234,6 +234,7 @@ export async function sendSenhaVisitanteWhatsApp(
       hora_evento: String(event.hora || ""),
       nome_terreiro: ctx.nomeTerreiro,
       link_checkin: linkCheckin,
+      checkin_token: String(senha.checkin_token || ""),
     };
 
     const message = buildWhatsAppMessage(waCfg?.templates, "senha_evento_visitante", variables);

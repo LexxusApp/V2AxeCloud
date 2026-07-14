@@ -89,6 +89,125 @@ const TEMPLATES = {
       },
     ],
   },
+  convite_evento: {
+    name: process.env.WA_META_TEMPLATE_CONVITE_EVENTO || "convite_evento_axecloud",
+    components: [
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "image",
+            image: {
+              link:
+                process.env.WA_META_EVENT_DEFAULT_BANNER_URL ||
+                "https://axecloud.com.br/og-image.png",
+            },
+          },
+        ],
+      },
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "Terreiro AxéCloud Teste" },
+          { type: "text", text: "Festa de Oxum 2026" },
+          { type: "text", text: "20/07/2026" },
+          { type: "text", text: "19:00" },
+          { type: "text", text: "Rua das Flores, 123" },
+        ],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: "token-teste/confirmar" }],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "1",
+        parameters: [{ type: "text", text: "token-teste/declinar" }],
+      },
+    ],
+  },
+  aviso_gira: {
+    name: process.env.WA_META_TEMPLATE_AVISO_GIRA || "aviso_gira_axecloud",
+    components: [
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "image",
+            image: {
+              link:
+                process.env.WA_META_EVENT_DEFAULT_BANNER_URL ||
+                "https://axecloud.com.br/og-image.png",
+            },
+          },
+        ],
+      },
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "Gira de Caboclo (teste)" },
+          { type: "text", text: "15/07/2026" },
+          { type: "text", text: "20:00" },
+        ],
+      },
+    ],
+  },
+  pedido_reza_novo_zelador: {
+    name:
+      process.env.WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR ||
+      "pedido_reza_novo_zelador_axecloud",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "Terreiro AxéCloud Teste" },
+          { type: "text", text: "Maria Silva" },
+          { type: "text", text: "Saúde / Cura" },
+        ],
+      },
+    ],
+  },
+  pedido_reza_aceito_fiel: {
+    name:
+      process.env.WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL ||
+      "pedido_reza_aceito_fiel_axecloud",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "João Santos" },
+          { type: "text", text: "Casa de Umbanda Axé" },
+        ],
+      },
+    ],
+  },
+  senha_evento_visitante: {
+    name:
+      process.env.WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE ||
+      "senha_evento_visitante_axecloud",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "Ana Souza" },
+          { type: "text", text: "Gira de Caboclo" },
+          { type: "text", text: "Terreiro de Oxum" },
+          { type: "text", text: "42" },
+          { type: "text", text: "20/07/2026" },
+          { type: "text", text: "19:00" },
+        ],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: "abc123token" }],
+      },
+    ],
+  },
   estoque_critico: {
     name: process.env.WA_META_TEMPLATE_ESTOQUE_CRITICO || "estoque_critico_axecloud",
     components: [

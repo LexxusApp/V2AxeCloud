@@ -44,7 +44,7 @@ import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
-import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendBoasVindasWhatsAppForTenant } from "./lib/whatsappSendCore.js";
+import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendDadosAcessoWhatsAppForTenant } from "./lib/whatsappSendCore.js";
 import { validateWhatsAppOutboundMessage } from "./lib/whatsappSendGuards.js";
 import { dispatchGiraWhatsApp, dispatchTransmissaoAviso } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
@@ -66,6 +66,7 @@ import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperatio
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroValidarComprovanteRoutes.js";
+import { notifyMensalidadeConfirmadaWhatsApp } from "./lib/mensalidadeWhatsAppNotify.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
@@ -108,7 +109,7 @@ import {
   sensitiveActionRateLimit,
   whatsappSendRateLimit,
   whatsappBroadcastRateLimit,
-  whatsappResendWelcomeRateLimit,
+  whatsappResendDadosAcessoRateLimit,
   pushDirectRateLimit,
   apiReadRateLimit,
   filhoLoginRateLimit,
@@ -1497,39 +1498,8 @@ async function startServer() {
     }
   });
 
-  async function notifyMensalidadeConfirmadaWhatsApp(
-    sb: typeof supabaseAdmin,
-    args: {
-      tenantId: string;
-      zeladorId: string;
-      filhoId: string;
-      nome: string;
-      valor: number;
-      competencia: string;
-    }
-  ): Promise<void> {
-    const { data: profile } = await sb
-      .from("perfil_lider")
-      .select("nome_terreiro")
-      .eq("id", args.zeladorId)
-      .maybeSingle();
-    const competenciaFmt = args.competencia.includes("-")
-      ? format(parseISO(args.competencia), "MM/yyyy")
-      : args.competencia;
-    await sendWhatsAppForTenant(sb, {
-      tenantId: args.zeladorId,
-      tipo: "mensalidade_confirmada",
-      filhoId: args.filhoId,
-      variables: {
-        nome_filho: args.nome,
-        valor: args.valor.toFixed(2),
-        competencia: competenciaFmt,
-        nome_terreiro: String(profile?.nome_terreiro || "Terreiro"),
-      },
-    });
-  }
 
-  // Helper: enviar push apenas para filhos de santo (tabela push_subscriptions por user_id)
+  // --- fim bloco financeiro / mensalidades ---
   async function sendPushNotification(
     tenantId: string,
     payload: { title: string; body: string; url: string }
@@ -3705,6 +3675,7 @@ async function startServer() {
     supabaseAdmin,
     resolveLeaderId,
     liquidarMensalidadePendente,
+    notifyMensalidadeConfirmadaWhatsApp,
   });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerFilhoHomeRoutes(app, { supabaseAdmin });
@@ -4015,13 +3986,13 @@ async function startServer() {
       if (phone.length >= 10) {
         void sendWhatsAppForTenant(supabaseAdmin, {
           tenantId: userId,
-          tipo: "boas_vindas",
+          tipo: "dados_acesso",
           filhoId: String(data.id),
           variables: {
             nome_filho: String(data.nome || ""),
             nome_sistema: "AxéCloud",
           },
-        }).catch((err) => console.error("[BOAS-VINDAS WA] após cadastrar filho:", err));
+        }).catch((err) => console.error("[DADOS-ACESSO WA] após cadastrar filho:", err));
       }
 
       res.json({ success: true, data });
@@ -4916,7 +4887,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/whatsapp/resend-welcome", whatsappResendWelcomeRateLimit, async (req, res) => {
+  app.post("/api/whatsapp/resend-dados-acesso", whatsappResendDadosAcessoRateLimit, async (req, res) => {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
@@ -4924,7 +4895,7 @@ async function startServer() {
       const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
       if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
-      const result = await resendBoasVindasWhatsAppForTenant(supabaseAdmin, user.id);
+      const result = await resendDadosAcessoWhatsAppForTenant(supabaseAdmin, user.id);
       if (!result.total && result.skippedNoPhone > 0 && !result.sent) {
         return res.status(400).json({
           error: "Nenhum filho com WhatsApp e CPF cadastrados para envio de acesso.",
@@ -4933,20 +4904,20 @@ async function startServer() {
       }
       if (!result.sent && result.failed > 0) {
         return res.status(502).json({
-          error: result.lastError || "Não foi possível enviar as mensagens de boas-vindas.",
+          error: result.lastError || "Não foi possível enviar os dados de acesso.",
           ...result,
         });
       }
 
       res.json({
         success: true,
-        message: "Boas-vindas enfileiradas com sucesso.",
+        message: "Dados de acesso enfileirados com sucesso.",
         ...result,
       });
     } catch (error: any) {
       if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
       const status = Number(error?.statusCode) || 500;
-      res.status(status).json({ error: safeErrorMessage(error, "Erro ao reenviar boas-vindas.") });
+      res.status(status).json({ error: safeErrorMessage(error, "Erro ao reenviar dados de acesso.") });
     }
   });
 

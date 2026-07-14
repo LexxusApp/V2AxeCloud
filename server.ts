@@ -3458,13 +3458,13 @@ async function startServer() {
         const { sendWhatsAppForTenant } = await import("./api/lib/whatsappSendCore.js");
         void sendWhatsAppForTenant(supabaseAdmin, {
           tenantId: userId,
-          tipo: "boas_vindas",
+          tipo: "dados_acesso",
           filhoId: String(data.id),
           variables: {
             nome_filho: String(data.nome || ""),
             nome_sistema: "AxéCloud",
           },
-        }).catch((err) => console.error("[BOAS-VINDAS WA] após cadastrar filho:", err));
+        }).catch((err) => console.error("[DADOS-ACESSO WA] após cadastrar filho:", err));
       }
 
       res.json({ success: true, data });

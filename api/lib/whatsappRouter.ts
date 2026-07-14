@@ -9,7 +9,7 @@ import {
   buildWhatsAppMessage,
   logAndSendWhatsApp,
   resolveTerreiroWhatsAppContext,
-  resendBoasVindasWhatsAppForTenant,
+  resendDadosAcessoWhatsAppForTenant,
   sendWhatsAppForTenant,
 } from "./whatsappSendCore.js";
 import { getDiscreteSupabaseAdmin, sendJson } from "./discreteSupabase.js";
@@ -159,17 +159,17 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       return sendJson(res, 200, { success: true, logs: data || [] });
     }
 
-    if (act === "resend-welcome" && method === "POST") {
+    if (act === "resend-dados-acesso" && method === "POST") {
       const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
-      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-resend-welcome" });
+      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-resend-dados-acesso" });
       if (!rl.allowed) {
-        return sendJson(res, 429, { error: "Limite de reenvio de boas-vindas excedido. Tente mais tarde." });
+        return sendJson(res, 429, { error: "Limite de reenvio de dados de acesso excedido. Tente mais tarde." });
       }
 
       try {
-        const result = await resendBoasVindasWhatsAppForTenant(sb, user.id);
+        const result = await resendDadosAcessoWhatsAppForTenant(sb, user.id);
         if (!result.total && result.skippedNoPhone > 0 && !result.sent) {
           return sendJson(res, 400, {
             error: "Nenhum filho com WhatsApp e CPF cadastrados para envio de acesso.",
@@ -178,20 +178,20 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         }
         if (!result.sent && result.failed > 0) {
           return sendJson(res, 502, {
-            error: result.lastError || "Não foi possível enviar as mensagens de boas-vindas.",
+            error: result.lastError || "Não foi possível enviar os dados de acesso.",
             ...result,
           });
         }
         return sendJson(res, 200, {
           success: true,
-          message: "Boas-vindas enfileiradas com sucesso.",
+          message: "Dados de acesso enfileirados com sucesso.",
           ...result,
         });
       } catch (err: unknown) {
         const e = err as { statusCode?: number; message?: string; code?: string };
         if (e.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
         const status = e.statusCode === 429 ? 429 : 500;
-        return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao reenviar boas-vindas.") });
+        return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao reenviar dados de acesso.") });
       }
     }
 

@@ -27,6 +27,17 @@ type Deps = {
   supabaseAdmin: SupabaseClient;
   resolveLeaderId: (id: string) => Promise<string>;
   liquidarMensalidadePendente: LiquidarFn;
+  notifyMensalidadeConfirmadaWhatsApp: (
+    sb: SupabaseClient,
+    args: {
+      tenantId: string;
+      zeladorId: string;
+      filhoId: string;
+      nome: string;
+      valor: number;
+      competencia: string;
+    }
+  ) => Promise<void>;
 };
 
 type FilhoRow = {
@@ -48,6 +59,8 @@ type FinanceiroMensalidadeRow = {
   descricao: string | null;
   tenant_id: string | null;
   lider_id: string | null;
+  data: string | null;
+  data_vencimento: string | null;
 };
 
 function extractFilhoIdFromDescricao(descricao: string | null | undefined): string | null {
@@ -111,7 +124,7 @@ async function findPendingMensalidadeForFilho(
 ): Promise<FinanceiroMensalidadeRow | null> {
   const { data, error } = await supabaseAdmin
     .from("financeiro")
-    .select("id, valor, status, categoria, filho_id, descricao, tenant_id, lider_id")
+    .select("id, valor, status, categoria, filho_id, descricao, tenant_id, lider_id, data, data_vencimento")
     .eq("categoria", "Mensalidade")
     .eq("status", "pendente")
     .or(
@@ -162,7 +175,8 @@ function readImageBufferFromRequest(req: Request): { buffer: Buffer; contentType
 }
 
 export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: Deps) {
-  const { supabaseAdmin, resolveLeaderId, liquidarMensalidadePendente } = deps;
+  const { supabaseAdmin, resolveLeaderId, liquidarMensalidadePendente, notifyMensalidadeConfirmadaWhatsApp } =
+    deps;
 
   app.post(
     "/api/v1/financeiro/validar-comprovante",
@@ -245,12 +259,28 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
           extracted.valor
         );
 
+        const filhoNome = String(filho.nome || "Filho").trim() || "Filho";
+        const competencia = String(
+          pendente.data_vencimento || pendente.data || extracted.data || ""
+        ).slice(0, 10);
+
+        void notifyMensalidadeConfirmadaWhatsApp(supabaseAdmin, {
+          tenantId,
+          zeladorId: zeladorActorId,
+          filhoId,
+          nome: filhoNome,
+          valor: extracted.valor,
+          competencia: competencia || extracted.data,
+        }).catch((err) => {
+          console.error("[financeiro/validar-comprovante WA]:", err?.message || err);
+        });
+
         res.setHeader("Cache-Control", "private, no-store");
         return res.json({
           success: true,
           mensalidade_id: pendente.id,
           filho_id: filhoId,
-          filho_nome: String(filho.nome || "Filho").trim() || "Filho",
+          filho_nome: filhoNome,
           valor: extracted.valor,
           data_pagamento: extracted.data,
         });

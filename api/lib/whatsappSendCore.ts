@@ -4,7 +4,7 @@ import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   ensureOfficialWhatsAppReady,
 } from "../../src/services/evolution.service.js";
-import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
+import { sendEvolutionTemplateQueued, sendEvolutionTextQueued } from "./evolutionSendQueue.js";
 import {
   assertBroadcastCooldown,
   assertBroadcastRecipientLimit,
@@ -19,14 +19,28 @@ import { resolveWhatsAppTemplate } from "../../src/constants/whatsappTemplates.j
 import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
 import {
+  isMetaCloudDirectConfigured,
+  sendMetaCloudTemplate,
+  sendMetaCloudText,
+} from "./metaCloudSend.js";
+import {
+  buildCredentialsFollowUpText,
+  buildMetaTemplateComponentsForTipo,
   buildSignedWhatsAppBody,
+  buildTransmissaoFollowUpText,
   buildWhatsAppAuditMessage,
   extractRsvpToken,
   isAvisoGiraTemplate,
-  isBoasVindasTemplate,
   isConviteEventoTemplate,
   isCredentialsAccessTemplate,
-  isDadosAcessoTemplate,
+  resolveCredentialsFollowUpDelayMs,
+  resolveMetaTemplateLanguage,
+  resolveMetaTemplateName,
+  resolveTransmissaoFollowUpDelayMs,
+  usesCredentialsTwoStepFlow,
+  usesMetaBroadcastTemplateFlow,
+  usesMetaUtilityTemplateFlow,
+  usesTransmissaoTwoStepFlow,
   resolveLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
@@ -249,7 +263,7 @@ export async function enrichEventCalendarVariables(
   };
 }
 
-/** Dados de acesso do filho para boas-vindas (ID curto + URL /login). */
+/** Dados de acesso do filho (registro + URL /login). */
 async function enrichBoasVindasVariables(
   sb: SupabaseClient,
   leaderId: string,
@@ -362,6 +376,212 @@ export function buildWhatsAppDeliverableText(
   return body.slice(0, 4096);
 }
 
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendMetaTemplateMessage(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables: Record<string, string | number> | undefined,
+  opts?: {
+    tenantId?: string;
+    filhoId?: string | null;
+    sb?: SupabaseClient;
+    fallbackText?: string;
+    zelador?: string;
+  }
+): Promise<{ messageId?: string }> {
+  const templateName = resolveMetaTemplateName(tipo);
+  const language = resolveMetaTemplateLanguage();
+  const mergedVars: Record<string, string | number> = {
+    ...(variables || {}),
+    zelador: variables?.zelador || opts?.zelador || "",
+    nome_zelador: variables?.nome_zelador || opts?.zelador || "",
+  };
+  const components = buildMetaTemplateComponentsForTipo(
+    tipo,
+    nomeMembro,
+    nomeTerreiro,
+    mergedVars
+  );
+  const meta = buildSendMeta(tipo, {
+    tenantId: opts?.tenantId,
+    filhoId: opts?.filhoId,
+  });
+
+  try {
+    if (isMetaCloudDirectConfigured()) {
+      const out = await sendMetaCloudTemplate(phone, templateName, language, components);
+      console.log(`[WHATSAPP] template Meta direct (${templateName}) → ${phone.slice(0, 4)}…`);
+      return out;
+    }
+
+    await ensureOfficialWhatsAppReady();
+    const out = await sendEvolutionTemplateQueued(
+      CONSOLE_ADMIN_INSTANCE_NAME,
+      phone,
+      templateName,
+      language,
+      components,
+      { ...meta, sb: opts?.sb, skipSendWindow: true }
+    );
+    console.log(`[WHATSAPP] template Evolution (${templateName}) → ${phone.slice(0, 4)}…`);
+    return out;
+  } catch (err) {
+    const fallback = String(opts?.fallbackText || "").trim();
+    if (!fallback) throw err;
+    console.error(
+      `[WHATSAPP] template Meta falhou (${templateName}), fallback texto:`,
+      err instanceof Error ? err.message : err
+    );
+    return sendWhatsAppTextMessage(phone, fallback, {
+      tipo,
+      tenantId: opts?.tenantId,
+      filhoId: opts?.filhoId,
+      nomeMembro,
+      sb: opts?.sb,
+    });
+  }
+}
+
+async function sendCredentialsFollowUpMessage(
+  phone: string,
+  text: string,
+  tipo: string,
+  opts?: {
+    tenantId?: string;
+    filhoId?: string | null;
+    nomeMembro?: string;
+    sb?: SupabaseClient;
+  }
+): Promise<{ messageId?: string }> {
+  const safeText = validateWhatsAppOutboundMessage(text);
+  const meta = buildSendMeta(tipo, {
+    tenantId: opts?.tenantId,
+    filhoId: opts?.filhoId,
+  });
+
+  if (isMetaCloudDirectConfigured()) {
+    const out = await sendMetaCloudText(phone, safeText);
+    console.log(`[WHATSAPP] credenciais Meta direct (texto livre) → ${phone.slice(0, 4)}…`);
+    return out;
+  }
+
+  const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, phone, safeText, {
+    ...meta,
+    sb: opts?.sb,
+    skipSendWindow: true,
+    skipPhoneCooldown: true,
+  });
+  console.log(`[WHATSAPP] credenciais Evolution (texto livre) → ${phone.slice(0, 4)}…`);
+  return out;
+}
+
+/** Template conta_ativa_axecloud + texto livre com senha/link (janela 24h). */
+async function sendCredentialsAccessPair(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables: Record<string, string | number>,
+  opts?: {
+    tenantId?: string;
+    filhoId?: string | null;
+    sb?: SupabaseClient;
+    fallbackText?: string;
+  }
+): Promise<{ messageId?: string; templateMessageId?: string; followUpMessageId?: string }> {
+  const followUpText = buildCredentialsFollowUpText(variables);
+  if (!followUpText.trim()) {
+    throw httpError("Registro do filho não encontrado para envio de credenciais.", 400);
+  }
+
+  try {
+    const templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
+    await sleepMs(resolveCredentialsFollowUpDelayMs());
+    const followUpOut = await sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
+      ...opts,
+      nomeMembro,
+    });
+
+    return {
+      messageId: followUpOut.messageId || templateOut.messageId,
+      templateMessageId: templateOut.messageId,
+      followUpMessageId: followUpOut.messageId,
+    };
+  } catch (err) {
+    const fallback = String(opts?.fallbackText || "").trim();
+    if (!fallback) throw err;
+    console.error(
+      `[WHATSAPP] fluxo conta_ativa falhou (${tipo}), fallback texto único:`,
+      err instanceof Error ? err.message : err
+    );
+    const out = await sendWhatsAppTextMessage(phone, fallback, {
+      tipo,
+      tenantId: opts?.tenantId,
+      filhoId: opts?.filhoId,
+      nomeMembro,
+      sb: opts?.sb,
+    });
+    return { messageId: out.messageId };
+  }
+}
+
+/** Template aviso_portal_axecloud + comunicado completo em texto livre (janela 24h). */
+async function sendTransmissaoPair(
+  phone: string,
+  tipo: string,
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables: Record<string, string | number>,
+  opts?: {
+    tenantId?: string;
+    filhoId?: string | null;
+    sb?: SupabaseClient;
+    fallbackText?: string;
+    zelador?: string;
+  }
+): Promise<{ messageId?: string; templateMessageId?: string; followUpMessageId?: string }> {
+  const zelador = resolveZeladorFromVariables(variables, opts?.zelador);
+  const followUpText = buildTransmissaoFollowUpText(nomeTerreiro, variables, zelador);
+  if (!followUpText.trim()) {
+    throw httpError("Texto do comunicado não encontrado para transmissão.", 400);
+  }
+
+  try {
+    const templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
+    await sleepMs(resolveTransmissaoFollowUpDelayMs());
+    const followUpOut = await sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
+      ...opts,
+      nomeMembro,
+    });
+
+    return {
+      messageId: followUpOut.messageId || templateOut.messageId,
+      templateMessageId: templateOut.messageId,
+      followUpMessageId: followUpOut.messageId,
+    };
+  } catch (err) {
+    const fallback = String(opts?.fallbackText || "").trim();
+    if (!fallback) throw err;
+    console.error(
+      `[WHATSAPP] fluxo aviso_portal falhou (${tipo}), fallback texto único:`,
+      err instanceof Error ? err.message : err
+    );
+    const out = await sendWhatsAppTextMessage(phone, fallback, {
+      tipo,
+      tenantId: opts?.tenantId,
+      filhoId: opts?.filhoId,
+      nomeMembro,
+      sb: opts?.sb,
+    });
+    return { messageId: out.messageId };
+  }
+}
+
 async function sendWhatsAppTextMessage(
   phone: string,
   text: string,
@@ -421,6 +641,12 @@ export async function logAndSendWhatsApp(
 
   const { tipo, phone, message, deliverableText, filhoId, tenantId } = input;
   const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
+  const variables = input.variables || {};
+  const useCredentialsTwoStep = usesCredentialsTwoStepFlow(tipo);
+  const useTransmissaoTwoStep = usesTransmissaoTwoStepFlow(tipo);
+  const useMetaUtility = usesMetaUtilityTemplateFlow(tipo);
+  const useMetaBroadcast = usesMetaBroadcastTemplateFlow(tipo);
+
   const textToSend =
     deliverableText ||
     (isBroadcastLikeTipo(tipo)
@@ -433,24 +659,71 @@ export async function logAndSendWhatsApp(
         )
       : message);
 
+  const auditBase = isBroadcastLikeTipo(tipo)
+    ? textToSend
+    : buildWhatsAppAuditMessage(tipo, input.variables, input.nomeMembro, input.nomeTerreiro) || textToSend;
+
+  const followUpPreview = useCredentialsTwoStep
+    ? buildCredentialsFollowUpText(variables)
+    : useTransmissaoTwoStep
+      ? buildTransmissaoFollowUpText(input.nomeTerreiro, variables, zelador)
+      : "";
+  const followUpLabel = useCredentialsTwoStep ? "credenciais" : "comunicado";
+  const quotaText =
+    useCredentialsTwoStep || useTransmissaoTwoStep
+      ? `${auditBase}\n\n--- ${followUpLabel} (texto livre) ---\n${followUpPreview}`
+      : textToSend;
+
   const { fingerprint } = await assertWhatsAppOutboundAllowed(sb, {
     tenantId,
     tipo,
-    messageText: textToSend,
-    plannedSends: 1,
+    messageText: quotaText,
+    plannedSends: useCredentialsTwoStep || useTransmissaoTwoStep ? 2 : 1,
   });
 
-  const sent = await sendWhatsAppTextMessage(phone, textToSend, {
-    tipo,
-    tenantId,
-    filhoId,
-    nomeMembro: input.nomeMembro,
-    sb,
-  });
+  let sent: { messageId?: string };
+  if (useCredentialsTwoStep) {
+    sent = await sendCredentialsAccessPair(
+      phone,
+      tipo,
+      input.nomeMembro,
+      input.nomeTerreiro,
+      variables,
+      { tenantId, filhoId, sb, fallbackText: textToSend }
+    );
+  } else if (useTransmissaoTwoStep) {
+    sent = await sendTransmissaoPair(
+      phone,
+      tipo,
+      input.nomeMembro,
+      input.nomeTerreiro,
+      variables,
+      { tenantId, filhoId, sb, fallbackText: textToSend, zelador }
+    );
+  } else if (useMetaUtility || useMetaBroadcast) {
+    sent = await sendMetaTemplateMessage(
+      phone,
+      tipo,
+      input.nomeMembro,
+      input.nomeTerreiro,
+      variables,
+      { tenantId, filhoId, sb, fallbackText: textToSend, zelador }
+    );
+  } else {
+    sent = await sendWhatsAppTextMessage(phone, textToSend, {
+      tipo,
+      tenantId,
+      filhoId,
+      nomeMembro: input.nomeMembro,
+      sb,
+    });
+  }
+
   const messageId = sent.messageId;
-  let auditMessage = isBroadcastLikeTipo(tipo)
-    ? textToSend
-    : buildWhatsAppAuditMessage(tipo, input.variables, input.nomeMembro, input.nomeTerreiro) || textToSend;
+  let auditMessage =
+    useCredentialsTwoStep || useTransmissaoTwoStep
+      ? `${auditBase}\n\n--- ${followUpLabel} ---\n${followUpPreview}`
+      : auditBase;
   if (fingerprint) {
     auditMessage = appendFingerprintMarker(auditMessage, fingerprint);
   }
@@ -642,8 +915,8 @@ export async function broadcastWhatsAppForTenant(
   return { sent, failed, total: shuffled.length, lastError };
 }
 
-/** Reenvia boas-vindas com registro, senha (6 dígitos CPF) e link de login para filhos com WhatsApp. */
-export async function resendBoasVindasWhatsAppForTenant(
+/** Reenvia dados de acesso (registro, senha CPF, link) para filhos com WhatsApp. */
+export async function resendDadosAcessoWhatsAppForTenant(
   sb: SupabaseClient,
   tenantId: string
 ): Promise<{
@@ -713,7 +986,7 @@ export async function resendBoasVindasWhatsAppForTenant(
       failed += 1;
       lastError = err instanceof Error ? err.message : String(err);
       const code = (err as { code?: string })?.code || "";
-      console.error(`[WHATSAPP] boas-vindas falhou (${filho.id}):`, lastError);
+      console.error(`[WHATSAPP] dados-acesso falhou (${filho.id}):`, lastError);
       if (code.startsWith("WA_QUOTA")) break;
     }
   }

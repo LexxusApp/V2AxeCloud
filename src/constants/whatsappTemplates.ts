@@ -1,5 +1,4 @@
 ﻿export type WhatsAppTemplateType =
-  | 'boas_vindas'
   | 'dados_acesso'
   | 'cobranca_mensalidade'
   | 'financeiro'
@@ -13,13 +12,6 @@
   | 'pedido_reza_aceito_fiel';
 
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
-  boas_vindas:
-    'Olá, {{nome_filho}}! Bem-vindo(a) ao {{nome_sistema}} do terreiro {{nome_terreiro}}.\n\n' +
-    '🔐 *Seu acesso:*\n' +
-    'Registro: {{filho_login_id}}\n' +
-    'Senha: {{senha_acesso}}\n' +
-    'Entrar: {{login_url}}\n\n' +
-    'Axé!',
   dados_acesso:
     'Olá, {{nome_filho}}! Seguem seus dados de acesso ao {{nome_sistema}} do terreiro {{nome_terreiro}}.\n\n' +
     '🔐 *Seu acesso:*\n' +
@@ -40,10 +32,12 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
   convite_evento:
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
   senha_evento_visitante:
-    'Saravá, {{nome_visitante}}! 🙏\n' +
-    'Sua senha para *{{nome_evento}}* no {{nome_terreiro}} é: *{{numero_senha}}*\n' +
+    'Olá, {{nome_visitante}}!\n\n' +
+    'Sua senha para {{nome_evento}} no {{nome_terreiro}} é: {{numero_senha}}.\n' +
     '{{data_evento}} às {{hora_evento}}\n\n' +
-    'Na portaria, use este link para confirmar presença:\n{{link_checkin}}\n\nAxé!',
+    'No dia do evento, na portaria, abra este link — a câmera do celular abre para você apontar no QR Code do tablet e confirmar sua presença:\n' +
+    '{{link_checkin}}\n\n' +
+    'AxéCloud',
   estoque_critico:
     '⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.',
   pedido_reza_novo_zelador:
@@ -53,7 +47,7 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
 };
 
 export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
-  'boas_vindas',
+  'dados_acesso',
   'cobranca_mensalidade',
   'financeiro',
   'mensalidade_confirmada',

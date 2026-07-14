@@ -173,10 +173,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     }
   }
 
-  async function handleResendWelcomeWhatsApp() {
+  async function handleResendDadosAcessoWhatsApp() {
     if (!user?.id) return;
     const ok = confirm(
-      'Enviar mensagem de boas-vindas com registro de acesso, senha (6 primeiros dígitos do CPF) e link de login para todos os filhos com WhatsApp e CPF cadastrados?\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
+      'Enviar dados de acesso (registro, senha e link de login) para todos os filhos com WhatsApp e CPF cadastrados?\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
     );
     if (!ok) return;
 
@@ -186,7 +186,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       const token = session?.access_token;
       if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
-      const response = await fetch(whatsappApiUrl('/whatsapp/resend-welcome'), {
+      const response = await fetch(whatsappApiUrl('/whatsapp/resend-dados-acesso'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, user.id),
         body: JSON.stringify({}),
@@ -204,10 +204,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         result.skippedNoCpf ? `${result.skippedNoCpf} sem CPF` : null,
       ].filter(Boolean);
 
-      alert(`Boas-vindas enfileiradas.\n\n${parts.join(' · ')}`);
+      alert(`Dados de acesso enfileirados.\n\n${parts.join(' · ')}`);
     } catch (error) {
-      console.error('[Children] resend welcome WA:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao enviar boas-vindas via WhatsApp.');
+      console.error('[Children] resend dados acesso WA:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao enviar dados de acesso via WhatsApp.');
     } finally {
       setResendingWelcome(false);
     }
@@ -363,7 +363,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         ))}
         <button
           type="button"
-          onClick={() => void handleResendWelcomeWhatsApp()}
+          onClick={() => void handleResendDadosAcessoWhatsApp()}
           disabled={resendingWelcome || children.length === 0}
           className={cn(
             'ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all',

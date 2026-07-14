@@ -20,10 +20,16 @@ const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
 const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
 /** Alerta de estoque crítico para o zelador */
 const ESTOQUE_CRITICO_TEMPLATE = "estoque_critico_axecloud";
-/** Transmissão / teste — corpo inclui texto do comunicado */
+/** Transmissão / mural — aviso curto (2 vars); texto completo vai em mensagem livre na sequência */
+const AVISO_PORTAL_TEMPLATE = "aviso_portal_axecloud";
+/** Legado — corpo inclui texto do comunicado (3 vars; difícil aprovação na Meta) */
 const COMUNICADO_TERREIRO_TEMPLATE = "comunicado_terreiro_axecloud";
-/** Opcional: mensagem quase livre — corpo só {{1}} (texto + assinatura montados no código) */
+/** Legado — corpo só {{1}} (rejeitado pela Meta: variável no início/fim) */
 const MENSAGEM_LIVRE_TERREIRO_TEMPLATE = "mensagem_livre_terreiro_axecloud";
+/** Conta criada / reenvio de registro — credenciais sensíveis vão em texto livre na sequência */
+const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
+/** Senha de visitante (portaria / presença) */
+const SENHA_EVENTO_VISITANTE_TEMPLATE = "senha_evento_visitante_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
 
 function normalizeTipo(tipo: string): string {
@@ -53,19 +59,23 @@ export function resolveMetaTemplateName(tipo: string): string {
     return String(process.env.WA_META_TEMPLATE_AVISO_GIRA || "").trim() || AVISO_GIRA_TEMPLATE;
   }
   if (normalized === "transmissao_aviso" || normalized === "mural_aviso") {
-    const livre = String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim();
-    if (livre) return livre;
     return (
-      String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_MURAL_AVISO || "")
-        .trim() || COMUNICADO_TERREIRO_TEMPLATE
+      String(process.env.WA_META_TEMPLATE_TRANSMISSAO_AVISO || "").trim() ||
+      String(
+        process.env.WA_META_TEMPLATE_BROADCAST ||
+          process.env.WA_META_TEMPLATE_MURAL_AVISO ||
+          process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE ||
+          ""
+      ).trim() ||
+      AVISO_PORTAL_TEMPLATE
     );
   }
   if (normalized === "mural_aviso_legacy") {
     return String(process.env.WA_META_TEMPLATE_MURAL_AVISO || "").trim() || MURAL_AVISO_TEMPLATE;
   }
-  if (normalized === "boas_vindas") {
+  if (normalized === "dados_acesso") {
     return (
-      String(process.env.WA_META_TEMPLATE_BOAS_VINDAS || "").trim() || DEFAULT_TEMPLATE
+      String(process.env.WA_META_TEMPLATE_DADOS_ACESSO || "").trim() || CONTA_ATIVA_TEMPLATE
     );
   }
   if (normalized === "financeiro") {
@@ -100,12 +110,18 @@ export function resolveMetaTemplateName(tipo: string): string {
       "pedido_reza_aceito_fiel_axecloud"
     );
   }
+  if (normalized === "senha_evento_visitante") {
+    return (
+      String(process.env.WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE || "").trim() ||
+      SENHA_EVENTO_VISITANTE_TEMPLATE
+    );
+  }
   if (normalized === "broadcast" || normalized === "teste") {
-    const livre = String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim();
-    if (livre) return livre;
     return (
       String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_TESTE || "")
-        .trim() || COMUNICADO_TERREIRO_TEMPLATE
+        .trim() ||
+      String(process.env.WA_META_TEMPLATE_MENSAGEM_LIVRE || "").trim() ||
+      AVISO_PORTAL_TEMPLATE
     );
   }
 
@@ -127,13 +143,6 @@ export function isMuralAvisoTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo) === MURAL_AVISO_TEMPLATE;
 }
 
-export function isBoasVindasTemplate(tipo: string): boolean {
-  return String(tipo || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "_") === "boas_vindas";
-}
-
 export function isDadosAcessoTemplate(tipo: string): boolean {
   return String(tipo || "")
     .trim()
@@ -142,7 +151,69 @@ export function isDadosAcessoTemplate(tipo: string): boolean {
 }
 
 export function isCredentialsAccessTemplate(tipo: string): boolean {
-  return isBoasVindasTemplate(tipo) || isDadosAcessoTemplate(tipo);
+  return isDadosAcessoTemplate(tipo);
+}
+
+export function isContaAtivaTemplate(tipo: string): boolean {
+  return resolveMetaTemplateName(tipo) === CONTA_ATIVA_TEMPLATE;
+}
+
+/** Template Meta aprovado + credenciais em texto livre na janela de 24h. */
+export function usesCredentialsTwoStepFlow(tipo: string): boolean {
+  return isCredentialsAccessTemplate(tipo) && isContaAtivaTemplate(tipo);
+}
+
+const META_BROADCAST_TEMPLATE_TIPOS = new Set([
+  "transmissao_aviso",
+  "mural_aviso",
+  "broadcast",
+  "teste",
+]);
+
+export function isAvisoPortalTemplate(tipo: string): boolean {
+  return resolveMetaTemplateName(tipo) === AVISO_PORTAL_TEMPLATE;
+}
+
+/** aviso_portal_axecloud + comunicado completo em texto livre (janela 24h). */
+export function usesTransmissaoTwoStepFlow(tipo: string): boolean {
+  const t = normalizeTipo(tipo);
+  if (!META_BROADCAST_TEMPLATE_TIPOS.has(t)) return false;
+  return isAvisoPortalTemplate(tipo);
+}
+
+export function resolveTransmissaoFollowUpDelayMs(): number {
+  const raw = Number(process.env.WA_TRANSMISSAO_FOLLOWUP_DELAY_MS);
+  if (Number.isFinite(raw) && raw >= 0) return Math.min(Math.floor(raw), 30_000);
+  return resolveCredentialsFollowUpDelayMs();
+}
+
+const META_UTILITY_TEMPLATE_TIPOS = new Set([
+  "cobranca_mensalidade",
+  "mensalidade_confirmada",
+  "financeiro",
+  "estoque_critico",
+  "aviso_gira",
+  "convite_evento",
+  "pedido_reza_novo_zelador",
+  "pedido_reza_aceito_fiel",
+  "senha_evento_visitante",
+]);
+
+/** Tipos enviados como template Meta único (sem texto livre complementar). */
+export function usesMetaUtilityTemplateFlow(tipo: string): boolean {
+  return META_UTILITY_TEMPLATE_TIPOS.has(normalizeTipo(tipo));
+}
+
+/** Mural / transmissão / broadcast — template Meta único (legado comunicado/mensagem_livre). */
+export function usesMetaBroadcastTemplateFlow(tipo: string): boolean {
+  if (usesTransmissaoTwoStepFlow(tipo)) return false;
+  return META_BROADCAST_TEMPLATE_TIPOS.has(normalizeTipo(tipo));
+}
+
+export function resolveCredentialsFollowUpDelayMs(): number {
+  const raw = Number(process.env.WA_CREDENTIALS_FOLLOWUP_DELAY_MS);
+  if (Number.isFinite(raw) && raw >= 0) return Math.min(Math.floor(raw), 30_000);
+  return 4000;
 }
 
 /** @deprecated Use formatFilhoMatricula — mantido para compatibilidade interna. */
@@ -288,26 +359,83 @@ export function buildAvisoGiraComponents(
 }
 
 /**
- * aviso_geral_axecloud (boas-vindas) — corpo: {{1}} membro, {{2}} nome do sistema (AxéCloud)
+ * conta_ativa_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} registro (login)
+ * Senha e link vão em mensagem de texto livre enviada logo em seguida.
  */
-export function buildBoasVindasComponents(
+export function buildContaAtivaComponents(
   nomeMembro: string,
+  nomeTerreiro: string,
   variables?: Record<string, string | number>
 ): MetaTemplateComponent[] {
+  const v = variables || {};
+  const registro = String(v.filho_login_id || "").trim();
   return [
     {
       type: "body",
       parameters: [
-        textParam(nomeMembro || "Membro"),
-        textParam(resolveSistemaName(variables)),
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(registro || "—"),
       ],
     },
   ];
 }
 
 /**
+ * aviso_portal_axecloud — corpo: {{1}} filho, {{2}} terreiro
+ * Comunicado completo vai em texto livre na sequência (janela 24h).
+ */
+export function buildAvisoPortalComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/** 2ª mensagem (texto livre): título + conteúdo do aviso após template aviso_portal_axecloud. */
+export function buildTransmissaoFollowUpText(
+  nomeTerreiro: string,
+  variables: Record<string, string | number> | undefined,
+  zelador?: string
+): string {
+  const v = variables || {};
+  const raw = String(
+    v.comunicado || v.conteudo_aviso || v.mensagem || v.message || ""
+  ).trim();
+  if (!raw) return "";
+  const assinatura = buildTerreiroAssinatura(zelador, nomeTerreiro);
+  return `${raw}\n\n${assinatura}`.trim().slice(0, 4096);
+}
+
+/** 2ª mensagem (texto livre): senha + link após template conta_ativa_axecloud. */
+export function buildCredentialsFollowUpText(
+  variables: Record<string, string | number>
+): string {
+  const loginId = String(variables.filho_login_id || "").trim();
+  const senha = String(variables.senha_acesso || "").trim();
+  const loginUrl = String(variables.login_url || resolveLoginPublicUrl()).trim();
+  if (!loginId) return "";
+  return (
+    `🔐 *Seu acesso:*\n` +
+    `Registro: ${loginId}\n` +
+    `Senha: ${senha}\n` +
+    `Entrar: ${loginUrl}\n\n` +
+    `Na tela de login, use o registro e a senha acima. Axé!`
+  );
+}
+
+/**
  * mural_aviso_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} título do aviso
- * Botão URL estático (opcional no painel Meta): "Abrir AxéCloud" → https://axecloud.com.br/login
  */
 export function buildMuralAvisoComponents(
   nomeMembro: string,
@@ -413,6 +541,95 @@ export function buildEstoqueCriticoComponents(
   ];
 }
 
+/**
+ * pedido_reza_novo_zelador_axecloud — corpo: {{1}} terreiro, {{2}} fiel, {{3}} categoria
+ */
+export function buildPedidoRezaNovoZeladorComponents(
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(String(v.nome_fiel || "Fiel")),
+        textParam(String(v.categoria || "Pedido de amparo")),
+      ],
+    },
+  ];
+}
+
+/**
+ * pedido_reza_aceito_fiel_axecloud — corpo: {{1}} fiel, {{2}} terreiro
+ */
+export function buildPedidoRezaAceitoFielComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_fiel || nomeMembro || "Fiel")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/** Extrai token de presença (variável direta ou URL). */
+export function extractPresencaToken(variables?: Record<string, string | number>): string {
+  const direct = String(variables?.checkin_token || variables?.presenca_token || "").trim();
+  if (direct) return direct;
+  const link = String(variables?.link_checkin || "").trim();
+  const match = link.match(/\/presenca\/([^/?#]+)/i);
+  if (match?.[1]) return decodeURIComponent(match[1]);
+  return "";
+}
+
+/**
+ * senha_evento_visitante_axecloud
+ * Corpo: {{1}} visitante, {{2}} evento, {{3}} terreiro, {{4}} senha, {{5}} data, {{6}} horário
+ * Botão URL: https://axecloud.com.br/presenca/{{1}} → token
+ * O link abre a câmera do celular para escanear o QR da portaria (tablet).
+ */
+export function buildSenhaEventoVisitanteComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  const token = extractPresencaToken(v);
+  const components: MetaTemplateComponent[] = [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_visitante || nomeMembro || "Visitante")),
+        textParam(String(v.nome_evento || "Evento")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(String(v.numero_senha ?? "—")),
+        textParam(String(v.data_evento || "—")),
+        textParam(String(v.hora_evento || "—")),
+      ],
+    },
+  ];
+
+  if (token) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [textParam(token, 1024)],
+    });
+  }
+
+  return components;
+}
+
 export function isMensagemLivreTemplate(tipo: string): boolean {
   const name = resolveMetaTemplateName(tipo);
   return name === MENSAGEM_LIVRE_TERREIRO_TEMPLATE;
@@ -463,6 +680,19 @@ export function buildSignedWhatsAppTemplateParam(
   );
   if (!msg) return assinatura.slice(0, 1024) || "Comunicado do terreiro.";
   return `${msg} ${assinatura}`.slice(0, 1024);
+}
+
+/** Texto completo em uma variável — equivalente ao texto livre da Evolution (saudação + aviso + assinatura). */
+export function buildBroadcastMensagemLivreTemplateParam(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  userText: string,
+  zelador?: string
+): string {
+  const body = buildSignedWhatsAppBody(nomeMembro, nomeTerreiro, userText, zelador, {
+    includeGreeting: true,
+  });
+  return sanitizeTemplateParam(body.replace(/\n+/g, " ")).slice(0, 1024);
 }
 
 /**
@@ -535,8 +765,8 @@ export function buildMetaTemplateComponentsForTipo(
   if (isAvisoGiraTemplate(tipo)) {
     return buildAvisoGiraComponents(variables);
   }
-  if (isBoasVindasTemplate(tipo)) {
-    return buildBoasVindasComponents(nomeMembro, variables);
+  if (isContaAtivaTemplate(tipo)) {
+    return buildContaAtivaComponents(nomeMembro, nomeTerreiro, variables);
   }
   if (isMuralAvisoTemplate(tipo)) {
     return buildMuralAvisoComponents(nomeMembro, nomeTerreiro, variables);
@@ -553,16 +783,48 @@ export function buildMetaTemplateComponentsForTipo(
   if (t === "estoque_critico") {
     return buildEstoqueCriticoComponents(nomeTerreiro, variables);
   }
-  if (t === "broadcast" || t === "teste") {
+  if (t === "pedido_reza_novo_zelador") {
+    return buildPedidoRezaNovoZeladorComponents(nomeTerreiro, variables);
+  }
+  if (t === "pedido_reza_aceito_fiel") {
+    return buildPedidoRezaAceitoFielComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "senha_evento_visitante") {
+    return buildSenhaEventoVisitanteComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (
+    t === "broadcast" ||
+    t === "teste" ||
+    t === "transmissao_aviso" ||
+    t === "mural_aviso"
+  ) {
+    if (isAvisoPortalTemplate(tipo)) {
+      return buildAvisoPortalComponents(nomeMembro, nomeTerreiro, variables);
+    }
+
+    const rawMsg = String(
+      variables?.comunicado ||
+        variables?.mensagem ||
+        variables?.message ||
+        variables?.texto ||
+        variables?.conteudo_aviso ||
+        ""
+    ).trim();
+    const zelador = String(variables?.zelador || variables?.nome_zelador || "") || undefined;
+
     if (isMensagemLivreTemplate(tipo)) {
-      const signed = buildSignedWhatsAppTemplateParam(
+      const signed = buildBroadcastMensagemLivreTemplateParam(
+        nomeMembro,
         nomeTerreiro,
-        String(variables?.comunicado || variables?.mensagem || variables?.message || ""),
-        String(variables?.zelador || variables?.nome_zelador || "") || undefined
+        rawMsg,
+        zelador
       );
       return buildMensagemLivreComponents(signed);
     }
-    return buildComunicadoTerreiroComponents(nomeMembro, nomeTerreiro, variables);
+    return buildComunicadoTerreiroComponents(nomeMembro, nomeTerreiro, {
+      ...variables,
+      comunicado: rawMsg,
+    });
   }
   return buildMetaTemplateComponents(nomeMembro, nomeTerreiro);
 }
@@ -597,14 +859,14 @@ export function buildWhatsAppAuditMessage(
     return `Gira (corrente): ${titulo} — ${v.data_evento || ""} ${v.hora_evento || ""}${bannerPart}`.trim();
   }
 
-  if (normalized === "boas_vindas" || normalized === "dados_acesso") {
+  if (normalized === "dados_acesso") {
     const nome = String(v.nome_filho || nomeMembro);
     const loginId = String(v.filho_login_id || "");
     const senha = String(v.senha_acesso || "");
     const loginUrl = String(v.login_url || resolveLoginPublicUrl());
     const idPart = loginId ? ` · Registro: ${loginId}` : "";
     const senhaPart = senha ? ` · Senha: ${senha}` : "";
-    return `${normalized === "dados_acesso" ? "Dados de acesso" : "Boas-vindas"}: ${nome}${idPart}${senhaPart} · ${loginUrl}`;
+    return `Dados de acesso: ${nome}${idPart}${senhaPart} · ${loginUrl}`;
   }
 
   if (normalized === "transmissao_aviso" || normalized === "mural_aviso") {
@@ -632,6 +894,20 @@ export function buildWhatsAppAuditMessage(
 
   if (normalized === "estoque_critico") {
     return `Estoque: ${v.item_nome || v.item || "—"} · qty ${v.quantidade ?? "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "pedido_reza_novo_zelador") {
+    return `Pedido reza (zelador): ${v.nome_fiel || "—"} · ${v.categoria || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "pedido_reza_aceito_fiel") {
+    return `Pedido aceito: ${v.nome_fiel || nomeMembro} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "senha_evento_visitante") {
+    const senha = String(v.numero_senha ?? "—");
+    const evento = String(v.nome_evento || "Evento");
+    return `Senha visitante: ${v.nome_visitante || nomeMembro} · ${evento} · #${senha} · ${v.nome_terreiro || nomeTerreiro}`;
   }
 
   return `[${tipo}] ${nomeMembro} · ${nomeTerreiro}`;
