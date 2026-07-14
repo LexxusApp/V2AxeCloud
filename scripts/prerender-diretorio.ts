@@ -16,6 +16,7 @@ import {
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
 import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
+import { isDiretorioListingPublishable } from "../lib/diretorioQuality.ts";
 import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
 import {
   resolveDiretorioTipo,
@@ -166,7 +167,10 @@ async function main() {
   );
 
   const template = fs.readFileSync(indexPath, "utf8");
-  const rows = (data || []).map((r) => mapRow(r as Record<string, unknown>));
+  const rows = (data || [])
+    .filter((r) => isDiretorioListingPublishable(r as Record<string, unknown>))
+    .map((r) => mapRow(r as Record<string, unknown>))
+    .filter((row) => row.tipo === 'terreiro');
 
   const cityMap = new Map<string, SnapshotRow[]>();
   for (const row of rows) {

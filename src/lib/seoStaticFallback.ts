@@ -2,9 +2,10 @@
 export const SEO_STATIC_FALLBACK_ID = 'axecloud-seo-static';
 
 /**
- * Após o React montar, oculta o fallback estático sem removê-lo do DOM.
- * Crawlers e o Google ainda podem ler o HTML; usuários veem só a SPA.
+ * Após o React montar, remove o fallback estático para evitar títulos duplicados
+ * na árvore de acessibilidade. Crawlers sem JavaScript continuam recebendo o HTML.
  */
 export function hideSeoStaticFallbackAfterHydration(className: 'axecloud-marketing-ready' | 'axecloud-app-ready'): void {
   document.documentElement.classList.add(className);
+  document.getElementById(SEO_STATIC_FALLBACK_ID)?.remove();
 }

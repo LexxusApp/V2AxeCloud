@@ -15,6 +15,7 @@ import {
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
 import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
+import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -59,7 +60,11 @@ function diretorioFotoProxyPath(slug: string): string {
 export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb }: Deps) {
   app.get("/api/v1/public/diretorio/cidades", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
-      const data = await fetchAllTerreirosRows(sb, TABLE, "cidade, estado, cidade_slug");
+      const data = await fetchAllTerreirosRows(
+        sb,
+        TABLE,
+        "nome, endereco, link_maps, slug, cidade, estado, cidade_slug, tipo",
+      );
 
       const map = new Map<
         string,
@@ -67,6 +72,8 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       >();
 
       for (const row of data || []) {
+        if (!isDiretorioListingPublishable(row)) continue;
+        if (resolveDiretorioTipo(row.tipo, String(row.nome || '')) !== 'terreiro') continue;
         const cidade = String(row.cidade || "").trim();
         if (!cidade) continue;
         const estado = row.estado ? String(row.estado).trim().toUpperCase() : null;
@@ -131,8 +138,13 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: "Terreiro não encontrado no diretório." });
 
+        const publicItem = mapRow(data as Record<string, unknown>);
+        if (!isDiretorioListingPublishable(data as Record<string, unknown>) || publicItem.tipo !== 'terreiro') {
+          return res.status(404).json({ error: "Este perfil ainda não possui dados públicos confiáveis." });
+        }
+
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
-        res.json(mapRow(data as Record<string, unknown>));
+        res.json(publicItem);
       } catch (e: unknown) {
         console.error("[public/diretorio/terreiro]", e);
         res.status(500).json({ error: "Erro ao carregar terreiro." });
@@ -155,29 +167,35 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const data = await fetchTerreirosByCitySlug(sb, TABLE, SELECT, estado, cidadeSlug);
 
-        const items = data.map((row) => mapRow(row));
+        const items = data
+          .filter((row) => isDiretorioListingPublishable(row))
+          .map((row) => mapRow(row));
+        const terreiros = items.filter((item) => item.tipo === 'terreiro');
+        if (terreiros.length === 0) {
+          return res.status(404).json({ error: "Nenhum terreiro público encontrado nesta cidade." });
+        }
 
-        const first = items[0];
+        const first = terreiros[0];
         const cidadeLabel =
           first?.cidade ||
           cidadeSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-        const bairros = shouldGroupCityByBairro(cidadeSlug, items)
-          ? groupItemsByBairro(items)
+        const bairros = shouldGroupCityByBairro(cidadeSlug, terreiros)
+          ? groupItemsByBairro(terreiros)
           : undefined;
 
-        const totalTerreiros = items.filter((i) => i.tipo === "terreiro").length;
-        const totalLojas = items.filter((i) => i.tipo === "loja").length;
+        const totalTerreiros = terreiros.length;
+        const totalLojas = 0;
 
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
         res.json({
           estado: first?.estado || estado.toUpperCase(),
           cidade: cidadeLabel,
           cidadeSlug,
-          total: items.length,
+          total: terreiros.length,
           totalTerreiros,
           totalLojas,
-          items,
+          items: terreiros,
           bairros,
         });
       } catch (e: unknown) {

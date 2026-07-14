@@ -11,7 +11,7 @@ const fade = {
   transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
 } as const;
 
-const DASHBOARD_SHOT = landingScreenshot('painel-dashboard-landing.png');
+const DASHBOARD_SHOT = landingScreenshot('painel-dashboard-landing.webp');
 
 export function LandingInteractiveDemo() {
   return (

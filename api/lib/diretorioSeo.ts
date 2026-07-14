@@ -9,6 +9,8 @@ import {
   type DiretorioSeoTerreiro,
 } from "../../lib/diretorioSeoShared.js";
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
+import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
+import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { apiReadRateLimit } from "./rateLimit.js";
 import {
   parseDiretorioCityRoute,
@@ -18,7 +20,7 @@ import {
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug";
+  "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, tipo";
 
 function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
   const slug = String(row.slug || "").trim();
@@ -50,24 +52,39 @@ function siteOrigin(): string {
 }
 
 export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
-  const data = await fetchAllTerreirosRows(sb, TABLE, "cidade, estado, cidade_slug, slug, created_at");
+  const data = await fetchAllTerreirosRows(
+    sb,
+    TABLE,
+    "nome, endereco, link_maps, cidade, estado, cidade_slug, slug, tipo, created_at, updated_at",
+  );
 
-  const routes = STATIC_SITEMAP_PATHS.map((r) => ({
+  const routes: Array<{
+    path: string;
+    changeFrequency?: string;
+    priority?: number;
+    lastModified?: string;
+  }> = STATIC_SITEMAP_PATHS.map((r) => ({
     path: r.path,
     changeFrequency: r.changeFrequency,
     priority: r.priority,
   }));
 
-  const cityKeys = new Set<string>();
+  const cityRoutes = new Map<string, string | undefined>();
   for (const row of data || []) {
+    if (!isDiretorioListingPublishable(row)) continue;
+    if (resolveDiretorioTipo(row.tipo, String(row.nome || '')) !== 'terreiro') continue;
     const cidade = String(row.cidade || "").trim();
     if (!cidade) continue;
     const estado = row.estado ? String(row.estado).trim().toUpperCase() : "SP";
     const cidadeSlug = String(row.cidade_slug || slugifyCidadeOnly(cidade)).trim();
     const cityPath = `/terreiros/${estado.toLowerCase()}/${cidadeSlug}`;
-    if (!cityKeys.has(cityPath)) {
-      cityKeys.add(cityPath);
-      routes.push({ path: cityPath, changeFrequency: "weekly", priority: 0.85 });
+    const rawModified = String(row.updated_at || row.created_at || "").trim();
+    const modifiedDate = rawModified && !Number.isNaN(new Date(rawModified).getTime())
+      ? new Date(rawModified).toISOString().slice(0, 10)
+      : undefined;
+    const previousCityDate = cityRoutes.get(cityPath);
+    if (!previousCityDate || (modifiedDate && modifiedDate > previousCityDate)) {
+      cityRoutes.set(cityPath, modifiedDate);
     }
 
     const slug = String(row.slug || "").trim();
@@ -76,8 +93,13 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
         path: `/terreiro/${slug}`,
         changeFrequency: "monthly",
         priority: 0.75,
+        lastModified: modifiedDate,
       });
     }
+  }
+
+  for (const [path, lastModified] of cityRoutes) {
+    routes.push({ path, changeFrequency: "weekly", priority: 0.85, lastModified });
   }
 
   return routes;
@@ -109,6 +131,14 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
         if (error) throw error;
         if (!data) return res.status(404).send("Não encontrado");
 
+        if (!isDiretorioListingPublishable(data as Record<string, unknown>)) {
+          return res.status(404).send("Perfil indisponível");
+        }
+
+        if (resolveDiretorioTipo(data.tipo, String(data.nome || '')) !== 'terreiro') {
+          return res.status(404).send("Perfil indisponível");
+        }
+
         const page = buildTerreiroPrerenderPage(mapSeoRow(data as Record<string, unknown>));
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
@@ -134,7 +164,11 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
         const { estado, cidadeSlug } = parsed;
         const data = await fetchTerreirosByCitySlug(sb, TABLE, SELECT, estado, cidadeSlug);
 
-        const items = data.map((row) => mapSeoRow(row));
+        const items = data
+          .filter((row) => isDiretorioListingPublishable(row))
+          .filter((row) => resolveDiretorioTipo(row.tipo, String(row.nome || '')) === 'terreiro')
+          .map((row) => mapSeoRow(row));
+        if (items.length === 0) return res.status(404).send("Cidade não encontrada");
 
         const first = items[0];
         const cidadeLabel =

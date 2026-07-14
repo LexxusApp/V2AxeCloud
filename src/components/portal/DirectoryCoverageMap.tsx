@@ -3,15 +3,15 @@ import 'leaflet/dist/leaflet.css';
 import { LocateFixed, MapPinned, Navigation, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
-import { diretorioCityPath } from '../../lib/diretorioSlug';
 
 type GeoPoint = {
+  slug: string;
+  nome: string;
   cidade: string;
   estado: string;
-  cidadeSlug: string;
+  perfilUrl: string;
   lat: number;
   lng: number;
-  total: number;
 };
 
 function parseGoogleMapsCoordinates(link: string | null): { lat: number; lng: number } | null {
@@ -32,22 +32,26 @@ function parseGoogleMapsCoordinates(link: string | null): { lat: number; lng: nu
   return null;
 }
 
-function cityPoints(cidades: DiretorioCidadeSnapshot[]): GeoPoint[] {
-  return cidades.flatMap((cidade) => {
-    const coordinates = cidade.bairros
-      .flatMap((bairro) => bairro.items)
-      .map((item) => parseGoogleMapsCoordinates(item.linkMaps))
-      .filter((point): point is { lat: number; lng: number } => Boolean(point));
-    if (coordinates.length === 0) return [];
-    return [{
-      cidade: cidade.cidade,
-      estado: cidade.estado || 'SP',
-      cidadeSlug: cidade.cidadeSlug,
-      lat: coordinates.reduce((sum, point) => sum + point.lat, 0) / coordinates.length,
-      lng: coordinates.reduce((sum, point) => sum + point.lng, 0) / coordinates.length,
-      total: cidade.totalTerreiros,
-    }];
-  });
+function directoryPoints(cidades: DiretorioCidadeSnapshot[]): GeoPoint[] {
+  const seen = new Set<string>();
+  return cidades.flatMap((cidade) =>
+    cidade.bairros.flatMap((bairro) =>
+      bairro.items.flatMap((item) => {
+        if (item.tipo !== 'terreiro' || !item.slug || seen.has(item.slug)) return [];
+        const coordinates = parseGoogleMapsCoordinates(item.linkMaps);
+        if (!coordinates) return [];
+        seen.add(item.slug);
+        return [{
+          slug: item.slug,
+          nome: item.nome,
+          cidade: item.cidade || cidade.cidade,
+          estado: item.estado || cidade.estado || 'SP',
+          perfilUrl: item.perfilUrl || `/terreiro/${encodeURIComponent(item.slug)}`,
+          ...coordinates,
+        }];
+      }),
+    ),
+  );
 }
 
 function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -77,7 +81,7 @@ export function DirectoryCoverageMap({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Array<{ point: GeoPoint; marker: L.CircleMarker }>>([]);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
-  const points = useMemo(() => cityPoints(cidades).sort((a, b) => b.total - a.total), [cidades]);
+  const points = useMemo(() => directoryPoints(cidades), [cidades]);
 
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
@@ -86,7 +90,8 @@ export function DirectoryCoverageMap({
     const map = L.map(containerRef.current, {
       zoomControl: true,
       scrollWheelZoom: false,
-      minZoom: 7,
+      minZoom: 6,
+      preferCanvas: true,
     });
     mapRef.current = map;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -95,21 +100,19 @@ export function DirectoryCoverageMap({
     }).addTo(map);
 
     markersRef.current = points.map((point) => {
-      const radius = Math.min(19, 7 + Math.sqrt(Math.max(point.total, 1)) * 0.75);
       const marker = L.circleMarker([point.lat, point.lng], {
-        radius,
+        radius: 5,
         color: '#5f4300',
-        weight: 2,
+        weight: 1.5,
         fillColor: '#ffc107',
-        fillOpacity: 0.92,
+        fillOpacity: 0.88,
       }).addTo(map);
-      const href = diretorioCityPath(point.estado, point.cidadeSlug);
-      marker.bindTooltip(`${point.cidade}: ${point.total} terreiros`, { direction: 'top' });
+      marker.bindTooltip(escapeHtml(point.nome), { direction: 'top' });
       marker.bindPopup(`
         <div style="min-width:190px;font-family:system-ui,sans-serif;color:#1b1813">
-          <strong style="font-size:15px">${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}</strong>
-          <p style="margin:6px 0 12px;color:#665f55">${point.total} terreiro${point.total === 1 ? '' : 's'} mapeado${point.total === 1 ? '' : 's'}</p>
-          <a href="${href}" style="display:inline-block;border-radius:999px;background:#1b1813;color:#fff;padding:8px 12px;text-decoration:none;font-weight:700">Ver terreiros</a>
+          <strong style="font-size:15px">${escapeHtml(point.nome)}</strong>
+          <p style="margin:6px 0 12px;color:#665f55">${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}</p>
+          <a href="${escapeHtml(point.perfilUrl)}" style="display:inline-block;border-radius:999px;background:#1b1813;color:#fff;padding:8px 12px;text-decoration:none;font-weight:700">Ver perfil</a>
         </div>
       `);
       return { point, marker };
@@ -142,10 +145,10 @@ export function DirectoryCoverageMap({
         const nearest = points.reduce((best, point) =>
           distanceKm(origin, point) < distanceKm(origin, best) ? point : best,
         );
-        const item = markersRef.current.find(({ point }) => point.cidadeSlug === nearest.cidadeSlug);
-        mapRef.current?.flyTo([nearest.lat, nearest.lng], 12, { duration: 1.1 });
+        const item = markersRef.current.find(({ point }) => point.slug === nearest.slug);
+        mapRef.current?.flyTo([nearest.lat, nearest.lng], 15, { duration: 1.1 });
         item?.marker.openPopup();
-        setLocationStatus(`${nearest.cidade} é a região mapeada mais próxima.`);
+        setLocationStatus(`${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`);
       },
       () => setLocationStatus('Permita a localização no navegador para usar “perto de mim”.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
@@ -162,7 +165,7 @@ export function DirectoryCoverageMap({
           </p>
           <h2 id="coverage-map-title" className="mt-2 text-2xl font-black md:text-3xl">Terreiros no mapa</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65">
-            Navegue pelo mapa, aproxime uma região ou use sua localização para encontrar as cidades mais próximas.
+            Explore as casas com coordenadas confirmadas, aproxime uma região ou use sua localização para encontrar o terreiro mais próximo.
           </p>
         </div>
         <div>
@@ -179,7 +182,7 @@ export function DirectoryCoverageMap({
       </div>
 
       <div className="relative min-h-[390px] bg-[#eee9df] md:min-h-[520px]">
-        <div ref={containerRef} className="absolute inset-0 z-0" aria-label={`Mapa interativo com ${points.length} cidades`} />
+        <div ref={containerRef} className="absolute inset-0 z-0" aria-label={`Mapa interativo com ${points.length} terreiros`} />
         {points.length === 0 ? (
           <div className="absolute inset-0 z-10 grid place-items-center bg-[#f4efe7] px-6 text-center">
             <div>
@@ -194,7 +197,7 @@ export function DirectoryCoverageMap({
       </div>
       <p className="flex items-center justify-center gap-2 border-t border-[#e8dfd0] px-4 py-3 text-center text-[11px] text-[#1b1813]/50">
         <Navigation className="h-3.5 w-3.5" aria-hidden />
-        {points.length} cidades no mapa · posições aproximadas a partir dos endereços públicos do diretório.
+        {points.length} terreiros com localização exata · coordenadas obtidas dos links públicos do Google Maps.
       </p>
     </section>
   );

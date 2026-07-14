@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, ExternalLink, Loader2, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, ExternalLink, Loader2, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { MarketingMockupLayout } from '../../components/marketing/MarketingMockupLayout';
 import { MarketingMockupPageHeader } from '../../components/marketing/MarketingMockupPageHeader';
 import { landingMockupShellClass } from '../../components/landing/landingMockupUi';
@@ -9,6 +9,8 @@ import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
+import { commercialWhatsAppUrl } from '../../constants/commercialContact';
+import { trackConversionEvent } from '../../lib/trackConversion';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -178,6 +180,41 @@ export default function DiretorioTerreiroPage() {
               Abrir no Google Maps — como chegar
             </a>
           ) : null}
+        </section>
+
+        <section
+          className="mt-10 overflow-hidden rounded-2xl border border-[#2b251d] bg-[#17130e] p-6 text-white shadow-xl shadow-black/15 sm:p-8"
+          aria-labelledby="claim-house-title"
+        >
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-4">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#ffc107] text-[#1b1813]">
+                <BadgeCheck className="h-5 w-5" aria-hidden />
+              </span>
+              <div>
+                <h2 id="claim-house-title" className="text-xl font-black">Esta é sua casa?</h2>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">
+                  Reivindique este perfil sem custo para corrigir dados, identificar a casa e conhecer o sistema completo por 30 dias.
+                </p>
+              </div>
+            </div>
+            <a
+              href={commercialWhatsAppUrl(
+                `Olá! Sou responsável pela casa ${terreiro.nome}, em ${[terreiro.cidade, terreiro.estado].filter(Boolean).join('/')}, e quero reivindicar este perfil no AxéCloud.`,
+              )}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => void trackConversionEvent('cta_click', {
+                ctaId: 'directory-profile-claim',
+                ctaLabel: 'Reivindicar esta casa',
+                metadata: { slug: terreiro.slug },
+              })}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#ffc107] px-6 py-3.5 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38]"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              Reivindicar esta casa
+            </a>
+          </div>
         </section>
       </main>
     </MarketingMockupLayout>

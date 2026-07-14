@@ -62,7 +62,8 @@ function toAbsoluteUrl(siteUrl, routePath) {
  * @param {string | Date | undefined}
  */
 function formatLastMod(value) {
-  const date = value ? new Date(value) : new Date();
+  if (!value) return null;
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     throw new Error(`lastModified inválido: ${String(value)}`);
   }
@@ -80,8 +81,8 @@ export function buildSitemapXml(siteUrl, routes) {
     const lines = [
       '  <url>',
       `    <loc>${loc}</loc>`,
-      `    <lastmod>${lastmod}</lastmod>`,
     ];
+    if (lastmod) lines.push(`    <lastmod>${lastmod}</lastmod>`);
     if (route.changeFrequency) {
       lines.push(`    <changefreq>${escapeXml(route.changeFrequency)}</changefreq>`);
     }

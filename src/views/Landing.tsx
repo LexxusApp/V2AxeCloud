@@ -50,8 +50,8 @@ function PricingSection({
       <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
         <motion.div
           className="mx-auto max-w-2xl text-center"
-          initial={{ opacity: 0, y: 32, filter: 'blur(8px)' }}
-          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -145,8 +145,8 @@ function ClosingSection() {
         />
 
         <motion.div
-          initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
-          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -288,12 +288,39 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-6 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-[#FFC107] text-[#1b1813] shadow-lg shadow-[#FFC107]/30 transition-opacity duration-300 hover:bg-[#ffcd38] sm:bottom-8 sm:right-6',
+        'fixed bottom-24 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-[#FFC107] text-[#1b1813] shadow-lg shadow-[#FFC107]/30 transition-opacity duration-300 hover:bg-[#ffcd38] md:bottom-8 md:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
       <ArrowUp className="h-5 w-5" strokeWidth={2.5} aria-hidden />
     </button>
+  );
+}
+
+function MobileConversionBar() {
+  return (
+    <nav
+      aria-label="Começar no AxéCloud"
+      className="fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-xl md:hidden"
+    >
+      <RegisterTrialLink className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#ffc107] px-4 text-sm font-black text-[#1b1813]">
+        Testar 30 dias grátis
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </RegisterTrialLink>
+      <a
+        href={COMMERCIAL_WHATSAPP_URL}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Falar com o comercial pelo WhatsApp"
+        onClick={() => void trackConversionEvent('cta_click', {
+          ctaId: 'mobile-sticky-commercial-whatsapp',
+          ctaLabel: 'WhatsApp comercial fixo',
+        })}
+        className="grid h-12 w-12 place-items-center rounded-xl bg-[#17130e] text-[#ffc107]"
+      >
+        <MessageCircle className="h-5 w-5" aria-hidden />
+      </a>
+    </nav>
   );
 }
 
@@ -304,7 +331,7 @@ export default function Landing() {
     <>
       <span id="top" className="sr-only" aria-hidden />
 
-      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] text-[#1b1813]">
+      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] pb-20 text-[#1b1813] md:pb-0">
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <MatrizLandingExperience />
@@ -322,6 +349,8 @@ export default function Landing() {
       </main>
 
       <MatrizFooter />
+
+      <MobileConversionBar />
 
       <ScrollToTopButton />
     </div>

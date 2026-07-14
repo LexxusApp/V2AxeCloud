@@ -23,7 +23,7 @@ const TOUR_STEPS: TourStep[] = [
     shortLabel: 'Painel',
     icon: LayoutDashboard,
     accent: 'violet',
-    src: landingScreenshot('painel-inicio.png'),
+    src: landingScreenshot('painel-inicio.webp'),
     desc: 'Resumo, números e o que a casa precisa enxergar de primeira.',
   },
   {

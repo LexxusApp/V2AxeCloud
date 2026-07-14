@@ -354,8 +354,8 @@ function Reveal({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, filter: 'blur(10px)', ...offset }}
-      whileInView={{ opacity: 1, filter: 'blur(0px)', x: 0, y: 0 }}
+      initial={{ opacity: 0, ...offset }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once: true, amount: 0.18 }}
       transition={{ duration: 0.72, delay, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -731,7 +731,7 @@ function Hero() {
                 transition={{ type: 'spring', stiffness: 200 }}
               >
                 <img
-                  src={landingScreenshot('painel-dashboard-landing.png')}
+                  src={landingScreenshot('painel-dashboard-landing.webp')}
                   alt="Dashboard do AxéCloud — painel real de gestão do terreiro"
                   className="w-full rounded-xl"
                   loading="eager"
@@ -868,7 +868,7 @@ function AgendaSection() {
                 transition={{ type: 'spring', stiffness: 200 }}
               >
                 <img
-                  src={landingScreenshot('painel-inicio.png')}
+                  src={landingScreenshot('painel-inicio.webp')}
                   alt="Painel do zelador com calendário de giras e eventos do terreiro"
                   className="w-full rounded-xl"
                   loading="lazy"
@@ -963,11 +963,10 @@ function PhilosophySection() {
                 key={pillar.title}
                 className="flex gap-5 overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-[#ffc107]/35 hover:shadow-md hover:shadow-[#ffc107]/10 sm:p-7"
                 variants={{
-                  hidden: { opacity: 0, y: 28, filter: 'blur(8px)' },
+                  hidden: { opacity: 0, y: 20 },
                   visible: {
                     opacity: 1,
                     y: 0,
-                    filter: 'blur(0px)',
                     transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
                   },
                 }}
@@ -1245,11 +1244,10 @@ function ModulesSection() {
             <motion.div
               key={module.title}
               variants={{
-                hidden: { opacity: 0, y: 28, filter: 'blur(8px)' },
+                hidden: { opacity: 0, y: 20 },
                 visible: {
                   opacity: 1,
                   y: 0,
-                  filter: 'blur(0px)',
                   transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
                 },
               }}

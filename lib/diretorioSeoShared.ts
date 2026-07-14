@@ -15,6 +15,11 @@ export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: st
   { path: "/conteudo/mensalidade-na-casa-de-axe-organizacao", changeFrequency: "monthly", priority: 0.8 },
   { path: "/conteudo/giras-festas-e-calendario-da-casa", changeFrequency: "monthly", priority: 0.8 },
   { path: "/conteudo/como-visitar-um-terreiro-com-respeito", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/conteudo/como-instalar-axecloud-celular-pwa", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/conteudo/melhor-software-terreiro-2026-o-que-avaliar", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/por-que-axecloud", changeFrequency: "monthly", priority: 0.92 },
   { path: "/conteudo/glossario", changeFrequency: "monthly", priority: 0.8 },
   { path: "/terreiros", changeFrequency: "daily", priority: 0.9 },
   { path: "/eventos", changeFrequency: "daily", priority: 0.85 },
@@ -263,15 +268,13 @@ export function buildSitemapXml(
   routes: { path: string; changeFrequency?: string; priority?: number; lastModified?: string }[],
 ): string {
   const origin = siteUrl.replace(/\/+$/, "");
-  const today = new Date().toISOString().slice(0, 10);
-
   const entries = routes.map((route) => {
     const loc = route.path === "/" ? `${origin}/` : `${origin}${route.path}`;
     const lines = [
       "  <url>",
       `    <loc>${escapeHtml(loc)}</loc>`,
-      `    <lastmod>${route.lastModified || today}</lastmod>`,
     ];
+    if (route.lastModified) lines.push(`    <lastmod>${escapeHtml(route.lastModified)}</lastmod>`);
     if (route.changeFrequency) lines.push(`    <changefreq>${route.changeFrequency}</changefreq>`);
     if (typeof route.priority === "number") {
       lines.push(`    <priority>${Math.min(1, Math.max(0, route.priority)).toFixed(1)}</priority>`);

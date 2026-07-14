@@ -1,5 +1,5 @@
 /** Bump ao atualizar PNGs em public/screenshots (tour, hero, apps). */
-export const LANDING_SCREENSHOT_VERSION = '20260711b';
+export const LANDING_SCREENSHOT_VERSION = '20260714a';
 
 export function landingScreenshot(file: string): string {
   const name = file.replace(/^\/?screenshots\//, '');
@@ -7,5 +7,5 @@ export function landingScreenshot(file: string): string {
 }
 
 export function landingBrandLogo(): string {
-  return `/logo-topo-matriz.png?v=${LANDING_SCREENSHOT_VERSION}`;
+  return `/logo-topo-matriz-128.webp?v=${LANDING_SCREENSHOT_VERSION}`;
 }

@@ -92,8 +92,8 @@ export default function TerreirosDirectoryPage() {
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-10 lg:items-start">
           <motion.div
             className="contents"
-            initial={{ opacity: 0, y: 34, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="lg:col-start-1 lg:row-start-1">
@@ -160,8 +160,8 @@ export default function TerreirosDirectoryPage() {
                   key={`${cidade.estado || 'br'}-${cidade.cidadeSlug}`}
                   href={diretorioCityPath(cidade.estado, cidade.cidadeSlug)}
                   className="group relative overflow-hidden rounded-[1.5rem] border border-[#e8dfd0] bg-white/80 p-5 shadow-sm shadow-black/5 backdrop-blur-sm transition hover:-translate-y-1 hover:border-[#ffc107]/50 hover:shadow-xl hover:shadow-[#ffc107]/10"
-                  initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -8, scale: 1.018 }}
                   whileTap={{ scale: 0.985 }}
                   transition={{ delay: Math.min(index * 0.025, 0.28), duration: 0.5 }}

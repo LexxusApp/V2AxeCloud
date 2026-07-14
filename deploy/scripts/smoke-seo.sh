@@ -36,6 +36,30 @@ echo "$sitemap_type" | grep -q 'xml' || {
 }
 echo "OK   /sitemap.xml — ${sitemap_type}"
 
+sitemap_tmp="$(mktemp)"
+curl -sS -o "$sitemap_tmp" "${BASE}/sitemap.xml"
+for required_path in \
+  "/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro" \
+  "/conteudo/como-instalar-axecloud-celular-pwa" \
+  "/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro" \
+  "/conteudo/melhor-software-terreiro-2026-o-que-avaliar"; do
+  grep -q "$required_path" "$sitemap_tmp" || {
+    echo "FAIL /sitemap.xml — falta ${required_path}"
+    rm -f "$sitemap_tmp"
+    exit 1
+  }
+done
+
+lastmod_total="$(grep -o '<lastmod>[^<]*</lastmod>' "$sitemap_tmp" | wc -l | tr -d ' ')"
+lastmod_unique="$(grep -o '<lastmod>[^<]*</lastmod>' "$sitemap_tmp" | sort -u | wc -l | tr -d ' ')"
+if [[ "$lastmod_total" -gt 100 && "$lastmod_unique" -le 1 ]]; then
+  echo "FAIL /sitemap.xml — todas as URLs usam a mesma data artificial"
+  rm -f "$sitemap_tmp"
+  exit 1
+fi
+rm -f "$sitemap_tmp"
+echo "OK   /sitemap.xml — artigos comerciais e datas verificáveis"
+
 # Typo sitemap.xm → redirect ou XML (nunca SPA HTML)
 # Typo sitemap.xm → XML (redirect ou conteúdo válido)
 xm_tmp="$(mktemp)"
