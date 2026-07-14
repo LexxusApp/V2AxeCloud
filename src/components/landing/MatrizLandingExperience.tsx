@@ -492,128 +492,24 @@ function GlowCard({ children, className }: { children: ReactNode; className?: st
 }
 
 function MatrizBackground() {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let w = 0;
-    let h = 0;
-    let raf = 0;
-    let time = 0;
-    let mx = 0.5;
-    let my = 0.75;
-    let embers: Array<{ x: number; y: number; vx: number; vy: number; size: number; life: number; maxLife: number }> = [];
-
-    const spawn = () => {
-      embers.push({
-        x: Math.random() * w,
-        y: h + Math.random() * 40,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: -(0.4 + Math.random() * 0.9),
-        size: 1.5 + Math.random() * 3,
-        life: 0,
-        maxLife: 120 + Math.random() * 100,
-      });
-    };
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = window.innerWidth;
-      h = window.innerHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      embers = [];
-      for (let i = 0; i < 45; i += 1) spawn();
-    };
-
-    const tick = () => {
-      try {
-        time += 1;
-        wrap.style.setProperty('--beat', String(0.85 + (0.5 + 0.5 * Math.sin(time * 0.09)) * 0.15));
-        ctx.clearRect(0, 0, w, h);
-
-        if (embers.length < 55 && time % 8 === 0) spawn();
-
-        for (const ember of embers) {
-          ember.life += 1;
-          ember.x += ember.vx + Math.sin(time * 0.02 + ember.y * 0.01) * 0.15;
-          ember.y += ember.vy;
-          const remaining = 1 - ember.life / ember.maxLife;
-          const alpha = remaining * remaining * 0.5;
-          if (alpha <= 0) continue;
-
-          const gradient = ctx.createRadialGradient(ember.x, ember.y, 0, ember.x, ember.y, ember.size * 3);
-          gradient.addColorStop(0, `rgba(255, 193, 7, ${alpha})`);
-          gradient.addColorStop(1, 'rgba(255, 193, 7, 0)');
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(ember.x, ember.y, ember.size * 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        embers = embers.filter((ember) => ember.life < ember.maxLife);
-
-        const glow = ctx.createRadialGradient(mx * w, my * h, 0, mx * w, my * h, w * 0.35);
-        glow.addColorStop(0, 'rgba(255, 193, 7, 0.07)');
-        glow.addColorStop(1, 'rgba(255, 193, 7, 0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, w, h);
-      } catch {
-        // Background animation must never break the landing page.
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    const onMove = (e: PointerEvent) => {
-      mx = e.clientX / w;
-      my = e.clientY / h;
-      wrap.style.setProperty('--mx', `${mx * 100}%`);
-      wrap.style.setProperty('--my', `${my * 100}%`);
-    };
-
-    resize();
-    tick();
-    window.addEventListener('resize', resize);
-    window.addEventListener('pointermove', onMove, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('pointermove', onMove);
-    };
-  }, []);
-
   return (
     <div
-      ref={wrapRef}
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-      style={{ '--mx': '50%', '--my': '75%', '--beat': '1' } as CSSProperties}
       aria-hidden
     >
       <div className="absolute inset-0 bg-[#fdf8f0]" />
       <div
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0"
         style={{
-          opacity: 'calc(var(--beat) * 0.95)',
           background: `
-            radial-gradient(ellipse 80% 50% at var(--mx) var(--my), rgba(255,193,7,0.16) 0%, transparent 50%),
+            radial-gradient(ellipse 80% 50% at 50% 75%, rgba(255,193,7,0.16) 0%, transparent 50%),
             radial-gradient(ellipse 60% 35% at 50% 100%, rgba(180,83,9,0.1) 0%, transparent 45%),
             linear-gradient(180deg, #fdf8f0 0%, #faf3e6 50%, #f3e8d4 100%)
           `,
         }}
       />
-      <div className="matriz-pattern-kente matriz-animate-kente-drift absolute inset-0 opacity-[0.35]" />
+      <div className="matriz-pattern-kente absolute inset-0 opacity-[0.35]" />
       <div className="matriz-pattern-grain absolute inset-0 opacity-35" />
-      <canvas ref={canvasRef} className="absolute inset-0 mix-blend-multiply opacity-80" />
     </div>
   );
 }
