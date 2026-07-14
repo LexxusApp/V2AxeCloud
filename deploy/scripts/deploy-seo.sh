@@ -7,6 +7,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 COMPOSE="docker compose -f deploy/docker-compose.yml --env-file .env"
+# A VPS tem recursos limitados; compilar várias imagens ao mesmo tempo pode saturar memória/CPU.
+export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 
 echo "=== [1/5] Build marketing + app + caddy ==="
 $COMPOSE build marketing app caddy
