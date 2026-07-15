@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Plus, X, CheckCircle2, Loader2, MessageCircle, Download, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { countsTowardSaldo, normalizeMovimentoTipo } from '../lib/financeiroSaldo';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { supabase } from '../lib/supabase';
 
 interface Transaction {
   id: string;
-  tipo: 'entrada' | 'saida';
+  tipo: string;
   valor: number;
   descricao: string;
   data: string;
+  categoria?: string | null;
+  status?: string | null;
 }
 
 interface FinanceiroBasicoProps {
@@ -41,7 +44,7 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
     try {
       const { data, error } = await supabase
         .from('financeiro')
-        .select('id, tipo, valor, descricao, data')
+        .select('id, tipo, valor, descricao, data, categoria, status')
         .eq('tenant_id', tenantId)
         .order('data', { ascending: false })
         .limit(20);
@@ -86,9 +89,12 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
     }
   }
 
-  const stats = transactions.reduce((acc, curr) => {
-    if (curr.tipo === 'entrada') acc.entradas += curr.valor;
-    else acc.saidas += curr.valor;
+  const cashTransactions = transactions.filter((transaction) => countsTowardSaldo(transaction));
+
+  const stats = cashTransactions.reduce((acc, curr) => {
+    const tipo = normalizeMovimentoTipo(curr.tipo);
+    if (tipo === 'entrada') acc.entradas += Number(curr.valor) || 0;
+    else if (tipo === 'saida') acc.saidas += Number(curr.valor) || 0;
     return acc;
   }, { entradas: 0, saidas: 0 });
 
@@ -132,7 +138,7 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
       <div className="max-w-2xl mx-auto space-y-4">
         <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-2">Últimos Registros</h4>
         <div className="space-y-2">
-          {transactions.map((t) => (
+          {cashTransactions.map((t) => (
             <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors group">
               <div className="flex items-center gap-4">
                 <div className={cn(
@@ -167,7 +173,7 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
             </div>
           ))}
           
-          {transactions.length === 0 && !loading && (
+          {cashTransactions.length === 0 && !loading && (
             <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-[2.5rem]">
               <p className="text-gray-500 font-medium">Nenhum lançamento registrado.</p>
             </div>

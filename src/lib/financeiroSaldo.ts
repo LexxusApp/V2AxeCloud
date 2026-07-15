@@ -42,15 +42,26 @@ export function normalizeMovimentoTipo(tipo: string | undefined | null): 'entrad
 
 /** Inclui no saldo exibido: sem coluna status (legado) ou valores tratados como confirmados/pagos. */
 export function countsTowardSaldo(t: {
+  tipo?: string | null;
   status?: string | null;
   descricao?: string | null;
   categoria?: string | null;
 }): boolean {
   const s = (t.status || '').toLowerCase().trim();
+  const cat = String(t.categoria || '').toLowerCase().trim();
+  const desc = String(t.descricao || '').toLowerCase();
+  const isMensalidade = cat === 'mensalidade' || desc.includes('mensalidade');
+
+  // Mensalidade é conta a receber. Só vira caixa quando houver evidência
+  // explícita de quitação; nunca presumimos pagamento por `tipo=entrada`.
+  if (isMensalidade) {
+    if (s === 'confirmado' || s === 'confirmada' || s === 'pago' || s === 'paid') return true;
+    if (s) return false;
+    if (desc.includes('(vencimento')) return false;
+    return desc.includes('(competência') || desc.includes('(competencia');
+  }
+
   if (!s) {
-    const cat = String(t.categoria || '').toLowerCase();
-    const desc = String(t.descricao || '').toLowerCase();
-    if (cat === 'mensalidade' && desc.includes('(vencimento')) return false;
     return true;
   }
   if (s === 'confirmado' || s === 'confirmada' || s === 'pago' || s === 'paid') return true;

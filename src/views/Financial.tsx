@@ -151,7 +151,7 @@ function mensalidadeRowIsPagaForTabs(row: MensalidadeZeladorRow): boolean {
 
 interface Transaction {
   id: string;
-  tipo: 'entrada' | 'saida';
+  tipo: string;
   valor: number;
   categoria: string;
   data: string;
@@ -294,6 +294,10 @@ export default function Financial({
   }, [txJson, userId, tenantId, tenantData?.tenant_id]);
 
   const loading = Boolean(financialTxKey && txLoading && !txJson);
+  const cashTransactions = useMemo(
+    () => transactions.filter((transaction) => countsTowardSaldo(transaction)),
+    [transactions]
+  );
 
   useEffect(() => {
     if (isBasicFinancePlan && userRole !== 'filho') return;
@@ -575,7 +579,7 @@ export default function Financial({
       const headers = ['Data', 'Tipo', 'Categoria', 'Valor', 'Descrição'];
       const csvContent = [
         headers.join(','),
-        ...transactions.map(t => [
+        ...cashTransactions.map(t => [
           new Date(t.data).toLocaleDateString('pt-BR'),
           t.tipo.toUpperCase(),
           t.categoria,
@@ -888,15 +892,14 @@ export default function Financial({
   }
 
   const stats = useMemo(() => {
-    return transactions.reduce((acc, curr) => {
-      if (!countsTowardSaldo(curr)) return acc;
+    return cashTransactions.reduce((acc, curr) => {
       const valor = Number(curr.valor) || 0;
       const mt = normalizeMovimentoTipo(curr.tipo);
       if (mt === 'entrada') acc.entradas += valor;
       else if (mt === 'saida') acc.saidas += valor;
       return acc;
     }, { entradas: 0, saidas: 0 });
-  }, [transactions]);
+  }, [cashTransactions]);
 
   const saldo = useMemo(() => stats.entradas - stats.saidas, [stats]);
 
@@ -1141,7 +1144,7 @@ export default function Financial({
 
             <div className={cn(isAdmin ? 'lg:col-span-2' : 'lg:col-span-3')}>
               <div className="space-y-3 sm:hidden">
-                {transactions.map((t) => (
+                {cashTransactions.map((t) => (
                   <article key={t.id} className="rounded-2xl border border-[#1E242B] bg-[#12161A] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -1181,7 +1184,7 @@ export default function Financial({
                     </div>
                   </article>
                 ))}
-                {transactions.length === 0 ? (
+                {cashTransactions.length === 0 ? (
                   <div className="rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-12 text-center text-sm text-[#94A3B8]">
                     Nenhum lançamento registrado ainda.
                   </div>
@@ -1216,7 +1219,7 @@ export default function Financial({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1E242B]">
-                      {transactions.map((t) => (
+                      {cashTransactions.map((t) => (
                         <tr key={t.id} className="hover:bg-[#1E242B]/40">
                           <td className="px-4 py-3.5">
                             <p className="line-clamp-2 break-words font-medium leading-snug text-[#F1F5F9]">{t.descricao}</p>
@@ -1249,7 +1252,7 @@ export default function Financial({
                           <td className="px-4 py-3.5 text-right">{renderTransactionActions(t)}</td>
                         </tr>
                       ))}
-                      {transactions.length === 0 ? (
+                      {cashTransactions.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
                             Nenhum lançamento registrado ainda.

@@ -129,7 +129,7 @@ export async function fetchDashboardBundle(
       };
     });
 
-    const merged = [...normalized, ...lojaHistorico].sort(
+    const merged = [...normalized.filter((transaction) => countsTowardSaldo(transaction)), ...lojaHistorico].sort(
       (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
     );
 

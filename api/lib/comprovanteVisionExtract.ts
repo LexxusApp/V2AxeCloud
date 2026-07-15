@@ -4,10 +4,12 @@ export type ComprovanteExtracted = {
   valor: number;
   data: string;
   cpf_pagador: string;
+  beneficiario: string;
+  id_transacao: string;
 };
 
 const VISION_PROMPT =
-  'Analise este comprovante de pagamento Pix/Bancário e extraia as seguintes informações em formato JSON estrito: { valor: float, data: string, cpf_pagador: string }.';
+  'Analise este comprovante Pix/bancário concluído. Extraia somente dados visíveis e responda JSON estrito: { valor: number, data: "YYYY-MM-DD", cpf_pagador: string, beneficiario: string, id_transacao: string }. id_transacao deve ser o identificador E2E/EndToEndId/ID da transação. Não invente dados ausentes.';
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
@@ -59,7 +61,11 @@ function parseVisionJson(text: string): ComprovanteExtracted | null {
   }
 
   const valorRaw = parsed.valor ?? parsed.amount ?? parsed.valor_pago;
-  const valor = typeof valorRaw === "number" ? valorRaw : parseFloat(String(valorRaw ?? "").replace(",", "."));
+  const valorText = String(valorRaw ?? "").replace(/[^\d,.-]/g, "");
+  const valorNormalizado = valorText.includes(",")
+    ? valorText.replace(/\./g, "").replace(",", ".")
+    : valorText;
+  const valor = typeof valorRaw === "number" ? valorRaw : parseFloat(valorNormalizado);
   if (!Number.isFinite(valor) || valor <= 0) return null;
 
   const data = String(parsed.data ?? parsed.date ?? "").trim();
@@ -68,7 +74,15 @@ function parseVisionJson(text: string): ComprovanteExtracted | null {
   const cpf_pagador = String(parsed.cpf_pagador ?? parsed.cpf ?? "").trim();
   if (!cpf_pagador) return null;
 
-  return { valor, data, cpf_pagador };
+  const beneficiario = String(parsed.beneficiario ?? parsed.recebedor ?? parsed.destinatario ?? "").trim();
+  if (!beneficiario) return null;
+
+  const id_transacao = String(
+    parsed.id_transacao ?? parsed.end_to_end_id ?? parsed.endToEndId ?? parsed.e2e_id ?? ""
+  ).trim();
+  if (!id_transacao) return null;
+
+  return { valor, data, cpf_pagador, beneficiario, id_transacao };
 }
 
 export async function extractComprovanteFieldsFromImage(

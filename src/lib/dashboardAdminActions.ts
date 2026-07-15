@@ -38,7 +38,7 @@ function brl(value: number): string {
 }
 
 type BuildAdminActionsInput = {
-  transactions?: Array<{ tipo?: string; descricao?: string; valor?: number; data?: string; categoria?: string }>;
+  transactions?: Array<{ tipo?: string; descricao?: string; valor?: number; data?: string; categoria?: string; status?: string | null }>;
   children?: Array<{ id?: string; nome?: string; created_at?: string; cargo?: string; categoria?: string }>;
   notices?: Array<{ id?: string; titulo?: string; categoria?: string; data_publicacao?: string; created_at?: string }>;
   pedidos?: Array<{ id?: string; nome?: string; status?: string; created_at?: string; mensagem?: string }>;
@@ -50,6 +50,7 @@ export function buildDashboardAdminActions(input: BuildAdminActionsInput): Dashb
   const items: DashboardAdminAction[] = [];
 
   for (const tx of input.transactions || []) {
+    if (!countsTowardSaldo(tx)) continue;
     const at = String(tx.data || '').trim();
     if (!at) continue;
     const desc = String(tx.descricao || '').trim();
@@ -137,3 +138,4 @@ export function buildDashboardAdminActions(input: BuildAdminActionsInput): Dashb
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, max);
 }
+import { countsTowardSaldo } from './financeiroSaldo';

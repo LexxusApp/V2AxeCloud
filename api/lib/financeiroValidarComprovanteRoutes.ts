@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import {
   assertUserCanAccessTenant,
@@ -13,6 +14,12 @@ import {
   normalizeCpfDigits,
   valoresMensalidadeCoincidem,
 } from "./comprovanteVisionExtract.js";
+import {
+  comprovanteBeneficiarioMatches,
+  isComprovanteDateCompatible,
+  normalizeComprovanteDate,
+  normalizeComprovanteTransactionId,
+} from "./comprovanteValidation.js";
 
 type LiquidarFn = (
   supabaseAdmin: SupabaseClient,
@@ -120,7 +127,8 @@ async function findPendingMensalidadeForFilho(
   tenantId: string,
   resolvedTenant: string,
   filhoId: string,
-  valorEsperado: number
+  valorEsperado: number,
+  paymentDate: string
 ): Promise<FinanceiroMensalidadeRow | null> {
   const { data, error } = await supabaseAdmin
     .from("financeiro")
@@ -148,10 +156,15 @@ async function findPendingMensalidadeForFilho(
   const matches = rows.filter((row) => {
     const fid = deriveFilhoId(row);
     if (fid !== filhoId) return false;
-    return valoresMensalidadeCoincidem(Number(row.valor) || 0, valorEsperado);
+    if (!valoresMensalidadeCoincidem(Number(row.valor) || 0, valorEsperado)) return false;
+    const competenceDate = String(row.data_vencimento || row.data || "").slice(0, 10);
+    return isComprovanteDateCompatible(paymentDate, competenceDate);
   });
 
   if (matches.length === 0) return null;
+  matches.sort((a, b) =>
+    String(a.data_vencimento || a.data || "").localeCompare(String(b.data_vencimento || b.data || ""))
+  );
   return matches[0];
 }
 
@@ -214,6 +227,20 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
           return res.status(400).json({ error: "Envie a imagem do comprovante (fileData em base64)." });
         }
 
+        const arquivoSha256 = createHash("sha256").update(imagePayload.buffer).digest("hex");
+        const { data: usedFile, error: usedFileError } = await supabaseAdmin
+          .from("financeiro_comprovantes")
+          .select("id")
+          .eq("arquivo_sha256", arquivoSha256)
+          .maybeSingle();
+        if (usedFileError) throw usedFileError;
+        if (usedFile) {
+          return res.status(409).json({
+            success: false,
+            error: "Este comprovante já foi utilizado para confirmar uma mensalidade.",
+          });
+        }
+
         const extracted = await extractComprovanteFieldsFromImage(
           imagePayload.buffer,
           imagePayload.contentType
@@ -221,7 +248,13 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
 
         const filhoCpf = normalizeCpfDigits(filho.cpf || "");
         const extractedCpf = normalizeCpfDigits(extracted.cpf_pagador);
-        if (filhoCpf.length === 11 && extractedCpf.length === 11 && filhoCpf !== extractedCpf) {
+        if (filhoCpf.length !== 11) {
+          return res.status(422).json({
+            success: false,
+            error: "Seu CPF precisa estar completo no cadastro antes da validação automática.",
+          });
+        }
+        if (extractedCpf.length !== 11 || filhoCpf !== extractedCpf) {
           return res.status(422).json({
             success: false,
             error: "O CPF do comprovante não corresponde ao seu cadastro no terreiro.",
@@ -230,12 +263,47 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
 
         const filhoId = String(filho.id).toLowerCase();
         const resolvedTenant = await resolveLeaderId(tenantId);
+        const { data: pixConfig, error: pixConfigError } = await supabaseAdmin
+          .from("configuracoes_pix")
+          .select("nome_beneficiario")
+          .or(`terreiro_id.eq.${resolvedTenant},terreiro_id.eq.${tenantId}`)
+          .maybeSingle();
+        if (pixConfigError) throw pixConfigError;
+        const expectedBeneficiario = String(pixConfig?.nome_beneficiario || "").trim();
+        if (!expectedBeneficiario) {
+          return res.status(422).json({
+            success: false,
+            error: "O zelador precisa configurar o nome do beneficiário Pix antes da validação automática.",
+          });
+        }
+        if (!comprovanteBeneficiarioMatches(expectedBeneficiario, extracted.beneficiario)) {
+          return res.status(422).json({
+            success: false,
+            error: "O beneficiário do comprovante não corresponde ao Pix configurado pelo terreiro.",
+          });
+        }
+
+        const transactionId = normalizeComprovanteTransactionId(extracted.id_transacao);
+        if (transactionId.length < 10) {
+          return res.status(422).json({
+            success: false,
+            error: "Não foi possível identificar com segurança o ID da transação no comprovante.",
+          });
+        }
+        const paymentDate = normalizeComprovanteDate(extracted.data);
+        if (!paymentDate) {
+          return res.status(422).json({
+            success: false,
+            error: "Não foi possível identificar uma data válida no comprovante.",
+          });
+        }
         const pendente = await findPendingMensalidadeForFilho(
           supabaseAdmin,
           tenantId,
           resolvedTenant,
           filhoId,
-          extracted.valor
+          extracted.valor,
+          paymentDate
         );
 
         if (!pendente) {
@@ -246,22 +314,63 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
           });
         }
 
+        const competenceDate = String(pendente.data_vencimento || pendente.data || "").slice(0, 10);
+        if (!isComprovanteDateCompatible(paymentDate, competenceDate)) {
+          return res.status(422).json({
+            success: false,
+            error: "A data do pagamento não é compatível com a mensalidade em aberto.",
+          });
+        }
+
         const zeladorActorId = String(
           pendente.lider_id || filho.lider_id || resolvedTenant || tenantId
         ).trim();
 
-        await liquidarMensalidadePendente(
-          supabaseAdmin,
-          resolveLeaderId,
-          zeladorActorId,
-          tenantId,
-          pendente.id,
-          extracted.valor
-        );
+        const { data: receiptReservation, error: receiptError } = await supabaseAdmin
+          .from("financeiro_comprovantes")
+          .insert({
+            tenant_id: resolvedTenant || tenantId,
+            financeiro_id: pendente.id,
+            filho_id: filhoId,
+            arquivo_sha256: arquivoSha256,
+            id_transacao_norm: transactionId,
+            valor: extracted.valor,
+            data_pagamento: paymentDate,
+            beneficiario_lido: extracted.beneficiario,
+          })
+          .select("id")
+          .single();
+        if (receiptError) {
+          if (receiptError.code === "23505") {
+            return res.status(409).json({
+              success: false,
+              error: "Este comprovante ou ID de transação já foi utilizado.",
+            });
+          }
+          throw receiptError;
+        }
+
+        try {
+          await liquidarMensalidadePendente(
+            supabaseAdmin,
+            resolveLeaderId,
+            zeladorActorId,
+            tenantId,
+            pendente.id,
+            extracted.valor
+          );
+          await supabaseAdmin
+            .from("financeiro_comprovantes")
+            .update({ status: "aceito", accepted_at: new Date().toISOString() })
+            .eq("id", receiptReservation.id);
+        } catch (liquidationError) {
+          await supabaseAdmin.from("financeiro_comprovantes").delete().eq("id", receiptReservation.id);
+          throw liquidationError;
+        }
 
         const filhoNome = String(filho.nome || "Filho").trim() || "Filho";
         const competencia = String(
-          pendente.data_vencimento || pendente.data || extracted.data || ""
+          pendente.data_vencimento || pendente.data || paymentDate || ""
         ).slice(0, 10);
 
         void notifyMensalidadeConfirmadaWhatsApp(supabaseAdmin, {
@@ -282,7 +391,7 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
           filho_id: filhoId,
           filho_nome: filhoNome,
           valor: extracted.valor,
-          data_pagamento: extracted.data,
+          data_pagamento: paymentDate,
         });
       } catch (e: unknown) {
         console.error("[financeiro/validar-comprovante]", e);

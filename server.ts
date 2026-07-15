@@ -716,7 +716,7 @@ async function syncMensalidadesPendentes(
 
     const nome = String((child as any).nome || "Filho").trim() || "Filho";
     const insert: Record<string, unknown> = {
-      tipo: "entrada",
+      tipo: "conta_receber",
       valor: valorPadrao,
       categoria: "Mensalidade",
       data: dueStr,
@@ -888,7 +888,7 @@ async function estornarMensalidadePaga(
   const nome = String(child?.nome || "Filho").trim() || "Filho";
 
   const up: Record<string, unknown> = {
-    tipo: "entrada",
+    tipo: "conta_receber",
     data: due,
     descricao: `Mensalidade - ${nome} (vencimento ${due}) (ID:${filhoId})`,
   };
@@ -1803,6 +1803,30 @@ async function startServer() {
         console.warn("[SERVER] RPC confirm_mensalidade_payment indisponível ou erro — usando fallback:", rpcErr.message || rpcErr);
       }
 
+      const { data: pendingRows, error: pendingError } = await supabaseAdmin
+        .from("financeiro")
+        .select("id, lider_id, data, data_vencimento")
+        .eq("categoria", "Mensalidade")
+        .eq("status", "pendente")
+        .eq("filho_id", filho_id)
+        .or(`tenant_id.eq.${tenant_id},tenant_id.eq.${resolvedTenant},lider_id.eq.${tenant_id},lider_id.eq.${resolvedTenant}`);
+      if (pendingError) throw pendingError;
+      const compMonth = String(compDate).slice(0, 7);
+      const pending = (pendingRows || []).find((item: any) =>
+        String(item.data_vencimento || item.data || "").startsWith(compMonth)
+      );
+      if (pending) {
+        await liquidarMensalidadePendente(
+          supabaseAdmin,
+          resolveLeaderId,
+          String(pending.lider_id || user.id),
+          String(tenant_id),
+          String(pending.id),
+          v
+        );
+        return res.json({ success: true, id: pending.id, via: "pending-update" });
+      }
+
       const row: Record<string, unknown> = {
         tipo: "entrada",
         valor: v,
@@ -1812,6 +1836,8 @@ async function startServer() {
         tenant_id,
         lider_id: user.id,
         filho_id,
+        status: "pago",
+        data_vencimento: compDate,
       };
 
       const { data: inserted, error: insErr } = await supabaseAdmin.from("financeiro").insert([row]).select("id").single();

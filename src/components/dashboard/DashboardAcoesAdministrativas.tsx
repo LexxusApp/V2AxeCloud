@@ -7,7 +7,7 @@ import {
 } from '../../lib/dashboardAdminActions';
 
 type DashboardAcoesAdministrativasProps = {
-  transactions?: Array<{ tipo?: string; descricao?: string; valor?: number; data?: string; categoria?: string }>;
+  transactions?: Array<{ tipo?: string; descricao?: string; valor?: number; data?: string; categoria?: string; status?: string | null }>;
   children?: Array<{ id?: string; nome?: string; created_at?: string; cargo?: string; categoria?: string }>;
   notices?: Array<{ id?: string; titulo?: string; categoria?: string; data_publicacao?: string; created_at?: string }>;
   pedidos?: Array<{ id?: string; nome?: string; status?: string; created_at?: string; mensagem?: string }>;
