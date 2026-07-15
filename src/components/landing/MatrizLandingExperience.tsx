@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  Cloud,
   Crown,
   Flame,
   Flower2,
@@ -13,12 +14,13 @@ import {
   Images,
   Leaf,
   Lock,
+  LockKeyhole,
   MessageCircle,
   Package,
   HardDrive,
   Database,
-  Server,
   Shield,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
   UserCheck,
@@ -888,87 +890,54 @@ function PhilosophySection() {
 
 function MatrizServerRack() {
   const units = [
-    { leds: ['#34d399', '#38bdf8', '#fbbf24', '#34d399', '#f87171'] },
-    { leds: ['#38bdf8', '#34d399', '#a78bfa', '#38bdf8', '#34d399'] },
-    { leds: ['#fbbf24', '#34d399', '#38bdf8', '#f87171', '#a78bfa'] },
-    { leds: ['#34d399', '#a78bfa', '#fbbf24', '#38bdf8', '#34d399'] },
+    ['NODE 01', 'AUTH', '12%'],
+    ['NODE 02', 'DATA', '38%'],
+    ['NODE 03', 'BACKUP', '07%'],
+    ['NODE 04', 'EDGE', '24%'],
   ] as const;
 
   return (
-    <div className="relative mx-auto w-full max-w-md" aria-hidden>
-      <motion.div
-        className="absolute -inset-6 rounded-[2rem] bg-[#ffc107]/12 blur-3xl"
-        animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.96, 1.04, 0.96] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-[#ffc107]/25 bg-gradient-to-b from-[#1f1a14] to-[#0b0906] p-5 shadow-2xl shadow-black/40">
-        <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <Server className="h-5 w-5 text-[#ffc107]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ffc107]/90">Rack dedicado</span>
+    <div className="axe-server-scene" aria-hidden>
+      <div className="axe-server-backlight" />
+      <div className="axe-server-rack">
+        <div className="axe-rack-topbar">
+          <div className="axe-rack-brand">
+            <img src="/axecloud_96.png" width="34" height="34" alt="" />
+            <span><strong>AXÉCLOUD</strong><small>PRIVATE CLOUD</small></span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="matriz-server-led inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/90">Online</span>
-          </div>
+          <div className="axe-rack-online"><i /> SISTEMA ONLINE</div>
         </div>
 
-        <div className="space-y-3">
-          {units.map((unit, unitIndex) => (
-            <div
-              key={unitIndex}
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-[#14110d] via-[#17130f] to-[#12100c] p-3 shadow-inner"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-white/35">
-                  NODE-0{unitIndex + 1}
-                </span>
-                <div className="matriz-server-fan flex gap-0.5 opacity-60">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <span key={i} className="h-3 w-0.5 rounded-full bg-white/25" />
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {unit.leds.map((color, ledIndex) => (
-                  <span
-                    key={ledIndex}
-                    className={cn(
-                      'matriz-server-led h-2 rounded-full shadow-[0_0_12px_currentColor]',
-                      ledIndex % 3 === 0 && 'matriz-server-led--delay-1',
-                      ledIndex % 3 === 1 && 'matriz-server-led--delay-2',
-                      ledIndex % 3 === 2 && 'matriz-server-led--delay-3',
-                    )}
-                    style={{ backgroundColor: color, color }}
-                  />
-                ))}
-              </div>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#ffc107]/20 via-[#ffc107] to-[#ffc107]/20"
-                  animate={{ x: ['-100%', '220%'] }}
-                  transition={{ duration: 2.2 + unitIndex * 0.35, repeat: Infinity, ease: 'linear' }}
-                />
-              </div>
+        {units.map(([node, role, load], index) => (
+          <div className="axe-server-unit" key={node}>
+            <span className="axe-rack-screw axe-screw-left" />
+            <span className="axe-rack-screw axe-screw-right" />
+            <div className="axe-drive-bays"><i /><i /><i /><i /></div>
+            <div className="axe-server-vent">
+              {Array.from({ length: 18 }).map((_, dot) => <i key={dot} />)}
             </div>
-          ))}
-        </div>
+            <div className="axe-server-screen">
+              <small>{node}</small><strong>{role}</strong><span>LOAD {load}</span>
+            </div>
+            <div className="axe-server-leds">
+              <i className={`axe-server-led axe-led-green axe-led-${index + 1}`} />
+              <i className={`axe-server-led axe-led-green axe-led-${index + 2}`} />
+              <i className={`axe-server-led axe-led-amber axe-led-${index + 3}`} />
+            </div>
+          </div>
+        ))}
 
-        <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-[9px] text-white/45">
-          <div className="rounded-lg border border-white/8 bg-white/5 px-2 py-1.5">
-            <span className="block text-emerald-400">CPU</span>
-            <span className="matriz-server-led--delay-2 text-white/70">12% load</span>
-          </div>
-          <div className="rounded-lg border border-white/8 bg-white/5 px-2 py-1.5">
-            <span className="block text-sky-400">RAM</span>
-            <span className="matriz-server-led--delay-1 text-white/70">estável</span>
-          </div>
-          <div className="rounded-lg border border-white/8 bg-white/5 px-2 py-1.5">
-            <span className="block text-[#ffc107]">I/O</span>
-            <span className="matriz-server-led--delay-3 text-white/70">ativo</span>
-          </div>
+        <div className="axe-rack-metrics">
+          <span>UPTIME <strong>99.99%</strong></span>
+          <span>LATÊNCIA <strong>18ms</strong></span>
+          <span>STATUS <strong>PROTEGIDO</strong></span>
         </div>
       </div>
+
+      <div className="axe-server-floor-glow" />
+      <div className="axe-security-chip axe-chip-a"><LockKeyhole size={16} /> Criptografia ativa</div>
+      <div className="axe-security-chip axe-chip-b"><ShieldCheck size={16} /> LGPD</div>
+      <div className="axe-security-chip axe-chip-c"><Cloud size={16} /> Backup contínuo</div>
     </div>
   );
 }
