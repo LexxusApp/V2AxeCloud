@@ -209,7 +209,6 @@
   min-height: 620px;
   display: grid;
   place-items: center;
-  perspective: 1200px;
 }
 
 .axe-server-backlight {
@@ -218,7 +217,7 @@
   height: 520px;
   border: 1px solid rgba(255, 193, 7, 0.08);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 193, 7, 0.095), rgba(129, 108, 255, 0.025) 42%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.065), rgba(129, 108, 255, 0.018) 42%, transparent 70%);
   box-shadow: inset 0 0 80px rgba(255, 193, 7, 0.025);
 }
 
@@ -245,12 +244,10 @@
   width: min(438px, calc(100% - 40px));
   padding: 14px 18px 16px;
   overflow: hidden;
-  border: 1px solid #34343a;
+  border: 1px solid #45464d;
   border-radius: 17px;
   background: linear-gradient(100deg, #090a0c 0 4%, #202127 4% 7%, #101115 7% 93%, #202127 93% 96%, #090a0c 96%);
-  box-shadow: 0 42px 75px rgba(0, 0, 0, 0.64), inset 0 1px rgba(255, 255, 255, 0.09), inset 0 0 0 3px #07080a, 18px 12px 45px rgba(0, 0, 0, 0.32);
-  transform: rotateY(3deg) rotateX(0.8deg);
-  transform-style: preserve-3d;
+  box-shadow: 0 34px 58px rgba(0, 0, 0, 0.58), inset 0 1px rgba(255, 255, 255, 0.12), inset 0 0 0 3px #07080a, 12px 8px 30px rgba(0, 0, 0, 0.24);
 }
 
 .axe-server-rack::before,
@@ -286,14 +283,14 @@
 .axe-rack-brand strong,
 .axe-rack-brand small { display: block; }
 .axe-rack-brand strong { color: #e8e6e0; font-size: 10px; letter-spacing: 0.14em; }
-.axe-rack-brand small { margin-top: 3px; color: #74747a; font-size: 6px; letter-spacing: 0.15em; }
+.axe-rack-brand small { margin-top: 3px; color: #9a9ba0; font-size: 7px; letter-spacing: 0.13em; }
 
 .axe-rack-online {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #8f9294;
-  font-size: 7px;
+  color: #b5b8b9;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
@@ -317,10 +314,10 @@
   grid-template-columns: 88px 1fr 71px 20px;
   gap: 10px;
   align-items: center;
-  border: 1px solid #32333a;
+  border: 1px solid #3c3d45;
   border-radius: 4px;
   background: linear-gradient(180deg, #1d1e23 0%, #111217 46%, #090a0d 100%);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.085), inset 0 -8px 15px rgba(0, 0, 0, 0.24), 0 3px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), inset 0 -6px 12px rgba(0, 0, 0, 0.2), 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
 .axe-server-unit::after {
@@ -378,15 +375,15 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 1px solid #303238;
+  border: 1px solid #3a4545;
   border-radius: 4px;
   background: #050b0c;
-  box-shadow: inset 0 0 12px rgba(73, 230, 165, 0.035);
+  box-shadow: inset 0 0 8px rgba(73, 230, 165, 0.025);
 }
 
-.axe-server-screen small { color: #6a7072; font-size: 6px; letter-spacing: 0.1em; }
-.axe-server-screen strong { margin: 3px 0; color: #a8f4d5; font-size: 10px; line-height: 1; letter-spacing: 0.08em; text-shadow: 0 0 10px rgba(73, 230, 165, 0.2); }
-.axe-server-screen span { color: #4f7670; font-size: 6px; }
+.axe-server-screen small { color: #91999a; font-size: 8px; letter-spacing: 0.08em; }
+.axe-server-screen strong { margin: 3px 0; color: #b9f8df; font-size: 11px; line-height: 1; letter-spacing: 0.07em; text-shadow: 0 0 4px rgba(73, 230, 165, 0.12); }
+.axe-server-screen span { color: #78a69e; font-size: 8px; }
 
 .axe-server-leds { height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
 .axe-server-led { width: 5px; height: 5px; border-radius: 50%; opacity: 0.3; animation: axe-rack-led-pulse 1.9s steps(1, end) infinite; }
@@ -410,8 +407,8 @@
   background: #090a0d;
 }
 
-.axe-rack-metrics span { color: #56575d; font-size: 6px; letter-spacing: 0.08em; }
-.axe-rack-metrics strong { display: block; margin-top: 3px; color: #a8aaa9; font-size: 7px; }
+.axe-rack-metrics span { color: #8b8d92; font-size: 8px; letter-spacing: 0.08em; }
+.axe-rack-metrics strong { display: block; margin-top: 3px; color: #d0d2d1; font-size: 9px; }
 .axe-rack-metrics span:last-child strong { color: #49e6a5; }
 
 .axe-server-floor-glow {
@@ -421,8 +418,8 @@
   width: 390px;
   height: 48px;
   border-radius: 50%;
-  background: rgba(255, 193, 7, 0.09);
-  filter: blur(25px);
+  background: rgba(255, 193, 7, 0.055);
+  filter: blur(18px);
   transform: rotateX(72deg);
 }
 
