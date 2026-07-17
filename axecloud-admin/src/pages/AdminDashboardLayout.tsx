@@ -9,13 +9,16 @@ import {
   FlaskConical,
   HardDrive,
   Gauge,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Menu,
   MessageCircle,
   PlusCircle,
+  Radio,
   ScrollText,
   Shield,
+  Sparkles,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -30,6 +33,7 @@ export type AdminNavTab =
   | "demo"
   | "plans"
   | "whatsapp"
+  | "wa-inbox"
   | "monitor";
 
 type IconTone = "blue" | "violet" | "emerald" | "amber" | "rose" | "teal" | "sky" | "orange";
@@ -42,6 +46,7 @@ const MAIN_NAV: NavItem[] = [
   { id: "plans", label: "Mensalidades", icon: CreditCard, tone: "emerald" },
   { id: "logs", label: "Eventos", icon: ScrollText, tone: "amber" },
   { id: "whatsapp", label: "Notificações", icon: MessageCircle, tone: "teal" },
+  { id: "wa-inbox", label: "Caixa WA", icon: Inbox, tone: "sky" },
 ];
 
 const EXTRA_NAV: NavItem[] = [
@@ -61,6 +66,7 @@ const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   plans: "Catálogo de planos e mensalidades",
   logs: "Registo de eventos e auditoria",
   whatsapp: "Comunicados e notificações",
+  "wa-inbox": "Mensagens recebidas no WhatsApp oficial",
   storage: "Uso de armazenamento e ficheiros",
   metrics: "Métricas de infraestrutura Supabase",
   monitor: "Monitorização em tempo real",
@@ -75,14 +81,16 @@ export function sectionLabel(tab: AdminNavTab): string {
 function SidebarBrand() {
   return (
     <div className="admin-sidebar-brand">
-      <div className="flex items-center gap-2.5 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--ac-radius-sm)] bg-[var(--ac-blue)] text-white shadow-sm">
-          <Shield className="h-4 w-4" strokeWidth={2} />
+      <div className="admin-brand-inner">
+        <div className="admin-brand-symbol">
+          <Shield className="h-5 w-5" strokeWidth={2.2} />
+          <span className="admin-brand-pulse" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-[var(--ac-text)] leading-tight truncate">AxéCloud Console</p>
-          <p className="text-[10px] text-[var(--ac-text-faint)]">Administração global</p>
+          <p className="admin-brand-name">AxéCloud</p>
+          <p className="admin-brand-subtitle">Control Center</p>
         </div>
+        <span className="admin-root-badge">ROOT</span>
       </div>
     </div>
   );
@@ -311,6 +319,28 @@ export function AdminDashboardLayout({
         </aside>
 
         <div className="admin-workspace">
+          <header className="admin-console-topbar">
+            <div className="admin-console-context">
+              <span>OPERAÇÕES</span>
+              <i>/</i>
+              <strong>{sectionLabel(tab)}</strong>
+            </div>
+            <div className="admin-console-actions">
+              <div className="admin-live-status">
+                <span />
+                <Radio className="h-3.5 w-3.5" />
+                Sistema online
+              </div>
+              <button type="button" className="admin-top-action" onClick={() => onTab("monitor")}>
+                <Activity className="h-4 w-4" />
+                Monitor
+              </button>
+              <button type="button" className="admin-top-action admin-top-action--accent" onClick={() => onTab("create")}>
+                <Sparkles className="h-4 w-4" />
+                Novo terreiro
+              </button>
+            </div>
+          </header>
           <main className="admin-main">
             <div className="admin-page-container">
               {msg && (

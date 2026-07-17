@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowRight, KeyRound, LogOut, Shield } from "lucide-react";
+import { Activity, ArrowRight, Database, KeyRound, LockKeyhole, LogOut, Shield, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, isApiUnreachable, postAuthAuditLog, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -97,83 +97,75 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
 
   return (
     <div className="admin-login-page">
-      <div className="admin-login-card">
-        <div className="admin-login-logo">
-          <div className="admin-login-logo-icon">
-            <Shield className="h-6 w-6" />
+      <section className="admin-login-showcase">
+        <div className="admin-login-showcase-glow" />
+        <div className="admin-login-showcase-content">
+          <div className="admin-login-brandmark">
+            <div><Shield className="h-6 w-6" /></div>
+            <span>AXÉCLOUD</span>
+            <b>CONTROL CENTER</b>
           </div>
-          <div className="admin-login-logo-text">
-            <h1>AxéCloud Console</h1>
-            <p>Administração global da plataforma</p>
+          <div className="admin-login-message">
+            <span><Sparkles className="h-4 w-4" /> CENTRAL DE OPERAÇÕES</span>
+            <h1>Controle total.<br /><em>Visão em tempo real.</em></h1>
+            <p>Administre terreiros, assinaturas, infraestrutura e comunicação em um ambiente seguro e integrado.</p>
+          </div>
+          <div className="admin-login-capabilities">
+            <div><Database /><span><strong>Dados centralizados</strong><small>Gestão completa da plataforma</small></span></div>
+            <div><Activity /><span><strong>Monitoramento ativo</strong><small>Indicadores operacionais ao vivo</small></span></div>
+            <div><LockKeyhole /><span><strong>Acesso auditado</strong><small>Segurança em todas as ações</small></span></div>
+          </div>
+          <p className="admin-login-version">AXÉCLOUD ADMIN · AMBIENTE RESTRITO</p>
+        </div>
+      </section>
+
+      <div className="admin-login-form-side">
+        <div className="admin-login-card">
+          <div className="admin-login-mobile-logo">
+            <div className="admin-login-logo-icon"><Shield className="h-5 w-5" /></div>
+            <strong>AxéCloud Control</strong>
+          </div>
+          <div className="admin-login-heading">
+            <span>ACESSO ADMINISTRATIVO</span>
+            <h2>Bem-vindo de volta</h2>
+            <p>Entre com suas credenciais de administrador global.</p>
+          </div>
+
+          {session && consoleGate === "network" && (
+            <Notice tone="error" title="API indisponível">
+              <p>Não foi possível validar a sessão com o servidor. Tente novamente em instantes.</p>
+            </Notice>
+          )}
+
+          {session && consoleGate === "forbidden" && (
+            <Notice tone="warn" title="Sem permissão">
+              <p>A conta <strong>{session.user.email}</strong> não tem perfil de administrador global.</p>
+              <button type="button" onClick={() => void clearSession()} className="mt-2 inline-flex items-center gap-2 admin-btn-secondary !text-xs">
+                <LogOut className="h-3.5 w-3.5" /> Usar outra conta
+              </button>
+            </Notice>
+          )}
+
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="admin-label">E-mail</label>
+              <input className="admin-input mt-1.5" type="email" placeholder="admin@axecloud.com.br" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label className="admin-label">Senha</label>
+              <input className="admin-input mt-1.5" type="password" placeholder="••••••••" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            {err && <p className="rounded-[var(--ac-radius-sm)] border border-[#fecdca] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">{err}</p>}
+            <button type="submit" disabled={loading} className="admin-btn-primary w-full !py-3 mt-2">
+              {loading ? "A entrar…" : <><KeyRound className="h-4 w-4" /> Entrar no console <ArrowRight className="h-4 w-4 opacity-70" /></>}
+            </button>
+          </form>
+
+          <div className="admin-login-security-note">
+            <LockKeyhole className="h-4 w-4" />
+            <p><strong>Conexão protegida</strong><span>Todas as sessões e ações são registradas.</span></p>
           </div>
         </div>
-
-        {session && consoleGate === "network" && (
-          <Notice tone="error" title="API indisponível">
-            <p>Não foi possível validar a sessão com o servidor. Tente novamente em instantes.</p>
-          </Notice>
-        )}
-
-        {session && consoleGate === "forbidden" && (
-          <Notice tone="warn" title="Sem permissão">
-            <p>
-              A conta <strong>{session.user.email}</strong> não tem perfil de administrador global.
-            </p>
-            <button
-              type="button"
-              onClick={() => void clearSession()}
-              className="mt-2 inline-flex items-center gap-2 admin-btn-secondary !text-xs"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Usar outra conta
-            </button>
-          </Notice>
-        )}
-
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="admin-label">E-mail</label>
-            <input
-              className="admin-input mt-1.5"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="admin-label">Senha</label>
-            <input
-              className="admin-input mt-1.5"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {err && (
-            <p className="rounded-[var(--ac-radius-sm)] border border-[#fecdca] bg-[var(--ac-danger-soft)] px-3 py-2.5 text-sm text-[var(--ac-danger)]">
-              {err}
-            </p>
-          )}
-          <button type="submit" disabled={loading} className="admin-btn-primary w-full !py-3 mt-2">
-            {loading ? (
-              "A entrar…"
-            ) : (
-              <>
-                <KeyRound className="h-4 w-4" />
-                Entrar no console
-                <ArrowRight className="h-4 w-4 opacity-70" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-[11px] text-[var(--ac-text-faint)]">
-          Acesso restrito · todas as sessões são auditadas
-        </p>
       </div>
     </div>
   );

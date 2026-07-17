@@ -77,7 +77,7 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
           return res.status(400).json({ error: "Preencha a senha atual, a nova senha e a confirmação." });
         }
         const passwordCheck = validateStrongPassword(newPassword);
-        if (!passwordCheck.ok) {
+        if (passwordCheck.ok === false) {
           return res.status(400).json({ error: passwordCheck.message });
         }
         if (newPassword !== confirmPassword) {

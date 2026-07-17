@@ -105,6 +105,22 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
       title: 'Estoque Crítico',
       hint: 'Alerta automático de item em nível crítico.',
     },
+    transmissao_aviso: {
+      title: 'Transmissão de aviso',
+      hint: 'Mensagem enviada em transmissões de avisos para os filhos da casa.',
+    },
+    senha_evento_visitante: {
+      title: 'Senha de evento para visitante',
+      hint: 'Enviada ao visitante com a senha e o link de check-in do evento.',
+    },
+    pedido_reza_novo_zelador: {
+      title: 'Novo pedido de reza',
+      hint: 'Notifica o zelador quando um fiel envia um novo pedido de reza.',
+    },
+    pedido_reza_aceito_fiel: {
+      title: 'Pedido de reza aceito',
+      hint: 'Notifica o fiel quando o pedido de reza é aceito pelo zelador.',
+    },
   };
 
   useEffect(() => {

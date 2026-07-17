@@ -30,7 +30,7 @@ type ContentMarketingLayoutProps = {
   kicker: string;
   title: string;
   summary: string;
-  children: ReactNode;
+  children?: ReactNode;
   heroExtra?: ReactNode;
   backHref?: string;
   backLabel?: string;

@@ -133,7 +133,7 @@ export function registerEventRsvpRoutes(app: Express, deps: Deps) {
       }
 
       const result = await processEventGuestRsvp(sb, token, acao);
-      if (!result.ok) {
+      if (result.ok === false) {
         const status = result.code === "NOT_FOUND" ? 404 : result.code === "EXPIRED" ? 410 : 400;
         return res.status(status).json({ error: result.message, code: result.code });
       }

@@ -633,9 +633,10 @@ async function sendTransmissaoPair(
     throw httpError("Texto do comunicado não encontrado para transmissão.", 400);
   }
 
+  const templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
+  await sleepMs(resolveTransmissaoFollowUpDelayMs());
+
   try {
-    const templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
-    await sleepMs(resolveTransmissaoFollowUpDelayMs());
     const followUpOut = await sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
       ...opts,
       nomeMembro,
@@ -647,20 +648,12 @@ async function sendTransmissaoPair(
       followUpMessageId: followUpOut.messageId,
     };
   } catch (err) {
-    const fallback = String(opts?.fallbackText || "").trim();
-    if (!fallback) throw err;
+    // Template aviso_portal já saiu — não mascara com fallback de texto (Meta costuma bloquear fora da janela).
     console.error(
-      `[WHATSAPP] fluxo aviso_portal falhou (${tipo}), fallback texto único:`,
+      `[WHATSAPP] 2ª mensagem (comunicado) falhou após aviso_portal:`,
       err instanceof Error ? err.message : err
     );
-    const out = await sendWhatsAppTextMessage(phone, fallback, {
-      tipo,
-      tenantId: opts?.tenantId,
-      filhoId: opts?.filhoId,
-      nomeMembro,
-      sb: opts?.sb,
-    });
-    return { messageId: out.messageId };
+    throw err;
   }
 }
 
@@ -728,6 +721,9 @@ export async function logAndSendWhatsApp(
   const useTransmissaoTwoStep = usesTransmissaoTwoStepFlow(tipo);
   const useMetaUtility = usesMetaUtilityTemplateFlow(tipo);
   const useMetaBroadcast = usesMetaBroadcastTemplateFlow(tipo);
+  const templateOnlyPortal =
+    tipo.trim().toLowerCase() === "transmissao_aviso" ||
+    tipo.trim().toLowerCase() === "mural_aviso";
 
   const textToSend =
     deliverableText ||
@@ -789,7 +785,14 @@ export async function logAndSendWhatsApp(
       input.nomeMembro,
       input.nomeTerreiro,
       variables,
-      { tenantId, filhoId, sb, fallbackText: textToSend, zelador }
+      {
+        tenantId,
+        filhoId,
+        sb,
+        // Mural/transmissão deve enviar somente o template aprovado da Meta.
+        fallbackText: templateOnlyPortal ? undefined : textToSend,
+        zelador,
+      }
     );
   } else {
     sent = await sendWhatsAppTextMessage(phone, textToSend, {

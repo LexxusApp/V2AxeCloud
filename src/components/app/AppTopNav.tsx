@@ -467,7 +467,7 @@ export default function AppTopNav({
     setIsUploadingFilhoPhoto(true);
     try {
       const result = await uploadFilhoProfilePhoto(file);
-      if (!result.ok) {
+      if (result.ok === false) {
         setFilhoPhotoMessage({ text: result.error, type: 'error' });
         return;
       }

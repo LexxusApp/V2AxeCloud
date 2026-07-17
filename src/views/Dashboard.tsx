@@ -184,9 +184,11 @@ async function fetchDashboardFinanceBundle(
         : Promise.resolve({ data: [] as any[] }),
       userRole !== 'filho'
         ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then((r) =>
-            parseApiJson(r, { items: [] })
+            parseApiJson<{ items?: DashboardPedidoReza[]; data?: DashboardPedidoReza[] }>(r, {
+              items: [],
+            })
           )
-        : Promise.resolve({ items: [] }),
+        : Promise.resolve({ items: [] as DashboardPedidoReza[], data: undefined }),
       userRole !== 'filho'
         ? authFetch(`/api/notices?tenantId=${tidEnc}`).then((r) =>
             parseApiJson<{ data?: any[] }>(r, { data: [] })

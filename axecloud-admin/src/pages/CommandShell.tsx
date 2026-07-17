@@ -14,6 +14,7 @@ import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { admin, auditStatusBadgeClass, eventTypeBadgeClass } from "@/lib/adminTheme";
 import { WhatsAppPanel } from "./WhatsAppPanel";
+import { WhatsAppInboxPanel } from "./WhatsAppInboxPanel";
 import { TenantDrawer } from "./TenantDrawer";
 import { AuditMonitor } from "./AuditMonitor";
 import { AdminDashboardLayout, type AdminNavTab } from "./AdminDashboardLayout";
@@ -486,6 +487,7 @@ export function CommandShell({ session }: { session: Session }) {
         {tab === "demo" && <DemoAccountPanel />}
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}
+        {tab === "wa-inbox" && <WhatsAppInboxPanel />}
         {tab === "monitor" && <AuditMonitor />}
         </div>
       </AdminDashboardLayout>

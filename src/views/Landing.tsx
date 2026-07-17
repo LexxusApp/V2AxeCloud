@@ -32,6 +32,7 @@ const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
   '14 módulos reais: painel, filhos, giras, financeiro, galeria e mais',
+  '100 GB de galeria por terreiro — fotos e vídeos de giras, festas e momentos da casa',
   'WhatsApp oficial Meta, loja do axé, almoxarifado e biblioteca',
   'Portal do filho de santo + portal público e diretório de casas',
   'App instalável (PWA) no celular — sem App Store ou Google Play',
@@ -82,7 +83,7 @@ function PricingSection({
                 <span className="text-lg text-white/50">{landingPrice.period}</span>
               </div>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-                Tudo incluso, sem taxa por filho de santo. Teste grátis por {TRIAL_DAYS} dias, depois mensalidade via PIX.
+                Tudo incluso, sem taxa por filho de santo — com 100 GB de galeria por terreiro. Teste grátis por {TRIAL_DAYS} dias, depois mensalidade via PIX.
               </p>
             </div>
             <RegisterTrialLink className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#ffc107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]">

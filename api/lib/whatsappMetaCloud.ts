@@ -174,11 +174,10 @@ export function isAvisoPortalTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo) === AVISO_PORTAL_TEMPLATE;
 }
 
-/** aviso_portal_axecloud + comunicado completo em texto livre (janela 24h). */
+/** Mural/transmissão usa somente o template aviso_portal_axecloud. */
 export function usesTransmissaoTwoStepFlow(tipo: string): boolean {
-  const t = normalizeTipo(tipo);
-  if (!META_BROADCAST_TEMPLATE_TIPOS.has(t)) return false;
-  return isAvisoPortalTemplate(tipo);
+  void tipo;
+  return false;
 }
 
 export function resolveTransmissaoFollowUpDelayMs(): number {
@@ -206,7 +205,6 @@ export function usesMetaUtilityTemplateFlow(tipo: string): boolean {
 
 /** Mural / transmissão / broadcast — template Meta único (legado comunicado/mensagem_livre). */
 export function usesMetaBroadcastTemplateFlow(tipo: string): boolean {
-  if (usesTransmissaoTwoStepFlow(tipo)) return false;
   return META_BROADCAST_TEMPLATE_TIPOS.has(normalizeTipo(tipo));
 }
 

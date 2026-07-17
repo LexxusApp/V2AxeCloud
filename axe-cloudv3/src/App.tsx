@@ -3502,7 +3502,7 @@ export default function App() {
                             <label className="block text-[10px] font-bold text-[#94A3B8] uppercase mb-1">Categoria</label>
                             <select
                               value={newLancamento.categoria}
-                              onChange={(e) => setNewLancamento({ ...newLancamento, category: e.target.value })}
+                              onChange={(e) => setNewLancamento({ ...newLancamento, categoria: e.target.value })}
                               className="w-full text-xs p-2 rounded-lg border border-[#1E242B] bg-[#12161A] text-[#F1F5F9] focus:ring-1 focus:ring-[#FACC15] focus:outline-none"
                             >
                               <option value="Mensalidade">Mensalidade</option>

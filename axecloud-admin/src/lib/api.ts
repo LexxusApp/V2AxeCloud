@@ -83,6 +83,9 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     data = { raw: text };
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7430/ingest/686da60f-bc07-47fd-b3bd-23b95d165e64',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'077bb9'},body:JSON.stringify({sessionId:'077bb9',location:'api.ts:apiJson',message:'admin api response',data:{path,status:res.status,ok:res.ok,hasAuth:!!t,bodyPreview:text.slice(0,120)},timestamp:Date.now(),hypothesisId:'H1-H5'})}).catch(()=>{});
+  // #endregion
   if (!res.ok) {
     const body = data as { error?: string; debug?: { hint?: string } } | null;
     const rawLower = text.toLowerCase();
@@ -90,6 +93,7 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
       res.status === 502 ||
       res.status === 503 ||
       res.status === 504 ||
+      res.status === 521 ||
       (res.status === 500 &&
         (!text ||
           rawLower.includes("econnrefused") ||

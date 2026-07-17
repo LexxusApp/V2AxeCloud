@@ -788,7 +788,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           const body = await response.text().catch(() => '');
           throw new Error(`Failed to fetch events (${response.status}): ${body}`);
         }
-        const { data } = await response.json();
+        const { data } = (await response.json()) as { data?: Event[] };
         const list = excludeObrigacaoEvents(data || []);
         setEvents(list);
         setEventsFetchError(null);
@@ -827,7 +827,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         const body = await response.text().catch(() => '');
         throw new Error(`Failed to fetch events (${response.status}): ${body}`);
       }
-      const { data } = await response.json();
+      const { data } = (await response.json()) as { data?: Event[] };
       const list = excludeObrigacaoEvents(data || []);
       setEvents(list);
       setEventsFetchError(null);

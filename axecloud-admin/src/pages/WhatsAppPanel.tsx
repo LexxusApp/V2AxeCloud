@@ -13,7 +13,7 @@ import {
   ShieldAlert,
   Smartphone,
 } from "lucide-react";
-import { apiJson } from "@/lib/api";
+import { apiJson, isApiUnreachable } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
 type StatusPayload = {
@@ -67,7 +67,12 @@ export function WhatsAppPanel() {
         setPairing(null);
       }
     } catch (e) {
-      setFeedback({ kind: "err", msg: e instanceof Error ? e.message : "Falha a consultar estado" });
+      const msg = isApiUnreachable(e)
+        ? "Servidor indisponível. Aguarde alguns segundos e tente novamente."
+        : e instanceof Error
+          ? e.message
+          : "Falha a consultar estado";
+      setFeedback({ kind: "err", msg });
     } finally {
       setBusy("idle");
     }

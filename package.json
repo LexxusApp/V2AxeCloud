@@ -28,7 +28,9 @@
     "build:all": "npm run build && npm run build:landing",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && npm run check:architecture",
+    "check:architecture": "node scripts/check-architecture-budgets.mjs",
+    "test": "tsx --test tests/*.test.ts",
     "test:financeiro": "tsx --test tests/financeiroInvariants.test.ts"
   },
   "dependencies": {

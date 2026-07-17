@@ -16,6 +16,7 @@ import {
 } from "./comprovanteVisionExtract.js";
 import {
   comprovanteBeneficiarioMatches,
+  cpfComprovanteMatches,
   isComprovanteDateCompatible,
   normalizeComprovanteDate,
   normalizeComprovanteTransactionId,
@@ -130,19 +131,32 @@ async function findPendingMensalidadeForFilho(
   valorEsperado: number,
   paymentDate: string
 ): Promise<FinanceiroMensalidadeRow | null> {
-  const { data, error } = await supabaseAdmin
+  const tenantOr = [
+    `tenant_id.eq.${tenantId}`,
+    `tenant_id.eq.${resolvedTenant}`,
+    `lider_id.eq.${tenantId}`,
+    `lider_id.eq.${resolvedTenant}`,
+  ].join(",");
+
+  // Produção pode não ter data_vencimento — fallback para `data` (mesmo padrão do restante do financeiro).
+  let selectCols =
+    "id, valor, status, categoria, filho_id, descricao, tenant_id, lider_id, data, data_vencimento";
+  let { data, error } = await supabaseAdmin
     .from("financeiro")
-    .select("id, valor, status, categoria, filho_id, descricao, tenant_id, lider_id, data, data_vencimento")
+    .select(selectCols)
     .eq("categoria", "Mensalidade")
     .eq("status", "pendente")
-    .or(
-      [
-        `tenant_id.eq.${tenantId}`,
-        `tenant_id.eq.${resolvedTenant}`,
-        `lider_id.eq.${tenantId}`,
-        `lider_id.eq.${resolvedTenant}`,
-      ].join(",")
-    );
+    .or(tenantOr);
+
+  if (error && String(error.message || "").toLowerCase().includes("data_vencimento")) {
+    selectCols = "id, valor, status, categoria, filho_id, descricao, tenant_id, lider_id, data";
+    ({ data, error } = await supabaseAdmin
+      .from("financeiro")
+      .select(selectCols)
+      .eq("categoria", "Mensalidade")
+      .eq("status", "pendente")
+      .or(tenantOr));
+  }
 
   if (error) {
     const msg = String(error.message || "").toLowerCase();
@@ -152,7 +166,7 @@ async function findPendingMensalidadeForFilho(
     throw error;
   }
 
-  const rows = (data || []) as FinanceiroMensalidadeRow[];
+  const rows = (data || []) as unknown as FinanceiroMensalidadeRow[];
   const matches = rows.filter((row) => {
     const fid = deriveFilhoId(row);
     if (fid !== filhoId) return false;
@@ -247,14 +261,15 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
         );
 
         const filhoCpf = normalizeCpfDigits(filho.cpf || "");
-        const extractedCpf = normalizeCpfDigits(extracted.cpf_pagador);
         if (filhoCpf.length !== 11) {
           return res.status(422).json({
             success: false,
             error: "Seu CPF precisa estar completo no cadastro antes da validação automática.",
           });
         }
-        if (extractedCpf.length !== 11 || filhoCpf !== extractedCpf) {
+        // Comprovante Pix normalmente mascara o CPF (só os 6 dígitos do meio: ***.456.789-**),
+        // por isso a comparação é posicional contra o CPF completo do cadastro.
+        if (!cpfComprovanteMatches(filhoCpf, extracted.cpf_pagador)) {
           return res.status(422).json({
             success: false,
             error: "O CPF do comprovante não corresponde ao seu cadastro no terreiro.",

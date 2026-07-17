@@ -87,7 +87,7 @@ export function SettingsAccountCredentialsPanel({
       return;
     }
     const passwordCheck = validateStrongPassword(newPassword);
-    if (!passwordCheck.ok) {
+    if (passwordCheck.ok === false) {
       notify(passwordCheck.message, 'error');
       return;
     }

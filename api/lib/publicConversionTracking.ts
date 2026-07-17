@@ -3,7 +3,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { isMissingOrUnknownTable } from './adminConsoleAuth.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PUBLIC_EVENTS = new Set(['cta_click', 'register_view', 'register_started', 'register_failed']);
+const PUBLIC_EVENTS = new Set([
+  'cta_click',
+  'register_view',
+  'register_started',
+  'register_failed',
+  'directory_performance',
+]);
 
 export type ConversionFunnelStats = {
   available: boolean;

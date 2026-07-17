@@ -109,7 +109,7 @@ export default function ForgotPassword() {
       return;
     }
     const passwordCheck = validateStrongPassword(newPassword);
-    if (!passwordCheck.ok) {
+    if (passwordCheck.ok === false) {
       setError(passwordCheck.message);
       return;
     }

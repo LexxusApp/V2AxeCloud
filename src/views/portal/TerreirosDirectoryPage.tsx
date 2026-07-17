@@ -1,17 +1,24 @@
 ﻿import { motion } from 'framer-motion';
 import { ArrowRight, BadgeCheck, Loader2, MapPin, MessageCircle, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { diretorioCityPath } from '../../lib/diretorioSlug';
 import {
   loadDiretorioCidadesResumo,
   fetchDiretorioSnapshot,
+  readEmbeddedDiretorioCidadesResumo,
   type DiretorioCidadeResumo,
   type DiretorioCidadeSnapshot,
 } from '../../lib/diretorioSnapshot';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
-import { DirectoryCoverageMap } from '../../components/portal/DirectoryCoverageMap';
 import { commercialWhatsAppUrl } from '../../constants/commercialContact';
+import { monitorDirectoryPerformance } from '../../lib/directoryPerformance';
+
+const DirectoryCoverageMap = lazy(() =>
+  import('../../components/portal/DirectoryCoverageMap').then((module) => ({
+    default: module.DirectoryCoverageMap,
+  })),
+);
 
 function normalizeSearch(value: string) {
   return value
@@ -29,31 +36,90 @@ function MatrizKicker({ children }: { children: ReactNode }) {
   );
 }
 
+function DirectoryMapPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="grid min-h-[280px] place-items-center rounded-[2rem] border border-[#ded4c5] bg-white/75 px-6 text-center shadow-sm">
+      <div>
+        <MapPin className="mx-auto h-7 w-7 text-[#a87400]" aria-hidden />
+        <p className="mt-3 text-sm font-bold text-[#1b1813]/65">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function DeferredDirectoryCoverageMap() {
+  const sentinelRef = useRef<HTMLElement | null>(null);
+  const [requested, setRequested] = useState(false);
+  const [coverage, setCoverage] = useState<DiretorioCidadeSnapshot[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const target = sentinelRef.current;
+    if (!target || requested) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setRequested(true);
+        observer.disconnect();
+      },
+      { rootMargin: '500px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [requested]);
+
+  useEffect(() => {
+    if (!requested) return;
+    const controller = new AbortController();
+    setLoading(true);
+    void fetchDiretorioSnapshot(controller.signal)
+      .then((snapshot) => setCoverage(snapshot || []))
+      .catch(() => setCoverage([]))
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [requested]);
+
+  return (
+    <section ref={sentinelRef} className="mt-10 min-h-[280px]" aria-label="Mapa dos terreiros">
+      {requested ? (
+        <Suspense fallback={<DirectoryMapPlaceholder label="Preparando mapa interativo…" />}>
+          <DirectoryCoverageMap cidades={coverage} loading={loading} />
+        </Suspense>
+      ) : (
+        <DirectoryMapPlaceholder label="O mapa será carregado quando você chegar a esta seção." />
+      )}
+    </section>
+  );
+}
+
 
 export default function TerreirosDirectoryPage() {
-  const [cidades, setCidades] = useState<DiretorioCidadeResumo[]>([]);
-  const [coverage, setCoverage] = useState<DiretorioCidadeSnapshot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const embeddedCidades = useMemo(() => readEmbeddedDiretorioCidadesResumo(), []);
+  const [cidades, setCidades] = useState<DiretorioCidadeResumo[]>(embeddedCidades);
+  const [loading, setLoading] = useState(embeddedCidades.length === 0);
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const startedAt = performance.now();
+    const performanceMonitor = monitorDirectoryPerformance();
 
     async function load() {
-      setLoading(true);
+      if (embeddedCidades.length === 0) setLoading(true);
       setError(null);
       try {
-        const [snapshot, detailSnapshot] = await Promise.all([
-          loadDiretorioCidadesResumo(),
-          fetchDiretorioSnapshot().catch(() => null),
-        ]);
+        const snapshot = await loadDiretorioCidadesResumo();
         if (cancelled) return;
         if (!snapshot?.length) {
           throw new Error('Não foi possível carregar o diretório de cidades. Atualize a página.');
         }
         setCidades(snapshot);
-        setCoverage(detailSnapshot || []);
+        performanceMonitor.recordSummary({
+          durationMs: performance.now() - startedAt,
+          cityCount: snapshot.length,
+          totalTerreiros: snapshot.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0),
+        });
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar cidades');
       } finally {
@@ -64,8 +130,9 @@ export default function TerreirosDirectoryPage() {
     void load();
     return () => {
       cancelled = true;
+      performanceMonitor.stop();
     };
-  }, []);
+  }, [embeddedCidades.length]);
 
   const filteredCidades = useMemo(() => {
     const term = normalizeSearch(q);
@@ -137,8 +204,6 @@ export default function TerreirosDirectoryPage() {
           </motion.div>
         </section>
 
-        <DirectoryCoverageMap cidades={coverage} loading={loading} />
-
         <section className="mt-14">
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
@@ -199,6 +264,8 @@ export default function TerreirosDirectoryPage() {
             </div>
           )}
         </section>
+
+        <DeferredDirectoryCoverageMap />
 
         <section className="mt-16 grid gap-6 overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/82 p-7 shadow-xl shadow-black/5 md:grid-cols-[1fr_auto] md:items-center md:p-9" aria-labelledby="claim-profile-title">
           <div className="flex gap-4">

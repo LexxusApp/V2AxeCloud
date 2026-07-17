@@ -1,0 +1,13 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exemplos didaticos de ferramentas de seguranca, sem credenciais reais"
+paths = ['''^\.agents/skills/''']
+
+[[rules]]
+id = "whatsapp-baileys-session"
+description = "Sessao persistida do WhatsApp Web/Baileys"
+regex = '''(?i)"(?:noiseKey|pairingEphemeralKeyPair|signedIdentityKey|advSecretKey)"\s*:'''
+path = '''(?i)(?:auth[_-]?info|sessions?)[/\\].*\.json$'''
+tags = ["whatsapp", "session", "private-key"]

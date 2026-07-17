@@ -9,7 +9,7 @@ export type ComprovanteExtracted = {
 };
 
 const VISION_PROMPT =
-  'Analise este comprovante Pix/bancário concluído. Extraia somente dados visíveis e responda JSON estrito: { valor: number, data: "YYYY-MM-DD", cpf_pagador: string, beneficiario: string, id_transacao: string }. id_transacao deve ser o identificador E2E/EndToEndId/ID da transação. Não invente dados ausentes.';
+  'Analise este comprovante Pix/bancário concluído. Extraia somente dados visíveis e responda JSON estrito: { valor: number, data: "YYYY-MM-DD", cpf_pagador: string, beneficiario: string, id_transacao: string }. cpf_pagador é o CPF de quem PAGOU/enviou: copie EXATAMENTE como aparece, incluindo os asteriscos de mascaramento (ex.: "***.456.789-**"); NÃO complete nem invente os dígitos ocultos. id_transacao deve ser o identificador E2E/EndToEndId/ID da transação. Não invente dados ausentes.';
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
@@ -29,7 +29,7 @@ function getGeminiApiKey(): string | null {
 }
 
 function getVisionModelName(): string {
-  return process.env.GEMINI_VISION_MODEL?.trim() || "gemini-2.0-flash";
+  return process.env.GEMINI_VISION_MODEL?.trim() || "gemini-2.5-flash";
 }
 
 export function normalizeComprovanteMime(contentType: string | undefined): string {

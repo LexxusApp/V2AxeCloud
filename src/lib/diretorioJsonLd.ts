@@ -33,7 +33,7 @@ export function useDiretorioTerreiroJsonLd(terreiro: DiretorioTerreiro | null) {
       ]),
     ];
 
-    let el = document.getElementById(JSON_LD_ID);
+    let el = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
     if (!el) {
       el = document.createElement('script');
       el.id = JSON_LD_ID;

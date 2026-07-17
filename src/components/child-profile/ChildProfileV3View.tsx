@@ -231,7 +231,7 @@ export function ChildProfileV3View({
             <div className="group relative shrink-0">
               <div className="relative">
                 <Avatar
-                  src={child.foto_url}
+                  src={typeof child.foto_url === 'string' ? child.foto_url : ''}
                   name={nome}
                   shape="square"
                   className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-28 md:w-28"

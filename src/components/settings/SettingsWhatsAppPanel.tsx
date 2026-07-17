@@ -156,7 +156,11 @@ export function SettingsWhatsAppPanel() {
                 ? 'Falha'
                 : st === 'partial'
                   ? 'Parcial'
-                  : 'Enviado',
+                  : st === 'delivered' || st === 'entregue'
+                    ? 'Entregue'
+                    : st === 'read' || st === 'lido'
+                      ? 'Lido'
+                      : 'Aceito pela Meta',
           };
         }),
       );
@@ -538,9 +542,13 @@ export function SettingsWhatsAppPanel() {
                     <div className="flex items-center justify-between border-t border-[#1E242B]/80 pt-1 text-[8.5px]">
                       <span className="font-bold text-gray-500">Status Gateway:</span>
                       <span
-                        className={`flex items-center gap-0.5 font-bold ${log.status === 'Enviado' ? 'text-emerald-400' : 'text-rose-400'}`}
+                        className={`flex items-center gap-0.5 font-bold ${
+                          log.status === 'Falha'
+                            ? 'text-rose-400'
+                            : 'text-emerald-400'
+                        }`}
                       >
-                        {log.status === 'Enviado' ? '✓' : '✗'} {log.status}
+                        {log.status === 'Falha' ? '✗' : '✓'} {log.status}
                       </span>
                     </div>
                   </div>

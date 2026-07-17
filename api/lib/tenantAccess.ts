@@ -5,6 +5,13 @@ import { resolveFilhoRowIdForFinance } from "./resolveFilhoRowIdForFinance.js";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type FilhoHouseRefs = {
+  id?: string | null;
+  user_id?: string | null;
+  lider_id?: string | null;
+  tenant_id?: string | null;
+};
+
 export function normalizeQueryTenantId(raw: unknown): string {
   if (raw == null) return "";
   const s = String(Array.isArray(raw) ? raw[0] : raw).trim();
@@ -46,22 +53,22 @@ const SHADOW_EMAIL_FILHO = /^filho_([0-9a-f-]+)@axecloud\.com$/i;
 async function filhoHouseRefsById(
   supabaseAdmin: SupabaseClient,
   filhoId: string
-): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+): Promise<FilhoHouseRefs | null> {
   const id = String(filhoId || "").trim();
   if (!id) return null;
   const { data: exact } = await supabaseAdmin
     .from("filhos_de_santo")
-    .select("lider_id, tenant_id")
+    .select("id, user_id, lider_id, tenant_id")
     .eq("id", id)
     .maybeSingle();
   if (exact) return exact;
   if (id.length >= 8 && id.length < 36) {
     const { data: rows } = await supabaseAdmin
       .from("filhos_de_santo")
-      .select("lider_id, tenant_id")
+      .select("id, user_id, lider_id, tenant_id")
       .ilike("id", `${id}%`)
       .limit(2);
-    if (rows?.length === 1) return rows[0] as { lider_id?: string | null; tenant_id?: string | null };
+    if (rows?.length === 1) return rows[0] as FilhoHouseRefs;
   }
   return null;
 }
@@ -69,10 +76,10 @@ async function filhoHouseRefsById(
 async function loadFilhoHouseRefs(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
-): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+): Promise<FilhoHouseRefs | null> {
   const { data: child } = await supabaseAdmin
     .from("filhos_de_santo")
-    .select("lider_id, tenant_id")
+    .select("id, user_id, lider_id, tenant_id")
     .eq("user_id", user.id)
     .maybeSingle();
   if (child) return child;
@@ -105,7 +112,7 @@ async function loadFilhoHouseRefs(
 async function resolveFilhoHouseRefs(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
-): Promise<{ lider_id?: string | null; tenant_id?: string | null } | null> {
+): Promise<FilhoHouseRefs | null> {
   let refs = await loadFilhoHouseRefs(supabaseAdmin, user);
   if (refs || user.email) return refs;
   try {
@@ -195,7 +202,9 @@ export async function resolveAuthenticatedFilho(
   supabaseAdmin: SupabaseClient,
   userId: string
 ): Promise<{ id: string; user_id?: string | null; tenant_id?: string | null; lider_id?: string | null } | null> {
-  return resolveFilhoHouseRefs(supabaseAdmin, { id: userId });
+  const filho = await resolveFilhoHouseRefs(supabaseAdmin, { id: userId });
+  if (!filho?.id) return null;
+  return { ...filho, id: String(filho.id) };
 }
 
 export async function assertUserCanAccessTenant(

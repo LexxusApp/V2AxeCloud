@@ -34,6 +34,13 @@ import {
   buildFinancialReport,
   publishGlobalNotice,
 } from "./lib/adminQuickActions.js";
+import {
+  archiveAdminInboxConversation,
+  listAdminInboxConversations,
+  listAdminInboxMessages,
+  markAdminInboxRead,
+  replyAdminInboxMessage,
+} from "./lib/adminWhatsAppInbox.js";
 import type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
@@ -855,6 +862,98 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     } catch (e: any) {
       console.error("[admin-console/whatsapp/test-message]", e);
       res.status(500).json({ error: safeErrorMessage(e, "Falha ao enviar mensagem") });
+    }
+  });
+
+  // -------------- Caixa de entrada Meta Cloud (número oficial) --------------------
+  app.get("/api/admin-console/whatsapp-inbox/conversations", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const statusRaw = String(req.query.status || "open").toLowerCase();
+      const status =
+        statusRaw === "all" || statusRaw === "archived" || statusRaw === "open"
+          ? (statusRaw as "all" | "archived" | "open")
+          : "open";
+      const conversations = await listAdminInboxConversations(deps.supabaseAdmin, { status, limit: 80 });
+      res.json({ conversations });
+    } catch (e: any) {
+      if (isMissingOrUnknownTable(e, "admin_whatsapp_conversations")) {
+        return res.json({ conversations: [], warning: "Tabela de inbox ainda não criada. Rode a migration." });
+      }
+      console.error("[admin-console/whatsapp-inbox/conversations]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar conversas") });
+    }
+  });
+
+  app.get("/api/admin-console/whatsapp-inbox/conversations/:id/messages", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id inválido" });
+    try {
+      const messages = await listAdminInboxMessages(deps.supabaseAdmin, id, { limit: 200 });
+      await markAdminInboxRead(deps.supabaseAdmin, id);
+      res.json({ messages });
+    } catch (e: any) {
+      if (isMissingOrUnknownTable(e, "admin_whatsapp_messages")) {
+        return res.json({ messages: [] });
+      }
+      console.error("[admin-console/whatsapp-inbox/messages]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar mensagens") });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp-inbox/conversations/:id/reply", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    const text = String((req.body || {}).text || "").trim();
+    if (!id) return res.status(400).json({ error: "id inválido" });
+    if (!text) return res.status(400).json({ error: "Informe o texto da resposta." });
+    try {
+      const out = await replyAdminInboxMessage(deps.supabaseAdmin, id, text);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.inbox-reply",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp-inbox",
+        targetId: id,
+        description: `Admin respondeu conversa WhatsApp (${text.slice(0, 80)}).`,
+        metadata: { conversationId: id, messageId: out.messageId || null },
+        req,
+      });
+      res.json({ success: true, ...out });
+    } catch (e: any) {
+      console.error("[admin-console/whatsapp-inbox/reply]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao responder") });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp-inbox/conversations/:id/read", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id inválido" });
+    try {
+      await markAdminInboxRead(deps.supabaseAdmin, id);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao marcar como lida") });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp-inbox/conversations/:id/archive", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    const archived = (req.body || {}).archived !== false;
+    if (!id) return res.status(400).json({ error: "id inválido" });
+    try {
+      await archiveAdminInboxConversation(deps.supabaseAdmin, id, archived);
+      res.json({ ok: true, status: archived ? "archived" : "open" });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Falha ao arquivar") });
     }
   });
 

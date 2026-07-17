@@ -50,7 +50,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   },
   {
     q: 'Posso guardar fotos de giras e eventos do terreiro?',
-    a: 'Sim. A galeria de fotos organiza álbuns por festa, gira ou tema — memória da casa em um só lugar, com acesso controlado pela diretoria.',
+    a: 'Sim. A galeria oferece até 100 GB por terreiro para fotos e vídeos — álbuns por festa, gira ou tema, com acesso controlado pela diretoria.',
   },
   {
     q: 'Mais de uma pessoa pode administrar o terreiro?',

@@ -2,6 +2,12 @@
 
 Aplicação **separada** do SPA principal (`src/`). SPA Vite/React que consome o backend `/api/*` do projecto AxéCloud principal.
 
+## Início rápido local
+
+Dê dois cliques em `INICIAR-ADMIN-LOCAL.bat`. O inicializador abre o backend do AxeCloud e o **Control Center** em `http://localhost:5174`.
+
+O redesign administrativo é local e mantém as APIs, permissões, auditoria e ações existentes.
+
 - **Dev local:** `http://localhost:5174` (proxy `/api` → `http://localhost:3000`).
 - **Produção:** publica-se como **segundo projecto Vercel**; o `vercel.json` reescreve `/api/*` para a API do app principal (`https://axecloud-app.vercel.app`).
 

@@ -196,7 +196,7 @@ const modules: Array<{ icon: LucideIcon; title: string; description: string }> =
   {
     icon: Images,
     title: 'Galeria da casa',
-    description: 'Memória do terreiro: festas, giras e momentos da comunidade organizados.',
+    description: 'Memória do terreiro: até 100 GB de fotos e vídeos por casa, organizados por festa e gira.',
   },
   {
     icon: MessageCircle,

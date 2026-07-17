@@ -21,8 +21,14 @@ import { validateWhatsAppOutboundMessage } from "./whatsappSendGuards.js";
 import { getEvolutionQueueStats } from "./evolutionSendQueue.js";
 import { isWithinAllowedSendWindow } from "./whatsappAntiSpam.js";
 import { getPersistentQuotaSnapshot } from "./whatsappPersistentLimits.js";
-import { assertZeladorTenantAccess, resolveLeaderId } from "./tenantAccess.js";
+import { assertZeladorTenantAccess } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
+import {
+  handleMetaWebhookChallenge,
+  isMetaCloudWebhookPayload,
+  processMetaCloudWebhook,
+  verifyMetaWebhookSignature,
+} from "./whatsappMetaWebhook.js";
 
 function whatsappInitializingResponse(res: any, _err?: unknown) {
   return sendJson(res, 503, { error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
@@ -57,11 +63,36 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
   const method = String(req.method || "GET").toUpperCase();
 
   try {
+    if (act === "webhook" && method === "GET") {
+      const challenge = handleMetaWebhookChallenge((req.query || {}) as Record<string, unknown>);
+      if (!challenge.ok || !challenge.challenge) {
+        return sendJson(res, challenge.status, { error: "Verify token inválido." });
+      }
+      res.status(200).send(challenge.challenge);
+      return;
+    }
+
     if (act === "webhook" && method === "POST") {
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+
+      if (isMetaCloudWebhookPayload(body)) {
+        const raw =
+          typeof req.body === "string"
+            ? req.body
+            : typeof (req as { rawBody?: string }).rawBody === "string"
+              ? (req as { rawBody?: string }).rawBody
+              : JSON.stringify(body);
+        if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
+          return sendJson(res, 401, { error: "Assinatura Meta inválida." });
+        }
+        await processMetaCloudWebhook(sb, body);
+        res.status(200).send("OK");
+        return;
+      }
+
       if (!verifyWhatsAppWebhook(req)) {
         return sendJson(res, 401, { error: "Webhook não autorizado" });
       }
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { data } = body;
       const externalId = data?.key?.id;
       const status = data?.status;
@@ -69,6 +100,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         let mappedStatus = "sent";
         if (status === "DELIVERY_ACK") mappedStatus = "delivered";
         if (status === "READ") mappedStatus = "read";
+        if (status === "ERROR" || status === "FAILED") mappedStatus = "failed";
         await sb.from("whatsapp_logs").update({ status: mappedStatus }).eq("external_id", externalId);
       }
       res.status(200).send("OK");
@@ -118,7 +150,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "config" && method === "POST") {
-      const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
+      const zeladorOk = await assertZeladorTenantAccess(sb, user.id, user.id);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
       const config = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
@@ -160,7 +192,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "resend-dados-acesso" && method === "POST") {
-      const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
+      const zeladorOk = await assertZeladorTenantAccess(sb, user.id, user.id);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
       const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-resend-dados-acesso" });
@@ -196,7 +228,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "broadcast" && method === "POST") {
-      const zeladorOk = await assertZeladorTenantAccess(sb, resolveLeaderId, user.id, user.id);
+      const zeladorOk = await assertZeladorTenantAccess(sb, user.id, user.id);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
       const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "wa-broadcast" });

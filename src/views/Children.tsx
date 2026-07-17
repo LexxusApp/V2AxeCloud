@@ -37,14 +37,26 @@ interface ChildrenProps {
   setSelectedChildId: (id: string | null) => void;
 }
 
-const EMPTY_CHILD_FORM = {
+type ChildForm = {
+  nome: string;
+  orixa_frente: string;
+  cargo: string;
+  cpf: string;
+  data_nascimento: string;
+  data_entrada: string;
+  status: Child['status'];
+  foto_url: string;
+  whatsapp_phone: string;
+};
+
+const EMPTY_CHILD_FORM: ChildForm = {
   nome: '',
   orixa_frente: '',
   cargo: '',
   cpf: '',
   data_nascimento: '',
   data_entrada: new Date().toISOString().split('T')[0],
-  status: 'Ativo' as const,
+  status: 'Ativo',
   foto_url: '',
   whatsapp_phone: '',
 };

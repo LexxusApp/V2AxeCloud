@@ -10,6 +10,7 @@ coverage/
 supabase/.temp/
 *.p12
 certs/
+auth_info/
 .vercel
 advisors-output.json
 audit-advisors.json

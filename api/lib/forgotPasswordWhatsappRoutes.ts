@@ -161,7 +161,7 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
           return res.status(400).json({ error: "Informe e confirme a nova senha." });
         }
         const passwordCheck = validateStrongPassword(newPassword);
-        if (!passwordCheck.ok) {
+        if (passwordCheck.ok === false) {
           return res.status(400).json({ error: passwordCheck.message });
         }
         if (newPassword !== confirmPassword) {

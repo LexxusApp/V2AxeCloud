@@ -91,6 +91,14 @@ function publicSnapshotItem(row: SnapshotRow) {
   };
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function writeDirectorySnapshots(cityMap: Map<string, SnapshotRow[]>) {
   const cidades = [...cityMap.values()].map((items) => {
     const first = items[0];
@@ -127,6 +135,68 @@ function writeDirectorySnapshots(cityMap: Map<string, SnapshotRow[]>) {
     'utf8',
   );
   fs.writeFileSync(path.join(OUT_DIR, 'diretorio-snapshot.json'), JSON.stringify({ cidades }), 'utf8');
+  return cidades;
+}
+
+function writeDirectoryRootPage(
+  template: string,
+  cidades: ReturnType<typeof writeDirectorySnapshots>,
+) {
+  const summary = cidades.map(({ bairros: _bairros, ...cidade }) => cidade);
+  const totalTerreiros = summary.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0);
+  const totalBairros = summary.reduce((sum, cidade) => sum + cidade.totalBairros, 0);
+  const cards = summary
+    .map((cidade) => {
+      const href = `/terreiros/${String(cidade.estado || 'sp').toLowerCase()}/${cidade.cidadeSlug}`;
+      return [
+        `          <a href="${escapeHtml(href)}" class="block rounded-2xl border border-[#e8dfd0] bg-white p-5">`,
+        `            <strong>${escapeHtml(cidade.cidade)}${cidade.estado ? `, ${escapeHtml(cidade.estado)}` : ''}</strong>`,
+        `            <span class="mt-2 block text-sm">${cidade.totalTerreiros} terreiros em ${cidade.totalBairros} bairros</span>`,
+        '          </a>',
+      ].join('\n');
+    })
+    .join('\n');
+  const initialRoot = [
+    '<div id="root">',
+    '  <main class="mx-auto w-full max-w-7xl px-5 pb-24 pt-32 md:px-8">',
+    '    <section>',
+    '      <p class="text-xs font-black uppercase tracking-widest text-[#a87400]">Diretório de terreiros</p>',
+    '      <h1 class="mt-5 text-4xl font-black text-[#1b1813] md:text-6xl">Primeiro escolha uma cidade</h1>',
+    `      <p class="mt-4 text-lg text-[#1b1813]/70">${summary.length} cidades, ${totalBairros} bairros e ${totalTerreiros.toLocaleString('pt-BR')} terreiros mapeados.</p>`,
+    '      <div class="mt-8 grid grid-cols-3 gap-3 text-center">',
+    `        <div><strong class="text-2xl">${summary.length}</strong><span class="block text-xs">Cidades</span></div>`,
+    `        <div><strong class="text-2xl">${totalBairros}</strong><span class="block text-xs">Bairros</span></div>`,
+    `        <div><strong class="text-2xl">${totalTerreiros.toLocaleString('pt-BR')}</strong><span class="block text-xs">Terreiros</span></div>`,
+    '      </div>',
+    `      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>`,
+    '    </section>',
+    '  </main>',
+    '</div>',
+    `<script>window.__AXECLOUD_DIRECTORY_SUMMARY__=${JSON.stringify(summary).replace(/</g, '\\u003c')};</script>`,
+  ].join('\n');
+  const head = [
+    '<!-- SEO_HEAD_INJECT -->',
+    '    <title>Diretório de terreiros por cidade e bairro | AxéCloud</title>',
+    '    <meta name="description" content="Encontre terreiros por cidade e bairro no diretório público do AxéCloud." />',
+    '    <link rel="canonical" href="https://axecloud.com.br/terreiros" />',
+    '    <meta name="robots" content="index, follow" />',
+    '    <!-- /SEO_HEAD_INJECT -->',
+  ].join('\n');
+  const body = [
+    '<!-- SEO_BODY_INJECT -->',
+    '    <article id="axecloud-seo-static" aria-label="Diretório de terreiros">',
+    '      <h1>Diretório de terreiros por cidade e bairro</h1>',
+    `      <p>${summary.length} cidades, ${totalBairros} bairros e ${totalTerreiros} terreiros mapeados.</p>`,
+    '    </article>',
+    '    <!-- /SEO_BODY_INJECT -->',
+  ].join('\n');
+  const html = template
+    .replace(HEAD_MARKER, head)
+    .replace(BODY_MARKER, body)
+    .replace('<div id="root"></div>', initialRoot);
+  const outDir = path.join(OUT_DIR, 'terreiros');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
 }
 
 function writePrerenderPage(template: string, page: ReturnType<typeof buildTerreiroPrerenderPage>) {
@@ -198,7 +268,8 @@ async function main() {
     cityPages += 1;
   }
 
-  writeDirectorySnapshots(cityMap);
+  const cidades = writeDirectorySnapshots(cityMap);
+  writeDirectoryRootPage(template, cidades);
 
   let terreiroPages = 0;
   for (const row of rows) {

@@ -4,7 +4,8 @@ export type ConversionEventName =
   | 'cta_click'
   | 'register_view'
   | 'register_started'
-  | 'register_failed';
+  | 'register_failed'
+  | 'directory_performance';
 
 const SESSION_KEY = 'axecloud_conversion_sid';
 const ATTRIBUTION_KEY = 'axecloud_conversion_attribution';

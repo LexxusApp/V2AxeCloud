@@ -62,3 +62,58 @@ export function comprovanteBeneficiarioMatches(expected: string, extracted: stri
 export function normalizeComprovanteTransactionId(raw: string): string {
   return String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
+
+/**
+ * Reduz o CPF lido do comprovante a um padrão de 11 posições quando possível,
+ * preservando os dígitos visíveis e marcando os ocultos com "*".
+ * Ex.: "***.456.789-**" -> "***456789**"
+ */
+export function extractCpfMaskPattern(raw: string): string {
+  return String(raw || "")
+    .replace(/[xX•·°º#oO]/g, "*")
+    .replace(/[^0-9*]/g, "");
+}
+
+/**
+ * Compara o CPF completo do cadastro (11 dígitos) com o CPF lido do comprovante,
+ * que normalmente vem mascarado no Pix (apenas os 6 dígitos do meio: ***.456.789-**).
+ */
+export function cpfComprovanteMatches(fullCadastroCpf: string, rawExtracted: string): boolean {
+  const full = String(fullCadastroCpf || "").replace(/\D/g, "");
+  if (full.length !== 11) return false;
+
+  const pat = extractCpfMaskPattern(rawExtracted);
+  if (!pat) return false;
+
+  const onlyDigits = pat.replace(/\*/g, "");
+  const hasMask = pat.includes("*");
+
+  // CPF completo (11 dígitos, sem máscara)
+  if (!hasMask && onlyDigits.length === 11) {
+    return onlyDigits === full;
+  }
+
+  // Padrão posicional de 11 casas (ex.: ***456789**) — casa dígito a dígito
+  if (pat.length === 11) {
+    let visible = 0;
+    for (let i = 0; i < 11; i++) {
+      const c = pat[i];
+      if (c === "*") continue;
+      visible++;
+      if (c !== full[i]) return false;
+    }
+    return visible >= 3;
+  }
+
+  // Somente os 6 dígitos do meio (padrão BACEN ***.456.789-**)
+  if (!hasMask && onlyDigits.length === 6) {
+    return full.slice(3, 9) === onlyDigits;
+  }
+
+  // Últimos recursos: sequência visível suficiente contida no CPF completo
+  if (!hasMask && onlyDigits.length >= 4 && onlyDigits.length < 11) {
+    return full.includes(onlyDigits);
+  }
+
+  return false;
+}

@@ -22,6 +22,12 @@ type DiretorioSnapshot = {
   cidades?: DiretorioCidadeSnapshot[];
 };
 
+declare global {
+  interface Window {
+    __AXECLOUD_DIRECTORY_SUMMARY__?: DiretorioCidadeResumo[];
+  }
+}
+
 function isCidadeResumo(value: unknown): value is DiretorioCidadeResumo {
   if (!value || typeof value !== 'object') return false;
   const cidade = value as Partial<DiretorioCidadeResumo>;
@@ -32,6 +38,13 @@ function isCidadeSnapshot(value: unknown): value is DiretorioCidadeSnapshot {
   if (!value || typeof value !== 'object') return false;
   const cidade = value as Partial<DiretorioCidadeSnapshot>;
   return Boolean(cidade.cidade && cidade.cidadeSlug && Array.isArray(cidade.bairros));
+}
+
+export function readEmbeddedDiretorioCidadesResumo(): DiretorioCidadeResumo[] {
+  if (typeof window === 'undefined' || !Array.isArray(window.__AXECLOUD_DIRECTORY_SUMMARY__)) {
+    return [];
+  }
+  return window.__AXECLOUD_DIRECTORY_SUMMARY__.filter(isCidadeResumo);
 }
 
 export async function fetchDiretorioCidadesSnapshot(signal?: AbortSignal): Promise<DiretorioCidadeResumo[] | null> {
@@ -128,6 +141,7 @@ export async function loadDiretorioCidadeDetail(
       cidade: api.cidade,
       estado: api.estado,
       cidadeSlug: api.cidadeSlug,
+      count: api.total,
       total: api.total,
       totalTerreiros: api.totalTerreiros,
       bairros,

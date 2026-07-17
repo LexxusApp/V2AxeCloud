@@ -105,6 +105,12 @@ import {
 import { safeErrorMessage } from "./lib/safeError.js";
 import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
 import {
+  handleMetaWebhookChallenge,
+  isMetaCloudWebhookPayload,
+  processMetaCloudWebhook,
+  verifyMetaWebhookSignature,
+} from "./lib/whatsappMetaWebhook.js";
+import {
   webhookRateLimit,
   sensitiveActionRateLimit,
   whatsappSendRateLimit,
@@ -748,16 +754,27 @@ async function syncMensalidadesPendentes(
   }
 
   let removed = 0;
+  let revalued = 0;
   const childById = new Map<string, any>(
     rows.map((c: any) => [String(c.id).trim().toLowerCase(), c])
   );
-  let qClean = supabaseAdmin
-    .from("financeiro")
-    .select("id, descricao, data, data_vencimento, status, categoria, filho_id")
-    .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
-    .eq("categoria", "Mensalidade");
-  if (supportsStatus) qClean = qClean.eq("status", "pendente");
-  const { data: pendRows } = await qClean;
+  const buildCleanQuery = (cols: string) => {
+    let q = supabaseAdmin
+      .from("financeiro")
+      .select(cols)
+      .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
+      .eq("categoria", "Mensalidade");
+    if (supportsStatus) q = q.eq("status", "pendente");
+    return q;
+  };
+  let { data: pendRows, error: pendErr } = await buildCleanQuery(
+    "id, valor, descricao, data, data_vencimento, status, categoria, filho_id"
+  );
+  if (pendErr && String(pendErr.message || "").toLowerCase().includes("data_vencimento")) {
+    ({ data: pendRows } = await buildCleanQuery(
+      "id, valor, descricao, data, status, categoria, filho_id"
+    ));
+  }
   for (const row of pendRows || []) {
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) continue;
     const ymd = mensalidadeVencimentoOuDataYmd(row);
@@ -766,12 +783,26 @@ async function syncMensalidadesPendentes(
     if (!fid) continue;
     const child = childById.get(fid);
     if (!child) continue;
-    if (childEligibleForDueMonth(child, ymd, dia)) continue;
+    if (childEligibleForDueMonth(child, ymd, dia)) {
+      // Config Pix mudou (ex.: 150 → 200): pendências do mês acompanham o novo valor.
+      const rowValor = Number((row as any).valor) || 0;
+      if (valorPadrao > 0 && Math.abs(rowValor - valorPadrao) >= 0.005) {
+        const { error: updErr } = await supabaseAdmin
+          .from("financeiro")
+          .update({ valor: valorPadrao })
+          .eq("id", row.id);
+        if (!updErr) revalued += 1;
+      }
+      continue;
+    }
     const { error: delErr } = await supabaseAdmin.from("financeiro").delete().eq("id", row.id);
     if (!delErr) removed += 1;
   }
   if (removed > 0) {
     console.info("[SERVER] syncMensalidadesPendentes: removed ineligible =", removed, "tenant =", tenantId);
+  }
+  if (revalued > 0) {
+    console.info("[SERVER] syncMensalidadesPendentes: valor atualizado p/ config =", revalued, "tenant =", tenantId);
   }
 
   return { created };
@@ -1008,7 +1039,7 @@ function slugifyStoragePath(str: string) {
     .toLowerCase();
 }
 
-const GALLERY_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;
+const GALLERY_QUOTA_BYTES = 100 * 1024 * 1024 * 1024;
 const R2_ENDPOINT = getServerEnv("R2_S3_ENDPOINT", "R2_ENDPOINT");
 const R2_ACCESS_KEY_ID = getServerEnv("R2_ACCESS_KEY_ID");
 const R2_SECRET_ACCESS_KEY = getServerEnv("R2_SECRET_ACCESS_KEY");
@@ -2718,7 +2749,7 @@ async function startServer() {
       const usedBytes = (mediaRows || []).reduce((acc: number, item: any) => acc + Number(item.size_bytes || 0), 0);
       if (usedBytes + numericSize > GALLERY_QUOTA_BYTES) {
         return res.status(403).json({
-          error: "Cota da galeria excedida (10GB por terreiro)",
+          error: "Cota da galeria excedida (100GB por terreiro)",
           quota: {
             usedBytes,
             limitBytes: GALLERY_QUOTA_BYTES,
@@ -3719,7 +3750,7 @@ async function startServer() {
     supabaseAdmin,
     r2Client,
     bucketName: R2_BUCKET_NAME,
-    resolveLeaderIdFn: resolveLeaderId,
+    resolveLeaderIdFn: (_sb, id) => resolveLeaderId(id),
   });
 
   // Cron: ping Evolution (Vercel rewrite + VPS Express)
@@ -4982,26 +5013,51 @@ async function startServer() {
     }
   });
 
+  app.get("/api/whatsapp/webhook", webhookRateLimit, async (req, res) => {
+    const challenge = handleMetaWebhookChallenge((req.query || {}) as Record<string, unknown>);
+    if (!challenge.ok || !challenge.challenge) {
+      return res.status(challenge.status).json({ error: "Verify token inválido." });
+    }
+    return res.status(200).send(challenge.challenge);
+  });
+
   app.post("/api/whatsapp/webhook", webhookRateLimit, async (req, res) => {
+    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+
+    if (isMetaCloudWebhookPayload(body)) {
+      const raw =
+        typeof req.body === "string"
+          ? req.body
+          : typeof (req as { rawBody?: string }).rawBody === "string"
+            ? (req as unknown as { rawBody: string }).rawBody
+            : JSON.stringify(body);
+      if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
+        return res.status(401).json({ error: "Assinatura Meta inválida." });
+      }
+      await processMetaCloudWebhook(supabaseAdmin, body);
+      return res.status(200).send("OK");
+    }
+
     if (!verifyWhatsAppWebhook(req)) {
       return res.status(401).json({ error: "Webhook não autorizado" });
     }
-    const { data } = req.body;
+    const { data } = body;
     const externalId = data?.key?.id;
     const status = data?.status;
 
     if (externalId) {
-      let mappedStatus = 'sent';
-      if (status === 'DELIVERY_ACK') mappedStatus = 'delivered';
-      if (status === 'READ') mappedStatus = 'read';
+      let mappedStatus = "sent";
+      if (status === "DELIVERY_ACK") mappedStatus = "delivered";
+      if (status === "READ") mappedStatus = "read";
+      if (status === "ERROR" || status === "FAILED") mappedStatus = "failed";
 
       await supabaseAdmin
-        .from('whatsapp_logs')
+        .from("whatsapp_logs")
         .update({ status: mappedStatus })
-        .eq('external_id', externalId);
+        .eq("external_id", externalId);
     }
 
-    res.status(200).send('OK');
+    res.status(200).send("OK");
   });
 
   app.post("/api/whatsapp/start", async (_req, res) => {

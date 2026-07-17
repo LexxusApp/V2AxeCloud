@@ -75,12 +75,6 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     canonicalPath: '/dashboard',
     robots: 'noindex, nofollow',
   },
-  [ROUTES.previewPainel]: {
-    title: `Preview do painel | ${BRAND_NAME}`,
-    description: 'Prévia visual do painel de gestão AxéCloud — explore módulos com dados fictícios.',
-    canonicalPath: '/preview-painel',
-    robots: 'noindex, follow',
-  },
   [ROUTES.founderProgram]: {
     title: `Cadastro | ${BRAND_NAME} — 30 dias grátis`,
     description:
