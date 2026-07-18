@@ -8,6 +8,7 @@ import { PortalDenunciaForm } from '../../components/portal/PortalDenunciaForm';
 import { fetchPublicTerreiro, tradicaoLabel, type PublicTerreiro } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
 import { marketingHref } from '../../lib/appHref';
+import { DirectoryManagementCta } from '../../components/portal/DirectoryManagementCta';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -127,6 +128,10 @@ export default function TerreiroProfilePage() {
                 <p className="mt-3 text-xs text-[#1b1813]/62">{terreiro.visualizacoes} visualizações no portal</p>
               ) : null}
             </div>
+          </div>
+
+          <div className="mt-5">
+            <DirectoryManagementCta source="legacy-profile" />
           </div>
 
           <div className={cn('mt-5 p-4 sm:p-5', landingMockupCardClass, 'rounded-2xl')}>

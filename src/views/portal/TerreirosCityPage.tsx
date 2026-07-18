@@ -6,6 +6,7 @@ import { landingMockupShellClass } from '../../components/landing/landingMockupU
 import { fetchPublicTerreiros, type PublicTerreiro } from '../../lib/portalPublic';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
+import { DirectoryManagementCta } from '../../components/portal/DirectoryManagementCta';
 
 function citySlugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -47,6 +48,10 @@ export default function TerreirosCityPage() {
           Terreiros em {meta?.cidade || citySlug.replace(/-/g, ' ')}
           {meta?.estado ? `, ${meta.estado}` : ''}
         </h1>
+
+        <div className="mt-7">
+          <DirectoryManagementCta source="legacy-city" />
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-20">

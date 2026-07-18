@@ -252,6 +252,11 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
   const listBlock = links
     ? `      <h2>Terreiros nesta página</h2>\n      <ul>\n${links}\n      </ul>`
     : "";
+  const managementBlock = `      <aside aria-label="Gestão para terreiros">
+        <h2>Gestão de terreiros</h2>
+        <p>Administra uma casa de axé? Conheça a plataforma de gestão para terreiros do AxéCloud: financeiro Pix, filhos de santo, giras, comunicação e memória da casa.</p>
+        <a href="/conteudo/gestao-de-terreiros">Conhecer a gestão de terreiros do AxéCloud</a>
+      </aside>`;
 
   return [
     `    <article id="axecloud-seo-static" aria-label="${escapeHtml(page.h1)}">`,
@@ -260,6 +265,7 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
     "",
     sections,
     listBlock,
+    managementBlock,
     `      <nav aria-label="Diretório"><a href="/terreiros">Diretório de terreiros</a></nav>`,
     `    </article>`,
   ]

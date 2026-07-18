@@ -7,6 +7,7 @@ import type { DiretorioBairroGroup } from '../../lib/diretorioPublic';
 import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
+import { DirectoryManagementCta } from '../../components/portal/DirectoryManagementCta';
 
 function parseCityRoute(): { estado: string; cidade: string } {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -223,6 +224,10 @@ export default function DiretorioCityPage() {
             </div>
           </section>
         </header>
+
+        <div className="mt-8">
+          <DirectoryManagementCta source="city" />
+        </div>
 
         <section className="mt-12">
           {loading ? (

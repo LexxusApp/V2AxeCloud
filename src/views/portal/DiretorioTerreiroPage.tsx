@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 import { commercialWhatsAppUrl } from '../../constants/commercialContact';
 import { trackConversionEvent } from '../../lib/trackConversion';
+import { DirectoryManagementCta } from '../../components/portal/DirectoryManagementCta';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -181,6 +182,10 @@ export default function DiretorioTerreiroPage() {
             </a>
           ) : null}
         </section>
+
+        <div className="mt-10">
+          <DirectoryManagementCta source="profile" />
+        </div>
 
         <section
           className="mt-10 overflow-hidden rounded-2xl border border-[#2b251d] bg-[#17130e] p-6 text-white shadow-xl shadow-black/15 sm:p-8"
