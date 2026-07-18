@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { statfs } from "node:fs/promises";
+import * as os from "node:os";
 import geoip from "geoip-lite";
 import { applyDiscreteRouteCors } from "./corsOrigins.js";
 import { requireApiUser, requireApiGlobalAdmin } from "./routeAuthHelpers.js";
@@ -10,8 +12,72 @@ import { insertConversionEvent } from './publicConversionTracking.js';
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
+type CpuTimes = { idle: number; total: number };
+let previousCpuTimes: CpuTimes | null = null;
+
+function readCpuUsagePercent() {
+  const current = os.cpus().reduce<CpuTimes>((sum, cpu) => {
+    const total = Object.values(cpu.times).reduce((value, time) => value + time, 0);
+    return { idle: sum.idle + cpu.times.idle, total: sum.total + total };
+  }, { idle: 0, total: 0 });
+  const previous = previousCpuTimes;
+  previousCpuTimes = current;
+  if (!previous) {
+    return Math.min(100, Math.max(0, (os.loadavg()[0] / Math.max(1, os.cpus().length)) * 100));
+  }
+  const idleDelta = current.idle - previous.idle;
+  const totalDelta = current.total - previous.total;
+  return totalDelta > 0 ? Math.min(100, Math.max(0, (1 - idleDelta / totalDelta) * 100)) : 0;
+}
+
+function oneDecimal(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
 /** B1: rotas admin/metrics partilhadas entre api/index.ts (prod) e server.ts (dev). */
 export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.get('/api/v1/public/infrastructure', async (req, res) => {
+    if (applyDiscreteRouteCors(req, res)) return;
+    const rl = consumeRateLimit(req, { windowMs: 60 * 1000, max: 120, keyPrefix: 'public-infrastructure' });
+    if (!rl.allowed) return res.status(429).json({ error: 'Limite de consultas excedido.' });
+
+    try {
+      const totalMemory = os.totalmem();
+      const usedMemory = Math.max(0, totalMemory - os.freemem());
+      let disk: { usedPercent: number; usedBytes: number; totalBytes: number } | null = null;
+      try {
+        const stats = await statfs('/');
+        const totalBytes = stats.blocks * stats.bsize;
+        const availableBytes = stats.bavail * stats.bsize;
+        const usedBytes = Math.max(0, totalBytes - availableBytes);
+        disk = {
+          usedPercent: totalBytes > 0 ? oneDecimal((usedBytes / totalBytes) * 100) : 0,
+          usedBytes,
+          totalBytes,
+        };
+      } catch {
+        // O restante das métricas continua útil caso o filesystem não exponha statfs.
+      }
+
+      res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+      return res.json({
+        status: 'online',
+        measuredAt: new Date().toISOString(),
+        uptimeSeconds: Math.max(0, Math.round(os.uptime())),
+        cpu: { usedPercent: oneDecimal(readCpuUsagePercent()), cores: os.cpus().length },
+        memory: {
+          usedPercent: totalMemory > 0 ? oneDecimal((usedMemory / totalMemory) * 100) : 0,
+          usedBytes: usedMemory,
+          totalBytes: totalMemory,
+        },
+        disk,
+      });
+    } catch (error) {
+      console.error('[INFRASTRUCTURE] Error reading public metrics:', error);
+      return res.status(503).json({ status: 'unavailable', measuredAt: new Date().toISOString() });
+    }
+  });
+
   app.post("/api/metrics/public-visit", async (req, res) => {
     if (applyDiscreteRouteCors(req, res)) return;
 

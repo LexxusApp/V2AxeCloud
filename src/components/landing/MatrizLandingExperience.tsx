@@ -37,6 +37,7 @@ import { RegisterTrialLink } from '../marketing/RegisterTrialLink';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
 import { trackConversionEvent } from '../../lib/trackConversion';
+import { useInfrastructureMetrics, type InfrastructureMetrics } from '../../hooks/useInfrastructureMetrics';
 import { TRIAL_DAYS } from '../../../lib/planPricing';
 
 type GlowStyle = CSSProperties & Record<`--${string}`, string | number>;
@@ -108,7 +109,7 @@ const heroHighlights = [
   { icon: Shield, label: 'Dados protegidos' },
 ] as const;
 
-const heroTrust = ['30 dias grátis', 'Sem cartão', 'Suporte humano', 'Dados privados'] as const;
+const heroTrust = ['30 dias grátis', '100 GB de fotos e vídeos', 'Sem cartão', 'Suporte humano', 'Dados privados'] as const;
 
 const HERO_COMMERCIAL_URL = commercialWhatsAppUrl(
   'Olá! Quero conhecer o AxéCloud e entender como implantar na minha casa de axé.',
@@ -646,6 +647,101 @@ function Hero() {
   );
 }
 
+const storageComparison = [
+  ['100 GB exclusivos por terreiro', 'Limite varia conforme o serviço'],
+  ['Fotos e vídeos dentro da gestão', 'Arquivos em aplicativos separados'],
+  ['Galeria organizada por álbuns', 'Organização manual de pastas'],
+] as const;
+
+function GalleryStorageSection() {
+  return (
+    <section id="galeria-100gb" className="relative z-10 overflow-hidden bg-white py-20 md:py-28">
+      <div
+        className="pointer-events-none absolute -right-32 top-10 h-80 w-80 rounded-full bg-[#ffc107]/12 blur-3xl"
+        aria-hidden
+      />
+      <Shell>
+        <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <Reveal>
+            <Kicker>100 GB por terreiro</Kicker>
+            <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-[#1b1813] md:text-4xl">
+              A memória da sua casa <span className="text-[#a87400]">protegida e organizada</span>
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-[#1b1813]/65">
+              Fotos e vídeos de giras, festas, obrigações e momentos importantes ficam reunidos na
+              galeria do próprio terreiro — sem depender de pastas espalhadas em outros aplicativos.
+            </p>
+
+            <ul className="mt-7 grid gap-3 sm:grid-cols-3 lg:grid-cols-1" aria-label="Benefícios da galeria">
+              {[
+                { icon: Images, text: 'Álbuns para cada gira e evento' },
+                { icon: HardDrive, text: '100 GB incluídos na mensalidade' },
+                { icon: Lock, text: 'Memória da casa sob controle da gestão' },
+              ].map((item) => (
+                <li key={item.text} className="flex items-center gap-3 rounded-xl border border-[#e8dfd0] bg-[#fdf8f0] px-4 py-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#ffc107]/20 text-[#a87400]">
+                    <item.icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <span className="text-sm font-bold text-[#1b1813]/75">{item.text}</span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <Reveal direction="left" delay={0.12}>
+            <div className="overflow-hidden rounded-3xl border border-[#2b2925] bg-[#0b0906] p-2 shadow-2xl shadow-black/20">
+              <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                <span>Galeria da casa</span>
+                <span className="rounded-full bg-[#ffc107] px-2.5 py-1 text-[#1b1813]">Fotos + vídeos</span>
+              </div>
+              <img
+                src={landingScreenshot('galeria.png')}
+                alt="Tela real da galeria de fotos e vídeos do AxéCloud"
+                className="aspect-[16/9] w-full rounded-2xl border border-white/10 object-cover object-top"
+                loading="lazy"
+              />
+              <div className="m-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#ffc107]">Exemplo de uso</p>
+                    <p className="mt-1 text-sm font-bold text-white">18 GB utilizados de 100 GB</p>
+                  </div>
+                  <span className="text-2xl font-black text-[#ffc107]">18%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10" role="img" aria-label="Exemplo: 18% do armazenamento utilizado">
+                  <div className="h-full w-[18%] rounded-full bg-gradient-to-r from-[#ffc107] to-[#ffda55]" />
+                </div>
+                <p className="mt-2 text-[10px] text-white/45">Espaço individual para cada terreiro cadastrado.</p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+
+        <Reveal delay={0.1} className="mt-12">
+          <div className="overflow-hidden rounded-2xl border border-[#e8dfd0] bg-[#fdf8f0]">
+            <div className="grid grid-cols-[1.05fr_1fr] border-b border-[#e8dfd0] bg-[#1b1813] text-xs font-black uppercase tracking-[0.12em]">
+              <div className="px-4 py-3 text-[#ffc107] sm:px-6">Com AxéCloud</div>
+              <div className="border-l border-white/10 px-4 py-3 text-white/65 sm:px-6">Armazenamento comum</div>
+            </div>
+            {storageComparison.map(([axecloud, common]) => (
+              <div key={axecloud} className="grid grid-cols-[1.05fr_1fr] border-b border-[#e8dfd0] last:border-b-0">
+                <div className="flex items-start gap-2 px-4 py-3.5 text-sm font-bold text-[#1b1813] sm:px-6">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  {axecloud}
+                </div>
+                <div className="border-l border-[#e8dfd0] px-4 py-3.5 text-sm text-[#1b1813]/55 sm:px-6">{common}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[10px] text-[#1b1813]/45">
+            Comparação de experiência; limites de serviços externos variam conforme o fornecedor.
+          </p>
+        </Reveal>
+      </Shell>
+    </section>
+  );
+}
+
 const liturgyTerms = [
   'Axé',
   'Gira',
@@ -888,12 +984,32 @@ function PhilosophySection() {
   );
 }
 
-function MatrizServerRack() {
+function formatMetricPercent(value: number | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)}%` : '--';
+}
+
+function formatUptime(seconds: number | undefined) {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return '--';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+}
+
+function MatrizServerRack({
+  metrics,
+  latencyMs,
+  unavailable,
+}: {
+  metrics: InfrastructureMetrics | null;
+  latencyMs: number | null;
+  unavailable: boolean;
+}) {
+  const isOnline = metrics?.status === 'online' && !unavailable;
   const units = [
-    ['NODE 01', 'AUTH', '12%'],
-    ['NODE 02', 'DATA', '38%'],
-    ['NODE 03', 'BACKUP', '07%'],
-    ['NODE 04', 'EDGE', '24%'],
+    ['HOST 01', 'CPU', formatMetricPercent(metrics?.cpu.usedPercent)],
+    ['HOST 01', 'MEMORY', formatMetricPercent(metrics?.memory.usedPercent)],
+    ['VOLUME', 'STORAGE', formatMetricPercent(metrics?.disk?.usedPercent)],
+    ['EDGE', 'API', isOnline ? 'ONLINE' : unavailable ? 'OFFLINE' : 'MEDINDO'],
   ] as const;
 
   return (
@@ -905,7 +1021,7 @@ function MatrizServerRack() {
             <img src="/axecloud_96.png" width="34" height="34" alt="" />
             <span><strong>AXÉCLOUD</strong><small>PRIVATE CLOUD</small></span>
           </div>
-          <div className="axe-rack-online"><i /> SISTEMA ONLINE</div>
+          <div className="axe-rack-online"><i /> SISTEMA {isOnline ? 'ONLINE' : unavailable ? 'INDISPONÍVEL' : 'MEDINDO'}</div>
         </div>
 
         {units.map(([node, role, load], index) => (
@@ -928,9 +1044,9 @@ function MatrizServerRack() {
         ))}
 
         <div className="axe-rack-metrics">
-          <span>UPTIME <strong>99.99%</strong></span>
-          <span>LATÊNCIA <strong>18ms</strong></span>
-          <span>STATUS <strong>PROTEGIDO</strong></span>
+          <span>UPTIME <strong>{formatUptime(metrics?.uptimeSeconds)}</strong></span>
+          <span>LATÊNCIA <strong>{latencyMs === null ? '--' : `${latencyMs}ms`}</strong></span>
+          <span>STATUS <strong>{isOnline ? 'ONLINE' : unavailable ? 'OFFLINE' : 'MEDINDO'}</strong></span>
         </div>
       </div>
 
@@ -946,6 +1062,7 @@ function SecuritySection() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [32, -32]);
+  const infrastructure = useInfrastructureMetrics();
 
   return (
     <section ref={ref} id="seguranca" className="relative z-10 bg-[#1b1813] py-20 text-[#fdf8f0] md:py-28">
@@ -1000,9 +1117,9 @@ function SecuritySection() {
           </div>
 
           <motion.div style={{ y }} className="relative">
-            <MatrizServerRack />
+            <MatrizServerRack {...infrastructure} />
             <p className="mt-5 text-center text-xs text-[#fdf8f0]/40">
-              Infraestrutura monitorada em tempo real — ambiente exclusivo AxéCloud, sem hospedagem compartilhada.
+              Métricas reais da infraestrutura, atualizadas a cada 30 segundos. Nenhum dado sensível é exposto.
             </p>
           </motion.div>
         </div>
@@ -1195,6 +1312,7 @@ export function MatrizLandingExperience() {
       <MatrizBackground />
       <MatrizTopNav />
       <Hero />
+      <GalleryStorageSection />
       <LiturgyMarquee />
       <AtabaqueDivider />
       <AgendaSection />

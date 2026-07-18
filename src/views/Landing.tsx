@@ -1,6 +1,6 @@
 ﻿import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ArrowUp, Check, MessageCircle } from 'lucide-react';
+import { ArrowRight, ArrowUp, Check, HardDrive, Images, MessageCircle, Video } from 'lucide-react';
 import { MatrizLandingExperience } from '../components/landing/MatrizLandingExperience';
 import { WhatsAppAutomation } from '../components/landing/WhatsAppAutomation';
 import { LandingStoryProof } from '../components/landing/LandingStoryProof';
@@ -32,7 +32,6 @@ const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
   '14 módulos reais: painel, filhos, giras, financeiro, galeria e mais',
-  '100 GB de galeria por terreiro — fotos e vídeos de giras, festas e momentos da casa',
   'WhatsApp oficial Meta, loja do axé, almoxarifado e biblioteca',
   'Portal do filho de santo + portal público e diretório de casas',
   'App instalável (PWA) no celular — sem App Store ou Google Play',
@@ -82,8 +81,17 @@ function PricingSection({
                 <span className="font-display text-5xl font-black tracking-tight text-[#ffc107]">{landingPrice.label}</span>
                 <span className="text-lg text-white/50">{landingPrice.period}</span>
               </div>
+              <div className="mt-5 flex items-center gap-3 rounded-2xl border border-[#ffc107]/35 bg-[#ffc107]/10 p-3.5">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#ffc107] text-[#1b1813] shadow-lg shadow-[#ffc107]/15">
+                  <HardDrive className="h-5 w-5" strokeWidth={2.2} />
+                </span>
+                <div>
+                  <p className="text-xl font-black leading-none tracking-tight text-[#ffc107]">100 GB</p>
+                  <p className="mt-1 text-[11px] font-semibold leading-snug text-white/72">exclusivos para cada terreiro</p>
+                </div>
+              </div>
               <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-                Tudo incluso, sem taxa por filho de santo — com 100 GB de galeria por terreiro. Teste grátis por {TRIAL_DAYS} dias, depois mensalidade via PIX.
+                Tudo incluso, sem taxa por filho de santo. Teste grátis por {TRIAL_DAYS} dias, depois mensalidade via PIX.
               </p>
             </div>
             <RegisterTrialLink className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#ffc107] px-6 py-3.5 text-sm font-black uppercase tracking-widest text-[#1b1813] transition hover:bg-[#ffcd38]">
@@ -93,6 +101,29 @@ function PricingSection({
 
           <div className="bg-white p-8 sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/62">O que está incluso</p>
+            <div className="mt-4 rounded-2xl border border-[#e4b000]/35 bg-gradient-to-br from-[#fff9e6] to-[#fff3bf]/55 p-4 shadow-sm shadow-[#ffc107]/10">
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#1b1813] text-[#ffc107]">
+                  <Images className="h-5 w-5" strokeWidth={2.1} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#9a6a00]">Diferencial AxéCloud</p>
+                  <p className="mt-1 text-lg font-black leading-tight text-[#1b1813]">100 GB para cada terreiro</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-[#1b1813]/65">
+                    Guarde fotos e vídeos de giras, festas e momentos da casa em uma galeria organizada.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-[#1b1813]/72">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1">
+                      <Images className="h-3 w-3" /> Fotos
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1">
+                      <Video className="h-3 w-3" /> Vídeos
+                    </span>
+                    <span className="rounded-full bg-[#ffc107] px-2.5 py-1 text-[#1b1813]">Incluso no plano</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <ul className="mt-5 space-y-3.5 text-left text-sm text-[#1b1813]/75" role="list">
               {premiumFeatures.map((line) => (
                 <li key={line} className="flex gap-3">
@@ -299,10 +330,31 @@ function ScrollToTopButton() {
 }
 
 function MobileConversionBar() {
+  const [inlineCtaVisible, setInlineCtaVisible] = useState(false);
+
+  useEffect(() => {
+    const pricing = document.querySelector('#mensalidade');
+    if (!pricing || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setInlineCtaVisible(entry.isIntersecting),
+      { threshold: 0.08 },
+    );
+
+    observer.observe(pricing);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <nav
       aria-label="Começar no AxéCloud"
-      className="fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-xl md:hidden"
+      aria-hidden={inlineCtaVisible}
+      className={cn(
+        'fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-xl transition duration-300 md:hidden',
+        inlineCtaVisible
+          ? 'pointer-events-none translate-y-24 opacity-0'
+          : 'translate-y-0 opacity-100',
+      )}
     >
       <RegisterTrialLink className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#ffc107] px-4 text-sm font-black text-[#1b1813]">
         Testar 30 dias grátis
@@ -332,7 +384,7 @@ export default function Landing() {
     <>
       <span id="top" className="sr-only" aria-hidden />
 
-      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] pb-20 text-[#1b1813] md:pb-0">
+      <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] pb-24 text-[#1b1813] md:pb-0">
 
       <main className="relative z-[1] animate-fadeIn selection:bg-[#1E293B] selection:text-white">
         <MatrizLandingExperience />
