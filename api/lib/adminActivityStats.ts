@@ -21,10 +21,19 @@ export type AdminActivityStats = {
     available: boolean;
     periodDays: number;
     visitors: number;
+    landingViews: number;
     ctaClicks: number;
     registerViews: number;
     registerStarted: number;
     registerCompleted: number;
+    registerFailures: number;
+    sectionReach: {
+      sectionId: string;
+      label: string;
+      visitors: number;
+      reachPct: number;
+      dropOffPct: number;
+    }[];
     visitToClickPct: number;
     clickToStartPct: number;
     startToCompletePct: number;

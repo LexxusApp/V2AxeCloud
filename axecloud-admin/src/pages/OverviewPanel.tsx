@@ -98,10 +98,19 @@ type OverviewPanelProps = {
       available: boolean;
       periodDays: number;
       visitors: number;
+      landingViews: number;
       ctaClicks: number;
       registerViews: number;
       registerStarted: number;
       registerCompleted: number;
+      registerFailures: number;
+      sectionReach: {
+        sectionId: string;
+        label: string;
+        visitors: number;
+        reachPct: number;
+        dropOffPct: number;
+      }[];
       visitToClickPct: number;
       clickToStartPct: number;
       startToCompletePct: number;
@@ -600,6 +609,37 @@ export function OverviewPanel({
                 <p className="mt-3 text-xs text-[var(--ac-text-faint)]">
                   A conclusão é confirmada pelo servidor somente depois que a conta é criada.
                 </p>
+                {activity.publicConversionFunnel.sectionReach?.some((item) => item.visitors > 0) ? (
+                  <div className="mt-5 border-t border-[var(--ac-paper-border)] pt-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-[var(--ac-text)]">Onde visitantes abandonam a landing</p>
+                        <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">Alcance único por seção, contado quando ao menos 30% entra na tela.</p>
+                      </div>
+                      {activity.publicConversionFunnel.registerFailures > 0 ? (
+                        <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-500">
+                          {activity.publicConversionFunnel.registerFailures} falha(s) no cadastro
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      {(activity.publicConversionFunnel.sectionReach || []).map((item) => (
+                        <div key={item.sectionId} className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
+                          <div className="flex items-center justify-between gap-2 text-[10px]">
+                            <span className="truncate font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{item.label}</span>
+                            <span className="admin-mono text-[var(--ac-accent)]">{item.reachPct}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ac-paper-border)]">
+                            <div className="h-full rounded-full bg-[var(--ac-accent)]" style={{ width: `${Math.min(100, item.reachPct)}%` }} />
+                          </div>
+                          <p className="mt-2 text-[10px] text-[var(--ac-text-faint)]">
+                            {item.visitors} visitante(s){item.dropOffPct > 0 ? ` · queda ${item.dropOffPct}%` : ''}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="rounded-[var(--ac-radius-sm)] border border-dashed border-[var(--ac-paper-border)] p-6 text-center text-sm text-[var(--ac-text-muted)]">

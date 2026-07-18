@@ -387,6 +387,126 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       },
     ],
   },
+  {
+    slug: 'sistema-para-terreiro-guia-completo',
+    title: 'Sistema para terreiro: guia completo para organizar sua casa',
+    summary:
+      'Entenda como escolher um sistema para terreiro de Umbanda ou Candomblé, quais módulos realmente importam e como migrar cadernos, planilhas e grupos sem perder a identidade da casa.',
+    publishedAt: '2026-07-18',
+    readingMinutes: 9,
+    sections: [
+      {
+        title: 'O que é um sistema para terreiro',
+        body:
+          'Um sistema para terreiro é uma plataforma criada para centralizar a administração de uma casa de Umbanda, Candomblé, Jurema ou tradição mista. Diferentemente de um ERP genérico, ele precisa entender filhos de santo, giras, obrigações, mensalidades, comunicação da corrente e privacidade litúrgica. O AxéCloud reúne essas rotinas em https://axecloud.com.br/.',
+      },
+      {
+        title: 'Os módulos essenciais',
+        body:
+          'Antes de contratar, verifique se existem de verdade: cadastro de filhos de santo com permissões, financeiro e mensalidades com Pix, calendário de giras, mural, confirmações de presença, galeria de fotos e vídeos, estoque, biblioteca e portal individual. No AxéCloud, esses módulos fazem parte do mesmo plano e podem ser comparados em https://axecloud.com.br/por-que-axecloud.',
+      },
+      {
+        title: 'Software para terreiro deve funcionar no celular',
+        body:
+          'A rotina da casa não acontece apenas no escritório. Dirigentes e auxiliares precisam registrar informações pelo celular, enquanto filhos de santo consultam avisos e mensalidades no próprio portal. Um aplicativo instalável como PWA reduz atrito e não depende de loja de aplicativos. Veja como funciona em https://axecloud.com.br/conteudo/como-instalar-axecloud-celular-pwa.',
+      },
+      {
+        title: 'Privacidade e acesso por função',
+        body:
+          'Dados religiosos, financeiros e pessoais não podem ficar expostos em planilhas compartilhadas. Exija isolamento entre casas, conexão HTTPS, perfis de acesso e trilha de alterações. A pessoa responsável pelo financeiro não precisa enxergar todos os registros litúrgicos; cada filho deve acessar apenas seus próprios dados.',
+      },
+      {
+        title: 'Como migrar sem interromper a casa',
+        body:
+          'Comece pelo cadastro da diretoria e da corrente, depois configure calendário e financeiro. Importe ou registre os saldos atuais, comunique o novo canal aos filhos e mantenha o processo antigo apenas durante uma transição curta. O objetivo não é digitalizar a desorganização, mas criar uma fonte única e confiável.',
+      },
+      {
+        title: 'Quanto custa e como testar',
+        body:
+          'Compare preço total, limite de usuários, armazenamento e taxas extras. O AxéCloud oferece plano Premium por R$ 69,90 ao mês, sem cobrança por filho de santo, com 100 GB para fotos e vídeos de cada terreiro. O teste de 30 dias é gratuito e sem cartão em https://axecloud.com.br/register.',
+      },
+    ],
+  },
+  {
+    slug: 'software-para-terreiro-de-umbanda-recursos',
+    title: 'Software para terreiro de Umbanda: recursos que a casa precisa',
+    summary:
+      'Financeiro, médiuns, giras, comunicação e memória da casa: veja os recursos que diferenciam um software feito para terreiro de Umbanda de uma ferramenta genérica.',
+    publishedAt: '2026-07-18',
+    readingMinutes: 8,
+    sections: [
+      {
+        title: 'A rotina de uma casa de Umbanda é específica',
+        body:
+          'Uma casa de Umbanda organiza corrente mediúnica, giras públicas e fechadas, atendimentos, contribuições, materiais e comunicação com muitas pessoas. Por isso, um software para terreiro de Umbanda precisa falar a linguagem da casa e simplificar a rotina sem tentar padronizar sua tradição.',
+      },
+      {
+        title: 'Cadastro de médiuns e filhos de santo',
+        body:
+          'O cadastro deve reunir contatos, função, vínculo com a casa e permissões de acesso. Cada integrante precisa de um portal privado para acompanhar avisos, calendário e mensalidades. A diretoria mantém a visão administrativa sem expor informações de uma pessoa para toda a corrente.',
+      },
+      {
+        title: 'Giras, calendário e confirmação de presença',
+        body:
+          'Datas de gira, desenvolvimento, festas e obrigações precisam estar em um calendário único. Convites e confirmações ajudam a organizar escala, assistência e preparo do espaço. O histórico também evita que decisões importantes desapareçam em conversas antigas de WhatsApp.',
+      },
+      {
+        title: 'Financeiro com respeito e transparência',
+        body:
+          'Mensalidades, doações, entradas e despesas devem ter registros claros e acesso restrito. Pix e comprovantes ligados ao histórico reduzem cobrança manual e constrangimento. A casa ganha previsibilidade sem tratar a contribuição religiosa como uma relação comercial fria.',
+      },
+      {
+        title: 'Comunicação oficial, não só grupos',
+        body:
+          'Grupos continuam úteis para convivência, mas avisos importantes e lembretes privados pedem um canal rastreável. A integração oficial com WhatsApp evita mensagens perdidas e mantém histórico. Entenda a diferença em https://axecloud.com.br/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro.',
+      },
+      {
+        title: 'Memória da casa com 100 GB',
+        body:
+          'Fotos e vídeos de giras, festas e momentos importantes formam a memória da comunidade. O AxéCloud inclui 100 GB de galeria para cada terreiro, organizados em álbuns sob controle da gestão. Veja todos os diferenciais e teste o sistema em https://axecloud.com.br/.',
+      },
+    ],
+  },
+  {
+    slug: 'gestao-financeira-terreiro-pix-mensalidades',
+    title: 'Gestão financeira de terreiro: mensalidades, Pix e transparência',
+    summary:
+      'Guia prático para organizar entradas, despesas, mensalidades e comprovantes Pix do terreiro com privacidade, prestação de contas e menos cobrança manual.',
+    publishedAt: '2026-07-18',
+    readingMinutes: 9,
+    sections: [
+      {
+        title: 'Por que organizar o financeiro do terreiro',
+        body:
+          'Água, luz, manutenção, materiais de gira, alimentos e ações sociais dependem de recursos. Quando entradas e despesas ficam em cadernos diferentes, a diretoria perde previsibilidade e a comunidade perde clareza. Gestão financeira é cuidado com a continuidade da casa.',
+      },
+      {
+        title: 'Separe mensalidades, doações e outras entradas',
+        body:
+          'Registre a origem de cada valor em categorias distintas. Mensalidade ou contribuição recorrente não deve se confundir com doação para uma festa, venda da cantina ou campanha específica. Essa separação permite entender o caixa real e prestar contas sem reconstruir meses de mensagens.',
+      },
+      {
+        title: 'Pix com comprovante ligado ao lançamento',
+        body:
+          'O pagamento por Pix facilita a contribuição, mas o comprovante não pode ficar perdido no WhatsApp. O ideal é vinculá-lo ao mês, à pessoa e ao lançamento correspondente. Assim a diretoria confere pendências com segurança e o filho de santo consulta o próprio histórico.',
+      },
+      {
+        title: 'Cobrança privada e respeitosa',
+        body:
+          'Nunca exponha inadimplência em grupo. Use lembretes individuais, registre isenções e acordos e mantenha espaço para conversa humana. O sistema deve apoiar a diretoria, não substituir o bom senso nem a orientação espiritual da casa.',
+      },
+      {
+        title: 'Relatórios para decidir melhor',
+        body:
+          'Acompanhe saldo, entradas por categoria, despesas recorrentes e evolução mensal. Esses dados ajudam a planejar festas, manutenção e compras sem depender de memória. Permissões por função garantem que apenas pessoas autorizadas acessem valores e comprovantes.',
+      },
+      {
+        title: 'Comece com uma fonte única',
+        body:
+          'Defina uma data de corte, registre o saldo inicial e passe a lançar toda movimentação em um único lugar. O financeiro do AxéCloud integra mensalidades, Pix e histórico ao portal do filho. Compare com planilhas em https://axecloud.com.br/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro e teste em https://axecloud.com.br/register.',
+      },
+    ],
+  },
 ] as const;
 
 /** Primeiro artigo — compatibilidade com imports antigos. */
@@ -402,6 +522,9 @@ export const PORTAL_GESTAO_DIGITAL_SLUGS = [
   'como-instalar-axecloud-celular-pwa',
   'whatsapp-oficial-vs-grupos-comunicacao-terreiro',
   'melhor-software-terreiro-2026-o-que-avaliar',
+  'sistema-para-terreiro-guia-completo',
+  'software-para-terreiro-de-umbanda-recursos',
+  'gestao-financeira-terreiro-pix-mensalidades',
 ] as const;
 
 export function getPortalGestaoDigitalArticles(): PortalArticle[] {

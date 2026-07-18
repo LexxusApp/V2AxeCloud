@@ -4,8 +4,8 @@ export const BRAND_NAME = 'AxéCloud' as const;
 /** Slogan principal da marca. */
 export const BRAND_TAGLINE = 'Gestão de Terreiros de Umbanda e Candomblé' as const;
 
-/** Título do site para `<title>`, PWA e Open Graph. */
-export const SITE_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}` as const;
+/** Título comercial para `<title>`, PWA e Open Graph. */
+export const SITE_TITLE = `${BRAND_NAME} — Sistema para Terreiros de Umbanda e Candomblé` as const;
 
 /** Nome público do portal (diretório, conteúdo, terreiros). */
 export const PORTAL_BRAND = 'Portal de Gestão AxéCloud' as const;

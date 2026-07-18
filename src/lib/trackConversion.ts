@@ -1,6 +1,8 @@
 import { getOrCreateVisitorId } from './trackPublicVisit';
 
 export type ConversionEventName =
+  | 'landing_view'
+  | 'section_view'
   | 'cta_click'
   | 'register_view'
   | 'register_started'

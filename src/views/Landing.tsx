@@ -14,6 +14,18 @@ import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import { trackConversionEvent } from '../lib/trackConversion';
 
+const CONVERSION_SECTIONS = [
+  'plataforma',
+  'galeria-100gb',
+  'agenda',
+  'seguranca',
+  'recursos',
+  'quem-somos',
+  'whatsapp',
+  'mensalidade',
+  'faq',
+] as const;
+
 const LandingFaq = lazy(() =>
   import('../components/landing/LandingFaq').then((m) => ({ default: m.LandingFaq }))
 );
@@ -379,6 +391,50 @@ function MobileConversionBar() {
 
 export default function Landing() {
   const { premium: landingPrice } = usePlansCatalog({ defer: true });
+
+  useEffect(() => {
+    void trackConversionEvent('landing_view');
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    const seen = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting || seen.has(entry.target.id)) continue;
+          const sectionId = entry.target.id;
+          const sectionOrder = CONVERSION_SECTIONS.indexOf(sectionId as (typeof CONVERSION_SECTIONS)[number]) + 1;
+          if (sectionOrder <= 0) continue;
+          seen.add(sectionId);
+          void trackConversionEvent('section_view', {
+            metadata: { sectionId, sectionOrder },
+          });
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.3 },
+    );
+
+    const observed = new Set<string>();
+    const observeAvailableSections = () => {
+      for (const sectionId of CONVERSION_SECTIONS) {
+        if (observed.has(sectionId)) continue;
+        const section = document.getElementById(sectionId);
+        if (!section) continue;
+        observed.add(sectionId);
+        observer.observe(section);
+      }
+    };
+    observeAvailableSections();
+
+    const domObserver = typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(observeAvailableSections);
+    domObserver?.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      domObserver?.disconnect();
+    };
+  }, []);
 
   return (
     <>

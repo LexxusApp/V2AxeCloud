@@ -16,6 +16,9 @@ const PORTAL_ARTICLE_PATHS = [
   '/conteudo/como-instalar-axecloud-celular-pwa',
   '/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro',
   '/conteudo/melhor-software-terreiro-2026-o-que-avaliar',
+  '/conteudo/sistema-para-terreiro-guia-completo',
+  '/conteudo/software-para-terreiro-de-umbanda-recursos',
+  '/conteudo/gestao-financeira-terreiro-pix-mensalidades',
 ];
 
 export const SITEMAP_ROUTES = [
