@@ -1,9 +1,15 @@
 node_modules
 dist
+landing-dist
+dev-dist
 .git
 .agents
 .cursor
 axecloud-admin/node_modules
+axe-cloudv3
+landing
+docs
+axecloud-deploy*.tgz
 *.md
 uploads
 .env

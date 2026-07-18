@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public/screenshots');
-const LANDING_OUT = join(ROOT, 'landing/public/screenshots');
 const BASE = process.env.BASE_URL || 'https://axecloud.com.br';
 const EMAIL = process.env.AXE_TEST_EMAIL?.trim() || '';
 const PASS = process.env.AXE_TEST_PASSWORD || '';
@@ -33,7 +32,6 @@ async function dismissLegalTermsIfOpen(page) {
 }
 
 await mkdir(OUT, { recursive: true });
-await mkdir(LANDING_OUT, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({
@@ -61,7 +59,6 @@ try {
   await page.waitForTimeout(2000);
 
   await page.screenshot({ path: join(OUT, FILE), type: 'png' });
-  await page.screenshot({ path: join(LANDING_OUT, FILE), type: 'png' });
   console.log(`[ok] ${FILE}`);
 } finally {
   await browser.close();

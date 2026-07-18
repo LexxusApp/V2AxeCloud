@@ -2,6 +2,7 @@ node_modules/
 build/
 dist
 landing-dist/
+dev-dist/
 coverage/
 .DS_Store
 *.log
@@ -19,3 +20,6 @@ assets/ready_posts/*
 .cursor/
 public/screenshots/debug*.png
 public/build-info.json
+axecloud-deploy*.tgz
+.deploy-out.txt
+tmp-*.json

@@ -1,6 +1,0 @@
-{
-  "name": "Axe Cloud",
-  "description": "Plataforma de gestão inteligente, segura e respeitosa para terreiros de Umbanda, Candomblé e de matriz africana.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

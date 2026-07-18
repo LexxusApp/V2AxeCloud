@@ -10,14 +10,13 @@
  * Após capturar: bump `LANDING_SCREENSHOT_VERSION` em src/constants/landingScreenshots.ts
  */
 import { chromium } from 'playwright';
-import { mkdir, stat, copyFile } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dir, '..');
 const outDir = resolve(rootDir, 'public/screenshots');
-const landingOutDir = resolve(rootDir, 'landing/public/screenshots');
 const base = process.env.AXE_DEV_URL || 'http://localhost:3000/';
 const loginUrl = base.replace(/\/?$/, '/login');
 
@@ -69,17 +68,6 @@ async function shotPublicMobile(browser) {
   await gotoLogin(m);
   await m.screenshot({ path: join(outDir, 'acesso-celular.png'), type: 'png' });
   await m.close();
-}
-
-async function mirrorToLanding(files) {
-  await mkdir(landingOutDir, { recursive: true });
-  for (const f of files) {
-    try {
-      await copyFile(join(outDir, f), join(landingOutDir, f));
-    } catch {
-      // arquivo não gerado
-    }
-  }
 }
 
 const browser = await chromium.launch();
@@ -153,8 +141,6 @@ try {
     }
   }
 
-  await mirrorToLanding(files);
-  console.log('[capture] espelhado em landing/public/screenshots');
 } catch (e) {
   try {
     await browser.close();
