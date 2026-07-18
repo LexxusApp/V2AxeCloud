@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  DIRETORIO_SEO_TEMPLATE_LASTMOD,
   STATIC_SITEMAP_PATHS,
   buildCityPrerenderPage,
   buildMinimalSeoHtmlDocument,
@@ -21,6 +22,17 @@ import {
 const TABLE = "terreiros_diretorio";
 const SELECT =
   "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, tipo";
+
+function sitemapLastModified(rawModified: string): string {
+  if (!rawModified || Number.isNaN(new Date(rawModified).getTime())) {
+    return DIRETORIO_SEO_TEMPLATE_LASTMOD;
+  }
+
+  const recordDate = new Date(rawModified).toISOString().slice(0, 10);
+  return recordDate > DIRETORIO_SEO_TEMPLATE_LASTMOD
+    ? recordDate
+    : DIRETORIO_SEO_TEMPLATE_LASTMOD;
+}
 
 function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
   const slug = String(row.slug || "").trim();
@@ -79,9 +91,7 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
     const cidadeSlug = String(row.cidade_slug || slugifyCidadeOnly(cidade)).trim();
     const cityPath = `/terreiros/${estado.toLowerCase()}/${cidadeSlug}`;
     const rawModified = String(row.updated_at || row.created_at || "").trim();
-    const modifiedDate = rawModified && !Number.isNaN(new Date(rawModified).getTime())
-      ? new Date(rawModified).toISOString().slice(0, 10)
-      : undefined;
+    const modifiedDate = sitemapLastModified(rawModified);
     const previousCityDate = cityRoutes.get(cityPath);
     if (!previousCityDate || (modifiedDate && modifiedDate > previousCityDate)) {
       cityRoutes.set(cityPath, modifiedDate);

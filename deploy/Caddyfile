@@ -77,6 +77,13 @@ axecloud.com.br, www.axecloud.com.br {
 		crowdsec
 		appsec
 
+		# Login legado (com ou sem barra) vai direto ao destino canonico.
+		# A regra precisa vir antes da normalizacao geral para evitar dois redirects.
+		@legacyLogin path /login /login/
+		handle @legacyLogin {
+			redir * /entrar permanent
+		}
+
 		@trailingSlash path_regexp trailing ^(.+)/$
 		redir @trailingSlash {re.trailing.1} permanent
 
@@ -139,11 +146,6 @@ axecloud.com.br, www.axecloud.com.br {
 				}
 			}
 			reverse_proxy evolution:8080
-		}
-
-		@legacyLogin path /login
-		handle @legacyLogin {
-			redir * /entrar permanent
 		}
 
 		@massets path /m-assets/*

@@ -3,6 +3,11 @@
 export const SITE_ORIGIN = "https://axecloud.com.br";
 export const PORTAL_BRAND = "Portal AxéCloud";
 
+// Atualize esta data quando o conteudo/template SEO de todas as paginas do
+// diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
+// permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-07-18";
+
 export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: string; priority?: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/entrar", changeFrequency: "monthly", priority: 0.9 },
