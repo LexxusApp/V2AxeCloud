@@ -7,6 +7,7 @@
  */
 
 const PORTAL_ARTICLE_PATHS = [
+  '/conteudo/gestao-de-terreiros',
   '/conteudo/como-o-axecloud-ajuda-terreiros',
   '/conteudo/o-que-e-um-terreiro-guia-para-iniciantes',
   '/conteudo/mensalidade-na-casa-de-axe-organizacao',

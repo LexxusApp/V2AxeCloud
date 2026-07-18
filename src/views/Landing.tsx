@@ -240,6 +240,7 @@ function MatrizFooter() {
     { href: ROUTES.liturgicalCalendar, label: 'Calendário litúrgico' },
   ];
   const platformLinks = [
+    { href: '/conteudo/gestao-de-terreiros', label: 'Gestão de terreiros' },
     { href: `${ROUTES.home}#recursos`, label: 'Módulos' },
     { href: `${ROUTES.home}#mensalidade`, label: 'Planos' },
     { href: ROUTES.whyAxeCloud, label: 'Por que AxéCloud' },

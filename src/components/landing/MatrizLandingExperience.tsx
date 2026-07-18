@@ -533,14 +533,14 @@ function Hero() {
           <motion.div style={{ y: copyY, opacity }}>
             <Reveal>
               <span className="matriz-kicker-pulse inline-flex max-w-full rounded-full bg-[#ffc107] px-3.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-[#1b1813] sm:text-left sm:text-[10px]">
-                Gestão de Terreiros de Umbanda e Candomblé
+                Gestão para Terreiros de Umbanda e Candomblé
               </span>
             </Reveal>
 
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-[#1b1813] sm:text-5xl min-[900px]:text-[2.7rem] lg:text-[2.85rem] xl:text-[3.25rem]">
-              <TextReveal text="O software da sua" delay={0.1} />
+              <TextReveal text="Gestão de terreiros" delay={0.1} />
               <br />
-              <TextReveal text="casa de axé" delay={0.35} className="text-[#a87400]" />
+              <TextReveal text="para sua casa de axé" delay={0.35} className="text-[#a87400]" />
             </h1>
 
             <Reveal delay={0.2}>

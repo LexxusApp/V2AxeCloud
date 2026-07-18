@@ -388,6 +388,56 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
     ],
   },
   {
+    slug: 'gestao-de-terreiros',
+    title: 'Gestão de terreiros: organização completa para casas de axé',
+    summary:
+      'Gestão de terreiros para Umbanda e Candomblé: organize financeiro, filhos de santo, giras e comunicação com respeito à casa de axé.',
+    publishedAt: '2026-07-18',
+    readingMinutes: 10,
+    sections: [
+      {
+        title: 'O que significa gestão de terreiros',
+        body:
+          'Gestão de terreiros é o conjunto de práticas usadas para organizar pessoas, recursos, calendário, comunicação e memória de uma casa de axé. Ela cuida da parte administrativa para que pais, mães de santo, zeladores e diretoria tenham mais tempo para a comunidade e para o sagrado. A gestão não substitui a orientação espiritual: ela dá sustentação à rotina da casa.',
+      },
+      {
+        title: 'Gestão para terreiros não é gestão empresarial genérica',
+        body:
+          'Uma plataforma de gestão para terreiros precisa compreender filhos de santo, corrente mediúnica, giras, obrigações, mensalidades, doações e privacidade litúrgica. Sistemas empresariais comuns não foram desenhados para essas relações. O AxéCloud organiza a administração sem impor linguagem comercial à tradição da casa.',
+      },
+      {
+        title: 'Cadastro e organização dos filhos de santo',
+        body:
+          'Uma gestão confiável mantém dados de contato, função, vínculo com a casa, permissões e histórico em um ambiente protegido. Cada filho de santo pode acessar seu próprio portal para consultar avisos, calendário e mensalidades, enquanto a diretoria controla quem enxerga cada área.',
+      },
+      {
+        title: 'Gestão financeira do terreiro',
+        body:
+          'Mensalidades, doações, despesas e comprovantes Pix precisam estar ligados a lançamentos claros. Isso reduz cobranças manuais, evita exposição em grupos e facilita a prestação de contas. Veja o guia específico em https://axecloud.com.br/conteudo/gestao-financeira-terreiro-pix-mensalidades.',
+      },
+      {
+        title: 'Giras, festas e obrigações no calendário',
+        body:
+          'O calendário centraliza giras públicas e internas, festas, reuniões e obrigações. Confirmações de presença ajudam no preparo da casa e o mural mantém orientações acessíveis. A informação deixa de depender de mensagens antigas e passa a ter uma fonte única.',
+      },
+      {
+        title: 'Comunicação organizada com a comunidade',
+        body:
+          'Grupos de WhatsApp ajudam na convivência, mas avisos oficiais e lembretes privados precisam de histórico. A gestão para terreiros pode integrar mural, notificações e WhatsApp oficial para que a mensagem certa chegue à pessoa certa sem expor assuntos financeiros ou pessoais.',
+      },
+      {
+        title: 'Segurança, LGPD e respeito ao sigilo',
+        body:
+          'Dados religiosos e pessoais exigem cuidado. Procure isolamento entre terreiros, conexão HTTPS, acesso por função e registros de alterações. No AxéCloud, cada casa possui ambiente próprio e a gestão define as permissões da diretoria e dos filhos de santo.',
+      },
+      {
+        title: 'Como começar a gestão do seu terreiro',
+        body:
+          'Comece cadastrando a diretoria e a corrente, configure o calendário, registre o saldo financeiro inicial e defina os canais oficiais. Depois, organize galeria, estoque, biblioteca e demais módulos. O AxéCloud oferece 30 dias grátis, sem cartão, em https://axecloud.com.br/register e o comparativo completo está em https://axecloud.com.br/por-que-axecloud.',
+      },
+    ],
+  },
+  {
     slug: 'sistema-para-terreiro-guia-completo',
     title: 'Sistema para terreiro: guia completo para organizar sua casa',
     summary:
@@ -518,6 +568,7 @@ export const PORTAL_ARTICLE_PATHS: readonly string[] = PORTAL_ARTICLES.map((a) =
 
 /** Artigos da fase SEO — gestão digital, PWA, comparativo (hub /conteudo). */
 export const PORTAL_GESTAO_DIGITAL_SLUGS = [
+  'gestao-de-terreiros',
   'planilha-ou-software-quando-migrar-gestao-terreiro',
   'como-instalar-axecloud-celular-pwa',
   'whatsapp-oficial-vs-grupos-comunicacao-terreiro',

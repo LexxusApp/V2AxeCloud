@@ -10,6 +10,7 @@ export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: st
   { path: "/privacidade", changeFrequency: "yearly", priority: 0.5 },
   { path: "/espaco-do-fiel", changeFrequency: "weekly", priority: 0.9 },
   { path: "/conteudo", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/conteudo/gestao-de-terreiros", changeFrequency: "monthly", priority: 0.9 },
   { path: "/conteudo/como-o-axecloud-ajuda-terreiros", changeFrequency: "monthly", priority: 0.8 },
   { path: "/conteudo/o-que-e-um-terreiro-guia-para-iniciantes", changeFrequency: "monthly", priority: 0.8 },
   { path: "/conteudo/mensalidade-na-casa-de-axe-organizacao", changeFrequency: "monthly", priority: 0.8 },

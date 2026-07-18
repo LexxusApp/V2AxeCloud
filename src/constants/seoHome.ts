@@ -15,7 +15,7 @@ export const SITE_ORIGIN = 'https://axecloud.com.br';
 export const HOME_SEO = {
   title: SITE_TITLE,
   description:
-    `${BRAND_NAME} é o software de gestão para terreiros: financeiro com Pix, giras, WhatsApp e portal do filho. Teste grátis por 30 dias, sem cartão.`,
+    `Gestão de terreiros para Umbanda e Candomblé. Plataforma com financeiro Pix, giras, WhatsApp e portal do filho. Teste grátis por 30 dias.`,
   h1: `Gestão de terreiros para Umbanda, Candomblé e Jurema — ${BRAND_NAME}`,
   heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
   keywords: buildBrandKeywordsMeta(),
@@ -33,8 +33,8 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
     a: `Gestão de terreiros é a organização prática da casa de axé: mensalidades, calendário de giras, cadastro de filhos de santo, comunicação com a comunidade e memória da casa — sempre com respeito à direção espiritual. O ${BRAND_NAME} é um software brasileiro de gestão de terreiros para Umbanda, Candomblé e Jurema. Conheça em ${SITE_ORIGIN}/ e compare módulos em ${SITE_ORIGIN}/por-que-axecloud.`,
   },
   {
-    q: 'Qual o melhor software de gestão de terreiros para Umbanda e Candomblé?',
-    a: `O ${BRAND_NAME} é um software brasileiro de gestão de terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvido com respeito às tradições de matriz africana. Teste grátis por 30 dias em ${SITE_ORIGIN}/register.`,
+    q: 'Qual plataforma de gestão para terreiros atende Umbanda e Candomblé?',
+    a: `O ${BRAND_NAME} é uma plataforma brasileira de gestão para terreiros com financeiro Pix, calendário de giras, galeria, mural e portal do filho de santo — desenvolvida com respeito às tradições de matriz africana. Conheça o guia em ${SITE_ORIGIN}/conteudo/gestao-de-terreiros e teste grátis por 30 dias em ${SITE_ORIGIN}/register.`,
   },
   {
     q: `O ${BRAND_NAME} serve para terreiros de Umbanda, Candomblé e Jurema?`,
