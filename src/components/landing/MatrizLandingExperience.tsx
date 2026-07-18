@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Cloud,
   Crown,
+  Film,
   Flame,
   Flower2,
   Heart,
@@ -691,15 +692,58 @@ function GalleryStorageSection() {
           <Reveal direction="left" delay={0.12}>
             <div className="overflow-hidden rounded-3xl border border-[#2b2925] bg-[#0b0906] p-2 shadow-2xl shadow-black/20">
               <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
-                <span>Galeria da casa</span>
+                <span>Prévia da interface atual</span>
                 <span className="rounded-full bg-[#ffc107] px-2.5 py-1 text-[#1b1813]">Fotos + vídeos</span>
               </div>
-              <img
-                src={landingScreenshot('galeria.png')}
-                alt="Tela real da galeria de fotos e vídeos do AxéCloud"
-                className="aspect-[16/9] w-full rounded-2xl border border-white/10 object-cover object-top"
-                loading="lazy"
-              />
+              <div className="rounded-2xl border border-white/10 bg-[#0c0e12] p-4 text-left sm:p-5">
+                <div className="flex flex-col gap-3 border-b border-[#1e242b] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="flex items-center gap-2 text-sm font-black text-white sm:text-base">
+                      <Images className="h-4 w-4 text-amber-500" aria-hidden />
+                      Relicário de Axé
+                    </p>
+                    <p className="mt-1 text-[9px] leading-relaxed text-[#94a3b8] sm:text-[10px]">
+                      Álbuns de lembranças para giras, eventos e momentos da casa.
+                    </p>
+                  </div>
+                  <span className="inline-flex w-max items-center gap-1.5 rounded-lg border border-[#ffc107]/35 bg-[#12161a] px-3 py-2 text-[9px] font-bold text-[#ffc107]">
+                    <span className="text-sm leading-none">+</span> Novo álbum
+                  </span>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-[#1e242b] bg-[#13171d] p-3.5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">Álbuns do terreiro</p>
+                      <p className="mt-1 text-[8px] text-gray-500">Organize e encontre as memórias por atividade.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 text-[8px] font-black">
+                      <span className="rounded-lg bg-[#d97706] px-2 py-1.5 text-white">Ver tudo</span>
+                      <span className="rounded-lg border border-[#1e242b] bg-[#12161a] px-2 py-1.5 text-[#94a3b8]">Giras</span>
+                      <span className="rounded-lg border border-[#1e242b] bg-[#12161a] px-2 py-1.5 text-[#94a3b8]">Festas</span>
+                      <span className="rounded-lg border border-[#1e242b] bg-[#12161a] px-2 py-1.5 text-[#94a3b8]">Lembranças</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2" aria-hidden>
+                  {[
+                    'from-amber-500/25 to-[#13171d]',
+                    'from-cyan-500/20 to-[#13171d]',
+                    'from-emerald-500/20 to-[#13171d]',
+                  ].map((gradient, index) => (
+                    <div key={gradient} className="overflow-hidden rounded-xl border border-[#1e242b] bg-[#13171d]">
+                      <div className={`grid aspect-[1.45/1] place-items-center bg-gradient-to-br ${gradient}`}>
+                        {index === 1 ? <Film className="h-5 w-5 text-white/35" /> : <Images className="h-5 w-5 text-white/35" />}
+                      </div>
+                      <div className="space-y-1 p-2">
+                        <div className="h-1.5 w-3/4 rounded-full bg-white/18" />
+                        <div className="h-1 w-1/2 rounded-full bg-white/8" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="m-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                 <div className="flex items-end justify-between gap-4">
                   <div>
