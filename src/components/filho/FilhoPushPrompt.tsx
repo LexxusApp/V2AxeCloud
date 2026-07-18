@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bell, BellOff, Loader2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { safeLocalStorageGet, safeLocalStorageSet } from '../../lib/browserCapabilities';
 
 const DISMISS_KEY = 'axe_filho_push_nudge_dismissed';
 
@@ -12,17 +13,13 @@ type FilhoPushPromptProps = {
 
 export function FilhoPushPrompt({ permission, loading, onSubscribe }: FilhoPushPromptProps) {
   const [dismissed, setDismissed] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem(DISMISS_KEY) === '1',
+    () => safeLocalStorageGet(DISMISS_KEY) === '1',
   );
 
   if (!permission || permission === 'granted') return null;
 
   const dismiss = () => {
-    try {
-      localStorage.setItem(DISMISS_KEY, '1');
-    } catch {
-      /* ignore */
-    }
+    safeLocalStorageSet(DISMISS_KEY, '1');
     setDismissed(true);
   };
 

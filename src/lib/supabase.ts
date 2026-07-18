@@ -264,6 +264,7 @@ async function resilientLock<R>(
     acquireTimeout > 0 ? acquireTimeout : SUPABASE_LOCK_TIMEOUT_MS
   );
   const controller = new AbortController();
+  let lockAcquired = false;
   const timer = setTimeout(() => {
     try {
       controller.abort();
@@ -276,13 +277,23 @@ async function resilientLock<R>(
       name,
       { mode: 'exclusive', signal: controller.signal },
       async () => {
+        lockAcquired = true;
         clearTimeout(timer);
         return await fn();
       }
     );
   } catch (err: any) {
     clearTimeout(timer);
-    if (err?.name === 'AbortError') {
+    // WebViews podem expor navigator.locks, mas rejeitar a opção `signal`.
+    // Só fazemos fallback se a callback ainda não começou, evitando executar `fn` duas vezes.
+    if (
+      !lockAcquired &&
+      (err?.name === 'AbortError' ||
+        err?.name === 'NotSupportedError' ||
+        err?.name === 'SecurityError' ||
+        err?.name === 'InvalidStateError' ||
+        err instanceof TypeError)
+    ) {
       return fn();
     }
     throw err;

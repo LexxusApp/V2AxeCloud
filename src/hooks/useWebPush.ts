@@ -2,6 +2,7 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VAPID_PUBLIC_KEY } from '../config/vapidPublic';
 import { isCanonicalAppOrigin } from '../lib/canonicalOrigin';
+import { getNotificationPermission, supportsWebPush } from '../lib/browserCapabilities';
 
 export function useWebPush(
   userId: string | null,
@@ -9,8 +10,10 @@ export function useWebPush(
   /** Só filhos de santo devem registrar push; gestores não solicitam permissão. */
   enabled: boolean = true
 ) {
-  const [permission, setPermission] = useState<NotificationPermission>(
-    typeof window !== 'undefined' ? Notification.permission : 'default'
+  // O WebView do WhatsApp não expõe necessariamente a API Notification.
+  // Acesso direto a `Notification.permission` derrubava todo o portal logo após o login.
+  const [permission, setPermission] = useState<NotificationPermission | null>(() =>
+    getNotificationPermission()
   );
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,7 +38,7 @@ export function useWebPush(
     if (!enabled) return;
     if (!userId || !tenantId) return;
     if (hasFailed.current) return; // Não tenta novamente após falha
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!supportsWebPush()) {
       console.warn('[PUSH] Push notifications não suportadas neste navegador.');
       hasFailed.current = true;
       return;
@@ -48,7 +51,7 @@ export function useWebPush(
     setLoading(true);
     try {
       // 1. Solicitar permissão
-      const result = await Notification.requestPermission();
+      const result = await window.Notification.requestPermission();
       setPermission(result);
       if (result !== 'granted') {
         hasFailed.current = true;
@@ -107,8 +110,11 @@ export function useWebPush(
   // Alinhar com o navegador quando o papel vira "filho" (antes enabled era false) ou após voltar à aba
   useEffect(() => {
     if (!enabled) return;
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
-    const sync = () => setPermission(Notification.permission);
+    if (!supportsWebPush()) {
+      setPermission(null);
+      return;
+    }
+    const sync = () => setPermission(getNotificationPermission());
     sync();
     const onVis = () => {
       if (document.visibilityState === 'visible') sync();

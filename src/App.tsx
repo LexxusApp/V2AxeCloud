@@ -60,6 +60,7 @@ import {
   performEmergencyClientReset,
 } from './lib/logout';
 import { goToLogin } from './lib/navigation';
+import { withCompatibleAbortTimeout } from './lib/browserCapabilities';
 
 const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural', 'chat']);
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
@@ -547,12 +548,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       while (retries > 0) {
         try {
           const url = `/api/tenant-info?userId=${userId}&email=${encodeURIComponent(userEmail || '')}`;
-          // Cada tentativa tem hard timeout próprio (3.5s) e também respeita o safety global.
-          const perAttempt = AbortSignal.timeout(3500);
-          const signal = AbortSignal.any
-            ? AbortSignal.any([perAttempt, safetyAbort.signal])
-            : perAttempt;
-          const response = await authFetch(url, { signal }, accessToken ?? undefined);
+          // Timeout compatível com WebViews que não possuem AbortSignal.timeout/any.
+          const response = await withCompatibleAbortTimeout(safetyAbort.signal, 3500, (signal) =>
+            authFetch(url, { signal }, accessToken ?? undefined)
+          );
           
           if (response.status === 403) {
             const errorData = await response.json();
