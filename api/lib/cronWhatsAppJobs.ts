@@ -13,7 +13,6 @@ import {
   assertFanoutCooldown,
   capAndShuffleRecipients,
 } from "./whatsappSendGuards.js";
-import { isWithinAllowedSendWindow } from "./whatsappAntiSpam.js";
 
 function envInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -61,10 +60,6 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
   let errors = 0;
 
   if (!(await isOfficialChannelReady())) {
-    return { sent: 0, skipped: 0, errors: 0 };
-  }
-  if (!isWithinAllowedSendWindow()) {
-    console.warn("[CRON WA] mensalidade — fora da janela horária");
     return { sent: 0, skipped: 0, errors: 0 };
   }
 
@@ -278,10 +273,6 @@ export async function dispatchTransmissaoAviso(
     if (!(await isOfficialChannelReady())) {
       return { sent: 0, errors: 0, skipped: 0, status: "offline" };
     }
-    if (!isWithinAllowedSendWindow()) {
-      console.warn(`[TRANSMISSAO AVISO] fora da janela horária — tenant=${tenantId}`);
-      return { sent: 0, errors: 0, skipped: 1, status: "skipped" };
-    }
 
     await assertFanoutCooldown(sb, tenantId, "transmissao_aviso");
 
@@ -402,10 +393,6 @@ export async function dispatchGiraWhatsApp(
 
   try {
     if (!(await isOfficialChannelReady())) {
-      return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
-    }
-    if (!isWithinAllowedSendWindow()) {
-      console.warn(`[GIRA WA] fora da janela horária — tenant=${tenantId}`);
       return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
     }
 

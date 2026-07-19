@@ -24,7 +24,8 @@ const SEND_WINDOW_START = envInt("WA_SEND_WINDOW_START_HOUR", 8);
 const SEND_WINDOW_END = envInt("WA_SEND_WINDOW_END_HOUR", 20);
 const SEND_WINDOW_WEEKEND_START = envInt("WA_SEND_WINDOW_WEEKEND_START_HOUR", 9);
 const SEND_WINDOW_WEEKEND_END = envInt("WA_SEND_WINDOW_WEEKEND_END_HOUR", 19);
-const ENFORCE_SEND_WINDOW = String(process.env.WA_ENFORCE_SEND_WINDOW || "1").trim() !== "0";
+/** Desligado por padrão: API oficial Meta não exige janela horária local (Evolution/Baileys). */
+const ENFORCE_SEND_WINDOW = String(process.env.WA_ENFORCE_SEND_WINDOW || "0").trim() === "1";
 
 const CAMPAIGN_MIN_DELAY = envInt("WA_CAMPAIGN_MIN_DELAY_MS", 20_000);
 const CAMPAIGN_MAX_DELAY = Math.max(
