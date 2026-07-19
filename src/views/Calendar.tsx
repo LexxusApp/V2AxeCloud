@@ -108,6 +108,49 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
   }
 }
 
+function formatAvisoWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
+  message: string;
+  type: 'success' | 'info' | 'error';
+} {
+  if (!whatsapp) {
+    return { message: 'Aviso enviado.', type: 'success' };
+  }
+  switch (whatsapp.status) {
+    case 'sent':
+      return {
+        message: `WhatsApp enviado para ${whatsapp.sent} filho${whatsapp.sent === 1 ? '' : 's'}.`,
+        type: 'success',
+      };
+    case 'partial':
+      return {
+        message: `WhatsApp: ${whatsapp.sent} enviado(s), ${whatsapp.errors} falha(s).`,
+        type: 'info',
+      };
+    case 'no_recipients':
+      return {
+        message: 'Nenhum filho ativo com WhatsApp cadastrado.',
+        type: 'info',
+      };
+    case 'channel_offline':
+      return {
+        message: 'Canal WhatsApp offline — avisos não enviados.',
+        type: 'error',
+      };
+    case 'disabled':
+      return {
+        message: 'Avisos de gira desativados nas configurações do WhatsApp.',
+        type: 'info',
+      };
+    case 'failed':
+      return {
+        message: `Falha no envio WhatsApp (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'}).`,
+        type: 'error',
+      };
+    default:
+      return { message: 'Aviso enviado.', type: 'success' };
+  }
+}
+
 function CalendarToast({ toast }: { toast: { message: string; type: 'success' | 'info' | 'error' } | null }) {
   if (!toast) return null;
   return (
@@ -567,6 +610,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'event'; title?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNotifying, setIsNotifying] = useState<string | null>(null);
+  const [notifyChannelEvent, setNotifyChannelEvent] = useState<Event | null>(null);
+  const [notifyChannel, setNotifyChannel] = useState<'push' | 'whatsapp' | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -579,9 +624,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
   const effectiveTenantId = tenantData?.tenant_id || (!isFilho ? user?.id : undefined);
 
-  const handleNotifyAll = async (event: Event) => {
+  const closeNotifyChannelModal = () => {
+    if (isNotifying) return;
+    setNotifyChannelEvent(null);
+    setNotifyChannel(null);
+  };
+
+  const handleNotifyPush = async (event: Event) => {
     try {
       setIsNotifying(event.id);
+      setNotifyChannel('push');
       const response = await authFetch('/api/push-broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -589,17 +641,51 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           tenantId: effectiveTenantId,
           title: `🗓️ Novo Evento: ${event.titulo}`,
           body: `Marcado para ${new Date(event.data).toLocaleDateString('pt-BR')} às ${event.hora}. Contamos com sua presença!`,
-          url: '/calendar'
-        })
+          url: '/calendar',
+        }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      alert(`Notificação enviada com sucesso para ${data.sentCount} dispositivos!`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Falha ao enviar push');
+      setToast({
+        message: `Push enviado para ${data.sentCount ?? 0} dispositivo${data.sentCount === 1 ? '' : 's'}.`,
+        type: 'success',
+      });
+      setNotifyChannelEvent(null);
+      setNotifyChannel(null);
     } catch (error: any) {
-      console.error('Error notifying all:', error);
-      alert('Erro ao enviar notificação: ' + error.message);
+      console.error('Error notifying push:', error);
+      setToast({
+        message: error?.message || 'Erro ao enviar notificação push.',
+        type: 'error',
+      });
     } finally {
       setIsNotifying(null);
+      setNotifyChannel(null);
+    }
+  };
+
+  const handleNotifyWhatsApp = async (event: Event) => {
+    try {
+      setIsNotifying(event.id);
+      setNotifyChannel('whatsapp');
+      const response = await authFetch(`/api/events/${event.id}/notify-whatsapp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Falha ao enviar WhatsApp');
+      setToast(formatAvisoWhatsAppFeedback(data.whatsapp as EventWhatsAppFeedback | undefined));
+      setNotifyChannelEvent(null);
+      setNotifyChannel(null);
+    } catch (error: any) {
+      console.error('Error notifying whatsapp:', error);
+      setToast({
+        message: error?.message || 'Erro ao enviar aviso no WhatsApp.',
+        type: 'error',
+      });
+    } finally {
+      setIsNotifying(null);
+      setNotifyChannel(null);
     }
   };
 
@@ -1374,7 +1460,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       {!passed ? (
                         <button
                           type="button"
-                          onClick={() => void handleNotifyAll(event)}
+                          onClick={() => setNotifyChannelEvent(event)}
                           disabled={isNotifying === event.id}
                           className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] px-2 text-[11px] font-bold text-primary transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
                         >
@@ -1563,6 +1649,93 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
+      {/* Escolher canal do aviso (Push ou WhatsApp) */}
+      <AnimatePresence>
+        {notifyChannelEvent ? (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeNotifyChannelModal}
+              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+            />
+            <motion.div
+              initial={MODAL_PANEL_IN}
+              animate={MODAL_PANEL_DONE}
+              exit={MODAL_PANEL_OUT}
+              transition={MODAL_TW}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="notify-channel-title"
+              className="relative z-10 w-full space-y-5 rounded-3xl border border-white/10 bg-card px-6 py-8 shadow-2xl sm:max-w-md"
+            >
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Bell className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-2 text-center">
+                <h3 id="notify-channel-title" className="text-xl font-black text-white">
+                  Enviar aviso
+                </h3>
+                <p className="text-sm font-medium text-[#94A3B8]">
+                  Como deseja avisar a corrente sobre &quot;{notifyChannelEvent.titulo}&quot;?
+                </p>
+              </div>
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  disabled={Boolean(isNotifying)}
+                  onClick={() => void handleNotifyPush(notifyChannelEvent)}
+                  className="flex items-center gap-3 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10 disabled:opacity-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    {isNotifying && notifyChannel === 'push' ? (
+                      <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                    ) : (
+                      <Bell className="h-5 w-5" aria-hidden />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-white">Notificação push</span>
+                    <span className="mt-0.5 block text-xs font-medium text-[#94A3B8]">
+                      Envia para o app/navegador dos filhos inscritos.
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(isNotifying)}
+                  onClick={() => void handleNotifyWhatsApp(notifyChannelEvent)}
+                  className="flex items-center gap-3 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3.5 text-left transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 disabled:opacity-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                    {isNotifying && notifyChannel === 'whatsapp' ? (
+                      <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                    ) : (
+                      <MessageSquare className="h-5 w-5" aria-hidden />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-white">WhatsApp</span>
+                    <span className="mt-0.5 block text-xs font-medium text-[#94A3B8]">
+                      Envia o template de aviso para filhos com telefone cadastrado.
+                    </span>
+                  </span>
+                </button>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(isNotifying)}
+                onClick={closeNotifyChannelModal}
+                className="w-full rounded-2xl py-3 text-sm font-black text-gray-400 transition-all hover:bg-white/5 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </motion.div>
+          </div>
+        ) : null}
       </AnimatePresence>
     </>
   );
