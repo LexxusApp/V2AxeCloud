@@ -2,6 +2,7 @@ import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { CONSOLE_ADMIN_INSTANCE_NAME } from "../../src/services/evolution.service.js";
 import { logEvent } from "./auditLog.js";
+import { generateSecureAccessPassword } from "./accessPassword.js";
 import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
 import {
   loadWelcomeMessageConfig,
@@ -10,16 +11,6 @@ import {
 } from "./welcomeMessage.js";
 
 type R2Ctx = { client: S3Client; bucket: string } | null;
-
-function generateAccessPassword(): string {
-  const bytes = new Uint8Array(8);
-  try {
-    (globalThis as { crypto?: { getRandomValues: (a: Uint8Array) => void } }).crypto?.getRandomValues(bytes);
-  } catch {
-    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return Array.from(bytes, (b) => String((b ?? 0) % 10)).join("");
-}
 
 export async function runTenantDetail(
   supabaseAdmin: SupabaseClient,
@@ -187,7 +178,7 @@ export async function runTenantResetPassword(
   const id = String(tenantId || "").trim();
   if (!id) throw new Error("id obrigatório");
 
-  const newPassword = generateAccessPassword();
+  const newPassword = generateSecureAccessPassword();
 
   const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(id, {
     password: newPassword,
@@ -242,7 +233,7 @@ export async function runTenantSendAccessData(
   if (!email) throw new Error("E-mail do zelador nao encontrado.");
   if (!msisdn) throw new Error("WhatsApp do zelador nao encontrado ou invalido.");
 
-  const newPassword = generateAccessPassword();
+  const newPassword = generateSecureAccessPassword();
   const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(id, {
     password: newPassword,
   });

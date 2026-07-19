@@ -14,12 +14,28 @@ import { assertUserCanAccessTenant } from "./tenantAccess.js";
 import { authRateLimit, webhookRateLimit } from "./rateLimit.js";
 import { verifyEfiWebhook } from "./secureRoutes.js";
 import { safeErrorMessage } from "./safeError.js";
+import { checkPasswordExposure } from "./pwnedPassword.js";
+import { validateStrongPassword } from "../../lib/passwordPolicy.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
 };
 
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.post("/api/v1/auth/password/check", authRateLimit, async (req: Request, res: Response) => {
+    const password = String(req.body?.password || "");
+    const policy = validateStrongPassword(password);
+    if (policy.ok === false) return res.status(400).json({ error: policy.message });
+    const exposure = await checkPasswordExposure(password);
+    if (exposure === "compromised") {
+      return res.status(400).json({
+        error: "Esta senha já apareceu em vazamentos conhecidos. Escolha uma senha diferente.",
+      });
+    }
+    // Indisponibilidade externa não bloqueia a conta; a política local continua obrigatória.
+    return res.json({ safe: true, exposureCheck: exposure });
+  });
+
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
       const { email, password, nome_terreiro, nome_zelador, whatsapp, conversion } = req.body || {};

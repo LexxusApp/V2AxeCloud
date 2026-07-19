@@ -1,13 +1,29 @@
 import type { NextFunction, Request, Response } from "express";
+import { resolveClientIp } from "./clientIp.js";
 
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
+const MAX_BUCKETS = 50_000;
+let requestsSinceCleanup = 0;
 
 function clientIp(req: { headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }): string {
-  const xf = req.headers?.["x-forwarded-for"];
-  const raw = Array.isArray(xf) ? xf[0] : xf;
-  return String(raw || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  return resolveClientIp(req) || "unknown";
+}
+
+function cleanupBuckets(now: number): void {
+  requestsSinceCleanup += 1;
+  if (requestsSinceCleanup < 1_000 && buckets.size < MAX_BUCKETS) return;
+  requestsSinceCleanup = 0;
+
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+  while (buckets.size >= MAX_BUCKETS) {
+    const oldest = buckets.keys().next().value as string | undefined;
+    if (!oldest) break;
+    buckets.delete(oldest);
+  }
 }
 
 export function consumeRateLimit(
@@ -16,6 +32,7 @@ export function consumeRateLimit(
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const key = `${opts.keyPrefix}:${clientIp(req as any)}`;
   const now = Date.now();
+  cleanupBuckets(now);
   let bucket = buckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
     bucket = { count: 0, resetAt: now + opts.windowMs };
@@ -39,6 +56,7 @@ function createRateLimit(opts: {
     try {
       const key = `${opts.keyPrefix}:${clientIp(req)}`;
       const now = Date.now();
+      cleanupBuckets(now);
       let bucket = buckets.get(key);
       if (!bucket || bucket.resetAt <= now) {
         bucket = { count: 0, resetAt: now + opts.windowMs };

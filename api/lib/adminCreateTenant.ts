@@ -11,6 +11,7 @@ import {
 import { createAuditLog } from "./createAuditLog.js";
 import { logEvent } from "./auditLog.js";
 import { safeErrorMessage } from "./safeError.js";
+import { validateStrongPassword } from "../../lib/passwordPolicy.js";
 
 export type CreateTenantBody = {
   email?: string;
@@ -38,6 +39,10 @@ export async function runCreateTenant(
 
   if (!email || !password) {
     return { status: 400, body: { error: "email e password são obrigatórios" } };
+  }
+  const passwordCheck = validateStrongPassword(password);
+  if (passwordCheck.ok === false) {
+    return { status: 400, body: { error: passwordCheck.message } };
   }
 
   let targetUser;

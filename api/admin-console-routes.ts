@@ -42,6 +42,8 @@ import {
   replyAdminInboxMessage,
 } from "./lib/adminWhatsAppInbox.js";
 import type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
+import { generateSecureAccessPassword } from "./lib/accessPassword.js";
+import { validateStrongPassword } from "../lib/passwordPolicy.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -443,14 +445,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     if (!id) return res.status(400).json({ error: "id obrigatório" });
 
     try {
-      const bytes = new Uint8Array(8);
-      try {
-        // crypto global existe no Node 18+/runtime serverless da Vercel.
-        (globalThis as any).crypto.getRandomValues(bytes);
-      } catch {
-        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-      }
-      const newPassword = Array.from(bytes, (b) => String((b ?? 0) % 10)).join("");
+      const newPassword = generateSecureAccessPassword();
 
       const { error: updErr } = await deps.supabaseAdmin.auth.admin.updateUserById(id, {
         password: newPassword,
@@ -628,6 +623,10 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     const nome_zelador = String((req.body || {}).nome_zelador || "Zelador Demo").trim();
     if (!email || !password) {
       return res.status(400).json({ error: "email e password são obrigatórios" });
+    }
+    const passwordCheck = validateStrongPassword(password);
+    if (passwordCheck.ok === false) {
+      return res.status(400).json({ error: passwordCheck.message });
     }
     try {
       const demoDays = Math.min(90, Math.max(3, Number((req.body || {}).demoDays || 14)));

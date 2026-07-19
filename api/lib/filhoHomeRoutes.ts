@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { assertUserCanAccessTenant, normalizeQueryTenantId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
+import { assertSafeImageBuffer, SAFE_IMAGE_MIME_TYPES } from "./imageUpload.js";
 
 const ALLOWED_PHOTO_TYPES = new Set([
   "image/jpeg",
@@ -146,7 +147,7 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
     }
 
     const mime = String(contentType || "image/jpeg").toLowerCase();
-    if (!ALLOWED_PHOTO_TYPES.has(mime) && !mime.startsWith("image/")) {
+    if (!ALLOWED_PHOTO_TYPES.has(mime) || !SAFE_IMAGE_MIME_TYPES.has(mime)) {
       return res.status(400).json({ error: "Formato de imagem não suportado." });
     }
 
@@ -157,6 +158,7 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
       }
 
       const buffer = Buffer.from(String(fileData), "base64");
+      assertSafeImageBuffer(buffer, mime);
       if (buffer.length > 5 * 1024 * 1024) {
         return res.status(400).json({ error: "Imagem maior que 5 MB." });
       }

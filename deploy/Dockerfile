@@ -25,13 +25,13 @@ RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev && npm install tsx@^4.21.0
-COPY --from=build /app/dist ./dist
-COPY api ./api
-COPY src ./src
-COPY lib ./lib
-COPY certs ./certs
-COPY scripts ./scripts
-COPY assets ./assets
+RUN npm ci --omit=dev && npm cache clean --force
+COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node api ./api
+COPY --chown=node:node src ./src
+COPY --chown=node:node lib ./lib
+COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node assets ./assets
+USER node
 EXPOSE 3000
-CMD ["npx", "tsx", "api/index.ts"]
+CMD ["./node_modules/.bin/tsx", "api/index.ts"]

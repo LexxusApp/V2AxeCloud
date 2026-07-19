@@ -73,3 +73,22 @@ export async function assertSafeExternalUrl(input: string): Promise<URL> {
   await assertResolvedHostsSafe(u.hostname);
   return u;
 }
+
+/** Faz fetch externo validando também cada destino de redirecionamento. */
+export async function safeExternalFetch(
+  input: string,
+  init: RequestInit = {},
+  maxRedirects = 5
+): Promise<Response> {
+  let current = (await assertSafeExternalUrl(input)).toString();
+  for (let hop = 0; hop <= maxRedirects; hop += 1) {
+    const response = await fetch(current, { ...init, redirect: "manual" });
+    if (response.status < 300 || response.status >= 400) return response;
+
+    const location = response.headers.get("location");
+    if (!location) return response;
+    if (hop === maxRedirects) throw new Error("Muitos redirecionamentos externos.");
+    current = (await assertSafeExternalUrl(new URL(location, current).toString())).toString();
+  }
+  throw new Error("Falha ao validar redirecionamento externo.");
+}

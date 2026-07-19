@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { S3Client } from "@aws-sdk/client-s3";
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import webpush from "web-push";
 import { requireAuthOrRespond } from "./requireAuth.js";
@@ -28,14 +28,14 @@ const CHAT_MEDIA_KEY_RE =
   /^chat\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/.+/i;
 
 function resolveChatMediaType(contentType: string): { messageType: string; maxSize: number } | null {
-  const normalizedType = String(contentType || "").toLowerCase();
-  if (normalizedType.startsWith("image/")) {
+  const normalizedType = String(contentType || "").split(";", 1)[0].trim().toLowerCase();
+  if (["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"].includes(normalizedType)) {
     return { messageType: "image", maxSize: CHAT_IMAGE_MAX };
   }
-  if (normalizedType.startsWith("video/")) {
+  if (["video/mp4", "video/webm", "video/quicktime"].includes(normalizedType)) {
     return { messageType: "video", maxSize: CHAT_VIDEO_MAX };
   }
-  if (normalizedType.startsWith("audio/")) {
+  if (["audio/mpeg", "audio/mp4", "audio/ogg", "audio/webm", "audio/wav"].includes(normalizedType)) {
     return { messageType: "audio", maxSize: CHAT_AUDIO_MAX };
   }
   return null;
@@ -861,18 +861,34 @@ export function registerChatRoutes(app: Express, deps: Deps) {
       const body = out.Body;
       if (!body) return res.status(404).end();
 
-      const chunks: Buffer[] = [];
-      for await (const chunk of body as AsyncIterable<Uint8Array>) {
-        chunks.push(Buffer.from(chunk));
+      const declaredSize = Number(out.ContentLength || 0);
+      if (!declaredSize || declaredSize > CHAT_VIDEO_MAX) {
+        return res.status(413).json({ error: "Mídia vazia ou acima do limite" });
       }
-      const buffer = Buffer.concat(chunks);
+      const trustedMedia = resolveChatMediaType(String(out.ContentType || ""));
+      if (!trustedMedia || declaredSize > trustedMedia.maxSize) {
+        return res.status(415).json({ error: "Tipo de mídia não suportado" });
+      }
 
       res.set({
-        "Content-Type": out.ContentType || "application/octet-stream",
-        "Content-Length": String(buffer.length),
+        "Content-Type": String(out.ContentType).split(";", 1)[0].trim().toLowerCase(),
+        "Content-Length": String(declaredSize),
         "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
       });
-      return res.send(buffer);
+      let streamed = 0;
+      for await (const chunk of body as AsyncIterable<Uint8Array>) {
+        streamed += chunk.byteLength;
+        if (streamed > CHAT_VIDEO_MAX) {
+          res.destroy(new Error("Mídia acima do limite"));
+          return;
+        }
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- authenticated binary stream, strict media allowlist and nosniff
+        if (!res.write(Buffer.from(chunk))) {
+          await new Promise<void>((resolve) => res.once("drain", resolve));
+        }
+      }
+      return res.end();
     } catch (error: unknown) {
       console.error("[CHAT] media:", error);
       return res.status(404).end();
@@ -940,14 +956,18 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         mediaUrl,
         mediaPath,
         mediaMime,
-        mediaSizeBytes,
         mediaDurationSec,
       } = req.body || {};
 
       const type = String(messageType || "text");
       const textBody = body != null ? String(body).trim() : "";
+      if (!["text", "image", "video", "audio"].includes(type)) {
+        return res.status(400).json({ error: "Tipo de mensagem inválido" });
+      }
       if (type === "text" && !textBody) return res.status(400).json({ error: "Mensagem vazia" });
-      if (type !== "text" && !mediaUrl) return res.status(400).json({ error: "mediaUrl obrigatório" });
+      if (type !== "text" && (!mediaUrl || !mediaPath || !mediaMime)) {
+        return res.status(400).json({ error: "Dados da mídia são obrigatórios" });
+      }
 
       const [isMember, selfFilho, { data: conv }] = await Promise.all([
         assertParticipant(supabaseAdmin, conversationId, user.id),
@@ -965,6 +985,38 @@ export function registerChatRoutes(app: Express, deps: Deps) {
         return res.status(403).json({ error: "Conta inativa" });
       }
 
+      let trustedMediaPath: string | null = null;
+      let trustedMediaUrl: string | null = null;
+      let trustedMediaMime: string | null = null;
+      let trustedMediaSize: number | null = null;
+      if (type !== "text") {
+        if (!r2Client || !bucketName) return res.status(503).json({ error: "Armazenamento indisponível" });
+        const key = String(mediaPath || "").replace(/\\/g, "/").trim();
+        const expectedPrefix = `chat/${conv.tenant_id}/${conversationId}/`;
+        if (!CHAT_MEDIA_KEY_RE.test(key) || !key.startsWith(expectedPrefix) || key.includes("..")) {
+          return res.status(400).json({ error: "Caminho da mídia inválido" });
+        }
+        const expectedUrl = buildChatPublicUrl(key);
+        if (String(mediaUrl) !== expectedUrl) {
+          return res.status(400).json({ error: "URL da mídia inválida" });
+        }
+        const normalizedMime = String(mediaMime).split(";", 1)[0].trim().toLowerCase();
+        const allowedMedia = resolveChatMediaType(normalizedMime);
+        if (!allowedMedia || allowedMedia.messageType !== type) {
+          return res.status(400).json({ error: "Tipo de mídia não suportado" });
+        }
+        const object = await r2Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+        const actualSize = Number(object.ContentLength || 0);
+        const actualMime = String(object.ContentType || "").split(";", 1)[0].trim().toLowerCase();
+        if (!actualSize || actualSize > allowedMedia.maxSize || actualMime !== normalizedMime) {
+          return res.status(400).json({ error: "Objeto de mídia inválido" });
+        }
+        trustedMediaPath = key;
+        trustedMediaUrl = expectedUrl;
+        trustedMediaMime = actualMime;
+        trustedMediaSize = actualSize;
+      }
+
       const now = new Date().toISOString();
       const { data: msg, error: msgErr } = await supabaseAdmin
         .from("chat_messages")
@@ -975,10 +1027,10 @@ export function registerChatRoutes(app: Express, deps: Deps) {
           sender_filho_id: selfFilho?.id || null,
           body: textBody || null,
           message_type: type,
-          media_url: mediaUrl || null,
-          media_path: mediaPath || null,
-          media_mime: mediaMime || null,
-          media_size_bytes: mediaSizeBytes ? Number(mediaSizeBytes) : null,
+          media_url: trustedMediaUrl,
+          media_path: trustedMediaPath,
+          media_mime: trustedMediaMime,
+          media_size_bytes: trustedMediaSize,
           media_duration_sec: mediaDurationSec ? Number(mediaDurationSec) : null,
           created_at: now,
         })

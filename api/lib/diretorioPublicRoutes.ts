@@ -116,6 +116,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
       res.setHeader("Content-Type", photo.contentType);
       res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+      // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- buffer passed strict image magic-byte validation; SVG is rejected
       res.send(photo.buf);
     } catch (e: unknown) {
       console.error("[public/diretorio/foto]", e);

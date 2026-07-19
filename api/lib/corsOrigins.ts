@@ -58,6 +58,7 @@ export function applyDiscreteRouteCors(req: any, res: any): boolean {
     : "Origin";
   res.setHeader("Vary", varyValue);
   if (origin && isAllowedCorsOrigin(origin)) {
+    // nosemgrep: javascript.express.security.cors-misconfiguration.cors-misconfiguration -- reflected only after exact allowlist/anchored preview match
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }

@@ -42,10 +42,7 @@ export function resetAuditLogState() {
 
 function extractIp(req: any): string | null {
   try {
-    const xff = String(req?.headers?.["x-forwarded-for"] || "");
-    if (xff) return xff.split(",")[0]?.trim() || null;
-    const ip = req?.ip || req?.socket?.remoteAddress || null;
-    return ip ? String(ip).replace(/^::ffff:/, "") : null;
+    return resolveClientIp(req);
   } catch {
     return null;
   }
@@ -108,3 +105,4 @@ export async function logEvent(supabaseAdmin: { from: (t: string) => any }, ev: 
     console.warn("[auditLog] exception:", e?.message || e);
   }
 }
+import { resolveClientIp } from "./clientIp.js";

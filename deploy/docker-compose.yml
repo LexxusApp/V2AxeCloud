@@ -34,16 +34,27 @@ services:
         GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
         BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
     restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     env_file: ../.env
     environment:
       NODE_ENV: production
       VERCEL: ""
+      TRUST_PROXY_CLIENT_IP: "1"
+      EFI_CERTIFICATE_PATH: /run/secrets/efi-certificate.p12
       EVOLUTION_API_BASE_URL: http://evolution:8080
+    volumes:
+      - ../certs/producao-918602-Axecloud.p12:/run/secrets/efi-certificate.p12:ro
     depends_on:
       evolution:
         condition: service_started
-    volumes:
-      - ../assets/ready_posts:/app/assets/ready_posts
     healthcheck:
       test:
         [
@@ -122,7 +133,7 @@ services:
       - web
 
   crowdsec:
-    image: crowdsecurity/crowdsec:latest
+    image: crowdsecurity/crowdsec:v1.7.8
     restart: unless-stopped
     environment:
       COLLECTIONS: "crowdsecurity/caddy crowdsecurity/linux crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"

@@ -54,6 +54,15 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
+      const checkResponse = await fetch('/api/v1/auth/password/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (!checkResponse.ok) {
+        const payload = await checkResponse.json().catch(() => ({}));
+        throw new Error(payload.error || 'A senha escolhida não passou pela verificação de segurança.');
+      }
       const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
       if (updateErr) throw updateErr;
       await supabase.auth.signOut();

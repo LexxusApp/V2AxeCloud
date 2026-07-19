@@ -29,6 +29,7 @@ import {
   processMetaCloudWebhook,
   verifyMetaWebhookSignature,
 } from "./whatsappMetaWebhook.js";
+import { rawBodyForSignature } from "./rawBody.js";
 
 function whatsappInitializingResponse(res: any, _err?: unknown) {
   return sendJson(res, 503, { error: WHATSAPP_INITIALIZING_MESSAGE_PT, code: "WHATSAPP_INITIALIZING" });
@@ -76,12 +77,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
 
       if (isMetaCloudWebhookPayload(body)) {
-        const raw =
-          typeof req.body === "string"
-            ? req.body
-            : typeof (req as { rawBody?: string }).rawBody === "string"
-              ? (req as { rawBody?: string }).rawBody
-              : JSON.stringify(body);
+        const raw = rawBodyForSignature(req, body);
         if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
           return sendJson(res, 401, { error: "Assinatura Meta inválida." });
         }

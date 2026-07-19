@@ -1,5 +1,6 @@
 import type { Request } from "express";
 import { verifyUser } from "./verifyUser.js";
+import { resolveClientIp } from "./clientIp.js";
 
 export type AuditLogStatus = "success" | "failed";
 
@@ -21,21 +22,9 @@ export function resetAuditLogsState() {
   disabledRetryAt = 0;
 }
 
-/** IP real em produção (Vercel/proxy): x-forwarded-for → x-real-ip → req.ip */
 export function extractClientIp(req: Request | any): string | null {
   try {
-    const xff = req?.headers?.["x-forwarded-for"];
-    if (xff) {
-      const first = String(xff).split(",")[0]?.trim();
-      if (first) return first.slice(0, 64);
-    }
-    const xri = req?.headers?.["x-real-ip"];
-    if (xri) {
-      const v = String(xri).trim();
-      if (v) return v.slice(0, 64);
-    }
-    const ip = req?.ip || req?.socket?.remoteAddress || null;
-    return ip ? String(ip).replace(/^::ffff:/, "").slice(0, 64) : null;
+    return resolveClientIp(req);
   } catch {
     return null;
   }

@@ -2,6 +2,7 @@ import type { Request } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import geoip from "geoip-lite";
 import { isMissingOrUnknownTable } from "./adminConsoleAuth.js";
+import { resolveClientIp } from "./clientIp.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -24,18 +25,7 @@ export type PublicSiteTrafficStats = {
 
 function extractClientIp(req: Request | any): string | null {
   try {
-    const xff = req?.headers?.["x-forwarded-for"];
-    if (xff) {
-      const first = String(xff).split(",")[0]?.trim();
-      if (first) return first.slice(0, 64);
-    }
-    const xri = req?.headers?.["x-real-ip"];
-    if (xri) {
-      const v = String(xri).trim();
-      if (v) return v.slice(0, 64);
-    }
-    const ip = req?.ip || req?.socket?.remoteAddress || null;
-    return ip ? String(ip).replace(/^::ffff:/, "").slice(0, 64) : null;
+    return resolveClientIp(req);
   } catch {
     return null;
   }

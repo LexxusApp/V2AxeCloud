@@ -9,6 +9,7 @@ import { resolveAuthenticatedFilho } from "./tenantAccess.js";
 import { sensitiveActionRateLimit } from "./rateLimit.js";
 import { safeErrorMessage } from "./safeError.js";
 import { humanizePasswordPolicyError, validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./pwnedPassword.js";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
@@ -167,6 +168,7 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
         if (newPassword !== confirmPassword) {
           return res.status(400).json({ error: "A confirmação da nova senha não confere." });
         }
+        await rejectCompromisedPassword(newPassword);
 
         const authUser = await findAuthUserByEmail(supabaseAdmin, loginEmail);
         if (!authUser?.id) {
@@ -223,7 +225,8 @@ export function registerForgotPasswordWhatsappRoutes(app: Express, { supabaseAdm
         return res.json({ success: true, message: "Senha redefinida com sucesso. Faça login com a nova senha." });
       } catch (error: unknown) {
         console.error("[forgot-password/confirm]", error);
-        return res.status(500).json({ error: safeErrorMessage(error, "Erro ao redefinir senha.") });
+        const status = Number((error as { status?: number })?.status) || 500;
+        return res.status(status).json({ error: safeErrorMessage(error, "Erro ao redefinir senha.") });
       }
     }
   );

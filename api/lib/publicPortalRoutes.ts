@@ -7,6 +7,7 @@ import { parseCitySlug, slugifyCity } from "./portalCitySlug.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { resolvePublicMediaUrl } from "./r2PublicMedia.js";
 import { newPublicToken, emitirSenhaVisitante, sendSenhaVisitanteWhatsApp } from "./giraOperationsRoutes.js";
+import { resolveClientIp } from "./clientIp.js";
 
 function buildEventoPublicPagePath(token: string): string {
   return `/evento/${encodeURIComponent(token)}`;
@@ -18,7 +19,7 @@ const TERREIRO_PUBLIC_SELECT =
   "id, nome_terreiro, foto_url, tradicao, public_slug, portal_consulente_ativo, portal_consulente_mensagem, descricao_publica, cidade_publica, estado_publico, bairro_publico, whatsapp_publico, casa_verificada, portal_destaque, portal_publico_ativo";
 
 function hashIp(req: Request): string {
-  const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  const ip = resolveClientIp(req) || "unknown";
   const salt = process.env.PORTAL_VIEW_SALT || "axecloud-portal";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 20);
 }

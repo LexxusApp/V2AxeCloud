@@ -42,13 +42,13 @@
     "@supabase/supabase-js": "^2.101.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "axios": "^1.15.0",
+    "axios": "^1.18.1",
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "express": "^4.22.2",
     "framer-motion": "^12.38.0",
     "geoip-lite": "^1.4.10",
     "helmet": "^8.1.0",
@@ -67,6 +67,7 @@
     "sharp": "^0.35.1",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.23.1",
     "web-push": "^3.6.7",
     "whois-json": "^2.0.4",
     "zod": "^4.3.6"
@@ -83,18 +84,17 @@
     "@types/qrcode": "^1.5.6",
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.2.0",
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.4",
     "pdfkit": "^0.18.0",
-    "playwright": "^1.50.1",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4.1.14",
-    "to-ico": "^1.1.5",
-    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.4.2",
+    "vite": "^6.4.3",
     "vite-plugin-pwa": "^1.2.0"
   },
   "overrides": {
     "protobufjs": "^7.5.6",
-    "axios": "^1.15.0"
+    "axios": "^1.18.1",
+    "ip-address": "^10.2.0"
   }
 }

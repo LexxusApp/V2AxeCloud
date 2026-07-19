@@ -9,6 +9,8 @@ import { consumeRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
 import { trackPublicSiteVisit } from "./publicSiteTraffic.js";
 import { safeErrorMessage } from "./safeError.js";
 import { insertConversionEvent } from './publicConversionTracking.js';
+import { resolveClientIp } from "./clientIp.js";
+import { validateStrongPassword } from "../../lib/passwordPolicy.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -123,8 +125,7 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const forwarded = req.headers["x-forwarded-for"] as string | undefined;
-      const ip = forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
+      const ip = resolveClientIp(req);
 
       let geoData: geoip.Lookup | null = null;
       if (ip && ip !== "::1" && ip !== "127.0.0.1") {
@@ -235,6 +236,10 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
 
       if (!email || !password || !nome_terreiro || !plan || !days) {
         return res.status(400).json({ error: "email, password, nome_terreiro, plan e days são obrigatórios" });
+      }
+      const passwordCheck = validateStrongPassword(String(password));
+      if (passwordCheck.ok === false) {
+        return res.status(400).json({ error: passwordCheck.message });
       }
 
       const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Express, Request, Response } from "express";
 import { logEvent } from "./auditLog.js";
 import { resolvePerfilLiderEmail } from "./perfilLiderEmail.js";
@@ -6,8 +6,9 @@ import { resolveAuthenticatedFilho } from "./tenantAccess.js";
 import { requireApiUser } from "./routeAuthHelpers.js";
 import { sensitiveActionRateLimit } from "./rateLimit.js";
 import { safeErrorMessage } from "./safeError.js";
-import { getSupabaseServerAnonKey, getSupabaseServerUrl } from "./supabaseServerEnv.js";
 import { humanizePasswordPolicyError, validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./pwnedPassword.js";
+import { verifyUserPassword } from "./passwordVerification.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,17 +26,6 @@ async function findAuthUserByEmail(sb: SupabaseClient, email: string) {
     page += 1;
   }
   return null;
-}
-
-async function verifyCurrentPassword(email: string, password: string): Promise<boolean> {
-  const url = getSupabaseServerUrl();
-  const anon = getSupabaseServerAnonKey();
-  if (!url || !anon) throw new Error("Supabase não configurado no servidor.");
-  const client = createClient(url, anon, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { error } = await client.auth.signInWithPassword({ email, password });
-  return !error;
 }
 
 async function assertZeladorAccount(
@@ -80,6 +70,7 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
         if (passwordCheck.ok === false) {
           return res.status(400).json({ error: passwordCheck.message });
         }
+        await rejectCompromisedPassword(newPassword);
         if (newPassword !== confirmPassword) {
           return res.status(400).json({ error: "A confirmação da nova senha não confere." });
         }
@@ -88,7 +79,7 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
         }
 
         const email = await resolvePerfilLiderEmail(supabaseAdmin, user);
-        const passwordOk = await verifyCurrentPassword(email, currentPassword);
+        const passwordOk = await verifyUserPassword(email, currentPassword);
         if (!passwordOk) {
           return res.status(401).json({ error: "Senha atual incorreta." });
         }
@@ -115,7 +106,8 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
         return res.json({ success: true });
       } catch (error: unknown) {
         console.error("[account/change-password]", error);
-        return res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao alterar senha.") });
+        const status = Number((error as { status?: number })?.status) || 500;
+        return res.status(status).json({ error: safeErrorMessage(error, "Erro interno ao alterar senha.") });
       }
     }
   );
@@ -144,7 +136,7 @@ export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }
           return res.status(400).json({ error: "O novo e-mail é igual ao e-mail atual." });
         }
 
-        const passwordOk = await verifyCurrentPassword(currentEmail, currentPassword);
+        const passwordOk = await verifyUserPassword(currentEmail, currentPassword);
         if (!passwordOk) {
           return res.status(401).json({ error: "Senha atual incorreta." });
         }

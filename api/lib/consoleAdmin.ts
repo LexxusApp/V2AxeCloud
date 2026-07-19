@@ -1,7 +1,7 @@
 /**
  * Acesso ao painel admin (API + axecloud-admin).
  * 1) E-mails em ADMIN_CONSOLE_EMAILS (ou ADMIN_EMAILS), separados por vírgula.
- * 2) OU perfil_lider.is_admin_global = true (por id do JWT ou pelo e-mail do perfil).
+ * 2) OU perfil_lider.is_admin_global = true no mesmo id do JWT autenticado.
  */
 export function getConsoleAdminEmailAllowlist(): string[] {
   const raw = process.env.ADMIN_CONSOLE_EMAILS || process.env.ADMIN_EMAILS || "";
@@ -37,19 +37,8 @@ async function promoteConsoleAdminProfile(
     return;
   }
 
-  if (email) {
-    const { data: byEmail } = await supabaseAdmin
-      .from("perfil_lider")
-      .select("id")
-      .ilike("email", email)
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle();
-
-    if (byEmail?.id) {
-      await supabaseAdmin.from("perfil_lider").update({ is_admin_global: true }).eq("id", byEmail.id);
-    }
-  }
+  // Nunca promover outro UUID por coincidência de e-mail: perfis antigos podem
+  // ficar órfãos após uma troca de endereço e transfeririam privilégio.
 }
 
 export async function isConsoleGlobalAdmin(
@@ -78,22 +67,6 @@ export async function isConsoleGlobalAdmin(
     console.warn("[consoleAdmin] perfil_lider by id:", byIdErr.message);
   } else if ((byId as { is_admin_global?: boolean } | null)?.is_admin_global) {
     return true;
-  }
-
-  if (email) {
-    const { data: byEmail, error: byEmailErr } = await supabaseAdmin
-      .from("perfil_lider")
-      .select("is_admin_global")
-      .ilike("email", email)
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle();
-
-    if (byEmailErr) {
-      console.warn("[consoleAdmin] perfil_lider by email:", byEmailErr.message);
-    } else if ((byEmail as { is_admin_global?: boolean } | null)?.is_admin_global) {
-      return true;
-    }
   }
 
   return false;

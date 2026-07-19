@@ -5,6 +5,8 @@
  * Falhas são silenciosas — apenas logadas, nunca propagam para o caller.
  */
 
+import { assertSafeExternalUrl } from "../ssrfGuard.js";
+
 type AlertPayload = {
   url: string;
   label?: string | null;
@@ -100,8 +102,10 @@ export async function sendAuditWebhook(url: string, payload: AlertPayload): Prom
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
+    await assertSafeExternalUrl(url);
     const res = await fetch(url, {
       method: "POST",
+      redirect: "error",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
       signal: controller.signal,

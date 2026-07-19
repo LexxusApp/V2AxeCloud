@@ -18,6 +18,7 @@ import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { getConversionContext, trackConversionEvent } from '../lib/trackConversion';
+import { PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
@@ -76,6 +77,9 @@ export default function Register() {
     setLoading(true);
 
     try {
+      const passwordCheck = validateStrongPassword(password);
+      if (passwordCheck.ok === false) throw new Error(passwordCheck.message);
+
       const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -281,9 +285,9 @@ export default function Register() {
                     className={cn(fieldShell, 'pr-11')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Senha forte"
                     required
-                    minLength={6}
+                    minLength={8}
                     autoComplete="new-password"
                   />
                   <button
@@ -295,6 +299,7 @@ export default function Register() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </motion.div>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-zinc-600">{PASSWORD_HINT_PT}</p>
               </motion.div>
             </motion.div>
 

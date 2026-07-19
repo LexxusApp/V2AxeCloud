@@ -30,6 +30,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [deleteCurrentPassword, setDeleteCurrentPassword] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string>(String(user?.email || ''));
@@ -105,13 +106,17 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
       setDeleteError('Digite exatamente o e-mail da conta para confirmar.');
       return;
     }
+    if (!deleteCurrentPassword) {
+      setDeleteError('Digite sua senha atual para autorizar a exclusão.');
+      return;
+    }
 
     setIsDeletingAccount(true);
     try {
       const res = await authFetch('/api/v1/account/permanent-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmEmail: typed }),
+        body: JSON.stringify({ confirmEmail: typed, currentPassword: deleteCurrentPassword }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -208,6 +213,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           setDeleteModalOpen(open);
           if (!open) {
             setDeleteConfirmEmail('');
+            setDeleteCurrentPassword('');
             setDeleteError(null);
           }
         }}
@@ -231,6 +237,16 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
               value={deleteConfirmEmail}
               onChange={(e) => setDeleteConfirmEmail(e.target.value)}
               placeholder={user?.email || 'seu@email.com'}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-red-500/50"
+            />
+            <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Confirme sua senha atual
+            </p>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={deleteCurrentPassword}
+              onChange={(e) => setDeleteCurrentPassword(e.target.value)}
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-red-500/50"
             />
             {deleteError && <p className="mt-2 text-xs font-bold text-red-400">{deleteError}</p>}

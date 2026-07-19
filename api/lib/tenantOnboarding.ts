@@ -19,6 +19,8 @@ import {
 } from "./efiPay.js";
 import { updateSubscriptionResilient, upsertSubscriptionResilient } from "./subscriptionDb.js";
 import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
+import { validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./pwnedPassword.js";
 
 export type RegisterTenantInput = {
   email: string;
@@ -83,11 +85,16 @@ export async function registerNewTenant(
   const nome_zelador = String(input.nome_zelador || "").trim();
   const whatsapp = String(input.whatsapp || "").trim();
 
-  if (!email || !password || password.length < 6) {
-    throw Object.assign(new Error("E-mail e senha (mín. 6 caracteres) são obrigatórios."), {
+  if (!email || !password) {
+    throw Object.assign(new Error("E-mail e senha são obrigatórios."), {
       status: 400,
     });
   }
+  const passwordCheck = validateStrongPassword(password);
+  if (passwordCheck.ok === false) {
+    throw Object.assign(new Error(passwordCheck.message), { status: 400 });
+  }
+  await rejectCompromisedPassword(password);
   if (!nome_terreiro) {
     throw Object.assign(new Error("Informe o nome do terreiro."), { status: 400 });
   }

@@ -13,7 +13,7 @@
  * como `network`.
  */
 
-import { assertSafeExternalUrl } from "../ssrfGuard.js";
+import { assertSafeExternalUrl, safeExternalFetch } from "../ssrfGuard.js";
 
 const HTML_MAX_BYTES = 1_500_000; // 1.5 MB
 const LINK_TIMEOUT_MS = 6_000;
@@ -64,9 +64,8 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HTML_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    const res = await safeExternalFetch(url, {
       method: "GET",
-      redirect: "follow",
       signal: controller.signal,
       headers: {
         "user-agent": USER_AGENT,
@@ -167,9 +166,8 @@ async function fetchWithMethod(
       accept: "*/*",
     };
     if (method === "GET") headers["range"] = "bytes=0-0";
-    const res = await fetch(url, {
+    const res = await safeExternalFetch(url, {
       method,
-      redirect: "follow",
       signal: controller.signal,
       headers,
     });

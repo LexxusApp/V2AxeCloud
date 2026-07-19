@@ -1,5 +1,7 @@
 /** Reescreve URL do Google User Content para resolução adequada aos cards (evita w114-h86). */
 
+import { assertSafeImageBuffer } from "./imageUpload.js";
+
 const SIZE_SUFFIX =
   /=(?:w\d+-h\d+(?:-[a-z0-9-]+)?|s\d+(?:-[a-z0-9-]+)?|h\d+(?:-[a-z0-9-]+)?|w\d+-h\d+-p-k-no-in)$/i;
 
@@ -50,6 +52,43 @@ const FETCH_HEADERS = {
   Accept: "image/*",
 };
 
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+const MAX_PHOTO_REDIRECTS = 4;
+
+async function fetchAllowedGooglePhoto(url: string): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= MAX_PHOTO_REDIRECTS; hop += 1) {
+    if (!isAllowedGooglePhotoUrl(current)) throw new Error("Host de foto não permitido.");
+    const res = await fetch(current, { headers: FETCH_HEADERS, redirect: "manual" });
+    if (res.status < 300 || res.status >= 400) return res;
+    const location = res.headers.get("location");
+    if (!location || hop === MAX_PHOTO_REDIRECTS) throw new Error("Redirecionamento de foto inválido.");
+    current = new URL(location, current).toString();
+  }
+  throw new Error("Redirecionamento de foto inválido.");
+}
+
+async function readPhotoWithLimit(res: Response): Promise<Buffer> {
+  const declared = Number(res.headers.get("content-length") || 0);
+  if (declared > MAX_PHOTO_BYTES) throw new Error("Foto excede o limite permitido.");
+  if (!res.body) return Buffer.alloc(0);
+  const reader = res.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PHOTO_BYTES) throw new Error("Foto excede o limite permitido.");
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    if (total > MAX_PHOTO_BYTES) await reader.cancel().catch(() => undefined);
+  }
+  return Buffer.concat(chunks, total);
+}
+
 /** Busca a maior variante disponível da foto. */
 export async function fetchBestGooglePhoto(
   rawUrl: string,
@@ -60,17 +99,17 @@ export async function fetchBestGooglePhoto(
 
   for (const url of googlePhotoUrlCandidates(rawUrl)) {
     try {
-      const res = await fetch(url, { headers: FETCH_HEADERS, redirect: "follow" });
+      const res = await fetchAllowedGooglePhoto(url);
       if (!res.ok) continue;
 
       const contentType = res.headers.get("content-type") || "";
-      if (!contentType.startsWith("image/")) continue;
 
-      const buf = Buffer.from(await res.arrayBuffer());
+      const buf = await readPhotoWithLimit(res);
       if (buf.length < 8000) continue;
+      const verifiedContentType = assertSafeImageBuffer(buf, contentType);
 
       if (!best || buf.length > best.size) {
-        best = { buf, contentType, size: buf.length };
+        best = { buf, contentType: verifiedContentType, size: buf.length };
       }
       if (buf.length > 80_000) break;
     } catch {

@@ -126,6 +126,13 @@ import { handleTenantInfoRoute } from "./lib/tenantInfoRoute.js";
 import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./lib/runtimePublicConfig.js";
 import { PUBLIC_PRERENDER_PATHS } from "../src/constants/seoPublicPages.js";
 import { childEligibleForDueMonth } from "./lib/mensalidadeEligibility.js";
+import { validateStrongPassword } from "../lib/passwordPolicy.js";
+import { assertSafeImageBuffer } from "./lib/imageUpload.js";
+import { isAllowedGalleryMime } from "./lib/mediaUpload.js";
+import { verifyCompletedGalleryUpload } from "./lib/galleryUploadSecurity.js";
+import { verifyUserPassword } from "./lib/passwordVerification.js";
+import { normalizePushSubscription } from "./lib/pushSubscription.js";
+import { captureWebhookRawBody, rawBodyForSignature } from "./lib/rawBody.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1251,27 +1258,9 @@ function isMissingColumnErr(error: any, columnName: string) {
   return message.includes(`column "${columnName}" does not exist`) || error?.code === 'PGRST204';
 }
 
-function authUserIdFromToken(user: { id?: string }, bearerToken: string): string {
-  let id = typeof user?.id === 'string' ? user.id.trim() : '';
-  if (id.length > 10) return id;
-  const raw = bearerToken.replace(/^Bearer\s+/i, '').trim();
-  if (!raw.includes('.')) return '';
-  const b64 = raw.split('.')[1];
-  if (!b64) return '';
-  const tryParse = (buf: Buffer) => JSON.parse(buf.toString('utf8')) as { sub?: string };
-  try {
-    const p = tryParse(Buffer.from(b64, 'base64url'));
-    if (typeof p.sub === 'string' && p.sub.length > 10) return p.sub.trim();
-  } catch {
-    try {
-      const pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-      const p = tryParse(Buffer.from(pad, 'base64'));
-      if (typeof p.sub === 'string' && p.sub.length > 10) return p.sub.trim();
-    } catch {
-      /* ignore */
-    }
-  }
-  return '';
+function authenticatedUserId(user: { id?: string }): string {
+  const id = typeof user?.id === 'string' ? user.id.trim() : '';
+  return id.length > 10 ? id : '';
 }
 
 async function ensureSubscriptionForMural(zeladorId: string, logicalTenant: string) {
@@ -1368,7 +1357,7 @@ async function startServer() {
       optionsSuccessStatus: 204,
     })
   );
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '10mb', verify: captureWebhookRawBody }));
 
   // Fase 3 — Cache-Control HTTP: padrão seguro; rotas de leitura estável sobrescrevem antes do res.json.
   const pathOnlyForCache = (req: express.Request) =>
@@ -1407,14 +1396,13 @@ async function startServer() {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
 
-    const { subscription, userId, tenantId } = req.body;
+    const { subscription: rawSubscription, tenantId } = req.body || {};
+    const subscription = normalizePushSubscription(rawSubscription);
     
-    if (!subscription || !userId || !tenantId) {
-      return res.status(400).json({ error: "Dados incompletos para inscrição" });
+    if (!subscription || !tenantId) {
+      return res.status(400).json({ error: "Inscrição push inválida" });
     }
-    if (user.id !== userId) {
-      return res.status(403).json({ error: "Acesso negado" });
-    }
+    const userId = user.id;
 
     try {
       const ok = await assertUserCanAccessTenant(supabaseAdmin, user, String(tenantId));
@@ -1597,13 +1585,11 @@ async function startServer() {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
-      const token = getBearerToken(req);
-
       if (!titulo || !conteudo) {
         return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
       }
 
-      const zeladorId = authUserIdFromToken(user, token);
+      const zeladorId = authenticatedUserId(user);
       if (!zeladorId) {
         return res.status(401).json({ error: "Sessão inválida (id do usuário ausente)." });
       }
@@ -1733,8 +1719,7 @@ async function startServer() {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
-      const token = getBearerToken(req);
-      const zeladorId = authUserIdFromToken(user, token);
+      const zeladorId = authenticatedUserId(user);
       if (!zeladorId) return res.status(401).json({ error: "Sessão inválida (id do usuário ausente)." });
 
       const { data: notice, error: nErr } = await supabaseAdmin
@@ -2719,7 +2704,7 @@ async function startServer() {
       }
 
       const normalizedType = String(contentType).toLowerCase();
-      if (!normalizedType.startsWith("image/") && !normalizedType.startsWith("video/")) {
+      if (!isAllowedGalleryMime(normalizedType)) {
         return res.status(400).json({ error: "Envie apenas imagem ou vídeo" });
       }
 
@@ -2800,6 +2785,9 @@ async function startServer() {
     if (!tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
+    if (!r2Client || !R2_BUCKET_NAME) {
+      return res.status(503).json({ error: "R2 não configurado no servidor" });
+    }
 
     try {
       const access = await requireApiTenantRead(supabaseAdmin, req, res, tenantId);
@@ -2813,28 +2801,13 @@ async function startServer() {
         return res.status(403).json({ error: "Apenas zeladores podem publicar na galeria" });
       }
 
-      const normalizedKey = String(storageKey || "").replace(/\\/g, "/");
-      const expectedPrefix = `${tenantId}/${albumId}/`;
-      if (!normalizedKey.startsWith(expectedPrefix) || normalizedKey.includes("..")) {
-        return res.status(400).json({ error: "storageKey inválido para este álbum" });
-      }
-
-      const { data: album, error: albumError } = await supabaseAdmin
-        .from("gallery_albums")
-        .select("id")
-        .eq("id", albumId)
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
-      if (albumError) throw albumError;
-      if (!album) return res.status(404).json({ error: "Álbum não encontrado" });
-
-      const expectedPublicUrl = buildR2PublicUrl(normalizedKey);
-      if (String(publicUrl) !== expectedPublicUrl) {
-        return res.status(400).json({ error: "publicUrl não confere com storageKey" });
-      }
-
-      const numericSize = Number(sizeBytes);
-      const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
+      const verified = await verifyCompletedGalleryUpload({
+        supabaseAdmin, r2Client, bucketName: R2_BUCKET_NAME, tenantId, albumId,
+        storageKey, publicUrl, contentType, sizeBytes, quotaBytes: GALLERY_QUOTA_BYTES,
+        buildPublicUrl: buildR2PublicUrl,
+      });
+      if (verified.ok === false) return res.status(verified.status).json({ error: verified.error });
+      const { normalizedKey, normalizedType, mediaType, actualSize, expectedPublicUrl } = verified;
       const normalizedTitle = String(title || fileName || "").trim() || String(fileName);
       const normalizedCaption = String(caption || "").trim() || null;
       const normalizedCategory = normalizeGalleryCategory(category);
@@ -2846,8 +2819,8 @@ async function startServer() {
             tenant_id: tenantId,
             media_type: mediaType,
             file_name: String(fileName),
-            mime_type: String(contentType),
-            size_bytes: numericSize,
+            mime_type: normalizedType,
+            size_bytes: actualSize,
             storage_key: normalizedKey,
             public_url: expectedPublicUrl,
             created_by: user.id,
@@ -3104,6 +3077,11 @@ async function startServer() {
       });
       if (!user) return;
 
+      const passwordCheck = validateStrongPassword(String(password || ""));
+      if (passwordCheck.ok === false) {
+        return res.status(400).json({ error: passwordCheck.message });
+      }
+
       // 2. Create or Update User in Supabase Auth
       let targetUser;
       const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -3121,7 +3099,7 @@ async function startServer() {
 
       if (createError) {
         if (createError.message.includes('already been registered')) {
-          console.log(`[ADMIN] Usuário ${email} já existe. Atualizando...`);
+          console.log("[ADMIN] Usuário existente; atualizando cadastro autorizado.");
           // Buscar usuário existente
           const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
           if (listError || !listData) throw listError || new Error("Falha ao listar usuários");
@@ -3278,6 +3256,7 @@ async function startServer() {
       }
 
       const buffer = Buffer.from(String(fileData), "base64");
+      const safeContentType = assertSafeImageBuffer(buffer, contentType || "image/jpeg");
       if (buffer.length > 5 * 1024 * 1024) {
         return res.status(400).json({ error: "Imagem maior que 5 MB." });
       }
@@ -3285,7 +3264,7 @@ async function startServer() {
       const { error: uploadError } = await supabaseAdmin.storage
         .from("perfil_fotos")
         .upload(safeName, buffer, {
-          contentType: contentType || "image/jpeg",
+          contentType: safeContentType,
           upsert: true,
         });
 
@@ -3427,9 +3406,13 @@ async function startServer() {
       if (!user) return;
 
       const confirmEmail = String((req.body || {}).confirmEmail || "").trim().toLowerCase();
+      const currentPassword = String((req.body || {}).currentPassword || "");
       const email = String(user.email || "").trim().toLowerCase();
       if (!confirmEmail || confirmEmail !== email) {
         return res.status(400).json({ error: "Confirme digitando o mesmo e-mail da conta." });
+      }
+      if (!currentPassword || !(await verifyUserPassword(email, currentPassword))) {
+        return res.status(401).json({ error: "Senha atual incorreta." });
       }
 
       const result = await permanentDeleteZeladorAccount(
@@ -4033,8 +4016,6 @@ async function startServer() {
       const presetId = String(childData?.id || "").trim();
       if (presetId && isValidUuid(presetId)) dataToInsert.id = presetId;
       
-      console.log(`[SERVER] Inserting child data:`, dataToInsert);
-
       const { data, error } = await supabaseAdmin
         .from('filhos_de_santo')
         .insert([dataToInsert])
@@ -5025,12 +5006,7 @@ async function startServer() {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
 
     if (isMetaCloudWebhookPayload(body)) {
-      const raw =
-        typeof req.body === "string"
-          ? req.body
-          : typeof (req as { rawBody?: string }).rawBody === "string"
-            ? (req as unknown as { rawBody: string }).rawBody
-            : JSON.stringify(body);
+      const raw = rawBodyForSignature(req, body);
       if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
         return res.status(401).json({ error: "Assinatura Meta inválida." });
       }

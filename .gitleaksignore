@@ -1,0 +1,5 @@
+# Segredos históricos já revogados/rotacionados. Mantidos somente porque a
+# remoção exige reescrever todo o histórico Git e coordenar force-push.
+97e1342dee5cded4966fb2fcc6bb3dcc71ab27aa:api/lib/adminQuickActions.ts:generic-api-key:12
+3c5e212dac10eef4a31ad83b205668c7a525bef4:auth_info/creds.json:generic-api-key:1
+3c5e212dac10eef4a31ad83b205668c7a525bef4:auth_info/creds.json:whatsapp-baileys-session:1

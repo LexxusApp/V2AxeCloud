@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
@@ -12,16 +13,7 @@ import compression from "compression";
 import webpush from "web-push";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {
-  addMonths,
-  differenceInCalendarDays,
-  endOfMonth,
-  format,
-  isBefore,
-  isValid,
-  parseISO,
-  startOfDay,
-} from "date-fns";
+import { addMonths, differenceInCalendarDays, endOfMonth, format, isBefore, isValid, parseISO, startOfDay } from "date-fns";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
   getOfficialWhatsAppStatus,
@@ -70,6 +62,7 @@ import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
 import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./api/lib/runtimePublicConfig.js";
 import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
 import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
+import { requireApiUser } from "./api/lib/routeAuthHelpers.js";
 import {
   handleMetaWebhookChallenge,
   isMetaCloudWebhookPayload,
@@ -78,6 +71,13 @@ import {
 } from "./api/lib/whatsappMetaWebhook.js";
 import { hasPremiumTierFeatures, usesDistantSubscriptionExpiry, canonicalPlanSlug } from "./src/constants/plans.js";
 import { childEligibleForDueMonth } from "./api/lib/mensalidadeEligibility.js";
+import { assertSafeImageBuffer } from "./api/lib/imageUpload.js";
+import { isAllowedGalleryMime } from "./api/lib/mediaUpload.js";
+import { verifyCompletedGalleryUpload } from "./api/lib/galleryUploadSecurity.js";
+import { verifyUserPassword } from "./api/lib/passwordVerification.js";
+import { normalizePushSubscription } from "./api/lib/pushSubscription.js";
+import { captureWebhookRawBody, rawBodyForSignature } from "./api/lib/rawBody.js";
+import { safeErrorMessage } from "./api/lib/safeError.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1190,26 +1190,11 @@ async function verifyUser(token: string) {
   }
 
   try {
-    // 1. Verificação padrão
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
     if (user && !error) return { user, error: null };
 
-    // 2. Fallback: Decodificar JWT e usar admin.getUserById (mais estável com service_role)
-    if (token.includes('.')) {
-      try {
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        if (payload && payload.sub) {
-          console.log(`[SERVER] Auth fallback: getUser falhou (${error?.message}), tentando getUserById para ${payload.sub}`);
-          const { data: { user: adminUser }, error: adminError } = await supabaseAdmin.auth.admin.getUserById(payload.sub);
-          if (adminUser && !adminError) {
-            console.log(`[SERVER] Auth fallback sucesso para ${adminUser.email}`);
-            return { user: adminUser, error: null };
-          }
-        }
-      } catch (e) {
-        console.error("[SERVER] Erro ao decodificar JWT no fallback:", e);
-      }
-    }
+    // Nunca use o payload decodificado como fallback. Sem validar a assinatura,
+    // um invasor poderia forjar o `sub` e se autenticar como qualquer usuário.
     return { user: null, error: error || new Error("Usuário não encontrado") };
   } catch (err: any) {
     console.error("[SERVER] verifyUser exceção:", err);
@@ -1236,6 +1221,7 @@ async function startServer() {
   console.log("[SERVER] Iniciando processo de boot...");
   const app = express();
   const PORT = 3000;
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
   /** Na Vercel o path interno pode ser `/api/index`; restaura o URL público a partir de headers. */
   app.use((req, _res, next) => {
@@ -1270,11 +1256,11 @@ async function startServer() {
     next();
   });
 
-  // Middleware de log global (antes de qualquer rota)
+  // Log apenas em desenvolvimento e sem query string/tokens públicos.
   app.use((req, res, next) => {
-    const u = req.url || "";
-    if (!u.startsWith('/@vite') && !u.startsWith('/src')) {
-      console.log(`[SERVER] ${req.method} ${u}`);
+    const requestPath = req.path || "";
+    if (process.env.NODE_ENV !== "production" && !requestPath.startsWith('/@vite') && !requestPath.startsWith('/src')) {
+      console.log(`[SERVER] ${req.method} ${requestPath}`);
     }
     next();
   });
@@ -1320,7 +1306,7 @@ async function startServer() {
   );
 
   // Limite conservador para rotas comuns; uploads maiores usam limite próprio
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '2mb', verify: captureWebhookRawBody }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
   // Fase 3 — Cache-Control HTTP (espelha api/index.ts): padrão seguro; leituras estáveis sobrescrevem no 200.
@@ -1403,7 +1389,7 @@ async function startServer() {
 
       if (createError) {
         if (createError.message.includes('already been registered')) {
-          console.log(`[ADMIN] Usuário ${email} já existe. Atualizando...`);
+          console.log("[ADMIN] Usuário existente; atualizando cadastro autorizado.");
           // Buscar usuário existente
           const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
           if (listError || !listData) throw listError || new Error("Falha ao listar usuários");
@@ -1538,7 +1524,7 @@ async function startServer() {
 
     } catch (error: any) {
       console.error("Admin Create Tenant Error:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -1570,6 +1556,7 @@ async function startServer() {
       }
 
       const buffer = Buffer.from(String(fileData), "base64");
+      const safeContentType = assertSafeImageBuffer(buffer, contentType || "image/jpeg");
       if (buffer.length > 5 * 1024 * 1024) {
         return res.status(400).json({ error: "Imagem maior que 5 MB." });
       }
@@ -1577,7 +1564,7 @@ async function startServer() {
       const { error: uploadError } = await supabaseAdmin.storage
         .from("perfil_fotos")
         .upload(safeName, buffer, {
-          contentType: contentType || "image/jpeg",
+          contentType: safeContentType,
           upsert: true,
         });
 
@@ -1663,27 +1650,9 @@ async function startServer() {
     if (error) console.error('[SERVER] ensurePerfilLiderForMural:', error.message);
   }
 
-  function authUserIdFromToken(user: { id?: string }, bearerToken: string): string {
-    let id = typeof user?.id === 'string' ? user.id.trim() : '';
-    if (id.length > 10) return id;
-    const raw = bearerToken.replace(/^Bearer\s+/i, '').trim();
-    if (!raw.includes('.')) return '';
-    const b64 = raw.split('.')[1];
-    if (!b64) return '';
-    const tryParse = (buf: Buffer) => JSON.parse(buf.toString('utf8')) as { sub?: string };
-    try {
-      const p = tryParse(Buffer.from(b64, 'base64url'));
-      if (typeof p.sub === 'string' && p.sub.length > 10) return p.sub.trim();
-    } catch {
-      try {
-        const pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-        const p = tryParse(Buffer.from(pad, 'base64'));
-        if (typeof p.sub === 'string' && p.sub.length > 10) return p.sub.trim();
-      } catch {
-        /* ignore */
-      }
-    }
-    return '';
+  function authenticatedUserId(user: { id?: string }): string {
+    const id = typeof user?.id === 'string' ? user.id.trim() : '';
+    return id.length > 10 ? id : '';
   }
 
   /** Alguns projetos ligam mural_avisos.tenant_id a subscriptions(id) ou colunas semelhantes. */
@@ -1723,7 +1692,7 @@ async function startServer() {
       res.json({ data });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar pix config:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: safeErrorMessage(err) });
     }
   });
 
@@ -1770,7 +1739,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[SERVER] Erro ao salvar pix config:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: safeErrorMessage(err) });
     }
   });
 
@@ -1995,7 +1964,7 @@ async function startServer() {
       res.json({ data: data || [] });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar materiais:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: safeErrorMessage(err) });
     }
   });
 
@@ -2044,7 +2013,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar albuns da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao buscar galeria" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar galeria") });
     }
   });
 
@@ -2073,7 +2042,7 @@ async function startServer() {
       res.json({ album: { ...album, media: [] } });
     } catch (error: any) {
       console.error("[SERVER] Erro ao garantir álbum do mural:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar mural" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar mural") });
     }
   });
 
@@ -2115,7 +2084,7 @@ async function startServer() {
       res.json({ album: { ...data, media: [] } });
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar album:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao criar album" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao criar album") });
     }
   });
 
@@ -2140,7 +2109,7 @@ async function startServer() {
       }
 
       const normalizedType = String(contentType).toLowerCase();
-      if (!normalizedType.startsWith("image/") && !normalizedType.startsWith("video/")) {
+      if (!isAllowedGalleryMime(normalizedType)) {
         return res.status(400).json({ error: "Envie apenas imagem ou vídeo" });
       }
 
@@ -2201,7 +2170,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("[SERVER] Erro ao preparar upload da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao preparar upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar upload") });
     }
   });
 
@@ -2222,6 +2191,9 @@ async function startServer() {
     if (!authHeader || !tenantId || !albumId || !storageKey || !publicUrl || !fileName || !contentType || !sizeBytes) {
       return res.status(400).json({ error: "Dados incompletos" });
     }
+    if (!r2Client || !R2_BUCKET_NAME) {
+      return res.status(503).json({ error: "R2 não configurado no servidor" });
+    }
 
     try {
       const token = authHeader.replace("Bearer ", "");
@@ -2239,8 +2211,13 @@ async function startServer() {
         return res.status(403).json({ error: "Apenas zeladores podem publicar na galeria" });
       }
 
-      const numericSize = Number(sizeBytes);
-      const mediaType = String(contentType).toLowerCase().startsWith("video/") ? "video" : "image";
+      const verified = await verifyCompletedGalleryUpload({
+        supabaseAdmin, r2Client, bucketName: R2_BUCKET_NAME, tenantId, albumId,
+        storageKey, publicUrl, contentType, sizeBytes, quotaBytes: GALLERY_QUOTA_BYTES,
+        buildPublicUrl: buildR2PublicUrl,
+      });
+      if (verified.ok === false) return res.status(verified.status).json({ error: verified.error });
+      const { normalizedKey, normalizedType, mediaType, actualSize, expectedPublicUrl } = verified;
       const normalizedTitle = String(title || fileName || "").trim() || String(fileName);
       const normalizedCaption = String(caption || "").trim() || null;
       const normalizedCategory = normalizeGalleryCategory(category);
@@ -2252,10 +2229,10 @@ async function startServer() {
             tenant_id: tenantId,
             media_type: mediaType,
             file_name: String(fileName),
-            mime_type: String(contentType),
-            size_bytes: numericSize,
-            storage_key: String(storageKey),
-            public_url: String(publicUrl),
+            mime_type: normalizedType,
+            size_bytes: actualSize,
+            storage_key: normalizedKey,
+            public_url: expectedPublicUrl,
             created_by: user.id,
             title: normalizedTitle,
             caption: normalizedCaption,
@@ -2270,7 +2247,7 @@ async function startServer() {
       res.json({ media: enriched });
     } catch (error: any) {
       console.error("[SERVER] Erro ao concluir upload da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao concluir upload" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao concluir upload") });
     }
   });
 
@@ -2315,7 +2292,7 @@ async function startServer() {
       res.json({ ok: true });
     } catch (error: any) {
       console.error("[SERVER] Erro ao remover mídia da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao remover lembrança" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao remover lembrança") });
     }
   });
 
@@ -2360,7 +2337,7 @@ async function startServer() {
       res.json({ ok: true });
     } catch (error: any) {
       console.error("[SERVER] Erro ao remover álbum da galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao remover álbum" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao remover álbum") });
     }
   });
 
@@ -2403,7 +2380,7 @@ async function startServer() {
       res.json({ media: enriched });
     } catch (error: any) {
       console.error("[SERVER] Erro ao registrar Axé na galeria:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao enviar Axé" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar Axé") });
     }
   });
 
@@ -2423,7 +2400,7 @@ async function startServer() {
       res.json({ data: data || [] });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar produtos:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: safeErrorMessage(err) });
     }
   };
   app.get("/api/v1/store/products", handleStoreProductsGet);
@@ -2494,7 +2471,7 @@ async function startServer() {
       res.status(201).json({ success: true, data });
     } catch (err: any) {
       console.error("[SERVER] Erro ao criar produto:", err.message || err);
-      res.status(500).json({ error: err.message || "Erro ao salvar produto" });
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao salvar produto") });
     }
   };
   app.post("/api/v1/store/products", handleStoreProductsPost);
@@ -2641,7 +2618,7 @@ async function startServer() {
       res.json({ success: true, publicUrl });
     } catch (error: any) {
       console.error("[SERVER] Erro no upload de material:", error);
-      res.status(500).json({ error: error.message || "Erro interno ao subir material" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao subir material") });
     }
   });
 
@@ -2698,7 +2675,7 @@ async function startServer() {
       res.json({ success: true, publicUrl });
     } catch (error: any) {
       console.error("[SERVER] Erro no upload de banner de evento:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao enviar banner" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar banner") });
     }
   });
 
@@ -2772,7 +2749,7 @@ async function startServer() {
 
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar configurações:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -2869,9 +2846,13 @@ async function startServer() {
       }
 
       const confirmEmail = String((req.body || {}).confirmEmail || "").trim().toLowerCase();
+      const currentPassword = String((req.body || {}).currentPassword || "");
       const email = String(user.email || "").trim().toLowerCase();
       if (!confirmEmail || confirmEmail !== email) {
         return res.status(400).json({ error: "Confirme digitando o mesmo e-mail da conta." });
+      }
+      if (!currentPassword || !(await verifyUserPassword(email, currentPassword))) {
+        return res.status(401).json({ error: "Senha atual incorreta." });
       }
 
       const result = await permanentDeleteZeladorAccount(
@@ -2980,7 +2961,7 @@ async function startServer() {
       res.json({ profiles: augmentedProfiles, subs, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao listar tenants:", error);
-      return res.status(500).json({ error: "Erro ao listar tenants", details: error.message || String(error) });
+      return res.status(500).json({ error: safeErrorMessage(error, "Erro ao listar tenants") });
     }
   });
 
@@ -2995,7 +2976,7 @@ async function startServer() {
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar planos:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3032,7 +3013,7 @@ async function startServer() {
       res.json({ success: true, plans });
     } catch (error: any) {
       console.error("[SERVER] Erro ao salvar planos:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3169,7 +3150,7 @@ async function startServer() {
       res.json({ success: true, message: "Comando enviado com sucesso" });
     } catch (error: any) {
       console.error("[SERVER] Erro ao gerenciar tenant:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3278,7 +3259,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in GET /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3348,7 +3329,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in PUT /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3406,7 +3387,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Unexpected error in DELETE /api/children/:id:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3458,7 +3439,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao buscar filhos:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3500,8 +3481,6 @@ async function startServer() {
       if (dataToInsert.data_entrada === '') dataToInsert.data_entrada = null;
       if (childData.id && childData.id !== '') dataToInsert.id = childData.id;
       
-      console.log(`[SERVER] Inserting child data:`, dataToInsert);
-
       const { data, error } = await supabaseAdmin
         .from('filhos_de_santo')
         .insert([dataToInsert])
@@ -3532,7 +3511,7 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Erro ao adicionar filho:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -3669,7 +3648,7 @@ async function startServer() {
       res.json({ success: true, data, whatsapp });
     } catch (error: any) {
       console.error("[SERVER] Error creating event:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -3725,7 +3704,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Error deleting event:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -3767,7 +3746,7 @@ async function startServer() {
         return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
       }
 
-      const zeladorId = authUserIdFromToken(user, token);
+      const zeladorId = authenticatedUserId(user);
       if (!zeladorId) {
         return res.status(401).json({ error: "Sessão inválida (id do usuário ausente)." });
       }
@@ -3876,7 +3855,7 @@ async function startServer() {
       res.json({ data: inserted, whatsapp: whatsappDispatch });
     } catch (error: any) {
       console.error("[SERVER] Error creating notice:", error.message || error);
-      res.status(500).json({ error: error.message || "Erro ao publicar aviso" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao publicar aviso") });
     }
   });
 
@@ -3914,7 +3893,7 @@ async function startServer() {
       const token = authHeader.replace("Bearer ", "");
       const { user, error: authError } = await verifyUser(token);
       if (authError || !user) return res.status(401).json({ error: "Sessão inválida" });
-      const zeladorId = authUserIdFromToken(user, token);
+      const zeladorId = authenticatedUserId(user);
       if (!zeladorId) return res.status(401).json({ error: "Sessão inválida (id do usuário ausente)." });
 
       const { data: notice, error: nErr } = await supabaseAdmin
@@ -3933,7 +3912,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] DELETE /api/notices/:id:", error?.message || error);
-      res.status(500).json({ error: error.message || "Erro ao excluir aviso" });
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir aviso") });
     }
   });
 
@@ -3953,7 +3932,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching inventory:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -3996,7 +3975,7 @@ async function startServer() {
       res.status(201).json({ success: true, data });
     } catch (error: any) {
       console.error("[SERVER] Error creating inventory item:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4082,7 +4061,7 @@ async function startServer() {
       res.json({ data: filtered });
     } catch (error: any) {
       console.error("[SERVER] Error fetching transactions:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4173,7 +4152,7 @@ async function startServer() {
       return res.status(500).json({ error: String(delErr?.message || delErr) });
     } catch (error: any) {
       console.error("[SERVER] /api/transactions DELETE:", error?.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4181,19 +4160,20 @@ async function startServer() {
   app.get("/api/library", async (req, res) => {
     const { tenantId } = req.query;
     try {
+      const access = await requireTenantReadAccess(supabaseAdmin, req, res, tenantId, {
+        allowMissingTenant: true,
+      });
+      if (!access) return;
+
       let query = supabaseAdmin.from('biblioteca').select('*').order('created_at', { ascending: false });
-      if (tenantId) {
-        // Tentamos buscar por tenant_id ou lider_id (se não existir lider_id, ignora para não dar erro)
-        // Como library só usa tenant_id oficialmente, eq direto
-        query = query.eq('tenant_id', tenantId);
-      }
+      query = query.eq('tenant_id', access.tenantId);
       
       const { data, error } = await query;
       if (error) throw error;
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching library:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4201,9 +4181,13 @@ async function startServer() {
   app.get("/api/notifications", async (req, res) => {
     const { tenantId, tipo, lida, limit } = req.query;
     try {
+      const access = await requireTenantReadAccess(supabaseAdmin, req, res, tenantId, {
+        allowMissingTenant: true,
+      });
+      if (!access) return;
+
       let query = supabaseAdmin.from('notificacoes').select('*').order('created_at', { ascending: false });
-      
-      if (tenantId) query = query.eq('tenant_id', tenantId);
+      query = query.eq('tenant_id', access.tenantId);
       if (tipo) query = query.eq('tipo', tipo);
       if (lida !== undefined) query = query.eq('lida', lida === 'true');
       if (limit) query = query.limit(Number(limit));
@@ -4213,7 +4197,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching notifications:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4223,10 +4207,20 @@ async function startServer() {
 
   app.post("/api/push-subscribe", async (req, res) => {
     try {
-      const { subscription, userId, tenantId } = req.body;
-      if (!subscription || !userId) {
-        return res.status(400).json({ error: "Missing subscription or userId" });
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const { subscription: rawSubscription, tenantId } = req.body || {};
+      const subscription = normalizePushSubscription(rawSubscription);
+      if (!subscription) {
+        return res.status(400).json({ error: "Inscrição push inválida" });
       }
+
+      const access = await requireTenantReadAccess(supabaseAdmin, req, res, tenantId, {
+        allowMissingTenant: true,
+      });
+      if (!access) return;
+      const userId = user.id;
 
       // Fetch user metadata first
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
@@ -4261,7 +4255,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Error in push-subscribe:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4288,12 +4282,15 @@ async function startServer() {
       res.json({ success: true, sentCount });
     } catch (error: any) {
       console.error("[SERVER] Error in push-broadcast:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
   app.post("/api/push-direct", async (req, res) => {
     try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
       const { childId, title, body, url } = req.body;
       
       if (!childId) {
@@ -4303,7 +4300,7 @@ async function startServer() {
       // Find the specific user_id representing this child
       const { data: child, error: childError } = await supabaseAdmin
         .from('filhos_de_santo')
-        .select('user_id')
+        .select('user_id, tenant_id, lider_id')
         .eq('id', childId)
         .single();
         
@@ -4312,6 +4309,12 @@ async function startServer() {
       if (!child.user_id) {
         return res.json({ success: false, message: "Filho doesn't have an associated user account" });
       }
+
+      const childTenant = String(child.tenant_id || child.lider_id || "");
+      const allowed = childTenant
+        ? await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, childTenant)
+        : false;
+      if (!allowed) return res.status(403).json({ error: "Acesso negado" });
       
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(child.user_id);
       if (userError) throw userError;
@@ -4331,7 +4334,7 @@ async function startServer() {
       res.json({ success: true, sentCount });
     } catch (error: any) {
       console.error("[SERVER] Error in push-direct:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4354,7 +4357,7 @@ async function startServer() {
       res.json({ data });
     } catch (error: any) {
       console.error("[SERVER] Error fetching event guests:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4373,7 +4376,7 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       console.error("[SERVER] Error updating event guest status:", error.message || error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
     }
   });
 
@@ -4450,7 +4453,7 @@ async function startServer() {
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: safeErrorMessage(error) });
     }
   });
 
@@ -4496,12 +4499,7 @@ async function startServer() {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
 
     if (isMetaCloudWebhookPayload(body)) {
-      const raw =
-        typeof req.body === "string"
-          ? req.body
-          : typeof (req as { rawBody?: string }).rawBody === "string"
-            ? (req as unknown as { rawBody: string }).rawBody
-            : JSON.stringify(body);
+      const raw = rawBodyForSignature(req, body);
       if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
         return res.status(401).json({ error: "Assinatura Meta inválida." });
       }

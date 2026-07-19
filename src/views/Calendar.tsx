@@ -781,9 +781,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       try {
         const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&scope=calendar`;
         const response = await authFetch(url);
-        // #region agent log
-        fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f205b9'},body:JSON.stringify({sessionId:'f205b9',location:'Calendar.tsx:fetchEvents:gestor',message:'events fetch response',data:{status:response.status,ok:response.ok,url,role:'gestor'},timestamp:Date.now(),hypothesisId:'H1-H2',runId:'post-fix'})}).catch(()=>{});
-        // #endregion
         if (!response.ok) {
           const body = await response.text().catch(() => '');
           throw new Error(`Failed to fetch events (${response.status}): ${body}`);
@@ -820,9 +817,6 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     try {
       const url = `/api/events?tenantId=${encodeURIComponent(effectiveTenantId)}&start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(rangeEnd, 'yyyy-MM-dd')}&scope=calendar`;
       const response = await authFetch(url);
-      // #region agent log
-      fetch('http://127.0.0.1:7309/ingest/95de0aad-8532-45db-9a8e-839f8db87925',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f205b9'},body:JSON.stringify({sessionId:'f205b9',location:'Calendar.tsx:fetchEvents:filho',message:'events fetch response',data:{status:response.status,ok:response.ok,url,role:'filho'},timestamp:Date.now(),hypothesisId:'H1-H2',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         throw new Error(`Failed to fetch events (${response.status}): ${body}`);
