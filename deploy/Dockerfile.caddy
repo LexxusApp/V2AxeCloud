@@ -2,8 +2,7 @@ FROM caddy:2-builder AS builder
 RUN xcaddy build \
     --with github.com/mholt/caddy-ratelimit@5625512f24f6f59d6f64fb3aafe5eecff0b286db \
     --with github.com/hslatman/caddy-crowdsec-bouncer/http@8814a3118b7308319edd647844d0acf2d7d2443a \
-    --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@8814a3118b7308319edd647844d0acf2d7d2443a \
-    --replace github.com/crowdsecurity/crowdsec=github.com/crowdsecurity/crowdsec@v1.7.8
+    --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@8814a3118b7308319edd647844d0acf2d7d2443a
 
 FROM caddy:2-alpine
 RUN apk upgrade --no-cache
