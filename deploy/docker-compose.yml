@@ -142,6 +142,12 @@ services:
       - crowdsec_data:/var/lib/crowdsec/data
       - /var/log/caddy:/var/log/caddy:ro
       - ./crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "cscli lapi status >/dev/null 2>&1 && nc -z 127.0.0.1 7422"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - web
 
@@ -164,7 +170,7 @@ services:
       - /var/log/caddy:/var/log/caddy
     depends_on:
       crowdsec:
-        condition: service_started
+        condition: service_healthy
       app:
         condition: service_healthy
       marketing:
