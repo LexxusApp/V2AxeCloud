@@ -45,7 +45,7 @@ axecloud.com.br, www.axecloud.com.br {
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(self), geolocation=(self)"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev; frame-src 'self' https://*.efi.com.br https://*.gerencianet.com.br; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://*.efi.com.br https://*.gerencianet.com.br; upgrade-insecure-requests"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.backblazeb2.com https://s3.us-east-005.backblazeb2.com https://*.s3.us-east-005.backblazeb2.com; frame-src 'self' https://*.efi.com.br https://*.gerencianet.com.br; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://*.efi.com.br https://*.gerencianet.com.br; upgrade-insecure-requests"
 		-Server
 	}
 
@@ -133,6 +133,20 @@ axecloud.com.br, www.axecloud.com.br {
 				zone api_general {
 					key {client_ip}
 					events 300
+					window 1m
+				}
+			}
+			import app_upstream
+		}
+
+		# Meta Cloud API (número oficial) — callback na Meta é /webhook/meta.
+		# Vai para o app (Caixa WA); demais /webhook/* seguem na Evolution.
+		@meta_cloud_webhook path /webhook/meta /webhook/meta/
+		handle @meta_cloud_webhook {
+			rate_limit {
+				zone meta_cloud_webhook {
+					key {client_ip}
+					events 120
 					window 1m
 				}
 			}
