@@ -2,9 +2,24 @@ import type { Express, Request, Response } from "express";
 import { GetObjectCommand, type S3Client } from "@aws-sdk/client-s3";
 import { apiReadRateLimit } from "./rateLimit.js";
 
-/** Apenas banners de eventos — pasta pública opt-in via portal. */
-const PUBLIC_EVENT_BANNER_KEY_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/event_banners\/.+/i;
+const UUID_RE =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+
+/** Banners de eventos (portal) e mídia publicada da galeria — sem chat/privado. */
+const PUBLIC_MEDIA_KEY_RE = new RegExp(
+  `^(?:${UUID_RE}/event_banners/.+|${UUID_RE}/${UUID_RE}/.+)$`,
+  "i",
+);
+
+export function isPublicMediaStorageKey(key: string): boolean {
+  const normalized = String(key || "")
+    .replace(/\\/g, "/")
+    .trim();
+  if (!normalized || normalized.includes("..") || normalized.startsWith("chat/")) {
+    return false;
+  }
+  return PUBLIC_MEDIA_KEY_RE.test(normalized);
+}
 
 export function resolvePublicSiteOrigin(): string {
   const fromEnv = [process.env.APP_PUBLIC_URL, process.env.PUBLIC_APP_URL, process.env.VITE_APP_URL]
@@ -18,15 +33,18 @@ export function buildR2MediaProxyUrl(storageKey: string, absolute = false): stri
   return absolute ? `${resolvePublicSiteOrigin()}${path}` : path;
 }
 
-/** Extrai a storage key R2 a partir de URL S3 (cloudflarestorage) ou CDN público configurado. */
+/** Extrai a storage key a partir de URL S3 (R2/B2) ou CDN público configurado. */
 export function extractR2StorageKeyFromUrl(url: string): string | null {
   const raw = String(url || "").trim();
   if (!raw) return null;
 
   try {
     const parsed = new URL(raw);
-    if (parsed.hostname.includes(".r2.cloudflarestorage.com")) {
-      const parts = parsed.pathname.replace(/^\/+/, "").split("/");
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.replace(/^\/+/, "");
+
+    if (host.includes(".r2.cloudflarestorage.com")) {
+      const parts = path.split("/");
       if (parts.length >= 2) {
         parts.shift();
         const key = parts.join("/");
@@ -34,10 +52,29 @@ export function extractR2StorageKeyFromUrl(url: string): string | null {
       }
     }
 
+    // B2 virtual-hosted: bucket.s3.<region>.backblazeb2.com/<key>
+    if (host.includes(".backblazeb2.com") && host.includes(".s3.")) {
+      return path || null;
+    }
+
+    // B2 path-style: s3.<region>.backblazeb2.com/<bucket>/<key>
+    if (/^s3\.[a-z0-9-]+\.backblazeb2\.com$/i.test(host)) {
+      const parts = path.split("/");
+      if (parts.length >= 2) {
+        parts.shift();
+        return parts.join("/") || null;
+      }
+    }
+
     const r2Base = String(process.env.R2_PUBLIC_BASE_URL || "")
       .trim()
       .replace(/\/+$/, "");
-    if (r2Base && !r2Base.includes(".r2.cloudflarestorage.com") && raw.startsWith(`${r2Base}/`)) {
+    if (
+      r2Base &&
+      !r2Base.includes(".r2.cloudflarestorage.com") &&
+      !r2Base.includes(".backblazeb2.com") &&
+      raw.startsWith(`${r2Base}/`)
+    ) {
       return raw.slice(r2Base.length + 1) || null;
     }
   } catch {
@@ -47,7 +84,7 @@ export function extractR2StorageKeyFromUrl(url: string): string | null {
   return null;
 }
 
-/** URLs do endpoint S3 R2 não são públicas — reescreve para o proxy do app. */
+/** URLs do endpoint S3 privado não são públicas — reescreve para o proxy do app. */
 export function resolvePublicMediaUrl(
   url: string | null | undefined,
   options?: { absolute?: boolean }
@@ -56,7 +93,10 @@ export function resolvePublicMediaUrl(
   if (!raw) return null;
 
   const key = extractR2StorageKeyFromUrl(raw);
-  if (key && raw.includes(".r2.cloudflarestorage.com")) {
+  if (
+    key &&
+    (raw.includes(".r2.cloudflarestorage.com") || raw.includes(".backblazeb2.com"))
+  ) {
     return buildR2MediaProxyUrl(key, options?.absolute === true);
   }
 
@@ -84,7 +124,7 @@ export function registerPublicMediaRoutes(app: Express, deps: PublicMediaDeps): 
       .replace(/\\/g, "/")
       .trim();
 
-    if (!key || !PUBLIC_EVENT_BANNER_KEY_RE.test(key)) {
+    if (!isPublicMediaStorageKey(key)) {
       return res.status(400).json({ error: "Chave de mídia inválida." });
     }
 
