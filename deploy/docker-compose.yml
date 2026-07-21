@@ -69,22 +69,38 @@ services:
       start_period: 20s
     networks:
       - web
+      - evolution_internal
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
     networks:
-      - web
+      - evolution_internal
 
   evolution-db:
     image: postgres:16-alpine
     restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     environment:
       POSTGRES_USER: evolution
       POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD}
@@ -97,12 +113,18 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - web
+      - evolution_internal
 
   evolution:
     # atendai/evolution-api parou em v2.2.3; imagem oficial atual: evoapicloud (QR/pairing corrigidos)
     image: evoapicloud/evolution-api:v2.3.7
     restart: unless-stopped
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
     env_file: ../.env
     environment:
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
@@ -130,11 +152,15 @@ services:
       evolution-db:
         condition: service_healthy
     networks:
-      - web
+      - evolution_internal
 
   crowdsec:
     image: crowdsecurity/crowdsec:v1.7.8
     restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     environment:
       COLLECTIONS: "crowdsecurity/caddy crowdsecurity/linux crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"
     volumes:
@@ -182,6 +208,8 @@ services:
 
 networks:
   web:
+  evolution_internal:
+    internal: true
 
 volumes:
   evolution_pg:
@@ -190,3 +218,4 @@ volumes:
   caddy_config:
   crowdsec_config:
   crowdsec_data:
+  redis_data:
