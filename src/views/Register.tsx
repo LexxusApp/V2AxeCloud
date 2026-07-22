@@ -13,6 +13,7 @@ import {
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { appHref } from '../lib/appHref';
+import { navigateToMarketingDocument } from '../lib/purgeServiceWorker';
 import { ROUTES } from '../lib/routes';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { TRIAL_DAYS } from '../../lib/planPricing';
@@ -136,6 +137,10 @@ export default function Register() {
         <motion.div className="relative z-10 flex flex-col p-6 sm:p-8 lg:flex-1 lg:p-10">
           <a
             href={ROUTES.home}
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateToMarketingDocument(ROUTES.home);
+            }}
             className="inline-flex w-fit items-center gap-1.5 text-[12px] font-medium text-white/70 transition hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -190,6 +195,10 @@ export default function Register() {
         >
           <a
             href={ROUTES.home}
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateToMarketingDocument(ROUTES.home);
+            }}
             className="mb-4 inline-flex w-fit items-center gap-1.5 text-[12px] font-medium text-zinc-500 transition hover:text-zinc-800 lg:hidden"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

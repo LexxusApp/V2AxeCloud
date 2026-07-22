@@ -29,3 +29,20 @@ export async function purgeLegacyAppServiceWorker(): Promise<void> {
     });
   }
 }
+
+/**
+ * Abre uma pagina servida pelo site de marketing sem permitir que um service
+ * worker antigo do app devolva a landing React que ficou no cache.
+ */
+export async function navigateToMarketingDocument(path = '/'): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const target = new URL(path, window.location.origin);
+  if (target.origin !== window.location.origin) {
+    window.location.assign(target.href);
+    return;
+  }
+
+  await purgeLegacyAppServiceWorker();
+  window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+}

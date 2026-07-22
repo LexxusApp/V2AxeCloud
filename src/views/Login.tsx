@@ -18,6 +18,7 @@ import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { resolveTenantFromSupabase } from '../lib/resolveTenantFromSupabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { ROUTES } from '../lib/routes';
+import { navigateToMarketingDocument } from '../lib/purgeServiceWorker';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
 import { isValidFilhoLoginId } from '../../lib/filhoMatricula';
 
@@ -341,6 +342,10 @@ export default function Login() {
 
       <a
         href={ROUTES.home}
+        onClick={(event) => {
+          event.preventDefault();
+          void navigateToMarketingDocument(ROUTES.home);
+        }}
         className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.25rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 text-xs font-semibold text-[#1b1813]/60 transition-colors hover:text-[#a87500]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
