@@ -1,7 +1,6 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  DIRETORIO_SEO_TEMPLATE_LASTMOD,
   STATIC_SITEMAP_PATHS,
   buildCityPrerenderPage,
   buildMinimalSeoHtmlDocument,
@@ -23,15 +22,15 @@ const TABLE = "terreiros_diretorio";
 const SELECT =
   "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, tipo";
 
-function sitemapLastModified(rawModified: string): string {
+function sitemapLastModified(rawModified: string): string | undefined {
   if (!rawModified || Number.isNaN(new Date(rawModified).getTime())) {
-    return DIRETORIO_SEO_TEMPLATE_LASTMOD;
+    return undefined;
   }
 
-  const recordDate = new Date(rawModified).toISOString().slice(0, 10);
-  return recordDate > DIRETORIO_SEO_TEMPLATE_LASTMOD
-    ? recordDate
-    : DIRETORIO_SEO_TEMPLATE_LASTMOD;
+  // O Google recomenda que <lastmod> represente uma alteracao verificavel da
+  // URL. Usar a data de um template como piso marcava milhares de registros
+  // antigos com o mesmo dia e transformava o sinal em uma data artificial.
+  return new Date(rawModified).toISOString().slice(0, 10);
 }
 
 function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
