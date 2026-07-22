@@ -50,7 +50,17 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const startedTracked = useRef(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  const passwordRules = [
+    { label: '8+ caracteres', valid: password.length >= 8 },
+    { label: 'uma minúscula', valid: /[a-z]/.test(password) },
+    { label: 'uma maiúscula', valid: /[A-Z]/.test(password) },
+    { label: 'um número', valid: /\d/.test(password) },
+    { label: 'um símbolo', valid: /[^A-Za-z0-9]/.test(password) },
+  ] as const;
 
   useEffect(() => {
     void trackConversionEvent('register_view');
@@ -75,12 +85,23 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setPasswordError(null);
+
+    const passwordCheck = validateStrongPassword(password);
+    if (passwordCheck.ok === false) {
+      const message = `Revise a senha: ${passwordCheck.message}`;
+      setError(message);
+      setPasswordError(passwordCheck.message);
+      passwordRef.current?.focus();
+      void trackConversionEvent('register_failed', {
+        metadata: { reason: 'password_policy' },
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const passwordCheck = validateStrongPassword(password);
-      if (passwordCheck.ok === false) throw new Error(passwordCheck.message);
-
       const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,14 +311,24 @@ export default function Register() {
                 <label className={labelClass}>Senha</label>
                 <motion.div className="relative">
                   <input
+                    ref={passwordRef}
                     type={showPassword ? 'text' : 'password'}
-                    className={cn(fieldShell, 'pr-11')}
+                    className={cn(
+                      fieldShell,
+                      'pr-11',
+                      passwordError && 'border-red-500 focus:border-red-600 focus:ring-red-500/20'
+                    )}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError(null);
+                    }}
                     placeholder="Senha forte"
                     required
                     minLength={8}
                     autoComplete="new-password"
+                    aria-invalid={Boolean(passwordError)}
+                    aria-describedby="register-password-rules register-password-error"
                   />
                   <button
                     type="button"
@@ -308,7 +339,39 @@ export default function Register() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </motion.div>
-                <p className="mt-1.5 text-[10px] leading-relaxed text-zinc-600">{PASSWORD_HINT_PT}</p>
+                <div
+                  id="register-password-rules"
+                  className="mt-2 flex flex-wrap gap-x-3 gap-y-1"
+                  aria-label={PASSWORD_HINT_PT}
+                >
+                  {passwordRules.map((rule) => (
+                    <span
+                      key={rule.label}
+                      className={cn(
+                        'inline-flex items-center gap-1 text-[10px] font-medium',
+                        rule.valid ? 'text-emerald-700' : 'text-zinc-500'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-3 w-3 items-center justify-center rounded-full border',
+                          rule.valid
+                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                            : 'border-zinc-400 bg-white'
+                        )}
+                        aria-hidden
+                      >
+                        {rule.valid ? <Check className="h-2 w-2" strokeWidth={3} /> : null}
+                      </span>
+                      {rule.label}
+                    </span>
+                  ))}
+                </div>
+                {passwordError ? (
+                  <p id="register-password-error" className="mt-1.5 text-[11px] font-semibold text-red-700">
+                    {passwordError}
+                  </p>
+                ) : null}
               </motion.div>
             </motion.div>
 
