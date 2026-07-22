@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Terreiros | AxéCloud para Umbanda e Candomblé</title>
+  <meta name="description" content="Gestão para terreiros de Umbanda, Candomblé e Jurema: financeiro, filhos de santo, giras, WhatsApp, portal e 100 GB para fotos e vídeos." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="https://axecloud.com.br/" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#f5f0e6" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:site_name" content="AxéCloud" />
+  <meta property="og:title" content="Gestão de Terreiros | AxéCloud" />
+  <meta property="og:description" content="Organize sua casa de axé sem perder o respeito ao sagrado." />
+  <meta property="og:url" content="https://axecloud.com.br/" />
+  <meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+  <meta property="og:image:alt" content="AxéCloud — gestão de terreiros" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="https://axecloud.com.br/og-image.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles-claro.css" />
+  <noscript><style>#preloader{display:none!important}[data-reveal]{opacity:1!important;transform:none!important}</style></noscript>
+  <script>window.axeCinematicAssetError=function(){document.documentElement.classList.add("cinematic-fallback");var el=document.getElementById("preloader");if(el)el.style.display="none"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://axecloud.com.br/#organization","name":"AxéCloud","url":"https://axecloud.com.br/"},{"@type":"SoftwareApplication","name":"AxéCloud","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://axecloud.com.br/","description":"Software de gestão para terreiros de Umbanda, Candomblé e Jurema.","offers":{"@type":"Offer","price":"69.90","priceCurrency":"BRL"}}]}</script>
+</head>
+<body class="tema-claro">
+
+  <!-- ══════════ PRELOADER — A FIRMEZA ══════════ -->
+  <div id="preloader" aria-hidden="true">
+    <div class="firmeza">
+      <div class="vela">
+        <div class="chama"></div>
+        <div class="pavio"></div>
+        <div class="corpo-vela"></div>
+      </div>
+      <p class="firmeza-texto">Pedindo licença para entrar<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+      <div class="firmeza-barra"><div class="firmeza-progresso"></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ AMBIENTE ══════════ -->
+  <canvas id="embers" aria-hidden="true"></canvas>
+  <div class="clarao-fogueira" aria-hidden="true"></div>
+  <div class="luz-ambiente" aria-hidden="true"></div>
+  <div class="fumaca fumaca-a" aria-hidden="true"></div>
+  <div class="fumaca fumaca-b" aria-hidden="true"></div>
+  <div class="fumaca fumaca-c" aria-hidden="true"></div>
+  <div id="pontos-fumaca" aria-hidden="true"></div>
+  <div class="vinheta" aria-hidden="true"></div>
+  <div id="cursor-vagalume" aria-hidden="true"></div>
+
+  <!-- Fio de contas — progresso do scroll -->
+  <div class="fio-de-contas" aria-hidden="true">
+    <div class="fio-linha"></div>
+    <div class="fio-preenchido"></div>
+    <div class="contas">
+      <span class="conta" data-alvo="#hero"></span>
+      <span class="conta" data-alvo="#fundamento"></span>
+      <span class="conta" data-alvo="#gira"></span>
+      <span class="conta" data-alvo="#axe-vivo"></span>
+      <span class="conta" data-alvo="#quem-somos"></span>
+      <span class="conta" data-alvo="#galeria-100gb"></span>
+      <span class="conta" data-alvo="#planos"></span>
+      <span class="conta" data-alvo="#faq"></span>
+      <span class="conta" data-alvo="#chamado"></span>
+    </div>
+  </div>
+
+  <!-- ══════════ NAV ══════════ -->
+  <nav class="navegacao">
+    <a class="marca" href="#hero">
+      <svg class="marca-ponto" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M20 5 L20 35 M5 20 L35 20 M9.4 9.4 L30.6 30.6 M30.6 9.4 L9.4 30.6" stroke="currentColor" stroke-width="1" fill="none"/>
+        <circle cx="20" cy="20" r="4.5" fill="currentColor"/>
+      </svg>
+      <span>Axé<em>Cloud</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="/terreiros">Terreiros</a>
+      <a href="/eventos">Eventos</a>
+      <a href="/conteudo">Conteúdo</a>
+      <a href="/por-que-axecloud">Por quê?</a>
+      <a href="#planos">Planos</a>
+    </div>
+    <div class="nav-acoes">
+      <a class="btn-entrar" href="/entrar">Entrar</a>
+      <a class="btn btn-ouro btn-nav" href="/register">Abrir minha casa</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ══════════ HERO — O PORTÃO ══════════ -->
+    <section id="hero" class="hero">
+      <div class="ponto-riscado-wrap" aria-hidden="true">
+        <svg id="ponto-riscado" viewBox="0 0 600 600" fill="none">
+          <circle class="pr-traco" cx="300" cy="300" r="270" />
+          <circle class="pr-traco" cx="300" cy="300" r="228" />
+          <circle class="pr-traco pr-fino" cx="300" cy="300" r="180" />
+          <!-- estrela de sete pontas — as sete linhas -->
+          <g class="pr-estrela">
+            <path class="pr-traco" d="M300 78 L397 468 L102 227 L498 227 L203 468 Z"/>
+            <path class="pr-traco pr-fino" d="M300 522 L300 78"/>
+          </g>
+          <!-- flechas cruzadas -->
+          <g class="pr-flechas">
+            <path class="pr-traco pr-fino" d="M150 450 L450 150 M420 150 L450 150 L450 180 M150 420 L150 450 L180 450"/>
+            <path class="pr-traco pr-fino" d="M150 150 L450 450 M150 180 L150 150 L180 150 M420 450 L450 450 L450 420"/>
+          </g>
+          <!-- ondas de calunga -->
+          <path class="pr-traco pr-fino" d="M180 560 Q210 540 240 560 T300 560 T360 560 T420 560"/>
+          <!-- estrelas-guia -->
+          <g class="pr-astros">
+            <path class="pr-traco pr-fino" d="M300 22 L306 40 L324 40 L310 51 L316 69 L300 58 L284 69 L290 51 L276 40 L294 40 Z"/>
+            <circle class="pr-traco pr-fino" cx="80" cy="300" r="14"/>
+            <circle class="pr-traco pr-fino" cx="520" cy="300" r="14"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="hero-conteudo">
+        <p class="hero-saudacao reveal-linha"><span>Kolofé · Mukuiu · Motumbá — a porteira está aberta.</span></p>
+        <h1 class="hero-titulo">
+          <span class="sr-only">Gestão de terreiros — AxéCloud</span>
+          <span class="letra">A</span><span class="letra">x</span><span class="letra">é</span><span class="letra letra-nuvem">C</span><span class="letra">l</span><span class="letra">o</span><span class="letra">u</span><span class="letra">d</span>
+        </h1>
+        <p class="hero-sub reveal-linha"><span>Gestão de terreiros criada com vivência e respeito à casa de axé.</span></p>
+        <p class="hero-sub2 reveal-linha"><span>Umbanda &amp; Candomblé — filhos de santo, giras, mensalidades, almoxarifado e o portal da sua casa. Tudo num só fundamento.</span></p>
+        <div class="hero-ctas">
+          <a class="btn btn-ouro" href="/register">Firmar minha casa — teste grátis por 30 dias</a>
+          <a
+            class="btn btn-vidro"
+            href="https://wa.me/5511912276156?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud."
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Falar com o comercial do AxéCloud pelo WhatsApp"
+          >Falar com o comercial ↗</a>
+        </div>
+      </div>
+
+      <div class="hero-scroll-dica" aria-hidden="true">
+        <span class="dica-texto">role para saravá</span>
+        <span class="dica-batida"></span>
+      </div>
+    </section>
+
+    <!-- ══════════ FUNDAMENTO — MANIFESTO ══════════ -->
+    <section id="fundamento" class="fundamento">
+      <div class="fundamento-linhas">
+        <h2 class="linha-grande" data-reveal>Tecnologia que <em>pede licença</em>.</h2>
+        <h2 class="linha-grande" data-reveal>Que respeita o <em>silêncio do congá</em>,</h2>
+        <h2 class="linha-grande" data-reveal>guarda o <em>segredo da casa</em></h2>
+        <h2 class="linha-grande" data-reveal>e cuida do povo do <em>axé</em>.</h2>
+      </div>
+      <p class="fundamento-nota" data-reveal>Dados privados da sua casa não são publicados sem autorização. Privacidade, respeito litúrgico e conexão consistente — os três fundamentos do AxéCloud.</p>
+    </section>
+
+    <!-- ══════════ MÓDULOS — congá interativo (lista + painel) ══════════ -->
+    <section id="gira" class="gira">
+      <div class="gira-cabecalho">
+        <span class="selo-secao" data-reveal>✦ a gira</span>
+        <h2 class="titulo-secao" data-reveal>Cada ponto da casa, <em>um ponto do sistema</em></h2>
+        <p class="sub-secao" data-reveal>Quatorze módulos — toque um nome à esquerda e o fundamento aparece à direita.</p>
+      </div>
+      <div class="conga-modulos" id="conga-modulos" data-reveal>
+        <ol class="conga-lista" id="conga-lista" aria-label="Lista de módulos"></ol>
+        <article class="conga-painel" id="conga-painel" aria-live="polite">
+          <span class="conga-num" id="conga-num">01</span>
+          <div class="conga-simbolo" id="conga-simbolo"></div>
+          <h3 id="conga-nome"></h3>
+          <p id="conga-desc"></p>
+          <span class="conga-tag" id="conga-tag"></span>
+          <div class="conga-nav">
+            <button type="button" id="conga-prev" aria-label="Módulo anterior">←</button>
+            <button type="button" id="conga-next" aria-label="Próximo módulo">→</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ══════════ AXÉ VIVO — NÚMEROS REAIS ══════════ -->
+    <section id="axe-vivo" class="axe-vivo">
+      <span class="selo-secao" data-reveal>✦ axé vivo · dados reais do sistema</span>
+      <h2 class="titulo-secao" data-reveal>A corrente <em>já está formada</em></h2>
+      <div class="vivo-grade" id="vivo-grade">
+        <div class="vivo-item" data-reveal>
+          <span class="vivo-numero" id="num-terreiros" data-contar="0">—</span>
+          <span class="vivo-rotulo">terreiros no portal público</span>
+        </div>
+        <div class="vivo-item" data-reveal>
+          <span class="vivo-numero" id="num-cidades" data-contar="0">—</span>
+          <span class="vivo-rotulo">cidades com casas de axé</span>
+        </div>
+        <div class="vivo-item" data-reveal>
+          <span class="vivo-numero" id="num-eventos" data-contar="0">—</span>
+          <span class="vivo-rotulo">giras e festas abertas ao público</span>
+        </div>
+        <div class="vivo-item" data-reveal>
+          <span class="vivo-numero">100<small>GB</small></span>
+          <span class="vivo-rotulo">de memória para a história da casa</span>
+        </div>
+      </div>
+      <p class="vivo-fonte" data-reveal id="fonte-dados">consultando o sistema…</p>
+    </section>
+
+    <!-- ══════════ EVENTOS PÚBLICOS ══════════ -->
+    <section id="eventos" class="eventos">
+      <span class="selo-secao" data-reveal>✦ calendário da corrente</span>
+      <h2 class="titulo-secao" data-reveal>Próximas <em>giras e festas</em></h2>
+      <div class="eventos-lista" id="eventos-lista">
+        <div class="carregando"><span class="chama-mini"></span> consultando o calendário…</div>
+      </div>
+    </section>
+
+    <!-- ══════════ DEPOIMENTOS ══════════ -->
+    <section id="vozes" class="vozes">
+      <span class="selo-secao" data-reveal>✦ vozes da corrente</span>
+      <h2 class="titulo-secao" data-reveal>Quem cuida de terreiro, <em>recomenda</em></h2>
+      <div class="vozes-trilho" id="vozes-trilho"><!-- via JS --></div>
+    </section>
+
+    <!-- ══════════ QUEM ESTÁ POR TRÁS ══════════ -->
+    <section id="quem-somos" class="quem-somos" aria-labelledby="quem-titulo">
+      <div class="quem-grade">
+        <article class="quem-historia" data-reveal>
+          <span class="quem-selo">Quem está por trás</span>
+          <h2 class="titulo-secao" id="quem-titulo">Tecnologia brasileira para a rotina real das casas de axé</h2>
+          <p>
+            O AxéCloud começou com uma pergunta simples: como organizar financeiro, comunicação e memória da casa
+            sem tratar o sagrado como uma planilha comum? A plataforma é construída com escuta, respeito e melhoria
+            contínua ao lado de terreiros parceiros.
+          </p>
+          <ul class="quem-pilares">
+            <li>
+              <span class="quem-ico" aria-hidden="true">◈</span>
+              <span>Dados de cada casa separados e protegidos.</span>
+            </li>
+            <li>
+              <span class="quem-ico" aria-hidden="true">♡</span>
+              <span>Decisões de produto guiadas por necessidades reais.</span>
+            </li>
+            <li>
+              <span class="quem-ico" aria-hidden="true">⌂</span>
+              <span>Empresa brasileira, suporte humano e evolução transparente.</span>
+            </li>
+          </ul>
+        </article>
+
+        <aside class="quem-casas" data-reveal>
+          <div class="quem-casas-topo">
+            <div>
+              <span class="selo-secao">✦ casas reais</span>
+              <h3>Casas que <em>constroem conosco</em></h3>
+            </div>
+            <a class="quem-link" href="/terreiros">Ver diretório →</a>
+          </div>
+          <div class="quem-casas-lista" id="quem-casas-lista">
+            <div class="carregando"><span class="chama-mini"></span> pedindo licença às casas…</div>
+          </div>
+          <p class="quem-nota">Depoimentos e destaques só com autorização da casa — sem avaliação inventada.</p>
+          <nav class="quem-atalhos" aria-label="Explorar o portal">
+            <a href="/terreiros">Terreiros no mapa</a>
+            <a href="/eventos">Eventos públicos</a>
+            <a href="/espaco-do-fiel">Pedir reza</a>
+          </nav>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ══════════ MEMÓRIA DA CASA — mural cinematográfico ══════════ -->
+    <section id="galeria-100gb" class="memoria" aria-labelledby="galeria-titulo">
+      <div class="memoria-cabeca">
+        <span class="selo-secao" data-reveal>✦ a memória da casa</span>
+        <h2 class="titulo-secao" id="galeria-titulo" data-reveal>Giras, festas e obrigações <em>num só relicário</em></h2>
+        <p class="sub-secao" data-reveal>Cem gigabytes por terreiro para guardar o que a corrente vive — sem pasta perdida no celular de ninguém.</p>
+      </div>
+
+      <div class="memoria-mural" data-reveal>
+        <figure class="memoria-foto memoria-foto-grande tema-conga">
+          <div class="memoria-cena" aria-hidden="true">
+            <div class="cena-brilho"></div>
+            <div class="cena-velas">
+              <span class="cena-vela"><i></i></span>
+              <span class="cena-vela alta"><i></i></span>
+              <span class="cena-vela"><i></i></span>
+              <span class="cena-vela media"><i></i></span>
+              <span class="cena-vela"><i></i></span>
+            </div>
+            <svg class="cena-ponto" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="28" stroke="currentColor" stroke-width="1.2"/><path d="M40 12 L40 68 M12 40 L68 40 M20 20 L60 60 M60 20 L20 60" stroke="currentColor" stroke-width="0.9"/><circle cx="40" cy="40" r="5" fill="currentColor"/></svg>
+          </div>
+          <figcaption>
+            <span>Festa no congá</span>
+            <small>álbum · velas, flores e a corrente reunida</small>
+          </figcaption>
+        </figure>
+        <figure class="memoria-foto tema-toque">
+          <div class="memoria-cena" aria-hidden="true">
+            <div class="cena-brilho"></div>
+            <svg class="cena-atabaque" viewBox="0 0 64 96" fill="none">
+              <ellipse cx="32" cy="18" rx="22" ry="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M10 18 C10 18 12 78 14 86 C16 92 48 92 50 86 C52 78 54 18 54 18" stroke="currentColor" stroke-width="2"/>
+              <path d="M18 40 H46 M20 56 H44 M22 72 H42" stroke="currentColor" stroke-width="1.4" opacity="0.55"/>
+            </svg>
+            <div class="cena-ondas"><i></i><i></i><i></i></div>
+          </div>
+          <figcaption>
+            <span>Gira de sexta</span>
+            <small>álbum · toque, ponto e firmeza</small>
+          </figcaption>
+        </figure>
+        <figure class="memoria-foto tema-oferenda">
+          <div class="memoria-cena" aria-hidden="true">
+            <div class="cena-brilho"></div>
+            <svg class="cena-oferenda" viewBox="0 0 100 100" fill="none">
+              <path d="M50 18 C38 18 30 30 32 42 C34 52 42 58 50 68 C58 58 66 52 68 42 C70 30 62 18 50 18 Z" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="50" cy="40" r="5" fill="currentColor" opacity="0.35"/>
+              <path d="M22 78 Q50 62 78 78" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M28 86 Q50 72 72 86" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+              <path d="M50 68 L50 88" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+          </div>
+          <figcaption>
+            <span>Obrigação de anos</span>
+            <small>álbum · oferenda, padê e memória</small>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="memoria-rodape" data-reveal>
+        <div class="memoria-selo-gb">
+          <strong>100</strong>
+          <span>GB</span>
+        </div>
+        <div class="memoria-rodape-texto">
+          <h3>Espaço pra história inteira da casa</h3>
+          <p>Álbuns por gira e festa, vídeos longos, acesso só de quem a diretoria autorizar — incluso na mensalidade.</p>
+        </div>
+        <ul class="memoria-pilares">
+          <li>Álbuns por evento</li>
+          <li>Fotos e vídeos juntos</li>
+          <li>Controle da gestão</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ══════════ PLANOS — a oferenda ══════════ -->
+    <section id="planos" class="planos">
+      <span class="selo-secao" data-reveal>✦ a oferenda</span>
+      <h2 class="titulo-secao" data-reveal>Um valor. <em>Todo o AxéCloud.</em></h2>
+      <p class="sub-secao" data-reveal>30 dias grátis, sem cartão. Preço ao vivo do sistema.</p>
+      <div class="oferta" id="planos-grade">
+        <div class="carregando"><span class="chama-mini"></span> abrindo os búzios…</div>
+      </div>
+    </section>
+
+    <!-- ══════════ FAQ — igual ao site atual ══════════ -->
+    <section id="faq" class="faq">
+      <div class="faq-cabeca" data-reveal>
+        <span class="selo-secao">✦ dúvidas frequentes</span>
+        <h2 class="titulo-secao">Perguntas sobre <em>gestão de terreiros</em></h2>
+        <p class="sub-secao">Umbanda, Candomblé, Jurema e casas de axé — tire suas dúvidas sobre o AxéCloud.</p>
+      </div>
+      <div class="faq-lista" id="faq-lista" data-reveal><!-- via JS --></div>
+    </section>
+
+    <!-- ══════════ CHAMADO FINAL ══════════ -->
+    <section id="chamado" class="chamado">
+      <div class="chamado-ponto" aria-hidden="true">
+        <svg viewBox="0 0 400 400" fill="none">
+          <circle class="pr-traco" cx="200" cy="200" r="170"/>
+          <path class="pr-traco pr-fino" d="M200 55 L200 345 M55 200 L345 200"/>
+          <path class="pr-traco pr-fino" d="M200 30 L212 66 L250 66 L220 90 L232 126 L200 104 L168 126 L180 90 L150 66 L188 66 Z"/>
+        </svg>
+      </div>
+      <h2 class="chamado-titulo" data-reveal>Axé<span class="ponto-final">.</span></h2>
+      <p class="chamado-sub" data-reveal>Sua casa merece uma gestão à altura do seu fundamento.</p>
+      <a class="btn btn-ouro btn-grande" data-reveal href="/register">Começar agora — 30 dias grátis</a>
+      <p class="chamado-selos" data-reveal>sem cartão de crédito · dados privados · suporte humano pelo WhatsApp</p>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <link rel="stylesheet" href="/shared-footer.css" />
+  <script src="/vendor/gsap.min.js" onerror="axeCinematicAssetError()"></script>
+  <script src="/vendor/ScrollTrigger.min.js" onerror="axeCinematicAssetError()"></script>
+  <script src="/vendor/lenis.min.js" onerror="axeCinematicAssetError()"></script>
+  <script src="/app.js" onerror="axeCinematicAssetError()"></script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

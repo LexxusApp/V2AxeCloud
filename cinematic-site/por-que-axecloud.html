@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Por que usar o AxéCloud na Gestão do Terreiro?</title>
+<meta name="description" content="Compare formas de organizar um terreiro e conheça os recursos do AxéCloud para financeiro, membros, giras, comunicação e memória da casa." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/por-que-axecloud" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Por que AxéCloud?" /><meta property="og:description" content="Gestão construída para a realidade de uma casa de axé." />
+<meta property="og:url" content="https://axecloud.com.br/por-que-axecloud" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ═══ OS DOIS CAMINHOS — a encruzilhada: caos vs axé ═══ */
+:root {
+  --escuro: #171310;
+  --claro: #fdf8f0;
+  --tinta: #1b1813;
+  --tinta-fraca: #6b6252;
+  --osso: #f5ead3;
+  --osso-fraco: rgba(245, 234, 211, 0.55);
+  --ouro: #ffc107;
+  --ouro-escuro: #b8860b;
+  --cinza: #8d8578;
+  --sim: #4a7c59;
+  --nao: #b3543f;
+  --parcial: #c99a2e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--escuro); color: var(--osso); font-family: "Outfit", sans-serif; overflow-x: hidden; }
+::selection { background: var(--ouro); color: var(--tinta); }
+
+nav { display: flex; align-items: center; justify-content: space-between; padding: 26px 6vw 0; position: relative; z-index: 10; }
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--osso-fraco); text-decoration: none; transition: color 0.3s; }
+.menu a:hover { color: var(--ouro); }
+.menu a.atual { color: var(--ouro); border-bottom: 1px solid var(--ouro); padding-bottom: 3px; }
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--osso); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+
+header { text-align: center; padding: 90px 6vw 60px; position: relative; z-index: 2; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ouro); }
+h1 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(2.4rem, 6.5vw, 4.8rem); margin: 18px 0 14px; }
+h1 em { font-style: italic; color: var(--ouro); }
+.lede { max-width: 560px; margin: 0 auto; color: var(--osso-fraco); font-weight: 300; line-height: 1.7; }
+
+/* ── A ENCRUZILHADA: split screen que se divide no scroll ── */
+.encruzilhada {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 92vh;
+}
+.caminho { padding: 10vh 5vw; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+.caminho-caos { background: #101010; }
+.caminho-caos::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image: repeating-linear-gradient(3deg, transparent 0 22px, rgba(180, 170, 150, 0.5) 22px 23px);
+  transform: rotate(-1.5deg) scale(1.1);
+}
+.caminho-axe { background: linear-gradient(165deg, #1d160b, #171310); border-left: 1px solid rgba(255, 193, 7, 0.25); }
+.caminho-axe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 60% at 50% 30%, rgba(255, 193, 7, 0.09), transparent 70%);
+}
+.caminho-rotulo { font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 20px; }
+.caminho-caos .caminho-rotulo { color: var(--cinza); }
+.caminho-axe .caminho-rotulo { color: var(--ouro); }
+.caminho h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(1.5rem, 3.2vw, 2.4rem); line-height: 1.25; position: relative; }
+.caminho p { margin-top: 18px; font-weight: 300; font-size: 0.95rem; line-height: 1.75; position: relative; }
+.caminho-caos p { color: rgba(220, 212, 195, 0.6); }
+.caminho-axe p { color: var(--osso-fraco); }
+
+/* Papéis soltos caindo no lado do caos */
+.papel-solto {
+  position: absolute;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: rgba(200, 190, 170, 0.4);
+  border: 1px dashed rgba(200, 190, 170, 0.25);
+  padding: 8px 12px;
+  border-radius: 3px;
+  animation: cai-papel 9s linear infinite;
+  white-space: nowrap;
+}
+@keyframes cai-papel {
+  from { transform: translateY(-80px) rotate(-6deg); opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  to { transform: translateY(95vh) rotate(9deg); opacity: 0; }
+}
+/* Firmeza acesa no lado do axé */
+.chama-axe {
+  position: absolute;
+  bottom: 40px;
+  right: 5vw;
+  width: 14px;
+  height: 26px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 78%, #fff9e8, #ff8c2b 75%);
+  filter: drop-shadow(0 0 16px rgba(255, 170, 40, 0.8));
+  animation: treme 0.9s ease-in-out infinite alternate;
+}
+@keyframes treme { from { transform: scaleY(1) rotate(-2deg); } to { transform: scaleY(1.1) rotate(2deg); } }
+
+@media (max-width: 760px) { .encruzilhada { grid-template-columns: 1fr; } .caminho-axe { border-left: none; border-top: 1px solid rgba(255, 193, 7, 0.25); } }
+
+/* Terceiro bloco — outros sistemas */
+.outros { max-width: 720px; margin: 0 auto; padding: 12vh 6vw; text-align: center; }
+.outros h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(1.5rem, 3.4vw, 2.2rem); }
+.outros p { margin-top: 16px; color: var(--osso-fraco); font-weight: 300; line-height: 1.75; }
+
+/* ── TABELA COMPARATIVA — o jogo de búzios ── */
+.jogo { max-width: 980px; margin: 0 auto; padding: 6vh 5vw 14vh; }
+.jogo-cabeca { text-align: center; margin-bottom: 56px; }
+.jogo-cabeca h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(1.9rem, 4.6vw, 3.2rem); }
+.jogo-cabeca h2 em { font-style: italic; color: var(--ouro); }
+.jogo-cabeca p { margin-top: 14px; color: var(--osso-fraco); font-weight: 300; max-width: 560px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+.legenda { display: flex; gap: 22px; justify-content: center; margin-top: 22px; font-size: 0.78rem; color: var(--osso-fraco); flex-wrap: wrap; }
+.legenda span { display: flex; align-items: center; gap: 7px; }
+.buzio { width: 15px; height: 19px; display: inline-block; border-radius: 50% / 60%; position: relative; }
+.buzio::after { content: ""; position: absolute; left: 50%; top: 22%; bottom: 22%; width: 2px; margin-left: -1px; border-radius: 2px; }
+.buzio-sim { background: var(--sim); } .buzio-sim::after { background: #dff0e2; }
+.buzio-nao { background: var(--nao); } .buzio-nao::after { background: #f6ded6; }
+.buzio-parcial { background: var(--parcial); } .buzio-parcial::after { background: #f7ecd0; }
+
+.linha-jogo {
+  display: grid;
+  grid-template-columns: 1fr 92px 92px 92px;
+  gap: 10px;
+  align-items: center;
+  padding: 20px 18px;
+  border-bottom: 1px solid rgba(245, 234, 211, 0.08);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s, transform 0.7s, background 0.3s;
+}
+.linha-jogo.caiu { opacity: 1; transform: translateY(0); }
+.linha-jogo:hover { background: rgba(255, 193, 7, 0.04); }
+.linha-jogo.cabecalho {
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--osso-fraco);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.3);
+  position: sticky;
+  top: 0;
+  background: var(--escuro);
+  z-index: 3;
+}
+.linha-jogo.cabecalho .col-axe { color: var(--ouro); }
+.func { font-weight: 300; font-size: 0.93rem; }
+.func small { display: block; margin-top: 5px; font-size: 0.74rem; color: rgba(245, 234, 211, 0.4); font-style: italic; }
+.celula { display: flex; justify-content: center; }
+/* búzio cai girando quando a linha aparece */
+.linha-jogo.caiu .buzio { animation: cai-buzio 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes cai-buzio {
+  from { transform: translateY(-16px) rotate(140deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+@media (max-width: 640px) {
+  .linha-jogo { grid-template-columns: 1fr 54px 54px 54px; padding: 16px 8px; }
+  .func { font-size: 0.84rem; }
+}
+
+/* CTA */
+.cta { text-align: center; padding: 0 6vw 14vh; }
+.cta h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(1.9rem, 4.6vw, 3rem); }
+.cta p { margin: 16px auto 34px; max-width: 480px; color: var(--osso-fraco); font-weight: 300; line-height: 1.7; }
+.btn {
+  display: inline-block;
+  padding: 17px 40px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--ouro), #e6a800);
+  color: #1a1204;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 34px rgba(255, 193, 7, 0.28);
+  transition: transform 0.35s, box-shadow 0.35s;
+}
+.btn:hover { transform: translateY(-3px); box-shadow: 0 14px 48px rgba(255, 193, 7, 0.45); }
+
+footer { text-align: center; padding: 40px 6vw 60px; color: var(--osso-fraco); font-size: 0.82rem; border-top: 1px solid rgba(245, 234, 211, 0.08); }
+footer a { color: var(--ouro); text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico">Calendário</a>
+    <a href="/por-que-axecloud" class="atual">Por quê?</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <p class="kicker">✦ critérios para escolher · revisão editorial</p>
+  <h1>Por que <em>AxéCloud</em>?</h1>
+  <p class="lede">Zeladores merecem clareza antes de trocar o caderno por um sistema. Esta página mostra o que o AxéCloud já entrega hoje — sem prometer o que ainda não existe.</p>
+</header>
+
+<!-- A encruzilhada: dois caminhos -->
+<section class="encruzilhada">
+  <div class="caminho caminho-caos">
+    <span class="papel-solto" style="left:8%; animation-delay:0s">mensalidade de março??</span>
+    <span class="papel-solto" style="left:46%; animation-delay:3s">foto da festa sumiu</span>
+    <span class="papel-solto" style="left:70%; animation-delay:6s">quem confirmou presença?</span>
+    <p class="caminho-rotulo">o caminho de sempre</p>
+    <h2>Planilha + WhatsApp + caderno</h2>
+    <p>Funciona no começo, mas mensalidades se perdem, fotos ficam espalhadas, avisos somem no grupo e ninguém sabe quem confirmou presença na gira. A casa cresce; o caos também.</p>
+  </div>
+  <div class="caminho caminho-axe">
+    <div class="chama-axe" aria-hidden="true"></div>
+    <p class="caminho-rotulo">✦ o caminho firmado</p>
+    <h2>AxéCloud</h2>
+    <p>Um painel para a diretoria e um portal para filhos de santo. Financeiro com Pix, calendário, galeria, mural, biblioteca, loja, WhatsApp Meta e portal público — com sigilo por perfil e ambiente isolado por terreiro.</p>
+  </div>
+</section>
+
+<section class="outros">
+  <h2>E os outros softwares de terreiro?</h2>
+  <p>Há boas opções no mercado brasileiro e os recursos mudam com frequência. Use os critérios abaixo para conferir cada produto diretamente, considerando suporte, segurança, preço e aderência ao fundamento da sua casa.</p>
+</section>
+
+<!-- O jogo de búzios: tabela comparativa -->
+<section class="jogo">
+  <div class="jogo-cabeca">
+    <h2>O jogo está <em>aberto</em></h2>
+    <p>Uma lista prática do que conferir antes de escolher. A coluna de mercado indica que o recurso varia por fornecedor; valide sempre na documentação e na proposta comercial. Revisado em julho de 2026.</p>
+    <div class="legenda">
+      <span><i class="buzio buzio-sim"></i> Sim</span>
+      <span><i class="buzio buzio-parcial"></i> Parcial ou raro no mercado</span>
+      <span><i class="buzio buzio-nao"></i> Não</span>
+    </div>
+  </div>
+  <div id="tabela"></div>
+</section>
+
+<section class="cta">
+  <h2>Teste tudo por 30 dias</h2>
+  <p>Sem cartão de crédito. Acesse todos os módulos, instale o PWA no celular e veja se o AxéCloud serve à sua casa.</p>
+  <a class="btn" href="/register">Cadastrar — 30 dias grátis</a>
+</section>
+
+<div id="site-footer"></div>
+
+<script>
+/* Tabela comparativa real (comparisonContent.ts do sistema)
+   valores: s = sim, p = parcial, n = não */
+const LINHAS = [
+  ["Mensalidade com Pix integrado", "n", "s", "p", "Alguns sistemas exigem link externo ou cobrança manual."],
+  ["Portal dedicado do filho de santo", "n", "s", "s", ""],
+  ["Galeria de fotos da casa", "n", "s", "p", ""],
+  ["WhatsApp via API oficial Meta (templates)", "n", "s", "p", "Muitos usam grupos manuais ou automações não oficiais."],
+  ["Portal público + diretório de terreiros", "n", "s", "p", ""],
+  ["Pedidos de reza públicos (Espaço do Fiel)", "n", "s", "n", ""],
+  ["Loja do axé com estoque integrado", "n", "s", "p", ""],
+  ["App instalável (PWA) sem loja de apps", "n", "s", "p", ""],
+  ["Termos litúrgicos reais (ogã, camarinha, guia…)", "n", "s", "p", ""],
+  ["Notificações push no celular", "n", "s", "p", ""],
+  ["Convite de gira com confirmar/declinar presença", "n", "s", "p", ""],
+  ["Tudo incluso — sem cobrar por módulo ou por filho", "s", "s", "p", "Verifique se o concorrente cobra por médium ou módulo extra."],
+  ["Teste grátis de 30 dias sem cartão", "s", "s", "p", ""],
+];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const buzio = (v) => `<span class="celula"><i class="buzio buzio-${v === "s" ? "sim" : v === "p" ? "parcial" : "nao"}"></i></span>`;
+
+const tabela = document.getElementById("tabela");
+tabela.innerHTML = `
+  <div class="linha-jogo cabecalho caiu">
+    <span>Funcionalidade</span>
+    <span style="text-align:center">Planilha</span>
+    <span class="col-axe" style="text-align:center">AxéCloud</span>
+    <span style="text-align:center">Varia no mercado</span>
+  </div>
+` + LINHAS.map(([f, a, b, c, nota]) => `
+  <div class="linha-jogo">
+    <span class="func">${esc(f)}${nota ? `<small>${esc(nota)}</small>` : ""}</span>
+    ${buzio(a)}${buzio(b)}${buzio("p")}
+  </div>
+`).join("");
+
+const obs = new IntersectionObserver((es) => {
+  es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add("caiu"); obs.unobserve(e.target); }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll(".linha-jogo:not(.cabecalho)").forEach((l, i) => {
+  l.style.transitionDelay = (i % 4) * 0.1 + "s";
+  obs.observe(l);
+});
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

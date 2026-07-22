@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pedido de Reza para uma Casa de Axé | AxéCloud</title>
+<meta name="description" content="Encontre casas de axé que recebem pedidos de reza e envie sua intenção diretamente pelo espaço público do terreiro." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/espaco-do-fiel" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Espaço do Fiel — AxéCloud" /><meta property="og:description" content="Envie um pedido de reza a uma casa participante." />
+<meta property="og:url" content="https://axecloud.com.br/espaco-do-fiel" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ═══ A SALA DAS VELAS — penumbra acolhedora, velas por intenção ═══ */
+:root {
+  --penumbra: #0e0a10;
+  --parede: #161019;
+  --osso: #f3ecdf;
+  --osso-fraco: rgba(243, 236, 223, 0.55);
+  --ouro: #ffc107;
+  --branca: #f5f0e6;
+  --vermelha: #c0392b;
+  --verde: #4a7c59;
+  --azul: #2c5f8a;
+  --amarela: #e0a72f;
+  --roxa: #7d5ba6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--penumbra); color: var(--osso); font-family: "Outfit", sans-serif; overflow-x: hidden; }
+::selection { background: var(--ouro); color: var(--penumbra); }
+
+nav { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 26px 6vw 0; }
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--osso-fraco); text-decoration: none; transition: color 0.3s; }
+.menu a:hover { color: var(--ouro); }
+.menu a.atual { color: var(--ouro); border-bottom: 1px solid var(--ouro); padding-bottom: 3px; }
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--osso); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+
+header { text-align: center; padding: 80px 6vw 20px; position: relative; z-index: 2; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ouro); }
+h1 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(2.2rem, 6vw, 4.2rem); margin: 18px 0 14px; line-height: 1.15; }
+h1 em { font-style: italic; color: var(--ouro); }
+.lede { max-width: 540px; margin: 0 auto; color: var(--osso-fraco); font-weight: 300; line-height: 1.7; }
+
+/* ── Fileira de velas — cada intenção, uma cor ── */
+.altar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: clamp(16px, 4vw, 44px);
+  padding: 70px 6vw 30px;
+  flex-wrap: wrap;
+}
+.vela-btn { background: none; border: none; cursor: pointer; text-align: center; transition: transform 0.4s; }
+.vela-btn:hover { transform: translateY(-6px); }
+.vela-corpo {
+  width: 30px;
+  margin: 0 auto;
+  border-radius: 5px 5px 3px 3px;
+  position: relative;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.vela-chama {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  width: 13px;
+  height: 24px;
+  margin-left: -6.5px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 78%, #fff9e8 0%, #ffd35c 40%, #ff8c2b 70%, transparent 100%);
+  filter: drop-shadow(0 0 12px rgba(255, 170, 40, 0.75));
+  opacity: 0;
+  transform-origin: 50% 100%;
+  transition: opacity 0.6s;
+}
+.vela-btn.acesa .vela-chama { opacity: 1; animation: treme 0.85s ease-in-out infinite alternate; }
+@keyframes treme {
+  from { transform: scaleY(1) rotate(-2.5deg); }
+  to { transform: scaleY(1.09) rotate(2deg); }
+}
+/* halo no chão quando acesa */
+.vela-btn.acesa .vela-corpo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 190, 80, 0.2), transparent 70%);
+}
+.vela-rotulo {
+  display: block;
+  margin-top: 16px;
+  max-width: 110px;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--osso-fraco);
+  line-height: 1.5;
+  transition: color 0.4s;
+}
+.vela-btn.acesa .vela-rotulo { color: var(--osso); }
+.altar-dica { text-align: center; font-family: "Fraunces", serif; font-style: italic; font-weight: 300; color: var(--osso-fraco); font-size: 0.9rem; padding-bottom: 30px; position: relative; z-index: 2; }
+
+/* Privacidade */
+.privacidade {
+  max-width: 560px;
+  margin: 40px auto 0;
+  padding: 24px 30px;
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  border-radius: 14px;
+  background: rgba(255, 193, 7, 0.04);
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.privacidade h3 { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.05rem; color: var(--ouro); margin-bottom: 8px; }
+.privacidade p { font-weight: 300; font-size: 0.88rem; line-height: 1.65; color: var(--osso-fraco); }
+
+/* Como funciona */
+section { position: relative; z-index: 2; max-width: 860px; margin: 0 auto; padding: 10vh 6vw; }
+.titulo-sec { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(1.7rem, 4vw, 2.5rem); text-align: center; margin-bottom: 50px; }
+.titulo-sec em { font-style: italic; color: var(--ouro); }
+.passos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+.passo {
+  padding: 30px 26px;
+  border-radius: 16px;
+  border: 1px solid rgba(243, 236, 223, 0.1);
+  background: var(--parede);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.8s, transform 0.8s;
+}
+.passo.aceso { opacity: 1; transform: none; }
+.passo-icone { width: 44px; height: 44px; margin: 0 auto 18px; color: var(--ouro); }
+.passo-icone svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.passo h3 { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.15rem; margin-bottom: 10px; }
+.passo p { font-weight: 300; font-size: 0.88rem; line-height: 1.65; color: var(--osso-fraco); }
+
+/* Linhas e tipos */
+.duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+@media (max-width: 680px) { .duas-colunas { grid-template-columns: 1fr; } }
+.painel { padding: 30px; border-radius: 16px; border: 1px solid rgba(243, 236, 223, 0.1); background: var(--parede); }
+.painel h3 { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.15rem; color: var(--ouro); margin-bottom: 18px; }
+.painel ul { list-style: none; display: grid; gap: 10px; }
+.painel li { font-weight: 300; font-size: 0.92rem; padding-left: 22px; position: relative; color: var(--osso-fraco); }
+.painel li::before { content: "✦"; position: absolute; left: 0; color: var(--ouro); font-size: 0.75em; top: 4px; }
+
+/* Casas participantes reais */
+.casas { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.casa {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(243, 236, 223, 0.1);
+  background: var(--parede);
+  text-decoration: none;
+  color: var(--osso);
+  transition: border-color 0.35s, transform 0.35s;
+}
+.casa:hover { border-color: rgba(255, 193, 7, 0.5); transform: translateY(-3px); }
+.casa-foto {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #241c28 center/cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+.casa-nome { font-family: "Fraunces", serif; font-size: 1rem; line-height: 1.3; }
+.casa-msg { margin-top: 4px; font-size: 0.76rem; font-weight: 300; color: var(--osso-fraco); font-style: italic; }
+.estado { grid-column: 1 / -1; text-align: center; padding: 40px 0; color: var(--osso-fraco); font-family: "Fraunces", serif; font-style: italic; }
+
+.para-casas { text-align: center; }
+.para-casas p { max-width: 520px; margin: 0 auto 30px; color: var(--osso-fraco); font-weight: 300; line-height: 1.75; }
+.btn {
+  display: inline-block;
+  padding: 16px 38px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--ouro), #e6a800);
+  color: #1a1204;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 34px rgba(255, 193, 7, 0.28);
+  transition: transform 0.35s, box-shadow 0.35s;
+}
+.btn:hover { transform: translateY(-3px); box-shadow: 0 14px 48px rgba(255, 193, 7, 0.45); }
+
+footer { position: relative; z-index: 2; text-align: center; padding: 40px 6vw 60px; color: var(--osso-fraco); font-size: 0.82rem; border-top: 1px solid rgba(243, 236, 223, 0.08); }
+footer a { color: var(--ouro); text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico">Calendário</a>
+    <a href="/por-que-axecloud">Por quê?</a>
+    <a href="/espaco-do-fiel" class="atual">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <p class="kicker">✦ espaço do fiel · pedir reza</p>
+  <h1>Escolha uma casa para <em>enviar seu pedido de reza</em></h1>
+  <p class="lede">Escolha uma casa participante, escreva sua intenção com respeito e acompanhe o retorno neste dispositivo.</p>
+</header>
+
+<!-- O altar: cada vela é um tipo de pedido real do sistema -->
+<div class="altar" id="altar">
+  <button class="vela-btn" data-cor="branca">
+    <span class="vela-corpo" style="height:86px;background:linear-gradient(180deg,#fffdf5,#efe8d6)"><span class="vela-chama"></span></span>
+    <span class="vela-rotulo">Proteção / Defesa Espiritual</span>
+  </button>
+  <button class="vela-btn" data-cor="verde">
+    <span class="vela-corpo" style="height:74px;background:linear-gradient(180deg,#6fa07c,#4a7c59)"><span class="vela-chama"></span></span>
+    <span class="vela-rotulo">Saúde / Restabelecimento</span>
+  </button>
+  <button class="vela-btn" data-cor="amarela">
+    <span class="vela-corpo" style="height:92px;background:linear-gradient(180deg,#f2c95c,#e0a72f)"><span class="vela-chama"></span></span>
+    <span class="vela-rotulo">Abertura de Caminhos / Prosperidade</span>
+  </button>
+  <button class="vela-btn" data-cor="azul">
+    <span class="vela-corpo" style="height:68px;background:linear-gradient(180deg,#5486b3,#2c5f8a)"><span class="vela-chama"></span></span>
+    <span class="vela-rotulo">Limpeza Espiritual / Descarrego</span>
+  </button>
+  <button class="vela-btn" data-cor="roxa">
+    <span class="vela-corpo" style="height:80px;background:linear-gradient(180deg,#9a7fc2,#7d5ba6)"><span class="vela-chama"></span></span>
+    <span class="vela-rotulo">Equilíbrio Emocional / Clamor por Paz</span>
+  </button>
+</div>
+<p class="altar-dica">gesto visual de acolhimento: toque numa vela para acendê-la</p>
+
+<div class="privacidade">
+  <h3>Privacidade em primeiro lugar</h3>
+  <p>O conteúdo é enviado somente para a casa escolhida. Seu WhatsApp é usado para avisos sobre o pedido.</p>
+</div>
+
+<section>
+  <h2 class="titulo-sec">Como <em>funciona</em></h2>
+  <div class="passos">
+    <div class="passo">
+      <div class="passo-icone"><svg viewBox="0 0 48 48"><path d="M8 42 L8 16 C8 16 16 8 24 8 C32 8 40 16 40 16 L40 42"/><path d="M18 42 L18 26 L30 26 L30 42"/><path d="M4 42 L44 42"/></svg></div>
+      <h3>Escolha a casa</h3><p>Filtre por cidade e selecione o terreiro.</p>
+    </div>
+    <div class="passo">
+      <div class="passo-icone"><svg viewBox="0 0 48 48"><path d="M10 38 L14 26 C10 22 8 17 10 12 C20 10 28 12 32 18 L40 8 L42 10 L34 22 C36 28 32 34 26 36 Z"/></svg></div>
+      <h3>Escreva o pedido</h3><p>Informe sua intenção e um contato válido.</p>
+    </div>
+    <div class="passo">
+      <div class="passo-icone"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 13 L24 24 L32 30"/></svg></div>
+      <h3>Acompanhe</h3><p>Veja quando a casa aceitar ou atualizar o pedido.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="titulo-sec">Tipos de pedido e <em>linhas de trabalho</em></h2>
+  <div class="duas-colunas">
+    <div class="painel">
+      <h3>Tipos de pedido</h3>
+      <ul>
+        <li>Proteção / Defesa Espiritual</li>
+        <li>Saúde / Restabelecimento</li>
+        <li>Abertura de Caminhos / Prosperidade</li>
+        <li>Limpeza Espiritual / Descarrego</li>
+        <li>Equilíbrio Emocional / Clamor por Paz</li>
+      </ul>
+    </div>
+    <div class="painel">
+      <h3>Linhas</h3>
+      <ul>
+        <li>Caboclos</li>
+        <li>Pretos Velhos / Almas</li>
+        <li>Baianos e Boiadeiros</li>
+        <li>Exu / Caminhos</li>
+        <li>Marinheiros / Iemanjá</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="titulo-sec">Casas que <em>recebem pedidos agora</em></h2>
+  <div class="casas" id="casas">
+    <p class="estado">acendendo as velas do altar…</p>
+  </div>
+</section>
+
+<section class="para-casas">
+  <h2 class="titulo-sec">Para <em>casas de axé</em></h2>
+  <p>Os pedidos chegam no painel do AxéCloud. A casa decide quando aceitar e como conduzir o acolhimento, conforme sua tradição.</p>
+  <a class="btn" href="/register">Cadastrar minha casa</a>
+</section>
+
+<div id="site-footer"></div>
+
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const imagemSegura = (valor) => {
+  try { const u = new URL(valor, location.origin); return u.protocol === "https:" || u.origin === location.origin ? u.href : ""; }
+  catch { return ""; }
+};
+
+/* Velas acendem ao toque (e a primeira acende sozinha) */
+document.getElementById("altar").addEventListener("click", (e) => {
+  const v = e.target.closest(".vela-btn");
+  if (v) v.classList.toggle("acesa");
+});
+setTimeout(() => document.querySelector(".vela-btn")?.classList.add("acesa"), 900);
+
+/* Casas reais que aceitam pedidos de reza */
+(async function casas() {
+  const grade = document.getElementById("casas");
+  try {
+    const r = await fetch("/api/v1/landing/terreiros-pedidos-reza");
+    const data = await r.json();
+    const itens = data.items || [];
+    if (!itens.length) {
+      grade.innerHTML = '<p class="estado">Nenhuma casa com pedidos abertos neste momento — volte em breve.</p>';
+      return;
+    }
+    grade.innerHTML = itens.map((c) => {
+      const foto = imagemSegura(c.fotoUrl);
+      return `
+      <a class="casa" href="/espaco-do-fiel?casa=${encodeURIComponent(c.slug || c.public_slug || "")}">
+        <span class="casa-foto" ${foto ? `style="background-image:url('${esc(foto)}')"` : ""}></span>
+        <span>
+          <span class="casa-nome">${esc(c.nome || c.nome_terreiro || "Casa de Axé")}</span>
+          ${c.mensagem || c.mensagemPedidos ? `<span class="casa-msg">“${esc(c.mensagem || c.mensagemPedidos)}”</span>` : ""}
+        </span>
+      </a>`;
+    }).join("");
+  } catch (e) {
+    console.warn(e);
+    grade.innerHTML = '<p class="estado">Não foi possível consultar as casas agora.</p>';
+  }
+})();
+
+/* Passos acendem */
+const obs = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("aceso"); obs.unobserve(e.target); } });
+}, { threshold: 0.25 });
+document.querySelectorAll(".passo").forEach((p, i) => {
+  p.style.transitionDelay = i * 0.15 + "s";
+  obs.observe(p);
+});
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

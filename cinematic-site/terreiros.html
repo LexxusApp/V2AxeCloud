@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terreiros de Umbanda e Candomblé no Brasil | AxéCloud</title>
+<meta name="description" content="Encontre terreiros de Umbanda e Candomblé por cidade, consulte o mapa e conheça casas de axé com perfil público no AxéCloud." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/terreiros" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Diretório de Terreiros — AxéCloud" />
+<meta property="og:description" content="Casas de axé do Brasil em uma lista rápida e um mapa público." />
+<meta property="og:url" content="https://axecloud.com.br/terreiros" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Diretório de Terreiros","url":"https://axecloud.com.br/terreiros","isPartOf":{"@type":"WebSite","name":"AxéCloud","url":"https://axecloud.com.br/"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+<style>
+/* ═══ O AMANHECER NO BARRACÃO — tema claro, porteira de mariwo ═══ */
+:root {
+  --creme: #fdf8f0;
+  --papel: #fffdf8;
+  --tinta: #1b1813;
+  --tinta-fraca: #6b6252;
+  --ouro: #b8860b;
+  --ouro-vivo: #ffc107;
+  --borda: #e8dfd0;
+  --verde: #4a7c59;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background:
+    radial-gradient(140% 80% at 50% -30%, #fff3d6 0%, transparent 55%),
+    var(--creme);
+  color: var(--tinta);
+  font-family: "Outfit", sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::selection { background: var(--ouro-vivo); color: var(--tinta); }
+
+/* Mariwo (palha da costa) na porteira — fios finos desenhados em SVG */
+.mariwo {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 130px;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.mariwo svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.mariwo::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7px;
+  background: repeating-linear-gradient(105deg, #9b7845 0 7px, #85653a 7px 14px);
+  box-shadow: 0 1px 5px rgba(90, 66, 30, 0.3);
+  z-index: 3;
+}
+.tufo {
+  transform-origin: center top;
+  transform-box: fill-box;
+  animation: venta 4.6s ease-in-out infinite alternate;
+}
+@keyframes venta {
+  from { transform: rotate(-1.3deg); }
+  to { transform: rotate(1.3deg); }
+}
+
+/* Menu do protótipo */
+nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 138px 6vw 0;
+}
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--tinta); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.menu a:hover { color: var(--ouro); }
+.menu a.atual { color: var(--ouro); border-bottom: 1px solid var(--ouro); padding-bottom: 3px; }
+
+header { text-align: center; padding: 60px 6vw 40px; position: relative; z-index: 2; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ouro); }
+h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: clamp(2.4rem, 6.5vw, 4.6rem);
+  margin: 18px 0 14px;
+}
+h1 em { font-style: italic; color: var(--ouro); }
+.lede { max-width: 560px; margin: 0 auto; color: var(--tinta-fraca); font-weight: 300; line-height: 1.7; }
+.lede strong { color: var(--ouro); font-weight: 600; }
+.sol {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.22), transparent 65%);
+  z-index: -1;
+  animation: nasce-sol 3s ease-out both;
+}
+@keyframes nasce-sol {
+  from { transform: translate(-50%, 120px) scale(0.6); opacity: 0; }
+  to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+/* Cidades e busca */
+.filtros {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: 0 auto 20px;
+  padding: 0 6vw;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.busca, .seletor {
+  padding: 15px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  background: var(--papel);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.95rem;
+  color: var(--tinta);
+  outline: none;
+  box-shadow: 0 3px 16px rgba(120, 90, 20, 0.06);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.busca { flex: 1 1 280px; }
+.seletor { flex: 0 1 auto; cursor: pointer; }
+.busca:focus, .seletor:focus { border-color: var(--ouro-vivo); box-shadow: 0 3px 24px rgba(255, 193, 7, 0.2); }
+
+.cidades-chips {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto 46px;
+  padding: 0 6vw;
+}
+.chip {
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  background: var(--papel);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.chip small { opacity: 0.65; margin-left: 5px; }
+.chip:hover { border-color: var(--ouro); color: var(--ouro); }
+.chip.ativo { background: var(--tinta); border-color: var(--tinta); color: var(--creme); }
+
+.contagem { text-align: center; margin: 0 0 34px; font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tinta-fraca); position: relative; z-index: 2; }
+
+/* ── Mapa das casas (como no site real) ── */
+.mapa-wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto 44px;
+  padding: 0 6vw;
+}
+.mapa-card {
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #ded4c5;
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.1);
+}
+.mapa-cabeca {
+  display: grid;
+  gap: 18px;
+  padding: 26px 28px;
+  background: #17130e;
+  color: #fff;
+}
+@media (min-width: 760px) {
+  .mapa-cabeca { grid-template-columns: 1fr auto; align-items: end; }
+}
+.mapa-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ouro-vivo);
+}
+.mapa-cabeca h2 {
+  margin-top: 8px;
+  font-family: "Fraunces", serif;
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+.mapa-cabeca p {
+  margin-top: 8px;
+  max-width: 560px;
+  font-size: 0.88rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.65);
+}
+.btn-perto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ouro-vivo);
+  color: #1b1813;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+.btn-perto:hover { background: #ffcd38; transform: translateY(-2px); }
+.mapa-status {
+  margin-top: 10px;
+  max-width: 260px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.45;
+}
+#mapa {
+  height: min(52vh, 520px);
+  min-height: 360px;
+  background: #eee9df;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  font-family: "Outfit", sans-serif;
+  box-shadow: 0 10px 30px rgba(60, 44, 16, 0.25);
+}
+.leaflet-popup-content { margin: 14px 18px; }
+.popup-nome { font-family: "Fraunces", serif; font-size: 1rem; line-height: 1.3; color: var(--tinta); }
+.popup-endereco { margin-top: 6px; font-size: 0.78rem; font-weight: 300; color: var(--tinta-fraca); line-height: 1.5; }
+.popup-link { display: inline-block; margin-top: 8px; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ouro); text-decoration: none; }
+.mapa-nota {
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 0.72rem;
+  color: rgba(27, 24, 19, 0.5);
+  border-top: 1px solid var(--borda);
+}
+
+/* Grade de fichas mapeadas */
+.grade {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 6vw 90px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 22px;
+}
+.ficha {
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  overflow: hidden;
+  color: var(--tinta);
+  box-shadow: 0 4px 22px rgba(120, 90, 20, 0.07);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s;
+  opacity: 0;
+  transform: translateY(34px);
+  display: flex;
+  flex-direction: column;
+}
+.ficha.visivel { opacity: 1; transform: translateY(0); }
+.ficha:hover { transform: translateY(-7px) rotate(-0.4deg); box-shadow: 0 18px 44px rgba(120, 90, 20, 0.16); }
+.ficha-topo {
+  height: 140px;
+  background: linear-gradient(135deg, #f3e7cd, #eaddc2);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.ficha-topo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(27, 24, 19, 0.22));
+}
+.ficha-corpo { padding: 20px 22px 22px; flex: 1; display: flex; flex-direction: column; }
+.ficha-nome { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.15rem; line-height: 1.3; }
+.ficha-endereco { margin-top: 10px; font-size: 0.82rem; color: var(--tinta-fraca); font-weight: 300; line-height: 1.55; flex: 1; }
+.ficha-bairro {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 12px;
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  color: var(--ouro);
+}
+.ficha-acoes { display: flex; gap: 8px; margin-top: 16px; }
+.acao {
+  flex: 1;
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.acao-maps { background: var(--tinta); color: var(--creme); }
+.acao-maps:hover { background: var(--ouro); color: var(--tinta); }
+.acao-tel { border: 1px solid var(--borda); color: var(--tinta-fraca); }
+.acao-tel:hover { border-color: var(--ouro); color: var(--ouro); }
+
+.estado { grid-column: 1 / -1; text-align: center; padding: 70px 0; color: var(--tinta-fraca); font-family: "Fraunces", serif; font-style: italic; font-size: 1.05rem; }
+.mais-wrap { grid-column: 1 / -1; text-align: center; padding: 10px 0 20px; }
+.mais {
+  padding: 14px 34px;
+  border-radius: 999px;
+  border: 1px solid var(--ouro);
+  background: transparent;
+  color: var(--ouro);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.mais:hover { background: var(--ouro); color: var(--creme); }
+
+footer { text-align: center; padding: 40px 6vw 60px; color: var(--tinta-fraca); font-size: 0.82rem; border-top: 1px solid var(--borda); }
+footer a { color: var(--ouro); text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<div class="mariwo" aria-hidden="true"><svg id="mariwo-svg" preserveAspectRatio="none"></svg></div>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros" class="atual">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico">Calendário</a>
+    <a href="/por-que-axecloud">Por quê?</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <div class="sol" aria-hidden="true"></div>
+  <p class="kicker">✦ diretório mapeado · dados reais do sistema</p>
+  <h1>As casas de axé <em>do Brasil</em></h1>
+  <p class="lede">O mapeamento de terreiros de Umbanda e Candomblé feito casa a casa — com endereço, telefone e localização no mapa. <strong id="total-geral">Carregando…</strong></p>
+</header>
+
+<div class="filtros">
+  <input class="busca" id="busca" type="search" placeholder="Filtrar por nome ou bairro na cidade…" autocomplete="off" />
+  <select class="seletor" id="seletor-cidade" aria-label="Escolher cidade">
+    <option value="">Todas as cidades…</option>
+  </select>
+</div>
+<div class="cidades-chips" id="chips"></div>
+
+<div class="mapa-wrap">
+  <div class="mapa-card">
+    <div class="mapa-cabeca">
+      <div>
+        <p class="mapa-kicker">✦ mapa interativo · coordenadas reais do mapeamento</p>
+        <h2>Terreiros no mapa</h2>
+        <p>Explore as casas com localização confirmada. Aproxime a região ou use “perto de mim” para achar a casa mais próxima.</p>
+      </div>
+      <div>
+        <button type="button" class="btn-perto" id="btn-perto">Encontrar perto de mim</button>
+        <p class="mapa-status" id="mapa-status" role="status"></p>
+      </div>
+    </div>
+    <div id="mapa" aria-label="Mapa interativo dos terreiros"></div>
+    <p class="mapa-nota" id="mapa-nota">carregando pontos do mapeamento…</p>
+  </div>
+</div>
+
+<p class="contagem" id="contagem"></p>
+<main class="grade" id="grade">
+  <p class="estado">abrindo a porteira do mapeamento…</p>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script>
+const $ = (s, c = document) => c.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const urlSegura = (valor, { interna = false } = {}) => {
+  try {
+    const u = new URL(valor || "", location.origin);
+    if (interna) return u.origin === location.origin ? u.pathname + u.search : "";
+    return u.protocol === "https:" || u.origin === location.origin ? u.href : "";
+  } catch { return ""; }
+};
+/** Perfil local do protótipo — usa slug ou pathname de URL absoluta da API. */
+const perfilLocal = (c) => {
+  const slug = String(c?.slug || "").trim();
+  if (slug) return `/terreiro/${encodeURIComponent(slug)}`;
+  try {
+    const u = new URL(c?.perfilUrl || "", location.origin);
+    if (/^\/terreiro\/[^/]+\/?$/i.test(u.pathname)) return u.pathname.replace(/\/$/, "");
+  } catch { /* ignore */ }
+  return "";
+};
+const telefoneSeguro = (valor) => String(valor || "").replace(/[^\d+]/g, "").slice(0, 20);
+
+/* Mariwo: centenas de fios finos de palha, curvos e afilados, em SVG */
+(function mariwo() {
+  const svg = $("#mariwo-svg");
+  const W = innerWidth;
+  const H = 130;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  function fio(x, comp, larg, cor, op) {
+    const curva = (Math.random() - 0.5) * 14;
+    const meio = curva * (0.35 + Math.random() * 0.3);
+    return `<path d="M ${x - larg / 2} 0
+      Q ${x - larg / 2 + meio} ${comp * 0.55} ${x + curva} ${comp}
+      Q ${x + larg / 2 + meio} ${comp * 0.55} ${x + larg / 2} 0 Z"
+      fill="${cor}" opacity="${op}"/>`;
+  }
+
+  const camadas = [
+    { tons: ["#8f6f3e", "#84663a", "#7a5d34"], compBase: 46, compVar: 34, dens: 4.5, op: 0.85 },
+    { tons: ["#cbab6d", "#c19d5e", "#b39053", "#a8854e", "#d5b87c"], compBase: 60, compVar: 52, dens: 5.5, op: 1 },
+  ];
+
+  let html = "";
+  camadas.forEach((cam) => {
+    const tufos = 14;
+    const porTufo = Math.ceil(W / cam.dens / tufos);
+    for (let t = 0; t < tufos; t++) {
+      let fios = "";
+      for (let i = 0; i < porTufo; i++) {
+        const x = (t + Math.random()) * (W / tufos);
+        const comp = cam.compBase + Math.random() * cam.compVar;
+        const larg = 1.6 + Math.random() * 2.2;
+        const cor = cam.tons[Math.floor(Math.random() * cam.tons.length)];
+        fios += fio(x, comp, larg, cor, cam.op * (0.75 + Math.random() * 0.25));
+      }
+      const dur = (3.8 + Math.random() * 2.4).toFixed(2);
+      const atraso = (Math.random() * 3).toFixed(2);
+      html += `<g class="tufo" style="animation-duration:${dur}s;animation-delay:-${atraso}s">${fios}</g>`;
+    }
+  });
+  svg.innerHTML = html;
+})();
+
+/* ══ Diretório mapeado (Google Maps → sistema) ══ */
+let cidades = [];
+let cidadeAtual = null;   // { estado, cidadeSlug, cidade }
+let itens = [];           // terreiros da cidade carregada
+let totalCidade = 0;
+let cidadeCompleta = true;
+let visiveis = 24;        // paginação local
+let termo = "";
+let aguarde = null;
+
+const grade = $("#grade");
+const contagem = $("#contagem");
+
+/* ── Mapa (Leaflet) — pontos reais do mapeamento (/terreiros/mapa.json) ── */
+let mapa = null;
+let marcadores = null;
+let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
+let marcadoresAtivos = []; // { point, marker }
+
+function distanciaKm(a, b) {
+  const r = (v) => (v * Math.PI) / 180;
+  const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+async function carregaPontosMapa() {
+  try {
+    const r = await fetch("/terreiros/mapa.json");
+    if (!r.ok) throw new Error("mapa " + r.status);
+    const data = await r.json();
+    todosPontos = (data.points || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  } catch (e) {
+    console.warn("mapa.json indisponível", e);
+  }
+}
+
+function garanteMapa() {
+  if (mapa || !window.L) return;
+  mapa = L.map("mapa", { scrollWheelZoom: false, preferCanvas: true, minZoom: 5 }).setView([-23.55, -46.63], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(mapa);
+  marcadores = L.layerGroup().addTo(mapa);
+}
+
+function atualizaMapa(filtrados) {
+  if (!window.L) return;
+  garanteMapa();
+  marcadores.clearLayers();
+  marcadoresAtivos = [];
+
+  // Casa a lista filtrada (cidade + busca) com os pontos que têm coordenada confirmada
+  const porSlug = new Map(filtrados.map((c) => [c.slug, c]));
+  const cidadeNorm = String(cidadeAtual?.cidade || "").toLowerCase();
+  let pontos = !termo && !cidadeCompleta && cidadeNorm
+    ? todosPontos.filter((p) => String(p.cidade || "").toLowerCase() === cidadeNorm)
+    : todosPontos.filter((p) => porSlug.has(p.slug));
+
+  // Fallback: se a cidade tem poucos matches por slug, filtra pelo nome da cidade no mapa
+  if (pontos.length === 0 && cidadeAtual?.cidade) {
+    pontos = todosPontos.filter((p) => String(p.cidade || "").toLowerCase() === cidadeNorm);
+  }
+
+  const coords = [];
+  pontos.forEach((p) => {
+    const item = porSlug.get(p.slug) || {};
+    const mapsUrl = urlSegura(item.linkMaps);
+    const perfilUrl = perfilLocal(p) || urlSegura(p.perfilUrl, { interna: true });
+    coords.push([p.lat, p.lng]);
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 6,
+      color: "#5f4300",
+      weight: 1.5,
+      fillColor: "#ffc107",
+      fillOpacity: 0.88,
+    });
+    marker.bindTooltip(p.nome, { direction: "top" });
+    marker.bindPopup(`
+      <div class="popup-nome">${esc(p.nome)}</div>
+      <div class="popup-endereco">${esc(item.endereco || `${p.cidade}, ${p.estado}`)}</div>
+      ${mapsUrl
+        ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>`
+        : perfilUrl
+          ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil →</a>`
+          : ""}
+    `);
+    marker.addTo(marcadores);
+    marcadoresAtivos.push({ point: p, marker });
+  });
+
+  const nota = $("#mapa-nota");
+  if (coords.length) {
+    mapa.fitBounds(L.latLngBounds(coords), { padding: [34, 34], maxZoom: 13 });
+    nota.textContent = `${coords.length} terreiro${coords.length === 1 ? "" : "s"} com localização exata · coordenadas do mapeamento Google Maps`;
+  } else if (todosPontos.length) {
+    nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outra cidade";
+  } else {
+    nota.textContent = "não foi possível carregar os pontos do mapa";
+  }
+  setTimeout(() => mapa && mapa.invalidateSize(), 80);
+}
+
+$("#btn-perto").addEventListener("click", () => {
+  const status = $("#mapa-status");
+  if (!navigator.geolocation) {
+    status.textContent = "Localização não disponível neste navegador.";
+    return;
+  }
+  if (!marcadoresAtivos.length) {
+    status.textContent = "O mapa ainda não tem pontos nesta cidade.";
+    return;
+  }
+  status.textContent = "Localizando você…";
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      const origin = { lat: coords.latitude, lng: coords.longitude };
+      const nearest = marcadoresAtivos.reduce((best, cur) =>
+        distanciaKm(origin, cur.point) < distanciaKm(origin, best.point) ? cur : best);
+      mapa.flyTo([nearest.point.lat, nearest.point.lng], 15, { duration: 1.1 });
+      nearest.marker.openPopup();
+      status.textContent = `${nearest.point.nome}, em ${nearest.point.cidade}, é a casa mapeada mais próxima.`;
+    },
+    () => { status.textContent = "Permita a localização no navegador para usar “perto de mim”."; },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+  );
+});
+
+async function carregaCidades() {
+  const r = await fetch("/api/v1/public/diretorio/cidades");
+  const data = await r.json();
+  cidades = data.cidades || [];
+  const total = cidades.reduce((s, c) => s + (c.count || 0), 0);
+  $("#total-geral").textContent = `${total.toLocaleString("pt-BR")} casas mapeadas em ${cidades.length} cidades.`;
+
+  // chips: as 8 maiores cidades
+  $("#chips").innerHTML = cidades.slice(0, 8).map((c) => `
+    <button class="chip" data-uf="${esc((c.estado || "br").toLowerCase())}" data-slug="${esc(c.cidadeSlug)}">
+      ${esc(c.cidade)}<small>${c.count}</small>
+    </button>
+  `).join("");
+
+  // seletor: todas
+  $("#seletor-cidade").innerHTML = '<option value="">Escolher cidade…</option>' + cidades.map((c) => `
+    <option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)}${c.estado ? " – " + esc(c.estado) : ""} (${c.count})</option>
+  `).join("");
+}
+
+async function carregaCidade(uf, slug) {
+  grade.innerHTML = '<p class="estado">abrindo a porteira da cidade…</p>';
+  contagem.textContent = "";
+  try {
+    const r = await fetch(`/api/v1/public/diretorio/${encodeURIComponent(uf)}/${encodeURIComponent(slug)}?limit=96`);
+    if (!r.ok) throw new Error("cidade " + r.status);
+    const data = await r.json();
+    cidadeAtual = { estado: data.estado, cidadeSlug: data.cidadeSlug, cidade: data.cidade };
+    itens = data.items || [];
+    totalCidade = Number(data.total) || itens.length;
+    cidadeCompleta = itens.length >= totalCidade;
+    visiveis = 24;
+    desenha();
+  } catch (e) {
+    console.warn(e);
+    grade.innerHTML = '<p class="estado">Não foi possível carregar esta cidade agora.</p>';
+  }
+}
+
+async function garanteCidadeCompleta() {
+  if (cidadeCompleta || !cidadeAtual) return;
+  const selecionada = { ...cidadeAtual };
+  const r = await fetch(`/api/v1/public/diretorio/${encodeURIComponent(selecionada.estado.toLowerCase())}/${encodeURIComponent(selecionada.cidadeSlug)}`);
+  if (!r.ok) throw new Error("cidade completa " + r.status);
+  const data = await r.json();
+  if (!cidadeAtual || cidadeAtual.cidadeSlug !== selecionada.cidadeSlug) return;
+  itens = data.items || itens;
+  totalCidade = Number(data.total) || itens.length;
+  cidadeCompleta = true;
+}
+
+function desenha() {
+  const t = termo.toLowerCase();
+  const filtrados = t
+    ? itens.filter((i) =>
+        (i.nome || "").toLowerCase().includes(t) ||
+        (i.bairro || "").toLowerCase().includes(t) ||
+        (i.endereco || "").toLowerCase().includes(t))
+    : itens;
+
+  const totalExibido = !t && !cidadeCompleta ? totalCidade : filtrados.length;
+  contagem.textContent = cidadeAtual
+    ? `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${cidadeAtual.cidade} – ${cidadeAtual.estado}`
+    : "";
+
+  atualizaMapa(filtrados);
+
+  if (!filtrados.length) {
+    grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta cidade.</p>';
+    return;
+  }
+
+  const fatia = filtrados.slice(0, visiveis);
+  grade.innerHTML = fatia.map((c) => {
+    const foto = urlSegura(c.fotoUrl);
+    const maps = urlSegura(c.linkMaps);
+    const telefone = telefoneSeguro(c.telefone);
+    const perfil = perfilLocal(c);
+    return `
+    <article class="ficha">
+      <div class="ficha-topo" ${foto ? `style="background-image:url('${esc(foto)}')"` : ""}></div>
+      <div class="ficha-corpo">
+        <h2 class="ficha-nome">${esc(c.nome)}</h2>
+        <p class="ficha-endereco">${esc(c.endereco || [c.cidade, c.estado].filter(Boolean).join(" · "))}</p>
+        ${c.bairro ? `<span class="ficha-bairro">${esc(c.bairro)}</span>` : ""}
+        <div class="ficha-acoes">
+          ${perfil ? `<a class="acao" href="${esc(perfil)}">Ver perfil</a>` : ""}
+          ${maps ? `<a class="acao acao-maps" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Ver no mapa</a>` : ""}
+          ${telefone ? `<a class="acao acao-tel" href="tel:${esc(telefone)}">Ligar</a>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }).join("") + (totalExibido > visiveis
+    ? `<div class="mais-wrap"><button class="mais" id="mais">mostrar mais casas (${totalExibido - visiveis})</button></div>`
+    : "");
+
+  const obs = new IntersectionObserver((es) => {
+    es.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add("visivel"), (i % 6) * 80);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll(".ficha").forEach((f) => obs.observe(f));
+
+  const mais = document.getElementById("mais");
+  if (mais) mais.addEventListener("click", async () => {
+    mais.disabled = true;
+    mais.textContent = "carregando mais casas…";
+    try {
+      if (!cidadeCompleta && visiveis >= itens.length) await garanteCidadeCompleta();
+      visiveis += 24;
+      desenha();
+    } catch (e) {
+      console.warn(e);
+      mais.disabled = false;
+      mais.textContent = "tentar carregar mais casas";
+    }
+  });
+}
+
+function marcaChip(uf, slug) {
+  document.querySelectorAll(".chip").forEach((c) =>
+    c.classList.toggle("ativo", c.dataset.uf === uf && c.dataset.slug === slug));
+}
+
+$("#chips").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  marcaChip(chip.dataset.uf, chip.dataset.slug);
+  $("#seletor-cidade").value = "";
+  carregaCidade(chip.dataset.uf, chip.dataset.slug);
+});
+
+$("#seletor-cidade").addEventListener("change", (e) => {
+  if (!e.target.value) return;
+  const [uf, slug] = e.target.value.split("|");
+  marcaChip(uf, slug);
+  carregaCidade(uf, slug);
+});
+
+$("#busca").addEventListener("input", (e) => {
+  termo = e.target.value.trim();
+  clearTimeout(aguarde);
+  aguarde = setTimeout(async () => {
+    try {
+      if (termo && !cidadeCompleta) await garanteCidadeCompleta();
+    } catch (erro) {
+      console.warn(erro);
+    }
+    desenha();
+  }, 250);
+});
+
+/* Início: carrega cidades + pontos do mapa e abre a maior cidade */
+(async function init() {
+  try {
+    await Promise.all([carregaCidades(), carregaPontosMapa()]);
+    if (cidades.length) {
+      const c = cidades[0];
+      const uf = (c.estado || "br").toLowerCase();
+      marcaChip(uf, c.cidadeSlug);
+      await carregaCidade(uf, c.cidadeSlug);
+    } else {
+      grade.innerHTML = '<p class="estado">O mapeamento ainda não retornou cidades.</p>';
+    }
+  } catch (e) {
+    console.warn(e);
+    grade.innerHTML = '<p class="estado">Não foi possível consultar o mapeamento agora — verifique o sistema ou a internet.</p>';
+  }
+})();
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

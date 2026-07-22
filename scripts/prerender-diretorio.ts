@@ -1,6 +1,6 @@
 /**
  * Pré-renderiza páginas do diretório (cidades + terreiros) em landing-dist/.
- * Requer SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no ambiente (build VPS ou local).
+ * Usa Supabase no ambiente de servidor ou, sem credenciais, a API pública já publicada.
  */
 import "dotenv/config";
 import fs from "node:fs";
@@ -16,6 +16,7 @@ import {
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
 import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
+import { parseGoogleMapsCoordinates } from "../lib/diretorioCoordinates.ts";
 import { isDiretorioListingPublishable } from "../lib/diretorioQuality.ts";
 import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
 import {
@@ -43,6 +44,60 @@ type SnapshotRow = DiretorioSeoTerreiro & {
   bairroSlug: string | null;
   tipo: DiretorioEstabelecimentoTipo;
 };
+
+type PublicCity = {
+  cidade: string;
+  estado: string | null;
+  cidadeSlug: string;
+};
+
+async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
+  const origin = String(process.env.PUBLIC_APP_URL || 'https://axecloud.com.br').replace(/\/$/, '');
+  const citiesResponse = await fetch(`${origin}/api/v1/public/diretorio/cidades`);
+  if (!citiesResponse.ok) {
+    throw new Error(`[prerender:diretorio] API pública de cidades respondeu ${citiesResponse.status}.`);
+  }
+  const citiesJson = (await citiesResponse.json()) as { cidades?: PublicCity[] };
+  const cities = Array.isArray(citiesJson.cidades) ? citiesJson.cidades : [];
+  const rows: SnapshotRow[] = [];
+
+  for (const city of cities) {
+    const estado = String(city.estado || '').toLowerCase();
+    const cidadeSlug = String(city.cidadeSlug || '');
+    if (!estado || !cidadeSlug) continue;
+    const detailResponse = await fetch(
+      `${origin}/api/v1/public/diretorio/${encodeURIComponent(estado)}/${encodeURIComponent(cidadeSlug)}`,
+    );
+    if (!detailResponse.ok) {
+      throw new Error(
+        `[prerender:diretorio] API pública de ${estado}/${cidadeSlug} respondeu ${detailResponse.status}.`,
+      );
+    }
+    const detail = (await detailResponse.json()) as { items?: Array<Record<string, unknown>> };
+    for (const item of detail.items || []) {
+      const nome = String(item.nome || 'Terreiro').trim();
+      const tipo = resolveDiretorioTipo(item.tipo, nome);
+      if (tipo !== 'terreiro') continue;
+      rows.push({
+        slug: String(item.slug || '').trim(),
+        nome,
+        endereco: item.endereco ? String(item.endereco).trim() : null,
+        telefone: item.telefone ? String(item.telefone).trim() : null,
+        fotoUrl: item.fotoUrl ? String(item.fotoUrl) : null,
+        linkMaps: item.linkMaps ? String(item.linkMaps) : null,
+        cidade: item.cidade ? String(item.cidade) : city.cidade,
+        estado: item.estado ? String(item.estado).toUpperCase() : String(city.estado || '').toUpperCase(),
+        cidadeSlug: item.cidadeSlug ? String(item.cidadeSlug) : cidadeSlug,
+        bairro: item.bairro ? String(item.bairro) : null,
+        bairroSlug: item.bairroSlug ? String(item.bairroSlug) : null,
+        tipo,
+        cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
+      });
+    }
+  }
+
+  return rows;
+}
 
 function mapRow(row: Record<string, unknown>): SnapshotRow {
   const slug = String(row.slug || "").trim();
@@ -146,6 +201,7 @@ function writeDirectoryRootPage(
   const totalTerreiros = summary.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0);
   const totalBairros = summary.reduce((sum, cidade) => sum + cidade.totalBairros, 0);
   const cards = summary
+    .slice(0, 9)
     .map((cidade) => {
       const href = `/terreiros/${String(cidade.estado || 'sp').toLowerCase()}/${cidade.cidadeSlug}`;
       return [
@@ -168,7 +224,11 @@ function writeDirectoryRootPage(
     `        <div><strong class="text-2xl">${totalBairros}</strong><span class="block text-xs">Bairros</span></div>`,
     `        <div><strong class="text-2xl">${totalTerreiros.toLocaleString('pt-BR')}</strong><span class="block text-xs">Terreiros</span></div>`,
     '      </div>',
-    `      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>`,
+    '      <section class="mt-10 rounded-3xl border border-[#e8dfd0] bg-white p-8">',
+    '        <strong class="text-xl">Mapa interativo dos terreiros</strong>',
+    '        <span class="mt-2 block text-sm">Explore no mapa ou encontre uma casa próxima de você.</span>',
+    '      </section>',
+    `      <div class="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>`,
     '    </section>',
     '  </main>',
     '</div>',
@@ -199,6 +259,28 @@ function writeDirectoryRootPage(
   fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
 }
 
+function writeDirectoryMap(rows: SnapshotRow[]) {
+  const seen = new Set<string>();
+  const points = rows.flatMap((row) => {
+    if (!row.slug || seen.has(row.slug)) return [];
+    const coordinates = parseGoogleMapsCoordinates(row.linkMaps);
+    if (!coordinates) return [];
+    seen.add(row.slug);
+    return [{
+      slug: row.slug,
+      nome: row.nome,
+      cidade: row.cidade || '',
+      estado: row.estado || 'SP',
+      perfilUrl: `/terreiro/${encodeURIComponent(row.slug)}`,
+      ...coordinates,
+    }];
+  });
+  const outDir = path.join(OUT_DIR, 'terreiros');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'mapa.json'), JSON.stringify({ points }), 'utf8');
+  return points.length;
+}
+
 function writePrerenderPage(template: string, page: ReturnType<typeof buildTerreiroPrerenderPage>) {
   const segment = page.path.replace(/^\//, "");
   const outDir = path.join(OUT_DIR, segment);
@@ -223,24 +305,23 @@ async function main() {
     process.exit(0);
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.warn("[prerender:diretorio] Sem credenciais Supabase — pulando pré-render do diretório.");
-    process.exit(0);
-  }
-
-  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo", (query, { from, to }) =>
-    query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
-  );
-
   const template = fs.readFileSync(indexPath, "utf8");
-  const rows = (data || [])
-    .filter((r) => isDiretorioListingPublishable(r as Record<string, unknown>))
-    .map((r) => mapRow(r as Record<string, unknown>))
-    .filter((row) => row.tipo === 'terreiro');
+  let rows: SnapshotRow[];
+  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo", (query, { from, to }) =>
+      query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
+    );
+    rows = (data || [])
+      .filter((r) => isDiretorioListingPublishable(r as Record<string, unknown>))
+      .map((r) => mapRow(r as Record<string, unknown>))
+      .filter((row) => row.tipo === 'terreiro');
+  } else {
+    console.warn('[prerender:diretorio] Sem chave administrativa; usando API pública segura.');
+    rows = await fetchPublicDirectoryRows();
+  }
 
   const cityMap = new Map<string, SnapshotRow[]>();
   for (const row of rows) {
@@ -270,6 +351,7 @@ async function main() {
 
   const cidades = writeDirectorySnapshots(cityMap);
   writeDirectoryRootPage(template, cidades);
+  const mapPoints = writeDirectoryMap(rows);
 
   let terreiroPages = 0;
   for (const row of rows) {
@@ -279,7 +361,7 @@ async function main() {
   }
 
   console.log(
-    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s) em ${path.relative(ROOT, OUT_DIR)}`,
+    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapPoints} ponto(s) no mapa em ${path.relative(ROOT, OUT_DIR)}`,
   );
 }
 

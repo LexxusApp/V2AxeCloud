@@ -17,10 +17,8 @@ import { cn } from '../lib/utils';
 import { writeCachedTenantIdForUser } from '../lib/tenantCache';
 import { resolveTenantFromSupabase } from '../lib/resolveTenantFromSupabase';
 import { authFetch } from '../lib/authenticatedFetch';
-import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { ROUTES } from '../lib/routes';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
 import { isValidFilhoLoginId } from '../../lib/filhoMatricula';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
@@ -49,27 +47,25 @@ async function postAuthAuditLog(
 }
 
 const fontLogin =
-  "[font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]";
+  "[font-family:'Outfit',system-ui,sans-serif]";
 
-/** Mesmo card do SubscriptionLock, com cantos menos arredondados */
 const AUTH_MODAL_CARD = cn(
-  'relative w-full overflow-hidden rounded-xl border border-primary/20 bg-card',
-  'shadow-[0_0_50px_rgba(212,175,55,0.1)]',
-  'p-5 pt-3 sm:p-6 sm:pt-4'
+  'relative w-full overflow-hidden rounded-[1.5rem] border border-[#1b1813]/10 bg-[#fffdf8]',
+  'shadow-[0_28px_90px_rgba(73,52,13,0.16)]'
 );
 
-const AUTH_MODAL_RADIUS = 'rounded-lg';
+const AUTH_MODAL_RADIUS = 'rounded-[0.9rem]';
 
 const fieldShell = cn(
-  'w-full h-[38px] pl-[42px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
-  'border border-white/10 bg-background',
+  'h-12 w-full pl-[44px] pr-3 text-[0.9rem] font-medium leading-none text-[#1b1813] placeholder:text-[#1b1813]/35',
+  'border border-[#1b1813]/12 bg-[#f8f4eb]',
   AUTH_MODAL_RADIUS,
-  'outline-none transition-all focus:border-primary/50',
-  '[@media(max-height:700px)]:h-[34px]'
+  'outline-none transition-all focus:border-[#c48a00]/65 focus:bg-white focus:shadow-[0_0_0_3px_rgba(196,138,0,.09)]',
+  '[@media(max-height:700px)]:h-10'
 );
 
 const labelClass =
-  'block text-[10px] font-black uppercase tracking-widest text-gray-500';
+  'block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#1b1813]/55';
 
 function humanizeAuthError(err: unknown): string {
   const msg = String((err as { message?: string })?.message || err || '').trim();
@@ -322,18 +318,30 @@ export default function Login() {
     }
   };
 
+  const switchSurface = (nextIsFilho: boolean) => {
+    if (loading || nextIsFilho === filhoSurface) return;
+    setFilhoSurface(nextIsFilho);
+    setError(null);
+    setInfo(null);
+  };
+
   return (
     <div
       className={cn(
-        'relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-4 antialiased text-white backdrop-blur-2xl sm:h-[100dvh] sm:max-h-[100dvh] sm:overflow-hidden sm:px-6 sm:py-5',
+        'relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-[#faf8f4] px-4 py-4 antialiased text-[#1b1813] sm:h-[100dvh] sm:max-h-[100dvh] sm:overflow-hidden sm:px-6 sm:py-5',
         fontLogin
       )}
     >
-      <AuthScreenBackground variant="dark" className="fixed inset-0" />
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute -left-36 -top-36 h-[34rem] w-[34rem] rounded-full bg-[#f0b400]/[0.09] blur-3xl" />
+        <div className="absolute -bottom-48 -right-32 h-[38rem] w-[38rem] rounded-full bg-[#e2bc5a]/[0.12] blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.18] [background-image:radial-gradient(rgba(120,82,0,.45)_0.55px,transparent_0.55px)] [background-size:22px_22px]" />
+        <div className="absolute left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c48a00]/10" />
+      </div>
 
       <a
         href={ROUTES.home}
-        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.5rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
+        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.25rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 text-xs font-semibold text-[#1b1813]/60 transition-colors hover:text-[#a87500]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Conhecer o AxéCloud
@@ -342,14 +350,26 @@ export default function Login() {
       <motion.div
         initial={false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:max-w-md sm:py-0"
+        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:py-0 md:max-w-[54rem]"
       >
-        <div className={cn(AUTH_MODAL_CARD, 'space-y-3 sm:space-y-4')}>
+        <div
+          data-login-mode={filhoSurface ? 'filho' : 'zelador'}
+          className={cn(
+            AUTH_MODAL_CARD,
+            '[perspective:1600px] md:min-h-[36rem] md:rounded-[1.8rem]'
+          )}
+        >
+        <div
+          className={cn(
+            'relative z-10 w-full space-y-4 p-6 transition-[left] duration-700 ease-[cubic-bezier(.77,0,.18,1)] motion-reduce:transition-none sm:p-8',
+            'md:absolute md:inset-y-0 md:flex md:w-1/2 md:flex-col md:justify-center md:overflow-y-auto md:px-10 md:py-8',
+            filhoSurface ? 'md:left-1/2' : 'md:left-0'
+          )}
+        >
         {showAlert && (
           <div
             className={cn(
-              'flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-primary',
-              'shadow-[0_0_24px_rgba(212,175,55,0.08)]'
+              'flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]'
             )}
           >
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2} />
@@ -367,22 +387,25 @@ export default function Login() {
           </div>
         )}
 
-        <header className="space-y-2.5 text-center sm:space-y-3">
-          <div className="flex justify-center">
-            <img
-              src={BRAND_LOGO_SRC}
-              alt={BRAND_LOGO_ALT}
-              width={BRAND_LOGO_WIDTH}
-              height={BRAND_LOGO_HEIGHT}
-              decoding="async"
-              className={BRAND_LOGO_LOGIN_CLASS}
-            />
+        <header className="space-y-3 text-left">
+          <div className="mb-7 flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c48a00]/55 text-lg text-[#b47d00]">✦</span>
+            <span className="text-xl tracking-[-0.04em] [font-family:'Fraunces',Georgia,serif]">
+              Axé<span className="text-[#b47d00]">Cloud</span>
+            </span>
           </div>
           <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
+          <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
+            {filhoSurface ? 'Portal do filho de santo' : 'Gestão da casa de axé'}
+          </p>
+          <h2 className="text-[2.15rem] font-medium leading-[1.02] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
+            {filhoSurface ? 'Entre na corrente.' : 'Bem-vindo de volta.'}
+          </h2>
           <div className="space-y-0.5 text-[13px] leading-snug">
-            <p className="font-medium text-white">Conecte-se ao seu terreiro.</p>
-            <p className="mx-auto max-w-[260px] text-gray-400">
-              Organize, comunique e fortaleça sua casa com tecnologia e Axé.
+            <p className="max-w-[19rem] text-[#1b1813]/55">
+              {filhoSurface
+                ? 'Use o registro entregue pela sua casa e os seis primeiros dígitos do CPF.'
+                : 'Entre com o e-mail e a senha usados na gestão do terreiro.'}
             </p>
           </div>
         </header>
@@ -423,7 +446,7 @@ export default function Login() {
                       <label className={labelClass}>Senha</label>
                       <a
                         href={forgotPasswordHref}
-                        className="pb-[1px] text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+                        className="pb-[1px] text-[11px] font-semibold text-[#a87500] transition-colors hover:text-[#7b5700]"
                       >
                         Esqueceu sua senha?
                       </a>
@@ -446,7 +469,7 @@ export default function Login() {
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
                         aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        className="absolute right-4 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#9ca0aa] transition-colors hover:text-zinc-200"
+                        className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
                       >
                         {showPassword ? (
                           <EyeOff className="h-5 w-5" strokeWidth={1.65} />
@@ -482,7 +505,7 @@ export default function Login() {
                         </svg>
                       )}
                     </span>
-                    <span className="text-[12px] font-medium text-white">Lembrar de mim</span>
+                    <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar de mim</span>
                   </label>
                 </motion.div>
               ) : (
@@ -495,12 +518,8 @@ export default function Login() {
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      setFilhoSurface(false);
-                      setError(null);
-                      setInfo(null);
-                    }}
-                    className="-mt-1 mb-0 text-[11px] font-semibold text-gray-500 transition-colors hover:text-primary"
+                    onClick={() => switchSurface(false)}
+                    className="-mt-1 mb-0 text-[11px] font-semibold text-[#1b1813]/50 transition-colors hover:text-[#a87500] md:hidden"
                   >
                     ← Voltar ao login do zelador
                   </button>
@@ -550,7 +569,7 @@ export default function Login() {
             {error && (
               <p
                 className={cn(
-                  'rounded-lg border border-red-500/30 bg-red-950/40 py-2 text-center text-[11px] font-semibold text-red-200'
+                  'rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700'
                 )}
               >
                 {error}
@@ -559,7 +578,7 @@ export default function Login() {
             {info && (
               <p
                 className={cn(
-                  'rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-[11px] font-semibold text-primary'
+                  'rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/35 px-3 py-2 text-center text-[11px] font-semibold text-[#775400]'
                 )}
               >
                 {info}
@@ -571,35 +590,36 @@ export default function Login() {
               disabled={loading}
               whileTap={{ scale: 0.98 }}
               className={cn(
-                AUTH_MODAL_RADIUS,
-                'flex h-10 w-full items-center justify-center gap-2 bg-primary text-sm font-black uppercase tracking-widest text-black',
-                'shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90 disabled:opacity-60'
+                'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
+                'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
               )}
             >
-              {loading ? <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} /> : 'Entrar'}
+              {loading ? (
+                <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
+              ) : filhoSurface ? (
+                'Entrar como filho'
+              ) : (
+                'Entrar como zelador'
+              )}
             </motion.button>
           </form>
 
           {!filhoSurface && (
-            <div className="space-y-3">
+            <div className="space-y-3 md:hidden">
               <div className="flex items-center gap-2 px-0.5">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500">
+                <div className="h-px flex-1 bg-[#1b1813]/10" />
+                <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
                   Acesso do filho
                 </span>
-                <div className="h-px flex-1 bg-white/10" />
+                <div className="h-px flex-1 bg-[#1b1813]/10" />
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setFilhoSurface(true);
-                  setError(null);
-                  setInfo(null);
-                }}
+                onClick={() => switchSurface(true)}
                 className={cn(
-                  'relative flex h-10 w-full items-center justify-center text-sm font-bold text-white',
+                  'relative flex h-11 w-full items-center justify-center text-sm font-semibold text-[#1b1813]',
                   AUTH_MODAL_RADIUS,
-                  'border border-white/10 bg-background transition-colors hover:border-primary/30 hover:bg-background/80'
+                  'border border-[#1b1813]/12 bg-[#f8f4eb] transition-colors hover:border-[#c48a00]/40 hover:bg-white'
                 )}
               >
                 <UserCircle
@@ -612,6 +632,61 @@ export default function Login() {
             </div>
           )}
         </div>
+        </div>
+
+        <motion.aside
+          aria-label="Alternar tipo de acesso"
+          animate={{ rotateY: filhoSurface ? [0, -5, 0] : [0, 5, 0] }}
+          transition={{ duration: 0.72, ease: [0.77, 0, 0.18, 1] }}
+          className={cn(
+            'absolute inset-y-0 hidden w-1/2 overflow-hidden bg-[#1b1813] text-[#faf8f4] md:flex',
+            'items-center justify-center p-9 text-center transition-[left] duration-700 ease-[cubic-bezier(.77,0,.18,1)] motion-reduce:transition-none [backface-visibility:hidden] [transform-style:preserve-3d]',
+            filhoSurface ? 'left-0 rounded-l-[1.75rem]' : 'left-1/2 rounded-r-[1.75rem]'
+          )}
+        >
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-[#e5ad1a]/20" />
+          <div className="pointer-events-none absolute -bottom-32 -left-28 h-80 w-80 rounded-full border border-[#e5ad1a]/10" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(224,171,32,.16),transparent_42%)]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.11] [background-image:radial-gradient(rgba(255,215,111,.8)_0.5px,transparent_0.5px)] [background-size:18px_18px]" />
+
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={filhoSurface ? 'convite-zelador' : 'convite-filho'}
+              initial={{ opacity: 0, x: filhoSurface ? -28 : 28, filter: 'blur(5px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: filhoSurface ? 28 : -28, filter: 'blur(5px)' }}
+              transition={{ duration: 0.35, delay: 0.2 }}
+              className="relative z-10 flex max-w-[18rem] flex-col items-center"
+            >
+              <div className="mb-7 flex h-14 w-14 items-center justify-center rounded-full border border-[#e5ad1a]/35 bg-[#e5ad1a]/[0.06] text-[#e5ad1a]">
+                {filhoSurface ? (
+                  <Lock className="h-8 w-8" strokeWidth={1.45} aria-hidden />
+                ) : (
+                  <UserCircle className="h-9 w-9" strokeWidth={1.35} aria-hidden />
+                )}
+              </div>
+              <p className="mb-3 text-[0.61rem] font-bold uppercase tracking-[0.3em] text-[#d6a526]">
+                Dois caminhos, uma casa
+              </p>
+              <h2 className="text-[2.55rem] font-medium leading-[0.98] tracking-[-0.045em] [font-family:'Fraunces',Georgia,serif]">
+                {filhoSurface ? 'Você cuida da casa?' : 'Você faz parte da corrente?'}
+              </h2>
+              <p className="mt-5 text-sm font-normal leading-relaxed text-white/58">
+                {filhoSurface
+                  ? 'Use o e-mail e a senha da gestão para acessar o painel do terreiro.'
+                  : 'Entre com o registro entregue pela casa e acompanhe sua vida no axé.'}
+              </p>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => switchSurface(!filhoSurface)}
+                className="mt-8 inline-flex h-12 min-w-52 items-center justify-center rounded-full border border-[#e5ad1a]/55 bg-transparent px-6 text-xs font-bold tracking-[0.04em] text-[#f0bd36] transition-all hover:-translate-y-0.5 hover:bg-[#e5ad1a] hover:text-[#17130c] disabled:opacity-60"
+              >
+                {filhoSurface ? 'Entrar como zelador' : 'Entrar como filho'}
+              </button>
+            </motion.div>
+          </AnimatePresence>
+        </motion.aside>
         </div>
       </motion.div>
     </div>

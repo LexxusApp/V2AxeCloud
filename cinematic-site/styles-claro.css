@@ -1,0 +1,565 @@
+/* ═══════════════════════════════════════════════════════════
+   AxéCloud — Home clara + dourado
+   Override só da página principal (body.tema-claro).
+   Internas e rodapé institucional preto não usam este arquivo.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Fonte versionada para o build de produção. */
+body.tema-claro {
+  --noite: #faf8f4;
+  --noite-2: #ffffff;
+  --terra: #f3eee6;
+  --ouro: #ffc107;
+  --ouro-claro: #e6a800;
+  --ouro-escuro: #b45309;
+  --brasa: #d97706;
+  --osso: #1b1813;
+  --osso-fraco: rgba(27, 24, 19, 0.58);
+  --verde-folha: #4a7c59;
+
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 193, 7, 0.14), transparent 55%),
+    radial-gradient(80% 50% at 100% 40%, rgba(255, 193, 7, 0.06), transparent 50%),
+    var(--noite);
+  color: var(--osso);
+  cursor: auto;
+}
+
+body.tema-claro::before {
+  opacity: 0.028;
+}
+
+body.tema-claro ::selection {
+  background: var(--ouro);
+  color: #1a1204;
+}
+
+/* ── Preloader ─────────────────────────────────────────── */
+body.tema-claro #preloader {
+  background: #faf8f4;
+}
+body.tema-claro .firmeza-texto {
+  color: rgba(27, 24, 19, 0.55);
+}
+body.tema-claro .firmeza-barra {
+  background: rgba(27, 24, 19, 0.1);
+}
+
+/* ── Ambiente claro: pó dourado, luz quente, defumação ──── */
+body.tema-claro #cursor-vagalume {
+  display: none !important;
+}
+body.tema-claro .clarao-fogueira {
+  display: none !important;
+}
+
+/* Canvas de pó dourado (pemba) — visível e discreto */
+body.tema-claro #embers {
+  display: block;
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+}
+
+/* Halo dourado respirando (substitui o clarão da fogueira) */
+body.tema-claro .luz-ambiente {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(90% 55% at 50% 108%, rgba(255, 193, 7, 0.22), transparent 58%),
+    radial-gradient(55% 40% at 12% 18%, rgba(255, 210, 100, 0.12), transparent 60%),
+    radial-gradient(50% 38% at 88% 22%, rgba(180, 83, 9, 0.07), transparent 62%);
+  animation: respirar-luz 7s ease-in-out infinite alternate;
+}
+@keyframes respirar-luz {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+/* Nuvens douradas lentas — defumação no claro */
+body.tema-claro .fumaca {
+  opacity: 0.7;
+  mix-blend-mode: multiply;
+  filter: blur(78px);
+}
+body.tema-claro .fumaca-a {
+  width: 70vw;
+  height: 55vh;
+  bottom: -20vh;
+  left: -12vw;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.28), transparent 70%);
+}
+body.tema-claro .fumaca-b {
+  width: 55vw;
+  height: 50vh;
+  bottom: -18vh;
+  right: -10vw;
+  background: radial-gradient(circle, rgba(212, 160, 40, 0.18), transparent 70%);
+}
+body.tema-claro .fumaca-c {
+  display: block;
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+  width: 50vw;
+  height: 45vh;
+  top: 8vh;
+  left: 30vw;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.45;
+  mix-blend-mode: multiply;
+  background: radial-gradient(circle, rgba(255, 220, 140, 0.22), transparent 70%);
+  animation: deriva-c 38s ease-in-out infinite alternate;
+}
+@keyframes deriva-c {
+  to { transform: translate(-8vw, 10vh) scale(1.2); }
+}
+
+/* Ferramentas dos orixás na fumaça — um pouco mais presentes */
+body.tema-claro .ponto-fumaca {
+  color: rgba(160, 110, 20, 0.42);
+  filter: blur(0.3px) drop-shadow(0 0 8px rgba(255, 193, 7, 0.2));
+}
+
+/* Vinheta clara: bordas levemente mais quentes, sem escurecer o centro */
+body.tema-claro .vinheta {
+  display: block;
+  background:
+    radial-gradient(ellipse at center, transparent 48%, rgba(212, 180, 110, 0.14) 100%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 193, 7, 0.08), transparent 45%);
+}
+
+/* ── Fio de contas ─────────────────────────────────────── */
+body.tema-claro .fio-linha {
+  background: rgba(27, 24, 19, 0.12);
+}
+body.tema-claro .conta {
+  background: #fff;
+  border-color: rgba(27, 24, 19, 0.22);
+}
+body.tema-claro .conta.acesa {
+  background: var(--ouro);
+  border-color: var(--ouro);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.55);
+}
+body.tema-claro .fio-preenchido {
+  box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+}
+
+/* ── Nav ───────────────────────────────────────────────── */
+body.tema-claro .navegacao {
+  background: linear-gradient(180deg, rgba(250, 248, 244, 0.94), rgba(250, 248, 244, 0.55) 70%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(27, 24, 19, 0.04);
+}
+body.tema-claro .btn-vidro {
+  border-color: rgba(27, 24, 19, 0.18);
+  color: var(--osso);
+  background: rgba(255, 255, 255, 0.65);
+}
+body.tema-claro .btn-vidro:hover {
+  border-color: var(--ouro-escuro);
+  color: var(--ouro-escuro);
+  background: #fff;
+}
+body.tema-claro .btn-ouro {
+  box-shadow: 0 8px 28px rgba(255, 193, 7, 0.35);
+}
+
+/* ── Hero ──────────────────────────────────────────────── */
+body.tema-claro #ponto-riscado {
+  opacity: 0.28;
+}
+body.tema-claro .pr-traco {
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.2));
+}
+body.tema-claro .hero-titulo {
+  text-shadow: none;
+}
+body.tema-claro .hero-sub2 {
+  color: rgba(27, 24, 19, 0.55);
+}
+
+/* ── Tipografia de seção ───────────────────────────────── */
+body.tema-claro .fundamento-linhas .linha-grande {
+  color: rgba(27, 24, 19, 0.28);
+}
+body.tema-claro .fundamento-linhas .linha-grande.acesa,
+body.tema-claro .linha-grande.acesa {
+  color: var(--osso);
+}
+body.tema-claro .vivo-fonte {
+  color: rgba(27, 24, 19, 0.35);
+}
+body.tema-claro .vivo-numero {
+  text-shadow: none;
+}
+body.tema-claro .vivo-item {
+  border-color: rgba(27, 24, 19, 0.08);
+  background: linear-gradient(180deg, #fff, rgba(255, 193, 7, 0.06));
+  box-shadow: 0 10px 30px rgba(27, 24, 19, 0.04);
+}
+
+/* ── Congá / módulos ───────────────────────────────────── */
+body.tema-claro .conga-lista button:hover {
+  color: var(--osso);
+  background: rgba(255, 193, 7, 0.1);
+}
+body.tema-claro .conga-lista button.ativo {
+  color: var(--osso);
+  border-color: rgba(180, 83, 9, 0.35);
+  background: rgba(255, 193, 7, 0.12);
+}
+body.tema-claro .conga-painel {
+  border-color: rgba(255, 193, 7, 0.35);
+  background:
+    radial-gradient(100% 80% at 80% 0%, rgba(255, 193, 7, 0.18), transparent 55%),
+    linear-gradient(165deg, #ffffff, #f7f1e6);
+  box-shadow: 0 20px 50px rgba(27, 24, 19, 0.08);
+  color: var(--osso);
+}
+body.tema-claro .conga-num {
+  color: rgba(255, 193, 7, 0.22);
+}
+body.tema-claro .conga-simbolo {
+  filter: none;
+}
+body.tema-claro .conga-nav button {
+  border-color: rgba(27, 24, 19, 0.18);
+  color: var(--osso);
+}
+body.tema-claro .conga-lista button {
+  border-color: transparent;
+}
+@media (max-width: 860px) {
+  body.tema-claro .conga-lista button {
+    border-color: rgba(27, 24, 19, 0.1);
+    background: #fff;
+  }
+}
+
+/* ── Casas ─────────────────────────────────────────────── */
+body.tema-claro .casa-carta {
+  border-color: rgba(27, 24, 19, 0.1);
+  background: linear-gradient(180deg, #fff, #f4efe6);
+  color: var(--osso);
+  box-shadow: 0 12px 32px rgba(27, 24, 19, 0.06);
+}
+body.tema-claro .casa-carta:visited { color: var(--osso); }
+body.tema-claro .casa-veu {
+  background: linear-gradient(180deg, rgba(250, 248, 244, 0.15) 15%, rgba(250, 248, 244, 0.92));
+}
+body.tema-claro .casa-carta:has(.casa-foto[style*="url"]) .casa-veu {
+  background: linear-gradient(180deg, rgba(27, 24, 19, 0.05) 10%, rgba(27, 24, 19, 0.78));
+}
+body.tema-claro .casa-carta:has(.casa-foto[style*="url"]) {
+  color: #f5ead3;
+}
+body.tema-claro .casa-carta:has(.casa-foto[style*="url"]) .casa-cidade {
+  color: rgba(245, 234, 211, 0.7);
+}
+body.tema-claro .casa-foto {
+  opacity: 0.55;
+}
+
+/* ── Eventos ───────────────────────────────────────────── */
+body.tema-claro .evento-linha {
+  border-bottom-color: rgba(27, 24, 19, 0.08);
+}
+body.tema-claro .evento-linha:first-child {
+  border-top-color: rgba(27, 24, 19, 0.08);
+}
+body.tema-claro .evento-linha:hover {
+  background: rgba(255, 193, 7, 0.08);
+}
+
+/* ── Vozes / depoimentos ───────────────────────────────── */
+body.tema-claro .voz-carta {
+  border-color: rgba(27, 24, 19, 0.1);
+  background: linear-gradient(180deg, #ffffff, #f6f1e8);
+  box-shadow: 0 14px 36px rgba(27, 24, 19, 0.06);
+  color: var(--osso);
+}
+
+/* ── Planos ────────────────────────────────────────────── */
+body.tema-claro .oferta-palco {
+  border-color: rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, #ffffff 0%, #fffdf8 45%, #f7f0e4 100%);
+  box-shadow: 0 24px 60px rgba(27, 24, 19, 0.08), 0 0 0 1px rgba(255, 193, 7, 0.06);
+}
+body.tema-claro .oferta-palco::before {
+  background:
+    radial-gradient(70% 80% at 85% 20%, rgba(255, 193, 7, 0.2), transparent 55%),
+    radial-gradient(50% 60% at 10% 90%, rgba(180, 83, 9, 0.08), transparent 60%);
+}
+body.tema-claro .oferta-copy {
+  border-right-color: rgba(255, 193, 7, 0.22);
+}
+body.tema-claro .oferta-pilar {
+  border-color: rgba(27, 24, 19, 0.08);
+  background: rgba(255, 193, 7, 0.08);
+}
+body.tema-claro .oferta-valor {
+  text-shadow: none;
+}
+body.tema-claro .oferta-nota {
+  color: rgba(27, 24, 19, 0.4);
+}
+body.tema-claro .oferta-beneficios span {
+  border-color: rgba(180, 83, 9, 0.2);
+  background: #fff;
+  color: rgba(27, 24, 19, 0.65);
+  box-shadow: 0 4px 14px rgba(27, 24, 19, 0.04);
+}
+body.tema-claro .oferta-gb {
+  box-shadow: 0 10px 28px rgba(180, 83, 9, 0.28);
+}
+
+/* ── Quem está por trás ────────────────────────────────── */
+body.tema-claro .quem-casas {
+  border-color: #e8dfd0;
+  background: #faf6ef;
+  box-shadow: 0 16px 40px rgba(27, 24, 19, 0.05);
+}
+body.tema-claro .quem-casa {
+  border-color: #e8dfd0;
+  background: #fff;
+}
+body.tema-claro .quem-atalhos a {
+  border-color: #d8cfc0;
+  background: #fff;
+}
+body.tema-claro .quem-link { color: #a87400; }
+
+/* ── Memória da casa ───────────────────────────────────── */
+body.tema-claro .memoria-foto {
+  border-color: rgba(27, 24, 19, 0.1);
+  box-shadow: 0 18px 40px rgba(27, 24, 19, 0.1);
+}
+body.tema-claro .memoria-rodape {
+  border-color: rgba(255, 193, 7, 0.35);
+  background:
+    radial-gradient(80% 120% at 0% 50%, rgba(255, 193, 7, 0.14), transparent 55%),
+    #fff;
+  box-shadow: 0 16px 40px rgba(27, 24, 19, 0.06);
+}
+body.tema-claro .memoria-pilares li {
+  background: #fdf8f0;
+  border-color: rgba(180, 83, 9, 0.2);
+}
+
+/* ── FAQ ───────────────────────────────────────────────── */
+body.tema-claro .faq::before {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255, 193, 7, 0.1), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 70%, rgba(180, 83, 9, 0.05), transparent 70%);
+}
+body.tema-claro .faq-item {
+  border-color: rgba(27, 24, 19, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 193, 7, 0.06), transparent 45%),
+    linear-gradient(180deg, #ffffff, #faf6ef);
+  box-shadow: 0 8px 24px rgba(27, 24, 19, 0.04);
+}
+body.tema-claro .faq-item:hover {
+  border-color: rgba(255, 193, 7, 0.45);
+}
+body.tema-claro .faq-item.aberto {
+  border-color: rgba(180, 83, 9, 0.4);
+  box-shadow: 0 14px 36px rgba(180, 83, 9, 0.08);
+}
+body.tema-claro .faq-pergunta {
+  color: var(--osso);
+}
+body.tema-claro .faq-pergunta:hover,
+body.tema-claro .faq-item.aberto .faq-pergunta {
+  color: var(--ouro-escuro);
+}
+body.tema-claro .faq-resposta-inner {
+  color: rgba(27, 24, 19, 0.62);
+  border-top-color: rgba(255, 193, 7, 0.22);
+}
+body.tema-claro .faq-resposta-inner a {
+  color: var(--ouro-escuro);
+  border-bottom-color: rgba(180, 83, 9, 0.35);
+}
+body.tema-claro .faq-icone {
+  border-color: rgba(180, 83, 9, 0.35);
+  color: var(--ouro-escuro);
+}
+
+/* ── Segurança (texto claro; rack permanece escuro) ─────── */
+body.tema-claro .seguranca::before {
+  background:
+    radial-gradient(ellipse 50% 45% at 75% 45%, rgba(73, 230, 165, 0.08), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 20% 60%, rgba(255, 193, 7, 0.1), transparent 70%);
+}
+body.tema-claro .seg-stat {
+  border-color: rgba(27, 24, 19, 0.08);
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(27, 24, 19, 0.04);
+}
+body.tema-claro .seg-ponto {
+  border-color: rgba(255, 193, 7, 0.28);
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(27, 24, 19, 0.04);
+}
+body.tema-claro .seg-ponto h3 {
+  color: var(--ouro-escuro);
+}
+body.tema-claro .seg-ponto-ico {
+  border-color: rgba(180, 83, 9, 0.3);
+  background: rgba(255, 193, 7, 0.12);
+  color: var(--ouro-escuro);
+}
+body.tema-claro .tom-osso { color: var(--osso); }
+body.tema-claro .rack-nota {
+  color: rgba(27, 24, 19, 0.4);
+}
+body.tema-claro .rack-halo {
+  border-color: rgba(255, 193, 7, 0.15);
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.1), rgba(73, 230, 165, 0.04) 42%, transparent 70%);
+}
+
+/* ── Chamado final ─────────────────────────────────────── */
+body.tema-claro .chamado {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255, 193, 7, 0.12), transparent 65%),
+    linear-gradient(180deg, transparent, rgba(255, 193, 7, 0.05));
+}
+body.tema-claro .chamado-ponto {
+  opacity: 0.18;
+}
+body.tema-claro .chamado-titulo {
+  text-shadow: none;
+  color: var(--osso);
+}
+body.tema-claro .chamado-selos {
+  color: rgba(27, 24, 19, 0.4);
+}
+
+/* ── Ritmo cromático: marfim + preto quente + ouro ─────── */
+body.tema-claro .fundamento,
+body.tema-claro .axe-vivo,
+body.tema-claro .quem-somos,
+body.tema-claro .chamado {
+  color: #f8f3e9;
+  border-top: 1px solid rgba(255, 193, 7, 0.12);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.1);
+  background:
+    radial-gradient(80% 75% at 50% 12%, rgba(255, 193, 7, 0.09), transparent 58%),
+    linear-gradient(145deg, #201b14 0%, #17140f 52%, #0f0d0a 100%);
+}
+
+body.tema-claro .fundamento::before,
+body.tema-claro .axe-vivo::before,
+body.tema-claro .quem-somos::before,
+body.tema-claro .chamado::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: radial-gradient(rgba(255, 215, 110, 0.55) 0.55px, transparent 0.55px);
+  background-size: 22px 22px;
+}
+
+body.tema-claro .fundamento-linhas .linha-grande {
+  color: rgba(248, 243, 233, 0.48);
+}
+body.tema-claro .fundamento-linhas .linha-grande.acesa,
+body.tema-claro .fundamento .linha-grande.acesa {
+  color: #f8f3e9;
+}
+body.tema-claro .fundamento-nota {
+  color: rgba(248, 243, 233, 0.58);
+}
+
+body.tema-claro .axe-vivo .titulo-secao,
+body.tema-claro .quem-somos .titulo-secao,
+body.tema-claro .chamado-titulo {
+  color: #f8f3e9;
+}
+body.tema-claro .axe-vivo .vivo-item {
+  border-color: rgba(255, 193, 7, 0.17);
+  background:
+    radial-gradient(90% 80% at 50% 0%, rgba(255, 193, 7, 0.1), transparent 62%),
+    rgba(255, 255, 255, 0.025);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+body.tema-claro .axe-vivo .vivo-rotulo,
+body.tema-claro .axe-vivo .vivo-numero small {
+  color: rgba(248, 243, 233, 0.56);
+}
+body.tema-claro .axe-vivo .vivo-fonte {
+  color: rgba(248, 243, 233, 0.38);
+}
+
+body.tema-claro .quem-somos {
+  max-width: none;
+  margin: 0;
+  padding-left: 8vw;
+  padding-right: 8vw;
+}
+body.tema-claro .quem-somos .quem-grade {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+body.tema-claro .quem-somos .quem-historia {
+  background:
+    radial-gradient(90% 70% at 10% 0%, rgba(255, 193, 7, 0.15), transparent 55%),
+    linear-gradient(165deg, #282117, #14110d 70%);
+}
+body.tema-claro .quem-somos .quem-casas {
+  border-color: rgba(255, 193, 7, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+}
+body.tema-claro .quem-somos .quem-casas-topo h3,
+body.tema-claro .quem-somos .quem-casa strong {
+  color: #f8f3e9;
+}
+body.tema-claro .quem-somos .quem-casa {
+  border-color: rgba(248, 243, 233, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+  color: #f8f3e9;
+}
+body.tema-claro .quem-somos .quem-casa:hover {
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.055);
+}
+body.tema-claro .quem-somos .quem-casa small,
+body.tema-claro .quem-somos .quem-nota {
+  color: rgba(248, 243, 233, 0.48);
+}
+body.tema-claro .quem-somos .quem-atalhos a {
+  border-color: rgba(255, 193, 7, 0.25);
+  background: rgba(255, 193, 7, 0.04);
+  color: rgba(248, 243, 233, 0.8);
+}
+
+body.tema-claro .chamado {
+  background:
+    radial-gradient(ellipse 65% 60% at 50% 45%, rgba(255, 193, 7, 0.13), transparent 66%),
+    linear-gradient(145deg, #201b14, #0f0d0a);
+}
+body.tema-claro .chamado-ponto {
+  opacity: 0.12;
+}
+body.tema-claro .chamado-sub {
+  color: rgba(248, 243, 233, 0.68);
+}
+body.tema-claro .chamado-selos {
+  color: rgba(248, 243, 233, 0.4);
+}
+
+/* ── Rodapé legado da página (se houver) ───────────────── */
+body.tema-claro .rodape {
+  border-top-color: rgba(27, 24, 19, 0.08);
+}
+body.tema-claro .rodape strong {
+  color: var(--osso);
+}

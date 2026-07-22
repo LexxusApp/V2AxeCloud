@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calendário de Referências das Casas de Axé | AxéCloud</title>
+<meta name="description" content="Referências públicas de datas celebradas por algumas casas de Umbanda e Candomblé. Cada terreiro possui seu próprio fundamento e calendário." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/conteudo/calendario-liturgico" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="article" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Calendário de referências — AxéCloud" />
+<meta property="og:description" content="Datas de referência, sempre subordinadas ao fundamento de cada casa." />
+<meta property="og:url" content="https://axecloud.com.br/conteudo/calendario-liturgico" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ═══ A RODA DO ANO — cada mês, uma cor de orixá ═══ */
+:root {
+  --fundo: #100d14;
+  --texto: #efe9f2;
+  --texto-fraco: rgba(239, 233, 242, 0.55);
+  --ouro: #ffc107;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: "Outfit", sans-serif;
+  overflow-x: hidden;
+}
+::selection { background: var(--ouro); color: var(--fundo); }
+
+/* Aura de cor do mês ativo — muda conforme o scroll */
+#aura {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(90% 60% at 50% 40%, var(--cor-mes, rgba(255, 193, 7, 0.12)), transparent 70%);
+  transition: background 1.2s ease;
+}
+
+nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 6vw 0;
+}
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--texto-fraco); text-decoration: none; transition: color 0.3s; }
+.menu a:hover { color: var(--ouro); }
+.menu a.atual { color: var(--ouro); border-bottom: 1px solid var(--ouro); padding-bottom: 3px; }
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--texto); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+
+header { position: relative; z-index: 2; text-align: center; padding: 90px 6vw 50px; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ouro); }
+h1 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(2.4rem, 6.5vw, 4.6rem); margin: 18px 0 14px; }
+h1 em { font-style: italic; color: var(--ouro); }
+.lede { max-width: 540px; margin: 0 auto; color: var(--texto-fraco); font-weight: 300; line-height: 1.7; }
+
+/* Roda giratória fixa que acompanha o mês */
+.roda-wrap {
+  position: sticky;
+  top: 90px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  height: 0;
+  pointer-events: none;
+}
+#roda {
+  width: min(58vmin, 460px);
+  height: min(58vmin, 460px);
+  opacity: 0.2;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#roda circle, #roda path, #roda line { stroke: currentColor; fill: none; stroke-width: 1; }
+#roda text {
+  fill: currentColor;
+  font-family: "Outfit", sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.roda-cor { color: var(--cor-roda, var(--ouro)); transition: color 1.2s; }
+
+/* Meses */
+.meses { position: relative; z-index: 2; max-width: 760px; margin: 0 auto; padding: 60px 6vw 120px; }
+.mes { padding: 12vh 0; }
+.mes-nome {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  color: var(--cor, var(--ouro));
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.9s, transform 0.9s;
+}
+.mes.aceso .mes-nome { opacity: 1; transform: translateY(0); }
+.mes-datas { margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
+.data {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 24px;
+  padding: 22px 26px;
+  border-radius: 16px;
+  border: 1px solid rgba(239, 233, 242, 0.1);
+  background: rgba(239, 233, 242, 0.03);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s, transform 0.8s, border-color 0.4s;
+}
+.mes.aceso .data { opacity: 1; transform: translateY(0); }
+.data:hover { border-color: var(--cor, var(--ouro)); }
+.data-dia {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: 1.9rem;
+  color: var(--cor, var(--ouro));
+  line-height: 1.1;
+}
+.data-dia small { display: block; font-size: 0.62rem; font-family: "Outfit", sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--texto-fraco); margin-top: 4px; }
+.data-nome { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.15rem; }
+.data-desc { margin-top: 6px; font-weight: 300; font-size: 0.88rem; line-height: 1.6; color: var(--texto-fraco); }
+
+.aviso {
+  position: relative;
+  z-index: 2;
+  max-width: 620px;
+  margin: 0 auto 80px;
+  padding: 0 6vw;
+  text-align: center;
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-weight: 300;
+  color: var(--texto-fraco);
+  line-height: 1.8;
+}
+footer { position: relative; z-index: 2; text-align: center; padding: 40px 6vw 60px; color: var(--texto-fraco); font-size: 0.82rem; border-top: 1px solid rgba(239, 233, 242, 0.08); }
+footer a { color: var(--ouro); text-decoration: none; }
+@media (max-width: 560px) { .data { grid-template-columns: 64px 1fr; gap: 16px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<div id="aura" aria-hidden="true"></div>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico" class="atual">Calendário</a>
+    <a href="/por-que-axecloud">Por quê?</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <p class="kicker">✦ referências públicas · cada casa tem seu fundamento</p>
+  <h1>Datas que atravessam <em>o ano</em></h1>
+  <p class="lede">As datas que movem as casas de axé, mês a mês. A cor da página acompanha o mês em que você está — como a roupa da corrente muda com o santo do dia.</p>
+</header>
+
+<div class="roda-wrap" aria-hidden="true">
+  <svg id="roda" class="roda-cor" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="96"/>
+    <circle cx="100" cy="100" r="72"/>
+    <circle cx="100" cy="100" r="10"/>
+    <g id="raios"></g>
+  </svg>
+</div>
+
+<main class="meses" id="meses"></main>
+
+<p class="aviso">Cada casa tem seu fundamento: as datas variam conforme a nação, a linha e a firma da casa. Confirme sempre com a diretoria do seu terreiro.</p>
+
+<div id="site-footer"></div>
+
+<script>
+/* Referências públicas e não universais. A agenda oficial é sempre a da própria casa. */
+const MESES = [
+  { nome: "Janeiro", cor: "#e8e6df", datas: [
+    ["1º", "Abertura do ano", "Algumas casas realizam limpeza, agradecimento ou trabalhos de abertura; não é uma regra geral."],
+  ]},
+  { nome: "Fevereiro", cor: "#7fb4d9", datas: [
+    ["2", "Festa popular de Iemanjá", "Data de grande expressão pública, especialmente na Bahia; fundamentos e celebrações variam entre casas e regiões."],
+    ["✦", "Carnaval (data variável)", "Algumas casas alteram sua agenda nesse período. Consulte a orientação da sua comunidade."],
+  ]},
+  { nome: "Março", cor: "#3f8f4f", datas: [
+    ["✦", "Quaresma (data variável)", "Algumas vertentes de Umbanda adotam resguardos; outras mantêm suas atividades normalmente."],
+  ]},
+  { nome: "Abril", cor: "#b9a3d0", datas: [
+    ["✦", "Semana Santa (data variável)", "Respeito ao silêncio ritual; algumas casas não realizam giras abertas."],
+  ]},
+  { nome: "Maio", cor: "#f2f2f2", datas: [
+    ["13", "Pretos-velhos (em muitas casas de Umbanda)", "Referência difundida na Umbanda brasileira; a forma de celebração depende da linha e da casa."],
+  ]},
+  { nome: "Junho", cor: "#e0762f", datas: [
+    ["13, 24 e 29", "Festas juninas", "Santo Antônio, São João e São Pedro aparecem em tradições populares e sincréticas de algumas comunidades; não são datas universais do culto."],
+  ]},
+  { nome: "Julho", cor: "#e8a7c3", datas: [
+    ["26", "Sant'Ana / referências a Nanã", "Associação presente em algumas tradições sincréticas e regiões. Confirme o fundamento da sua casa."],
+  ]},
+  { nome: "Agosto", cor: "#f0c33c", datas: [
+    ["16", "São Roque / referências a Omolu ou Obaluaiê", "Associação encontrada em algumas casas de Umbanda; datas e fundamentos no Candomblé variam por nação e casa."],
+  ]},
+  { nome: "Setembro", cor: "#67a86b", datas: [
+    ["26 ou 27", "Cosme e Damião / Erês", "Celebração popular em muitas casas de Umbanda. O dia adotado varia conforme região e tradição."],
+  ]},
+  { nome: "Outubro", cor: "#8fc1e3", datas: [
+    ["12", "Nossa Senhora Aparecida / referências a Oxum", "Associação sincrética presente em algumas comunidades, especialmente de Umbanda; não é universal."],
+  ]},
+  { nome: "Novembro", cor: "#a08cb8", datas: [
+    ["2", "Finados", "Algumas casas dedicam o período à memória e à ancestralidade; os ritos não são públicos nem iguais entre tradições."],
+    ["20", "Consciência Negra", "Data civil de memória, resistência e valorização da cultura negra; não corresponde a uma obrigação litúrgica universal."],
+  ]},
+  { nome: "Dezembro", cor: "#ffffff", datas: [
+    ["4", "Santa Bárbara / referências a Iansã", "Associação sincrética difundida em algumas regiões e casas; cada tradição define sua própria celebração."],
+    ["8", "Nossa Senhora da Conceição", "Pode ser associada a Iemanjá ou Oxum conforme a região e a casa. Não há correspondência única."],
+    ["25", "Natal e recesso", "Algumas comunidades entram em recolhimento ou reorganizam sua agenda; outras mantêm calendário próprio."],
+  ]},
+];
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* Monta os meses */
+const cont = document.getElementById("meses");
+cont.innerHTML = MESES.map((m, i) => `
+  <section class="mes" data-i="${i}" style="--cor:${m.cor}">
+    <h2 class="mes-nome">${esc(m.nome)}</h2>
+    <div class="mes-datas">
+      ${m.datas.map(([d, n, t], j) => `
+        <article class="data" style="transition-delay:${j * 0.12}s">
+          <div class="data-dia">${esc(d)}<small>${esc(m.nome).slice(0, 3)}</small></div>
+          <div>
+            <h3 class="data-nome">${esc(n)}</h3>
+            <p class="data-desc">${esc(t)}</p>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  </section>
+`).join("");
+
+/* Raios da roda com os nomes dos meses */
+const raios = document.getElementById("raios");
+let raiosHtml = "";
+MESES.forEach((m, i) => {
+  const ang = (i / 12) * Math.PI * 2 - Math.PI / 2;
+  const x1 = 100 + Math.cos(ang) * 72, y1 = 100 + Math.sin(ang) * 72;
+  const x2 = 100 + Math.cos(ang) * 96, y2 = 100 + Math.sin(ang) * 96;
+  const xt = 100 + Math.cos(ang) * 84, yt = 100 + Math.sin(ang) * 84;
+  raiosHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  raiosHtml += `<text x="${xt}" y="${yt}" text-anchor="middle" dominant-baseline="middle">${m.nome.slice(0, 3)}</text>`;
+});
+raios.innerHTML = raiosHtml;
+
+/* Mês ativo: acende, gira a roda e muda a aura de cor */
+const roda = document.getElementById("roda");
+const aura = document.getElementById("aura");
+function hexParaRgba(hex, a) {
+  const h = hex.replace("#", "");
+  if (h.length < 6) return `rgba(255,193,7,${a})`;
+  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
+}
+const obs = new IntersectionObserver((es) => {
+  es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add("aceso");
+    const i = Number(e.target.dataset.i);
+    const cor = MESES[i].cor;
+    roda.style.transform = `rotate(${-i * 30}deg)`;
+    roda.style.color = cor;
+    aura.style.background = `radial-gradient(90% 60% at 50% 40%, ${hexParaRgba(cor, 0.13)}, transparent 70%)`;
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll(".mes").forEach((m) => obs.observe(m));
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

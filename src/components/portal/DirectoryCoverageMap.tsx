@@ -1,58 +1,8 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LocateFixed, MapPinned, Navigation, RotateCcw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
-
-type GeoPoint = {
-  slug: string;
-  nome: string;
-  cidade: string;
-  estado: string;
-  perfilUrl: string;
-  lat: number;
-  lng: number;
-};
-
-function parseGoogleMapsCoordinates(link: string | null): { lat: number; lng: number } | null {
-  if (!link) return null;
-  const decoded = decodeURIComponent(link);
-  const patterns = [
-    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
-    /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
-    /[?&](?:q|query|ll)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = decoded.match(pattern);
-    if (!match) continue;
-    const lat = Number(match[1]);
-    const lng = Number(match[2]);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-  return null;
-}
-
-function directoryPoints(cidades: DiretorioCidadeSnapshot[]): GeoPoint[] {
-  const seen = new Set<string>();
-  return cidades.flatMap((cidade) =>
-    cidade.bairros.flatMap((bairro) =>
-      bairro.items.flatMap((item) => {
-        if (item.tipo !== 'terreiro' || !item.slug || seen.has(item.slug)) return [];
-        const coordinates = parseGoogleMapsCoordinates(item.linkMaps);
-        if (!coordinates) return [];
-        seen.add(item.slug);
-        return [{
-          slug: item.slug,
-          nome: item.nome,
-          cidade: item.cidade || cidade.cidade,
-          estado: item.estado || cidade.estado || 'SP',
-          perfilUrl: item.perfilUrl || `/terreiro/${encodeURIComponent(item.slug)}`,
-          ...coordinates,
-        }];
-      }),
-    ),
-  );
-}
+import { useEffect, useRef, useState } from 'react';
+import type { DiretorioMapPoint } from '../../lib/diretorioMap';
 
 function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (value: number) => (value * Math.PI) / 180;
@@ -71,17 +21,18 @@ function escapeHtml(value: string) {
 }
 
 export function DirectoryCoverageMap({
-  cidades,
+  points,
   loading = false,
+  onRetry,
 }: {
-  cidades: DiretorioCidadeSnapshot[];
+  points: DiretorioMapPoint[];
   loading?: boolean;
+  onRetry?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Array<{ point: GeoPoint; marker: L.CircleMarker }>>([]);
+  const markersRef = useRef<Array<{ point: DiretorioMapPoint; marker: L.CircleMarker }>>([]);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
-  const points = useMemo(() => directoryPoints(cidades), [cidades]);
 
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
@@ -190,7 +141,16 @@ export function DirectoryCoverageMap({
               <p className="mt-3 font-bold text-[#1b1813]">
                 {loading ? 'Carregando o mapa dos terreiros…' : 'Não foi possível carregar os pontos do mapa.'}
               </p>
-              {!loading ? <p className="mt-1 text-sm text-[#1b1813]/60">A lista por cidades continua disponível logo abaixo.</p> : null}
+              {!loading ? (
+                <>
+                  <p className="mt-1 text-sm text-[#1b1813]/60">A lista por cidades continua disponível.</p>
+                  {onRetry ? (
+                    <button type="button" onClick={onRetry} className="mt-4 rounded-full bg-[#1b1813] px-5 py-2.5 text-sm font-black text-white">
+                      Tentar novamente
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
             </div>
           </div>
         ) : null}

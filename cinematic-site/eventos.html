@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Giras, Festas e Eventos em Terreiros | AxéCloud</title>
+<meta name="description" content="Consulte giras, festas, obrigações e eventos públicos divulgados por terreiros no AxéCloud." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/eventos" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Giras e Eventos Públicos — AxéCloud" />
+<meta property="og:description" content="Agenda pública das casas de axé." />
+<meta property="og:url" content="https://axecloud.com.br/eventos" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Giras e eventos públicos","url":"https://axecloud.com.br/eventos"}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ═══ O MAR DE IEMANJÁ — noite azul, lua e ondas vivas ═══ */
+:root {
+  --mar-fundo: #04101e;
+  --mar-medio: #0a2038;
+  --espuma: #dcecf5;
+  --espuma-fraca: rgba(220, 236, 245, 0.55);
+  --prata: #c7d9e8;
+  --luar: #e8f2fa;
+  --ouro: #ffc107;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(180deg, #030a14 0%, var(--mar-fundo) 40%, var(--mar-medio) 100%);
+  color: var(--espuma);
+  font-family: "Outfit", sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::selection { background: var(--prata); color: var(--mar-fundo); }
+
+/* Lua cheia com halo */
+.lua {
+  position: fixed;
+  top: 70px;
+  right: 10vw;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #ffffff, var(--luar) 55%, #b9cfdf);
+  box-shadow: 0 0 60px 18px rgba(220, 240, 255, 0.28), 0 0 160px 60px rgba(180, 215, 240, 0.12);
+  z-index: 1;
+  animation: sobe-lua 4s ease-out both;
+}
+@keyframes sobe-lua {
+  from { transform: translateY(90px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.lua::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 62% 58%, rgba(150, 175, 195, 0.35) 0 8%, transparent 9%),
+    radial-gradient(circle at 40% 65%, rgba(150, 175, 195, 0.3) 0 5%, transparent 6%),
+    radial-gradient(circle at 55% 30%, rgba(150, 175, 195, 0.28) 0 6%, transparent 7%);
+}
+
+/* Caminho de luar na água */
+.luar-agua {
+  position: fixed;
+  top: 200px;
+  right: calc(10vw + 20px);
+  width: 90px;
+  height: 70vh;
+  background: linear-gradient(180deg, rgba(230, 245, 255, 0.14), transparent 80%);
+  filter: blur(14px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Ondas do mar — três camadas em parallax */
+.ondas {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 26vh;
+  z-index: 2;
+  pointer-events: none;
+}
+.onda {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  height: 100%;
+}
+.onda svg { width: 100%; height: 100%; }
+.onda-1 { opacity: 0.9; animation: vai-mar 17s linear infinite; }
+.onda-2 { opacity: 0.55; bottom: 16px; animation: vai-mar 26s linear infinite reverse; }
+.onda-3 { opacity: 0.3; bottom: 34px; animation: vai-mar 38s linear infinite; }
+@keyframes vai-mar {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 6vw 0;
+}
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espuma-fraca);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.menu a:hover { color: var(--luar); }
+.menu a.atual { color: var(--luar); border-bottom: 1px solid var(--luar); padding-bottom: 3px; }
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--espuma); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+
+header { position: relative; z-index: 3; padding: 100px 6vw 60px; max-width: 900px; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--prata); }
+h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: clamp(2.4rem, 6.5vw, 4.6rem);
+  margin: 18px 0 14px;
+  color: var(--luar);
+}
+h1 em { font-style: italic; color: var(--prata); }
+.lede { max-width: 480px; color: var(--espuma-fraca); font-weight: 300; line-height: 1.7; }
+
+/* Maré de eventos — linha vertical como corda de âncora */
+.mare {
+  position: relative;
+  z-index: 3;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 6vw 34vh;
+}
+.mare::before {
+  content: "";
+  position: absolute;
+  left: calc(6vw + 44px);
+  top: 0;
+  bottom: 20vh;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(199, 217, 232, 0.35) 12%, rgba(199, 217, 232, 0.35) 88%, transparent);
+}
+.evento {
+  position: relative;
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 34px;
+  padding: 34px 0;
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.evento.na-praia { opacity: 1; transform: translateX(0); }
+.evento-data {
+  text-align: center;
+  font-family: "Fraunces", serif;
+  position: relative;
+}
+.evento-data::after {
+  content: "";
+  position: absolute;
+  right: -34px;
+  top: 16px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--luar);
+  box-shadow: 0 0 14px rgba(230, 245, 255, 0.9);
+}
+.evento-dia { display: block; font-size: 2.6rem; font-weight: 300; color: var(--luar); line-height: 1; }
+.evento-mes { display: block; margin-top: 6px; font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--espuma-fraca); }
+.evento-cartao {
+  background: rgba(220, 236, 245, 0.05);
+  border: 1px solid rgba(199, 217, 232, 0.16);
+  border-radius: 16px;
+  padding: 26px 30px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  backdrop-filter: blur(4px);
+  transition: border-color 0.4s, background 0.4s, transform 0.4s;
+}
+.evento-cartao:hover {
+  border-color: rgba(230, 245, 255, 0.5);
+  background: rgba(220, 236, 245, 0.09);
+  transform: translateY(-4px);
+}
+.evento-tipo { font-size: 0.66rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--prata); }
+.evento-nome { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.5rem; margin: 10px 0 8px; color: var(--luar); }
+.evento-casa { font-size: 0.88rem; font-weight: 300; color: var(--espuma-fraca); }
+.evento-desc { margin-top: 12px; font-size: 0.9rem; font-weight: 300; line-height: 1.65; color: var(--espuma-fraca); }
+.evento-senha {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.estado { text-align: center; padding: 80px 0; color: var(--espuma-fraca); font-family: "Fraunces", serif; font-style: italic; }
+
+/* Estrelas fixas — poucas, discretas */
+.estrela {
+  position: fixed;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--luar);
+  z-index: 0;
+  animation: cintila 3.4s ease-in-out infinite alternate;
+}
+@keyframes cintila { from { opacity: 0.15; } to { opacity: 0.8; } }
+
+footer {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  padding: 0 6vw 30vh;
+  color: var(--espuma-fraca);
+  font-size: 0.82rem;
+}
+footer a { color: var(--prata); }
+@media (max-width: 620px) {
+  .evento { grid-template-columns: 64px 1fr; gap: 22px; }
+  .mare::before { left: calc(6vw + 32px); }
+  .evento-data::after { right: -22px; }
+  .lua { width: 84px; height: 84px; right: 7vw; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<div class="lua" aria-hidden="true"></div>
+<div class="luar-agua" aria-hidden="true"></div>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos" class="atual">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico">Calendário</a>
+    <a href="/por-que-axecloud">Por quê?</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <p class="kicker">✦ calendário público · dados reais do sistema</p>
+  <h1>A maré traz <em>as giras</em></h1>
+  <p class="lede">Giras, festas e obrigações abertas ao público, direto do calendário das casas no AxéCloud. Cada evento chega como onda: no seu tempo.</p>
+</header>
+
+<main class="mare" id="mare">
+  <p class="estado">esperando a maré…</p>
+</main>
+
+<div id="site-footer"></div>
+
+<div class="ondas" aria-hidden="true">
+  <div class="onda onda-3"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 90 Q75 55 150 90 T300 90 T450 90 T600 90 T750 90 T900 90 T1050 90 T1200 90 L1200 200 L0 200 Z" fill="#0d2942"/></svg></div>
+  <div class="onda onda-2"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 110 Q75 70 150 110 T300 110 T450 110 T600 110 T750 110 T900 110 T1050 110 T1200 110 L1200 200 L0 200 Z" fill="#12304a"/></svg></div>
+  <div class="onda onda-1"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 130 Q75 92 150 130 T300 130 T450 130 T600 130 T750 130 T900 130 T1050 130 T1200 130 L1200 200 L0 200 Z" fill="#16344f"/></svg></div>
+</div>
+
+<script>
+const $ = (s, c = document) => c.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rotaPublica = (valor, fallback = "/terreiros") => {
+  try { const u = new URL(valor || fallback, location.origin); return u.origin === location.origin ? u.pathname + u.search : fallback; }
+  catch { return fallback; }
+};
+
+/* Estrelas discretas no céu */
+for (let i = 0; i < 26; i++) {
+  const e = document.createElement("span");
+  e.className = "estrela";
+  e.style.left = Math.random() * 100 + "vw";
+  e.style.top = Math.random() * 55 + "vh";
+  e.style.animationDelay = Math.random() * 3 + "s";
+  document.body.appendChild(e);
+}
+
+/* Eventos reais */
+(async function carrega() {
+  const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+  const mare = $("#mare");
+  try {
+    const r = await fetch("/api/v1/public/eventos?limit=30");
+    const data = await r.json();
+    const eventos = data.items || [];
+    if (!eventos.length) {
+      mare.innerHTML = '<p class="estado">A maré está calma — nenhuma gira pública agendada neste momento.</p>';
+      return;
+    }
+    mare.innerHTML = eventos.map((ev) => {
+      const d = new Date(ev.data + "T12:00:00");
+      const url = rotaPublica(ev.eventoPageUrl || ev.terreiro?.perfilUrl);
+      return `
+      <article class="evento">
+        <div class="evento-data">
+          <span class="evento-dia">${d.getDate()}</span>
+          <span class="evento-mes">${MESES[d.getMonth()]}</span>
+        </div>
+        <a class="evento-cartao" href="${esc(url)}">
+          <span class="evento-tipo">${esc(ev.tipo || "gira")}${ev.hora ? " · " + esc(String(ev.hora).slice(0, 5)) + "h" : ""}</span>
+          <h2 class="evento-nome">${esc(ev.titulo)}</h2>
+          <p class="evento-casa">${esc(ev.terreiro?.nome || "")}${ev.terreiro?.cidade ? " · " + esc(ev.terreiro.cidade) + (ev.terreiro.estado ? "/" + esc(ev.terreiro.estado) : "") : ""}</p>
+          ${ev.descricao ? `<p class="evento-desc">${esc(ev.descricao)}</p>` : ""}
+          ${ev.senhasAtivas ? '<span class="evento-senha">✦ senhas de visitante disponíveis</span>' : ""}
+        </a>
+      </article>`;
+    }).join("");
+
+    // Cada evento entra como onda que chega à praia
+    const obs = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("na-praia");
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll(".evento").forEach((ev, i) => {
+      ev.style.transitionDelay = (i % 3) * 0.12 + "s";
+      obs.observe(ev);
+    });
+  } catch (e) {
+    console.warn(e);
+    mare.innerHTML = '<p class="estado">O mar não respondeu agora — verifique o sistema local ou a internet.</p>';
+  }
+})();
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

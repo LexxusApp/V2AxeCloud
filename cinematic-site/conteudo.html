@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Conteúdo sobre Gestão de Terreiros e Glossário | AxéCloud</title>
+<meta name="description" content="Guias sobre gestão de terreiros, financeiro, giras, filhos de santo, WhatsApp e um glossário respeitoso das tradições afro-brasileiras." />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://axecloud.com.br/conteudo" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Conteúdo e Glossário — AxéCloud" />
+<meta property="og:description" content="Informação para organizar a casa sem apagar seu fundamento." />
+<meta property="og:url" content="https://axecloud.com.br/conteudo" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Conteúdo sobre gestão de terreiros","url":"https://axecloud.com.br/conteudo"}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ═══ A BIBLIOTECA DA CASA — papel, tinta e pena ═══ */
+:root {
+  --papel: #f6efe1;
+  --papel-velho: #efe5d0;
+  --tinta: #2a2118;
+  --tinta-fraca: #7a6c56;
+  --sepia: #8b6f47;
+  --ouro: #a87b0b;
+  --linha: #ddd0b8;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: "Outfit", sans-serif;
+  overflow-x: hidden;
+}
+/* Textura de papel antigo */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 40;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+::selection { background: var(--ouro); color: var(--papel); }
+
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 6vw 0;
+}
+.menu { display: flex; gap: 20px; flex-wrap: wrap; }
+.menu a { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tinta-fraca); text-decoration: none; transition: color 0.3s; }
+.menu a:hover { color: var(--ouro); }
+.menu a.atual { color: var(--ouro); border-bottom: 1px solid var(--ouro); padding-bottom: 3px; }
+.marca { font-family: "Fraunces", serif; font-size: 1.2rem; color: var(--tinta); text-decoration: none; }
+.marca em { color: var(--ouro); font-style: normal; }
+
+header { text-align: center; padding: 90px 6vw 30px; position: relative; }
+.kicker { font-size: 0.74rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--sepia); }
+h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: clamp(2.4rem, 6.5vw, 4.4rem);
+  margin: 18px 0 14px;
+}
+h1 em { font-style: italic; color: var(--ouro); }
+.lede { max-width: 520px; margin: 0 auto; color: var(--tinta-fraca); font-weight: 300; line-height: 1.7; }
+
+/* Pena escrevendo — traço que se desenha sob o título */
+.traco-pena {
+  width: min(320px, 60vw);
+  margin: 26px auto 0;
+  display: block;
+}
+.traco-pena path {
+  stroke: var(--sepia);
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: escreve 2.4s ease-out 0.4s forwards;
+}
+@keyframes escreve { to { stroke-dashoffset: 0; } }
+
+/* Abas */
+.abas { display: flex; justify-content: center; gap: 10px; margin: 40px 0 50px; }
+.aba {
+  font-family: "Fraunces", serif;
+  font-size: 1rem;
+  padding: 12px 30px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  transition: all 0.35s;
+}
+.aba.ativa { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+
+/* ── Estante de artigos ── */
+.estante {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 6vw 100px;
+  columns: 3 300px;
+  column-gap: 26px;
+}
+.folha {
+  break-inside: avoid;
+  margin-bottom: 26px;
+  background: #fffdf6;
+  border: 1px solid var(--linha);
+  padding: 30px 28px 26px;
+  text-decoration: none;
+  color: var(--tinta);
+  display: block;
+  position: relative;
+  box-shadow: 2px 3px 14px rgba(90, 70, 40, 0.08);
+  transition: transform 0.4s, box-shadow 0.4s;
+  opacity: 0;
+  transform: translateY(26px) rotate(0.4deg);
+}
+.folha.aberta { opacity: 1; transform: translateY(0) rotate(0); }
+.folha:hover { transform: translateY(-4px) rotate(-0.4deg); box-shadow: 4px 10px 26px rgba(90, 70, 40, 0.16); }
+/* dobra de canto */
+.folha::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 22px 22px 0;
+  border-color: transparent var(--papel) transparent transparent;
+  filter: drop-shadow(-2px 2px 2px rgba(90, 70, 40, 0.12));
+}
+.folha-num {
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--sepia);
+}
+.folha h2 {
+  font-family: "Fraunces", serif;
+  font-weight: 400;
+  font-size: 1.28rem;
+  line-height: 1.3;
+  margin: 10px 0 12px;
+}
+.folha p { font-weight: 300; font-size: 0.88rem; line-height: 1.65; color: var(--tinta-fraca); }
+.folha-ler { display: inline-block; margin-top: 16px; font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ouro); }
+
+/* ── Glossário — fichário de termos ── */
+.glossario {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 6vw 100px;
+  display: none;
+}
+.glossario.visivel { display: block; }
+.termo {
+  border-bottom: 1px solid var(--linha);
+  padding: 6px 0;
+}
+.termo-cabeca {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 18px 6px;
+  font-family: "Fraunces", serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--tinta);
+  text-align: left;
+  transition: color 0.3s;
+}
+.termo-cabeca:hover { color: var(--ouro); }
+.termo-sinal {
+  font-size: 1.4rem;
+  color: var(--sepia);
+  transition: transform 0.4s;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+.termo.aberto .termo-sinal { transform: rotate(45deg); }
+.termo-corpo {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease;
+}
+.termo-corpo p {
+  padding: 0 6px 22px;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--tinta-fraca);
+  max-width: 700px;
+}
+.glossario-intro { text-align: center; margin-bottom: 36px; color: var(--tinta-fraca); font-style: italic; font-family: "Fraunces", serif; }
+
+footer { text-align: center; padding: 40px 6vw 60px; color: var(--tinta-fraca); font-size: 0.82rem; border-top: 1px solid var(--linha); }
+footer a { color: var(--ouro); text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo" class="atual">Conteúdo</a>
+    <a href="/conteudo/calendario-liturgico">Calendário</a>
+    <a href="/por-que-axecloud">Por quê?</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<header>
+  <p class="kicker">✦ biblioteca da casa · conteúdo real do site</p>
+  <h1>Saber que se <em>escreve</em></h1>
+  <p class="lede">Os artigos do hub de conteúdo do AxéCloud e o glossário do axé — do jeito que estão no site oficial.</p>
+  <svg class="traco-pena" viewBox="0 0 320 30" aria-hidden="true">
+    <path d="M8 18 Q40 6 72 18 T136 18 T200 18 T264 18 Q290 12 312 16 M296 10 L312 16 L298 22"/>
+  </svg>
+</header>
+
+<div class="abas" role="tablist" aria-label="Seções de conteúdo">
+  <button class="aba ativa" id="tab-artigos" role="tab" aria-selected="true" aria-controls="estante" data-aba="artigos">Artigos</button>
+  <button class="aba" id="tab-glossario" role="tab" aria-selected="false" aria-controls="glossario" data-aba="glossario">Glossário do Axé</button>
+</div>
+
+<main class="estante" id="estante" role="tabpanel" aria-labelledby="tab-artigos"></main>
+<section class="glossario" id="glossario" role="tabpanel" aria-labelledby="tab-glossario" hidden>
+  <p class="glossario-intro">Vinte termos, explicados com o respeito de quem é da casa. Toque para abrir.</p>
+  <div id="termos"></div>
+</section>
+
+<div id="site-footer"></div>
+
+<script>
+/* Artigos reais do hub (portalContent.ts do sistema) */
+const ARTIGOS = [
+  { slug: "como-o-axecloud-ajuda-terreiros", titulo: "Como o AxéCloud ajuda terreiros a se organizar", resumo: "Gestão financeira, calendário de giras, galeria de fotos, mural e portal do filho de santo — tecnologia a serviço do sagrado, sem perder a sensibilidade da casa." },
+  { slug: "o-que-e-um-terreiro-guia-para-iniciantes", titulo: "O que é um terreiro — guia para quem está começando", resumo: "Entenda o que é uma casa de axé, quem são os filhos de santo, o papel do zelador e como a comunidade se organiza — com linguagem respeitosa para quem está conhecendo a tradição." },
+  { slug: "mensalidade-na-casa-de-axe-organizacao", titulo: "Mensalidade na casa de axé — organização sem perder a fé", resumo: "Por que as casas cobram contribuição mensal, como evitar conflitos na cobrança e o que muda quando a gestão financeira fica transparente." },
+  { slug: "giras-festas-e-calendario-da-casa", titulo: "Giras, festas e calendário da casa — entenda as datas", resumo: "Diferença entre gira de consulta, festa de santo e obrigação; como as casas organizam o calendário litúrgico." },
+  { slug: "como-visitar-um-terreiro-com-respeito", titulo: "Como visitar um terreiro com respeito — etiqueta para consulentes", resumo: "Vestimenta, comportamento, fotos, oferendas e o que evitar na primeira (e nas próximas) visitas." },
+  { slug: "planilha-ou-software-quando-migrar-gestao-terreiro", titulo: "Planilha ou software: quando migrar a gestão do terreiro", resumo: "Sinais de que cadernos e WhatsApp não bastam mais para organizar a casa." },
+  { slug: "como-instalar-axecloud-celular-pwa", titulo: "Como instalar o AxéCloud no celular (PWA passo a passo)", resumo: "Guia para fixar o AxéCloud na tela inicial do Android ou iPhone como app (PWA)." },
+  { slug: "whatsapp-oficial-vs-grupos-comunicacao-terreiro", titulo: "WhatsApp oficial vs grupos: comunicação na casa de axé", resumo: "Por que grupos de WhatsApp falham na gestão do terreiro — e o que muda com a API oficial da Meta." },
+  { slug: "melhor-software-terreiro-2026-o-que-avaliar", titulo: "Melhor software para terreiro em 2026 — o que avaliar", resumo: "Checklist objetivo para escolher sistema de gestão de terreiro sem cair em promessa vazia." },
+  { slug: "gestao-de-terreiros", titulo: "Gestão de terreiros: organização completa para casas de axé", resumo: "Gestão de terreiros para Umbanda e Candomblé: organize financeiro, filhos de santo, giras e comunicação." },
+  { slug: "sistema-para-terreiro-guia-completo", titulo: "Sistema para terreiro: guia completo para organizar sua casa", resumo: "Entenda como escolher um sistema para terreiro de Umbanda ou Candomblé e centralizar a administração." },
+  { slug: "software-para-terreiro-de-umbanda-recursos", titulo: "Software para terreiro de Umbanda: recursos que a casa precisa", resumo: "Financeiro, médiuns, giras, comunicação e memória da casa — o que um software precisa cobrir." },
+  { slug: "gestao-financeira-terreiro-pix-mensalidades", titulo: "Gestão financeira de terreiro: mensalidades, Pix e transparência", resumo: "Guia prático para organizar entradas, despesas, mensalidades e comprovantes Pix." },
+];
+
+/* Glossário real completo (GLOSSARY_TERMS do sistema) */
+const GLOSSARIO = [
+  ["Axé", "Energia vital, força e bênção presente nas práticas das religiões afro-brasileiras. Também usado como saudação de respeito entre praticantes."],
+  ["Terreiro", "Espaço físico e comunitário onde se realizam cultos, giras e obrigações. Também designa a comunidade ligada à casa."],
+  ["Casa de axé", "Sinônimo de terreiro ou centro religioso de Umbanda, Candomblé ou vertentes afins — a “casa” como lugar de culto e pertencimento."],
+  ["Filho de santo", "Integrante iniciado na tradição, vinculado a uma casa e a uma linha espiritual. Participa de giras, obrigações e vida comunitária do terreiro."],
+  ["Zelador / zeladora", "Responsável pela organização material e administrativa do terreiro — portas, limpeza, estoque, logística das giras e apoio à diretoria espiritual."],
+  ["Pai de santo / Mãe de santo", "Liderança espiritual da casa. No Candomblé, frequentemente babalorixá (pai) ou ialorixá (mãe). Na Umbanda, pai ou mãe de santo conforme a linha."],
+  ["Gira", "Ritual coletivo, especialmente na Umbanda, em que médiuns incorporam entidades e guias para consultas, passes e trabalhos espirituais."],
+  ["Orixá", "Divindade do panteão iorubá, presente no Candomblé e referenciado em diversas linhas. Cada orixá tem características, cores, elementos e dias sagrados."],
+  ["Obrigação", "Ritual de consagração, agradecimento ou renovação espiritual a que o filho de santo deve cumprir conforme orientação da casa e do axé recebido."],
+  ["Umbanda", "Religião afro-brasileira que integra, conforme cada linha, elementos de cultos africanos, indígenas e católicos. As giras de incorporação e o trabalho com linhas de entidades são marcas centrais."],
+  ["Candomblé", "Religião de matriz africana com nações (Ketu, Jeje, Angola, etc.), culto aos orixás e ritos transmitidos de geração em geração. Cada nação tem liturgia, língua ritual e calendário próprios."],
+  ["Preto velho", "Entidade da Umbanda associada à sabedoria, paciência e ancestralidade escravizada. Manifesta-se em incorporação com linguagem, postura e conselhos característicos."],
+  ["Caboclo", "Entidade da Umbanda ligada à força da mata, ao índio e ao caminho de firmeza. Cada caboclo tem nome, cor e características próprias na linha da casa."],
+  ["Exu", "No Candomblé, Exu é orixá e princípio divino ligado ao movimento e à comunicação. Na Umbanda, exus são entidades de trabalho organizadas em linhas próprias. Os conceitos não são equivalentes e seguem o fundamento de cada casa."],
+  ["Ponto", "Cantiga ou invocação ritmada cantada no início ou durante o culto para chamar entidades, orixás ou linhas. O “ponto riscado” abre a gira em muitas casas de Umbanda."],
+  ["Firma", "Conjunto de elementos sagrados — guias, colares, ferramentas, roupas e orientações — que identificam a linha e o compromisso de um filho de santo com sua casa e com o axé recebido."],
+  ["Iniciação", "Rito pelo qual alguém passa a integrar oficialmente a casa como filho de santo, com deveres, obrigações e vínculos espirituais definidos pela diretoria e pela tradição daquele terreiro."],
+  ["Nação", "No Candomblé, tradição litúrgica de origem (por exemplo Ketu, Jeje, Angola), com repertório de toques, orixás enfatizados e regras ritualísticas próprias."],
+  ["Ogã", "No Candomblé, iniciado que toca os atabaques e conduz ritmicamente o toque sagrado, com anos de aprendizado. Função essencial nas festas de santo."],
+  ["Consulente", "Pessoa que busca orientação espiritual em uma gira ou consulta, sem ser necessariamente filho de santo daquela casa. Pode tornar-se integrante com o tempo e a orientação da diretoria."],
+];
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* Monta a estante */
+const estante = document.getElementById("estante");
+estante.innerHTML = ARTIGOS.map((a, i) => `
+  <a class="folha" href="/conteudo/${esc(a.slug)}">
+    <span class="folha-num">folha ${String(i + 1).padStart(2, "0")}</span>
+    <h2>${esc(a.titulo)}</h2>
+    <p>${esc(a.resumo)}</p>
+    <span class="folha-ler">ler artigo →</span>
+  </a>
+`).join("");
+
+/* Folhas se abrem em cascata conforme aparecem */
+const obs = new IntersectionObserver((es) => {
+  es.forEach((e) => {
+    if (e.isIntersecting) {
+      const idx = [...document.querySelectorAll(".folha")].indexOf(e.target);
+      setTimeout(() => e.target.classList.add("aberta"), (idx % 6) * 110);
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll(".folha").forEach((f) => obs.observe(f));
+
+/* Monta o glossário (acordeão) */
+const termosEl = document.getElementById("termos");
+termosEl.innerHTML = GLOSSARIO.map(([t, d]) => `
+  <div class="termo">
+    <button class="termo-cabeca" aria-expanded="false">${esc(t)}<span class="termo-sinal" aria-hidden="true">+</span></button>
+    <div class="termo-corpo"><p>${esc(d)}</p></div>
+  </div>
+`).join("");
+termosEl.addEventListener("click", (e) => {
+  const cabeca = e.target.closest(".termo-cabeca");
+  if (!cabeca) return;
+  const termo = cabeca.parentElement;
+  const corpo = termo.querySelector(".termo-corpo");
+  const aberto = termo.classList.toggle("aberto");
+  cabeca.setAttribute("aria-expanded", String(aberto));
+  corpo.style.maxHeight = aberto ? corpo.scrollHeight + "px" : "0";
+});
+
+/* Abas */
+function selecionarAba(alvo, atualizarUrl = false) {
+  document.querySelectorAll(".aba").forEach((aba) => {
+    const ativa = aba.dataset.aba === alvo;
+    aba.classList.toggle("ativa", ativa);
+    aba.setAttribute("aria-selected", String(ativa));
+  });
+  const artigosAtivos = alvo === "artigos";
+  estante.hidden = !artigosAtivos;
+  estante.style.display = artigosAtivos ? "" : "none";
+  const glossario = document.getElementById("glossario");
+  glossario.hidden = artigosAtivos;
+  glossario.classList.toggle("visivel", !artigosAtivos);
+  if (atualizarUrl) history.replaceState(null, "", alvo === "glossario" ? "/conteudo?aba=glossario" : "/conteudo");
+}
+document.querySelectorAll(".aba").forEach((aba) => {
+  aba.addEventListener("click", () => {
+    selecionarAba(aba.dataset.aba, true);
+  });
+});
+selecionarAba(new URLSearchParams(location.search).get("aba") === "glossario" ? "glossario" : "artigos");
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

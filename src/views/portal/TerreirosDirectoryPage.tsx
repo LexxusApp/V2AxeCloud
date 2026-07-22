@@ -5,11 +5,10 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { diretorioCityPath } from '../../lib/diretorioSlug';
 import {
   loadDiretorioCidadesResumo,
-  fetchDiretorioSnapshot,
   readEmbeddedDiretorioCidadesResumo,
   type DiretorioCidadeResumo,
-  type DiretorioCidadeSnapshot,
 } from '../../lib/diretorioSnapshot';
+import { fetchDiretorioMapPoints, type DiretorioMapPoint } from '../../lib/diretorioMap';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
 import { commercialWhatsAppUrl } from '../../constants/commercialContact';
 import { monitorDirectoryPerformance } from '../../lib/directoryPerformance';
@@ -50,8 +49,9 @@ function DirectoryMapPlaceholder({ label }: { label: string }) {
 function DeferredDirectoryCoverageMap() {
   const sentinelRef = useRef<HTMLElement | null>(null);
   const [requested, setRequested] = useState(false);
-  const [coverage, setCoverage] = useState<DiretorioCidadeSnapshot[]>([]);
+  const [points, setPoints] = useState<DiretorioMapPoint[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     const target = sentinelRef.current;
@@ -72,18 +72,27 @@ function DeferredDirectoryCoverageMap() {
     if (!requested) return;
     const controller = new AbortController();
     setLoading(true);
-    void fetchDiretorioSnapshot(controller.signal)
-      .then((snapshot) => setCoverage(snapshot || []))
-      .catch(() => setCoverage([]))
-      .finally(() => setLoading(false));
+    void fetchDiretorioMapPoints(controller.signal)
+      .then((mapPoints) => setPoints(mapPoints))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setPoints([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     return () => controller.abort();
-  }, [requested]);
+  }, [requested, loadAttempt]);
 
   return (
     <section ref={sentinelRef} className="mt-10 min-h-[280px]" aria-label="Mapa dos terreiros">
       {requested ? (
         <Suspense fallback={<DirectoryMapPlaceholder label="Preparando mapa interativo…" />}>
-          <DirectoryCoverageMap cidades={coverage} loading={loading} />
+          <DirectoryCoverageMap
+            points={points}
+            loading={loading}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
         </Suspense>
       ) : (
         <DirectoryMapPlaceholder label="O mapa será carregado quando você chegar a esta seção." />
@@ -99,6 +108,7 @@ export default function TerreirosDirectoryPage() {
   const [loading, setLoading] = useState(embeddedCidades.length === 0);
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showAllCities, setShowAllCities] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +151,11 @@ export default function TerreirosDirectoryPage() {
       normalizeSearch(`${cidade.cidade} ${cidade.estado || ''}`).includes(term),
     );
   }, [cidades, q]);
+
+  const visibleCidades = useMemo(
+    () => (q.trim() || showAllCities ? filteredCidades : filteredCidades.slice(0, 9)),
+    [filteredCidades, q, showAllCities],
+  );
 
   const totalTerreiros = useMemo(
     () => cidades.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0),
@@ -204,7 +219,20 @@ export default function TerreirosDirectoryPage() {
           </motion.div>
         </section>
 
-        <section className="mt-14">
+        <DeferredDirectoryCoverageMap />
+
+        <section className="mt-14" aria-labelledby="directory-cities-title">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">Navegar pela lista</p>
+              <h2 id="directory-cities-title" className="mt-2 text-2xl font-black text-[#1b1813] md:text-3xl">
+                Escolha uma cidade
+              </h2>
+            </div>
+            <p className="text-sm font-semibold text-[#1b1813]/55">
+              {filteredCidades.length} cidade{filteredCidades.length === 1 ? '' : 's'} encontrada{filteredCidades.length === 1 ? '' : 's'}
+            </p>
+          </div>
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
               <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
@@ -219,12 +247,13 @@ export default function TerreirosDirectoryPage() {
               <p className="font-bold text-[#1b1813]/70">Nenhuma cidade encontrada para essa busca.</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredCidades.map((cidade, index) => (
+            <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleCidades.map((cidade, index) => (
                 <motion.a
                   key={`${cidade.estado || 'br'}-${cidade.cidadeSlug}`}
                   href={diretorioCityPath(cidade.estado, cidade.cidadeSlug)}
-                  className="group relative overflow-hidden rounded-[1.5rem] border border-[#e8dfd0] bg-white/80 p-5 shadow-sm shadow-black/5 backdrop-blur-sm transition hover:-translate-y-1 hover:border-[#ffc107]/50 hover:shadow-xl hover:shadow-[#ffc107]/10"
+                  className="group relative overflow-hidden rounded-[1.25rem] border border-[#e8dfd0] bg-white/80 px-4 py-3.5 shadow-sm shadow-black/5 backdrop-blur-sm transition hover:-translate-y-1 hover:border-[#ffc107]/50 hover:shadow-xl hover:shadow-[#ffc107]/10"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -8, scale: 1.018 }}
@@ -232,40 +261,41 @@ export default function TerreirosDirectoryPage() {
                   transition={{ delay: Math.min(index * 0.025, 0.28), duration: 0.5 }}
                 >
                   <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-[#ffc107]/14 blur-2xl" />
-                  <motion.div
-                    className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ffc107]/70 to-transparent"
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 3.2, repeat: Infinity, delay: index * 0.08, ease: 'easeInOut' }}
-                    aria-hidden
-                  />
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div>
-                      <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">
-                        <MapPin className="h-3.5 w-3.5" aria-hidden />
-                        Cidade
-                      </p>
-                      <h2 className="mt-2 text-xl font-black text-[#1b1813]">
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="flex items-center gap-2 text-base font-black text-[#1b1813] md:text-lg">
+                        <MapPin className="h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
                         {cidade.cidade}
                         {cidade.estado ? `, ${cidade.estado}` : ''}
-                      </h2>
-                      <p className="mt-2 text-sm text-[#1b1813]/58">
+                      </h3>
+                      <p className="mt-1 pl-6 text-xs text-[#1b1813]/58">
                         {cidade.totalTerreiros} terreiro{cidade.totalTerreiros === 1 ? '' : 's'}
                         {cidade.totalBairros > 0
                           ? ` em ${cidade.totalBairros} bairro${cidade.totalBairros === 1 ? '' : 's'}.`
                           : '.'}
                       </p>
                     </div>
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ffc107] text-[#1b1813] transition group-hover:translate-x-1">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ffc107] text-[#1b1813] transition group-hover:translate-x-1">
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </div>
                 </motion.a>
               ))}
             </div>
+            {!q.trim() && filteredCidades.length > 9 ? (
+              <div className="mt-7 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllCities((value) => !value)}
+                  className="rounded-full border border-[#1b1813]/15 bg-white/80 px-6 py-3 text-sm font-black text-[#1b1813] shadow-sm transition hover:border-[#ffc107] hover:bg-[#ffc107]/10"
+                >
+                  {showAllCities ? 'Mostrar apenas as principais' : `Ver todas as ${filteredCidades.length} cidades`}
+                </button>
+              </div>
+            ) : null}
+            </>
           )}
         </section>
-
-        <DeferredDirectoryCoverageMap />
 
         <section className="mt-16 grid gap-6 overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/82 p-7 shadow-xl shadow-black/5 md:grid-cols-[1fr_auto] md:items-center md:p-9" aria-labelledby="claim-profile-title">
           <div className="flex gap-4">
