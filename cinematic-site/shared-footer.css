@@ -47,7 +47,7 @@
 .pular-conteudo:focus { transform: translateY(0); }
 :where(a, button, input, select, textarea):focus-visible { outline: 3px solid #ffc107 !important; outline-offset: 3px; }
 .menu-mobile-botao { display: none; }
-.menu .menu-cta { padding: 10px 16px; border: 1px solid rgba(255,193,7,.55); border-radius: 999px; color: #ffc107; white-space: nowrap; }
+.menu .menu-cta { display: none; padding: 10px 16px; border: 1px solid rgba(255,193,7,.55); border-radius: 999px; color: #ffc107; white-space: nowrap; }
 .nav-links .menu-cta { display: none; }
 .vozes-copia { display: contents; }
 .site-footer ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
