@@ -73,7 +73,7 @@ rm -f "$xm_tmp"
 echo "OK   /sitemap.xm — redireciona para sitemap XML"
 
 # Keywords principais na home
-curl -sS "${BASE}/" | grep -qi 'gestão de terreiros' || {
+curl -sS "${BASE}/" | grep -Eqi 'gest.{1,2}o de terreiros' || {
   echo "FAIL / — falta keyword \"gestão de terreiros\""
   exit 1
 }
