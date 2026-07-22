@@ -93,6 +93,7 @@
   const topo = document.querySelector(".navegacao, body > nav");
   const menu = topo?.querySelector(".nav-links, .menu");
   if (topo && menu) {
+    topo.classList.add("menu-pronto");
     if (!menu.querySelector(".menu-cta")) {
       const cta = document.createElement("a");
       cta.href = "/register";
@@ -101,20 +102,22 @@
       menu.appendChild(cta);
     }
     menu.id ||= "menu-principal";
-    const botao = document.createElement("button");
+    const botao = topo.querySelector(".menu-mobile-botao") || document.createElement("button");
     botao.type = "button";
     botao.className = "menu-mobile-botao";
     botao.setAttribute("aria-controls", menu.id);
     botao.setAttribute("aria-expanded", "false");
     botao.setAttribute("aria-label", "Abrir menu principal");
     botao.innerHTML = '<span></span><span></span><span></span>';
-    (topo.querySelector(".nav-acoes") || topo).appendChild(botao);
+    if (!botao.isConnected) (topo.querySelector(".nav-acoes") || topo).appendChild(botao);
     const fechar = () => {
       document.body.classList.remove("menu-aberto");
       botao.setAttribute("aria-expanded", "false");
       botao.setAttribute("aria-label", "Abrir menu principal");
     };
-    botao.addEventListener("click", () => {
+    botao.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const aberto = document.body.classList.toggle("menu-aberto");
       botao.setAttribute("aria-expanded", String(aberto));
       botao.setAttribute("aria-label", aberto ? "Fechar menu principal" : "Abrir menu principal");

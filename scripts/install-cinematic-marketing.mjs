@@ -11,6 +11,7 @@ const ASSET_OUT = path.join(OUT, 'm-assets', 'cinematic');
 const pages = new Map([
   ['index.html', 'index.html'],
   ['terreiros.html', 'terreiros/index.html'],
+  ['terreiro.html', 'terreiro/index.html'],
   ['eventos.html', 'eventos/index.html'],
   ['conteudo.html', 'conteudo/index.html'],
   ['calendario-liturgico.html', 'conteudo/calendario-liturgico/index.html'],

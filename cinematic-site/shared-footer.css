@@ -99,13 +99,30 @@
   .site-footer-grade { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 1120px) {
-  .navegacao { padding: 14px 16px !important; }
+  .navegacao,
+  body > nav.menu-pronto {
+    position: relative !important;
+    z-index: 120 !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+    padding-left: max(14px, env(safe-area-inset-left)) !important;
+    padding-right: max(14px, env(safe-area-inset-right)) !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+  }
+  .navegacao { padding-top: 14px !important; padding-bottom: 14px !important; }
+  body > nav.menu-pronto > .marca,
+  .navegacao > .marca { min-width: 0; flex: 0 1 auto; }
   .navegacao .btn-nav { display: none !important; }
   .navegacao .nav-acoes { gap: 9px; }
   .menu-mobile-botao {
     display: grid; place-content: center; gap: 5px; width: 44px; height: 44px; flex: 0 0 44px;
-    margin-left: 8px; border: 1px solid rgba(255,193,7,.45); border-radius: 50%;
-    background: rgba(10,8,5,.9); color: #ffc107; cursor: pointer; z-index: 101;
+    position: relative; margin-left: auto; border: 1px solid rgba(255,193,7,.45); border-radius: 50%;
+    background: rgba(10,8,5,.94); color: #ffc107; cursor: pointer; z-index: 122;
+    touch-action: manipulation;
   }
   .menu-mobile-botao span { display: block; width: 18px; height: 2px; background: currentColor; transition: transform .2s, opacity .2s; }
   .menu-aberto .menu-mobile-botao span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -114,9 +131,12 @@
   .navegacao .nav-links, body > nav .menu {
     display: none !important;
     position: absolute;
-    inset: calc(100% + 10px) 16px auto auto;
-    z-index: 100;
-    width: min(360px, calc(100vw - 32px)) !important;
+    top: calc(100% + 10px);
+    right: 0;
+    left: auto;
+    bottom: auto;
+    z-index: 121;
+    width: min(360px, calc(100vw - 24px)) !important;
     height: auto !important;
     max-height: calc(100dvh - 96px);
     min-height: 0;
@@ -173,6 +193,7 @@
   .navegacao .marca { font-size: 1.08rem; }
 }
 @media (max-width: 560px) {
+  .navegacao .btn-entrar { display: none !important; }
   .site-footer-grade { grid-template-columns: 1fr; }
   .site-footer-baixo { flex-direction: column; }
 }

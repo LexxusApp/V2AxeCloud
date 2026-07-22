@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Perfil do terreiro | Diretório AxéCloud</title>
+  <meta name="description" content="Conheça este terreiro no Diretório AxéCloud: endereço, telefone, localização e como chegar pelo Google Maps." />
+  <link rel="canonical" href="https://axecloud.com.br/terreiro/perfil" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shared-footer.css" />
+  <style>
+    :root { --ouro:#efb400; --preto:#19150f; --marfim:#faf5ea; --linha:#dfd3bf; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--preto); background:var(--marfim); font-family:"Outfit",system-ui,sans-serif; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; background-image:radial-gradient(#b89040 .6px,transparent .7px); background-size:14px 14px; }
+    body > nav { position:relative; z-index:50; min-height:78px; padding:0 5vw; display:flex; align-items:center; justify-content:space-between; gap:28px; border-bottom:1px solid rgba(25,21,15,.12); background:rgba(250,245,234,.94); backdrop-filter:blur(18px); }
+    .marca { flex:0 0 auto; color:var(--preto); text-decoration:none; font:600 1.45rem "Fraunces",serif; }
+    .marca em { color:var(--ouro); font-style:normal; }
+    .menu { display:flex; align-items:center; justify-content:center; gap:28px; }
+    .menu > a { color:#625b50; text-decoration:none; text-transform:uppercase; letter-spacing:.13em; font-size:.7rem; font-weight:600; }
+    .menu > a:hover { color:#a47600; }
+    .acoes { display:flex; align-items:center; gap:16px; flex:0 0 auto; }
+    .entrar { color:var(--preto); text-decoration:none; font-size:.82rem; font-weight:600; }
+    .teste { padding:12px 21px; border-radius:999px; color:var(--preto); background:#ffc107; text-decoration:none; font-size:.78rem; font-weight:800; }
+    main { position:relative; z-index:1; }
+    .carregando { min-height:62vh; display:grid; place-items:center; text-align:center; padding:80px 24px; }
+    .spinner { width:38px; height:38px; margin:0 auto 16px; border:3px solid rgba(239,180,0,.2); border-top-color:var(--ouro); border-radius:50%; animation:girar .75s linear infinite; }
+    @keyframes girar { to { transform:rotate(360deg); } }
+    .erro a { display:inline-flex; margin-top:20px; padding:13px 22px; border-radius:999px; background:var(--preto); color:#fff; text-decoration:none; font-weight:700; }
+    .perfil { display:none; max-width:1160px; margin:0 auto; padding:42px 28px 90px; }
+    .voltar { display:inline-flex; align-items:center; gap:8px; color:#756b5c; text-decoration:none; font-size:.82rem; font-weight:700; }
+    .voltar:hover { color:#a47600; }
+    .hero { position:relative; min-height:390px; margin-top:28px; overflow:hidden; border-radius:30px; background:linear-gradient(135deg,#e7dbc7,#cbb88f); box-shadow:0 28px 70px rgba(45,34,17,.13); }
+    .hero img { position:absolute; width:100%; height:100%; object-fit:cover; }
+    .hero::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,transparent 35%,rgba(12,10,7,.83)); }
+    .sem-foto { position:absolute; inset:0; display:grid; place-items:center; color:rgba(25,21,15,.32); font:600 clamp(2rem,7vw,5rem) "Fraunces",serif; }
+    .hero-texto { position:absolute; z-index:2; left:clamp(24px,5vw,62px); right:clamp(24px,5vw,62px); bottom:clamp(26px,5vw,52px); color:white; }
+    .kicker { margin:0 0 12px; color:#ffd34d; text-transform:uppercase; letter-spacing:.24em; font-size:.68rem; font-weight:800; }
+    h1 { max-width:850px; margin:0; font:500 clamp(2.2rem,5vw,4.8rem)/1.02 "Fraunces",serif; text-wrap:balance; }
+    .localidade { margin:15px 0 0; color:rgba(255,255,255,.76); font-size:1rem; }
+    .grade { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(290px,.75fr); gap:28px; margin-top:28px; }
+    .cartao { padding:34px; border:1px solid var(--linha); border-radius:24px; background:rgba(255,252,246,.88); box-shadow:0 14px 38px rgba(45,34,17,.06); }
+    .cartao h2 { margin:0 0 20px; font:500 1.7rem "Fraunces",serif; }
+    .info { padding:18px 0; border-top:1px solid var(--linha); }
+    .info:first-of-type { border-top:0; }
+    .rotulo { display:block; margin-bottom:6px; color:#887c69; text-transform:uppercase; letter-spacing:.16em; font-size:.64rem; font-weight:800; }
+    .valor { color:var(--preto); font-size:1rem; line-height:1.6; overflow-wrap:anywhere; }
+    .valor a { color:inherit; font-weight:700; }
+    .mapa { display:inline-flex; justify-content:center; width:100%; margin-top:18px; padding:15px 22px; border-radius:999px; background:#ffc107; color:var(--preto); text-decoration:none; font-weight:800; }
+    .reivindicar { color:#fff; background:var(--preto); border-color:rgba(255,255,255,.09); }
+    .reivindicar h2 { color:white; }
+    .reivindicar p { margin:0; color:rgba(255,255,255,.66); line-height:1.7; }
+    .reivindicar a { display:inline-flex; justify-content:center; width:100%; margin-top:24px; padding:15px 20px; border-radius:999px; color:var(--preto); background:#ffc107; text-decoration:none; font-weight:800; }
+    .convite { margin-top:28px; padding:52px clamp(24px,6vw,72px); display:flex; align-items:center; justify-content:space-between; gap:30px; border-radius:28px; color:white; background:linear-gradient(120deg,#201b13,#0e0c09); }
+    .convite small { color:#ffc107; text-transform:uppercase; letter-spacing:.2em; font-weight:800; }
+    .convite h2 { max-width:650px; margin:10px 0 0; font:500 clamp(1.8rem,3.8vw,3.4rem)/1.08 "Fraunces",serif; }
+    .convite a { flex:0 0 auto; padding:16px 25px; border-radius:999px; color:var(--preto); background:#ffc107; text-decoration:none; font-weight:800; }
+    @media (max-width:1120px) {
+      body > nav { min-height:68px; }
+      body > nav .acoes .teste { display:none; }
+    }
+    @media (max-width:780px) {
+      .perfil { padding:28px 16px 60px; }
+      .hero { min-height:350px; border-radius:22px; }
+      .grade { grid-template-columns:1fr; }
+      .cartao { padding:26px 22px; }
+      .convite { align-items:flex-start; flex-direction:column; }
+      .convite a { width:100%; text-align:center; }
+    }
+    @media (max-width:430px) {
+      body > nav .acoes .entrar { display:none; }
+      .hero { min-height:330px; }
+      h1 { font-size:2.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav aria-label="Navegação principal">
+    <a class="marca" href="/">Axé<em>Cloud</em></a>
+    <div class="menu">
+      <a href="/terreiros">Terreiros</a><a href="/eventos">Eventos</a><a href="/conteudo">Conteúdo</a><a href="/por-que-axecloud">Por quê?</a><a href="/#planos">Planos</a>
+    </div>
+    <div class="acoes"><a class="entrar" href="/entrar">Entrar</a><a class="teste" href="/register">Abrir minha casa</a></div>
+  </nav>
+  <main id="conteudo-principal">
+    <section class="carregando" id="estado"><div><div class="spinner" aria-hidden="true"></div><p>Carregando informações da casa…</p></div></section>
+    <article class="perfil" id="perfil">
+      <a class="voltar" id="voltar" href="/terreiros">← Voltar ao diretório</a>
+      <header class="hero">
+        <div class="sem-foto" id="sem-foto" aria-hidden="true">AxéCloud</div>
+        <img id="foto" alt="" hidden />
+        <div class="hero-texto"><p class="kicker">Diretório AxéCloud · casa mapeada</p><h1 id="nome"></h1><p class="localidade" id="localidade"></p></div>
+      </header>
+      <div class="grade">
+        <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info"><span class="rotulo">Telefone</span><div class="valor" id="telefone"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a></section>
+        <aside class="cartao reivindicar"><h2>Esta é sua casa?</h2><p>Reivindique este perfil sem custo para corrigir os dados e identificar oficialmente a sua casa.</p><a id="reivindicar" target="_blank" rel="noopener noreferrer">Falar com o comercial</a></aside>
+      </div>
+      <section class="convite"><div><small>Gestão feita para terreiros</small><h2>Organize a casa sem perder o respeito ao sagrado.</h2></div><a href="/register">Testar grátis por 30 dias</a></section>
+    </article>
+  </main>
+  <div id="site-footer"></div>
+  <script src="/shared-footer.js"></script>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const slug = decodeURIComponent(location.pathname.replace(/\/+$/, "").split("/").pop() || "");
+      const texto = (value, fallback) => String(value || fallback);
+      const telefoneHref = (value) => `tel:${String(value).replace(/[^\d+]/g, "")}`;
+      const falhar = (message) => {
+        $("estado").className = "carregando erro";
+        $("estado").innerHTML = '<div><h1>Casa não encontrada</h1><p id="erro-texto"></p><a href="/terreiros">Voltar ao diretório</a></div>';
+        $("erro-texto").textContent = message;
+      };
+      if (!slug || slug === "perfil") { falhar("O endereço deste perfil é inválido."); return; }
+      fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}`, { cache: "no-store", headers: { Accept: "application/json" } })
+        .then(async (response) => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "Não foi possível carregar esta casa.");
+          return data;
+        })
+        .then((casa) => {
+          const local = [casa.bairro, casa.cidade, casa.estado].filter(Boolean).join(" · ");
+          $("nome").textContent = texto(casa.nome, "Terreiro");
+          $("localidade").textContent = local;
+          $("endereco").textContent = texto(casa.endereco, "Endereço não informado no Google Maps");
+          $("telefone").innerHTML = "";
+          if (casa.telefone) { const link = document.createElement("a"); link.href = telefoneHref(casa.telefone); link.textContent = casa.telefone; $("telefone").appendChild(link); }
+          else $("telefone").textContent = "Telefone não informado no Google Maps";
+          if (casa.fotoUrl) { $("foto").src = casa.fotoUrl; $("foto").hidden = false; $("foto").alt = `Fachada ou espaço de ${casa.nome}`; $("foto").addEventListener("error", () => { $("foto").hidden = true; }); }
+          if (casa.linkMaps) $("mapa").href = casa.linkMaps; else $("mapa").hidden = true;
+          $("voltar").href = casa.cidadeUrl || "/terreiros";
+          $("reivindicar").href = `https://wa.me/5511912276156?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${casa.nome} e quero reivindicar este perfil no AxéCloud.`)}`;
+          const canonical = `https://axecloud.com.br/terreiro/${encodeURIComponent(casa.slug || slug)}`;
+          document.title = `${casa.nome}${casa.cidade ? ` — ${casa.cidade}` : ""} | Diretório AxéCloud`;
+          document.querySelector('link[rel="canonical"]').href = canonical;
+          document.querySelector('meta[name="description"]').content = `Informações de ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""}: endereço, telefone e como chegar.`;
+          $("estado").hidden = true; $("perfil").style.display = "block";
+        })
+        .catch((error) => falhar(error.message || "Não foi possível carregar esta casa."));
+    })();
+  </script>
+</body>
+</html>
