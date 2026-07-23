@@ -79,9 +79,11 @@ const png48 = await resizePng(48);
 const png96 = await resizePng(96);
 
 fs.writeFileSync(path.join(PUBLIC, 'favicon.ico'), pngsToIco([png16, png32, png48]));
+fs.writeFileSync(path.join(PUBLIC, 'axecloud_32.png'), png32);
 fs.writeFileSync(path.join(PUBLIC, 'axecloud_48.png'), png48);
 fs.writeFileSync(path.join(PUBLIC, 'axecloud_96.png'), png96);
+fs.writeFileSync(path.join(PUBLIC, 'pwa-32.png'), png32);
 fs.writeFileSync(path.join(PUBLIC, 'pwa-48.png'), png48);
 fs.writeFileSync(path.join(PUBLIC, 'pwa-96.png'), png96);
 
-console.log('[favicons] favicon.ico (PNG-in-ICO 16/32/48), axecloud_48/96, pwa-48/96 atualizados');
+console.log('[favicons] favicon.ico (PNG-in-ICO 16/32/48), axecloud_32/48/96, pwa-32/48/96 atualizados');
