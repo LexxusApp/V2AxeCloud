@@ -3,7 +3,6 @@ import {createRoot} from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 import {registerSW} from 'virtual:pwa-register';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
-import {PwaInstallBanner} from './components/PwaInstallBanner';
 import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
@@ -138,7 +137,6 @@ function bootstrapApp() {
     <StrictMode>
       <MotionConfig reducedMotion="always">
         <AppErrorBoundary>
-          <PwaInstallBanner />
           <PwaUpdateBanner />
           <EmergencyReloadBeacon />
           <AppRouter />
