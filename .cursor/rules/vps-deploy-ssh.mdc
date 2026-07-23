@@ -1,0 +1,32 @@
+---
+description: Deploys/SSH na VPS devem encerrar o terminal sozinhos (sem sessão SSH pendurada no Windows).
+alwaysApply: true
+---
+
+# VPS deploy — SSH que fecha sozinho
+
+No Windows/Cursor, `ssh` costuma ficar pendurado depois do comando remoto terminar (`GetConsoleMode on STD_INPUT_HANDLE failed with 6`). O build já acabou, mas o terminal continua aberto por 10–15+ min.
+
+## Obrigatório em TODO deploy / comando na VPS (qualquer chat)
+
+1. **Nunca** chamar `ssh axecloud-vps "..."` direto no Shell.
+2. Sempre usar o helper (mata o ssh local ao ver `__AXE_SSH_DONE__`):
+
+```powershell
+powershell -NoProfile -File deploy/scripts/vps-ssh.ps1 "comando remoto"
+```
+
+3. Deploy preferencial:
+
+```powershell
+powershell -NoProfile -File deploy/scripts/deploy-vps.ps1 -Services app
+powershell -NoProfile -File deploy/scripts/deploy-vps.ps1 -Services marketing
+powershell -NoProfile -File deploy/scripts/deploy-vps.ps1 -Services app,marketing
+```
+
+4. Rebuild **só o serviço que mudou**. Não rebuildar os dois por padrão.
+5. Não usar `block_until_ms` absurdo (>5 min) “esperando SSH morrer”: o helper deve sair sozinho após o build real + poucos segundos.
+
+## Por que
+
+O atraso percebido (~10+ min) quase sempre é a sessão SSH local não encerrar — não a VPS lenta.
