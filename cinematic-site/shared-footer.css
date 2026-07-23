@@ -193,7 +193,14 @@
   .navegacao .marca { font-size: 1.08rem; }
 }
 @media (max-width: 560px) {
-  .navegacao .btn-entrar { display: none !important; }
+  .navegacao .btn-entrar {
+    display: inline-flex !important;
+    align-items: center;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
   .site-footer-grade { grid-template-columns: 1fr; }
   .site-footer-baixo { flex-direction: column; }
 }

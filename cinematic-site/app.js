@@ -230,17 +230,22 @@ if (!reduzMovimento) {
 
   function abrirPortao() {
     $("#preloader").classList.add("apagado");
-    // Entrada do hero
-    const tl = gsap.timeline({ delay: 0.25 });
-    tl.from(".hero-saudacao span", { yPercent: 110, duration: 1, ease: "power3.out" })
-      .from(".hero-titulo .letra", {
-        y: 90, opacity: 0, rotateX: -70, stagger: 0.07,
-        duration: 1.1, ease: "power4.out",
-      }, "-=0.5")
-      .from(".hero-sub span", { yPercent: 110, duration: 0.9, ease: "power3.out" }, "-=0.6")
-      .from(".hero-sub2 span", { yPercent: 110, duration: 0.9, ease: "power3.out" }, "-=0.7")
-      .from(".hero-ctas .btn", { y: 26, opacity: 0, stagger: 0.12, duration: 0.7 }, "-=0.5")
-      .from(".hero-scroll-dica", { opacity: 0, duration: 1 }, "-=0.2");
+    if (reduzMovimento) return;
+    // Entrada do hero — AxéCloud surge bem devagar (só opacity/y — sem blur, evita travar)
+    const tl = gsap.timeline({ delay: 0.35 });
+    tl.from(".hero-titulo .letra", {
+      opacity: 0,
+      y: 10,
+      stagger: 0.16,
+      duration: 2.6,
+      ease: "sine.out",
+      force3D: true,
+    })
+      .from(".hero-saudacao span", { yPercent: 110, duration: 1.1, ease: "power3.out" }, "-=0.5")
+      .from(".hero-sub span", { yPercent: 110, duration: 1, ease: "power3.out" }, "-=0.55")
+      .from(".hero-sub2 span", { yPercent: 110, duration: 1, ease: "power3.out" }, "-=0.65")
+      .from(".hero-ctas .btn", { y: 26, opacity: 0, stagger: 0.14, duration: 0.85 }, "-=0.4")
+      .from(".hero-scroll-dica", { opacity: 0, duration: 1.1 }, "-=0.2");
   }
 })();
 
@@ -440,15 +445,20 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
       quemLista.innerHTML = `<p class="aviso-vazio">Novas casas autorizadas aparecerão aqui conforme os perfis forem publicados.</p>`;
       return;
     }
-    quemLista.innerHTML = casas.slice(0, 3).map((c) => `
-      <a class="quem-casa" href="${esc(c.perfilUrl || `/terreiro/${c.slug}`)}">
+    quemLista.innerHTML = casas.slice(0, 3).map((c) => {
+      const slug = String(c.slug || "").trim();
+      const perfil = slug
+        ? `/terreiro/${encodeURIComponent(slug)}`
+        : String(c.perfilUrl || "").replace(/^\/terreiros\//, "/terreiro/") || "/terreiros";
+      return `
+      <a class="quem-casa" href="${esc(perfil)}">
         <span class="quem-casa-ico" aria-hidden="true">⌂</span>
         <span>
           <strong>${esc(c.nome)}</strong>
           <small>${esc([c.cidade, c.estado].filter(Boolean).join("/") || "Brasil")} · ${esc(c.tradicao || "casa de axé")}</small>
         </span>
-      </a>
-    `).join("");
+      </a>`;
+    }).join("");
   } catch (e) {
     console.warn("[casas]", e);
     if (quemLista) quemLista.innerHTML = `<p class="aviso-vazio">Não foi possível carregar as casas agora.</p>`;
@@ -469,9 +479,12 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
     }
     lista.innerHTML = eventos.map((ev) => {
       const d = new Date(ev.data + "T12:00:00");
-      const url = ev.eventoPageUrl ? esc(ev.eventoPageUrl) : esc(ev.terreiro?.perfilUrl || "/terreiros");
+      let url = "/eventos";
+      if (ev.eventoPageUrl) url = ev.eventoPageUrl;
+      else if (ev.senhasPageUrl) url = ev.senhasPageUrl;
+      else if (ev.terreiro?.slug) url = `/terreiro/${encodeURIComponent(ev.terreiro.slug)}`;
       return `
-        <a class="evento-linha" href="${url}">
+        <a class="evento-linha" href="${esc(url)}">
           <span class="evento-data">
             <span class="evento-dia">${d.getDate()}</span>
             <span class="evento-mes">${MESES[d.getMonth()]}</span>
