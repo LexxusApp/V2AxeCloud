@@ -74,6 +74,12 @@ export function initPwaInstallController(): void {
   mqls.forEach((mql) => mql.addEventListener('change', onDisplayChange));
 
   window.addEventListener('beforeinstallprompt', (event) => {
+    // Desktop: não chamar preventDefault — o Chrome mostra o ícone na omnibox.
+    // Mobile (< lg): captura o evento para o botão «Instalar» do menu.
+    const deferForCustomUi =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 1023px)').matches;
+    if (!deferForCustomUi) return;
     event.preventDefault();
     deferredPrompt = event as BeforeInstallPromptEvent;
     (window as WindowWithEarlyInstall).__axecloudDeferredInstall = deferredPrompt;

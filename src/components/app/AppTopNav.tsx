@@ -11,6 +11,7 @@
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { useObrigacoesUnread } from '../../hooks/useObrigacoesUnread';
 import { cn } from '../../lib/utils';
 import { uploadFilhoProfilePhoto } from '../../lib/filhoProfilePhoto';
 import { hasPlanAccess } from '../../constants/plans';
@@ -38,6 +39,8 @@ type AppTopNavProps = {
     tradicao?: string | null;
   } | null;
   userDisplayName?: string;
+  userId?: string | null;
+  userEmail?: string | null;
   filhoFotoUrl?: string | null;
   onFilhoFotoUpdated?: (url: string) => void;
 };
@@ -64,23 +67,28 @@ function NavTab({
   isLocked,
   onSelect,
   layout = 'inline',
+  badgeCount = 0,
 }: {
   item: AppNavItem;
   isActive: boolean;
   isLocked: boolean;
   onSelect: () => void;
   layout?: 'inline' | 'grid' | 'dropdown' | 'drawer' | 'drawer-sub';
+  badgeCount?: number;
 }) {
   const Icon = item.icon;
   const isDrawerLayout = layout === 'drawer' || layout === 'drawer-sub';
+  const showBadge = badgeCount > 0;
+  const badgeLabel = badgeCount > 9 ? '9+' : String(badgeCount);
   return (
     <button
       type="button"
       role={layout === 'dropdown' ? 'menuitem' : 'tab'}
       aria-selected={layout === 'dropdown' ? undefined : isActive}
+      aria-label={showBadge ? `${item.label}, ${badgeCount} nova${badgeCount === 1 ? '' : 's'}` : undefined}
       onClick={onSelect}
       className={cn(
-        'inline-flex shrink-0 items-center transition-colors touch-manipulation',
+        'relative inline-flex shrink-0 items-center transition-colors touch-manipulation',
         layout === 'drawer-sub' ? 'font-semibold' : 'font-bold',
         layout === 'drawer'
           ? 'w-full min-h-[48px] gap-3 rounded-xl px-4 py-3 text-left text-sm'
@@ -111,21 +119,34 @@ function NavTab({
         isLocked && 'opacity-50',
       )}
     >
-      <Icon
-        className={cn(
-          'shrink-0',
-          layout === 'drawer'
-            ? 'h-5 w-5'
-            : layout === 'drawer-sub'
-              ? 'h-4 w-4'
-              : layout === 'grid' || layout === 'dropdown'
+      <span className="relative shrink-0">
+        <Icon
+          className={cn(
+            'shrink-0',
+            layout === 'drawer'
+              ? 'h-5 w-5'
+              : layout === 'drawer-sub'
                 ? 'h-4 w-4'
-                : 'h-3.5 w-3.5',
-        )}
-        aria-hidden
-        strokeWidth={isActive ? 2.25 : 1.75}
-        fill={isActive && item.filledWhenActive ? 'currentColor' : 'none'}
-      />
+                : layout === 'grid' || layout === 'dropdown'
+                  ? 'h-4 w-4'
+                  : 'h-3.5 w-3.5',
+          )}
+          aria-hidden
+          strokeWidth={isActive ? 2.25 : 1.75}
+          fill={isActive && item.filledWhenActive ? 'currentColor' : 'none'}
+        />
+        {showBadge && !isDrawerLayout && layout !== 'dropdown' ? (
+          <span
+            className={cn(
+              'absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-black leading-none',
+              isActive ? 'bg-[#080A0D] text-primary' : 'bg-primary text-[#080A0D]',
+            )}
+            aria-hidden
+          >
+            {badgeLabel}
+          </span>
+        ) : null}
+      </span>
       <span
         className={
           layout === 'grid'
@@ -137,6 +158,17 @@ function NavTab({
       >
         {item.label}
       </span>
+      {showBadge && (isDrawerLayout || layout === 'dropdown') ? (
+        <span
+          className={cn(
+            'ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-black',
+            isActive ? 'bg-[#080A0D] text-primary' : 'bg-primary text-[#080A0D]',
+          )}
+          aria-hidden
+        >
+          {badgeLabel}
+        </span>
+      ) : null}
       {isLocked ? <Lock className="h-4 w-4 shrink-0 text-primary" aria-hidden /> : null}
     </button>
   );
@@ -368,6 +400,8 @@ export default function AppTopNav({
   isAdmin,
   tenantData,
   userDisplayName,
+  userId,
+  userEmail,
   filhoFotoUrl,
   onFilhoFotoUpdated,
 }: AppTopNavProps) {
@@ -380,6 +414,15 @@ export default function AppTopNav({
     text: string;
     type: 'success' | 'error';
   } | null>(null);
+  const { unreadCount: obrigacoesUnread } = useObrigacoesUnread(
+    userRole === 'filho',
+    userId,
+    tenantData?.tenant_id,
+    userEmail,
+  );
+
+  const badgeForItem = (itemId: string) =>
+    userRole === 'filho' && itemId === 'obrigacoes' ? obrigacoesUnread : 0;
 
   useEffect(() => {
     if (isLgDesktop) setMobileOpen(false);
@@ -504,32 +547,17 @@ export default function AppTopNav({
     </div>
   );
 
+  /** Ações do header desktop — sem «Instalar» (Chrome/Edge usam a omnibox). Mobile: drawer. */
   const headerActions = (compact?: boolean) => (
-    <>
-      {showInstallButton ? (
-        <button
-          type="button"
-          onClick={() => void handleInstallApp()}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-2.5 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10 sm:px-3"
-          title="Instalar aplicativo"
-        >
-          <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : 'hidden 2xl:inline'}>
-            Instalar aplicativo
-          </span>
-          <span className={compact ? 'inline sm:hidden' : 'inline 2xl:hidden'}>Instalar</span>
-        </button>
-      ) : null}
-      <button
-        type="button"
-        onClick={() => void performFastLogout()}
-        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2 text-xs font-bold text-[#94A3B8] transition-all hover:border-[#2F3643] hover:text-[#F1F5F9] sm:px-3"
-        title="Sair"
-      >
-        <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : undefined}>Sair</span>
-      </button>
-    </>
+    <button
+      type="button"
+      onClick={() => void performFastLogout()}
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2 text-xs font-bold text-[#94A3B8] transition-all hover:border-[#2F3643] hover:text-[#F1F5F9] sm:px-3"
+      title="Sair"
+    >
+      <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : undefined}>Sair</span>
+    </button>
   );
 
   const renderMobileDrawerEntry = (entry: ZeladorNavEntry, key: string) => {
@@ -635,6 +663,7 @@ export default function AppTopNav({
                   layout="drawer"
                   isActive={activeTab === item.id}
                   isLocked={isItemLocked(item)}
+                  badgeCount={badgeForItem(item.id)}
                   onSelect={() => handleSelect(item)}
                 />
               ))
@@ -747,6 +776,7 @@ export default function AppTopNav({
                       item={item}
                       isActive={activeTab === item.id}
                       isLocked={isItemLocked(item)}
+                      badgeCount={badgeForItem(item.id)}
                       onSelect={() => handleSelect(item)}
                     />
                   ))
