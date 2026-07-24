@@ -38,14 +38,19 @@ body {
 
 ::selection { background: var(--ouro); color: var(--noite); }
 
+/* Grain estático (tile) — evita feTurbulence em full-screen (custo alto de GPU) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ccircle cx='4' cy='8' r='0.7' fill='%23fff'/%3E%3Ccircle cx='18' cy='3' r='0.6' fill='%23fff'/%3E%3Ccircle cx='31' cy='14' r='0.8' fill='%23fff'/%3E%3Ccircle cx='47' cy='6' r='0.5' fill='%23fff'/%3E%3Ccircle cx='58' cy='19' r='0.7' fill='%23fff'/%3E%3Ccircle cx='9' cy='28' r='0.6' fill='%23fff'/%3E%3Ccircle cx='22' cy='36' r='0.7' fill='%23fff'/%3E%3Ccircle cx='38' cy='25' r='0.5' fill='%23fff'/%3E%3Ccircle cx='51' cy='33' r='0.8' fill='%23fff'/%3E%3Ccircle cx='61' cy='41' r='0.6' fill='%23fff'/%3E%3Ccircle cx='7' cy='48' r='0.7' fill='%23fff'/%3E%3Ccircle cx='19' cy='55' r='0.5' fill='%23fff'/%3E%3Ccircle cx='33' cy='46' r='0.8' fill='%23fff'/%3E%3Ccircle cx='44' cy='58' r='0.6' fill='%23fff'/%3E%3Ccircle cx='56' cy='52' r='0.7' fill='%23fff'/%3E%3Ccircle cx='12' cy='61' r='0.5' fill='%23fff'/%3E%3Ccircle cx='27' cy='18' r='0.6' fill='%23fff'/%3E%3Ccircle cx='41' cy='40' r='0.7' fill='%23fff'/%3E%3Ccircle cx='53' cy='12' r='0.5' fill='%23fff'/%3E%3C/svg%3E");
+  background-size: 64px 64px;
+  mix-blend-mode: overlay;
+  transform: translateZ(0);
+  contain: strict;
 }
 
 /* ── Preloader — a firmeza ─────────────────────────────── */
@@ -158,7 +163,7 @@ body::before {
   to { opacity: 1; transform: scaleY(1.05) translateZ(0); transform-origin: bottom; }
 }
 
-/* Wrapper anima transform; glow interno guarda o blur (não reprocessa a cada frame) */
+/* Wrapper anima transform; glow = gradient suave (sem filter:blur — mesmo look, bem mais leve) */
 .fumaca {
   position: fixed;
   z-index: 2;
@@ -167,17 +172,17 @@ body::before {
   height: 60vh;
   transform: translateZ(0);
   will-change: transform;
-  contain: layout style;
+  contain: layout style paint;
 }
 .fumaca-glow {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: none;
   opacity: 0.4;
   mix-blend-mode: screen;
-  transform: translateZ(0);
+  transform: translateZ(0) scale(1.45);
   contain: paint;
 }
 .fumaca-a {
@@ -186,7 +191,11 @@ body::before {
   animation: deriva-a 26s ease-in-out infinite alternate;
 }
 .fumaca-a .fumaca-glow {
-  background: radial-gradient(circle, rgba(180, 83, 9, 0.12), transparent 70%);
+  background: radial-gradient(circle,
+    rgba(180, 83, 9, 0.14) 0%,
+    rgba(180, 83, 9, 0.08) 28%,
+    rgba(180, 83, 9, 0.035) 48%,
+    transparent 70%);
 }
 .fumaca-b {
   bottom: -22vh;
@@ -194,7 +203,11 @@ body::before {
   animation: deriva-b 32s ease-in-out infinite alternate;
 }
 .fumaca-b .fumaca-glow {
-  background: radial-gradient(circle, rgba(255, 193, 7, 0.07), transparent 70%);
+  background: radial-gradient(circle,
+    rgba(255, 193, 7, 0.09) 0%,
+    rgba(255, 193, 7, 0.045) 30%,
+    rgba(255, 193, 7, 0.018) 50%,
+    transparent 70%);
 }
 .fumaca-c,
 .luz-ambiente { display: none; }
@@ -215,11 +228,12 @@ body::before {
   left: 0;
   top: 0;
   color: var(--ouro);
-  /* drop-shadow estático; sem blur animado (custo alto com GSAP) */
-  filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.25));
+  /* glow via traço largo no SVG (sem filter/drop-shadow em elemento animado) */
+  filter: none;
   will-change: transform, opacity;
   transform: translateZ(0);
   backface-visibility: hidden;
+  contain: layout style;
 }
 .ponto-fumaca svg {
   width: 100%;
@@ -229,6 +243,11 @@ body::before {
   stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
+  overflow: visible;
+}
+.ponto-fumaca .ponto-glow {
+  opacity: 0.28;
+  stroke-width: 3.2;
 }
 
 .vinheta {
@@ -443,10 +462,14 @@ main { position: relative; z-index: 10; }
   width: 100%;
   height: 100%;
   border-radius: 50% 50% 40% 40%;
-  background: radial-gradient(ellipse at 50% 80%, rgba(160, 160, 165, 0.38) 0%, rgba(190, 190, 195, 0.14) 38%, transparent 70%);
-  filter: blur(28px);
+  background: radial-gradient(ellipse at 50% 80%,
+    rgba(160, 160, 165, 0.42) 0%,
+    rgba(175, 175, 180, 0.22) 22%,
+    rgba(190, 190, 195, 0.1) 42%,
+    transparent 70%);
+  filter: none;
   mix-blend-mode: multiply;
-  transform: translateZ(0);
+  transform: translateZ(0) scale(1.2);
   contain: paint;
 }
 .hero-fumaca-wisp-a {
@@ -2310,4 +2333,14 @@ section { position: relative; padding: 15vh 8vw; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   .hero-fumaca { display: none; }
+}
+
+/* Aba em segundo plano: congela deriva/fumaça/respiração (GPU descansa) */
+html.aba-oculta .fumaca,
+html.aba-oculta .clarao-fogueira,
+html.aba-oculta .hero-fumaca-wisp,
+html.aba-oculta .pr-estrela,
+html.aba-oculta .chamado-ponto svg,
+html.aba-oculta .luz-ambiente {
+  animation-play-state: paused !important;
 }

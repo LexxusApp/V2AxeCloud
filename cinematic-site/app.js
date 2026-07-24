@@ -14,14 +14,20 @@ const reduzMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").mat
 /* ── Scroll suave (Lenis) ─────────────────────────────────── */
 const lenis = reduzMovimento
   ? { scrollTo: (alvo) => alvo?.scrollIntoView?.({ behavior: "auto", block: "start" }) }
-  : new Lenis({ duration: 1.15, smoothWheel: true });
+  : new Lenis({ duration: 1.15, smoothWheel: true, syncTouch: false });
 if (!reduzMovimento) {
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
-  /* lagSmoothing padrão ajuda a recuperar FPS sem “pular” o visual de uma vez */
+  /* lagSmoothing ajuda a recuperar FPS sem “pular” o visual de uma vez */
   gsap.ticker.lagSmoothing(500, 33);
+  gsap.ticker.fps(60);
 }
-ScrollTrigger.config({ ignoreMobileResize: true });
+ScrollTrigger.config({ ignoreMobileResize: true, limitCallbacks: true });
+
+/* Pausa animações CSS pesadas com a aba oculta (sem mudar o look quando volta) */
+document.addEventListener("visibilitychange", () => {
+  document.documentElement.classList.toggle("aba-oculta", document.hidden);
+});
 
 /* ── Brasas (escuro) / pó de pemba dourado (claro) ────────── */
 (function brasas() {
@@ -33,10 +39,11 @@ ScrollTrigger.config({ ignoreMobileResize: true });
   let W = 0, H = 0, dpr = 1, particulas = [];
   let rodando = true;
   let sprites = null;
+  let precisaLimpar = true;
 
   function fazSprite(quente) {
     const s = document.createElement("canvas");
-    const size = 32;
+    const size = 24;
     s.width = size;
     s.height = size;
     const c = s.getContext("2d");
@@ -69,7 +76,8 @@ ScrollTrigger.config({ ignoreMobileResize: true });
   }
 
   function dimensiona() {
-    dpr = Math.min(window.devicePixelRatio || 1, temaClaro ? 1.25 : 1.5);
+    /* DPR 1 = metade do custo de fill/clear em telas retina, visual praticamente igual */
+    dpr = 1;
     W = innerWidth;
     H = innerHeight;
     canvas.width = Math.max(1, Math.floor(W * dpr));
@@ -77,20 +85,22 @@ ScrollTrigger.config({ ignoreMobileResize: true });
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    precisaLimpar = true;
   }
   dimensiona();
   let resizeTimer = 0;
   addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(dimensiona, 120);
-  });
+    resizeTimer = setTimeout(dimensiona, 160);
+  }, { passive: true });
   document.addEventListener("visibilitychange", () => {
     rodando = document.visibilityState === "visible";
+    if (!rodando) precisaLimpar = true;
   });
 
   sprites = { quente: fazSprite(true), frio: fazSprite(false) };
 
-  // Escuro: fagulhas da fogueira. Claro: pó dourado flutuando (pemba).
   function acende(p, inicio = false) {
     if (temaClaro) {
       p.x = Math.random() * W;
@@ -119,21 +129,28 @@ ScrollTrigger.config({ ignoreMobileResize: true });
   const QTD = reduzMovimento
     ? 0
     : temaClaro
-      ? Math.min(55, Math.floor(innerWidth / 24))
-      : Math.min(70, Math.floor(innerWidth / 20));
+      ? Math.min(38, Math.floor(innerWidth / 32))
+      : Math.min(48, Math.floor(innerWidth / 28));
   if (QTD === 0) {
     ctx.clearRect(0, 0, W, H);
     return;
   }
   for (let i = 0; i < QTD; i++) particulas.push(acende({}, true));
 
-  function desenha(t) {
+  /* Um único relógio (GSAP) — evita RAF paralelo brigando com Lenis */
+  gsap.ticker.add((time) => {
     if (!rodando) {
-      requestAnimationFrame(desenha);
+      if (precisaLimpar) {
+        ctx.clearRect(0, 0, W, H);
+        precisaLimpar = false;
+      }
       return;
     }
+
+    const t = time * 1000;
     ctx.clearRect(0, 0, W, H);
-    for (const p of particulas) {
+    for (let i = 0; i < particulas.length; i++) {
+      const p = particulas[i];
       p.y -= p.vy;
       p.x += p.vx + Math.sin(t / 700 + p.fase) * (temaClaro ? 0.35 : 0.55);
       p.vida -= p.gasta;
@@ -148,9 +165,7 @@ ScrollTrigger.config({ ignoreMobileResize: true });
       ctx.drawImage(spr, p.x - raio, p.y - raio, raio * 2, raio * 2);
     }
     ctx.globalAlpha = 1;
-    requestAnimationFrame(desenha);
-  }
-  requestAnimationFrame(desenha);
+  });
 })();
 
 /* ── Pontos riscados subindo na defumação ─────────────────── */
@@ -189,7 +204,8 @@ ScrollTrigger.config({ ignoreMobileResize: true });
     const tam = 90 + Math.random() * 150;
     el.style.width = tam + "px";
     el.style.height = tam + "px";
-    el.innerHTML = `<svg viewBox="0 0 100 100">${SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)]}</svg>`;
+    const simbolo = SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)];
+    el.innerHTML = `<svg viewBox="0 0 100 100"><g class="ponto-glow">${simbolo}</g><g>${simbolo}</g></svg>`;
 
     const x = 4 + Math.random() * 88; // vw
     const dur = 34 + Math.random() * 26;
@@ -235,17 +251,23 @@ ScrollTrigger.config({ ignoreMobileResize: true });
   if (!dot || !matchMedia("(pointer: fine)").matches) return;
   if (document.body.classList.contains("tema-claro")) return;
   let x = innerWidth / 2, y = innerHeight / 2, tx = x, ty = y;
-  let preciso = false;
+  let ativo = false;
   gsap.set(dot, { xPercent: -50, yPercent: -50, x, y, force3D: true });
   addEventListener("mousemove", (e) => {
     tx = e.clientX;
     ty = e.clientY;
-    preciso = true;
+    ativo = true;
   }, { passive: true });
   gsap.ticker.add(() => {
-    if (!preciso && document.visibilityState !== "visible") return;
-    x += (tx - x) * 0.16;
-    y += (ty - y) * 0.16;
+    if (!ativo || document.visibilityState !== "visible") return;
+    const dx = tx - x;
+    const dy = ty - y;
+    if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+      ativo = false;
+      return;
+    }
+    x += dx * 0.16;
+    y += dy * 0.16;
     gsap.set(dot, { x, y, force3D: true });
   });
   addEventListener("mouseover", (e) => {

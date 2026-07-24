@@ -81,11 +81,12 @@ body.tema-claro .luz-ambiente {
   to { opacity: 1; }
 }
 
-/* Nuvens douradas lentas — defumação no claro */
+/* Nuvens douradas lentas — defumação no claro (sem filter:blur) */
 body.tema-claro .fumaca-glow {
   opacity: 0.7;
   mix-blend-mode: multiply;
-  filter: blur(78px);
+  filter: none;
+  transform: translateZ(0) scale(1.5);
 }
 body.tema-claro .fumaca-a {
   width: 70vw;
@@ -94,7 +95,11 @@ body.tema-claro .fumaca-a {
   left: -12vw;
 }
 body.tema-claro .fumaca-a .fumaca-glow {
-  background: radial-gradient(circle, rgba(255, 193, 7, 0.28), transparent 70%);
+  background: radial-gradient(circle,
+    rgba(255, 193, 7, 0.32) 0%,
+    rgba(255, 193, 7, 0.16) 28%,
+    rgba(255, 193, 7, 0.06) 48%,
+    transparent 70%);
 }
 body.tema-claro .fumaca-b {
   width: 55vw;
@@ -103,7 +108,11 @@ body.tema-claro .fumaca-b {
   right: -10vw;
 }
 body.tema-claro .fumaca-b .fumaca-glow {
-  background: radial-gradient(circle, rgba(212, 160, 40, 0.18), transparent 70%);
+  background: radial-gradient(circle,
+    rgba(212, 160, 40, 0.22) 0%,
+    rgba(212, 160, 40, 0.1) 30%,
+    rgba(212, 160, 40, 0.04) 50%,
+    transparent 70%);
 }
 body.tema-claro .fumaca-c {
   display: block;
@@ -117,17 +126,22 @@ body.tema-claro .fumaca-c {
   animation: deriva-c 38s ease-in-out infinite alternate;
   transform: translateZ(0);
   will-change: transform;
+  contain: layout style paint;
 }
 body.tema-claro .fumaca-c .fumaca-glow {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: none;
   opacity: 0.45;
   mix-blend-mode: multiply;
-  background: radial-gradient(circle, rgba(255, 220, 140, 0.22), transparent 70%);
-  transform: translateZ(0);
+  background: radial-gradient(circle,
+    rgba(255, 220, 140, 0.26) 0%,
+    rgba(255, 220, 140, 0.12) 30%,
+    rgba(255, 220, 140, 0.045) 50%,
+    transparent 70%);
+  transform: translateZ(0) scale(1.55);
   contain: paint;
 }
 @keyframes deriva-c {
@@ -137,7 +151,10 @@ body.tema-claro .fumaca-c .fumaca-glow {
 /* Ferramentas dos orixás na fumaça — um pouco mais presentes */
 body.tema-claro .ponto-fumaca {
   color: rgba(160, 110, 20, 0.42);
-  filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.2));
+  filter: none;
+}
+body.tema-claro .ponto-fumaca .ponto-glow {
+  opacity: 0.22;
 }
 
 /* Vinheta clara: bordas levemente mais quentes, sem escurecer o centro */
