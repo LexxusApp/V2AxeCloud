@@ -72,6 +72,9 @@ body.tema-claro .luz-ambiente {
     radial-gradient(55% 40% at 12% 18%, rgba(255, 210, 100, 0.12), transparent 60%),
     radial-gradient(50% 38% at 88% 22%, rgba(180, 83, 9, 0.07), transparent 62%);
   animation: respirar-luz 7s ease-in-out infinite alternate;
+  will-change: opacity;
+  transform: translateZ(0);
+  contain: paint;
 }
 @keyframes respirar-luz {
   from { opacity: 0.7; }
@@ -79,7 +82,7 @@ body.tema-claro .luz-ambiente {
 }
 
 /* Nuvens douradas lentas — defumação no claro */
-body.tema-claro .fumaca {
+body.tema-claro .fumaca-glow {
   opacity: 0.7;
   mix-blend-mode: multiply;
   filter: blur(78px);
@@ -89,6 +92,8 @@ body.tema-claro .fumaca-a {
   height: 55vh;
   bottom: -20vh;
   left: -12vw;
+}
+body.tema-claro .fumaca-a .fumaca-glow {
   background: radial-gradient(circle, rgba(255, 193, 7, 0.28), transparent 70%);
 }
 body.tema-claro .fumaca-b {
@@ -96,6 +101,8 @@ body.tema-claro .fumaca-b {
   height: 50vh;
   bottom: -18vh;
   right: -10vw;
+}
+body.tema-claro .fumaca-b .fumaca-glow {
   background: radial-gradient(circle, rgba(212, 160, 40, 0.18), transparent 70%);
 }
 body.tema-claro .fumaca-c {
@@ -107,21 +114,30 @@ body.tema-claro .fumaca-c {
   height: 45vh;
   top: 8vh;
   left: 30vw;
+  animation: deriva-c 38s ease-in-out infinite alternate;
+  transform: translateZ(0);
+  will-change: transform;
+}
+body.tema-claro .fumaca-c .fumaca-glow {
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   filter: blur(90px);
   opacity: 0.45;
   mix-blend-mode: multiply;
   background: radial-gradient(circle, rgba(255, 220, 140, 0.22), transparent 70%);
-  animation: deriva-c 38s ease-in-out infinite alternate;
+  transform: translateZ(0);
+  contain: paint;
 }
 @keyframes deriva-c {
-  to { transform: translate(-8vw, 10vh) scale(1.2); }
+  to { transform: translate3d(-8vw, 10vh, 0) scale(1.2); }
 }
 
 /* Ferramentas dos orixás na fumaça — um pouco mais presentes */
 body.tema-claro .ponto-fumaca {
   color: rgba(160, 110, 20, 0.42);
-  filter: blur(0.3px) drop-shadow(0 0 8px rgba(255, 193, 7, 0.2));
+  filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.2));
 }
 
 /* Vinheta clara: bordas levemente mais quentes, sem escurecer o centro */
@@ -191,7 +207,7 @@ body.tema-claro .hero-saudacao span {
 body.tema-claro .hero-sub2 {
   color: rgba(27, 24, 19, 0.55);
 }
-body.tema-claro .hero-fumaca-wisp {
+body.tema-claro .hero-fumaca-glow {
   mix-blend-mode: multiply;
   background: radial-gradient(ellipse at 50% 80%, rgba(140, 140, 145, 0.42) 0%, rgba(180, 180, 185, 0.16) 40%, transparent 72%);
 }

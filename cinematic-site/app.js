@@ -18,8 +18,10 @@ const lenis = reduzMovimento
 if (!reduzMovimento) {
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
-  gsap.ticker.lagSmoothing(0);
+  /* lagSmoothing padrão ajuda a recuperar FPS sem “pular” o visual de uma vez */
+  gsap.ticker.lagSmoothing(500, 33);
 }
+ScrollTrigger.config({ ignoreMobileResize: true });
 
 /* ── Brasas (escuro) / pó de pemba dourado (claro) ────────── */
 (function brasas() {
@@ -27,15 +29,66 @@ if (!reduzMovimento) {
   if (!canvas) return;
 
   const temaClaro = document.body.classList.contains("tema-claro");
-  const ctx = canvas.getContext("2d");
-  let W, H, particulas = [];
+  const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+  let W = 0, H = 0, dpr = 1, particulas = [];
+  let rodando = true;
+  let sprites = null;
+
+  function fazSprite(quente) {
+    const s = document.createElement("canvas");
+    const size = 32;
+    s.width = size;
+    s.height = size;
+    const c = s.getContext("2d");
+    const mid = size / 2;
+    const g = c.createRadialGradient(mid, mid, 0, mid, mid, mid);
+    if (temaClaro) {
+      if (quente) {
+        g.addColorStop(0, "rgba(180, 120, 20, 0.55)");
+        g.addColorStop(0.35, "rgba(255, 193, 7, 0.28)");
+        g.addColorStop(1, "rgba(255, 193, 7, 0)");
+      } else {
+        g.addColorStop(0, "rgba(212, 160, 40, 0.42)");
+        g.addColorStop(0.4, "rgba(212, 160, 40, 0.18)");
+        g.addColorStop(1, "rgba(212, 160, 40, 0)");
+      }
+    } else if (quente) {
+      g.addColorStop(0, "rgba(255, 170, 60, 0.95)");
+      g.addColorStop(0.25, "rgba(255, 100, 25, 0.55)");
+      g.addColorStop(1, "rgba(255, 80, 20, 0)");
+    } else {
+      g.addColorStop(0, "rgba(255, 220, 120, 0.9)");
+      g.addColorStop(0.3, "rgba(255, 195, 70, 0.45)");
+      g.addColorStop(1, "rgba(255, 195, 70, 0)");
+    }
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(mid, mid, mid, 0, Math.PI * 2);
+    c.fill();
+    return s;
+  }
 
   function dimensiona() {
-    W = canvas.width = innerWidth;
-    H = canvas.height = innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, temaClaro ? 1.25 : 1.5);
+    W = innerWidth;
+    H = innerHeight;
+    canvas.width = Math.max(1, Math.floor(W * dpr));
+    canvas.height = Math.max(1, Math.floor(H * dpr));
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   dimensiona();
-  addEventListener("resize", dimensiona);
+  let resizeTimer = 0;
+  addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(dimensiona, 120);
+  });
+  document.addEventListener("visibilitychange", () => {
+    rodando = document.visibilityState === "visible";
+  });
+
+  sprites = { quente: fazSprite(true), frio: fazSprite(false) };
 
   // Escuro: fagulhas da fogueira. Claro: pó dourado flutuando (pemba).
   function acende(p, inicio = false) {
@@ -74,7 +127,11 @@ if (!reduzMovimento) {
   }
   for (let i = 0; i < QTD; i++) particulas.push(acende({}, true));
 
-  (function desenha(t) {
+  function desenha(t) {
+    if (!rodando) {
+      requestAnimationFrame(desenha);
+      return;
+    }
     ctx.clearRect(0, 0, W, H);
     for (const p of particulas) {
       p.y -= p.vy;
@@ -82,34 +139,18 @@ if (!reduzMovimento) {
       p.vida -= p.gasta;
       if (p.vida <= 0 || p.y < (temaClaro ? -10 : H * 0.12)) acende(p);
 
-      if (temaClaro) {
-        // Pó dourado / pemba — suave, legível sobre fundo claro
-        const alfa = Math.max(0, p.vida) * (p.quente ? 0.38 : 0.26);
-        const raio = p.r * (0.6 + 0.5 * p.vida);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, raio, 0, Math.PI * 2);
-        ctx.fillStyle = p.quente
-          ? `rgba(180, 120, 20, ${alfa})`
-          : `rgba(212, 160, 40, ${alfa})`;
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = `rgba(255, 193, 7, ${alfa * 0.7})`;
-        ctx.fill();
-      } else {
-        const alfa = Math.max(0, p.vida) * (0.15 + 0.5 * (p.y / H));
-        const raio = p.r * (0.5 + 0.5 * p.vida);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, raio, 0, Math.PI * 2);
-        ctx.fillStyle = p.quente
-          ? `rgba(255, ${90 + Math.floor(80 * p.vida)}, 30, ${alfa})`
-          : `rgba(255, 205, 95, ${alfa * 0.85})`;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = p.quente ? "rgba(255,100,25,0.85)" : "rgba(255,195,70,0.7)";
-        ctx.fill();
-      }
+      const alfa = temaClaro
+        ? Math.max(0, p.vida) * (p.quente ? 0.95 : 0.75)
+        : Math.max(0, p.vida) * (0.55 + 0.9 * (p.y / H));
+      const raio = p.r * (temaClaro ? (0.6 + 0.5 * p.vida) : (0.5 + 0.5 * p.vida)) * 4.2;
+      const spr = p.quente ? sprites.quente : sprites.frio;
+      ctx.globalAlpha = Math.min(1, alfa);
+      ctx.drawImage(spr, p.x - raio, p.y - raio, raio * 2, raio * 2);
     }
-    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
     requestAnimationFrame(desenha);
-  })(0);
+  }
+  requestAnimationFrame(desenha);
 })();
 
 /* ── Pontos riscados subindo na defumação ─────────────────── */
@@ -153,27 +194,29 @@ if (!reduzMovimento) {
     const x = 4 + Math.random() * 88; // vw
     const dur = 34 + Math.random() * 26;
     const partida = primeira ? Math.random() * 0.7 : 0; // já no meio do caminho na 1ª leva
+    el.style.left = x + "vw";
 
+    // Só transform/opacity (GPU) — evita layout thrash de top/left
     const tl = gsap.timeline({ onComplete: () => sobe(el) });
     tl.fromTo(el,
-      { left: x + "vw", top: "104vh", rotate: (Math.random() - 0.5) * 14 },
+      { y: "104vh", x: 0, rotate: (Math.random() - 0.5) * 14, force3D: true },
       {
-        top: "-18vh",
+        y: "-18vh",
         rotate: "+=" + (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 8),
         duration: dur,
         ease: "none",
+        force3D: true,
       }, 0)
-      // fade sutil: aparece, paira, desmancha
       .fromTo(el, { opacity: 0 }, { opacity: picoOpacidade, duration: dur * 0.3, ease: "sine.inOut" }, 0)
       .to(el, { opacity: picoOpacidade * 0.75, duration: dur * 0.4, ease: "none" }, dur * 0.3)
       .to(el, { opacity: 0, duration: dur * 0.3, ease: "sine.inOut" }, dur * 0.7)
-      // deriva lateral suave, como fumaça
       .to(el, {
         x: (Math.random() - 0.5) * 90,
         duration: dur / 2,
         ease: "sine.inOut",
         yoyo: true,
         repeat: 1,
+        force3D: true,
       }, 0);
     tl.progress(partida);
   }
@@ -192,15 +235,19 @@ if (!reduzMovimento) {
   if (!dot || !matchMedia("(pointer: fine)").matches) return;
   if (document.body.classList.contains("tema-claro")) return;
   let x = innerWidth / 2, y = innerHeight / 2, tx = x, ty = y;
-  addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
-  (function segue() {
+  let preciso = false;
+  gsap.set(dot, { xPercent: -50, yPercent: -50, x, y, force3D: true });
+  addEventListener("mousemove", (e) => {
+    tx = e.clientX;
+    ty = e.clientY;
+    preciso = true;
+  }, { passive: true });
+  gsap.ticker.add(() => {
+    if (!preciso && document.visibilityState !== "visible") return;
     x += (tx - x) * 0.16;
     y += (ty - y) * 0.16;
-    dot.style.left = x + "px";
-    dot.style.top = y + "px";
-    requestAnimationFrame(segue);
-  })();
-  // Delegação: cobre também cards criados depois (casas, eventos, planos)
+    gsap.set(dot, { x, y, force3D: true });
+  });
   addEventListener("mouseover", (e) => {
     dot.classList.toggle("pousado", Boolean(e.target.closest("a, button")));
   });
