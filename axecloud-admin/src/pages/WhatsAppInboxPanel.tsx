@@ -207,8 +207,8 @@ export function WhatsAppInboxPanel() {
       </div>
 
       <div className="grid min-h-[28rem] gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="admin-panel flex max-h-[70vh] flex-col overflow-hidden !p-0">
-          <div className="border-b border-[var(--admin-border)] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[var(--admin-muted)]">
+        <div className="admin-panel admin-panel--flush flex max-h-[70vh] flex-col overflow-hidden !p-0">
+          <div className="shrink-0 border-b border-[var(--admin-border)] px-3 py-2.5 text-[10px] font-bold uppercase leading-normal tracking-wide text-[var(--admin-muted)]">
             Conversas ({conversations.length})
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -247,19 +247,19 @@ export function WhatsAppInboxPanel() {
           </div>
         </div>
 
-        <div className="admin-panel flex max-h-[70vh] flex-col overflow-hidden !p-0">
+        <div className="admin-panel admin-panel--flush flex max-h-[70vh] flex-col overflow-hidden !p-0">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-[var(--admin-muted)]">
               Selecione uma conversa à esquerda.
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-2 border-b border-[var(--admin-border)] px-3 py-2">
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--admin-border)] px-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[var(--admin-text)]">
+                  <p className="truncate text-sm font-semibold leading-snug text-[var(--admin-text)]">
                     {selected.contact_name || formatPhone(selected.phone_e164)}
                   </p>
-                  <p className="truncate text-[11px] text-[var(--admin-muted)]">
+                  <p className="truncate text-[11px] leading-snug text-[var(--admin-muted)]">
                     {formatPhone(selected.phone_e164)}
                   </p>
                 </div>

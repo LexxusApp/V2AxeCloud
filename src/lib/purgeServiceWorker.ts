@@ -33,6 +33,9 @@ export async function purgeLegacyAppServiceWorker(): Promise<void> {
 /**
  * Abre uma pagina servida pelo site de marketing sem permitir que um service
  * worker antigo do app devolva a landing React que ficou no cache.
+ *
+ * Nunca bloqueia a navegação por limpeza de SW (em alguns browsers a Promise
+ * de unregister/controllerchange pode travar e o clique "não faz nada").
  */
 export async function navigateToMarketingDocument(path = '/'): Promise<void> {
   if (typeof window === 'undefined') return;
@@ -43,6 +46,22 @@ export async function navigateToMarketingDocument(path = '/'): Promise<void> {
     return;
   }
 
-  await purgeLegacyAppServiceWorker();
-  window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+  const href = `${target.pathname}${target.search}${target.hash}`;
+  let navigated = false;
+  const go = () => {
+    if (navigated) return;
+    navigated = true;
+    window.location.assign(href);
+  };
+
+  const purge = Promise.race([
+    purgeLegacyAppServiceWorker(),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 400);
+    }),
+  ]).catch(() => undefined);
+
+  void purge.finally(go);
+  // Cinto de segurança: se o finally não correr, força o destino.
+  window.setTimeout(go, 900);
 }

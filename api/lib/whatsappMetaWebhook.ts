@@ -39,13 +39,13 @@ export function handleMetaWebhookChallenge(query: Record<string, unknown>): {
   return { ok: true, challenge, status: 200 };
 }
 
-/** Valida X-Hub-Signature-256 quando META_APP_SECRET estiver configurado. */
+/** Valida X-Hub-Signature-256; falha fechada sem segredo ou corpo bruto. */
 export function verifyMetaWebhookSignature(
   rawBody: string | Buffer | undefined,
   signatureHeader: string | string[] | undefined
 ): boolean {
   const secret = resolveMetaAppSecret();
-  if (!secret) return true; // sem secret: confiar no shape do payload (configure META_APP_SECRET em produção)
+  if (!secret) return false;
   const header = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
   const provided = String(header || "").trim();
   if (!provided.startsWith("sha256=")) return false;

@@ -349,24 +349,21 @@ Olá, {{1}}! O zelador de {{2}} aceitou seu pedido. Sua reza será realizada na 
 
 ---
 
-## 12. `senha_evento_visitante_axecloud`
+## 12. `acesso_evento_visitante_axecloud` (substitui `senha_evento_visitante`)
 
-**Uso:** visitante solicita senha no site do evento → recebe WhatsApp com dados + link.  
-No dia, na portaria: abre o link → câmera do celular → aponta no **QR Code do tablet** → presença confirmada automaticamente.
+**Uso:** visitante solicita acesso no site do evento → recebe WhatsApp com nº de atendimento + link de check-in.  
+No dia, na portaria: abre o link → câmera → aponta no **QR Code do tablet**.
 
-**Categoria Meta:** Utilidade (código de acesso / check-in).
+**Categoria Meta:** Utilidade (confirmação de presença / ingresso do evento).
 
-**Corpo:**
+> **Por que o anterior foi rejeitado:** modelos de Utilidade com a palavra **“senha”** (e nomes tipo `senha_evento_*`) a Meta costuma rejeitar — isso fica reservado à categoria **Autenticação**. Crie um modelo **novo** (não reedite o rejeitado).
+
+**Nome sugerido:** `acesso_evento_visitante_axecloud`
+
+**Corpo (submeter assim):**
 
 ```
-Olá, {{1}}!
-
-Sua senha para {{2}} no {{3}} é: {{4}}.
-
-Data: {{5}}
-Horário: {{6}}
-
-No dia do evento, na portaria, abra o link abaixo. A camera do celular vai abrir para voce apontar no QR Code do tablet e confirmar sua presença.
+Olá, {{1}}! Seu número de atendimento para {{2}} no {{3}} é {{4}}. Data: {{5}}. Horário: {{6}}. No dia do evento, use o botão abaixo na portaria para confirmar sua presença.
 ```
 
 | Variável | Exemplo |
@@ -378,24 +375,55 @@ No dia do evento, na portaria, abra o link abaixo. A camera do celular vai abrir
 | {{5}} | 20/07/2026 |
 | {{6}} | 19:00 |
 
-**Botão (tipo URL — dinâmico):**
+**Botão (URL dinâmica):**
 
-| Botão | Texto | URL base | Amostra do sufixo |
-|-------|-------|----------|-------------------|
-| 1 | Abrir check-in | `https://axecloud.com.br/presenca/` | `abc123token` |
+| Botão | Texto | URL base | Amostra |
+|-------|-------|----------|---------|
+| 1 | Confirmar presença | `https://axecloud.com.br/presenca/` | `abc123token` |
 
-Na Meta: Tipo de URL **Dinâmica** → `https://axecloud.com.br/presenca/{{1}}`  
-Amostra: `abc123token` (só o token, sem `https://`)
-
-> **Importante:** o botão **não** confirma presença sozinho. Ele abre `/presenca/{token}`, que liga a câmera para ler o QR da portaria (`/checkin-portaria/...` no tablet).
+Na Meta: URL **Dinâmica** → `https://axecloud.com.br/presenca/{{1}}`  
+Amostra: `abc123token` (só o token)
 
 **Env:**
 
 ```env
-WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=senha_evento_visitante_axecloud
+WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
 ```
 
-**Disparo:** página pública do evento → visitante solicita senha com WhatsApp.
+**Disparo:** página pública do evento → visitante solicita acesso com WhatsApp.
+
+---
+
+## 13. `recuperar_senha_axec` (Autenticação / OTP)
+
+**Uso:** fluxo “Esqueceu sua senha?” do zelador (`/recuperar-senha`).
+
+**Categoria Meta:** **Autenticação** (não Utilidade).
+
+### O que marcar na tela “Configuração de entrega do código”
+
+| Opção | Usar? | Por quê |
+|-------|-------|---------|
+| Preenchimento automático de zero toque | **Não** | Exige app Android + package + hash; recuperação é no site |
+| Preenchimento automático de um toque | **Não** | Idem (deep link no app) |
+| **Copiar código** | **Sim** | Usuário cola o código em `/recuperar-senha` |
+
+Na seção **Conteúdo**:
+- Marque **Adicionar recomendação de segurança** (já está ok)
+- Opcional: **Adicione o tempo de expiração do código** → **10 minutos** (bate com o TTL do AxéCloud)
+
+Não preencha “Nome do pacote” / “Hash de assinatura” — isso só vale para autofill no app.
+
+**Nome sugerido do modelo:** `recuperar_senha_axec` (já aprovado na sua WABA).
+
+**Env:**
+
+```env
+WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
+```
+
+O código envia o OTP no formato de autenticação Meta (corpo + botão Copiar código).  
+**Fallback:** se o template ainda não estiver aprovado, empacota em `aviso_geral_axecloud`.
 
 ---
 
@@ -404,6 +432,8 @@ WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=senha_evento_visitante_axecloud
 | Nome | Variáveis |
 |------|-----------|
 | `aviso_geral_axecloud` | {{1}} membro · {{2}} sistema/terreiro (fallback + boas-vindas) |
+| `acesso_evento_visitante_axecloud` | {{1}} visitante · {{2}} evento · {{3}} terreiro · {{4}} nº · {{5}} data · {{6}} hora + botão presença |
+| `recuperar_senha_axec` | Autenticação OTP · botão Copiar código |
 | `mural_aviso_axecloud` | {{1}} filho · {{2}} terreiro · {{3}} título |
 | `aviso_gira_axecloud` | Header imagem · {{1}} título · {{2}} data · {{3}} hora |
 | `convite_evento_axecloud` | Header imagem · 5 vars corpo · botões RSVP |
@@ -425,7 +455,8 @@ WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_axecloud
 WA_META_TEMPLATE_BROADCAST=aviso_portal_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_axecloud
-WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=senha_evento_visitante_axecloud
+WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
+WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
 ```
 
 2. `git pull` + rebuild/restart do container app.

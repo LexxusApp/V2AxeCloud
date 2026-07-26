@@ -28,8 +28,8 @@ const COMUNICADO_TERREIRO_TEMPLATE = "comunicado_terreiro_axecloud";
 const MENSAGEM_LIVRE_TERREIRO_TEMPLATE = "mensagem_livre_terreiro_axecloud";
 /** Conta criada / reenvio de registro — credenciais sensíveis vão em texto livre na sequência */
 const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
-/** Senha de visitante (portaria / presença) */
-const SENHA_EVENTO_VISITANTE_TEMPLATE = "senha_evento_visitante_axecloud";
+/** Acesso de visitante (portaria / presença) — evitar "senha" no nome (Meta rejeita como auth). */
+const SENHA_EVENTO_VISITANTE_TEMPLATE = "acesso_evento_visitante_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
 
 function normalizeTipo(tipo: string): string {
@@ -116,6 +116,14 @@ export function resolveMetaTemplateName(tipo: string): string {
       SENHA_EVENTO_VISITANTE_TEMPLATE
     );
   }
+  if (
+    normalized === "forgot_password" ||
+    normalized === "recuperar_senha" ||
+    normalized === "otp" ||
+    normalized === "codigo_verificacao"
+  ) {
+    return resolveForgotPasswordTemplateName();
+  }
   if (normalized === "broadcast" || normalized === "teste") {
     return (
       String(process.env.WA_META_TEMPLATE_BROADCAST || process.env.WA_META_TEMPLATE_TESTE || "")
@@ -196,6 +204,10 @@ const META_UTILITY_TEMPLATE_TIPOS = new Set([
   "pedido_reza_novo_zelador",
   "pedido_reza_aceito_fiel",
   "senha_evento_visitante",
+  "forgot_password",
+  "recuperar_senha",
+  "otp",
+  "codigo_verificacao",
 ]);
 
 /** Tipos enviados como template Meta único (sem texto livre complementar). */
@@ -467,6 +479,73 @@ export function resolveCredenciaisTemplateName(): string {
   );
 }
 
+/** Template dedicado de OTP / recuperação de senha do zelador (Autenticação Meta). */
+export function resolveForgotPasswordTemplateName(): string {
+  return (
+    String(
+      process.env.WA_META_TEMPLATE_FORGOT_PASSWORD ||
+        process.env.WA_META_TEMPLATE_RECUPERAR_SENHA ||
+        ""
+    ).trim() || "recuperar_senha_axec"
+  );
+}
+
+/** Texto livre (só funciona na janela de 24h da Meta). */
+export function buildForgotPasswordFreeText(loginEmail: string, code: string): string {
+  const email = String(loginEmail || "").trim() || "seu login";
+  const otp = String(code || "").replace(/\D/g, "").slice(0, 6);
+  return (
+    `🔐 *AxéCloud — recuperação de senha*\n\n` +
+    `Seu código para redefinir a senha do login *${email}*:\n\n` +
+    `*${otp}*\n\n` +
+    `Válido por 10 minutos. Se não solicitou, ignore esta mensagem.`
+  );
+}
+
+/**
+ * Template de autenticação Meta (OTP).
+ * Corpo + botão "Copiar código": só {{1}} = código (sem e-mail).
+ * Ver: https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-message-templates/auth-otp-template-messages
+ */
+export function buildForgotPasswordOtpComponents(
+  _loginEmail: string,
+  code: string
+): MetaTemplateComponent[] {
+  const otp = String(code || "").replace(/\D/g, "").slice(0, 8) || "000000";
+  return [
+    {
+      type: "body",
+      parameters: [textParam(otp)],
+    },
+    {
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [textParam(otp)],
+    },
+  ];
+}
+
+/**
+ * Fallback em aviso_geral_axecloud: {{1}} login, {{2}} "Código de recuperação: …"
+ */
+export function buildForgotPasswordPackedInAvisoGeralComponents(
+  loginEmail: string,
+  code: string
+): MetaTemplateComponent[] {
+  const email = String(loginEmail || "").trim() || "Zelador";
+  const otp = String(code || "").replace(/\D/g, "").slice(0, 6) || "------";
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(email),
+        textParam(`Código de recuperação: ${otp} (válido por 10 minutos)`, 256),
+      ],
+    },
+  ];
+}
+
 /**
  * mural_aviso_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} título do aviso
  */
@@ -625,10 +704,13 @@ export function extractPresencaToken(variables?: Record<string, string | number>
 }
 
 /**
- * senha_evento_visitante_axecloud
- * Corpo: {{1}} visitante, {{2}} evento, {{3}} terreiro, {{4}} senha, {{5}} data, {{6}} horário
+ * acesso_evento_visitante_axecloud
+ * Corpo: {{1}} visitante, {{2}} evento, {{3}} terreiro, {{4}} nº de atendimento, {{5}} data, {{6}} horário
  * Botão URL: https://axecloud.com.br/presenca/{{1}} → token
  * O link abre a câmera do celular para escanear o QR da portaria (tablet).
+ *
+ * Obs.: não use a palavra "senha" no texto do modelo Meta — costuma ser rejeitado em Utilidade
+ * (a Meta reserva "senha/código" para categoria Autenticação).
  */
 export function buildSenhaEventoVisitanteComponents(
   nomeMembro: string,
@@ -824,6 +906,11 @@ export function buildMetaTemplateComponentsForTipo(
   }
   if (t === "senha_evento_visitante") {
     return buildSenhaEventoVisitanteComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "forgot_password" || t === "recuperar_senha" || t === "otp" || t === "codigo_verificacao") {
+    const code = String(variables?.codigo || variables?.otp || variables?.code || "").trim();
+    const email = String(variables?.login_email || variables?.email || nomeMembro || "").trim();
+    return buildForgotPasswordOtpComponents(email, code);
   }
   if (
     t === "broadcast" ||

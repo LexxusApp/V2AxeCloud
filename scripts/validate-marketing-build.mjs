@@ -9,6 +9,8 @@ const CINEMATIC = [
   'terreiros/index.html',
   'terreiro/index.html',
   'eventos/index.html',
+  'evento/index.html',
+  'senhas/index.html',
   'conteudo/index.html',
   'conteudo/calendario-liturgico/index.html',
   'por-que-axecloud/index.html',

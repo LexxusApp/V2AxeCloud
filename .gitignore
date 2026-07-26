@@ -23,3 +23,12 @@ public/build-info.json
 axecloud-deploy*.tgz
 .deploy-out.txt
 tmp-*.json
+
+# Projeto Android fora do escopo deste repositório web
+/android/
+
+# Utilitários operacionais locais (podem alterar segredos/infraestrutura)
+/deploy/scripts/*b2*
+/deploy/scripts/set-credenciais-env.py
+/deploy/scripts/set-wa-meta-token.py
+/deploy/scripts/commit-codex-changes.ps1

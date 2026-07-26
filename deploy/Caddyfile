@@ -87,6 +87,11 @@ axecloud.com.br, www.axecloud.com.br {
 			redir * /entrar permanent
 		}
 
+		@legacyCalendar path /calendario-liturgico /calendario-liturgico/
+		handle @legacyCalendar {
+			redir * /conteudo/calendario-liturgico permanent
+		}
+
 		@trailingSlash path_regexp trailing ^(.+)/$
 		redir @trailingSlash {re.trailing.1} permanent
 
@@ -230,6 +235,8 @@ axecloud.com.br, www.axecloud.com.br {
 			path /eventos/*
 			path /evento
 			path /evento/*
+			path /senhas
+			path /senhas/*
 			path /conteudo
 			path /conteudo/*
 		}

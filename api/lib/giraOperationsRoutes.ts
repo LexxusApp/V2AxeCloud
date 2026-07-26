@@ -1,7 +1,11 @@
 import { randomBytes } from "crypto";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { apiReadRateLimit } from "./rateLimit.js";
+import {
+  apiReadRateLimit,
+  publicConfirmationRateLimit,
+  publicTicketIssueRateLimit,
+} from "./rateLimit.js";
 import { requireTenantReadAccess, requireAuthenticatedUser } from "./secureRoutes.js";
 import {
   assertZeladorTenantAccess,
@@ -976,7 +980,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     }
   });
 
-  app.post("/api/v1/public/checkin/:token", apiReadRateLimit, async (_req: Request, res: Response) => {
+  app.post("/api/v1/public/checkin/:token", publicConfirmationRateLimit, async (_req: Request, res: Response) => {
     res.status(410).json({
       error: "Check-in de filhos de santo foi descontinuado. Visitantes devem usar o link recebido no WhatsApp.",
     });
@@ -1026,7 +1030,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     }
   });
 
-  app.post("/api/v1/public/presenca/:token/confirmar", apiReadRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/v1/public/presenca/:token/confirmar", publicConfirmationRateLimit, async (req: Request, res: Response) => {
     try {
       const token = String(req.params.token || "").trim();
       const venueToken = extractVenueTokenFromScan(String(req.body?.venueToken || ""));
@@ -1141,7 +1145,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
     }
   });
 
-  app.post("/api/v1/public/senhas/:token/emitir", apiReadRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/v1/public/senhas/:token/emitir", publicTicketIssueRateLimit, async (req: Request, res: Response) => {
     try {
       const token = String(req.params.token || "").trim();
       const nome = String(req.body?.nome || "").trim();

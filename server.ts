@@ -57,7 +57,7 @@ import { registerGiraOperationsRoutes, newPublicToken } from "./api/lib/giraOper
 import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
-import { filhoLoginRateLimit } from "./api/lib/rateLimit.js";
+import { filhoLoginRateLimit, webhookRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
 import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./api/lib/runtimePublicConfig.js";
 import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
@@ -4487,7 +4487,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/whatsapp/webhook", async (req, res) => {
+  app.get(["/api/whatsapp/webhook", "/webhook/meta"], webhookRateLimit, async (req, res) => {
     const challenge = handleMetaWebhookChallenge((req.query || {}) as Record<string, unknown>);
     if (!challenge.ok || !challenge.challenge) {
       return res.status(challenge.status).json({ error: "Verify token inválido." });
@@ -4495,7 +4495,7 @@ async function startServer() {
     return res.status(200).send(challenge.challenge);
   });
 
-  app.post("/api/whatsapp/webhook", async (req, res) => {
+  app.post(["/api/whatsapp/webhook", "/webhook/meta"], webhookRateLimit, async (req, res) => {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
 
     if (isMetaCloudWebhookPayload(body)) {
@@ -4526,7 +4526,7 @@ async function startServer() {
         .eq("external_id", externalId);
     }
 
-    res.status(200).send("OK");
+    return res.status(200).send("OK");
   });
 
   app.post("/api/whatsapp/start", async (_req, res) => {

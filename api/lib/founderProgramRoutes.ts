@@ -8,6 +8,8 @@ type Deps = {
   supabaseAdmin: SupabaseClient;
 };
 
+let publicFounderHousesCache: { items: Array<Record<string, unknown>>; expiresAt: number } | null = null;
+
 export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: Deps) {
   app.get("/api/v1/founder-program/me", apiReadRateLimit, async (req: Request, res: Response) => {
     try {
@@ -22,6 +24,10 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
   });
 
   app.get("/api/v1/landing/founder-houses", apiReadRateLimit, async (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    if (publicFounderHousesCache && publicFounderHousesCache.expiresAt > Date.now()) {
+      return res.json({ items: publicFounderHousesCache.items });
+    }
     try {
       const { data, error } = await supabaseAdmin
         .from("founder_applications")
@@ -93,10 +99,11 @@ export function registerFounderProgramRoutes(app: Express, { supabaseAdmin }: De
         };
       });
 
+      publicFounderHousesCache = { items, expiresAt: Date.now() + 5 * 60 * 1000 };
       res.json({ items });
     } catch (err: unknown) {
       console.error("[landing/founder-houses]", err);
-      res.json({ items: [] });
+      res.json({ items: publicFounderHousesCache?.items || [] });
     }
   });
 

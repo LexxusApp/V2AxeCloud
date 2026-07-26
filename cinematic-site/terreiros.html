@@ -779,18 +779,33 @@ $("#busca").addEventListener("input", (e) => {
   }, 250);
 });
 
-/* Início: carrega cidades + pontos do mapa e abre a maior cidade */
+/* Início: carrega cidades + pontos do mapa e abre cidade da URL ou a maior */
 (async function init() {
   try {
     await Promise.all([carregaCidades(), carregaPontosMapa()]);
-    if (cidades.length) {
-      const c = cidades[0];
-      const uf = (c.estado || "br").toLowerCase();
-      marcaChip(uf, c.cidadeSlug);
-      await carregaCidade(uf, c.cidadeSlug);
-    } else {
+    if (!cidades.length) {
       grade.innerHTML = '<p class="estado">O mapeamento ainda não retornou cidades.</p>';
+      return;
     }
+
+    const params = new URLSearchParams(location.search);
+    const ufParam = String(params.get("uf") || "").trim().toLowerCase();
+    const cidadeParam = String(params.get("cidade") || "").trim();
+    const daUrl =
+      cidadeParam
+        ? cidades.find((c) => {
+            const mesmaCidade = String(c.cidadeSlug || "") === cidadeParam;
+            if (!mesmaCidade) return false;
+            if (!ufParam) return true;
+            return String(c.estado || "").toLowerCase() === ufParam;
+          })
+        : null;
+    const c = daUrl || cidades[0];
+    const uf = (c.estado || "br").toLowerCase();
+    marcaChip(uf, c.cidadeSlug);
+    const seletor = $("#seletor-cidade");
+    if (seletor) seletor.value = `${uf}|${c.cidadeSlug}`;
+    await carregaCidade(uf, c.cidadeSlug);
   } catch (e) {
     console.warn(e);
     grade.innerHTML = '<p class="estado">Não foi possível consultar o mapeamento agora — verifique o sistema ou a internet.</p>';

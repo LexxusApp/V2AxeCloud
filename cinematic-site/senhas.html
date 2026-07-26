@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<!-- Fonte do marketing cinematográfico de produção. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Senha de visitante | AxéCloud</title>
+<meta name="description" content="Retire sua senha de visitante para a gira. Informe nome e WhatsApp — a senha chega no celular." />
+<meta name="robots" content="noindex,follow" />
+<link rel="canonical" href="https://axecloud.com.br/senhas" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" /><meta property="og:locale" content="pt_BR" />
+<meta property="og:title" content="Senha de visitante — AxéCloud" />
+<meta property="og:description" content="Retire sua senha para a gira e receba o link de check-in no WhatsApp." />
+<meta property="og:url" content="https://axecloud.com.br/senhas" />
+<meta property="og:image" content="https://axecloud.com.br/og-image.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --mar-fundo: #04101e;
+  --mar-medio: #0a2038;
+  --espuma: #dcecf5;
+  --espuma-fraca: rgba(220, 236, 245, 0.55);
+  --prata: #c7d9e8;
+  --luar: #e8f2fa;
+  --ouro: #ffc107;
+  --linha: rgba(220, 236, 245, 0.14);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: linear-gradient(180deg, #030a14 0%, var(--mar-fundo) 40%, var(--mar-medio) 100%);
+  color: var(--espuma);
+  font-family: "Outfit", sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::selection { background: var(--prata); color: var(--mar-fundo); }
+
+.lua {
+  position: fixed;
+  top: 70px;
+  right: 10vw;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #ffffff, var(--luar) 55%, #b9cfdf);
+  box-shadow: 0 0 60px 18px rgba(220, 240, 255, 0.28), 0 0 160px 60px rgba(180, 215, 240, 0.12);
+  z-index: 1;
+  animation: sobe-lua 4s ease-out both;
+}
+@keyframes sobe-lua {
+  from { transform: translateY(90px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.lua::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 62% 58%, rgba(150, 175, 195, 0.35) 0 8%, transparent 9%),
+    radial-gradient(circle at 40% 65%, rgba(150, 175, 195, 0.3) 0 5%, transparent 6%);
+}
+.luar-agua {
+  position: fixed;
+  top: 180px;
+  right: calc(10vw + 12px);
+  width: 80px;
+  height: 70vh;
+  background: linear-gradient(180deg, rgba(230, 245, 255, 0.14), transparent 80%);
+  filter: blur(14px);
+  z-index: 0;
+  pointer-events: none;
+}
+.ondas {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 22vh;
+  z-index: 2;
+  pointer-events: none;
+}
+.onda { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; }
+.onda svg { width: 100%; height: 100%; }
+.onda-1 { opacity: 0.9; animation: vai-mar 17s linear infinite; }
+.onda-2 { opacity: 0.55; bottom: 16px; animation: vai-mar 26s linear infinite reverse; }
+.onda-3 { opacity: 0.35; bottom: 28px; animation: vai-mar 34s linear infinite; }
+@keyframes vai-mar {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.estrela {
+  position: fixed;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--luar);
+  z-index: 0;
+  animation: cintila 3.4s ease-in-out infinite alternate;
+}
+@keyframes cintila { from { opacity: 0.15; } to { opacity: 0.8; } }
+
+nav {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 6vw 0;
+}
+.marca {
+  color: var(--luar);
+  text-decoration: none;
+  font: 600 1.35rem "Fraunces", serif;
+}
+.marca em { color: var(--ouro); font-style: normal; }
+.menu { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.menu a {
+  color: var(--espuma-fraca);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.menu a:hover, .menu a.atual { color: var(--ouro); }
+
+main {
+  position: relative;
+  z-index: 5;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 56px 6vw 28vh;
+}
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--espuma-fraca);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+.voltar:hover { color: var(--ouro); }
+
+.cartao {
+  border: 1px solid var(--linha);
+  border-radius: 28px;
+  background: rgba(8, 24, 42, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 28px 70px rgba(0, 8, 20, 0.35);
+  padding: 34px 28px 30px;
+}
+.kicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 400;
+  font-size: clamp(1.85rem, 5vw, 2.6rem);
+  line-height: 1.05;
+  color: var(--luar);
+  text-wrap: balance;
+}
+.meta {
+  margin-top: 12px;
+  color: var(--espuma-fraca);
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.55;
+}
+.restantes {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--prata);
+  border: 1px solid rgba(199, 217, 232, 0.28);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.formulario { margin-top: 28px; display: grid; gap: 16px; }
+label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--prata);
+  font-weight: 600;
+}
+input {
+  width: 100%;
+  border: 1px solid rgba(220, 236, 245, 0.16);
+  border-radius: 14px;
+  background: rgba(3, 12, 24, 0.55);
+  color: var(--luar);
+  padding: 14px 16px;
+  font: 500 0.95rem "Outfit", sans-serif;
+  outline: none;
+}
+input:focus {
+  border-color: rgba(255, 193, 7, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.12);
+}
+input::placeholder { color: rgba(220, 236, 245, 0.35); }
+.ajuda {
+  margin-top: -4px;
+  font-size: 0.82rem;
+  color: var(--espuma-fraca);
+  font-weight: 300;
+  line-height: 1.45;
+}
+.erro-msg {
+  color: #ffb4b4;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 999px;
+  padding: 15px 22px;
+  background: var(--ouro);
+  color: #04101e;
+  font: 800 0.82rem "Outfit", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.estado {
+  text-align: center;
+  padding: 72px 12px;
+  color: var(--espuma-fraca);
+  font-family: "Fraunces", serif;
+  font-style: italic;
+}
+.spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(255, 193, 7, 0.2);
+  border-top-color: var(--ouro);
+  border-radius: 50%;
+  animation: girar 0.75s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.sucesso { text-align: center; }
+.sucesso .numero {
+  margin: 22px 0 8px;
+  font-family: "Fraunces", serif;
+  font-size: clamp(4.2rem, 16vw, 5.8rem);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ouro);
+  text-shadow: 0 0 40px rgba(255, 193, 7, 0.28);
+}
+.sucesso .nome-visitante {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--luar);
+}
+.sucesso .nota {
+  margin-top: 18px;
+  font-size: 0.9rem;
+  color: var(--espuma-fraca);
+  font-weight: 300;
+  line-height: 1.55;
+}
+
+.esgotado {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 180, 180, 0.25);
+  background: rgba(80, 20, 28, 0.35);
+  color: #ffc9c9;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 620px) {
+  .lua { width: 72px; height: 72px; right: 7vw; }
+  .cartao { padding: 28px 20px 24px; border-radius: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+  <link rel="stylesheet" href="/shared-footer.css" />
+</head>
+<body>
+<div class="lua" aria-hidden="true"></div>
+<div class="luar-agua" aria-hidden="true"></div>
+
+<nav>
+  <a class="marca" href="/">Axé<em>Cloud</em></a>
+  <div class="menu">
+    <a href="/">Início</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos" class="atual">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+  </div>
+</nav>
+
+<main>
+  <a class="voltar" href="/eventos">← Voltar aos eventos</a>
+
+  <div id="estado" class="estado">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>abrindo a porteira das senhas…</p>
+  </div>
+
+  <section id="painel" class="cartao" hidden>
+    <p class="kicker" id="casa"></p>
+    <h1 id="titulo"></h1>
+    <p class="meta" id="meta"></p>
+    <span class="restantes" id="restantes" hidden></span>
+
+    <div id="esgotado" class="esgotado" hidden>
+      Todas as senhas deste evento já foram emitidas.
+    </div>
+
+    <form id="form" class="formulario" hidden>
+      <label>
+        Seu nome
+        <input id="nome" name="nome" required autocomplete="name" placeholder="Nome completo" maxlength="120" />
+      </label>
+      <label>
+        WhatsApp
+        <input id="telefone" name="telefone" type="tel" required autocomplete="tel" placeholder="(00) 00000-0000" maxlength="20" />
+      </label>
+      <p class="ajuda">A senha e o link de check-in serão enviados no seu WhatsApp.</p>
+      <p class="erro-msg" id="erro-form" hidden></p>
+      <button class="btn" id="enviar" type="submit">Emitir minha senha</button>
+    </form>
+
+    <div id="sucesso" class="sucesso" hidden>
+      <p class="kicker">sua senha</p>
+      <p class="numero" id="numero"></p>
+      <p class="nome-visitante" id="nome-ok"></p>
+      <p class="nota">Enviamos sua senha e o link de check-in no WhatsApp. Na portaria, abra o link e aponte para o QR do terreiro.</p>
+      <a class="btn" href="/eventos" style="margin-top:24px;text-decoration:none;">Voltar aos eventos</a>
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+
+<div class="ondas" aria-hidden="true">
+  <div class="onda onda-3"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 90 Q75 55 150 90 T300 90 T450 90 T600 90 T750 90 T900 90 T1050 90 T1200 90 L1200 200 L0 200 Z" fill="#0d2942"/></svg></div>
+  <div class="onda onda-2"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 110 Q75 70 150 110 T300 110 T450 110 T600 110 T750 110 T900 110 T1050 110 T1200 110 L1200 200 L0 200 Z" fill="#12304a"/></svg></div>
+  <div class="onda onda-1"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 130 Q75 92 150 130 T300 130 T450 130 T600 130 T750 130 T900 130 T1050 130 T1200 130 L1200 200 L0 200 Z" fill="#16344f"/></svg></div>
+</div>
+
+<script>
+for (let i = 0; i < 22; i++) {
+  const e = document.createElement("span");
+  e.className = "estrela";
+  e.style.left = Math.random() * 100 + "vw";
+  e.style.top = Math.random() * 55 + "vh";
+  e.style.animationDelay = Math.random() * 3 + "s";
+  document.body.appendChild(e);
+}
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const token = decodeURIComponent(location.pathname.replace(/\/+$/, "").split("/").pop() || "");
+  const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+  const falhar = (msg) => {
+    const estado = $("estado");
+    estado.replaceChildren();
+    const mensagem = document.createElement("p");
+    mensagem.textContent = String(msg || "Não foi possível abrir esta emissão.");
+    const acoes = document.createElement("p");
+    acoes.style.marginTop = "18px";
+    const voltar = document.createElement("a");
+    voltar.className = "voltar";
+    voltar.href = "/eventos";
+    voltar.textContent = "← Voltar aos eventos";
+    acoes.appendChild(voltar);
+    estado.append(mensagem, acoes);
+  };
+
+  if (!token || token === "senhas") {
+    falhar("O endereço desta senha é inválido.");
+    return;
+  }
+
+  const formatarData = (data, hora) => {
+    const d = data ? new Date(data + "T12:00:00") : null;
+    const dia = d && !Number.isNaN(d.getTime())
+      ? `${d.getDate()} ${MESES[d.getMonth()]}`
+      : data || "";
+    const h = hora ? String(hora).slice(0, 5) + "h" : "";
+    return [dia, h].filter(Boolean).join(" · ");
+  };
+
+  fetch(`/api/v1/public/senhas/${encodeURIComponent(token)}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  })
+    .then(async (res) => {
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Emissão de senhas não disponível.");
+      return json;
+    })
+    .then((info) => {
+      // Não seguir eventoPageUrl — isso jogava o visitante no site React antigo.
+      $("estado").hidden = true;
+      $("painel").hidden = false;
+      $("casa").textContent = info.terreiroName || "Casa de axé";
+      $("titulo").textContent = info.titulo || "Gira";
+      $("meta").textContent = formatarData(info.data, info.hora);
+      document.title = `${info.titulo || "Senha"} · ${info.terreiroName || "AxéCloud"}`;
+      document.querySelector('link[rel="canonical"]').href =
+        `https://axecloud.com.br/senhas/${encodeURIComponent(token)}`;
+
+      if (info.senhasMaximas != null) {
+        $("restantes").hidden = false;
+        $("restantes").textContent = info.esgotado
+          ? "Senhas esgotadas"
+          : `${info.senhasRestantes ?? 0} senhas restantes`;
+      }
+
+      if (info.esgotado) {
+        $("esgotado").hidden = false;
+        return;
+      }
+
+      $("form").hidden = false;
+      const form = $("form");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const nome = $("nome").value.trim();
+        const telefone = $("telefone").value.trim();
+        if (!nome || !telefone) return;
+
+        $("erro-form").hidden = true;
+        $("enviar").disabled = true;
+        $("enviar").textContent = "Emitindo…";
+
+        try {
+          const res = await fetch(`/api/v1/public/senhas/${encodeURIComponent(token)}/emitir`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ nome, telefone }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || "Erro ao emitir senha");
+
+          $("form").hidden = true;
+          $("restantes").hidden = true;
+          $("sucesso").hidden = false;
+          $("numero").textContent = String(json.senha);
+          $("nome-ok").textContent = nome;
+        } catch (err) {
+          $("erro-form").hidden = false;
+          $("erro-form").textContent = err instanceof Error ? err.message : "Erro ao emitir senha";
+          $("enviar").disabled = false;
+          $("enviar").textContent = "Emitir minha senha";
+        }
+      });
+    })
+    .catch((err) => falhar(err instanceof Error ? err.message : "Erro"));
+})();
+</script>
+  <script src="/shared-footer.js"></script>
+</body>
+</html>

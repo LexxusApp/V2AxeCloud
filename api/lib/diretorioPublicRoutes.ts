@@ -187,6 +187,11 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const totalTerreiros = terreiros.length;
         const totalLojas = 0;
+        const requestedLimit = Number(req.query.limit);
+        const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+          ? Math.min(Math.floor(requestedLimit), 200)
+          : null;
+        const responseItems = limit ? terreiros.slice(0, limit) : terreiros;
 
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
         res.json({
@@ -196,8 +201,8 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           total: terreiros.length,
           totalTerreiros,
           totalLojas,
-          items: terreiros,
-          bairros,
+          items: responseItems,
+          bairros: limit ? undefined : bairros,
         });
       } catch (e: unknown) {
         console.error("[public/diretorio/cidade]", e);

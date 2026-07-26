@@ -539,9 +539,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
       setChildObligations(prev => [newOb, ...prev].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
 
+      let successMessage = 'Obrigação registrada.';
       if (obligationData.notifyChild && !isSelfView) {
         try {
-          await authFetch('/api/push-direct', {
+          const pushRes = await authFetch('/api/push-direct', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -551,13 +552,33 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               url: '/?tab=obrigacoes',
             }),
           });
+          const pushJson = (await pushRes.json().catch(() => ({}))) as {
+            success?: boolean;
+            sentCount?: number;
+            message?: string;
+            error?: string;
+          };
+          if (!pushRes.ok) {
+            successMessage =
+              'Obrigação registrada. Não foi possível enviar o aviso push.';
+          } else if (pushJson.success === false) {
+            successMessage =
+              'Obrigação registrada. Filho sem conta de login — aviso não enviado.';
+          } else if ((pushJson.sentCount ?? 0) > 0) {
+            successMessage = 'Obrigação registrada. Aviso enviado ao filho.';
+          } else {
+            successMessage =
+              'Obrigação registrada. Filho sem notificações ativas no celular.';
+          }
         } catch (pushErr) {
           console.error('Push direct error:', pushErr);
+          successMessage =
+            'Obrigação registrada. Não foi possível enviar o aviso push.';
         }
       }
 
       closeObligationModal();
-      alert('Obrigação registrada com sucesso!');
+      alert(successMessage);
     } catch (error) {
       console.error('Error adding obligation:', error);
       alert(error instanceof Error ? error.message : 'Erro ao agendar obrigação.');

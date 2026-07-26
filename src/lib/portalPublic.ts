@@ -68,11 +68,11 @@ export type PublicCidade = {
 };
 
 export function terreiroProfilePath(slug: string): string {
-  return `/terreiros/${encodeURIComponent(slug)}`;
+  return `/terreiro/${encodeURIComponent(slug)}`;
 }
 
 export function terreirosCityPath(citySlug: string): string {
-  return `/terreiros/cidade/${encodeURIComponent(citySlug)}`;
+  return `/terreiros?cidade=${encodeURIComponent(citySlug)}`;
 }
 
 export function tradicaoLabel(tradicao: string): string {

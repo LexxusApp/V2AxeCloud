@@ -54,7 +54,7 @@
         <li><a href="/entrar">Entrar</a></li>
         <li><a href="/register">Cadastrar terreiro</a></li>
         <li><a href="/conteudo">Conteúdo</a></li>
-        <li><a href="/conteudo/glossario">Glossário do axé</a></li>
+        <li><a href="/conteudo?aba=glossario">Glossário do axé</a></li>
       </ul>
     </div>
 

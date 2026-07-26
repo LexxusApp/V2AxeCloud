@@ -147,6 +147,26 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
     setSearch('');
   }, []);
 
+  const backToMembers = useCallback(() => {
+    setActiveConversation(null);
+    setMembersOpen(true);
+    setSearch('');
+  }, []);
+
+  const clearConversationUnread = useCallback(
+    (conversationId: string) => {
+      setConversations((prev) => {
+        const next = prev.map((c) =>
+          c.id === conversationId ? { ...c, unreadCount: 0 } : c,
+        );
+        writeStaleCache(conversationsCacheKey, next);
+        return next;
+      });
+      void loadConversations();
+    },
+    [conversationsCacheKey, loadConversations],
+  );
+
   useEffect(() => {
     if (!membersOpen && !activeConversation) return;
     const onPointerDown = (e: PointerEvent) => {
@@ -159,7 +179,7 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
 
   const openMembers = () => {
     if (activeConversation) {
-      closeAll();
+      backToMembers();
       return;
     }
     const next = !membersOpen;
@@ -297,8 +317,9 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
             conversation={activeConversation}
             tenantId={tenantId}
             userId={userId}
-            onBack={closeAll}
+            onBack={backToMembers}
             onMessageSent={() => void loadConversations()}
+            onRead={() => clearConversationUnread(activeConversation.id)}
           />
         </div>
       ) : null}

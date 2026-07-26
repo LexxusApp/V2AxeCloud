@@ -19,6 +19,7 @@ import {
   filhoPanelInsetClass,
   filhoSectionTitleClass,
 } from '../lib/filhoUiTokens';
+import { markObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 
 type Tenant =
   | { nome?: string; plan?: string; tenant_id?: string; foto_url?: string }
@@ -130,7 +131,13 @@ export default function ObrigacoesFilho({ user, tenantData }: ObrigacoesFilhoPro
           pdfViewUrl: buildPdfViewUrl(tenantId, ob.pdf_storage_path),
         }));
 
-        if (!cancelled) setObrigacoes(mapped);
+        if (!cancelled) {
+          setObrigacoes(mapped);
+          markObrigacoesSeen(
+            String(filho.id),
+            mapped.map((ob) => ob.id),
+          );
+        }
       } catch (err) {
         console.error('[ObrigacoesFilho] erro ao carregar:', err);
         if (!cancelled) setObrigacoes([]);

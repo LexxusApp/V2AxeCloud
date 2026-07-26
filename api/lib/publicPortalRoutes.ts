@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
+import { apiReadRateLimit, publicFormRateLimit, publicTicketIssueRateLimit } from "./rateLimit.js";
 import { slugifyPublicSlug } from "./consulentePortalRoutes.js";
 import { parseCitySlug, slugifyCity } from "./portalCitySlug.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
@@ -11,6 +11,10 @@ import { resolveClientIp } from "./clientIp.js";
 
 function buildEventoPublicPagePath(token: string): string {
   return `/evento/${encodeURIComponent(token)}`;
+}
+
+function buildSenhasPublicPagePath(token: string): string {
+  return `/senhas/${encodeURIComponent(token)}`;
 }
 
 type Deps = { supabaseAdmin: SupabaseClient };
@@ -42,7 +46,7 @@ function mapTerreiroRow(row: Record<string, unknown>) {
     destaque: Boolean(row.portal_destaque),
     pedidosAtivos: Boolean(row.portal_consulente_ativo),
     mensagemPedidos: row.portal_consulente_mensagem ? String(row.portal_consulente_mensagem) : null,
-    perfilUrl: slug ? `/terreiros/${slug}` : null,
+    perfilUrl: slug ? `/terreiro/${slug}` : null,
     pedidosUrl: slug && row.portal_consulente_ativo ? `/espaco-do-fiel?casa=${encodeURIComponent(slug)}` : null,
     cidadeSlug: cidade ? slugifyCity(cidade, estado) : null,
   };
@@ -209,7 +213,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
       const { data: events, error } = await sb
         .from("calendario_axe")
         .select(
-          "id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico, evento_public_token, senhas_ativas, senhas_maximas"
+          "id, titulo, data, hora, tipo, descricao, banner_url, lider_id, tenant_id, evento_publico, evento_public_token, senhas_ativas, senhas_maximas, senhas_public_token"
         )
         .eq("evento_publico", true)
         .gte("data", today)
@@ -232,6 +236,8 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
           if (!leader?.portal_publico_ativo || !leader.public_slug) return null;
           const cidade = leader.cidade_publica ? String(leader.cidade_publica) : null;
           const estado = leader.estado_publico ? String(leader.estado_publico) : null;
+          const senhasAtivas = Boolean(ev.senhas_ativas);
+          const senhasToken = ev.senhas_public_token ? String(ev.senhas_public_token) : "";
           return {
             id: ev.id,
             titulo: ev.titulo,
@@ -240,7 +246,8 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
             tipo: ev.tipo,
             descricao: ev.descricao || "",
             bannerUrl: resolvePublicMediaUrl(ev.banner_url) || null,
-            senhasAtivas: Boolean(ev.senhas_ativas),
+            senhasAtivas,
+            senhasPageUrl: senhasAtivas && senhasToken ? buildSenhasPublicPagePath(senhasToken) : null,
             eventoPageUrl: ev.evento_public_token
               ? buildEventoPublicPagePath(String(ev.evento_public_token))
               : null,
@@ -249,7 +256,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
               slug: leader.public_slug,
               cidade,
               estado,
-              perfilUrl: `/terreiros/${leader.public_slug}`,
+              perfilUrl: `/terreiro/${leader.public_slug}`,
             },
             cidadeSlug: cidade ? slugifyCity(cidade, estado) : null,
           };
@@ -354,7 +361,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
           slug: leader.public_slug,
           cidade,
           estado,
-          perfilUrl: `/terreiros/${leader.public_slug}`,
+          perfilUrl: `/terreiro/${leader.public_slug}`,
         },
       });
     } catch (e: unknown) {
@@ -363,7 +370,7 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
     }
   });
 
-  app.post("/api/v1/public/evento/:token/emitir-senha", apiReadRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/v1/public/evento/:token/emitir-senha", publicTicketIssueRateLimit, async (req: Request, res: Response) => {
     try {
       const token = String(req.params.token || "").trim();
       const nome = String(req.body?.nome || "").trim();
@@ -450,11 +457,11 @@ export function registerPublicPortalRoutes(app: Express, { supabaseAdmin: sb }: 
       const citySlugs = new Set<string>();
       for (const t of terreiros || []) {
         const slug = String(t.public_slug || "").trim();
-        if (slug) paths.push(`/terreiros/${slug}`);
+        if (slug) paths.push(`/terreiro/${slug}`);
         const cs = t.cidade_publica ? slugifyCity(String(t.cidade_publica), t.estado_publico) : "";
         if (cs) citySlugs.add(cs);
       }
-      for (const cs of citySlugs) paths.push(`/terreiros/cidade/${cs}`);
+      for (const cs of citySlugs) paths.push(`/terreiros?cidade=${encodeURIComponent(cs)}`);
 
       res.json({ paths });
     } catch (e: unknown) {

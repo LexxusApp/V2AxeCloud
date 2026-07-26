@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { generateSecureAccessPassword } from "../api/lib/accessPassword.ts";
@@ -7,6 +8,8 @@ import { assertSafeImageBuffer } from "../api/lib/imageUpload.ts";
 import { isAllowedGalleryMime } from "../api/lib/mediaUpload.ts";
 import { assertSafeExternalUrl } from "../api/lib/ssrfGuard.ts";
 import { isConsoleGlobalAdmin } from "../api/lib/consoleAdmin.ts";
+import { rawBodyForSignature } from "../api/lib/rawBody.ts";
+import { verifyMetaWebhookSignature } from "../api/lib/whatsappMetaWebhook.ts";
 
 test("IP encaminhado pelo cliente não suplanta o endereço do proxy", () => {
   const oldTrust = process.env.TRUST_PROXY_CLIENT_IP;
@@ -92,4 +95,75 @@ test("admin global não é herdado de outro perfil por coincidência de e-mail",
   else process.env.ADMIN_CONSOLE_EMAILS = oldConsole;
   if (oldAdmin === undefined) delete process.env.ADMIN_EMAILS;
   else process.env.ADMIN_EMAILS = oldAdmin;
+});
+
+test("webhook Meta falha fechado sem segredo ou sem corpo bruto", () => {
+  const oldWaSecret = process.env.WA_META_APP_SECRET;
+  const oldMetaSecret = process.env.META_APP_SECRET;
+  delete process.env.WA_META_APP_SECRET;
+  delete process.env.META_APP_SECRET;
+
+  const body = Buffer.from('{"object":"whatsapp_business_account"}', "utf8");
+  assert.equal(verifyMetaWebhookSignature(body, "sha256=invalid"), false);
+
+  process.env.WA_META_APP_SECRET = "test-only-meta-secret";
+  const signature = `sha256=${createHmac("sha256", process.env.WA_META_APP_SECRET).update(body).digest("hex")}`;
+  assert.equal(verifyMetaWebhookSignature(body, signature), true);
+  assert.equal(verifyMetaWebhookSignature(undefined, signature), false);
+  assert.equal(rawBodyForSignature({} as never), undefined);
+  assert.deepEqual(rawBodyForSignature({ rawBody: body } as never), body);
+
+  if (oldWaSecret === undefined) delete process.env.WA_META_APP_SECRET;
+  else process.env.WA_META_APP_SECRET = oldWaSecret;
+  if (oldMetaSecret === undefined) delete process.env.META_APP_SECRET;
+  else process.env.META_APP_SECRET = oldMetaSecret;
+});
+
+test("aliases do webhook Meta compartilham o mesmo handler autenticado", () => {
+  for (const path of ["api/index.ts", "server.ts"]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /app\.post\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
+    assert.match(source, /app\.get\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
+    assert.doesNotMatch(source, /app\.post\("\/webhook\/meta"/);
+  }
+});
+
+test("mutações públicas sensíveis usam limitadores restritivos", () => {
+  const gira = readFileSync("api/lib/giraOperationsRoutes.ts", "utf8");
+  const portal = readFileSync("api/lib/publicPortalRoutes.ts", "utf8");
+  assert.match(gira, /publicConfirmationRateLimit/);
+  assert.match(gira, /publicTicketIssueRateLimit/);
+  assert.match(portal, /publicTicketIssueRateLimit/);
+  assert.doesNotMatch(
+    gira,
+    /app\.post\("\/api\/v1\/public\/(?:checkin|presenca|senhas)[^"]*", apiReadRateLimit/
+  );
+  assert.doesNotMatch(
+    portal,
+    /app\.post\("\/api\/v1\/public\/evento\/:token\/emitir-senha", apiReadRateLimit/
+  );
+});
+
+test("OTP de recuperação é persistido, protegido e consumido uma única vez", () => {
+  const source = readFileSync("api/lib/forgotPasswordWhatsappRoutes.ts", "utf8");
+  const migration = readFileSync(
+    "supabase/migrations/20260726123000_password_reset_whatsapp_otp.sql",
+    "utf8"
+  );
+  assert.doesNotMatch(source, /new Map<string, OtpEntry>/);
+  assert.match(source, /createHmac\("sha256"/);
+  assert.match(source, /timingSafeEqual/);
+  assert.match(source, /\.from\("password_reset_whatsapp_otp"\)/);
+  assert.match(source, /\.delete\(\)[\s\S]*\.eq\("code_hash", entry\.code_hash\)/);
+  assert.match(migration, /enable row level security/i);
+  assert.match(migration, /revoke all .* anon, authenticated/i);
+  assert.match(migration, /grant all .* service_role/i);
+});
+
+test("disparo manual de evento exige autenticação, autorização e limite de broadcast", () => {
+  const source = readFileSync("api/lib/eventNotificationRoutes.ts", "utf8");
+  assert.match(source, /whatsappBroadcastRateLimit/);
+  assert.match(source, /requireApiUser/);
+  assert.match(source, /userCanModifyCalendarEvent/);
+  assert.match(source, /isSubscriptionAccessActive/);
 });

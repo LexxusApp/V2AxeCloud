@@ -111,6 +111,8 @@ type ChatThreadProps = {
   userId: string;
   onBack: () => void;
   onMessageSent?: () => void;
+  /** Called after the conversation is successfully marked as read. */
+  onRead?: () => void;
   variant?: 'page' | 'floating';
 };
 
@@ -120,6 +122,7 @@ export function ChatThread({
   userId,
   onBack,
   onMessageSent,
+  onRead,
   variant = 'page',
 }: ChatThreadProps) {
   const messagesCacheKey = `chat_msgs_${conversation.id}`;
@@ -164,9 +167,15 @@ export function ChatThread({
     }
   }, [conversation.id, messagesCacheKey]);
 
+  const onReadRef = useRef(onRead);
+  onReadRef.current = onRead;
+
   const markRead = useCallback(async () => {
     try {
-      await authFetch(`/api/v1/chat/conversations/${conversation.id}/read`, { method: 'POST' });
+      const res = await authFetch(`/api/v1/chat/conversations/${conversation.id}/read`, {
+        method: 'POST',
+      });
+      if (res.ok) onReadRef.current?.();
     } catch {
       /* ignore */
     }

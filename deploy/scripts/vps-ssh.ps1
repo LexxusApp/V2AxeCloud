@@ -147,6 +147,10 @@ try {
   }
 
   $exitCode = if ($null -ne $doneCode.Value) { $doneCode.Value } else { $proc.ExitCode }
+  # Kill() no Windows costuma deixar ExitCode=-1; se o sentinela veio, confiar nele
+  if (($null -eq $exitCode -or $exitCode -lt 0) -and $null -ne $doneCode.Value) {
+    $exitCode = $doneCode.Value
+  }
   if ($null -eq $exitCode) { $exitCode = 1 }
   if ($exitCode -ne 0) {
     throw "SSH falhou com exit code $exitCode"

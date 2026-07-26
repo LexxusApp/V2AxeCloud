@@ -99,7 +99,7 @@ function FounderHouseCard({
 }
 
 export function LandingPortalPreview() {
-  const { houses, loading, count } = useFounderHouses();
+  const { houses, loading, error, retry, count } = useFounderHouses();
   const hasHouses = count > 0;
 
   return (
@@ -131,6 +131,11 @@ export function LandingPortalPreview() {
           {loading ? (
             <div className="landing-device-frame p-10 text-center text-sm text-slate-500" aria-busy="true">
               Carregando casas…
+            </div>
+          ) : error ? (
+            <div className="landing-device-frame p-10 text-center text-sm text-slate-600">
+              <p>{error}</p>
+              <button type="button" onClick={retry} className="landing-btn-primary mt-5 text-xs uppercase tracking-wider">Tentar novamente</button>
             </div>
           ) : hasHouses ? (
             <div className="space-y-6">

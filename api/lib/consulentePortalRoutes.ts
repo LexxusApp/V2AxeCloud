@@ -379,7 +379,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         casaVerificada: Boolean(data.casa_verificada),
         visualizacoes: viewCount ?? 0,
         portalUrl: slug ? `/consulente/${slug}` : null,
-        terreiroUrl: slug && data.portal_publico_ativo ? `/terreiros/${slug}` : null,
+        terreiroUrl: slug && data.portal_publico_ativo ? `/terreiro/${slug}` : null,
         listagemPedidosUrl: portalAtivo && slug ? `/espaco-do-fiel?casa=${encodeURIComponent(slug)}` : null,
       });
     } catch (e: unknown) {
@@ -476,7 +476,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         portalAtivo: savedAtivo,
         portalPublicoAtivo: savedPublico,
         portalUrl: finalSlug ? `/consulente/${finalSlug}` : null,
-        terreiroUrl: finalSlug && savedPublico ? `/terreiros/${finalSlug}` : null,
+        terreiroUrl: finalSlug && savedPublico ? `/terreiro/${finalSlug}` : null,
         listagemPedidosUrl:
           savedAtivo && finalSlug ? `/espaco-do-fiel?casa=${encodeURIComponent(finalSlug)}` : null,
       });

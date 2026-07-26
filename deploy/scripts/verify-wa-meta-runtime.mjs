@@ -9,6 +9,7 @@ const keys = [
   "WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL",
   "WA_META_TEMPLATE_FINANCEIRO",
   "WA_META_TEMPLATE_ESTOQUE_CRITICO",
+  "WA_META_TEMPLATE_FORGOT_PASSWORD",
 ];
 console.log(`META_CLOUD=${token && phone ? "READY" : "NOT_READY"}`);
 for (const key of keys) {

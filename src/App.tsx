@@ -12,7 +12,6 @@ import { ROUTES } from './lib/routes';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
-
 // === Fase 2: Code splitting ===
 // Views pesadas viram chunks separados, carregados sob demanda.
 // Reduz o bundle inicial em ~40-60% e acelera o primeiro paint.
@@ -1437,6 +1436,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         isAdmin={isAdminGlobal}
         tenantData={tenantData}
         userDisplayName={session?.user?.user_metadata?.nome}
+        userId={session?.user?.id}
+        userEmail={session?.user?.email}
         filhoFotoUrl={filhoFotoUrl}
         onFilhoFotoUpdated={setFilhoFotoUrl}
       />

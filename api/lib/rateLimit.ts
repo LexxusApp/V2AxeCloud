@@ -173,3 +173,17 @@ export const publicFormRateLimit = createRateLimit({
   keyPrefix: "public-form",
   message: { error: "Muitas tentativas. Aguarde alguns minutos antes de enviar novamente." },
 });
+
+export const publicConfirmationRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  keyPrefix: "public-confirmation",
+  message: { error: "Muitas confirmações. Aguarde alguns minutos antes de tentar novamente." },
+});
+
+export const publicTicketIssueRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 6,
+  keyPrefix: "public-ticket",
+  message: { error: "Muitas emissões de senha. Aguarde alguns minutos antes de tentar novamente." },
+});

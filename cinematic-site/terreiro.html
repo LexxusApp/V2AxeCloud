@@ -97,8 +97,9 @@
         <div class="hero-texto"><p class="kicker">Diretório AxéCloud · casa mapeada</p><h1 id="nome"></h1><p class="localidade" id="localidade"></p></div>
       </header>
       <div class="grade">
-        <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info"><span class="rotulo">Telefone</span><div class="valor" id="telefone"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a></section>
-        <aside class="cartao reivindicar"><h2>Esta é sua casa?</h2><p>Reivindique este perfil sem custo para corrigir os dados e identificar oficialmente a sua casa.</p><a id="reivindicar" target="_blank" rel="noopener noreferrer">Falar com o comercial</a></aside>
+        <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info" id="info-tradicao" hidden><span class="rotulo">Tradição</span><div class="valor" id="tradicao"></div></div><div class="info"><span class="rotulo">Telefone</span><div class="valor" id="telefone"></div></div><div class="info" id="info-desc" hidden><span class="rotulo">Sobre a casa</span><div class="valor" id="descricao"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a><a class="mapa" id="pedir-reza" href="/espaco-do-fiel" hidden style="margin-top:12px;background:#e11d48;color:#fff">Pedir reza</a><a class="mapa" id="ver-eventos" href="/eventos" hidden style="margin-top:12px;background:transparent;border:1px solid rgba(25,21,15,.18)">Eventos públicos</a></section>
+        <aside class="cartao reivindicar" id="lado-reivindicar"><h2>Esta é sua casa?</h2><p>Reivindique este perfil sem custo para corrigir os dados e identificar oficialmente a sua casa.</p><a id="reivindicar" target="_blank" rel="noopener noreferrer">Falar com o comercial</a></aside>
+        <aside class="cartao reivindicar" id="lado-portal" hidden><h2>Casa no AxéCloud</h2><p id="portal-msg">Perfil público de uma casa que usa o AxéCloud para organizar a corrente.</p><a id="portal-cta" href="/register">Conhecer o AxéCloud</a></aside>
       </div>
       <section class="convite"><div><small>Gestão feita para terreiros</small><h2>Organize a casa sem perder o respeito ao sagrado.</h2></div><a href="/register">Testar grátis por 30 dias</a></section>
     </article>
@@ -111,37 +112,129 @@
       const slug = decodeURIComponent(location.pathname.replace(/\/+$/, "").split("/").pop() || "");
       const texto = (value, fallback) => String(value || fallback);
       const telefoneHref = (value) => `tel:${String(value).replace(/[^\d+]/g, "")}`;
+      const waHref = (value) => {
+        const digits = String(value || "").replace(/\D/g, "");
+        if (!digits) return "";
+        const full = digits.startsWith("55") ? digits : `55${digits}`;
+        return `https://wa.me/${full}`;
+      };
+      const TRADICAO = {
+        umbanda: "Umbanda",
+        candomble: "Candomblé",
+        jurema: "Jurema",
+        mista: "Linha mista",
+      };
       const falhar = (message) => {
         $("estado").className = "carregando erro";
         $("estado").innerHTML = '<div><h1>Casa não encontrada</h1><p id="erro-texto"></p><a href="/terreiros">Voltar ao diretório</a></div>';
         $("erro-texto").textContent = message;
       };
+      const mostrarFoto = (url, nome) => {
+        if (!url) return;
+        $("foto").src = url;
+        $("foto").hidden = false;
+        $("foto").alt = `Fachada ou espaço de ${nome}`;
+        $("foto").addEventListener("error", () => { $("foto").hidden = true; });
+      };
+      const setTelefone = (valor) => {
+        $("telefone").innerHTML = "";
+        if (!valor) {
+          $("telefone").textContent = "Telefone não informado";
+          return;
+        }
+        const link = document.createElement("a");
+        const wa = waHref(valor);
+        link.href = wa || telefoneHref(valor);
+        if (wa) { link.target = "_blank"; link.rel = "noopener noreferrer"; }
+        link.textContent = valor;
+        $("telefone").appendChild(link);
+      };
+
+      const renderDiretorio = (casa) => {
+        const local = [casa.bairro, casa.cidade, casa.estado].filter(Boolean).join(" · ");
+        $("nome").textContent = texto(casa.nome, "Terreiro");
+        $("localidade").textContent = local;
+        document.querySelector(".kicker").textContent = "Diretório AxéCloud · casa mapeada";
+        $("endereco").textContent = texto(casa.endereco, "Endereço não informado no Google Maps");
+        setTelefone(casa.telefone);
+        mostrarFoto(casa.fotoUrl, casa.nome);
+        if (casa.linkMaps) $("mapa").href = casa.linkMaps; else $("mapa").hidden = true;
+        $("lado-reivindicar").hidden = false;
+        $("lado-portal").hidden = true;
+        const uf = String(casa.estado || "").trim().toLowerCase();
+        const cidadeSlug = String(casa.cidadeSlug || "").trim();
+        $("voltar").href =
+          uf && cidadeSlug
+            ? `/terreiros?uf=${encodeURIComponent(uf)}&cidade=${encodeURIComponent(cidadeSlug)}`
+            : "/terreiros";
+        $("reivindicar").href = `https://wa.me/5511912276156?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${casa.nome} e quero reivindicar este perfil no AxéCloud.`)}`;
+        const canonical = `https://axecloud.com.br/terreiro/${encodeURIComponent(casa.slug || slug)}`;
+        document.title = `${casa.nome}${casa.cidade ? ` — ${casa.cidade}` : ""} | Diretório AxéCloud`;
+        document.querySelector('link[rel="canonical"]').href = canonical;
+        document.querySelector('meta[name="description"]').content = `Informações de ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""}: endereço, telefone e como chegar.`;
+        $("estado").hidden = true; $("perfil").style.display = "block";
+      };
+
+      const renderPortal = (casa) => {
+        const local = [casa.bairro, casa.cidade, casa.estado].filter(Boolean).join(" · ");
+        $("nome").textContent = texto(casa.nome, "Terreiro");
+        $("localidade").textContent = local;
+        document.querySelector(".kicker").textContent = casa.verificada
+          ? "Casa verificada no AxéCloud"
+          : "Casa no AxéCloud";
+        $("endereco").textContent = local || "Localidade não informada";
+        if (casa.tradicao) {
+          $("info-tradicao").hidden = false;
+          $("tradicao").textContent = TRADICAO[casa.tradicao] || casa.tradicao;
+        }
+        if (casa.descricao) {
+          $("info-desc").hidden = false;
+          $("descricao").textContent = casa.descricao;
+        }
+        setTelefone(casa.whatsapp);
+        mostrarFoto(casa.fotoUrl, casa.nome);
+        $("mapa").hidden = true;
+        $("ver-eventos").hidden = false;
+        if (casa.pedidosUrl) {
+          $("pedir-reza").hidden = false;
+          $("pedir-reza").href = casa.pedidosUrl;
+        }
+        $("lado-reivindicar").hidden = true;
+        $("lado-portal").hidden = false;
+        if (casa.mensagemPedidos) $("portal-msg").textContent = casa.mensagemPedidos;
+        $("voltar").href = "/terreiros";
+        const canonical = `https://axecloud.com.br/terreiro/${encodeURIComponent(casa.slug || slug)}`;
+        document.title = `${casa.nome}${casa.cidade ? ` — ${casa.cidade}` : ""} | AxéCloud`;
+        document.querySelector('link[rel="canonical"]').href = canonical;
+        document.querySelector('meta[name="description"]').content = `Conheça ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""} no AxéCloud.`;
+        $("estado").hidden = true; $("perfil").style.display = "block";
+      };
+
       if (!slug || slug === "perfil") { falhar("O endereço deste perfil é inválido."); return; }
-      fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}`, { cache: "no-store", headers: { Accept: "application/json" } })
-        .then(async (response) => {
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || "Não foi possível carregar esta casa.");
-          return data;
-        })
-        .then((casa) => {
-          const local = [casa.bairro, casa.cidade, casa.estado].filter(Boolean).join(" · ");
-          $("nome").textContent = texto(casa.nome, "Terreiro");
-          $("localidade").textContent = local;
-          $("endereco").textContent = texto(casa.endereco, "Endereço não informado no Google Maps");
-          $("telefone").innerHTML = "";
-          if (casa.telefone) { const link = document.createElement("a"); link.href = telefoneHref(casa.telefone); link.textContent = casa.telefone; $("telefone").appendChild(link); }
-          else $("telefone").textContent = "Telefone não informado no Google Maps";
-          if (casa.fotoUrl) { $("foto").src = casa.fotoUrl; $("foto").hidden = false; $("foto").alt = `Fachada ou espaço de ${casa.nome}`; $("foto").addEventListener("error", () => { $("foto").hidden = true; }); }
-          if (casa.linkMaps) $("mapa").href = casa.linkMaps; else $("mapa").hidden = true;
-          $("voltar").href = casa.cidadeUrl || "/terreiros";
-          $("reivindicar").href = `https://wa.me/5511912276156?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${casa.nome} e quero reivindicar este perfil no AxéCloud.`)}`;
-          const canonical = `https://axecloud.com.br/terreiro/${encodeURIComponent(casa.slug || slug)}`;
-          document.title = `${casa.nome}${casa.cidade ? ` — ${casa.cidade}` : ""} | Diretório AxéCloud`;
-          document.querySelector('link[rel="canonical"]').href = canonical;
-          document.querySelector('meta[name="description"]').content = `Informações de ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""}: endereço, telefone e como chegar.`;
-          $("estado").hidden = true; $("perfil").style.display = "block";
-        })
-        .catch((error) => falhar(error.message || "Não foi possível carregar esta casa."));
+
+      const loadJson = async (url) => {
+        const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+        const data = await response.json().catch(() => ({}));
+        return { ok: response.ok, status: response.status, data };
+      };
+
+      (async () => {
+        try {
+          const diretorio = await loadJson(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}`);
+          if (diretorio.ok) {
+            renderDiretorio(diretorio.data);
+            return;
+          }
+          const portal = await loadJson(`/api/v1/public/terreiros/${encodeURIComponent(slug)}`);
+          if (portal.ok) {
+            renderPortal(portal.data);
+            return;
+          }
+          falhar(portal.data.error || diretorio.data.error || "Casa não encontrada.");
+        } catch (error) {
+          falhar(error instanceof Error ? error.message : "Não foi possível carregar esta casa.");
+        }
+      })();
     })();
   </script>
 </body>

@@ -56,11 +56,11 @@ export function renewSubscriptionPath(tenantId?: string | null): string {
 }
 
 export function terreiroProfilePath(slug: string): string {
-  return `/terreiros/${encodeURIComponent(slug)}`;
+  return `/terreiro/${encodeURIComponent(slug)}`;
 }
 
 export function terreirosCityPath(citySlug: string): string {
-  return `/terreiros/cidade/${encodeURIComponent(citySlug)}`;
+  return `/terreiros?cidade=${encodeURIComponent(citySlug)}`;
 }
 
 export function eventRsvpPath(token: string, action: 'confirmar' | 'declinar'): string {
@@ -128,6 +128,7 @@ export function isMarketingSitePath(path: string): boolean {
   if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
   if (p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return true;
   if (p.startsWith(`${ROUTES.eventoPublico}/`)) return true;
+  if (p === ROUTES.giraSenhas || p.startsWith(`${ROUTES.giraSenhas}/`)) return true;
   return false;
 }
 

@@ -187,7 +187,7 @@ const TEMPLATES = {
   senha_evento_visitante: {
     name:
       process.env.WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE ||
-      "senha_evento_visitante_axecloud",
+      "acesso_evento_visitante_axecloud",
     components: [
       {
         type: "body",
@@ -205,6 +205,24 @@ const TEMPLATES = {
         sub_type: "url",
         index: "0",
         parameters: [{ type: "text", text: "abc123token" }],
+      },
+    ],
+  },
+  forgot_password: {
+    name:
+      process.env.WA_META_TEMPLATE_FORGOT_PASSWORD ||
+      process.env.WA_META_TEMPLATE_RECUPERAR_SENHA ||
+      "recuperar_senha_axec",
+    components: [
+      {
+        type: "body",
+        parameters: [{ type: "text", text: "482915" }],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: "482915" }],
       },
     ],
   },

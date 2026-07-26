@@ -307,6 +307,12 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
               userId={userId}
               onBack={() => setSelectedId(null)}
               onMessageSent={() => void loadConversations()}
+              onRead={() => {
+                setConversations((prev) =>
+                  prev.map((c) => (c.id === selected.id ? { ...c, unreadCount: 0 } : c)),
+                );
+                void loadConversations();
+              }}
             />
           ) : (
             <div className="flex min-h-[480px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#1E242B] bg-[#13171D]/50 p-8 text-center">

@@ -3,7 +3,7 @@ import { useFounderHouses } from '../../hooks/useFounderHouses';
 import { ROUTES } from '../../lib/routes';
 
 export function LandingStoryProof() {
-  const { houses, loading } = useFounderHouses();
+  const { houses, loading, error, retry } = useFounderHouses();
   const visibleHouses = houses.slice(0, 3);
   const publishedQuotes = houses.filter((house) => house.quote).slice(0, 2);
 
@@ -44,7 +44,12 @@ export function LandingStoryProof() {
               </div>
             ) : (
               <div className="mt-6 rounded-2xl border border-dashed border-[#d8cfc0] bg-white/60 p-6 text-sm text-[#1b1813]/55">
-                {loading ? 'Carregando casas participantes…' : 'Novas casas autorizadas aparecerão aqui conforme os perfis forem publicados.'}
+                {loading ? 'Carregando casas participantes…' : error ? (
+                  <span className="flex flex-wrap items-center justify-between gap-3">
+                    <span>{error}</span>
+                    <button type="button" onClick={retry} className="rounded-full bg-[#1b1813] px-4 py-2 text-xs font-black text-white">Tentar novamente</button>
+                  </span>
+                ) : 'Novas casas autorizadas aparecerão aqui conforme os perfis forem publicados.'}
               </div>
             )}
 
