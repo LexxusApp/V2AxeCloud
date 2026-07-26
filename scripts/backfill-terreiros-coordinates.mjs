@@ -79,7 +79,8 @@ async function loadQueue(supabase, args) {
   while (rows.length < target) {
     let query = supabase
       .from(TABLE)
-      .select("id, nome, cidade, estado, link_maps")
+      .select("id, nome, endereco, cidade, estado, link_maps")
+      .eq("tipo", "terreiro")
       .is("latitude", null)
       .not("link_maps", "is", null)
       .order("cidade", { ascending: true })
@@ -97,15 +98,34 @@ async function loadQueue(supabase, args) {
   return rows.slice(0, target);
 }
 
-async function resolveCoordinates(page, link) {
+async function navigateAndExtract(page, url) {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 14_000 });
+  } catch {
+    // A URL costuma receber as coordenadas antes de todos os scripts do Maps terminarem.
+  }
+  const currentUrl = page.url();
+  const fromUrl =
+    /\/maps\/place\//i.test(currentUrl) || /[?&]query_place_id=/i.test(currentUrl)
+      ? parseMapsCoordinates(currentUrl)
+      : null;
+  if (fromUrl) return fromUrl;
+  const hrefs = await page
+    .locator('a[href*="/maps/place/"]')
+    .evaluateAll((anchors) => anchors.slice(0, 8).map((anchor) => anchor.href))
+    .catch(() => []);
+  for (const href of hrefs) {
+    const coordinates = parseMapsCoordinates(href);
+    if (coordinates) return coordinates;
+  }
+  return null;
+}
+
+async function resolveCoordinates(page, row) {
+  const link = String(row.link_maps || "");
   const fromStoredLink = parseMapsCoordinates(link);
   if (fromStoredLink) return fromStoredLink;
-  await page.goto(link, { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await page.waitForTimeout(900);
-  return (
-    parseMapsCoordinates(page.url()) ||
-    parseMapsCoordinates(await page.locator('link[rel="canonical"]').getAttribute("href").catch(() => ""))
-  );
+  return navigateAndExtract(page, link);
 }
 
 async function main() {
@@ -126,6 +146,14 @@ async function main() {
     timezoneId: "America/Sao_Paulo",
     viewport: { width: 1280, height: 800 },
   });
+  await context.route("**/*", async (route) => {
+    const type = route.request().resourceType();
+    if (type === "image" || type === "media" || type === "font") {
+      await route.abort();
+    } else {
+      await route.continue();
+    }
+  });
   const page = await context.newPage();
   const stats = { updated: 0, unresolved: 0, errors: 0 };
 
@@ -133,7 +161,7 @@ async function main() {
     for (let index = 0; index < queue.length; index += 1) {
       const row = queue[index];
       try {
-        const coordinates = await resolveCoordinates(page, String(row.link_maps || ""));
+        const coordinates = await resolveCoordinates(page, row);
         if (!coordinates) {
           stats.unresolved += 1;
           console.log(`[${index + 1}/${queue.length}] sem coordenada: ${row.nome}`);
