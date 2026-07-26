@@ -32,3 +32,6 @@ tmp-*.json
 /deploy/scripts/set-credenciais-env.py
 /deploy/scripts/set-wa-meta-token.py
 /deploy/scripts/commit-codex-changes.ps1
+
+# Backups operacionais criados na VPS
+/backups/
