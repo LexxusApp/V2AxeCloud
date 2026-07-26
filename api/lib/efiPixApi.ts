@@ -1,6 +1,8 @@
 import fs from "fs";
 import https from "https";
+import os from "os";
 import path from "path";
+import { execFileSync } from "child_process";
 import axios, { type AxiosInstance } from "axios";
 import { resolveEfiEnv, type EfiEnv } from "./efiPay.js";
 
@@ -14,6 +16,7 @@ export type EfiPixEnv = EfiEnv & {
 
 let cachedPixToken: { token: string; expiresAt: number } | null = null;
 const httpsAgentByCert = new Map<string, https.Agent>();
+const pemMaterialsByCert = new Map<string, { cert: string; key: string }>();
 
 function stripEnvQuotes(value: string): string {
   const t = value.trim();
@@ -182,21 +185,74 @@ export function resolveEfiPixEnv(): EfiPixEnv | null {
 }
 
 function getHttpsAgent(env: EfiPixEnv): https.Agent {
-  const cacheKey = `${env.certCacheKey}:${env.certPassphrase}:tls12`;
+  const cacheKey = `${env.certCacheKey}:${env.certPassphrase}:pem-tls12`;
   const existing = httpsAgentByCert.get(cacheKey);
   if (existing) return existing;
 
-  // Efí Pix exige TLS 1.2 com mTLS; Node 22 pode negociar 1.3 → "socket hang up".
+  // .p12 Efí antigo (3DES) falha no OpenSSL 3 do Node — converte via openssl CLI para PEM.
+  const materials = pfxToPemMaterials(env.certPfx, env.certPassphrase, cacheKey);
+
   const agent = new https.Agent({
-    pfx: env.certPfx,
-    passphrase: env.certPassphrase || undefined,
+    cert: materials.cert,
+    key: materials.key,
     rejectUnauthorized: true,
     minVersion: "TLSv1.2",
-    maxVersion: "TLSv1.2",
     keepAlive: false,
   });
   httpsAgentByCert.set(cacheKey, agent);
   return agent;
+}
+
+/** Extrai cert+key PEM do PKCS#12 (suporta 3DES legado via OpenSSL do sistema). */
+function pfxToPemMaterials(
+  pfx: Buffer,
+  passphrase: string,
+  cacheKey: string
+): { cert: string; key: string } {
+  const cached = pemMaterialsByCert.get(cacheKey);
+  if (cached) return cached;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "efi-pix-"));
+  const pfxPath = path.join(dir, "cert.p12");
+  try {
+    fs.writeFileSync(pfxPath, pfx);
+    const pem = execFileSync(
+      "openssl",
+      ["pkcs12", "-in", pfxPath, "-passin", `pass:${passphrase}`, "-nodes"],
+      { encoding: "utf8", maxBuffer: 4_000_000 }
+    );
+
+    const keyMatch = pem.match(
+      /-----BEGIN (?:ENCRYPTED )?PRIVATE KEY-----[\s\S]+?-----END (?:ENCRYPTED )?PRIVATE KEY-----/
+    );
+    const certMatches = [
+      ...pem.matchAll(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g),
+    ];
+    if (!keyMatch?.[0] || certMatches.length === 0) {
+      throw new Error("EFI Pix: openssl não extraiu certificado/chave do .p12");
+    }
+
+    const materials = {
+      key: keyMatch[0],
+      cert: certMatches.map((m) => m[0]).join("\n"),
+    };
+    pemMaterialsByCert.set(cacheKey, materials);
+    return materials;
+  } catch (err: unknown) {
+    const msg = String((err as { message?: string })?.message || err);
+    if (/ENOENT|openssl/i.test(msg) && !/extraiu/i.test(msg)) {
+      throw new Error(
+        "EFI Pix: openssl ausente no container. Recompile a imagem com o pacote openssl."
+      );
+    }
+    throw err;
+  } finally {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function pixClient(env: EfiPixEnv): AxiosInstance {
@@ -204,6 +260,7 @@ function pixClient(env: EfiPixEnv): AxiosInstance {
     baseURL: env.baseUrl,
     timeout: 25000,
     httpsAgent: getHttpsAgent(env),
+    proxy: false,
     headers: { "Content-Type": "application/json" },
   });
 }
