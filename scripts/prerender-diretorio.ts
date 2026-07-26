@@ -39,6 +39,11 @@ const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
+const KNOWN_CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
+  // Sede municipal; usada somente para representar o agrupamento, nunca como endereço de uma casa.
+  "sp:biritiba-mirim": { lat: -23.575278, lng: -46.043611 },
+};
+
 type SnapshotRow = DiretorioSeoTerreiro & {
   bairro: string | null;
   bairroSlug: string | null;
@@ -318,15 +323,21 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
   const cityCoverage = [...rowsByCity.entries()].flatMap(([key, cityRows]) => {
     const exact = exactByCity.get(key) || [];
     const missing = cityRows.length - exact.length;
-    if (missing <= 0 || exact.length === 0) return [];
+    if (missing <= 0) return [];
+    const fallbackCenter = KNOWN_CITY_CENTERS[key];
+    if (exact.length === 0 && !fallbackCenter) return [];
     return [{
       cidade: cityRows[0].cidade || "",
       estado: cityRows[0].estado || "",
       total: cityRows.length,
       exact: exact.length,
       missing,
-      lat: exact.reduce((sum, point) => sum + point.lat, 0) / exact.length,
-      lng: exact.reduce((sum, point) => sum + point.lng, 0) / exact.length,
+      lat: exact.length
+        ? exact.reduce((sum, point) => sum + point.lat, 0) / exact.length
+        : fallbackCenter.lat,
+      lng: exact.length
+        ? exact.reduce((sum, point) => sum + point.lng, 0) / exact.length
+        : fallbackCenter.lng,
     }];
   });
   const outDir = path.join(OUT_DIR, 'terreiros');
