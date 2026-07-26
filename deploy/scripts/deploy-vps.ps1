@@ -27,7 +27,10 @@ if (-not $svc) { throw "Informe ao menos um servico." }
 $remote = @"
 set -euo pipefail
 cd /opt/axecloud
-git pull --ff-only origin main
+git fetch origin main
+git diff --quiet
+git diff --cached --quiet
+git merge --ff-only origin/main
 docker compose -f deploy/docker-compose.yml --env-file .env build $svc
 docker compose -f deploy/docker-compose.yml --env-file .env up -d $svc
 docker compose -f deploy/docker-compose.yml --env-file .env ps $svc
