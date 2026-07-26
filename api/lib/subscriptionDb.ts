@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 
 export function isMissingColumnErr(error: unknown, columnName: string): boolean {
   const message = String((error as { message?: string })?.message || "");
@@ -72,11 +73,12 @@ export async function ensurePendingSubscriptionRow(
 
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
-    .select("id, status")
+    .select("id, status, expires_at")
     .eq("id", tid)
     .maybeSingle();
 
-  if (sub?.status === "active") return;
+  // Trial/assinatura ainda válida: não mexe. Expirada (mesmo com status active): permite checkout.
+  if (isSubscriptionAccessActive(sub)) return;
 
   if (sub?.id) {
     if (sub.status === "pending") return;

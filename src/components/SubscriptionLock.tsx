@@ -90,9 +90,20 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
           const ctx = await ctxRes.json();
           if (cancelled) return;
           setHolderName(String(ctx.nomeZelador || ctx.nomeTerreiro || '').trim());
+          // Só recarrega se o onboarding (que considera expires_at) confirmar acesso real.
+          // Evita loop: trial expirado podia vir com status "active" no contexto antigo.
           if (ctx.active) {
-            window.location.reload();
-            return;
+            const statusRes = await authFetch(
+              `/api/v1/onboarding/status?tenantId=${encodeURIComponent(uid)}`,
+              { cache: 'no-store' }
+            );
+            if (statusRes.ok) {
+              const statusBody = await statusRes.json().catch(() => ({}));
+              if (statusBody.active) {
+                window.location.reload();
+                return;
+              }
+            }
           }
         }
       } catch (e: unknown) {

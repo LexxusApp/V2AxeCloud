@@ -97,11 +97,11 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       const userId = auth.user.id;
       const { data: sub } = await supabaseAdmin
         .from("subscriptions")
-        .select("status, efi_charge_id")
+        .select("status, expires_at, efi_charge_id")
         .eq("id", userId)
         .maybeSingle();
 
-      if (sub?.status === "active") {
+      if (isSubscriptionAccessActive(sub)) {
         return res.json({ alreadyActive: true });
       }
 

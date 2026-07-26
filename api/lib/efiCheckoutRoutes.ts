@@ -135,7 +135,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
     const { data: sub } = await supabaseAdmin
       .from("subscriptions")
-      .select("status, efi_charge_id, efi_pix_txid, efi_subscription_id")
+      .select("status, expires_at, efi_charge_id, efi_pix_txid, efi_subscription_id")
       .eq("id", tenant.tenantId)
       .maybeSingle();
 
@@ -145,7 +145,8 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       nomeTerreiro: profile?.nome_terreiro || "",
       nomeZelador: profile?.cargo || "",
       subscriptionStatus: sub?.status || "pending",
-      active: sub?.status === "active",
+      // Trial expirado pode manter status "active" + expires_at passado — não liberar acesso.
+      active: isSubscriptionAccessActive(sub),
       efiPixTxid: sub?.efi_pix_txid || null,
       efiSubscriptionId: sub?.efi_subscription_id || null,
     });
