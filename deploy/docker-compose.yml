@@ -46,6 +46,8 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
+      # .p12 Efí antigo (3DES/SHA1) — sem legacy o mTLS falha com "socket hang up"
+      NODE_OPTIONS: --openssl-legacy-provider
       VERCEL: ""
       TRUST_PROXY_CLIENT_IP: "1"
       EFI_CERTIFICATE_PATH: /run/secrets/efi-certificate.p12
