@@ -297,6 +297,26 @@ function normalizeMapsUrl(href) {
   }
 }
 
+function parseMapsCoordinates(link) {
+  const value = String(link || "");
+  for (const pattern of [
+    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
+    /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+  ]) {
+    const match = value.match(pattern);
+    if (!match) continue;
+    const latitude = Number(match[1]);
+    const longitude = Number(match[2]);
+    if (
+      Number.isFinite(latitude) && Math.abs(latitude) <= 90 &&
+      Number.isFinite(longitude) && Math.abs(longitude) <= 180
+    ) {
+      return { latitude, longitude };
+    }
+  }
+  return null;
+}
+
 function buildSearchUrl(query) {
   return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
 }
@@ -563,12 +583,16 @@ async function extractPlaceDetails(page, placeUrl, hints = {}) {
 
   const foto_url = await extractPlacePhoto(page);
 
+  const link_maps = normalizeMapsUrl(page.url());
+  const coordinates = parseMapsCoordinates(link_maps) || parseMapsCoordinates(page.url());
   return {
     nome: nome?.trim() || null,
     endereco: endereco?.trim() || null,
     telefone: telefone?.trim() || null,
     foto_url,
-    link_maps: normalizeMapsUrl(page.url()),
+    link_maps,
+    latitude: coordinates?.latitude ?? null,
+    longitude: coordinates?.longitude ?? null,
   };
 }
 
@@ -614,6 +638,12 @@ async function enrichExisting(page, supabase, row, options, meta) {
   if (details.foto_url && !row.foto_url) patch.foto_url = details.foto_url;
   if (details.telefone && !row.telefone) patch.telefone = details.telefone;
   if (details.endereco && !row.endereco) patch.endereco = details.endereco;
+  if (details.latitude != null && details.longitude != null) {
+    patch.latitude = details.latitude;
+    patch.longitude = details.longitude;
+    patch.coordinate_source = "google_maps_url";
+    patch.coordinates_updated_at = new Date().toISOString();
+  }
   if (details.link_maps && isStreetViewMapsUrl(link)) patch.link_maps = details.link_maps;
 
   if (Object.keys(patch).length === 0) {
@@ -640,7 +670,7 @@ async function fetchRowsWithoutPhoto(supabase, meta) {
   while (true) {
     let query = supabase
       .from(TABLE)
-      .select("id, nome, link_maps, foto_url, telefone, endereco, cidade")
+      .select("id, nome, link_maps, foto_url, telefone, endereco, cidade, latitude, longitude")
       .eq("cidade", meta.cidade)
       .is("foto_url", null)
       .order("nome", { ascending: true })
@@ -723,6 +753,12 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         telefone: details.telefone,
         foto_url: details.foto_url,
         link_maps: details.link_maps,
+        latitude: details.latitude,
+        longitude: details.longitude,
+        coordinate_source:
+          details.latitude != null && details.longitude != null ? "google_maps_url" : null,
+        coordinates_updated_at:
+          details.latitude != null && details.longitude != null ? new Date().toISOString() : null,
         cidade,
         estado,
         bairro,

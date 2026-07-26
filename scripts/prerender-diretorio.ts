@@ -43,6 +43,9 @@ type SnapshotRow = DiretorioSeoTerreiro & {
   bairro: string | null;
   bairroSlug: string | null;
   tipo: DiretorioEstabelecimentoTipo;
+  latitude: number | null;
+  longitude: number | null;
+  coordinateSource: string | null;
 };
 
 type PublicCity = {
@@ -50,6 +53,12 @@ type PublicCity = {
   estado: string | null;
   cidadeSlug: string;
 };
+
+function optionalCoordinate(value: unknown, max: number): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
+}
 
 async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
   const origin = String(process.env.PUBLIC_APP_URL || 'https://axecloud.com.br').replace(/\/$/, '');
@@ -91,6 +100,9 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
         bairro: item.bairro ? String(item.bairro) : null,
         bairroSlug: item.bairroSlug ? String(item.bairroSlug) : null,
         tipo,
+        latitude: optionalCoordinate(item.latitude, 90),
+        longitude: optionalCoordinate(item.longitude, 180),
+        coordinateSource: item.coordinateSource ? String(item.coordinateSource) : null,
         cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
       });
     }
@@ -110,6 +122,9 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     cidade,
   });
   const nome = String(row.nome || "Terreiro").trim();
+  const latitude = optionalCoordinate(row.latitude, 90);
+  const longitude = optionalCoordinate(row.longitude, 180);
+  const hasCoordinates = latitude !== null && longitude !== null;
   return {
     slug,
     nome,
@@ -123,6 +138,9 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     bairro: bairro || null,
     bairroSlug: bairro ? String(row.bairro_slug || slugifyBairro(bairro)).trim() : null,
     tipo: resolveDiretorioTipo(row.tipo, nome),
+    latitude: hasCoordinates ? latitude : null,
+    longitude: hasCoordinates ? longitude : null,
+    coordinateSource: hasCoordinates ? String(row.coordinate_source || "google_maps_url") : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
 }
@@ -141,6 +159,9 @@ function publicSnapshotItem(row: SnapshotRow) {
     bairro: row.bairro,
     bairroSlug: row.bairroSlug,
     tipo: row.tipo,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    coordinateSource: row.coordinateSource,
     perfilUrl: row.slug ? `/terreiro/${row.slug}` : null,
     cidadeUrl: row.cidadeUrl,
   };
@@ -263,7 +284,10 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
   const seen = new Set<string>();
   const points = rows.flatMap((row) => {
     if (!row.slug || seen.has(row.slug)) return [];
-    const coordinates = parseGoogleMapsCoordinates(row.linkMaps);
+    const coordinates =
+      row.latitude !== null && row.longitude !== null
+        ? { lat: row.latitude, lng: row.longitude }
+        : parseGoogleMapsCoordinates(row.linkMaps);
     if (!coordinates) return [];
     seen.add(row.slug);
     return [{
@@ -272,13 +296,51 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
       cidade: row.cidade || '',
       estado: row.estado || 'SP',
       perfilUrl: `/terreiro/${encodeURIComponent(row.slug)}`,
+      accuracy: "exact",
       ...coordinates,
+    }];
+  });
+  const exactByCity = new Map<string, typeof points>();
+  for (const point of points) {
+    const key = `${point.estado}:${point.cidade}`.toLocaleLowerCase("pt-BR");
+    const list = exactByCity.get(key) || [];
+    list.push(point);
+    exactByCity.set(key, list);
+  }
+  const rowsByCity = new Map<string, SnapshotRow[]>();
+  for (const row of rows) {
+    if (!row.cidade || !row.estado) continue;
+    const key = `${row.estado}:${row.cidade}`.toLocaleLowerCase("pt-BR");
+    const list = rowsByCity.get(key) || [];
+    list.push(row);
+    rowsByCity.set(key, list);
+  }
+  const cityCoverage = [...rowsByCity.entries()].flatMap(([key, cityRows]) => {
+    const exact = exactByCity.get(key) || [];
+    const missing = cityRows.length - exact.length;
+    if (missing <= 0 || exact.length === 0) return [];
+    return [{
+      cidade: cityRows[0].cidade || "",
+      estado: cityRows[0].estado || "",
+      total: cityRows.length,
+      exact: exact.length,
+      missing,
+      lat: exact.reduce((sum, point) => sum + point.lat, 0) / exact.length,
+      lng: exact.reduce((sum, point) => sum + point.lng, 0) / exact.length,
     }];
   });
   const outDir = path.join(OUT_DIR, 'terreiros');
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'mapa.json'), JSON.stringify({ points }), 'utf8');
-  return points.length;
+  fs.writeFileSync(
+    path.join(outDir, 'mapa.json'),
+    JSON.stringify({
+      points,
+      cityCoverage,
+      totals: { listed: rows.length, exact: points.length, grouped: rows.length - points.length },
+    }),
+    'utf8',
+  );
+  return { exact: points.length, listed: rows.length };
 }
 
 function writePrerenderPage(template: string, page: ReturnType<typeof buildTerreiroPrerenderPage>) {
@@ -311,7 +373,7 @@ async function main() {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo", (query, { from, to }) =>
+    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source", (query, { from, to }) =>
       query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
     );
     rows = (data || [])
@@ -351,7 +413,7 @@ async function main() {
 
   const cidades = writeDirectorySnapshots(cityMap);
   writeDirectoryRootPage(template, cidades);
-  const mapPoints = writeDirectoryMap(rows);
+  const mapCoverage = writeDirectoryMap(rows);
 
   let terreiroPages = 0;
   for (const row of rows) {
@@ -361,7 +423,7 @@ async function main() {
   }
 
   console.log(
-    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapPoints} ponto(s) no mapa em ${path.relative(ROOT, OUT_DIR)}`,
+    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapCoverage.exact} exatos de ${mapCoverage.listed} representados no mapa em ${path.relative(ROOT, OUT_DIR)}`,
   );
 }
 

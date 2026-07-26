@@ -512,6 +512,8 @@ const contagem = $("#contagem");
 let mapa = null;
 let marcadores = null;
 let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
+let coberturaCidades = []; // casas sem coordenada individual, agrupadas no centro dos pontos exatos da cidade
+let totaisMapa = { listed: 0, exact: 0, grouped: 0 };
 let marcadoresAtivos = []; // { point, marker }
 
 function distanciaKm(a, b) {
@@ -527,6 +529,10 @@ async function carregaPontosMapa() {
     if (!r.ok) throw new Error("mapa " + r.status);
     const data = await r.json();
     todosPontos = (data.points || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    coberturaCidades = (data.cityCoverage || []).filter(
+      (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number(p.missing) > 0,
+    );
+    totaisMapa = data.totals || totaisMapa;
   } catch (e) {
     console.warn("mapa.json indisponível", e);
   }
@@ -587,10 +593,40 @@ function atualizaMapa(filtrados) {
     marcadoresAtivos.push({ point: p, marker });
   });
 
+  const grupos = termo
+    ? []
+    : cidadeAtual?.cidade
+      ? coberturaCidades.filter((grupo) => String(grupo.cidade || "").toLowerCase() === cidadeNorm)
+      : coberturaCidades;
+  let agrupados = 0;
+  grupos.forEach((grupo) => {
+    agrupados += Number(grupo.missing) || 0;
+    coords.push([grupo.lat, grupo.lng]);
+    const marker = L.circleMarker([grupo.lat, grupo.lng], {
+      radius: 13,
+      color: "#a66f00",
+      weight: 2,
+      dashArray: "4 3",
+      fillColor: "#fff3bf",
+      fillOpacity: 0.72,
+    });
+    marker.bindTooltip(`${grupo.missing} casas agrupadas em ${grupo.cidade}`, { direction: "top" });
+    marker.bindPopup(`
+      <div class="popup-nome">${esc(grupo.cidade)}, ${esc(grupo.estado)}</div>
+      <div class="popup-endereco">${grupo.exact} localizações exatas e ${grupo.missing} casas ainda agrupadas pela cidade.</div>
+      <a class="popup-link" href="/terreiros?cidade=${encodeURIComponent(grupo.cidade)}">ver todas as casas →</a>
+    `);
+    marker.addTo(marcadores);
+  });
+
   const nota = $("#mapa-nota");
   if (coords.length) {
     mapa.fitBounds(L.latLngBounds(coords), { padding: [34, 34], maxZoom: 13 });
-    nota.textContent = `${coords.length} terreiro${coords.length === 1 ? "" : "s"} com localização exata · coordenadas do mapeamento Google Maps`;
+    const exatos = pontos.length;
+    const representados = exatos + agrupados;
+    nota.textContent = agrupados
+      ? `${representados} casas representadas · ${exatos} localizações exatas + ${agrupados} agrupadas por cidade`
+      : `${exatos} terreiro${exatos === 1 ? "" : "s"} com localização exata · coordenadas do mapeamento Google Maps`;
   } else if (todosPontos.length) {
     nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outra cidade";
   } else {

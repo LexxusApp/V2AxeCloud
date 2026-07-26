@@ -11,6 +11,7 @@ import {
   WHATSAPP_TEMPLATE_ORDER,
 } from '../src/constants/whatsappTemplates.ts';
 import { isValidUuid, normalizeQueryTenantId } from '../api/lib/tenantAccess.ts';
+import { parseGoogleMapsCoordinates } from '../lib/diretorioCoordinates.ts';
 
 test('política de senha rejeita cada requisito ausente e aceita senha forte', () => {
   assert.equal(validateStrongPassword('Curta1!').ok, false);
@@ -51,4 +52,16 @@ test('escopo de tenant aceita somente UUID válido e normaliza query string', ()
   assert.equal(isValidUuid('6588b6c9-ce84-7140-a69a-f487a0c61dab'), false);
   assert.equal(normalizeQueryTenantId([' tenant-1 ', 'tenant-2']), 'tenant-1');
   assert.equal(normalizeQueryTenantId('undefined'), '');
+});
+
+test('coordenadas do Google Maps aceitam formatos públicos e rejeitam valores inválidos', () => {
+  assert.deepEqual(
+    parseGoogleMapsCoordinates('https://www.google.com/maps/place/Casa/@-23.55052,-46.633308,15z'),
+    { lat: -23.55052, lng: -46.633308 },
+  );
+  assert.deepEqual(
+    parseGoogleMapsCoordinates('https://www.google.com/maps/data=!3d-22.906847!4d-43.172896'),
+    { lat: -22.906847, lng: -43.172896 },
+  );
+  assert.equal(parseGoogleMapsCoordinates('https://www.google.com/maps?q=999.0,999.0'), null);
 });

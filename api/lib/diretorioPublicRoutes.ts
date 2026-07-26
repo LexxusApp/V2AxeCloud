@@ -21,7 +21,12 @@ type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, created_at";
+  "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, created_at";
+
+function validCoordinate(value: unknown, max: number): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
+}
 
 function mapRow(row: Record<string, unknown>) {
   const slug = String(row.slug || "").trim();
@@ -35,6 +40,8 @@ function mapRow(row: Record<string, unknown>) {
     null;
   const bairroSlug = bairro ? String(row.bairro_slug || slugifyBairro(bairro)).trim() : null;
   const nome = String(row.nome || "Terreiro").trim();
+  const latitude = validCoordinate(row.latitude, 90);
+  const longitude = validCoordinate(row.longitude, 180);
   return {
     slug,
     nome,
@@ -48,6 +55,10 @@ function mapRow(row: Record<string, unknown>) {
     bairro,
     bairroSlug,
     tipo: resolveDiretorioTipo(row.tipo, nome),
+    latitude: latitude !== null && longitude !== null ? latitude : null,
+    longitude: latitude !== null && longitude !== null ? longitude : null,
+    coordinateSource:
+      latitude !== null && longitude !== null ? String(row.coordinate_source || "google_maps_url") : null,
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
