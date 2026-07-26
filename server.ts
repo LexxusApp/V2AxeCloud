@@ -37,7 +37,7 @@ import {
   resolveWhatsAppTemplate,
 } from "./src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
-import { getConsoleAdminEmailAllowlist, isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
+import { isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
 import { handleAuditTick } from "./api/lib/audit/cronTick.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./api/lib/plansCatalog.js";
@@ -1167,16 +1167,6 @@ async function initializeDatabase() {
 
     if (!checkError && !checkFotoError) {
       console.log("[SERVER] Esquema do banco OK.");
-      
-      const allow = getConsoleAdminEmailAllowlist();
-      if (allow.length) {
-        const { error: updateError } = await supabaseAdmin
-          .from('perfil_lider')
-          .update({ is_admin_global: true })
-          .in('email', allow);
-        if (updateError) console.error("[SERVER] Erro ao atualizar admins (ADMIN_CONSOLE_EMAILS):", updateError);
-        else console.log("[SERVER] perfil_lider.is_admin_global atualizado para:", allow.join(", "));
-      }
     }
   } catch (err) {
     console.error("[SERVER] Erro ao inicializar banco:", err);

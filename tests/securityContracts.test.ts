@@ -128,6 +128,16 @@ test("aliases do webhook Meta compartilham o mesmo handler autenticado", () => {
   }
 });
 
+test("boot do servidor não promove administradores a partir de e-mail", () => {
+  for (const path of ["api/index.ts", "server.ts"]) {
+    const source = readFileSync(path, "utf8");
+    assert.doesNotMatch(
+      source,
+      /\.update\(\{\s*is_admin_global:\s*true\s*\}\)[\s\S]{0,160}\.(?:ilike|in)\('email'/
+    );
+  }
+});
+
 test("mutações públicas sensíveis usam limitadores restritivos", () => {
   const gira = readFileSync("api/lib/giraOperationsRoutes.ts", "utf8");
   const portal = readFileSync("api/lib/publicPortalRoutes.ts", "utf8");
