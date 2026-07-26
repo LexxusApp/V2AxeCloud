@@ -8,8 +8,6 @@ import {
   Loader2,
   LogOut,
   MessageCircle,
-  QrCode,
-  ShieldAlert,
   CreditCard,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -34,8 +32,6 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
   const isPending = subscriptionStatus === 'pending';
 
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const [holderName, setHolderName] = useState('');
-  const [holderCpf, setHolderCpf] = useState('');
   const [amountLabel, setAmountLabel] = useState('');
   const [pixAvailable, setPixAvailable] = useState(true);
   const [initLoading, setInitLoading] = useState(true);
@@ -56,6 +52,31 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     const body = await res.json();
     return !!body.active;
   }, [tenantId]);
+
+  const createPixCharge = useCallback(async (uid: string) => {
+    const res = await authFetch('/api/v1/checkout/efi/pix', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ tenantId: uid }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Não foi possível gerar o PIX.');
+
+    if (data.alreadyActive) {
+      window.location.reload();
+      return null;
+    }
+
+    if (!data.txid || !data.copyPaste) {
+      throw new Error('Resposta incompleta ao gerar o PIX. Tente novamente.');
+    }
+
+    return {
+      txid: String(data.txid),
+      copyPaste: String(data.copyPaste),
+      qrCodeDataUrl: data.qrCodeDataUrl ? String(data.qrCodeDataUrl) : null,
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,15 +104,14 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         const cfg = await cfgRes.json().catch(() => ({}));
         if (!cfgRes.ok) throw new Error(cfg.error || 'Pagamento indisponível no momento.');
         if (cancelled) return;
-        setPixAvailable(!!cfg.pixAvailable);
+        const available = !!cfg.pixAvailable;
+        setPixAvailable(available);
         setAmountLabel(String(cfg.amountLabel || '').trim());
 
         if (ctxRes.ok) {
           const ctx = await ctxRes.json();
           if (cancelled) return;
-          setHolderName(String(ctx.nomeZelador || ctx.nomeTerreiro || '').trim());
           // Só recarrega se o onboarding (que considera expires_at) confirmar acesso real.
-          // Evita loop: trial expirado podia vir com status "active" no contexto antigo.
           if (ctx.active) {
             const statusRes = await authFetch(
               `/api/v1/onboarding/status?tenantId=${encodeURIComponent(uid)}`,
@@ -106,6 +126,15 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
             }
           }
         }
+
+        if (!available) return;
+
+        // Gera QR automaticamente — API usa nome do perfil se não houver pagador.
+        const charge = await createPixCharge(uid);
+        if (cancelled || !charge) return;
+        setPixTxid(charge.txid);
+        setPixCopy(charge.copyPaste);
+        setPixQr(charge.qrCodeDataUrl);
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : 'Erro ao carregar dados de pagamento.');
@@ -117,7 +146,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [createPixCharge]);
 
   useEffect(() => {
     if (!tenantId || paymentConfirmed) return;
@@ -153,35 +182,19 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     return () => window.clearInterval(interval);
   }, [pixTxid, paymentConfirmed, tenantId]);
 
-  const handleGeneratePix = async () => {
+  const handleRegeneratePix = async () => {
     if (!tenantId) return;
     setPixLoading(true);
     setError(null);
+    setPixQr(null);
+    setPixTxid(null);
+    setPixCopy(null);
     try {
-      const res = await authFetch('/api/v1/checkout/efi/pix', {
-        method: 'POST',
-        headers: await authHeaders(),
-        body: JSON.stringify({
-          tenantId,
-          payerName: holderName,
-          cpf: holderCpf,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Não foi possível gerar o PIX.');
-
-      if (data.alreadyActive) {
-        window.location.reload();
-        return;
-      }
-
-      if (!data.txid || !data.copyPaste) {
-        throw new Error('Resposta incompleta ao gerar o PIX. Tente novamente.');
-      }
-
-      setPixTxid(data.txid);
-      setPixCopy(data.copyPaste);
-      setPixQr(data.qrCodeDataUrl || null);
+      const charge = await createPixCharge(tenantId);
+      if (!charge) return;
+      setPixTxid(charge.txid);
+      setPixCopy(charge.copyPaste);
+      setPixQr(charge.qrCodeDataUrl);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao gerar PIX.');
     } finally {
@@ -253,7 +266,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
 
             <p className="mb-5 text-sm font-medium leading-relaxed text-gray-400">
               {isPending
-                ? 'Gere o QR Code Pix abaixo. Assim que o pagamento for confirmado, o painel libera automaticamente.'
+                ? 'Escaneie o QR Code ou copie o Pix. Assim que o pagamento for confirmado, o painel libera automaticamente.'
                 : 'Seu período de teste gratuito terminou. Pague via Pix para continuar gerenciando seu terreiro.'}
               {amountLabel ? (
                 <span className="mt-2 block text-primary font-bold">
@@ -270,66 +283,23 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               </div>
             )}
 
-            {initLoading ? (
-              <div className="flex justify-center py-8">
+            {initLoading || pixLoading ? (
+              <div className="mb-5 flex flex-col items-center gap-3 py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-gray-500">Gerando QR Code Pix…</p>
               </div>
             ) : !pixAvailable ? (
               <p className="mb-6 text-sm text-gray-500">PIX indisponível no momento. Fale com o suporte.</p>
-            ) : !pixQr ? (
-              <div className="mb-5 space-y-3 text-left">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    Nome do pagador
-                  </label>
-                  <input
-                    className="w-full rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/50"
-                    value={holderName}
-                    onChange={(e) => setHolderName(e.target.value)}
-                    placeholder="Como no comprovante"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    CPF (opcional)
-                  </label>
-                  <input
-                    className="w-full rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/50"
-                    value={holderCpf}
-                    onChange={(e) => setHolderCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    placeholder="00000000000"
-                    inputMode="numeric"
-                  />
-                </div>
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => void handleGeneratePix()}
-                  disabled={pixLoading || !tenantId}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-black shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90 disabled:opacity-60"
-                >
-                  {pixLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      <QrCode className="h-5 w-5" />
-                      Gerar QR Code
-                    </>
-                  )}
-                </motion.button>
-              </div>
-            ) : (
+            ) : pixQr ? (
               <div className="mb-5 space-y-4">
                 <p className="text-sm text-gray-400">
                   Escaneie o QR Code ou copie o Pix. Validade: 1 hora.
                 </p>
-                {pixQr && (
-                  <img
-                    src={pixQr}
-                    alt="QR Code PIX"
-                    className="mx-auto rounded-xl border border-white/10 bg-white p-2"
-                  />
-                )}
+                <img
+                  src={pixQr}
+                  alt="QR Code PIX"
+                  className="mx-auto rounded-xl border border-white/10 bg-white p-2"
+                />
                 <button
                   type="button"
                   onClick={() => void handleCopyPix()}
@@ -344,14 +314,20 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPixQr(null);
-                    setPixTxid(null);
-                    setPixCopy(null);
-                  }}
+                  onClick={() => void handleRegeneratePix()}
                   className="text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-400"
                 >
                   Gerar novo QR Code
+                </button>
+              </div>
+            ) : (
+              <div className="mb-5">
+                <button
+                  type="button"
+                  onClick={() => void handleRegeneratePix()}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-black shadow-[0_10px_20px_rgba(212,175,55,0.2)] transition-all hover:bg-primary/90"
+                >
+                  Tentar gerar QR Code novamente
                 </button>
               </div>
             )}
