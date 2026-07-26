@@ -93,13 +93,13 @@ function resolveCertPathFromDisk(): string | null {
 }
 
 function resolvePixCertPfx(): { pfx: Buffer; cacheKey: string } | null {
-  const fromEnv = resolveCertPfxFromEnv();
-  if (fromEnv) return fromEnv;
-
+  // Preferir .p12 montado em disco (VPS: /run/secrets/...) — evita base64 stale no .env.
   const certPath = resolveCertPathFromDisk();
-  if (!certPath) return null;
+  if (certPath) {
+    return { pfx: fs.readFileSync(certPath), cacheKey: `file:${certPath}` };
+  }
 
-  return { pfx: fs.readFileSync(certPath), cacheKey: `file:${certPath}` };
+  return resolveCertPfxFromEnv();
 }
 
 export type EfiPixSetupDiagnostics = {
@@ -182,14 +182,18 @@ export function resolveEfiPixEnv(): EfiPixEnv | null {
 }
 
 function getHttpsAgent(env: EfiPixEnv): https.Agent {
-  const cacheKey = `${env.certCacheKey}:${env.certPassphrase}`;
+  const cacheKey = `${env.certCacheKey}:${env.certPassphrase}:tls12`;
   const existing = httpsAgentByCert.get(cacheKey);
   if (existing) return existing;
 
+  // Efí Pix exige TLS 1.2 com mTLS; Node 22 pode negociar 1.3 → "socket hang up".
   const agent = new https.Agent({
     pfx: env.certPfx,
     passphrase: env.certPassphrase || undefined,
     rejectUnauthorized: true,
+    minVersion: "TLSv1.2",
+    maxVersion: "TLSv1.2",
+    keepAlive: false,
   });
   httpsAgentByCert.set(cacheKey, agent);
   return agent;
@@ -212,18 +216,23 @@ export async function efiPixGetAccessToken(env: EfiPixEnv): Promise<string> {
 
   const basic = Buffer.from(`${env.clientId}:${env.clientSecret}`).toString("base64");
   const client = pixClient(env);
-  const { data } = await client.post(
-    "/oauth/token",
-    { grant_type: "client_credentials" },
-    { headers: { Authorization: `Basic ${basic}` } }
-  );
+  try {
+    const { data } = await client.post(
+      "/oauth/token",
+      { grant_type: "client_credentials" },
+      { headers: { Authorization: `Basic ${basic}` } }
+    );
 
-  const token = String(data?.access_token || "");
-  if (!token) throw new Error("EFI Pix: access_token ausente na autorização");
+    const token = String(data?.access_token || "");
+    if (!token) throw new Error("EFI Pix: access_token ausente na autorização");
 
-  const expiresIn = Number(data?.expires_in || 3600);
-  cachedPixToken = { token, expiresAt: now + expiresIn * 1000 };
-  return token;
+    const expiresIn = Number(data?.expires_in || 3600);
+    cachedPixToken = { token, expiresAt: now + expiresIn * 1000 };
+    return token;
+  } catch (err) {
+    cachedPixToken = null;
+    throw err;
+  }
 }
 
 export type EfiPixChargeInput = {

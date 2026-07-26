@@ -224,8 +224,13 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       });
     } catch (err: any) {
       console.error("[checkout/pix]", err?.response?.data || err?.message || err);
+      const raw = String(err?.message || "");
+      const tlsHang =
+        /socket hang up|ECONNRESET|ECONNREFUSED|certificate|pfx|pkcs/i.test(raw);
       res.status(500).json({
-        error: safeErrorMessage(err, "Erro ao gerar PIX."),
+        error: tlsHang
+          ? "Falha na conexão com a Efí (certificado/TLS). Tente novamente em instantes."
+          : safeErrorMessage(err, "Erro ao gerar PIX."),
       });
     }
   });
