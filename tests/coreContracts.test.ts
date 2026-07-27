@@ -78,4 +78,9 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
   );
   assert.equal(isClearlyOutsideDiretorioScope('Ilè Asé Igbá Odé'), false);
   assert.equal(isClearlyOutsideDiretorioScope('Tenda de Umbanda Estrela de Aruanda'), false);
+  assert.equal(
+    isClearlyOutsideDiretorioScope('Próximo a Tenda Espírita Encontro das Águas'),
+    true,
+  );
+  assert.equal(isClearlyOutsideDiretorioScope('Terreiro Cultural do Viaduto de Madureira'), true);
 });

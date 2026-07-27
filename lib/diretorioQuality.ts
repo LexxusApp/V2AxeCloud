@@ -17,6 +17,7 @@ const CLEARLY_OUT_OF_SCOPE_RE =
   /\b(racionalismo\s+cristao|allan?\s+kardec|kardecista|paroquia|catolic|evangelic|adventista|igreja\s+sant[ao]|igreja\s+universal|testemunhas?\s+de\s+jeova|ministerio\s+extrema|projeto\s+refugio)\b/i;
 const COMMERCIAL_SERVICE_RE =
   /\b(especialista\s+em\s+uniao\s+de\s+casais|consulta\s+com|jogo\s+de\s+buzios\s*[-–—]|amarracao\s+amorosa|trabalhos?\s+amorosos?|cartomante|tarolog[oa]|vidente)\b/i;
+const INVALID_PLACE_NAME_RE = /^(proximo\s+a)\b|\bterreiro\s+cultural\b/i;
 
 function normalize(value: unknown): string {
   return String(value || '')
@@ -34,7 +35,7 @@ export function isValidDiretorioName(value: unknown): boolean {
 
 export function isClearlyOutsideDiretorioScope(value: unknown): boolean {
   const nome = normalize(value);
-  if (COMMERCIAL_SERVICE_RE.test(nome)) return true;
+  if (COMMERCIAL_SERVICE_RE.test(nome) || INVALID_PLACE_NAME_RE.test(nome)) return true;
   return CLEARLY_OUT_OF_SCOPE_RE.test(nome) && !AXE_CONTEXT_RE.test(nome);
 }
 

@@ -58,6 +58,7 @@ const CLEARLY_OUT_OF_SCOPE_RE =
   /\b(racionalismo\s+cristao|allan?\s+kardec|kardecista|paroquia|catolic|evangelic|adventista|igreja\s+sant[ao]|igreja\s+universal|testemunhas?\s+de\s+jeova|ministerio\s+extrema|projeto\s+refugio)\b/i;
 const COMMERCIAL_SERVICE_RE =
   /\b(especialista\s+em\s+uniao\s+de\s+casais|consulta\s+com|jogo\s+de\s+buzios\s*[-–—]|amarracao\s+amorosa|trabalhos?\s+amorosos?|cartomante|tarolog[oa]|vidente)\b/i;
+const INVALID_PLACE_NAME_RE = /^(proximo\s+a)\b|\bterreiro\s+cultural\b/i;
 
 function normalizeForQuality(value) {
   return String(value || "")
@@ -73,8 +74,47 @@ function isValidScrapedName(value) {
 
 function isClearlyOutsideScrapeScope(value) {
   const normalized = normalizeForQuality(value);
-  if (COMMERCIAL_SERVICE_RE.test(normalized)) return true;
+  if (COMMERCIAL_SERVICE_RE.test(normalized) || INVALID_PLACE_NAME_RE.test(normalized)) return true;
   return CLEARLY_OUT_OF_SCOPE_RE.test(normalized) && !AXE_CONTEXT_RE.test(normalized);
+}
+
+function formatError(error) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const details = [error.message, error.details, error.hint, error.code].filter(Boolean);
+    return details.join(" | ") || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+function isAddressWithinLocation(address, cidade) {
+  if (!address || !cidade) return true;
+  return normalizeForQuality(address).includes(normalizeForQuality(cidade));
+}
+
+function identityTokens(value) {
+  return new Set(
+    normalizeForQuality(value)
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => (token.length > 4 && token.endsWith("s") ? token.slice(0, -1) : token)),
+  );
+}
+
+function identitySimilarity(a, b) {
+  const left = identityTokens(a);
+  const right = identityTokens(b);
+  if (left.size === 0 || right.size === 0) return 0;
+  const intersection = [...left].filter((token) => right.has(token)).length;
+  return intersection / new Set([...left, ...right]).size;
+}
+
+function coordinateDistanceMeters(a, b) {
+  const latitude = ((Number(a.latitude) + Number(b.latitude)) / 2) * (Math.PI / 180);
+  const dy = (Number(a.latitude) - Number(b.latitude)) * 111_320;
+  const dx = (Number(a.longitude) - Number(b.longitude)) * 111_320 * Math.cos(latitude);
+  return Math.hypot(dx, dy);
 }
 
 function slugifyText(raw, maxLen = 80) {
@@ -666,6 +706,28 @@ async function upsertTerreiro(supabase, row, usedSlugs) {
     if (samePlace) return { action: "skipped", id: samePlace.id };
   }
 
+  if (row.nome && row.latitude != null && row.longitude != null) {
+    const { data: nearbyPlaces, error: nearbyError } = await supabase
+      .from(TABLE)
+      .select("id, nome, endereco, latitude, longitude")
+      .eq("cidade", row.cidade)
+      .gte("latitude", row.latitude - 0.0004)
+      .lte("latitude", row.latitude + 0.0004)
+      .gte("longitude", row.longitude - 0.0005)
+      .lte("longitude", row.longitude + 0.0005);
+    if (nearbyError) throw nearbyError;
+
+    const likelyDuplicate = (nearbyPlaces || []).find((candidate) => {
+      const sameAddress =
+        row.endereco &&
+        candidate.endereco &&
+        normalizeForQuality(row.endereco) === normalizeForQuality(candidate.endereco);
+      const similarName = identitySimilarity(row.nome, candidate.nome) >= 0.8;
+      return similarName && (sameAddress || coordinateDistanceMeters(row, candidate) <= 35);
+    });
+    if (likelyDuplicate) return { action: "skipped", id: likelyDuplicate.id };
+  }
+
   const payload = {
     ...row,
     slug: uniqueSlug(row.nome, usedSlugs),
@@ -752,7 +814,7 @@ async function enrichCidade(page, supabase, meta, options) {
       if (result.action === "updated") stats.updated += 1;
       else stats.skipped += 1;
     } catch (err) {
-      console.error(`    ✗ ${err instanceof Error ? err.message : err}`);
+      console.error(`    ✗ ${formatError(err)}`);
       stats.errors += 1;
     }
     await randomDelay();
@@ -772,7 +834,7 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
       const links = await collectPlaceLinksFromSearch(page, query, options.scrollRounds);
       for (const link of links) allLinks.add(link);
     } catch (err) {
-      console.error(`    ✗ busca falhou: ${err instanceof Error ? err.message : err}`);
+      console.error(`    ✗ busca falhou: ${formatError(err)}`);
     }
     await randomDelay(2500, 4000);
   }
@@ -799,6 +861,11 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
       }
       if (!isValidScrapedName(details.nome) || isClearlyOutsideScrapeScope(details.nome)) {
         console.warn("    ⚠ Resultado inválido ou fora do nicho — ignorando");
+        stats.skipped += 1;
+        continue;
+      }
+      if (!isAddressWithinLocation(details.endereco, cidade)) {
+        console.warn("    ⚠ Endereço pertence a outro município — ignorando");
         stats.skipped += 1;
         continue;
       }
@@ -838,7 +905,7 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         stats.skipped += 1;
       }
     } catch (err) {
-      console.error(`    ✗ ${err instanceof Error ? err.message : err}`);
+      console.error(`    ✗ ${formatError(err)}`);
       stats.errors += 1;
     }
 
@@ -914,7 +981,7 @@ async function main() {
           totals.errors += stats.errors;
         }
       } catch (err) {
-        console.error(`\n✗ [${meta.label}]`, err instanceof Error ? err.message : err);
+        console.error(`\n✗ [${meta.label}]`, formatError(err));
         totals.errors += 1;
       }
       await randomDelay(3000, 5000);
