@@ -52,6 +52,30 @@ const DEFAULT_SEARCH_TERMS = [
 ];
 
 const FEED_SELECTORS = ['div[role="feed"]', 'div.m6QErb[role="feed"]'];
+const AXE_CONTEXT_RE =
+  /\b(umbanda|candomble|quimbanda|terreiro|tenda|jurema|afro|orixa|caboclo|exu|vodun|nago|axe|ase|ile)\b/i;
+const CLEARLY_OUT_OF_SCOPE_RE =
+  /\b(racionalismo\s+cristao|allan?\s+kardec|kardecista|paroquia|catolic|evangelic|adventista|igreja\s+sant[ao]|igreja\s+universal|testemunhas?\s+de\s+jeova|ministerio\s+extrema|projeto\s+refugio)\b/i;
+const COMMERCIAL_SERVICE_RE =
+  /\b(especialista\s+em\s+uniao\s+de\s+casais|consulta\s+com|jogo\s+de\s+buzios\s*[-–—]|amarracao\s+amorosa|trabalhos?\s+amorosos?|cartomante|tarolog[oa]|vidente)\b/i;
+
+function normalizeForQuality(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isValidScrapedName(value) {
+  return String(value || "").trim().replace(/[^\p{L}\p{N}]/gu, "").length >= 3;
+}
+
+function isClearlyOutsideScrapeScope(value) {
+  const normalized = normalizeForQuality(value);
+  if (COMMERCIAL_SERVICE_RE.test(normalized)) return true;
+  return CLEARLY_OUT_OF_SCOPE_RE.test(normalized) && !AXE_CONTEXT_RE.test(normalized);
+}
 
 function slugifyText(raw, maxLen = 80) {
   return String(raw || "")
@@ -87,6 +111,8 @@ function parseArgs(argv) {
     singleQuery: false,
     scrollRounds: 35,
     terms: null,
+    fromIndex: 0,
+    cityLimit: Infinity,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -112,6 +138,10 @@ function parseArgs(argv) {
         .filter(Boolean);
     } else if (a === "--max" && argv[i + 1]) {
       args.max = Math.max(1, parseInt(argv[++i], 10) || 1);
+    } else if (a === "--from-index" && argv[i + 1]) {
+      args.fromIndex = Math.max(0, parseInt(argv[++i], 10) || 0);
+    } else if (a === "--city-limit" && argv[i + 1]) {
+      args.cityLimit = Math.max(1, parseInt(argv[++i], 10) || 1);
     } else if (a === "--help" || a === "-h") {
       args.help = true;
     }
@@ -237,6 +267,14 @@ function highResGooglePhotoUrl(url, width = 1200) {
   if (!base) return url;
   const height = Math.round(width * 0.75);
   return `${base}=w${width}-h${height}-k-no`;
+}
+
+function cleanGoogleAddress(value) {
+  const address = String(value || "").trim();
+  const embeddedStreet = address.match(
+    /\s-\s((?:R\.|Rua|Av\.|Avenida|Estrada|Travessa|Tv\.|Praça|Rodovia|Alameda)\s.+)$/i,
+  );
+  return (embeddedStreet?.[1] || address).trim() || null;
 }
 
 /** @returns {{ label: string, cidade: string, estado: string | null, busca?: string, terms?: string[] }} */
@@ -587,7 +625,7 @@ async function extractPlaceDetails(page, placeUrl, hints = {}) {
   const coordinates = parseMapsCoordinates(link_maps) || parseMapsCoordinates(page.url());
   return {
     nome: nome?.trim() || null,
-    endereco: endereco?.trim() || null,
+    endereco: cleanGoogleAddress(endereco),
     telefone: telefone?.trim() || null,
     foto_url,
     link_maps,
@@ -601,6 +639,7 @@ async function upsertTerreiro(supabase, row, usedSlugs) {
     .from(TABLE)
     .select("id, bairro")
     .eq("link_maps", row.link_maps)
+    .limit(1)
     .maybeSingle();
 
   if (selectErr) throw selectErr;
@@ -612,6 +651,19 @@ async function upsertTerreiro(supabase, row, usedSlugs) {
         .eq("id", existing.id);
     }
     return { action: "skipped", id: existing.id };
+  }
+
+  if (row.nome && row.endereco) {
+    const { data: samePlace, error: identityError } = await supabase
+      .from(TABLE)
+      .select("id")
+      .eq("cidade", row.cidade)
+      .ilike("nome", row.nome)
+      .ilike("endereco", row.endereco)
+      .limit(1)
+      .maybeSingle();
+    if (identityError) throw identityError;
+    if (samePlace) return { action: "skipped", id: samePlace.id };
   }
 
   const payload = {
@@ -745,6 +797,11 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
         stats.errors += 1;
         continue;
       }
+      if (!isValidScrapedName(details.nome) || isClearlyOutsideScrapeScope(details.nome)) {
+        console.warn("    ⚠ Resultado inválido ou fora do nicho — ignorando");
+        stats.skipped += 1;
+        continue;
+      }
 
       const bairro = resolveBairroForScrape(meta, details.endereco, cidade);
       const row = {
@@ -799,7 +856,9 @@ async function main() {
   }
 
   const cidadesRaw = await loadCidades(args);
-  const cidades = cidadesRaw.map(parseCidadeInput);
+  const cidades = cidadesRaw
+    .map(parseCidadeInput)
+    .slice(args.fromIndex, args.fromIndex + args.cityLimit);
 
   if (!args.dryRun && (!SUPABASE_URL || !SUPABASE_SERVICE_KEY)) {
     console.error("Faltam VITE_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env");

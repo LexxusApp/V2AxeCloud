@@ -12,6 +12,7 @@ import {
 } from '../src/constants/whatsappTemplates.ts';
 import { isValidUuid, normalizeQueryTenantId } from '../api/lib/tenantAccess.ts';
 import { parseGoogleMapsCoordinates } from '../lib/diretorioCoordinates.ts';
+import { isClearlyOutsideDiretorioScope } from '../lib/diretorioQuality.ts';
 
 test('política de senha rejeita cada requisito ausente e aceita senha forte', () => {
   assert.equal(validateStrongPassword('Curta1!').ok, false);
@@ -64,4 +65,17 @@ test('coordenadas do Google Maps aceitam formatos públicos e rejeitam valores i
     { lat: -22.906847, lng: -43.172896 },
   );
   assert.equal(parseGoogleMapsCoordinates('https://www.google.com/maps?q=999.0,999.0'), null);
+});
+
+test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => {
+  assert.equal(
+    isClearlyOutsideDiretorioScope('Mãe Yara d’Ogum Especialista em União de Casais'),
+    true,
+  );
+  assert.equal(
+    isClearlyOutsideDiretorioScope('Jogo de Búzios - Consulta com Dona Mulambo'),
+    true,
+  );
+  assert.equal(isClearlyOutsideDiretorioScope('Ilè Asé Igbá Odé'), false);
+  assert.equal(isClearlyOutsideDiretorioScope('Tenda de Umbanda Estrela de Aruanda'), false);
 });
