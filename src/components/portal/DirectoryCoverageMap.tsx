@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { LocateFixed, MapPinned, Navigation, RotateCcw } from 'lucide-react';
+import { LocateFixed, Navigation, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DiretorioMapPoint } from '../../lib/diretorioMap';
 
@@ -108,13 +108,9 @@ export function DirectoryCoverageMap({
 
   return (
     <section className="mt-10 overflow-hidden rounded-[2rem] border border-[#ded4c5] bg-white shadow-2xl shadow-black/10" aria-labelledby="coverage-map-title">
-      <div className="grid gap-5 border-b border-[#e8dfd0] bg-[#17130e] px-6 py-6 text-white md:grid-cols-[1fr_auto] md:items-end md:px-8">
+      <div className="grid gap-5 border-b border-[#e8dfd0] bg-[#17130e] px-6 py-5 text-white md:grid-cols-[1fr_auto] md:items-end md:px-8">
         <div>
-          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#ffc107]">
-            <MapPinned className="h-4 w-4" aria-hidden />
-            Mapa interativo
-          </p>
-          <h2 id="coverage-map-title" className="mt-2 text-2xl font-black md:text-3xl">Terreiros no mapa</h2>
+          <h2 id="coverage-map-title" className="text-2xl font-black md:text-3xl">Terreiros no mapa</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65">
             Explore as casas com coordenadas confirmadas, aproxime uma região ou use sua localização para encontrar o terreiro mais próximo.
           </p>
@@ -132,7 +128,7 @@ export function DirectoryCoverageMap({
         </div>
       </div>
 
-      <div className="relative min-h-[390px] bg-[#eee9df] md:min-h-[520px]">
+      <div className="relative min-h-[440px] bg-[#eee9df] md:min-h-[640px]">
         <div ref={containerRef} className="absolute inset-0 z-0" aria-label={`Mapa interativo com ${points.length} terreiros`} />
         {points.length === 0 ? (
           <div className="absolute inset-0 z-10 grid place-items-center bg-[#f4efe7] px-6 text-center">

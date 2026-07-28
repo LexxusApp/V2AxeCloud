@@ -202,25 +202,14 @@ h1 em { font-style: italic; color: var(--ouro); }
 .mapa-cabeca {
   display: grid;
   gap: 18px;
-  padding: 26px 28px;
+  padding: 20px 28px;
   background: #17130e;
   color: #fff;
 }
 @media (min-width: 760px) {
   .mapa-cabeca { grid-template-columns: 1fr auto; align-items: end; }
 }
-.mapa-kicker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ouro-vivo);
-}
 .mapa-cabeca h2 {
-  margin-top: 8px;
   font-family: "Fraunces", serif;
   font-weight: 400;
   font-size: clamp(1.5rem, 3vw, 2rem);
@@ -258,8 +247,8 @@ h1 em { font-style: italic; color: var(--ouro); }
   line-height: 1.45;
 }
 #mapa {
-  height: min(52vh, 520px);
-  min-height: 360px;
+  height: min(64vh, 640px);
+  min-height: 440px;
   background: #eee9df;
 }
 .leaflet-popup-content-wrapper {
@@ -408,7 +397,6 @@ footer a { color: var(--ouro); text-decoration: none; }
   <div class="mapa-card">
     <div class="mapa-cabeca">
       <div>
-        <p class="mapa-kicker">✦ mapa interativo · coordenadas reais do mapeamento</p>
         <h2>Terreiros no mapa</h2>
         <p>Explore as casas com localização confirmada. Aproxime a região ou use “perto de mim” para achar a casa mais próxima.</p>
       </div>
