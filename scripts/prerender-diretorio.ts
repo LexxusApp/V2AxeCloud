@@ -65,12 +65,33 @@ function optionalCoordinate(value: unknown, max: number): number | null {
   return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
 }
 
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, label: string, attempts = 6): Promise<Response> {
+  let lastStatus = 0;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const response = await fetch(url);
+    lastStatus = response.status;
+    if (response.ok) return response;
+    const retriable = response.status === 429 || response.status >= 500;
+    if (!retriable || attempt === attempts) {
+      throw new Error(`[prerender:diretorio] API pública de ${label} respondeu ${response.status}.`);
+    }
+    const retryAfter = Number(response.headers.get("retry-after") || "");
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : Math.min(30_000, 800 * 2 ** (attempt - 1));
+    console.warn(`[prerender:diretorio] ${label} → ${response.status}; nova tentativa em ${waitMs}ms (${attempt}/${attempts})`);
+    await sleep(waitMs);
+  }
+  throw new Error(`[prerender:diretorio] API pública de ${label} respondeu ${lastStatus}.`);
+}
+
 async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
   const origin = String(process.env.PUBLIC_APP_URL || 'https://axecloud.com.br').replace(/\/$/, '');
-  const citiesResponse = await fetch(`${origin}/api/v1/public/diretorio/cidades`);
-  if (!citiesResponse.ok) {
-    throw new Error(`[prerender:diretorio] API pública de cidades respondeu ${citiesResponse.status}.`);
-  }
+  const citiesResponse = await fetchWithRetry(`${origin}/api/v1/public/diretorio/cidades`, "cidades");
   const citiesJson = (await citiesResponse.json()) as { cidades?: PublicCity[] };
   const cities = Array.isArray(citiesJson.cidades) ? citiesJson.cidades : [];
   const rows: SnapshotRow[] = [];
@@ -79,14 +100,11 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
     const estado = String(city.estado || '').toLowerCase();
     const cidadeSlug = String(city.cidadeSlug || '');
     if (!estado || !cidadeSlug) continue;
-    const detailResponse = await fetch(
+    const label = `${estado}/${cidadeSlug}`;
+    const detailResponse = await fetchWithRetry(
       `${origin}/api/v1/public/diretorio/${encodeURIComponent(estado)}/${encodeURIComponent(cidadeSlug)}`,
+      label,
     );
-    if (!detailResponse.ok) {
-      throw new Error(
-        `[prerender:diretorio] API pública de ${estado}/${cidadeSlug} respondeu ${detailResponse.status}.`,
-      );
-    }
     const detail = (await detailResponse.json()) as { items?: Array<Record<string, unknown>> };
     for (const item of detail.items || []) {
       const nome = String(item.nome || 'Terreiro').trim();
@@ -111,6 +129,7 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
         cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
       });
     }
+    await sleep(120);
   }
 
   return rows;
