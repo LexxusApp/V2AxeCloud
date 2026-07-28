@@ -33,6 +33,7 @@ L.TileLayer.include({
 				this._container
 			);
 			level.ctx = level.canvas.getContext("2d");
+			level.ctx.imageSmoothingEnabled = false;
 			this._resetCanvasSize(level);
 		}
 	},
@@ -44,12 +45,12 @@ L.TileLayer.include({
 			var tileSize = this.getTileSize();
 
 			if (level) {
-				// Where in the canvas should this tile go?
-				var offset = L.point(tile.coords.x, tile.coords.y)
-					.subtract(level.canvasRange.min)
-					.scaleBy(this.getTileSize());
-
-				level.ctx.clearRect(offset.x, offset.y, tileSize.x, tileSize.y);
+		// Where in the canvas should this tile go?
+		var offset = L.point(tile.coords.x, tile.coords.y)
+			.subtract(level.canvasRange.min)
+			.scaleBy(this.getTileSize());
+		// Sangria de 1px: evita limpar a sobreposição entre tiles vizinhos.
+		level.ctx.clearRect(offset.x + 1, offset.y + 1, tileSize.x - 2, tileSize.y - 2);
 			}
 		}
 
@@ -234,7 +235,14 @@ L.TileLayer.include({
 			.subtract(level.canvasRange.min)
 			.scaleBy(this.getTileSize());
 
-		level.ctx.drawImage(imageSource, offset.x, offset.y, tileSize.x, tileSize.y);
+		// Desenha 1px maior em cada lado para cobrir juntas do Chrome ao exibir o canvas.
+		level.ctx.drawImage(
+			imageSource,
+			offset.x - 1,
+			offset.y - 1,
+			tileSize.x + 2,
+			tileSize.y + 2
+		);
 
 		// TODO: Clear the pixels of other levels' canvases where they overlap
 		// this newly dumped tile.
