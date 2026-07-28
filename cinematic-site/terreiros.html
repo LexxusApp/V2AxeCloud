@@ -387,8 +387,8 @@ footer a { color: var(--ouro); text-decoration: none; }
 
 <div class="filtros">
   <input class="busca" id="busca" type="search" placeholder="Filtrar por nome ou bairro na cidade…" autocomplete="off" />
-  <select class="seletor" id="seletor-cidade" aria-label="Escolher cidade">
-    <option value="">Todas as cidades…</option>
+  <select class="seletor" id="seletor-cidade" aria-label="Filtrar por cidade do estado">
+    <option value="">Todas as cidades do estado…</option>
   </select>
 </div>
 <div class="cidades-chips" id="chips"></div>
@@ -485,13 +485,29 @@ const telefoneSeguro = (valor) => String(valor || "").replace(/[^\d+]/g, "").sli
 
 /* ══ Diretório mapeado (Google Maps → sistema) ══ */
 let cidades = [];
-let cidadeAtual = null;   // { estado, cidadeSlug, cidade }
-let itens = [];           // terreiros da cidade carregada
-let totalCidade = 0;
-let cidadeCompleta = true;
+let estados = []; // { estado, nome, count }
+let estadoAtual = null; // { estado, nomeEstado }
+let cidadeAtual = null;   // { estado, cidadeSlug, cidade } — filtro opcional
+let itens = [];           // terreiros do estado (ou cidade) carregado
+let totalItens = 0;
+let listaCompleta = true;
 let visiveis = 24;        // paginação local
 let termo = "";
 let aguarde = null;
+
+const ESTADO_NOMES = {
+  AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará",
+  DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás", MA: "Maranhão",
+  MT: "Mato Grosso", MS: "Mato Grosso do Sul", MG: "Minas Gerais", PA: "Pará",
+  PB: "Paraíba", PR: "Paraná", PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro",
+  RN: "Rio Grande do Norte", RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima",
+  SC: "Santa Catarina", SP: "São Paulo", SE: "Sergipe", TO: "Tocantins",
+};
+
+function nomeEstado(uf) {
+  const key = String(uf || "").trim().toUpperCase();
+  return ESTADO_NOMES[key] || key;
+}
 
 const grade = $("#grade");
 const contagem = $("#contagem");
@@ -536,22 +552,31 @@ function garanteMapa() {
   marcadores = L.layerGroup().addTo(mapa);
 }
 
+function pontosDoContexto() {
+  const uf = String(estadoAtual?.estado || cidadeAtual?.estado || "").toUpperCase();
+  const cidadeNorm = String(cidadeAtual?.cidade || "").toLowerCase();
+  let pontos = todosPontos;
+  if (uf) pontos = pontos.filter((p) => String(p.estado || "").toUpperCase() === uf);
+  if (cidadeNorm) pontos = pontos.filter((p) => String(p.cidade || "").toLowerCase() === cidadeNorm);
+  return pontos;
+}
+
 function atualizaMapa(filtrados) {
   if (!window.L) return;
   garanteMapa();
   marcadores.clearLayers();
   marcadoresAtivos = [];
 
-  // Casa a lista filtrada (cidade + busca) com os pontos que têm coordenada confirmada
   const porSlug = new Map(filtrados.map((c) => [c.slug, c]));
   const cidadeNorm = String(cidadeAtual?.cidade || "").toLowerCase();
-  let pontos = !termo && !cidadeCompleta && cidadeNorm
-    ? todosPontos.filter((p) => String(p.cidade || "").toLowerCase() === cidadeNorm)
+  const uf = String(estadoAtual?.estado || cidadeAtual?.estado || "").toUpperCase();
+
+  let pontos = !termo && !listaCompleta
+    ? pontosDoContexto()
     : todosPontos.filter((p) => porSlug.has(p.slug));
 
-  // Fallback: se a cidade tem poucos matches por slug, filtra pelo nome da cidade no mapa
-  if (pontos.length === 0 && cidadeAtual?.cidade) {
-    pontos = todosPontos.filter((p) => String(p.cidade || "").toLowerCase() === cidadeNorm);
+  if (pontos.length === 0 && (cidadeNorm || uf)) {
+    pontos = pontosDoContexto();
   }
 
   const coords = [];
@@ -583,9 +608,11 @@ function atualizaMapa(filtrados) {
 
   const grupos = termo
     ? []
-    : cidadeAtual?.cidade
-      ? coberturaCidades.filter((grupo) => String(grupo.cidade || "").toLowerCase() === cidadeNorm)
-      : coberturaCidades;
+    : coberturaCidades.filter((grupo) => {
+        if (uf && String(grupo.estado || "").toUpperCase() !== uf) return false;
+        if (cidadeNorm && String(grupo.cidade || "").toLowerCase() !== cidadeNorm) return false;
+        return true;
+      });
   let agrupados = 0;
   grupos.forEach((grupo) => {
     agrupados += Number(grupo.missing) || 0;
@@ -602,21 +629,21 @@ function atualizaMapa(filtrados) {
     marker.bindPopup(`
       <div class="popup-nome">${esc(grupo.cidade)}, ${esc(grupo.estado)}</div>
       <div class="popup-endereco">${grupo.exact} localizações exatas e ${grupo.missing} casas ainda agrupadas pela cidade.</div>
-      <a class="popup-link" href="/terreiros?cidade=${encodeURIComponent(grupo.cidade)}">ver todas as casas →</a>
+      <a class="popup-link" href="/terreiros?uf=${encodeURIComponent(String(grupo.estado || "").toLowerCase())}&cidade=${encodeURIComponent(grupo.cidadeSlug || grupo.cidade)}">ver casas desta cidade →</a>
     `);
     marker.addTo(marcadores);
   });
 
   const nota = $("#mapa-nota");
   if (coords.length) {
-    mapa.fitBounds(L.latLngBounds(coords), { padding: [34, 34], maxZoom: 13 });
+    mapa.fitBounds(L.latLngBounds(coords), { padding: [34, 34], maxZoom: cidadeAtual ? 13 : 10 });
     const exatos = pontos.length;
     const representados = exatos + agrupados;
     nota.textContent = agrupados
       ? `${representados} casas representadas · ${exatos} localizações exatas + ${agrupados} agrupadas por cidade`
       : `${exatos} terreiro${exatos === 1 ? "" : "s"} com localização exata · coordenadas do mapeamento Google Maps`;
   } else if (todosPontos.length) {
-    nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outra cidade";
+    nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outro estado";
   } else {
     nota.textContent = "não foi possível carregar os pontos do mapa";
   }
@@ -630,7 +657,7 @@ $("#btn-perto").addEventListener("click", () => {
     return;
   }
   if (!marcadoresAtivos.length) {
-    status.textContent = "O mapa ainda não tem pontos nesta cidade.";
+    status.textContent = "O mapa ainda não tem pontos nesta seleção.";
     return;
   }
   status.textContent = "Localizando você…";
@@ -648,24 +675,77 @@ $("#btn-perto").addEventListener("click", () => {
   );
 });
 
+function cidadesDoEstado(uf) {
+  const key = String(uf || "").toLowerCase();
+  return cidades.filter((c) => String(c.estado || "").toLowerCase() === key);
+}
+
+function atualizaSeletorCidades(uf, selectedSlug = "") {
+  const lista = cidadesDoEstado(uf);
+  const seletor = $("#seletor-cidade");
+  seletor.innerHTML =
+    '<option value="">Todas as cidades do estado…</option>' +
+    lista
+      .map(
+        (c) =>
+          `<option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)} (${c.count})</option>`,
+      )
+      .join("");
+  if (selectedSlug) seletor.value = `${String(uf).toLowerCase()}|${selectedSlug}`;
+  else seletor.value = "";
+}
+
 async function carregaCidades() {
   const r = await fetch("/api/v1/public/diretorio/cidades");
   const data = await r.json();
   cidades = data.cidades || [];
   const total = cidades.reduce((s, c) => s + (c.count || 0), 0);
-  $("#total-geral").textContent = `${total.toLocaleString("pt-BR")} casas mapeadas em ${cidades.length} cidades.`;
 
-  // chips: as 8 maiores cidades
-  $("#chips").innerHTML = cidades.slice(0, 8).map((c) => `
-    <button class="chip" data-uf="${esc((c.estado || "br").toLowerCase())}" data-slug="${esc(c.cidadeSlug)}">
-      ${esc(c.cidade)}<small>${c.count}</small>
-    </button>
-  `).join("");
+  const porUf = new Map();
+  for (const c of cidades) {
+    const uf = String(c.estado || "").trim().toUpperCase();
+    if (!uf || uf.length !== 2) continue;
+    const cur = porUf.get(uf) || { estado: uf, nome: nomeEstado(uf), count: 0 };
+    cur.count += Number(c.count) || 0;
+    porUf.set(uf, cur);
+  }
+  estados = [...porUf.values()].sort((a, b) => b.count - a.count || a.nome.localeCompare(b.nome, "pt-BR"));
 
-  // seletor: todas
-  $("#seletor-cidade").innerHTML = '<option value="">Escolher cidade…</option>' + cidades.map((c) => `
-    <option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)}${c.estado ? " – " + esc(c.estado) : ""} (${c.count})</option>
-  `).join("");
+  $("#total-geral").textContent = `${total.toLocaleString("pt-BR")} casas mapeadas em ${cidades.length} cidades · ${estados.length} estado${estados.length === 1 ? "" : "s"}.`;
+
+  $("#chips").innerHTML = estados
+    .map(
+      (e) => `
+    <button class="chip" type="button" data-uf="${esc(e.estado.toLowerCase())}">
+      ${esc(e.nome)}<small>${e.count}</small>
+    </button>`,
+    )
+    .join("");
+}
+
+async function carregaEstado(uf) {
+  const key = String(uf || "").trim().toLowerCase();
+  grade.innerHTML = '<p class="estado">abrindo a porteira do estado…</p>';
+  contagem.textContent = "";
+  cidadeAtual = null;
+  try {
+    const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(key)}?limit=200`);
+    if (!r.ok) throw new Error("estado " + r.status);
+    const data = await r.json();
+    estadoAtual = {
+      estado: String(data.estado || key).toUpperCase(),
+      nomeEstado: data.nomeEstado || nomeEstado(key),
+    };
+    itens = data.items || [];
+    totalItens = Number(data.total) || itens.length;
+    listaCompleta = itens.length >= totalItens;
+    visiveis = 24;
+    atualizaSeletorCidades(estadoAtual.estado);
+    desenha();
+  } catch (e) {
+    console.warn(e);
+    grade.innerHTML = '<p class="estado">Não foi possível carregar este estado agora.</p>';
+  }
 }
 
 async function carregaCidade(uf, slug) {
@@ -675,11 +755,16 @@ async function carregaCidade(uf, slug) {
     const r = await fetch(`/api/v1/public/diretorio/${encodeURIComponent(uf)}/${encodeURIComponent(slug)}?limit=96`);
     if (!r.ok) throw new Error("cidade " + r.status);
     const data = await r.json();
+    estadoAtual = {
+      estado: String(data.estado || uf).toUpperCase(),
+      nomeEstado: nomeEstado(data.estado || uf),
+    };
     cidadeAtual = { estado: data.estado, cidadeSlug: data.cidadeSlug, cidade: data.cidade };
     itens = data.items || [];
-    totalCidade = Number(data.total) || itens.length;
-    cidadeCompleta = itens.length >= totalCidade;
+    totalItens = Number(data.total) || itens.length;
+    listaCompleta = itens.length >= totalItens;
     visiveis = 24;
+    atualizaSeletorCidades(estadoAtual.estado, data.cidadeSlug);
     desenha();
   } catch (e) {
     console.warn(e);
@@ -687,16 +772,28 @@ async function carregaCidade(uf, slug) {
   }
 }
 
-async function garanteCidadeCompleta() {
-  if (cidadeCompleta || !cidadeAtual) return;
-  const selecionada = { ...cidadeAtual };
-  const r = await fetch(`/api/v1/public/diretorio/${encodeURIComponent(selecionada.estado.toLowerCase())}/${encodeURIComponent(selecionada.cidadeSlug)}`);
-  if (!r.ok) throw new Error("cidade completa " + r.status);
+async function garanteListaCompleta() {
+  if (listaCompleta) return;
+  if (cidadeAtual) {
+    const selecionada = { ...cidadeAtual };
+    const r = await fetch(`/api/v1/public/diretorio/${encodeURIComponent(selecionada.estado.toLowerCase())}/${encodeURIComponent(selecionada.cidadeSlug)}`);
+    if (!r.ok) throw new Error("cidade completa " + r.status);
+    const data = await r.json();
+    if (!cidadeAtual || cidadeAtual.cidadeSlug !== selecionada.cidadeSlug) return;
+    itens = data.items || itens;
+    totalItens = Number(data.total) || itens.length;
+    listaCompleta = true;
+    return;
+  }
+  if (!estadoAtual) return;
+  const uf = estadoAtual.estado.toLowerCase();
+  const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}`);
+  if (!r.ok) throw new Error("estado completo " + r.status);
   const data = await r.json();
-  if (!cidadeAtual || cidadeAtual.cidadeSlug !== selecionada.cidadeSlug) return;
+  if (!estadoAtual || estadoAtual.estado.toLowerCase() !== uf) return;
   itens = data.items || itens;
-  totalCidade = Number(data.total) || itens.length;
-  cidadeCompleta = true;
+  totalItens = Number(data.total) || itens.length;
+  listaCompleta = true;
 }
 
 function desenha() {
@@ -705,18 +802,23 @@ function desenha() {
     ? itens.filter((i) =>
         (i.nome || "").toLowerCase().includes(t) ||
         (i.bairro || "").toLowerCase().includes(t) ||
+        (i.cidade || "").toLowerCase().includes(t) ||
         (i.endereco || "").toLowerCase().includes(t))
     : itens;
 
-  const totalExibido = !t && !cidadeCompleta ? totalCidade : filtrados.length;
-  contagem.textContent = cidadeAtual
-    ? `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${cidadeAtual.cidade} – ${cidadeAtual.estado}`
-    : "";
+  const totalExibido = !t && !listaCompleta ? totalItens : filtrados.length;
+  if (cidadeAtual) {
+    contagem.textContent = `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${cidadeAtual.cidade} – ${cidadeAtual.estado}`;
+  } else if (estadoAtual) {
+    contagem.textContent = `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${estadoAtual.nomeEstado}`;
+  } else {
+    contagem.textContent = "";
+  }
 
   atualizaMapa(filtrados);
 
   if (!filtrados.length) {
-    grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta cidade.</p>';
+    grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta seleção.</p>';
     return;
   }
 
@@ -759,7 +861,7 @@ function desenha() {
     mais.disabled = true;
     mais.textContent = "carregando mais casas…";
     try {
-      if (!cidadeCompleta && visiveis >= itens.length) await garanteCidadeCompleta();
+      if (!listaCompleta && visiveis >= itens.length) await garanteListaCompleta();
       visiveis += 24;
       desenha();
     } catch (e) {
@@ -770,23 +872,26 @@ function desenha() {
   });
 }
 
-function marcaChip(uf, slug) {
+function marcaChipEstado(uf) {
+  const key = String(uf || "").toLowerCase();
   document.querySelectorAll(".chip").forEach((c) =>
-    c.classList.toggle("ativo", c.dataset.uf === uf && c.dataset.slug === slug));
+    c.classList.toggle("ativo", c.dataset.uf === key));
 }
 
 $("#chips").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
-  marcaChip(chip.dataset.uf, chip.dataset.slug);
-  $("#seletor-cidade").value = "";
-  carregaCidade(chip.dataset.uf, chip.dataset.slug);
+  marcaChipEstado(chip.dataset.uf);
+  carregaEstado(chip.dataset.uf);
 });
 
 $("#seletor-cidade").addEventListener("change", (e) => {
-  if (!e.target.value) return;
+  if (!e.target.value) {
+    if (estadoAtual) carregaEstado(estadoAtual.estado.toLowerCase());
+    return;
+  }
   const [uf, slug] = e.target.value.split("|");
-  marcaChip(uf, slug);
+  marcaChipEstado(uf);
   carregaCidade(uf, slug);
 });
 
@@ -795,7 +900,7 @@ $("#busca").addEventListener("input", (e) => {
   clearTimeout(aguarde);
   aguarde = setTimeout(async () => {
     try {
-      if (termo && !cidadeCompleta) await garanteCidadeCompleta();
+      if (termo && !listaCompleta) await garanteListaCompleta();
     } catch (erro) {
       console.warn(erro);
     }
@@ -803,33 +908,43 @@ $("#busca").addEventListener("input", (e) => {
   }, 250);
 });
 
-/* Início: carrega cidades + pontos do mapa e abre cidade da URL ou a maior */
+/* Início: carrega cidades + pontos do mapa e abre estado da URL ou o maior */
 (async function init() {
   try {
     await Promise.all([carregaCidades(), carregaPontosMapa()]);
-    if (!cidades.length) {
-      grade.innerHTML = '<p class="estado">O mapeamento ainda não retornou cidades.</p>';
+    if (!estados.length) {
+      grade.innerHTML = '<p class="estado">O mapeamento ainda não retornou estados.</p>';
       return;
     }
 
     const params = new URLSearchParams(location.search);
     const ufParam = String(params.get("uf") || "").trim().toLowerCase();
     const cidadeParam = String(params.get("cidade") || "").trim();
-    const daUrl =
-      cidadeParam
-        ? cidades.find((c) => {
-            const mesmaCidade = String(c.cidadeSlug || "") === cidadeParam;
-            if (!mesmaCidade) return false;
-            if (!ufParam) return true;
-            return String(c.estado || "").toLowerCase() === ufParam;
-          })
-        : null;
-    const c = daUrl || cidades[0];
-    const uf = (c.estado || "br").toLowerCase();
-    marcaChip(uf, c.cidadeSlug);
-    const seletor = $("#seletor-cidade");
-    if (seletor) seletor.value = `${uf}|${c.cidadeSlug}`;
-    await carregaCidade(uf, c.cidadeSlug);
+
+    const cidadeDaUrl = cidadeParam
+      ? cidades.find((c) => {
+          const mesmaCidade =
+            String(c.cidadeSlug || "") === cidadeParam ||
+            String(c.cidade || "").toLowerCase() === cidadeParam.toLowerCase();
+          if (!mesmaCidade) return false;
+          if (!ufParam) return true;
+          return String(c.estado || "").toLowerCase() === ufParam;
+        })
+      : null;
+
+    if (cidadeDaUrl) {
+      const uf = (cidadeDaUrl.estado || "br").toLowerCase();
+      marcaChipEstado(uf);
+      await carregaCidade(uf, cidadeDaUrl.cidadeSlug);
+      return;
+    }
+
+    const estadoDaUrl = ufParam
+      ? estados.find((e) => e.estado.toLowerCase() === ufParam)
+      : null;
+    const escolhido = estadoDaUrl || estados[0];
+    marcaChipEstado(escolhido.estado.toLowerCase());
+    await carregaEstado(escolhido.estado.toLowerCase());
   } catch (e) {
     console.warn(e);
     grade.innerHTML = '<p class="estado">Não foi possível consultar o mapeamento agora — verifique o sistema ou a internet.</p>';

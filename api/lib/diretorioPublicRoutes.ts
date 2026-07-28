@@ -12,7 +12,11 @@ import {
   shouldGroupCityByBairro,
   slugifyBairro,
 } from "../../lib/diretorioBairro.js";
-import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
+import {
+  fetchAllTerreirosRows,
+  fetchTerreirosByCitySlug,
+  fetchTerreirosByEstado,
+} from "../../lib/diretorioQuery.js";
 import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
@@ -22,6 +26,41 @@ type Deps = { supabaseAdmin: SupabaseClient };
 const TABLE = "terreiros_diretorio";
 const SELECT =
   "id, nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, created_at";
+
+const ESTADO_NOMES: Record<string, string> = {
+  AC: "Acre",
+  AL: "Alagoas",
+  AP: "Amapá",
+  AM: "Amazonas",
+  BA: "Bahia",
+  CE: "Ceará",
+  DF: "Distrito Federal",
+  ES: "Espírito Santo",
+  GO: "Goiás",
+  MA: "Maranhão",
+  MT: "Mato Grosso",
+  MS: "Mato Grosso do Sul",
+  MG: "Minas Gerais",
+  PA: "Pará",
+  PB: "Paraíba",
+  PR: "Paraná",
+  PE: "Pernambuco",
+  PI: "Piauí",
+  RJ: "Rio de Janeiro",
+  RN: "Rio Grande do Norte",
+  RS: "Rio Grande do Sul",
+  RO: "Rondônia",
+  RR: "Roraima",
+  SC: "Santa Catarina",
+  SP: "São Paulo",
+  SE: "Sergipe",
+  TO: "Tocantins",
+};
+
+function nomeEstado(uf: string): string {
+  const key = String(uf || "").trim().toUpperCase();
+  return ESTADO_NOMES[key] || key;
+}
 
 function validCoordinate(value: unknown, max: number): number | null {
   const parsed = Number(value);
@@ -160,6 +199,50 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       } catch (e: unknown) {
         console.error("[public/diretorio/terreiro]", e);
         res.status(500).json({ error: "Erro ao carregar terreiro." });
+      }
+    },
+  );
+
+  app.get(
+    "/api/v1/public/diretorio/uf/:estado",
+    apiReadRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const estado = String(req.params.estado || "")
+          .trim()
+          .toUpperCase();
+        if (!/^[A-Z]{2}$/.test(estado)) {
+          return res.status(400).json({ error: "Estado inválido." });
+        }
+
+        const data = await fetchTerreirosByEstado(sb, TABLE, SELECT, estado);
+        const terreiros = data
+          .filter((row) => isDiretorioListingPublishable(row))
+          .map((row) => mapRow(row))
+          .filter((item) => item.tipo === "terreiro");
+
+        if (terreiros.length === 0) {
+          return res.status(404).json({ error: "Nenhum terreiro público encontrado neste estado." });
+        }
+
+        const requestedLimit = Number(req.query.limit);
+        const limit =
+          Number.isFinite(requestedLimit) && requestedLimit > 0
+            ? Math.min(Math.floor(requestedLimit), 500)
+            : null;
+        const responseItems = limit ? terreiros.slice(0, limit) : terreiros;
+
+        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
+        res.json({
+          estado,
+          nomeEstado: nomeEstado(estado),
+          total: terreiros.length,
+          totalTerreiros: terreiros.length,
+          items: responseItems,
+        });
+      } catch (e: unknown) {
+        console.error("[public/diretorio/uf]", e);
+        res.status(500).json({ error: "Erro ao carregar terreiros do estado." });
       }
     },
   );

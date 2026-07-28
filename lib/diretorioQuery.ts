@@ -51,3 +51,20 @@ export async function fetchTerreirosByCitySlug(
     return q;
   });
 }
+
+export async function fetchTerreirosByEstado(
+  sb: SupabaseClient,
+  table: string,
+  select: string,
+  estado: string,
+): Promise<Record<string, unknown>[]> {
+  const uf = String(estado || "").trim().toUpperCase();
+  if (uf.length !== 2) return [];
+  return fetchAllTerreirosRows(sb, table, select, (query, { from, to }) =>
+    query
+      .ilike("estado", uf)
+      .order("cidade", { ascending: true })
+      .order("nome", { ascending: true })
+      .range(from, to),
+  );
+}
