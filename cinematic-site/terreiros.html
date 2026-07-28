@@ -249,7 +249,18 @@ h1 em { font-style: italic; color: var(--ouro); }
 #mapa {
   height: min(64vh, 640px);
   min-height: 440px;
-  background: #eee9df;
+  background: #d6e4d0;
+}
+/* Fecha as “listras” entre tiles do Leaflet (subpixel no Chrome/Windows). */
+.leaflet-container { background: #d6e4d0; }
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container .leaflet-layer img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+  width: 256.5px !important;
+  height: 256.5px !important;
+  outline: 1px solid transparent;
+  backface-visibility: hidden;
 }
 .leaflet-popup-content-wrapper {
   border-radius: 12px;
