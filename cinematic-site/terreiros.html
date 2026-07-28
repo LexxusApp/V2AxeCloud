@@ -624,7 +624,7 @@ function atualizaMapa(filtrados) {
       mapa.invalidateSize();
       mapa.fitBounds(L.latLngBounds(coords), {
         padding: [34, 34],
-        maxZoom: cidadeAtual ? 13 : 10,
+        maxZoom: cidadeAtual ? 13 : estadoAtual ? 10 : 8,
       });
     });
   } else if (todosPontos.length) {
@@ -661,21 +661,23 @@ $("#btn-perto").addEventListener("click", () => {
 
 function cidadesDoEstado(uf) {
   const key = String(uf || "").toLowerCase();
+  if (!key) return cidades;
   return cidades.filter((c) => String(c.estado || "").toLowerCase() === key);
 }
 
 function atualizaSeletorCidades(uf, selectedSlug = "") {
   const lista = cidadesDoEstado(uf);
   const seletor = $("#seletor-cidade");
+  const placeholder = uf ? "Todas as cidades do estado…" : "Todas as cidades…";
   seletor.innerHTML =
-    '<option value="">Todas as cidades do estado…</option>' +
+    `<option value="">${placeholder}</option>` +
     lista
       .map(
         (c) =>
-          `<option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)} (${c.count})</option>`,
+          `<option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)}${c.estado ? " – " + esc(c.estado) : ""} (${c.count})</option>`,
       )
       .join("");
-  if (selectedSlug) seletor.value = `${String(uf).toLowerCase()}|${selectedSlug}`;
+  if (selectedSlug && uf) seletor.value = `${String(uf).toLowerCase()}|${selectedSlug}`;
   else seletor.value = "";
 }
 
@@ -697,14 +699,16 @@ async function carregaCidades() {
 
   $("#total-geral").textContent = `${total.toLocaleString("pt-BR")} casas mapeadas em ${cidades.length} cidades · ${estados.length} estado${estados.length === 1 ? "" : "s"}.`;
 
-  $("#chips").innerHTML = estados
-    .map(
-      (e) => `
+  $("#chips").innerHTML =
+    `<button class="chip" type="button" data-uf="">Todos<small>${total}</small></button>` +
+    estados
+      .map(
+        (e) => `
     <button class="chip" type="button" data-uf="${esc(e.estado.toLowerCase())}">
       ${esc(e.nome)}<small>${e.count}</small>
     </button>`,
-    )
-    .join("");
+      )
+      .join("");
 }
 
 function syncUrlEstado(uf, cidadeSlug = "") {
@@ -714,9 +718,46 @@ function syncUrlEstado(uf, cidadeSlug = "") {
   else params.delete("uf");
   if (cidadeSlug) params.set("cidade", cidadeSlug);
   else params.delete("cidade");
-  const next = `${location.pathname}?${params.toString()}`;
+  const qs = params.toString();
+  const next = qs ? `${location.pathname}?${qs}` : location.pathname;
   if (`${location.pathname}${location.search}` !== next) {
     history.replaceState(null, "", next);
+  }
+}
+
+async function carregaTodos() {
+  grade.innerHTML = '<p class="estado">abrindo o mapeamento completo…</p>';
+  contagem.textContent = "";
+  estadoAtual = null;
+  cidadeAtual = null;
+  syncUrlEstado("");
+  marcaChipEstado("");
+  try {
+    const pacotes = await Promise.all(
+      estados.map(async (e) => {
+        const uf = e.estado.toLowerCase();
+        const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}?limit=120`);
+        if (!r.ok) throw new Error("estado " + uf + " " + r.status);
+        return r.json();
+      }),
+    );
+    itens = pacotes.flatMap((data) => data.items || []);
+    totalItens = pacotes.reduce((sum, data) => sum + (Number(data.total) || 0), 0);
+    listaCompleta = itens.length >= totalItens;
+    visiveis = 24;
+    atualizaSeletorCidades("");
+    desenha();
+  } catch (e) {
+    console.warn(e);
+    // Mesmo sem lista completa, o mapa ainda pode mostrar todos os pins.
+    itens = [];
+    totalItens = todosPontos.length;
+    listaCompleta = true;
+    atualizaSeletorCidades("");
+    desenha();
+    if (!todosPontos.length) {
+      grade.innerHTML = '<p class="estado">Não foi possível carregar o mapeamento agora.</p>';
+    }
   }
 }
 
@@ -784,14 +825,28 @@ async function garanteListaCompleta() {
     listaCompleta = true;
     return;
   }
-  if (!estadoAtual) return;
-  const uf = estadoAtual.estado.toLowerCase();
-  const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}`);
-  if (!r.ok) throw new Error("estado completo " + r.status);
-  const data = await r.json();
-  if (!estadoAtual || estadoAtual.estado.toLowerCase() !== uf) return;
-  itens = data.items || itens;
-  totalItens = Number(data.total) || itens.length;
+  if (estadoAtual) {
+    const uf = estadoAtual.estado.toLowerCase();
+    const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}`);
+    if (!r.ok) throw new Error("estado completo " + r.status);
+    const data = await r.json();
+    if (!estadoAtual || estadoAtual.estado.toLowerCase() !== uf) return;
+    itens = data.items || itens;
+    totalItens = Number(data.total) || itens.length;
+    listaCompleta = true;
+    return;
+  }
+  const pacotes = await Promise.all(
+    estados.map(async (e) => {
+      const uf = e.estado.toLowerCase();
+      const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}`);
+      if (!r.ok) throw new Error("estado completo " + uf + " " + r.status);
+      return r.json();
+    }),
+  );
+  if (estadoAtual || cidadeAtual) return;
+  itens = pacotes.flatMap((data) => data.items || []);
+  totalItens = pacotes.reduce((sum, data) => sum + (Number(data.total) || 0), 0);
   listaCompleta = true;
 }
 
@@ -811,13 +866,18 @@ function desenha() {
   } else if (estadoAtual) {
     contagem.textContent = `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${estadoAtual.nomeEstado}`;
   } else {
-    contagem.textContent = "";
+    contagem.textContent = `${totalExibido || todosPontos.length} terreiro${(totalExibido || todosPontos.length) === 1 ? "" : "s"} em todo o Brasil`;
   }
 
   atualizaMapa(filtrados);
 
-  if (!filtrados.length) {
+  if (!filtrados.length && !todosPontos.length) {
     grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta seleção.</p>';
+    return;
+  }
+
+  if (!filtrados.length) {
+    grade.innerHTML = '<p class="estado">Nenhuma ficha nesta seleção — o mapa acima continua com os pins disponíveis.</p>';
     return;
   }
 
@@ -873,20 +933,29 @@ function desenha() {
 
 function marcaChipEstado(uf) {
   const key = String(uf || "").toLowerCase();
-  document.querySelectorAll(".chip").forEach((c) =>
-    c.classList.toggle("ativo", c.dataset.uf === key));
+  document.querySelectorAll(".chip").forEach((c) => {
+    const chipUf = String(c.dataset.uf || "").toLowerCase();
+    c.classList.toggle("ativo", chipUf === key);
+  });
 }
 
 $("#chips").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
-  marcaChipEstado(chip.dataset.uf);
-  carregaEstado(chip.dataset.uf);
+  const uf = String(chip.dataset.uf || "").toLowerCase();
+  if (!uf || chip.classList.contains("ativo")) {
+    marcaChipEstado("");
+    carregaTodos();
+    return;
+  }
+  marcaChipEstado(uf);
+  carregaEstado(uf);
 });
 
 $("#seletor-cidade").addEventListener("change", (e) => {
   if (!e.target.value) {
     if (estadoAtual) carregaEstado(estadoAtual.estado.toLowerCase());
+    else carregaTodos();
     return;
   }
   const [uf, slug] = e.target.value.split("|");
@@ -907,7 +976,7 @@ $("#busca").addEventListener("input", (e) => {
   }, 250);
 });
 
-/* Início: carrega cidades + pontos do mapa e abre estado da URL ou o maior */
+/* Início: visão geral (todos os estados), salvo se a URL pedir uf/cidade */
 (async function init() {
   try {
     await Promise.all([carregaCidades(), carregaPontosMapa()]);
@@ -938,12 +1007,16 @@ $("#busca").addEventListener("input", (e) => {
       return;
     }
 
-    const estadoDaUrl = ufParam
-      ? estados.find((e) => e.estado.toLowerCase() === ufParam)
-      : null;
-    const escolhido = estadoDaUrl || estados[0];
-    marcaChipEstado(escolhido.estado.toLowerCase());
-    await carregaEstado(escolhido.estado.toLowerCase());
+    if (ufParam) {
+      const estadoDaUrl = estados.find((e) => e.estado.toLowerCase() === ufParam);
+      if (estadoDaUrl) {
+        marcaChipEstado(estadoDaUrl.estado.toLowerCase());
+        await carregaEstado(estadoDaUrl.estado.toLowerCase());
+        return;
+      }
+    }
+
+    await carregaTodos();
   } catch (e) {
     console.warn(e);
     grade.innerHTML = '<p class="estado">Não foi possível consultar o mapeamento agora — verifique o sistema ou a internet.</p>';
