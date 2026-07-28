@@ -15,8 +15,11 @@ function isMapPoint(value: unknown): value is DiretorioMapPoint {
   const point = value as Partial<DiretorioMapPoint>;
   return Boolean(
     point.slug && point.nome && point.cidade && point.estado && point.perfilUrl &&
-    typeof point.lat === 'number' && Number.isFinite(point.lat) && Math.abs(point.lat) <= 90 &&
-    typeof point.lng === 'number' && Number.isFinite(point.lng) && Math.abs(point.lng) <= 180
+    typeof point.lat === 'number' && Number.isFinite(point.lat) &&
+    typeof point.lng === 'number' && Number.isFinite(point.lng) &&
+    !(Math.abs(point.lat) < 0.2 && Math.abs(point.lng) < 0.2) &&
+    point.lat >= -34.5 && point.lat <= 5.5 &&
+    point.lng >= -74.5 && point.lng <= -32.0
   );
 }
 

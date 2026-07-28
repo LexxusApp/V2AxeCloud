@@ -16,7 +16,7 @@ import {
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
 import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
-import { parseGoogleMapsCoordinates } from "../lib/diretorioCoordinates.ts";
+import { isPlausibleDiretorioCoordinate, parseGoogleMapsCoordinates } from "../lib/diretorioCoordinates.ts";
 import { isDiretorioListingPublishable } from "../lib/diretorioQuality.ts";
 import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
 import {
@@ -148,7 +148,10 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
   const nome = String(row.nome || "Terreiro").trim();
   const latitude = optionalCoordinate(row.latitude, 90);
   const longitude = optionalCoordinate(row.longitude, 180);
-  const hasCoordinates = latitude !== null && longitude !== null;
+  const hasCoordinates =
+    latitude !== null &&
+    longitude !== null &&
+    isPlausibleDiretorioCoordinate(latitude, longitude);
   return {
     slug,
     nome,
@@ -309,7 +312,9 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
   const points = rows.flatMap((row) => {
     if (!row.slug || seen.has(row.slug)) return [];
     const coordinates =
-      row.latitude !== null && row.longitude !== null
+      row.latitude !== null &&
+      row.longitude !== null &&
+      isPlausibleDiretorioCoordinate(row.latitude, row.longitude)
         ? { lat: row.latitude, lng: row.longitude }
         : parseGoogleMapsCoordinates(row.linkMaps);
     if (!coordinates) return [];

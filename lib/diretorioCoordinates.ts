@@ -1,5 +1,17 @@
 export type DiretorioCoordinates = { lat: number; lng: number };
 
+/** Aceita só pontos plausíveis no Brasil (rejeita 0,0 e coordenadas genéricas/fora do país). */
+export function isPlausibleDiretorioCoordinate(lat: number, lng: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+  // Null Island e ruídos próximos de (0,0)
+  if (Math.abs(lat) < 0.2 && Math.abs(lng) < 0.2) return false;
+  // Bounding box amplo do Brasil continental + faixa costeira
+  if (lat < -34.5 || lat > 5.5) return false;
+  if (lng < -74.5 || lng > -32.0) return false;
+  return true;
+}
+
 export function parseGoogleMapsCoordinates(link: string | null | undefined): DiretorioCoordinates | null {
   if (!link) return null;
 
@@ -21,7 +33,7 @@ export function parseGoogleMapsCoordinates(link: string | null | undefined): Dir
     if (!match) continue;
     const lat = Number(match[1]);
     const lng = Number(match[2]);
-    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+    if (isPlausibleDiretorioCoordinate(lat, lng)) {
       return { lat, lng };
     }
   }

@@ -532,7 +532,16 @@ async function carregaPontosMapa() {
     const r = await fetch("/terreiros/mapa.json");
     if (!r.ok) throw new Error("mapa " + r.status);
     const data = await r.json();
-    todosPontos = (data.points || []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    todosPontos = (data.points || []).filter(
+      (p) =>
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lng) &&
+        !(Math.abs(p.lat) < 0.2 && Math.abs(p.lng) < 0.2) &&
+        p.lat >= -34.5 &&
+        p.lat <= 5.5 &&
+        p.lng >= -74.5 &&
+        p.lng <= -32.0,
+    );
     coberturaCidades = (data.cityCoverage || []).filter(
       (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number(p.missing) > 0,
     );

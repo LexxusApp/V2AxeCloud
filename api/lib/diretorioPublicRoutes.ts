@@ -18,6 +18,7 @@ import {
   fetchTerreirosByEstado,
 } from "../../lib/diretorioQuery.js";
 import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
+import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 
@@ -63,6 +64,7 @@ function nomeEstado(uf: string): string {
 }
 
 function validCoordinate(value: unknown, max: number): number | null {
+  if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
 }
@@ -81,6 +83,10 @@ function mapRow(row: Record<string, unknown>) {
   const nome = String(row.nome || "Terreiro").trim();
   const latitude = validCoordinate(row.latitude, 90);
   const longitude = validCoordinate(row.longitude, 180);
+  const hasCoords =
+    latitude !== null &&
+    longitude !== null &&
+    isPlausibleDiretorioCoordinate(latitude, longitude);
   return {
     slug,
     nome,
@@ -94,10 +100,9 @@ function mapRow(row: Record<string, unknown>) {
     bairro,
     bairroSlug,
     tipo: resolveDiretorioTipo(row.tipo, nome),
-    latitude: latitude !== null && longitude !== null ? latitude : null,
-    longitude: latitude !== null && longitude !== null ? longitude : null,
-    coordinateSource:
-      latitude !== null && longitude !== null ? String(row.coordinate_source || "google_maps_url") : null,
+    latitude: hasCoords ? latitude : null,
+    longitude: hasCoords ? longitude : null,
+    coordinateSource: hasCoords ? String(row.coordinate_source || "google_maps_url") : null,
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };

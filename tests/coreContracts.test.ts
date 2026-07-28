@@ -12,7 +12,10 @@ import {
 } from '../src/constants/whatsappTemplates.ts';
 import { isValidUuid, normalizeQueryTenantId } from '../api/lib/tenantAccess.ts';
 import { parseGoogleMapsCoordinates } from '../lib/diretorioCoordinates.ts';
-import { isClearlyOutsideDiretorioScope } from '../lib/diretorioQuality.ts';
+import {
+  isClearlyOutsideDiretorioScope,
+  isDiretorioListingPublishable,
+} from '../lib/diretorioQuality.ts';
 
 test('política de senha rejeita cada requisito ausente e aceita senha forte', () => {
   assert.equal(validateStrongPassword('Curta1!').ok, false);
@@ -65,6 +68,8 @@ test('coordenadas do Google Maps aceitam formatos públicos e rejeitam valores i
     { lat: -22.906847, lng: -43.172896 },
   );
   assert.equal(parseGoogleMapsCoordinates('https://www.google.com/maps?q=999.0,999.0'), null);
+  assert.equal(parseGoogleMapsCoordinates('https://www.google.com/maps?q=0.0,0.0'), null);
+  assert.equal(parseGoogleMapsCoordinates('https://www.google.com/maps/place/X/@0,0,15z'), null);
 });
 
 test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => {
@@ -83,4 +88,29 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
     true,
   );
   assert.equal(isClearlyOutsideDiretorioScope('Terreiro Cultural do Viaduto de Madureira'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Terreiro de Ideias: Arte e Comunicação'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Confraria do Impossível'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Casa de Velas Jardim de Cima'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Loja do Axé e Artigos Religiosos'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Casa'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Omo Arô Cia Cultural'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Prefeitura de São Sebastião do Alto'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Escola de Atabaque Ritmos da Umbanda'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('MuseUmbanda'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Bazar dos Orixás'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Centro Espírita de Valença - CEV'), true);
+  // O nome sozinho não distingue uma casa umbandista histórica de um centro
+  // kardecista; essa decisão é feita na importação com o contexto do Maps.
+  assert.equal(isClearlyOutsideDiretorioScope('Centro Espírita Amor e Verdade'), false);
+  assert.equal(isClearlyOutsideDiretorioScope('Centro Espírita Caboclo Sete Flechas'), false);
+  assert.equal(
+    isDiretorioListingPublishable({
+      nome: 'Cantagalo',
+      slug: 'cantagalo',
+      cidade: 'Cantagalo',
+      estado: 'RJ',
+      endereco: 'Cantagalo - RJ',
+    }),
+    false,
+  );
 });

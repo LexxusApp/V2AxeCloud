@@ -43,22 +43,35 @@ const TABLE = "terreiros_diretorio";
 
 /** Termos padrão — uma busca por termo × local (deduplica por link_maps) */
 const DEFAULT_SEARCH_TERMS = [
+  "terreiro",
   "terreiro umbanda",
   "terreiro de umbanda",
   "casa de umbanda",
+  "centro de umbanda",
   "templo de umbanda",
   "terreiro candomblé",
+  "casa de candomblé",
+  "ilê axé",
   "centro espírita umbanda",
 ];
 
 const FEED_SELECTORS = ['div[role="feed"]', 'div.m6QErb[role="feed"]'];
 const AXE_CONTEXT_RE =
-  /\b(umbanda|candomble|quimbanda|terreiro|tenda|jurema|afro|orixa|caboclo|exu|vodun|nago|axe|ase|ile)\b/i;
+  /\b(umband(?:a|ista)|catobandista|candomble|quimbanda|terreiro|tenda|jurema|afro|orixa|babalorixa|ialorixa|caboclo|exu|vodun|nago|axe|ase|ile|ilesin|inzo|abassa|barracao|egbe|kwe|hunkpame|pai|mae|ogum|oxossi|oxum|xango|iemanja|iansa|oya|oxala|omolu|obaluae|nan[ãa]|pombagira|preto\s+velho|vovo|boiadeiro|ze\s+pelintra|maria\s+(?:mulambo|padilha)|sete\s+flechas|tupinamba|aruanda|angola|congo|guine|falangeiros?|eres?)\b/i;
 const CLEARLY_OUT_OF_SCOPE_RE =
   /\b(racionalismo\s+cristao|allan?\s+kardec|kardecista|paroquia|catolic|evangelic|adventista|igreja\s+sant[ao]|igreja\s+universal|testemunhas?\s+de\s+jeova|ministerio\s+extrema|projeto\s+refugio)\b/i;
 const COMMERCIAL_SERVICE_RE =
-  /\b(especialista\s+em\s+uniao\s+de\s+casais|consulta\s+com|jogo\s+de\s+buzios\s*[-–—]|amarracao\s+amorosa|trabalhos?\s+amorosos?|cartomante|tarolog[oa]|vidente)\b/i;
-const INVALID_PLACE_NAME_RE = /^(proximo\s+a)\b|\bterreiro\s+cultural\b/i;
+  /\b(especialista\s+em\s+uniao\s+de\s+casais|consultas?\s+com|jogo\s+de\s+buzios\s*[-–—]|amarracao\s+amorosa|trabalhos?\s+amorosos?|cartomante|tarolog[oa]|tar[oô]|baralho\s+cigano|vidente)\b/i;
+const INVALID_PLACE_NAME_RE =
+  /^(proximo\s+a)\b|^(casa|centro|sitio|templo|terreiro)$|\b(prefeitura|camara\s+municipal|secretaria\s+municipal|escola\s+de\s+atabaque)\b|\bterreiro\s+cultural\b|\bterreiro\s+de\s+ideias\b|\bconfraria\s+do\s+impossivel\b|^centro\s+espirita\s+de\s+valenca\b/i;
+const CLEARLY_COMMERCIAL_PLACE_RE =
+  /\b(casa\s+de\s+velas|loja\s+do\s+axe|artigos?\s+religiosos?|bazar|distribuidora|tabacaria|adega|restaurante|buffet|museu|museumbanda|cia\.?\s+cultural)\b/i;
+const CLEARLY_OUT_OF_SCOPE_CATEGORY_RE =
+  /\b(restaurante|restaurant|loja|store|shop|bazar|museu|museum|centro\s+cultural|cultural\s+center|prefeitura|city\s+hall|reparticao|government\s+office|escola|school|bar|hotel|pousada)\b/i;
+const OBVIOUSLY_IRRELEVANT_LINK_NAME_RE =
+  /\b(igreja|rodoviaria|defensoria|estadio|academia|otica|prefeitura|camara\s+municipal|secretaria|supermercado|farmacia|hotel|pousada|restaurante|lanchonete|chaveiro|faculdade|universidade|clinica|hospital)\b/i;
+const GENERIC_SPIRITIST_RE =
+  /^(centro(?:\s+de\s+estudos)?|grupo|casa|sociedade|fraternidade)\s+espiritas?\b/i;
 
 function normalizeForQuality(value) {
   return String(value || "")
@@ -72,10 +85,52 @@ function isValidScrapedName(value) {
   return String(value || "").trim().replace(/[^\p{L}\p{N}]/gu, "").length >= 3;
 }
 
-function isClearlyOutsideScrapeScope(value) {
+function isClearlyOutsideScrapeScope(value, categoryValue = "") {
   const normalized = normalizeForQuality(value);
-  if (COMMERCIAL_SERVICE_RE.test(normalized) || INVALID_PLACE_NAME_RE.test(normalized)) return true;
+  const normalizedCategory = normalizeForQuality(categoryValue);
+  if (
+    COMMERCIAL_SERVICE_RE.test(normalized) ||
+    CLEARLY_COMMERCIAL_PLACE_RE.test(normalized) ||
+    INVALID_PLACE_NAME_RE.test(normalized) ||
+    CLEARLY_OUT_OF_SCOPE_CATEGORY_RE.test(normalizedCategory)
+  ) {
+    return true;
+  }
+  if (
+    GENERIC_SPIRITIST_RE.test(normalized) &&
+    !AXE_CONTEXT_RE.test(normalized) &&
+    !AXE_CONTEXT_RE.test(normalizedCategory)
+  ) {
+    return true;
+  }
+  // A categoria do local é isolada do restante da página. O texto geral do
+  // Maps contém sugestões e o termo pesquisado, por isso não serve como prova.
+  if (!AXE_CONTEXT_RE.test(normalized) && !AXE_CONTEXT_RE.test(normalizedCategory)) return true;
   return CLEARLY_OUT_OF_SCOPE_RE.test(normalized) && !AXE_CONTEXT_RE.test(normalized);
+}
+
+function placeNameFromMapsUrl(value) {
+  try {
+    const path = new URL(String(value || "")).pathname;
+    const encodedName = path.match(/\/maps\/place\/([^/]+)/)?.[1];
+    return encodedName ? decodeURIComponent(encodedName.replace(/\+/g, " ")) : "";
+  } catch {
+    return "";
+  }
+}
+
+function isObviouslyIrrelevantMapsLink(value) {
+  const name = normalizeForQuality(placeNameFromMapsUrl(value));
+  if (!name) return false;
+  if (
+    COMMERCIAL_SERVICE_RE.test(name) ||
+    CLEARLY_COMMERCIAL_PLACE_RE.test(name) ||
+    INVALID_PLACE_NAME_RE.test(name)
+  ) {
+    return true;
+  }
+  if (AXE_CONTEXT_RE.test(name)) return false;
+  return OBVIOUSLY_IRRELEVANT_LINK_NAME_RE.test(name) || CLEARLY_OUT_OF_SCOPE_RE.test(name);
 }
 
 function formatError(error) {
@@ -87,9 +142,24 @@ function formatError(error) {
   return String(error);
 }
 
-function isAddressWithinLocation(address, cidade) {
-  if (!address || !cidade) return true;
-  return normalizeForQuality(address).includes(normalizeForQuality(cidade));
+function isAddressWithinLocation(address, cidade, estado) {
+  // Sem endereço não há como provar que uma sugestão do Maps pertence ao
+  // município pesquisado. Em cidades pequenas o Google mistura resultados de
+  // todo o país, portanto a ausência deve falhar de forma segura.
+  if (!address || !cidade) return false;
+  const raw = String(address);
+  const escapedState = String(estado || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (escapedState) {
+    const standard = raw.match(new RegExp(`,\\s*([^,]+?)\\s*-\\s*${escapedState}(?=,|$)`, "i"));
+    const alternate = raw.match(new RegExp(`-\\s*([^,]+?),\\s*${escapedState}(?=,|$)`, "i"));
+    const municipality = standard?.[1] || alternate?.[1];
+    if (municipality) {
+      return normalizeForQuality(municipality) === normalizeForQuality(cidade);
+    }
+    const stateConfirmed = new RegExp(`(?:-|,)\\s*${escapedState}(?=,|$)`, "i").test(raw);
+    return stateConfirmed && normalizeForQuality(raw).includes(normalizeForQuality(cidade));
+  }
+  return false;
 }
 
 function identityTokens(value) {
@@ -375,6 +445,19 @@ function normalizeMapsUrl(href) {
   }
 }
 
+function mapsPlaceKey(url) {
+  const value = String(url || "");
+  const googlePlaceId = value.match(/!1s([^!/?#]+)/i)?.[1];
+  if (googlePlaceId) return `id:${googlePlaceId.toLowerCase()}`;
+
+  const placePath = value.match(/\/maps\/place\/([^/@?#]+)/i)?.[1];
+  const coordinates = parseMapsCoordinates(value);
+  if (placePath && coordinates) {
+    return `place:${placePath.toLowerCase()}@${coordinates.latitude.toFixed(5)},${coordinates.longitude.toFixed(5)}`;
+  }
+  return null;
+}
+
 function parseMapsCoordinates(link) {
   const value = String(link || "");
   for (const pattern of [
@@ -386,8 +469,15 @@ function parseMapsCoordinates(link) {
     const latitude = Number(match[1]);
     const longitude = Number(match[2]);
     if (
-      Number.isFinite(latitude) && Math.abs(latitude) <= 90 &&
-      Number.isFinite(longitude) && Math.abs(longitude) <= 180
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      Math.abs(latitude) <= 90 &&
+      Math.abs(longitude) <= 180 &&
+      !(Math.abs(latitude) < 0.2 && Math.abs(longitude) < 0.2) &&
+      latitude >= -34.5 &&
+      latitude <= 5.5 &&
+      longitude >= -74.5 &&
+      longitude <= -32.0
     ) {
       return { latitude, longitude };
     }
@@ -615,6 +705,8 @@ async function collectPlaceLinks(page) {
   const hrefs = await page.locator('a[href*="/maps/place/"]').evaluateAll((anchors) =>
     anchors.map((a) => a.href).filter(Boolean),
   );
+  const currentUrl = page.url();
+  if (/\/maps\/place\//i.test(currentUrl)) hrefs.push(currentUrl);
   return [...new Set(hrefs.map(normalizeMapsUrl).filter((u) => !isStreetViewMapsUrl(u)))];
 }
 
@@ -659,15 +751,27 @@ async function extractPlaceDetails(page, placeUrl, hints = {}) {
       null;
   }
 
+  // Guarde a URL canônica antes de abrir a galeria: algumas fotos levam o
+  // navegador ao Street View e não podem substituir o link público da casa.
+  const placePageUrl = page.url();
+  const link_maps = normalizeMapsUrl(placePageUrl);
+  const coordinates = parseMapsCoordinates(link_maps) || parseMapsCoordinates(placePageUrl);
+  const category = await page
+    .locator(
+      'button[jsaction*="pane.rating.category"], button.DkEaL, [data-item-id="authority"]',
+    )
+    .first()
+    .innerText()
+    .then((text) => String(text || "").trim())
+    .catch(() => "");
   const foto_url = await extractPlacePhoto(page);
 
-  const link_maps = normalizeMapsUrl(page.url());
-  const coordinates = parseMapsCoordinates(link_maps) || parseMapsCoordinates(page.url());
   return {
     nome: nome?.trim() || null,
     endereco: cleanGoogleAddress(endereco),
     telefone: telefone?.trim() || null,
     foto_url,
+    category,
     link_maps,
     latitude: coordinates?.latitude ?? null,
     longitude: coordinates?.longitude ?? null,
@@ -696,14 +800,22 @@ async function upsertTerreiro(supabase, row, usedSlugs) {
   if (row.nome && row.endereco) {
     const { data: samePlace, error: identityError } = await supabase
       .from(TABLE)
-      .select("id")
+      .select("id, link_maps")
       .eq("cidade", row.cidade)
       .ilike("nome", row.nome)
       .ilike("endereco", row.endereco)
       .limit(1)
       .maybeSingle();
     if (identityError) throw identityError;
-    if (samePlace) return { action: "skipped", id: samePlace.id };
+    if (samePlace) {
+      if (isStreetViewMapsUrl(samePlace.link_maps) && !isStreetViewMapsUrl(row.link_maps)) {
+        await supabase
+          .from(TABLE)
+          .update({ link_maps: row.link_maps })
+          .eq("id", samePlace.id);
+      }
+      return { action: "skipped", id: samePlace.id };
+    }
   }
 
   if (row.nome && row.latitude != null && row.longitude != null) {
@@ -734,9 +846,37 @@ async function upsertTerreiro(supabase, row, usedSlugs) {
     cidade_slug: slugifyText(row.cidade, 60),
   };
 
-  const { data: inserted, error: insertErr } = await supabase.from(TABLE).insert(payload).select("id").single();
-  if (insertErr) throw insertErr;
-  return { action: "inserted", id: inserted.id };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data: inserted, error: insertErr } = await supabase
+      .from(TABLE)
+      .insert(payload)
+      .select("id")
+      .single();
+    if (!insertErr) return { action: "inserted", id: inserted.id };
+
+    const errorText = formatError(insertErr);
+    const isUniqueViolation = insertErr.code === "23505";
+    if (isUniqueViolation && /link_maps/i.test(errorText)) {
+      const { data: racedPlace } = await supabase
+        .from(TABLE)
+        .select("id")
+        .eq("link_maps", row.link_maps)
+        .limit(1)
+        .maybeSingle();
+      if (racedPlace) return { action: "skipped", id: racedPlace.id };
+    }
+    if (isUniqueViolation && /slug/i.test(errorText)) {
+      const retryBase =
+        attempt === 0
+          ? `${row.nome}-${row.cidade}`
+          : `${row.nome}-${row.cidade}-${Date.now().toString(36)}`;
+      payload.slug = uniqueSlug(retryBase, usedSlugs);
+      continue;
+    }
+    throw insertErr;
+  }
+
+  throw new Error(`Não foi possível gerar slug único para ${row.nome}`);
 }
 
 async function enrichExisting(page, supabase, row, options, meta) {
@@ -822,7 +962,7 @@ async function enrichCidade(page, supabase, meta, options) {
   return stats;
 }
 
-async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
+async function scrapeCidade(page, supabase, meta, options, usedSlugs, existingLinks, existingPlaceKeys) {
   const { label, cidade, estado } = meta;
   const queries = buildQueriesForLocation(meta, options);
 
@@ -853,18 +993,42 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
     console.log(`  [${i + 1}/${limited.length}] ${link}`);
 
     try {
+      if (isObviouslyIrrelevantMapsLink(link)) {
+        console.log("    · resultado obviamente fora do nicho — ignorado pelo link");
+        stats.skipped += 1;
+        continue;
+      }
+      const normalizedLink = normalizeMapsUrl(link);
+      const placeKey = mapsPlaceKey(normalizedLink);
+      if (
+        !options.dryRun &&
+        (existingLinks.has(normalizedLink) || (placeKey && existingPlaceKeys.has(placeKey)))
+      ) {
+        console.log("    · link já cadastrado — ignorado antes de abrir");
+        stats.skipped += 1;
+        continue;
+      }
+
       const details = await extractPlaceDetails(page, link);
       if (!details.nome) {
         console.warn("    ⚠ Nome não encontrado — ignorando");
         stats.errors += 1;
         continue;
       }
-      if (!isValidScrapedName(details.nome) || isClearlyOutsideScrapeScope(details.nome)) {
+      if (
+        !isValidScrapedName(details.nome) ||
+        isClearlyOutsideScrapeScope(details.nome, details.category)
+      ) {
         console.warn("    ⚠ Resultado inválido ou fora do nicho — ignorando");
         stats.skipped += 1;
         continue;
       }
-      if (!isAddressWithinLocation(details.endereco, cidade)) {
+      if (normalizeForQuality(details.nome) === normalizeForQuality(cidade)) {
+        console.warn("    ⚠ Resultado representa o município, não uma casa — ignorando");
+        stats.skipped += 1;
+        continue;
+      }
+      if (!isAddressWithinLocation(details.endereco, cidade, estado)) {
         console.warn("    ⚠ Endereço pertence a outro município — ignorando");
         stats.skipped += 1;
         continue;
@@ -897,6 +1061,9 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs) {
       }
 
       const result = await upsertTerreiro(supabase, row, usedSlugs);
+      existingLinks.add(normalizeMapsUrl(details.link_maps));
+      const insertedPlaceKey = mapsPlaceKey(details.link_maps);
+      if (insertedPlaceKey) existingPlaceKeys.add(insertedPlaceKey);
       if (result.action === "inserted") {
         console.log(`    ✓ inserido (${result.id})`);
         stats.inserted += 1;
@@ -956,11 +1123,27 @@ async function main() {
 
   const page = await context.newPage();
   const usedSlugs = new Set();
+  const existingLinks = new Set();
+  const existingPlaceKeys = new Set();
 
   if (supabase) {
-    const { data: slugRows } = await supabase.from(TABLE).select("slug").not("slug", "is", null);
-    for (const r of slugRows || []) {
-      if (r.slug) usedSlugs.add(String(r.slug));
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: existingRows, error } = await supabase
+        .from(TABLE)
+        .select("slug, link_maps")
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      for (const row of existingRows || []) {
+        if (row.slug) usedSlugs.add(String(row.slug));
+        if (row.link_maps) {
+          const normalizedLink = normalizeMapsUrl(String(row.link_maps));
+          existingLinks.add(normalizedLink);
+          const placeKey = mapsPlaceKey(normalizedLink);
+          if (placeKey) existingPlaceKeys.add(placeKey);
+        }
+      }
+      if ((existingRows || []).length < pageSize) break;
     }
   }
 
@@ -975,7 +1158,15 @@ async function main() {
           totals.skipped += stats.skipped;
           totals.errors += stats.errors;
         } else {
-          const stats = await scrapeCidade(page, supabase, meta, args, usedSlugs);
+          const stats = await scrapeCidade(
+            page,
+            supabase,
+            meta,
+            args,
+            usedSlugs,
+            existingLinks,
+            existingPlaceKeys,
+          );
           totals.inserted += stats.inserted;
           totals.skipped += stats.skipped;
           totals.errors += stats.errors;
