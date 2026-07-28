@@ -171,7 +171,7 @@ function PricingSection({
 function ClosingSection() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
-  const scale = useTransform(scrollYProgress, [0, 1], [0.96, 1]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.97, 1]);
 
   return (
     <section ref={ref} id="cta" className="relative z-[1] px-5 pb-20 font-display text-[#1b1813] md:pb-28">
@@ -378,7 +378,7 @@ function MobileConversionBar() {
       aria-label="Começar no AxéCloud"
       aria-hidden={inlineCtaVisible}
       className={cn(
-        'fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-md transition-[opacity,transform] duration-300 will-change-transform md:hidden',
+        'fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white p-2 shadow-2xl shadow-black/20 transition-[opacity,transform] duration-300 will-change-transform md:hidden',
         inlineCtaVisible
           ? 'pointer-events-none translate-y-24 opacity-0'
           : 'translate-y-0 opacity-100',

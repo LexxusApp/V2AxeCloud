@@ -455,15 +455,48 @@ let glowRaf = 0;
 let glowStyleNode: HTMLStyleElement | null = null;
 
 function onSharedGlowPointer(e: PointerEvent) {
+  // Durante o scroll o spotlight compete com paint/compositor — pausa sem perder o efeito em idle.
+  if (document.documentElement.hasAttribute('data-landing-scrolling')) return;
   if (glowRaf) return;
   glowRaf = requestAnimationFrame(() => {
     glowRaf = 0;
+    if (document.documentElement.hasAttribute('data-landing-scrolling')) return;
     const root = document.documentElement;
     root.style.setProperty('--x', e.clientX.toFixed(2));
     root.style.setProperty('--xp', (e.clientX / window.innerWidth).toFixed(2));
     root.style.setProperty('--y', e.clientY.toFixed(2));
     root.style.setProperty('--yp', (e.clientY / window.innerHeight).toFixed(2));
   });
+}
+
+/** Marca scroll ativo para pausar animações CSS caras sem remover efeitos em idle. */
+function useLandingScrollFluidity() {
+  useEffect(() => {
+    const root = document.documentElement;
+    let raf = 0;
+    let idleTimer = 0;
+    const endScroll = () => {
+      root.removeAttribute('data-landing-scrolling');
+    };
+    const onScroll = () => {
+      if (!root.hasAttribute('data-landing-scrolling')) {
+        root.setAttribute('data-landing-scrolling', '1');
+      }
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(endScroll, 120);
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.clearTimeout(idleTimer);
+      if (raf) cancelAnimationFrame(raf);
+      endScroll();
+    };
+  }, []);
 }
 
 function retainSharedGlowPointer() {
@@ -553,7 +586,7 @@ function GlowCard({ children, className }: { children: ReactNode; className?: st
 function MatrizBackground() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden [contain:strict] [transform:translateZ(0)]"
       aria-hidden
     >
       <div className="absolute inset-0 bg-[#fdf8f0]" />
@@ -568,24 +601,28 @@ function MatrizBackground() {
         }}
       />
       <div className="matriz-pattern-kente absolute inset-0 opacity-[0.35]" />
-      <div className="matriz-pattern-grain absolute inset-0 opacity-35" />
+      {/* Grain leve sem feTurbulence (SVG filter forçava paint a cada frame no scroll). */}
+      <div className="matriz-pattern-grain absolute inset-0 opacity-25" />
     </div>
   );
 }
 
 function Hero() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
-  const copyY = useTransform(scrollYProgress, [0, 1], [0, 40]);
-  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0.32]);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  });
+  // Só transform (compositor) — opacity no scroll força paint e trava a rolagem.
+  const imgY = useTransform(scrollYProgress, [0, 1], [0, 56]);
+  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 0.96]);
+  const copyY = useTransform(scrollYProgress, [0, 1], [0, 28]);
 
   return (
     <section ref={ref} id="plataforma" className="relative z-10 overflow-x-clip pb-16 pt-28 md:pb-24 md:pt-36">
       <Shell>
         <div className="grid items-center gap-12 min-[900px]:grid-cols-[0.98fr_1.02fr] min-[900px]:gap-8 xl:gap-16">
-          <motion.div style={{ y: copyY, opacity }}>
+          <motion.div style={{ y: copyY }} className="will-change-transform">
             <Reveal>
               <span className="matriz-kicker-pulse inline-flex max-w-full rounded-full bg-[#ffc107] px-3.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-[#1b1813] sm:text-left sm:text-[10px]">
                 Gestão para Terreiros de Umbanda e Candomblé
@@ -686,7 +723,7 @@ function Hero() {
           </motion.div>
 
           <Reveal direction="left" delay={0.15} className="relative">
-            <motion.div style={{ y: imgY, scale: imgScale }} className="relative">
+            <motion.div style={{ y: imgY, scale: imgScale }} className="relative will-change-transform">
               <motion.div
                 className="overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-2 shadow-lg shadow-[#ffc107]/15"
                 whileHover={{ y: -6 }}
@@ -892,7 +929,7 @@ function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
 
 function LiturgyMarquee() {
   return (
-    <div className="relative z-10 border-y border-[#e8dfd0] bg-white/70 py-4 backdrop-blur-sm" aria-hidden>
+    <div className="relative z-10 border-y border-[#e8dfd0] bg-[#faf3e6]/95 py-4" aria-hidden>
       <MarqueeRow />
       <div className="mt-3">
         <MarqueeRow reverse />
@@ -955,9 +992,9 @@ function AgendaSection() {
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const imgY = useTransform(scrollYProgress, [0, 1], [24, -24]);
-  const imgScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.97, 1, 0.97]);
-  const copyY = useTransform(scrollYProgress, [0, 1], [16, -16]);
+  const imgY = useTransform(scrollYProgress, [0, 1], [16, -16]);
+  const imgScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.985, 1, 0.985]);
+  const copyY = useTransform(scrollYProgress, [0, 1], [10, -10]);
 
   return (
     <section ref={ref} id="agenda" className="landing-section-cv relative z-10 bg-[#fdf8f0] py-20 md:py-28">
@@ -1176,7 +1213,7 @@ function SecuritySection() {
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const y = useTransform(scrollYProgress, [0, 1], [32, -32]);
+  const y = useTransform(scrollYProgress, [0, 1], [20, -20]);
   const infrastructure = useInfrastructureMetrics();
 
   return (
@@ -1206,7 +1243,7 @@ function SecuritySection() {
                 <motion.div
                   key={stat.label}
                   variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                  className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-4 text-center backdrop-blur-sm"
+                  className="rounded-2xl border border-white/10 bg-[#221e18] px-3 py-4 text-center"
                 >
                   <p className={cn('text-xl font-black', stat.tone)}>{stat.value}</p>
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#fdf8f0]/45">{stat.label}</p>
@@ -1217,7 +1254,7 @@ function SecuritySection() {
             <div className="mt-8 space-y-3">
               {securityPoints.map((point, i) => (
                 <Reveal key={point.title} delay={0.05 * i}>
-                  <article className="flex gap-4 rounded-2xl border border-[#ffc107]/15 bg-white/[0.04] p-4 backdrop-blur-sm">
+                  <article className="flex gap-4 rounded-2xl border border-[#ffc107]/15 bg-[#221e18] p-4">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#ffc107]/25 bg-[#ffc107]/10">
                       <point.icon className="h-5 w-5 text-[#ffc107]" aria-hidden />
                     </div>
@@ -1301,8 +1338,8 @@ function ModulesSection() {
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const bgY = useTransform(scrollYProgress, [0, 1], [48, -48]);
-  const lineScale = useTransform(scrollYProgress, [0.05, 0.45], [0.25, 1]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [28, -28]);
+  const lineScale = useTransform(scrollYProgress, [0.05, 0.45], [0.35, 1]);
 
   return (
     <section ref={ref} id="recursos" className="landing-section-cv relative z-10 overflow-hidden bg-[#0b0906] py-20 text-[#fff8ea] md:py-28">
@@ -1425,6 +1462,8 @@ function CommunitySection() {
 }
 
 export function MatrizLandingExperience() {
+  useLandingScrollFluidity();
+
   return (
     <div className="relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
       <ScrollProgress />

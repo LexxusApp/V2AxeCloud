@@ -60,10 +60,10 @@ export function MatrizTopNav() {
     >
       <nav
         className={cn(
-          'mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between gap-2 rounded-full border px-2 py-1.5 shadow-xl backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-300 sm:gap-3 sm:px-3 sm:py-2',
+          'mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between gap-2 rounded-full border px-2 py-1.5 shadow-xl transition-[background-color,border-color,box-shadow] duration-300 sm:gap-3 sm:px-3 sm:py-2',
           scrolled
-            ? 'border-[#ffc107]/25 bg-[#fdf8f0]/92 shadow-[#ffc107]/10'
-            : 'border-[#e8dfd0]/80 bg-white/72 shadow-black/5',
+            ? 'border-[#ffc107]/25 bg-[#fdf8f0] shadow-[#ffc107]/10'
+            : 'border-[#e8dfd0]/80 bg-white shadow-black/5',
         )}
       >
         <a href={ROUTES.home} className="flex min-w-0 shrink items-center gap-2 rounded-full pr-1 sm:gap-2.5 sm:pr-3" aria-label="AxéCloud — início">

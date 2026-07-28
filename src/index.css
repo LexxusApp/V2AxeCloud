@@ -58,8 +58,14 @@
 }
 
 .matriz-pattern-grain {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Padrão estático barato — evita feTurbulence (SVG filter) no viewport fixo. */
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(27, 24, 19, 0.045) 0.6px, transparent 0.7px),
+    radial-gradient(circle at 70% 40%, rgba(27, 24, 19, 0.035) 0.55px, transparent 0.65px),
+    radial-gradient(circle at 40% 80%, rgba(168, 116, 0, 0.03) 0.5px, transparent 0.6px);
+  background-size: 3px 3px, 4px 4px, 5px 5px;
   mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 .matriz-marquee-row {
@@ -1587,6 +1593,44 @@ html:has(.landing-v3) body {
   .matriz-kicker-pulse {
     animation: none !important;
   }
+}
+
+/* Durante o scroll: pausa loops CSS e efeitos caros; efeitos voltam no idle. */
+html[data-landing-scrolling] .matriz-marquee-row,
+html[data-landing-scrolling] .matriz-marquee-row--reverse,
+html[data-landing-scrolling] .matriz-atabaque-pulse,
+html[data-landing-scrolling] .matriz-atabaque-glow,
+html[data-landing-scrolling] .matriz-float-y,
+html[data-landing-scrolling] .matriz-drift-x,
+html[data-landing-scrolling] .matriz-drift-x-slow,
+html[data-landing-scrolling] .matriz-wiggle,
+html[data-landing-scrolling] .matriz-kicker-pulse,
+html[data-landing-scrolling] .axe-server-led,
+html[data-landing-scrolling] .axe-server-backlight,
+html[data-landing-scrolling] .axe-server-backlight::before,
+html[data-landing-scrolling] .axe-server-backlight::after {
+  animation-play-state: paused !important;
+}
+
+html[data-landing-scrolling] .matriz-pattern-grain {
+  opacity: 0 !important;
+}
+
+html[data-landing-scrolling] [data-matriz-glow]::before,
+html[data-landing-scrolling] [data-matriz-glow]::after,
+html[data-landing-scrolling] [data-matriz-glow] > [data-matriz-glow] {
+  opacity: 0 !important;
+  filter: none !important;
+}
+
+html[data-landing-scrolling] .matriz-marquee-row,
+html[data-landing-scrolling] .matriz-marquee-row--reverse,
+html[data-landing-scrolling] .matriz-atabaque-pulse,
+html[data-landing-scrolling] .matriz-float-y,
+html[data-landing-scrolling] .matriz-drift-x,
+html[data-landing-scrolling] .matriz-drift-x-slow,
+html[data-landing-scrolling] .matriz-wiggle {
+  will-change: auto;
 }
 
 .landing-v3 .rounded-sm { border-radius: 0.125rem; }
