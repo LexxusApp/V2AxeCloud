@@ -1549,7 +1549,7 @@
 /* Landing v3 â€” visual AI Studio com conteÃºdo AxÃ©Cloud */
 html:has(.landing-v3) {
   font-size: 16px;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   background-color: #fdf8f0;
 }
 
@@ -1567,6 +1567,26 @@ html:has(.landing-v3) body {
   color: #2b2926;
   font-family: Inter, var(--font-sans);
   background-color: #fdf8f0;
+}
+
+/* Seções abaixo da dobra: paint sob demanda sem cortar animações ao entrar. */
+.landing-section-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matriz-marquee-row,
+  .matriz-marquee-row--reverse,
+  .matriz-atabaque-pulse,
+  .matriz-atabaque-glow,
+  .matriz-float-y,
+  .matriz-drift-x,
+  .matriz-drift-x-slow,
+  .matriz-wiggle,
+  .matriz-kicker-pulse {
+    animation: none !important;
+  }
 }
 
 .landing-v3 .rounded-sm { border-radius: 0.125rem; }

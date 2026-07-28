@@ -20,6 +20,20 @@ const PORTAL_ARTICLE_PATHS = [
   '/conteudo/sistema-para-terreiro-guia-completo',
   '/conteudo/software-para-terreiro-de-umbanda-recursos',
   '/conteudo/gestao-financeira-terreiro-pix-mensalidades',
+  '/conteudo/como-cobrar-mensalidade-terreiro-sem-constranger',
+  '/conteudo/como-organizar-presenca-em-gira',
+  '/conteudo/vale-a-pena-software-terreiro-pequeno',
+  '/conteudo/portal-filho-de-santo-no-celular',
+  '/conteudo/o-que-sistema-terreiro-precisa-ter-2026',
+];
+
+const FEATURE_PATHS = [
+  '/recursos',
+  '/recursos/financeiro-pix-mensalidades',
+  '/recursos/calendario-giras',
+  '/recursos/portal-filho-de-santo',
+  '/recursos/whatsapp-oficial',
+  '/recursos/app-pwa-terreiro',
 ];
 
 export const SITEMAP_ROUTES = [
@@ -71,6 +85,18 @@ export const SITEMAP_ROUTES = [
     priority: 0.92,
     comment: 'Comparativo explícito, módulos e PWA',
   },
+  {
+    path: '/por-que-axecloud/vs-planilhas',
+    changeFrequency: 'monthly',
+    priority: 0.9,
+    comment: 'AxéCloud vs planilhas — decisão de migração',
+  },
+  ...FEATURE_PATHS.map((path) => ({
+    path,
+    changeFrequency: 'monthly',
+    priority: path === '/recursos' ? 0.9 : 0.85,
+    comment: 'Página de recurso / funcionalidade',
+  })),
   {
     path: '/conteudo/glossario',
     changeFrequency: 'monthly',

@@ -1,16 +1,22 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, startTransition, useEffect, useState } from 'react';
 import { MatrizTopNav } from '../components/marketing/MatrizTopNav';
 import { usePathname } from '../hooks/usePathname';
 import { appHref, isAppSpaPath, redirectToAppDevOriginIfNeeded } from '../lib/appHref';
-import { installMarketingClientNavigation } from '../lib/marketingNavigation';
+import {
+  installMarketingClientNavigation,
+  prefetchMarketingRoute,
+} from '../lib/marketingNavigation';
 import { ROUTES, isMarketingHostedAppPath, normalizePath } from '../lib/routes';
 import { isValidDiretorioUf } from '../lib/diretorioSlug';
 import { applyRouteSeo } from '../lib/seo';
+import { trackGaPageView } from '../components/GoogleAnalytics';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
 import { parseContentArticleSlug } from '../content/portalContent';
+import { getFeaturePageBySlug, parseFeaturePageSlug } from '../constants/featurePagesContent';
 import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
+/** Home eager — evita flash branco na rota mais usada. */
+import Landing from '../views/Landing';
 
-const Landing = lazy(() => import('../views/Landing'));
 const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
 const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
 const GlossaryPage = lazy(() => import('../views/GlossaryPage'));
@@ -26,14 +32,38 @@ const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage')
 const EventoPublicPage = lazy(() => import('../views/portal/EventoPublicPage'));
 const LiturgicalCalendarPage = lazy(() => import('../views/portal/LiturgicalCalendarPage'));
 const PorQueAxeCloudPage = lazy(() => import('../views/PorQueAxeCloudPage'));
+const VsPlanilhasPage = lazy(() => import('../views/VsPlanilhasPage'));
+const FeatureHubPage = lazy(() => import('../views/FeatureHubPage'));
+const FeaturePage = lazy(() => import('../views/FeaturePage'));
 const Register = lazy(() => import('../views/Register'));
+
+function scheduleIdle(fn: () => void) {
+  if (typeof window === 'undefined') return;
+  const ric = window.requestIdleCallback?.bind(window);
+  if (ric) {
+    ric(() => fn(), { timeout: 1200 });
+    return;
+  }
+  window.setTimeout(fn, 120);
+}
 
 function MarketingSectionFallback() {
   return (
     <div
       aria-hidden
-      className="landing-v3 landing-mockup-theme min-h-[50vh] w-full bg-[#fdf8f0]"
-    />
+      className="landing-v3 landing-mockup-theme min-h-dvh w-full bg-[#fdf8f0]"
+    >
+      <div className="mx-auto max-w-6xl px-5 pb-24 pt-32 md:px-8 md:pt-36">
+        <div className="h-3 w-28 animate-pulse rounded-full bg-[#e8dfd0]" />
+        <div className="mt-6 h-10 w-3/4 max-w-xl animate-pulse rounded-2xl bg-[#e8dfd0]/80" />
+        <div className="mt-4 h-4 w-full max-w-lg animate-pulse rounded-full bg-[#e8dfd0]/60" />
+        <div className="mt-3 h-4 w-5/6 max-w-md animate-pulse rounded-full bg-[#e8dfd0]/50" />
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="h-40 animate-pulse rounded-[1.5rem] border border-[#e8dfd0] bg-white/70" />
+          <div className="h-40 animate-pulse rounded-[1.5rem] border border-[#e8dfd0] bg-white/70" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -92,6 +122,12 @@ function RoutedMarketingPage({ path }: { path: string }) {
     return <PortalArticlePage slug={articleSlug} />;
   }
 
+  const featureSlug = parseFeaturePageSlug(path);
+  if (featureSlug) {
+    const page = getFeaturePageBySlug(featureSlug);
+    if (page) return <FeaturePage page={page} />;
+  }
+
   if (normalizePath(path) === LITURGICAL_CALENDAR_PATH) {
     return <LiturgicalCalendarPage />;
   }
@@ -127,6 +163,10 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <EventosPublicPage />;
     case ROUTES.whyAxeCloud:
       return <PorQueAxeCloudPage />;
+    case ROUTES.whyVsPlanilhas:
+      return <VsPlanilhasPage />;
+    case ROUTES.recursos:
+      return <FeatureHubPage />;
     case ROUTES.register:
       return <Register />;
     case ROUTES.home:
@@ -150,29 +190,49 @@ function MarketingAppRouteRedirect({ path }: { path: string }) {
 /** SPA leve — só páginas de marketing (sem login, dashboard, API client pesado). */
 export default function MarketingRouter() {
   const path = usePathname();
-  const isHome = normalizePath(path) === ROUTES.home;
-  const showTopNav = !isHome && !isMarketingHostedAppPath(path);
+  /** Path de conteúdo em transição — nav e SEO usam `path` imediato. */
+  const [displayPath, setDisplayPath] = useState(path);
+  const hideTopNav = isMarketingHostedAppPath(path);
 
   useEffect(() => installMarketingClientNavigation(), []);
 
   useEffect(() => {
-    applyRouteSeo(path);
+    startTransition(() => setDisplayPath(path));
   }, [path]);
 
   useEffect(() => {
-    void trackPublicVisit(path);
+    applyRouteSeo(path);
+    scheduleIdle(() => {
+      trackGaPageView(path);
+      void trackPublicVisit(path);
+    });
   }, [path]);
+
+  useEffect(() => {
+    scheduleIdle(() => {
+      prefetchMarketingRoute(ROUTES.whyAxeCloud);
+      prefetchMarketingRoute(ROUTES.recursos);
+      prefetchMarketingRoute(ROUTES.contentHub);
+      prefetchMarketingRoute(ROUTES.terreiros);
+    });
+  }, []);
 
   if (import.meta.env.DEV && isAppSpaPath(path) && !isMarketingHostedAppPath(path)) {
     return <MarketingAppRouteRedirect path={path} />;
   }
 
+  const pending = displayPath !== path;
+
   return (
     <>
-      {showTopNav ? <MatrizTopNav /> : null}
-      <Suspense fallback={<MarketingSectionFallback />}>
-        <RoutedMarketingPage path={path} />
-      </Suspense>
+      {!hideTopNav ? <MatrizTopNav /> : null}
+      <div
+        className={pending ? 'pointer-events-none opacity-[0.92] transition-opacity duration-150' : 'transition-opacity duration-150'}
+      >
+        <Suspense fallback={<MarketingSectionFallback />}>
+          <RoutedMarketingPage path={displayPath} />
+        </Suspense>
+      </div>
     </>
   );
 }

@@ -1,5 +1,7 @@
 ﻿import { metadata as homeMetadata } from '../app/page';
 import { BRAND_NAME, PORTAL_BRAND, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
+import { FEATURE_HUB, getFeaturePageBySlug, parseFeaturePageSlug } from '../constants/featurePagesContent';
+import { VS_PLANILHAS } from '../constants/comparisonContent';
 import { getPortalArticleBySlug, parseContentArticleSlug } from '../content/portalContent';
 import { ROUTES, normalizePath } from './routes';
 
@@ -83,9 +85,9 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
     robots: 'noindex, follow',
   },
   [ROUTES.contentHub]: {
-    title: `Conteúdo | ${PORTAL_BRAND} — Umbanda e Candomblé`,
+    title: `Conteúdo | ${PORTAL_BRAND} — dúvidas reais da casa`,
     description:
-      `Artigos e glossário sobre terreiros, filhos de santo e tradições afro-brasileiras — conteúdo educativo do ${PORTAL_BRAND}.`,
+      `Artigos sobre mensalidade, gira, planilha vs software e portal do filho — conteúdo educativo do ${PORTAL_BRAND}.`,
     canonicalPath: '/conteudo',
     robots: 'index, follow',
   },
@@ -127,8 +129,20 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.whyAxeCloud]: {
     title: `Por que AxéCloud? Comparativo e módulos | ${BRAND_NAME}`,
     description:
-      'Compare o AxéCloud com planilhas e outros softwares de terreiro. 14 módulos reais, app PWA instalável, WhatsApp Meta e portal público — tudo incluso.',
+      'Compare o AxéCloud com planilhas e outros softwares de terreiro. 14 módulos reais, app PWA, WhatsApp Meta e portal — tudo incluso. Teste 30 dias.',
     canonicalPath: '/por-que-axecloud',
+    robots: 'index, follow',
+  },
+  [ROUTES.whyVsPlanilhas]: {
+    title: VS_PLANILHAS.title,
+    description: VS_PLANILHAS.description,
+    canonicalPath: ROUTES.whyVsPlanilhas,
+    robots: 'index, follow',
+  },
+  [ROUTES.recursos]: {
+    title: FEATURE_HUB.title,
+    description: FEATURE_HUB.description,
+    canonicalPath: ROUTES.recursos,
     robots: 'index, follow',
   },
 };
@@ -210,6 +224,19 @@ function resolveRouteSeo(path: string): RouteSeo {
       canonicalPath: path,
       robots: 'index, follow',
     };
+  }
+
+  const featureSlug = parseFeaturePageSlug(path);
+  if (featureSlug) {
+    const feature = getFeaturePageBySlug(featureSlug);
+    if (feature) {
+      return {
+        title: feature.title,
+        description: feature.description,
+        canonicalPath: path,
+        robots: 'index, follow',
+      };
+    }
   }
 
   const articleSlug = parseContentArticleSlug(path);

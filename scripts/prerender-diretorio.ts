@@ -17,7 +17,10 @@ import {
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
 import { fetchAllTerreirosRows } from "../lib/diretorioQuery.ts";
 import { isPlausibleDiretorioCoordinate, parseGoogleMapsCoordinates } from "../lib/diretorioCoordinates.ts";
-import { isDiretorioListingPublishable } from "../lib/diretorioQuality.ts";
+import {
+  isDiretorioListingIndexable,
+  isDiretorioListingPublishable,
+} from "../lib/diretorioQuality.ts";
 import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
 import {
   resolveDiretorioTipo,
@@ -453,7 +456,10 @@ async function main() {
   let terreiroPages = 0;
   for (const row of rows) {
     if (!row.slug) continue;
-    writePrerenderPage(template, buildTerreiroPrerenderPage(row));
+    writePrerenderPage(
+      template,
+      buildTerreiroPrerenderPage(row, { indexable: isDiretorioListingIndexable(row) }),
+    );
     terreiroPages += 1;
   }
 

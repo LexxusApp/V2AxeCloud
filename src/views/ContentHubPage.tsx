@@ -155,6 +155,22 @@ export default function ContentHubPage() {
           </p>
         </a>
 
+        <a
+          href={ROUTES.recursos}
+          className={cn(
+            matrizPortalCardClass,
+            'group mt-4 block p-5 transition hover:-translate-y-1 hover:border-[#ffc107]/50 sm:p-6',
+          )}
+        >
+          <p className="text-xs font-black uppercase tracking-wider text-[#a87400]">Recursos</p>
+          <p className="mt-1 text-lg font-bold text-[#1b1813] group-hover:text-[#a87400]">
+            Financeiro, giras, portal, WhatsApp e PWA
+          </p>
+          <p className="mt-2 text-sm text-[#1b1813]/65">
+            Páginas específicas de cada módulo — com FAQ para buscas e assistentes de IA.
+          </p>
+        </a>
+
         <ul className="mt-5 grid list-none gap-4 sm:grid-cols-2" role="list">
           {gestaoArticles.map((article) => (
             <li key={article.slug}>

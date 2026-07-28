@@ -11,6 +11,22 @@ npm run seo:kpi-checklist
 
 ---
 
+## 0. Ação imediata — recuperação de tráfego (~1 h no GSC)
+
+Faça isto **antes** de esperar resultados das novas páginas:
+
+1. **Indexação → Páginas** — anotar descobertas / não indexadas / com erro.
+2. **Inspeção de URL → Solicitar indexação** (nessa ordem):
+   - `https://axecloud.com.br/`
+   - `https://axecloud.com.br/por-que-axecloud`
+   - `https://axecloud.com.br/por-que-axecloud/vs-planilhas`
+   - `https://axecloud.com.br/recursos`
+   - Artigos comerciais: `planilha-ou-software…`, `melhor-software-terreiro-2026…`, `sistema-para-terreiro…`, `gestao-financeira…`
+3. **Indexação → Sitemaps** — reenviar `https://axecloud.com.br/sitemap.xml`.
+4. Preencher snapshot semanal em `docs/seo-kpi-snapshot.template.csv`.
+
+---
+
 ## 1. Google Search Console
 
 Propriedade: **https://axecloud.com.br/** (prefixo de URL)  

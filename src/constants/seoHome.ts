@@ -15,14 +15,14 @@ export const SITE_ORIGIN = 'https://axecloud.com.br';
 export const HOME_SEO = {
   title: SITE_TITLE,
   description:
-    `Gestão de terreiros para Umbanda e Candomblé. Plataforma com financeiro Pix, giras, WhatsApp e portal do filho. Teste grátis por 30 dias.`,
-  h1: `Gestão de terreiros para Umbanda, Candomblé e Jurema — ${BRAND_NAME}`,
-  heroTagline: 'Portal da comunidade de terreiros — casas, eventos e tradição.',
+    `Organize mensalidade, gira e avisos no mesmo lugar. ${BRAND_NAME}: Pix, calendário, WhatsApp oficial e portal do filho — teste 30 dias grátis.`,
+  h1: `Gestão de terreiros: mensalidade, gira e mural no ${BRAND_NAME}`,
+  heroTagline: 'Mensalidade, gira e aviso — no mesmo lugar.',
   keywords: buildBrandKeywordsMeta(),
   brandRecognition: buildBrandRecognitionParagraph(),
   ogImageAlt: `${BRAND_NAME} — Software de gestão de terreiros de Umbanda e Candomblé`,
   manifestDescription:
-    'Software de gestão de terreiros: financeiro, galeria, giras, portal do filho de santo e app PWA instalável.',
+    'Software de gestão de terreiros: financeiro Pix, giras, mural, portal do filho de santo e app PWA.',
 } as const;
 
 export type HomeFaqItem = { q: string; a: string };
@@ -75,6 +75,26 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   {
     q: 'Meus dados e da comunidade ficam seguros?',
     a: 'Sim. Cada terreiro tem ambiente isolado, criptografia em trânsito (HTTPS) e controles de acesso por perfil. Respeitamos a privacidade da casa e a LGPD.',
+  },
+  {
+    q: 'Como cobrar mensalidade de terreiro sem constranger?',
+    a: `Cobrança privada: portal com Pix e lembretes individuais — nunca no grupo. Veja o guia em ${SITE_ORIGIN}/conteudo/como-cobrar-mensalidade-terreiro-sem-constranger e o recurso em ${SITE_ORIGIN}/recursos/financeiro-pix-mensalidades.`,
+  },
+  {
+    q: 'Como organizar presença em gira?',
+    a: `Crie o evento no calendário, envie convite com confirmar/declinar e acompanhe a lista no painel. Detalhes em ${SITE_ORIGIN}/conteudo/como-organizar-presenca-em-gira e ${SITE_ORIGIN}/recursos/calendario-giras.`,
+  },
+  {
+    q: 'Vale a pena software para terreiro pequeno?',
+    a: `Sim quando há mensalidade recorrente ou mais de um administrador. Se a casa é minúscula, a planilha ainda pode bastar. Leia ${SITE_ORIGIN}/conteudo/vale-a-pena-software-terreiro-pequeno e ${SITE_ORIGIN}/por-que-axecloud/vs-planilhas.`,
+  },
+  {
+    q: 'Como ter portal do filho de santo no celular?',
+    a: `Com o ${BRAND_NAME}, o filho acessa o portal e pode instalar o PWA na tela inicial. Guia em ${SITE_ORIGIN}/conteudo/portal-filho-de-santo-no-celular.`,
+  },
+  {
+    q: 'O que um sistema de terreiro precisa ter em 2026?',
+    a: `Checklist: financeiro Pix, calendário com presença, portal do filho, privacidade e acesso mobile. Veja ${SITE_ORIGIN}/conteudo/o-que-sistema-terreiro-precisa-ter-2026 e ${SITE_ORIGIN}/recursos.`,
   },
 ] as const;
 

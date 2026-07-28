@@ -15,11 +15,37 @@ export type ComparisonRow = {
 
 export const COMPARISON_INTRO = {
   title: `Por que ${BRAND_NAME}?`,
-  h1: `Gestão de terreiros: por que escolher o ${BRAND_NAME}`,
+  h1: `Por que escolher o ${BRAND_NAME} para gestão de terreiros`,
   description:
-    `Compare o ${BRAND_NAME} com planilhas, WhatsApp e outros softwares de terreiro. Módulos reais, app PWA instalável, portal público e WhatsApp oficial Meta — tudo incluso.`,
+    `Compare ${BRAND_NAME} com planilha e outros sistemas de terreiro: Pix, giras, PWA, WhatsApp Meta e portal do filho — tudo incluso. Teste 30 dias.`,
   lead:
     'Zeladores merecem clareza antes de trocar o caderno por um sistema. Esta página mostra o que o AxéCloud já entrega hoje — sem prometer o que ainda não existe.',
+} as const;
+
+/** Página dedicada /por-que-axecloud/vs-planilhas */
+export const VS_PLANILHAS = {
+  title: `${BRAND_NAME} vs planilhas | Quando migrar a gestão do terreiro`,
+  h1: `${BRAND_NAME} vs planilhas: quando a casa precisa de um sistema`,
+  description:
+    `Planilha + WhatsApp funciona no começo. Veja os sinais de que é hora de migrar a gestão do terreiro para um software — e o que o ${BRAND_NAME} resolve.`,
+  lead:
+    'Quase toda casa começa com planilha e grupo de WhatsApp. O problema aparece quando a corrente cresce: mensalidade some, gira passa batido e foto fica espalhada.',
+  signals: [
+    {
+      heading: 'Mensalidade confusa',
+      body: 'Ninguém sabe quem pagou, o comprovante some no grupo e a cobrança constrange quem está em dia e quem está atrasado.',
+    },
+    {
+      heading: 'Gira sem presença clara',
+      body: 'Convite no WhatsApp, confirmação perdida e lista de presença no caderno — a diretoria não vê o quadro completo.',
+    },
+    {
+      heading: 'Memória da casa fragmentada',
+      body: 'Fotos em celulares diferentes, avisos apagados no chat e planilhas com versões conflitantes.',
+    },
+  ],
+  whenStay: 'Se a casa é pequena, a diretoria controla tudo de cabeça e o volume de mensalidades é baixo, a planilha ainda pode bastar.',
+  whenMigrate: `Se há recorrência de cobrança, mais de uma pessoa administra e você precisa de histórico confiável, um sistema como o ${BRAND_NAME} reduz caos sem tirar o sagrado da casa.`,
 } as const;
 
 export const COMPARISON_VS_STATUS_QUO = [

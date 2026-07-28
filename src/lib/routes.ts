@@ -1,4 +1,5 @@
 import { PORTAL_ARTICLE_PATHS } from '../content/portalContent';
+import { FEATURE_PAGE_PATHS } from '../constants/featurePagesContent';
 
 /** Rotas públicas e do app (SPA Vite — equivalente conceitual ao App Router do Next). */
 export function isHomePath(path: string): boolean {
@@ -39,6 +40,10 @@ export const ROUTES = {
   giraSenhas: '/senhas',
   /** Comparativo explícito + módulos + PWA — SEO e conversão. */
   whyAxeCloud: '/por-que-axecloud',
+  /** Decisão: planilha vs software (sem naming de concorrentes). */
+  whyVsPlanilhas: '/por-que-axecloud/vs-planilhas',
+  /** Hub de páginas de funcionalidade. */
+  recursos: '/recursos',
 } as const;
 
 /** Checkout EFI no cadastro (passo 2) — exige `?tenant=` do registro. */
@@ -94,9 +99,12 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.eventosPublicos,
   ROUTES.liturgicalCalendar,
   ROUTES.whyAxeCloud,
+  ROUTES.whyVsPlanilhas,
+  ROUTES.recursos,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
+  ...FEATURE_PAGE_PATHS,
 ] as const;
 
 /** Cadastro trial servido pelo bundle marketing (mesma origem que a landing). */
@@ -116,9 +124,12 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.eventosPublicos,
   ROUTES.liturgicalCalendar,
   ROUTES.whyAxeCloud,
+  ROUTES.whyVsPlanilhas,
+  ROUTES.recursos,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
+  ...FEATURE_PAGE_PATHS,
 ] as const;
 
 export function isMarketingSitePath(path: string): boolean {
@@ -128,6 +139,8 @@ export function isMarketingSitePath(path: string): boolean {
   if (p.startsWith(`${ROUTES.terreiros}/`)) return true;
   if (p.startsWith(`${ROUTES.diretorioTerreiro}/`)) return true;
   if (p.startsWith(`${ROUTES.eventoPublico}/`)) return true;
+  if (p.startsWith(`${ROUTES.recursos}/`)) return true;
+  if (p.startsWith(`${ROUTES.whyAxeCloud}/`)) return true;
   if (p === ROUTES.giraSenhas || p.startsWith(`${ROUTES.giraSenhas}/`)) return true;
   return false;
 }

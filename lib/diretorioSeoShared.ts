@@ -6,7 +6,7 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-07-18";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-07-28";
 
 export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: string; priority?: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
@@ -28,7 +28,19 @@ export const STATIC_SITEMAP_PATHS: readonly { path: string; changeFrequency?: st
   { path: "/conteudo/sistema-para-terreiro-guia-completo", changeFrequency: "monthly", priority: 0.85 },
   { path: "/conteudo/software-para-terreiro-de-umbanda-recursos", changeFrequency: "monthly", priority: 0.85 },
   { path: "/conteudo/gestao-financeira-terreiro-pix-mensalidades", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/conteudo/como-cobrar-mensalidade-terreiro-sem-constranger", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/conteudo/como-organizar-presenca-em-gira", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/conteudo/vale-a-pena-software-terreiro-pequeno", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/conteudo/portal-filho-de-santo-no-celular", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/conteudo/o-que-sistema-terreiro-precisa-ter-2026", changeFrequency: "monthly", priority: 0.85 },
   { path: "/por-que-axecloud", changeFrequency: "monthly", priority: 0.92 },
+  { path: "/por-que-axecloud/vs-planilhas", changeFrequency: "monthly", priority: 0.9 },
+  { path: "/recursos", changeFrequency: "monthly", priority: 0.9 },
+  { path: "/recursos/financeiro-pix-mensalidades", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/recursos/calendario-giras", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/recursos/portal-filho-de-santo", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/recursos/whatsapp-oficial", changeFrequency: "monthly", priority: 0.85 },
+  { path: "/recursos/app-pwa-terreiro", changeFrequency: "monthly", priority: 0.85 },
   { path: "/conteudo/glossario", changeFrequency: "monthly", priority: 0.8 },
   { path: "/terreiros", changeFrequency: "daily", priority: 0.9 },
   { path: "/eventos", changeFrequency: "daily", priority: 0.85 },
@@ -148,27 +160,57 @@ export type DiretorioPrerenderPage = {
   sections: { heading: string; body: string }[];
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   listLinks?: { href: string; label: string }[];
+  /** Default: index, follow */
+  robots?: string;
 };
 
-export function buildTerreiroPrerenderPage(terreiro: DiretorioSeoTerreiro): DiretorioPrerenderPage {
+export function buildTerreiroPrerenderPage(
+  terreiro: DiretorioSeoTerreiro,
+  options?: { indexable?: boolean },
+): DiretorioPrerenderPage {
   const loc = [terreiro.cidade, terreiro.estado].filter(Boolean).join(", ");
   const path = `/terreiro/${terreiro.slug}`;
   const cidadePath =
     terreiro.estado && terreiro.cidadeSlug
       ? `/terreiros/${terreiro.estado.toLowerCase()}/${terreiro.cidadeSlug}`
       : "/terreiros";
+  const indexable = options?.indexable !== false;
 
   const sections: { heading: string; body: string }[] = [];
   if (terreiro.endereco) {
-    sections.push({ heading: "Endereço", body: terreiro.endereco });
+    sections.push({
+      heading: "Endereço e localização",
+      body: `${terreiro.nome} fica em ${terreiro.endereco}${loc ? ` (${loc})` : ""}. Use o mapa para traçar a rota com respeito aos horários e orientações da casa.`,
+    });
   }
   if (terreiro.telefone) {
-    sections.push({ heading: "Telefone", body: terreiro.telefone });
+    sections.push({
+      heading: "Contato",
+      body: `Telefone público cadastrado: ${terreiro.telefone}. Prefira horários comerciais e linguagem respeitosa ao entrar em contato com a diretoria.`,
+    });
+  }
+  if (terreiro.linkMaps) {
+    sections.push({
+      heading: "Como chegar",
+      body: `Há rota no Google Maps vinculada a este perfil. Confirme o endereço e pergunte à casa sobre estacionamento, horário de atendimento e se a visita precisa de agendamento prévio.`,
+    });
+  }
+  if (loc) {
+    sections.push({
+      heading: `Terreiro em ${loc}`,
+      body: `${terreiro.nome} aparece no diretório de casas de Umbanda, Candomblé e tradições afro-brasileiras em ${loc}. Confira também outras casas da mesma cidade no hub local.`,
+    });
   }
   sections.push({
-    heading: "Sobre este diretório",
-    body: `${terreiro.nome} está listado no diretório público do ${PORTAL_BRAND}. Zeladores podem reivindicar este perfil para atualizar dados e usar o AxéCloud como sistema de gestão do terreiro.`,
+    heading: "Como usar este perfil",
+    body: `Este perfil público ajuda consulentes e a comunidade a encontrar ${terreiro.nome}. Zeladores podem reivindicar a página para atualizar foto, contatos e endereço e, se desejarem, usar o AxéCloud na gestão interna da casa (mensalidades, giras e comunicação).`,
   });
+  if (indexable) {
+    sections.push({
+      heading: "Sobre o diretório AxéCloud",
+      body: `O ${PORTAL_BRAND} lista casas de axé com dados públicos para consulta. Não substitui o convite da casa nem o fundamento da tradição — é um mapa inicial para quem busca terreiro em ${loc || "sua região"} com respeito.`,
+    });
+  }
 
   const breadcrumbs = buildBreadcrumbJsonLd([
     { name: "Diretório", path: "/terreiros" },
@@ -178,17 +220,26 @@ export function buildTerreiroPrerenderPage(terreiro: DiretorioSeoTerreiro): Dire
     { name: terreiro.nome, path },
   ]);
 
+  const descBits = [
+    `Informações de ${terreiro.nome}`,
+    loc ? `em ${loc}` : null,
+    terreiro.endereco ? "com endereço" : null,
+    terreiro.telefone ? "telefone" : null,
+    "no diretório AxéCloud",
+  ].filter(Boolean);
+
   return {
     path,
     title: `${terreiro.nome}${loc ? ` — ${loc}` : ""} | Diretório AxéCloud`,
-    description: `Informações de ${terreiro.nome}${loc ? ` em ${loc}` : ""}: endereço${terreiro.telefone ? ", telefone" : ""} e rota no Google Maps.`,
+    description: `${descBits.join(" ")}.`,
     h1: terreiro.nome,
     intro: loc
-      ? `Terreiro de axé em ${loc}. Confira endereço, telefone e como chegar.`
-      : `Terreiro de axé listado no diretório ${PORTAL_BRAND}.`,
+      ? `${terreiro.nome} é uma casa de axé listada em ${loc}. Abaixo estão os dados públicos disponíveis para consulta e rota.`
+      : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`,
     sections,
     jsonLd: [buildLocalBusinessJsonLd(terreiro), breadcrumbs],
     listLinks: [{ href: cidadePath, label: `Ver terreiros em ${terreiro.cidade || "sua cidade"}` }],
+    robots: indexable ? "index, follow" : "noindex, follow",
   };
 }
 
@@ -232,7 +283,7 @@ export function buildDiretorioHeadInject(page: DiretorioPrerenderPage): string {
   return [
     `<title>${escapeHtml(page.title)}</title>`,
     `<meta name="description" content="${escapeHtml(page.description)}" />`,
-    `<meta name="robots" content="index, follow" />`,
+    `<meta name="robots" content="${escapeHtml(page.robots || "index, follow")}" />`,
     `<link rel="canonical" href="${url}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="AxéCloud" />`,
@@ -257,11 +308,14 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
   const listBlock = links
     ? `      <h2>Terreiros nesta página</h2>\n      <ul>\n${links}\n      </ul>`
     : "";
-  const managementBlock = `      <aside aria-label="Gestão para terreiros">
+  const showManagementCta = !page.robots || page.robots.includes("index");
+  const managementBlock = showManagementCta
+    ? `      <aside aria-label="Gestão para terreiros">
         <h2>Gestão de terreiros</h2>
         <p>Administra uma casa de axé? Conheça a plataforma de gestão para terreiros do AxéCloud: financeiro Pix, filhos de santo, giras, comunicação e memória da casa.</p>
         <a href="/conteudo/gestao-de-terreiros">Conhecer a gestão de terreiros do AxéCloud</a>
-      </aside>`;
+      </aside>`
+    : "";
 
   return [
     `    <article id="axecloud-seo-static" aria-label="${escapeHtml(page.h1)}">`,

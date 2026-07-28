@@ -15,15 +15,15 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
   dados_acesso:
     'Registro: {{filho_login_id}}\nSenha: {{senha_acesso}}',
   cobranca_mensalidade:
-    'Olá, {{nome_filho}}! Passando para lembrar da sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} no {{nome_terreiro}}. Sua contribuição é fundamental para o nosso fundamento. Axé!',
+    'Olá, {{nome_filho}}! Lembrete privado da mensalidade de {{mes_ano}} (R$ {{valor}}) no {{nome_terreiro}}. Sua contribuição fortalece a casa — qualquer dúvida, fale com a diretoria. Axé!',
   financeiro:
-    'Olá, {{nome_filho}}! Lembramos do pagamento de sua mensalidade no valor de R$ {{valor_mensalidade}}, com vencimento em {{data_vencimento}}, para o terreiro {{nome_terreiro}}. Axé!',
+    'Olá, {{nome_filho}}! Lembrete da mensalidade de R$ {{valor_mensalidade}} (venc. {{data_vencimento}}) no {{nome_terreiro}}. Contribuição com respeito e privacidade. Axé!',
   mensalidade_confirmada:
-    'Olá, {{nome_filho}}! Confirmamos o recebimento da sua mensalidade de {{competencia}} no valor de R$ {{valor}} no {{nome_terreiro}}. Obrigado pela contribuição. Axé! 🙏',
+    'Olá, {{nome_filho}}! Recebemos sua mensalidade de {{competencia}} (R$ {{valor}}) no {{nome_terreiro}}. Gratidão pela contribuição. Axé!',
   transmissao_aviso:
-    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nAcesse o AxéCloud para ver o aviso completo. Axé!',
+    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nDetalhes no portal AxéCloud. Axé!',
   mural_aviso:
-    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nAcesse o AxéCloud para ver o aviso completo. Axé!',
+    'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nDetalhes no portal AxéCloud. Axé!',
   convite_evento:
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
   senha_evento_visitante:

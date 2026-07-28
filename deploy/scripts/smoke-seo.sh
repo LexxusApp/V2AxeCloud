@@ -42,13 +42,24 @@ for required_path in \
   "/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro" \
   "/conteudo/como-instalar-axecloud-celular-pwa" \
   "/conteudo/whatsapp-oficial-vs-grupos-comunicacao-terreiro" \
-  "/conteudo/melhor-software-terreiro-2026-o-que-avaliar"; do
+  "/conteudo/melhor-software-terreiro-2026-o-que-avaliar" \
+  "/por-que-axecloud/vs-planilhas" \
+  "/recursos" \
+  "/recursos/financeiro-pix-mensalidades" \
+  "/conteudo/como-cobrar-mensalidade-terreiro-sem-constranger"; do
   grep -q "$required_path" "$sitemap_tmp" || {
     echo "FAIL /sitemap.xml — falta ${required_path}"
     rm -f "$sitemap_tmp"
     exit 1
   }
 done
+
+# llms.txt deve existir
+curl -sS -o /dev/null -w '%{http_code}' "${BASE}/llms.txt" | grep -qE '200' || {
+  echo "FAIL /llms.txt — não retornou HTTP 200"
+  exit 1
+}
+echo "OK   /llms.txt — 200"
 
 lastmod_total="$(grep -o '<lastmod>[^<]*</lastmod>' "$sitemap_tmp" | wc -l | tr -d ' ')"
 lastmod_unique="$(grep -o '<lastmod>[^<]*</lastmod>' "$sitemap_tmp" | sort -u | wc -l | tr -d ' ')"

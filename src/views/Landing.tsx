@@ -240,10 +240,11 @@ function MatrizFooter() {
     { href: ROUTES.liturgicalCalendar, label: 'Calendário litúrgico' },
   ];
   const platformLinks = [
+    { href: ROUTES.recursos, label: 'Recursos' },
     { href: '/conteudo/gestao-de-terreiros', label: 'Gestão de terreiros' },
-    { href: `${ROUTES.home}#recursos`, label: 'Módulos' },
     { href: `${ROUTES.home}#mensalidade`, label: 'Planos' },
     { href: ROUTES.whyAxeCloud, label: 'Por que AxéCloud' },
+    { href: ROUTES.whyVsPlanilhas, label: 'Vs planilhas' },
     { href: ROUTES.register, label: 'Teste grátis', trial: true as const },
   ];
   const accountLinks = [
@@ -315,10 +316,24 @@ function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 360);
+    let raf = 0;
+    let last = false;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const next = window.scrollY > 360;
+        if (next !== last) {
+          last = next;
+          setVisible(next);
+        }
+      });
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   const scrollTop = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
@@ -333,7 +348,7 @@ function ScrollToTopButton() {
       onClick={scrollTop}
       aria-label="Voltar ao topo"
       className={cn(
-        'fixed bottom-24 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-[#FFC107] text-[#1b1813] shadow-lg shadow-[#FFC107]/30 transition-opacity duration-300 hover:bg-[#ffcd38] md:bottom-8 md:right-6',
+        'fixed bottom-24 right-4 z-[80] grid h-12 w-12 touch-manipulation place-items-center rounded-full bg-[#FFC107] text-[#1b1813] shadow-lg shadow-[#FFC107]/30 transition-[opacity,transform] duration-300 will-change-transform hover:bg-[#ffcd38] md:bottom-8 md:right-6',
         visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
@@ -363,7 +378,7 @@ function MobileConversionBar() {
       aria-label="Começar no AxéCloud"
       aria-hidden={inlineCtaVisible}
       className={cn(
-        'fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-xl transition duration-300 md:hidden',
+        'fixed inset-x-3 bottom-3 z-[75] grid grid-cols-[1fr_auto] gap-2 rounded-2xl border border-[#e8dfd0] bg-white/94 p-2 shadow-2xl shadow-black/20 backdrop-blur-md transition-[opacity,transform] duration-300 will-change-transform md:hidden',
         inlineCtaVisible
           ? 'pointer-events-none translate-y-24 opacity-0'
           : 'translate-y-0 opacity-100',

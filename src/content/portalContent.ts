@@ -273,7 +273,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Compare antes de decidir',
         body:
-          'Nem todo software de terreiro entrega o mesmo: alguns cobram por médium, outros não têm portal público ou galeria. Veja o comparativo explícito — planilha vs AxéCloud vs outros sistemas — em https://axecloud.com.br/por-que-axecloud, com tabela de funcionalidades e lista dos 14 módulos reais do plano Premium.',
+          'Nem todo software de terreiro entrega o mesmo: alguns cobram por médium, outros não têm portal público ou galeria. Veja a página dedicada AxéCloud vs planilhas em https://axecloud.com.br/por-que-axecloud/vs-planilhas e a tabela completa em https://axecloud.com.br/por-que-axecloud — 14 módulos reais do plano Premium.',
       },
     ],
   },
@@ -553,7 +553,167 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Comece com uma fonte única',
         body:
-          'Defina uma data de corte, registre o saldo inicial e passe a lançar toda movimentação em um único lugar. O financeiro do AxéCloud integra mensalidades, Pix e histórico ao portal do filho. Compare com planilhas em https://axecloud.com.br/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro e teste em https://axecloud.com.br/register.',
+          'Defina uma data de corte, registre o saldo inicial e passe a lançar toda movimentação em um único lugar. O financeiro do AxéCloud integra mensalidades, Pix e histórico ao portal do filho. Compare com planilhas em https://axecloud.com.br/por-que-axecloud/vs-planilhas e https://axecloud.com.br/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro e teste em https://axecloud.com.br/register.',
+      },
+    ],
+  },
+  {
+    slug: 'como-cobrar-mensalidade-terreiro-sem-constranger',
+    title: 'Como cobrar mensalidade de terreiro sem constranger',
+    summary:
+      'Cobrança privada, Pix e lembretes respeitosos: como organizar a mensalidade da casa sem expor ninguém no grupo de WhatsApp.',
+    publishedAt: '2026-07-27',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'Por que o grupo público constrange?',
+        body:
+          'Expor quem está atrasado no grupo gera vergonha e atrito. Mensalidade é contribuição à casa — merece canal privado. A resposta direta: cobrando no portal ou por WhatsApp oficial, nunca no chat coletivo.',
+      },
+      {
+        title: 'Como cobrar mensalidade de terreiro sem constranger?',
+        body:
+          'Use cobrança privada: portal do filho com Pix, lembrete individual e histórico só para a diretoria. O AxéCloud faz isso no módulo financeiro — veja https://axecloud.com.br/recursos/financeiro-pix-mensalidades.',
+      },
+      {
+        title: 'O que dizer na mensagem?',
+        body:
+          'Tom curto e respeitoso: nome da casa, valor, vencimento e link de pagamento. Sem julgamento. Templates oficiais Meta ajudam a padronizar sem soar robótico.',
+      },
+      {
+        title: 'Transparência sem exposição',
+        body:
+          'A diretoria vê pendências no painel; cada filho vê só a própria situação. Isso reduz fofoca e aumenta confiança. Mais em https://axecloud.com.br/conteudo/gestao-financeira-terreiro-pix-mensalidades.',
+      },
+      {
+        title: 'Próximo passo',
+        body:
+          'Compare com planilha em https://axecloud.com.br/por-que-axecloud/vs-planilhas e teste 30 dias em https://axecloud.com.br/register.',
+      },
+    ],
+  },
+  {
+    slug: 'como-organizar-presenca-em-gira',
+    title: 'Como organizar presença em gira',
+    summary:
+      'Convite, confirmação e lista de presença sem depender só do WhatsApp — calendário e RSVP para a rotina da casa.',
+    publishedAt: '2026-07-27',
+    readingMinutes: 5,
+    sections: [
+      {
+        title: 'Como organizar presença em gira?',
+        body:
+          'Crie o evento no calendário, envie convite com confirmar/declinar e acompanhe a lista no painel. Assim a diretoria sabe quem vem antes de abrir a porta.',
+      },
+      {
+        title: 'Por que o WhatsApp sozinho falha',
+        body:
+          '“Quem vem?” no grupo gera respostas perdidas e silêncio ambíguo. RSVP estruturado reduz improviso na portaria e na corrente.',
+      },
+      {
+        title: 'Calendário da casa',
+        body:
+          'Giras, festas e obrigações ficam visíveis no portal do filho. Detalhes em https://axecloud.com.br/recursos/calendario-giras.',
+      },
+      {
+        title: 'Comece no teste',
+        body:
+          'Monte uma gira de teste no AxéCloud: https://axecloud.com.br/register. Comparativo em https://axecloud.com.br/por-que-axecloud.',
+      },
+    ],
+  },
+  {
+    slug: 'vale-a-pena-software-terreiro-pequeno',
+    title: 'Vale a pena software para terreiro pequeno?',
+    summary:
+      'Casa pequena ainda usa planilha? Quando o software vale a pena — e quando a planilha ainda resolve.',
+    publishedAt: '2026-07-27',
+    readingMinutes: 6,
+    sections: [
+      {
+        title: 'Vale a pena software para terreiro pequeno?',
+        body:
+          'Sim, quando há mensalidade recorrente, mais de uma pessoa administra ou você quer histórico confiável. Se a casa é minúscula e tudo cabe na cabeça da diretoria, a planilha ainda pode bastar.',
+      },
+      {
+        title: 'Sinais de que o pequeno já cresceu',
+        body:
+          'Comprovante perdido, gira sem lista clara e avisos apagados no chat são sinais — não de frieza, de maturidade. Veja https://axecloud.com.br/por-que-axecloud/vs-planilhas.',
+      },
+      {
+        title: 'Custo vs tempo',
+        body:
+          'O tempo gasto cobrando e reenviando aviso também custa. Um plano all-inclusive evita surpresa por médium. Checklist em https://axecloud.com.br/conteudo/o-que-sistema-terreiro-precisa-ter-2026.',
+      },
+      {
+        title: 'Teste sem compromisso',
+        body:
+          'O AxéCloud oferece 30 dias grátis sem cartão: https://axecloud.com.br/register.',
+      },
+    ],
+  },
+  {
+    slug: 'portal-filho-de-santo-no-celular',
+    title: 'Como ter portal do filho de santo no celular',
+    summary:
+      'Portal próprio no bolso: mural, mensalidade e calendário via PWA — sem App Store.',
+    publishedAt: '2026-07-27',
+    readingMinutes: 5,
+    sections: [
+      {
+        title: 'Como ter portal do filho de santo no celular?',
+        body:
+          'Com um sistema que oferece portal separado e app PWA. No AxéCloud, o filho acessa pelo navegador ou fixa o ícone na tela inicial — sem loja de apps.',
+      },
+      {
+        title: 'O que o filho vê',
+        body:
+          'Avisos, agenda, mensalidade e biblioteca conforme a casa liberar. Sigilo por perfil. Detalhes em https://axecloud.com.br/recursos/portal-filho-de-santo.',
+      },
+      {
+        title: 'Instalar como app',
+        body:
+          'Guia PWA: https://axecloud.com.br/recursos/app-pwa-terreiro e https://axecloud.com.br/conteudo/como-instalar-axecloud-celular-pwa.',
+      },
+      {
+        title: 'Teste na sua casa',
+        body:
+          'Cadastre o terreiro em https://axecloud.com.br/register e peça a um filho para instalar o ícone no celular.',
+      },
+    ],
+  },
+  {
+    slug: 'o-que-sistema-terreiro-precisa-ter-2026',
+    title: 'O que um sistema de terreiro precisa ter em 2026',
+    summary:
+      'Checklist objetivo: financeiro Pix, calendário, portal, WhatsApp oficial, PWA e privacidade — sem naming de concorrentes.',
+    publishedAt: '2026-07-27',
+    readingMinutes: 7,
+    sections: [
+      {
+        title: 'O que um sistema de terreiro precisa ter em 2026?',
+        body:
+          'No mínimo: cadastro de filhos, financeiro com Pix, calendário com presença, mural, portal do integrante, privacidade por perfil e acesso no celular. Opcional forte: WhatsApp oficial e portal público.',
+      },
+      {
+        title: 'Checklist comercial',
+        body:
+          'Tudo incluso sem cobrar por médium? Trial sem cartão? Módulos reais hoje ou só no roadmap? Compare critérios em https://axecloud.com.br/por-que-axecloud.',
+      },
+      {
+        title: 'Funcionalidades que mais pesam',
+        body:
+          'Veja o hub de recursos: https://axecloud.com.br/recursos — financeiro, giras, portal, WhatsApp e PWA.',
+      },
+      {
+        title: 'Alternativas a planilha e WhatsApp',
+        body:
+          'Planilha e grupo continuam úteis para convivência e rascunho. Para operação contínua, um software dedicado reduz caos. Migração: https://axecloud.com.br/por-que-axecloud/vs-planilhas.',
+      },
+      {
+        title: 'Teste o checklist na prática',
+        body:
+          '30 dias grátis no AxéCloud: https://axecloud.com.br/register.',
       },
     ],
   },
@@ -576,6 +736,11 @@ export const PORTAL_GESTAO_DIGITAL_SLUGS = [
   'sistema-para-terreiro-guia-completo',
   'software-para-terreiro-de-umbanda-recursos',
   'gestao-financeira-terreiro-pix-mensalidades',
+  'como-cobrar-mensalidade-terreiro-sem-constranger',
+  'como-organizar-presenca-em-gira',
+  'vale-a-pena-software-terreiro-pequeno',
+  'portal-filho-de-santo-no-celular',
+  'o-que-sistema-terreiro-precisa-ter-2026',
 ] as const;
 
 export function getPortalGestaoDigitalArticles(): PortalArticle[] {

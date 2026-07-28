@@ -6,6 +6,7 @@ import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
 import {VercelInsights} from './components/VercelInsights';
+import {GoogleAnalytics} from './components/GoogleAnalytics';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {hideSeoStaticFallbackAfterHydration} from './lib/seoStaticFallback';
 import {escapeAppBundleOnMarketingUrl, isMarketingDocumentPath} from './lib/marketingDocumentGuard';
@@ -135,12 +136,13 @@ function bootstrapApp() {
 
   createRoot(rootEl).render(
     <StrictMode>
-      <MotionConfig reducedMotion="always">
+      <MotionConfig reducedMotion="user">
         <AppErrorBoundary>
           <PwaUpdateBanner />
           <EmergencyReloadBeacon />
           <AppRouter />
           <VercelInsights />
+          <GoogleAnalytics />
         </AppErrorBoundary>
       </MotionConfig>
     </StrictMode>,

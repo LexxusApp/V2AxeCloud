@@ -5,7 +5,7 @@ export const BRAND_NAME = 'AxéCloud' as const;
 export const BRAND_TAGLINE = 'Gestão de Terreiros de Umbanda e Candomblé' as const;
 
 /** Título comercial para `<title>`, PWA e Open Graph. */
-export const SITE_TITLE = `Gestão de Terreiros | ${BRAND_NAME} para Umbanda e Candomblé` as const;
+export const SITE_TITLE = `Gestão de Terreiros com Pix e Giras | ${BRAND_NAME}` as const;
 
 /** Nome público do portal (diretório, conteúdo, terreiros). */
 export const PORTAL_BRAND = 'Portal de Gestão AxéCloud' as const;

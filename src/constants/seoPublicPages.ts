@@ -13,7 +13,9 @@ import {
   COMPARISON_PWA,
   COMPARISON_ROWS,
   COMPARISON_VS_STATUS_QUO,
+  VS_PLANILHAS,
 } from './comparisonContent';
+import { FEATURE_HUB, FEATURE_PAGES, featurePagePath } from './featurePagesContent';
 import { LANDING_MODULES } from './landingModules';
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import {
@@ -259,8 +261,59 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
         heading: 'Módulos incluídos no plano Premium',
         body: LANDING_MODULES.map((m) => m.title).join(', '),
       },
+      {
+        heading: 'AxéCloud vs planilhas',
+        body: `Página dedicada de decisão: ${SITE_ORIGIN}${ROUTES.whyVsPlanilhas}. Hub de recursos: ${SITE_ORIGIN}${ROUTES.recursos}.`,
+      },
     ],
   },
+  {
+    path: ROUTES.whyVsPlanilhas,
+    title: VS_PLANILHAS.title,
+    description: VS_PLANILHAS.description,
+    h1: VS_PLANILHAS.h1,
+    intro: VS_PLANILHAS.lead,
+    sections: [
+      ...VS_PLANILHAS.signals.map((s) => ({ heading: s.heading, body: s.body })),
+      { heading: 'Quando a planilha ainda serve', body: VS_PLANILHAS.whenStay },
+      { heading: 'Quando migrar', body: VS_PLANILHAS.whenMigrate },
+      {
+        heading: 'Próximos passos',
+        body: `Tabela completa em ${SITE_ORIGIN}${ROUTES.whyAxeCloud}. Artigo de migração em ${SITE_ORIGIN}/conteudo/planilha-ou-software-quando-migrar-gestao-terreiro. Teste em ${SITE_ORIGIN}${ROUTES.register}.`,
+      },
+    ],
+  },
+  {
+    path: ROUTES.recursos,
+    title: FEATURE_HUB.title,
+    description: FEATURE_HUB.description,
+    h1: FEATURE_HUB.h1,
+    intro: FEATURE_HUB.lead,
+    sections: FEATURE_PAGES.map((p) => ({
+      heading: p.h1,
+      body: `${p.lead} Leia em ${SITE_ORIGIN}${featurePagePath(p.slug)}.`,
+    })),
+  },
+  ...FEATURE_PAGES.map((page) => ({
+    path: featurePagePath(page.slug),
+    title: page.title,
+    description: page.description,
+    h1: page.h1,
+    intro: page.lead,
+    sections: [
+      ...page.sections.map((s) => ({ heading: s.heading, body: s.body })),
+      ...page.faq.map((f) => ({ heading: f.q, body: f.a })),
+    ],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: page.faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  })),
 ] as const;
 
 /** Paths com HTML pré-renderizado em dist/{path}/index.html (app bundle). */
@@ -270,8 +323,10 @@ export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] =
   { href: `${SITE_ORIGIN}/`, label: 'Início' },
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
   { href: `${SITE_ORIGIN}${ROUTES.register}`, label: `Teste grátis ${TRIAL_DAYS} dias` },
+  { href: `${SITE_ORIGIN}${ROUTES.recursos}`, label: 'Recursos' },
   { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
   { href: `${SITE_ORIGIN}${ROUTES.whyAxeCloud}`, label: 'Por que AxéCloud' },
+  { href: `${SITE_ORIGIN}${ROUTES.whyVsPlanilhas}`, label: 'Vs planilhas' },
   { href: `${SITE_ORIGIN}${ROUTES.glossary}`, label: 'Glossário do axé' },
   { href: `${SITE_ORIGIN}${ROUTES.espacoDoFiel}`, label: 'Espaço do Fiel' },
   { href: `${SITE_ORIGIN}${ROUTES.terms}`, label: 'Termos de Uso' },

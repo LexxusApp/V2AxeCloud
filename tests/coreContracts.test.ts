@@ -14,6 +14,7 @@ import { isValidUuid, normalizeQueryTenantId } from '../api/lib/tenantAccess.ts'
 import { parseGoogleMapsCoordinates } from '../lib/diretorioCoordinates.ts';
 import {
   isClearlyOutsideDiretorioScope,
+  isDiretorioListingIndexable,
   isDiretorioListingPublishable,
 } from '../lib/diretorioQuality.ts';
 
@@ -103,6 +104,8 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
   // kardecista; essa decisão é feita na importação com o contexto do Maps.
   assert.equal(isClearlyOutsideDiretorioScope('Centro Espírita Amor e Verdade'), false);
   assert.equal(isClearlyOutsideDiretorioScope('Centro Espírita Caboclo Sete Flechas'), false);
+  assert.equal(isClearlyOutsideDiretorioScope('Mesquita Al-Nur'), true);
+  assert.equal(isClearlyOutsideDiretorioScope('Casa das Velas São Jorge'), true);
   assert.equal(
     isDiretorioListingPublishable({
       nome: 'Cantagalo',
@@ -112,5 +115,48 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
       endereco: 'Cantagalo - RJ',
     }),
     false,
+  );
+  assert.equal(
+    isDiretorioListingPublishable({
+      nome: 'Mesquita da Paz',
+      slug: 'mesquita-da-paz',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      endereco: 'Rua Exemplo, 100 - Centro',
+    }),
+    false,
+  );
+  assert.equal(
+    isDiretorioListingIndexable({
+      nome: 'Casa São Jorge',
+      slug: 'casa-sao-jorge',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      endereco: 'Rua das Flores, 123 - Centro',
+      link_maps: 'https://maps.google.com/?q=-23.5,-46.6',
+    }),
+    false,
+  );
+  assert.equal(
+    isDiretorioListingIndexable({
+      nome: 'Tenda de Umbanda Estrela Guia',
+      slug: 'tenda-umbanda-estrela-guia',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      endereco: 'Rua das Flores, 123 - Centro',
+      telefone: '(11) 99999-0000',
+    }),
+    true,
+  );
+  assert.equal(
+    isDiretorioListingIndexable({
+      nome: 'Ilê Axé Odé',
+      slug: 'ile-axe-ode',
+      cidade: 'Salvador',
+      estado: 'BA',
+      endereco: 'Rua do Axé, 45 - Liberdade',
+      foto_url: 'https://cdn.example/foto.jpg',
+    }),
+    true,
   );
 });

@@ -117,6 +117,7 @@ export function buildRobotsTxt(siteUrl) {
     'Disallow: /register',
     'Disallow: /consulente',
     '',
+    `# llms.txt — resumo do site para ferramentas de IA: ${origin}/llms.txt`,
     `Sitemap: ${origin}/sitemap.xml`,
     '',
   ].join('\n');

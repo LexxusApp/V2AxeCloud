@@ -70,6 +70,16 @@ const EXPLORAR_TILES: PortalTile[] = [
     iconBg: 'bg-[#7c3aed]/12 border-[#7c3aed]/25',
   },
   {
+    id: 'recursos',
+    eyebrow: 'Produto',
+    title: 'Recursos do sistema',
+    description: 'Financeiro Pix, calendário de giras, portal do filho, WhatsApp oficial e PWA.',
+    href: ROUTES.recursos,
+    icon: Sparkles,
+    accent: 'text-[#a87400]',
+    iconBg: 'bg-[#FFC107]/18 border-[#FFC107]/35',
+  },
+  {
     id: 'comparativo',
     eyebrow: 'Decisão informada',
     title: 'Por que AxéCloud?',

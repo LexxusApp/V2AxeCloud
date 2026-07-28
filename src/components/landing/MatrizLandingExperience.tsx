@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import {
   ArrowRight,
   Bell,
@@ -33,7 +33,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { landingScreenshot } from '../../constants/landingScreenshots';
 import { commercialWhatsAppUrl } from '../../constants/commercialContact';
-import { MatrizTopNav } from '../marketing/MatrizTopNav';
 import { RegisterTrialLink } from '../marketing/RegisterTrialLink';
 import { ROUTES } from '../../lib/routes';
 import { cn } from '../../lib/utils';
@@ -84,7 +83,6 @@ const glowStyles = `
   [data-matriz-glow] [data-matriz-glow] {
     position: absolute;
     inset: 0;
-    will-change: filter;
     opacity: var(--outer, 1);
     border-radius: calc(var(--radius) * 1px);
     border-width: calc(var(--border-size) * 20);
@@ -92,6 +90,7 @@ const glowStyles = `
     background: none;
     pointer-events: none;
     border: none;
+    contain: strict;
   }
 
   [data-matriz-glow] > [data-matriz-glow]::before {
@@ -325,8 +324,38 @@ function AtabaqueDivider() {
 }
 
 function ScrollProgress() {
-  const { scrollYProgress } = useScroll();
-  return <motion.div className="fixed inset-x-0 top-0 z-[70] h-0.5 origin-left bg-[#ffc107]" style={{ scaleX: scrollYProgress }} aria-hidden />;
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = barRef.current;
+      if (!el) return;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      el.style.transform = `scaleX(${p})`;
+    };
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={barRef}
+      className="fixed inset-x-0 top-0 z-[70] h-0.5 origin-left bg-[#ffc107] will-change-transform"
+      style={{ transform: 'scaleX(0)' }}
+      aria-hidden
+    />
+  );
 }
 
 function Kicker({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
@@ -420,25 +449,55 @@ function usePointerGlowEnabled() {
   return enabled;
 }
 
+/** Um listener global + um `<style>` — evita 14 listeners e 14 tags de CSS. */
+let glowPointerCount = 0;
+let glowRaf = 0;
+let glowStyleNode: HTMLStyleElement | null = null;
+
+function onSharedGlowPointer(e: PointerEvent) {
+  if (glowRaf) return;
+  glowRaf = requestAnimationFrame(() => {
+    glowRaf = 0;
+    const root = document.documentElement;
+    root.style.setProperty('--x', e.clientX.toFixed(2));
+    root.style.setProperty('--xp', (e.clientX / window.innerWidth).toFixed(2));
+    root.style.setProperty('--y', e.clientY.toFixed(2));
+    root.style.setProperty('--yp', (e.clientY / window.innerHeight).toFixed(2));
+  });
+}
+
+function retainSharedGlowPointer() {
+  if (glowPointerCount === 0) {
+    if (!glowStyleNode) {
+      glowStyleNode = document.createElement('style');
+      glowStyleNode.setAttribute('data-matriz-glow-css', '1');
+      glowStyleNode.textContent = glowStyles;
+      document.head.appendChild(glowStyleNode);
+    }
+    document.addEventListener('pointermove', onSharedGlowPointer, { passive: true });
+  }
+  glowPointerCount += 1;
+  return () => {
+    glowPointerCount = Math.max(0, glowPointerCount - 1);
+    if (glowPointerCount === 0) {
+      document.removeEventListener('pointermove', onSharedGlowPointer);
+      if (glowRaf) {
+        cancelAnimationFrame(glowRaf);
+        glowRaf = 0;
+      }
+    }
+  };
+}
+
 const staticModuleCardClass =
   'relative grid h-full grid-rows-[1fr_auto] gap-4 overflow-hidden rounded-2xl border border-white/10 bg-[#14110d] p-5 shadow-[0_1rem_2rem_-1rem_black]';
 
 function GlowCard({ children, className }: { children: ReactNode; className?: string }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const glowEnabled = usePointerGlowEnabled();
 
   useEffect(() => {
     if (!glowEnabled) return;
-    const syncPointer = (e: PointerEvent) => {
-      if (!cardRef.current) return;
-      const { clientX: x, clientY: y } = e;
-      cardRef.current.style.setProperty('--x', x.toFixed(2));
-      cardRef.current.style.setProperty('--xp', (x / window.innerWidth).toFixed(2));
-      cardRef.current.style.setProperty('--y', y.toFixed(2));
-      cardRef.current.style.setProperty('--yp', (y / window.innerHeight).toFixed(2));
-    };
-    document.addEventListener('pointermove', syncPointer, { passive: true });
-    return () => document.removeEventListener('pointermove', syncPointer);
+    return retainSharedGlowPointer();
   }, [glowEnabled]);
 
   if (!glowEnabled) {
@@ -477,21 +536,17 @@ function GlowCard({ children, className }: { children: ReactNode; className?: st
   };
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: glowStyles }} />
-      <div
-        ref={cardRef}
-        data-matriz-glow
-        style={style}
-        className={cn(
-          'relative grid h-full grid-rows-[1fr_auto] gap-4 overflow-hidden rounded-2xl p-5 shadow-[0_1rem_2rem_-1rem_black]',
-          className,
-        )}
-      >
-        <div data-matriz-glow />
-        {children}
-      </div>
-    </>
+    <div
+      data-matriz-glow
+      style={style}
+      className={cn(
+        'relative grid h-full grid-rows-[1fr_auto] gap-4 overflow-hidden rounded-2xl p-5 shadow-[0_1rem_2rem_-1rem_black]',
+        className,
+      )}
+    >
+      <div data-matriz-glow />
+      {children}
+    </div>
   );
 }
 
@@ -538,15 +593,15 @@ function Hero() {
             </Reveal>
 
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-[#1b1813] sm:text-5xl min-[900px]:text-[2.7rem] lg:text-[2.85rem] xl:text-[3.25rem]">
-              <TextReveal text="Gestão de terreiros" delay={0.1} />
+              <TextReveal text="Mensalidade, gira e aviso" delay={0.1} />
               <br />
-              <TextReveal text="para sua casa de axé" delay={0.35} className="text-[#a87400]" />
+              <TextReveal text="no mesmo lugar" delay={0.35} className="text-[#a87400]" />
             </h1>
 
             <Reveal delay={0.2}>
               <p className="mt-6 max-w-lg text-base leading-relaxed text-[#1b1813]/65 md:text-lg">
-                Mensalidade Pix, giras, mural, galeria, diretório público e portal do filho de santo,
-                feito para organizar a casa sem perder o respeito ao sagrado.
+                AxéCloud organiza Pix, calendário de giras, mural e portal do filho de santo —
+                com respeito ao sagrado da sua casa de axé.
               </p>
             </Reveal>
 
@@ -597,8 +652,15 @@ function Hero() {
                 </motion.a>
               </div>
               <a
-                href={ROUTES.terreiros}
+                href={ROUTES.recursos}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#a87400] transition hover:text-[#1b1813]"
+              >
+                Ver recursos e módulos
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </a>
+              <a
+                href={ROUTES.terreiros}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-[#1b1813]/55 transition hover:text-[#a87400]"
               >
                 Explorar o diretório público
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -888,18 +950,22 @@ function RoutineSection() {
 
 function AgendaSection() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const active = useInView(ref, { margin: '30% 0px', amount: 0.01 });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
   const imgY = useTransform(scrollYProgress, [0, 1], [24, -24]);
   const imgScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.97, 1, 0.97]);
   const copyY = useTransform(scrollYProgress, [0, 1], [16, -16]);
 
   return (
-    <section ref={ref} id="agenda" className="relative z-10 bg-[#fdf8f0] py-20 md:py-28">
+    <section ref={ref} id="agenda" className="landing-section-cv relative z-10 bg-[#fdf8f0] py-20 md:py-28">
       <AtabaqueDivider />
       <Shell>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal direction="right" delay={0.1} className="relative order-2 lg:order-1">
-            <motion.div style={{ y: imgY, scale: imgScale }} className="relative">
+            <motion.div style={{ y: active ? imgY : 0, scale: active ? imgScale : 1 }} className="relative">
               <motion.div
                 className="overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white p-2 shadow-lg shadow-rose-200/25"
                 whileHover={{ y: -6 }}
@@ -910,6 +976,7 @@ function AgendaSection() {
                   alt="Calendário de giras do AxéCloud com eventos, confirmados e convites pelo WhatsApp"
                   className="w-full rounded-xl"
                   loading="lazy"
+                  decoding="async"
                 />
               </motion.div>
             </motion.div>
@@ -918,7 +985,7 @@ function AgendaSection() {
             </div>
           </Reveal>
 
-          <motion.div style={{ y: copyY }} className="order-1 lg:order-2">
+          <motion.div style={{ y: active ? copyY : 0 }} className="order-1 lg:order-2">
             <Reveal>
               <span className="matriz-kicker-pulse inline-flex rounded-full bg-rose-100 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-rose-800">
                 Agenda da casa
@@ -1104,12 +1171,16 @@ function MatrizServerRack({
 
 function SecuritySection() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const active = useInView(ref, { margin: '30% 0px', amount: 0.01 });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
   const y = useTransform(scrollYProgress, [0, 1], [32, -32]);
   const infrastructure = useInfrastructureMetrics();
 
   return (
-    <section ref={ref} id="seguranca" className="relative z-10 bg-[#1b1813] py-20 text-[#fdf8f0] md:py-28">
+    <section ref={ref} id="seguranca" className="landing-section-cv relative z-10 bg-[#1b1813] py-20 text-[#fdf8f0] md:py-28">
       <Shell>
         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div>
@@ -1160,7 +1231,7 @@ function SecuritySection() {
             </div>
           </div>
 
-          <motion.div style={{ y }} className="relative">
+          <motion.div style={{ y: active ? y : 0 }} className="relative">
             <MatrizServerRack {...infrastructure} />
             <p className="mt-5 text-center text-xs text-[#fdf8f0]/40">
               Métricas reais da infraestrutura, atualizadas a cada 30 segundos. Nenhum dado sensível é exposto.
@@ -1225,21 +1296,25 @@ function TraditionsSection() {
 
 function ModulesSection() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const active = useInView(ref, { margin: '30% 0px', amount: 0.01 });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
   const bgY = useTransform(scrollYProgress, [0, 1], [48, -48]);
   const lineScale = useTransform(scrollYProgress, [0.05, 0.45], [0.25, 1]);
 
   return (
-    <section ref={ref} id="recursos" className="relative z-10 overflow-hidden bg-[#0b0906] py-20 text-[#fff8ea] md:py-28">
+    <section ref={ref} id="recursos" className="landing-section-cv relative z-10 overflow-hidden bg-[#0b0906] py-20 text-[#fff8ea] md:py-28">
       <span id="módulos" className="sr-only" aria-hidden />
       <motion.div
-        style={{ y: bgY }}
+        style={{ y: active ? bgY : 0 }}
         className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-72 max-w-5xl rounded-full bg-[#ffc107]/18 blur-3xl"
         aria-hidden
       />
       <motion.div
         className="pointer-events-none absolute left-1/2 top-0 h-full w-px origin-top bg-gradient-to-b from-[#ffc107]/70 via-white/15 to-transparent"
-        style={{ scaleY: lineScale }}
+        style={{ scaleY: active ? lineScale : 1 }}
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,193,7,0.08),transparent_36%),linear-gradient(180deg,#0b0906_0%,#110d08_100%)]" />
@@ -1354,7 +1429,6 @@ export function MatrizLandingExperience() {
     <div className="relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
       <ScrollProgress />
       <MatrizBackground />
-      <MatrizTopNav />
       <Hero />
       <GalleryStorageSection />
       <LiturgyMarquee />

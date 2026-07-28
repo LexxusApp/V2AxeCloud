@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  DIRETORIO_SEO_TEMPLATE_LASTMOD,
   STATIC_SITEMAP_PATHS,
   buildCityPrerenderPage,
   buildMinimalSeoHtmlDocument,
@@ -9,7 +10,10 @@ import {
   type DiretorioSeoTerreiro,
 } from "../../lib/diretorioSeoShared.js";
 import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
-import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
+import {
+  isDiretorioListingIndexable,
+  isDiretorioListingPublishable,
+} from "../../lib/diretorioQuality.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { apiReadRateLimit } from "./rateLimit.js";
 import {
@@ -23,14 +27,15 @@ const SELECT =
   "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, tipo";
 
 function sitemapLastModified(rawModified: string): string | undefined {
-  if (!rawModified || Number.isNaN(new Date(rawModified).getTime())) {
-    return undefined;
-  }
+  const fromRow =
+    rawModified && !Number.isNaN(new Date(rawModified).getTime())
+      ? new Date(rawModified).toISOString().slice(0, 10)
+      : undefined;
 
-  // O Google recomenda que <lastmod> represente uma alteracao verificavel da
-  // URL. Usar a data de um template como piso marcava milhares de registros
-  // antigos com o mesmo dia e transformava o sinal em uma data artificial.
-  return new Date(rawModified).toISOString().slice(0, 10);
+  // Piso do template SEO: após enriquecimento global do HTML crawler, o Google
+  // precisa recrawlear. Com sitemap só de perfis ricos, o sinal permanece útil.
+  if (!fromRow) return DIRETORIO_SEO_TEMPLATE_LASTMOD;
+  return fromRow > DIRETORIO_SEO_TEMPLATE_LASTMOD ? fromRow : DIRETORIO_SEO_TEMPLATE_LASTMOD;
 }
 
 function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
@@ -66,7 +71,7 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
   const data = await fetchAllTerreirosRows(
     sb,
     TABLE,
-    "nome, endereco, link_maps, cidade, estado, cidade_slug, slug, tipo, created_at, updated_at",
+    "nome, endereco, telefone, foto_url, link_maps, cidade, estado, cidade_slug, slug, tipo, created_at, updated_at",
   );
 
   const routes: Array<{
@@ -78,6 +83,7 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
     path: r.path,
     changeFrequency: r.changeFrequency,
     priority: r.priority,
+    lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
   }));
 
   const cityRoutes = new Map<string, string | undefined>();
@@ -96,8 +102,9 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
       cityRoutes.set(cityPath, modifiedDate);
     }
 
+    // Sitemap só com perfis ricos — thin/off-topic ficam no site com noindex.
     const slug = String(row.slug || "").trim();
-    if (slug) {
+    if (slug && isDiretorioListingIndexable(row)) {
       routes.push({
         path: `/terreiro/${slug}`,
         changeFrequency: "monthly",
@@ -148,7 +155,10 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
           return res.status(404).send("Perfil indisponível");
         }
 
-        const page = buildTerreiroPrerenderPage(mapSeoRow(data as Record<string, unknown>));
+        const row = data as Record<string, unknown>;
+        const page = buildTerreiroPrerenderPage(mapSeoRow(row), {
+          indexable: isDiretorioListingIndexable(row),
+        });
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
         res.send(buildMinimalSeoHtmlDocument(page));

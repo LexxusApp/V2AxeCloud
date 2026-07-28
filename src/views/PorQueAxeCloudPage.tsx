@@ -64,6 +64,17 @@ export default function PorQueAxeCloudPage() {
                 </article>
               ))}
             </motion.div>
+
+            <motion.p {...fade} className="relative z-10 mt-6 text-center text-sm text-[#1b1813]/65">
+              Ainda na planilha?{' '}
+              <a href={ROUTES.whyVsPlanilhas} className="font-bold text-[#a87400] underline decoration-[#FFC107]/60">
+                Veja AxéCloud vs planilhas
+              </a>
+              {' · '}
+              <a href={ROUTES.recursos} className="font-bold text-[#a87400] underline decoration-[#FFC107]/60">
+                Recursos
+              </a>
+            </motion.p>
           </div>
         </LandingSection>
 

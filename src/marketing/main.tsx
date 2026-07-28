@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 import { AppErrorBoundary } from '../components/AppErrorBoundary';
+import { GoogleAnalytics } from '../components/GoogleAnalytics';
 import { redirectToCanonicalOriginIfNeeded } from '../lib/canonicalOrigin';
 import {
   MARKETING_REDIRECT_ATTEMPTS_KEY,
@@ -25,9 +26,10 @@ function bootstrapMarketing() {
 
   createRoot(rootEl).render(
     <StrictMode>
-      <MotionConfig reducedMotion="always">
+      <MotionConfig reducedMotion="user">
         <AppErrorBoundary>
           <MarketingRouter />
+          <GoogleAnalytics />
         </AppErrorBoundary>
       </MotionConfig>
     </StrictMode>,

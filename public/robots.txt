@@ -6,4 +6,5 @@ Disallow: /checkout
 Disallow: /register
 Disallow: /consulente
 
+# llms.txt — resumo do site para ferramentas de IA: https://axecloud.com.br/llms.txt
 Sitemap: https://axecloud.com.br/sitemap.xml

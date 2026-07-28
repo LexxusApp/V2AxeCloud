@@ -349,14 +349,24 @@ function selecionarAba(alvo, atualizarUrl = false) {
   const glossario = document.getElementById("glossario");
   glossario.hidden = artigosAtivos;
   glossario.classList.toggle("visivel", !artigosAtivos);
-  if (atualizarUrl) history.replaceState(null, "", alvo === "glossario" ? "/conteudo?aba=glossario" : "/conteudo");
+  if (atualizarUrl) {
+    if (alvo === "glossario") {
+      window.location.assign("/conteudo/glossario");
+      return;
+    }
+    history.replaceState(null, "", "/conteudo");
+  }
 }
 document.querySelectorAll(".aba").forEach((aba) => {
   aba.addEventListener("click", () => {
     selecionarAba(aba.dataset.aba, true);
   });
 });
-selecionarAba(new URLSearchParams(location.search).get("aba") === "glossario" ? "glossario" : "artigos");
+if (new URLSearchParams(location.search).get("aba") === "glossario") {
+  window.location.replace("/conteudo/glossario");
+} else {
+  selecionarAba("artigos");
+}
 </script>
   <script src="/shared-footer.js"></script>
 </body>

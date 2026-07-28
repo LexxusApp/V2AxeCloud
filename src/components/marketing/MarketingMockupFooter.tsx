@@ -66,8 +66,13 @@ export function MarketingMockupFooter() {
           <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Plataforma</h6>
           <ul className="space-y-2 text-xs">
             <li>
-              <a href={`${ROUTES.home}#recursos`} className="text-white/60 transition hover:text-[#FFC107]">
+              <a href={ROUTES.recursos} className="text-white/60 transition hover:text-[#FFC107]">
                 Recursos
+              </a>
+            </li>
+            <li>
+              <a href={`${ROUTES.home}#recursos`} className="text-white/60 transition hover:text-[#FFC107]">
+                Módulos na landing
               </a>
             </li>
             <li>
@@ -78,6 +83,11 @@ export function MarketingMockupFooter() {
             <li>
               <a href={ROUTES.whyAxeCloud} className="text-white/60 transition hover:text-[#FFC107]">
                 Por que AxéCloud
+              </a>
+            </li>
+            <li>
+              <a href={ROUTES.whyVsPlanilhas} className="text-white/60 transition hover:text-[#FFC107]">
+                Vs planilhas
               </a>
             </li>
             <li>

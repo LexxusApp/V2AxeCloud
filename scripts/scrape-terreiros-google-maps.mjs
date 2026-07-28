@@ -916,7 +916,7 @@ async function enrichExisting(page, supabase, row, options, meta) {
   return { action: "updated" };
 }
 
-async function fetchRowsWithoutPhoto(supabase, meta) {
+async function fetchRowsForEnrich(supabase, meta) {
   const PAGE = 1000;
   const all = [];
   let offset = 0;
@@ -926,7 +926,6 @@ async function fetchRowsWithoutPhoto(supabase, meta) {
       .from(TABLE)
       .select("id, nome, link_maps, foto_url, telefone, endereco, cidade, latitude, longitude")
       .eq("cidade", meta.cidade)
-      .is("foto_url", null)
       .order("nome", { ascending: true })
       .range(offset, offset + PAGE - 1);
     if (meta.estado) query = query.eq("estado", meta.estado);
@@ -940,12 +939,20 @@ async function fetchRowsWithoutPhoto(supabase, meta) {
     offset += PAGE;
   }
 
-  return all;
+  // Prioriza quem está sem coordenada; também preenche foto/telefone faltantes.
+  return all.filter(
+    (row) =>
+      row.latitude == null ||
+      row.longitude == null ||
+      !row.foto_url ||
+      !row.telefone ||
+      !row.endereco,
+  );
 }
 
 async function enrichCidade(page, supabase, meta, options) {
-  const rows = (await fetchRowsWithoutPhoto(supabase, meta)).slice(0, options.max);
-  console.log(`\n[${meta.label}] Enriquecendo ${rows.length} registro(s) sem foto…`);
+  const rows = (await fetchRowsForEnrich(supabase, meta)).slice(0, options.max);
+  console.log(`\n[${meta.label}] Enriquecendo ${rows.length} registro(s) (coords/foto/telefone)…`);
 
   const stats = { updated: 0, skipped: 0, errors: 0 };
   for (const row of rows) {

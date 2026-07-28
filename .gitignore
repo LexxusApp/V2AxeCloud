@@ -6,6 +6,7 @@ dev-dist/
 coverage/
 .DS_Store
 *.log
+/scripts/logs/
 .env*
 !.env.example
 supabase/.temp/
