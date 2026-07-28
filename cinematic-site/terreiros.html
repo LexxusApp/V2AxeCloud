@@ -251,16 +251,13 @@ h1 em { font-style: italic; color: var(--ouro); }
   min-height: 440px;
   background: #d6e4d0;
 }
-/* Fecha as “listras” entre tiles do Leaflet (subpixel no Chrome/Windows). */
 .leaflet-container { background: #d6e4d0; }
-.leaflet-container .leaflet-tile-pane img,
-.leaflet-container .leaflet-layer img.leaflet-tile {
+/* plus-lighter do Leaflet gera grade branca no Chrome/Windows; tiles em canvas cobrem as juntas. */
+.leaflet-container img.leaflet-tile,
+.leaflet-container canvas.leaflet-tile {
+  mix-blend-mode: normal !important;
   max-width: none !important;
   max-height: none !important;
-  width: 256.5px !important;
-  height: 256.5px !important;
-  outline: 1px solid transparent;
-  backface-visibility: hidden;
 }
 .leaflet-popup-content-wrapper {
   border-radius: 12px;
@@ -429,6 +426,7 @@ footer a { color: var(--ouro); text-decoration: none; }
 <div id="site-footer"></div>
 
 <script src="/vendor/leaflet/leaflet.js"></script>
+<script src="/vendor/L.TileLayer.NoGap.js"></script>
 <script>
 const $ = (s, c = document) => c.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -558,14 +556,37 @@ async function carregaPontosMapa() {
   }
 }
 
+function snapMapaPixel() {
+  const el = document.getElementById("mapa");
+  if (!el || !mapa) return;
+  const rect = el.getBoundingClientRect();
+  const w = Math.max(1, Math.floor(rect.width));
+  const h = Math.max(1, Math.floor(rect.height));
+  if (el.clientWidth !== w) el.style.width = `${w}px`;
+  if (el.clientHeight !== h) el.style.height = `${h}px`;
+  mapa.invalidateSize({ animate: false });
+}
+
 function garanteMapa() {
   if (mapa || !window.L) return;
-  mapa = L.map("mapa", { scrollWheelZoom: false, preferCanvas: true, minZoom: 5 }).setView([-23.55, -46.63], 10);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  mapa = L.map("mapa", {
+    scrollWheelZoom: false,
+    preferCanvas: true,
+    minZoom: 5,
+    zoomSnap: 1,
+    zoomAnimation: false,
+  }).setView([-23.55, -46.63], 10);
+  // NoGap (L.TileLayer.NoGap.js) costura os tiles num canvas só — some as listras do Chrome.
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
     maxZoom: 19,
+    crossOrigin: true,
+    dumpToCanvas: true,
   }).addTo(mapa);
   marcadores = L.layerGroup().addTo(mapa);
+  snapMapaPixel();
+  window.addEventListener("resize", snapMapaPixel);
 }
 
 function pontosDoContexto() {
