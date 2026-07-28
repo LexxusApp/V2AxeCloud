@@ -516,7 +516,6 @@ const contagem = $("#contagem");
 let mapa = null;
 let marcadores = null;
 let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
-let coberturaCidades = []; // casas sem coordenada individual, agrupadas no centro dos pontos exatos da cidade
 let totaisMapa = { listed: 0, exact: 0, grouped: 0 };
 let marcadoresAtivos = []; // { point, marker }
 
@@ -541,9 +540,6 @@ async function carregaPontosMapa() {
         p.lat <= 5.5 &&
         p.lng >= -74.5 &&
         p.lng <= -32.0,
-    );
-    coberturaCidades = (data.cityCoverage || []).filter(
-      (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number(p.missing) > 0,
     );
     totaisMapa = data.totals || totaisMapa;
   } catch (e) {
@@ -615,41 +611,12 @@ function atualizaMapa(filtrados) {
     marcadoresAtivos.push({ point: p, marker });
   });
 
-  const grupos = termo
-    ? []
-    : coberturaCidades.filter((grupo) => {
-        if (uf && String(grupo.estado || "").toUpperCase() !== uf) return false;
-        if (cidadeNorm && String(grupo.cidade || "").toLowerCase() !== cidadeNorm) return false;
-        return true;
-      });
-  let agrupados = 0;
-  grupos.forEach((grupo) => {
-    agrupados += Number(grupo.missing) || 0;
-    coords.push([grupo.lat, grupo.lng]);
-    const marker = L.circleMarker([grupo.lat, grupo.lng], {
-      radius: 13,
-      color: "#a66f00",
-      weight: 2,
-      dashArray: "4 3",
-      fillColor: "#fff3bf",
-      fillOpacity: 0.72,
-    });
-    marker.bindTooltip(`${grupo.missing} casas agrupadas em ${grupo.cidade}`, { direction: "top" });
-    marker.bindPopup(`
-      <div class="popup-nome">${esc(grupo.cidade)}, ${esc(grupo.estado)}</div>
-      <div class="popup-endereco">${grupo.exact} localizações exatas e ${grupo.missing} casas ainda agrupadas pela cidade.</div>
-      <a class="popup-link" href="/terreiros?uf=${encodeURIComponent(String(grupo.estado || "").toLowerCase())}&cidade=${encodeURIComponent(grupo.cidadeSlug || grupo.cidade)}">ver casas desta cidade →</a>
-    `);
-    marker.addTo(marcadores);
-  });
-
   const nota = $("#mapa-nota");
+  const semCoord = Math.max(0, (filtrados.length || totalItens || 0) - pontos.length);
   if (coords.length) {
-    const exatos = pontos.length;
-    const representados = exatos + agrupados;
-    nota.textContent = agrupados
-      ? `${representados} casas representadas · ${exatos} localizações exatas + ${agrupados} agrupadas por cidade`
-      : `${exatos} terreiro${exatos === 1 ? "" : "s"} com localização exata · coordenadas do mapeamento Google Maps`;
+    nota.textContent = semCoord > 0
+      ? `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} no mapa · ${semCoord} ainda só na lista (sem pin)`
+      : `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} com localização exata`;
     // invalidateSize antes do fitBounds: o mapa inicia com tamanho 0 e o fit era ignorado,
     // deixando a vista padrão em São Paulo mesmo com RJ/outro estado selecionado.
     requestAnimationFrame(() => {
