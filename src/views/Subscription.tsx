@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Crown, Zap, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, Crown, Zap, ShieldCheck, ArrowRight, Loader2, CalendarDays, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { PLAN_NAMES, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
@@ -9,6 +9,7 @@ import { renewSubscriptionPath } from '../lib/routes';
 import { supabase } from '../lib/supabase';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
+import { useSubscriptionBillingCycle } from '../hooks/useSubscriptionBillingCycle';
 
 interface PlanCardProps {
   name: string;
@@ -24,14 +25,17 @@ interface PlanCardProps {
   /** Card mais estreito e tipografia reduzida (ex.: único plano na tela) */
   compact?: boolean;
   priceNote?: string;
+  periodLabel?: string;
+  badgeLabel?: string;
+  buttonLabel?: string;
 }
 
-function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan, compact, priceNote }: PlanCardProps) {
+function PlanCard({ name, price, description, features, icon: Icon, isPopular, color, onSelect, loading, isCurrentPlan, compact, priceNote, periodLabel = '/mês', badgeLabel = 'Mais escolhido', buttonLabel = 'Assinar agora' }: PlanCardProps) {
   return (
     <motion.div 
       whileHover={{ y: compact ? -3 : -6 }}
       className={cn(
-        "relative flex flex-col rounded-2xl border transition-all duration-500 bg-card/50 backdrop-blur-sm",
+        "relative flex flex-col rounded-2xl border bg-[#151A21] text-[#F8FAFC] transition-all duration-500",
         compact ? "p-4 md:p-5" : "p-6",
         isPopular ? "border-[#FBBC00] shadow-xl shadow-[#FBBC00]/10 z-10" : "border-white/5 hover:border-white/20",
         isCurrentPlan && "border-primary shadow-lg shadow-primary/20"
@@ -42,7 +46,7 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
           "absolute left-1/2 -translate-x-1/2 bg-[#FBBC00] text-background font-black rounded-full tracking-widest uppercase",
           compact ? "-top-3 text-[9px] px-3 py-0.5" : "-top-4 text-[10px] px-4 py-1"
         )}>
-          Mais Escolhido
+          {badgeLabel}
         </div>
       )}
       {isCurrentPlan && (
@@ -66,7 +70,7 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
       <div className={cn(compact ? "mb-4" : "mb-6")}>
         <div className="flex items-baseline gap-1">
           <span className={cn("font-black text-white", compact ? "text-2xl" : "text-3xl")}>R$ {price}</span>
-          <span className={cn("text-gray-500 font-bold", compact ? "text-xs" : "text-sm")}>/mês</span>
+          <span className={cn("text-gray-500 font-bold", compact ? "text-xs" : "text-sm")}>{periodLabel}</span>
         </div>
         {priceNote && (
           <p className={cn("text-primary/90 font-bold mt-1", compact ? "text-[10px]" : "text-xs")}>{priceNote}</p>
@@ -106,7 +110,7 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
           </>
         ) : (
           <>
-            ASSINAR AGORA
+            {buttonLabel}
             <ArrowRight className={compact ? "w-4 h-4 transition-transform group-hover:translate-x-1" : "w-5 h-5 transition-transform group-hover:translate-x-1"} />
           </>
         )}
@@ -128,20 +132,22 @@ interface SubscriptionProps {
 export default function Subscription({ session, tenantData, onPlanUpdated, hideHeader, onlyCurrentPlan, onlyAvailablePlans, setActiveTab }: SubscriptionProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
+  const currentBillingCycle = useSubscriptionBillingCycle(
+    String(tenantData?.tenant_id || ''),
+    tenantData?.billing_cycle,
+  );
 
-  const handleSelectPlan = async (planId: string) => {
-    if (tenantData?.plan === planId && tenantData?.status === 'active') {
-      alert('Você já possui este plano ativo.');
-      return;
-    }
-
-    setLoading(planId);
+  const handleSelectPlan = async (
+    planId: string,
+    billingCycle: 'monthly' | 'annual' = 'monthly'
+  ) => {
+    setLoading(billingCycle);
     let tenantId = String(tenantData?.tenant_id || '').trim();
     if (!tenantId) {
       const { data } = await supabase.auth.getSession();
       tenantId = data.session?.user?.id || '';
     }
-    window.location.href = renewSubscriptionPath(tenantId);
+    window.location.href = renewSubscriptionPath(tenantId, billingCycle);
   };
 
   const formatPrice = (price?: number, fallbackReais?: number) => {
@@ -195,11 +201,11 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
         </div>
         {!isLifetime && (
           <button 
-            onClick={() => handleSelectPlan(tenantData?.plan || 'premium')}
-            disabled={loading === tenantData?.plan}
+            onClick={() => handleSelectPlan(tenantData?.plan || 'premium', currentBillingCycle)}
+            disabled={loading === currentBillingCycle}
             className="bg-primary text-background px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all disabled:opacity-50 whitespace-nowrap"
           >
-            {loading === tenantData?.plan ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+            {loading === currentBillingCycle ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
             RENOVAR ASSINATURA
           </button>
         )}
@@ -207,29 +213,75 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
     );
   }
 
+  const monthlyPrice = plansConfig.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium;
+  const annualPrice = plansConfig.premium?.annual_price ?? monthlyPrice * 10;
+  const annualEquivalent = annualPrice / 12;
+  const annualSavings = Math.max(0, monthlyPrice * 12 - annualPrice);
+  const sharedFeatures = [
+    'Gestão completa do terreiro',
+    'Financeiro e relatórios avançados',
+    'Prontuário espiritual',
+    'Loja do Axé e almoxarifado',
+    'WhatsApp automatizado',
+    'Acesso ilimitado',
+  ];
+
   const plansGrid = (
-    <div className="flex w-full justify-center px-1">
-      <div className="w-full max-w-[22rem] sm:max-w-sm">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-[#252C35] bg-[#0E1217] p-4 shadow-[0_28px_80px_-48px_rgba(0,0,0,0.95)] sm:p-6">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="h-3 w-3" />
+            Escolha como economizar
+          </div>
+          <h3 className="font-display text-xl font-black text-white sm:text-2xl">Premium no seu ritmo</h3>
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-[#94A3B8]">
+            Os mesmos recursos completos nos dois períodos. Prefira flexibilidade mensal ou garanta um ano com dois meses de economia.
+          </p>
+        </div>
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-left sm:text-right">
+          <p className="text-[9px] font-black uppercase tracking-wider text-emerald-300">Economia no anual</p>
+          <p className="text-sm font-black text-white">R$ {formatPrice(annualSavings)} por ano</p>
+        </div>
+      </div>
+
+      <div className="relative grid gap-5 md:grid-cols-2 md:items-stretch">
         <PlanCard
-          name={plansConfig.premium?.name || "Plano Premium"}
-          price={formatPrice(plansConfig.premium?.price, DEFAULT_PLAN_PRICES_REAIS.premium)}
-          description={plansConfig.premium?.description || "Gestão espiritual e financeira completa para o seu terreiro."}
+          name="Premium Mensal"
+          price={formatPrice(monthlyPrice)}
+          description="Liberdade para renovar mês a mês, sem abrir mão de nenhum recurso."
           icon={Crown}
-          color="bg-[#FBBC00] shadow-[#FBBC00]/20"
-          features={[
-            "Gestão completa do terreiro",
-            "Financeiro completo",
-            "Prontuário espiritual",
-            "Loja do Axé (vendas)",
-            "Relatórios avançados",
-            "Acesso ilimitado",
-          ]}
-          onSelect={() => handleSelectPlan('premium')}
-          loading={loading === 'premium'}
-          isCurrentPlan={planKey === 'premium'}
+          color="bg-[#334155] shadow-black/30"
+          features={sharedFeatures}
+          onSelect={() => handleSelectPlan('premium', 'monthly')}
+          loading={loading === 'monthly'}
+          isCurrentPlan={planKey === 'premium' && currentBillingCycle === 'monthly' && tenantData?.status === 'active'}
           compact
+          periodLabel="/mês"
+          buttonLabel="Escolher mensal"
+        />
+        <PlanCard
+          name="Premium Anual"
+          price={formatPrice(annualPrice)}
+          description="Um único pagamento para manter o terreiro organizado durante 12 meses."
+          icon={CalendarDays}
+          color="bg-gradient-to-br from-[#FBBC00] to-[#D89200] shadow-[#FBBC00]/25"
+          features={sharedFeatures}
+          onSelect={() => handleSelectPlan('premium', 'annual')}
+          loading={loading === 'annual'}
+          isCurrentPlan={planKey === 'premium' && currentBillingCycle === 'annual' && tenantData?.status === 'active'}
+          isPopular
+          compact
+          periodLabel="/ano"
+          badgeLabel="Melhor custo-benefício"
+          buttonLabel="Quero economizar"
+          priceNote={`Equivale a R$ ${formatPrice(annualEquivalent)}/mês · 2 meses grátis`}
         />
       </div>
+      <p className="relative mt-5 text-center text-[10px] font-medium text-[#64748B]">
+        Pagamento seguro via PIX · Ativação automática após a confirmação
+      </p>
     </div>
   );
 
@@ -270,11 +322,11 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
             </div>
             {!isLifetime && (
               <button 
-                onClick={() => handleSelectPlan(tenantData?.plan || 'premium')}
-                disabled={loading === tenantData?.plan}
+                onClick={() => handleSelectPlan(tenantData?.plan || 'premium', currentBillingCycle)}
+                disabled={loading === currentBillingCycle}
                 className="bg-primary text-background px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all disabled:opacity-50 whitespace-nowrap"
               >
-                {loading === tenantData?.plan ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                {loading === currentBillingCycle ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
                 RENOVAR ASSINATURA
               </button>
             )}

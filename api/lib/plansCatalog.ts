@@ -13,6 +13,10 @@ export type PlanCatalogEntry = {
   description: string;
   /** Opcional: valor em centavos (ex.: 500). Tem prioridade sobre `price` na cobrança EFI. */
   price_cents?: number;
+  /** Valor anual em reais. Quando ausente, equivale a dez mensalidades. */
+  annual_price?: number;
+  /** Valor anual em centavos. Tem prioridade sobre `annual_price`. */
+  annual_price_cents?: number;
 };
 
 export const PLANS_CATALOG_KEYS = ["premium", "vita"] as const;
@@ -26,6 +30,7 @@ export const PLANS_CATALOG_DEFAULT: Record<PlanCatalogKey, PlanCatalogEntry> = {
   premium: {
     name: "Premium",
     price: PLAN_PRICE_STANDARD_REAIS,
+    annual_price: PLAN_PRICE_STANDARD_REAIS * 10,
     description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
   },
   vita: {
@@ -55,9 +60,26 @@ function mergeEntry(base: PlanCatalogEntry, src: Record<string, unknown> | null 
   const parsedCents = parseNumericField(src.price_cents);
   if (parsedCents != null && parsedCents > 0) price_cents = Math.round(parsedCents);
 
+  let annual_price = base.annual_price;
+  const parsedAnnualPrice = parseNumericField(src.annual_price);
+  if (parsedAnnualPrice != null && parsedAnnualPrice > 0) annual_price = parsedAnnualPrice;
+
+  let annual_price_cents = base.annual_price_cents;
+  const parsedAnnualCents = parseNumericField(src.annual_price_cents);
+  if (parsedAnnualCents != null && parsedAnnualCents > 0) {
+    annual_price_cents = Math.round(parsedAnnualCents);
+  }
+
   const description =
     typeof src.description === "string" && src.description.trim() ? src.description.trim() : base.description;
-  return { name, price, description, ...(price_cents != null ? { price_cents } : {}) };
+  return {
+    name,
+    price,
+    description,
+    ...(price_cents != null ? { price_cents } : {}),
+    ...(annual_price != null ? { annual_price } : {}),
+    ...(annual_price_cents != null ? { annual_price_cents } : {}),
+  };
 }
 
 /** Aceita objecto `{ premium, vita }` ou legado em array `[{ id: "premium", ... }]`. Ignora outros planos. */
@@ -139,6 +161,22 @@ export function premiumEntryToAmountCents(entry: PlanCatalogEntry): number {
   return planPriceToCents(entry.price);
 }
 
+export type BillingCycle = "monthly" | "annual";
+
+export function normalizeBillingCycle(value: unknown): BillingCycle {
+  return String(value || "").toLowerCase() === "annual" ? "annual" : "monthly";
+}
+
+export function premiumEntryToAnnualAmountCents(entry: PlanCatalogEntry): number {
+  if (typeof entry.annual_price_cents === "number" && entry.annual_price_cents > 0) {
+    return Math.round(entry.annual_price_cents);
+  }
+  if (typeof entry.annual_price === "number" && entry.annual_price > 0) {
+    return planPriceToCents(entry.annual_price);
+  }
+  return premiumEntryToAmountCents(entry) * 10;
+}
+
 export type PlansCatalogLoadResult = {
   plans: Record<PlanCatalogKey, PlanCatalogEntry>;
   fromDatabase: boolean;
@@ -195,6 +233,15 @@ export async function resolvePremiumAmountCents(supabaseAdmin: SupabaseClient): 
   }
 
   return PREMIUM_CHECKOUT_FALLBACK_CENTS;
+}
+
+export async function resolvePremiumBillingAmountCents(
+  supabaseAdmin: SupabaseClient,
+  billingCycle: BillingCycle
+): Promise<number> {
+  if (billingCycle === "monthly") return resolvePremiumAmountCents(supabaseAdmin);
+  const catalog = await loadPlansCatalog(supabaseAdmin);
+  return premiumEntryToAnnualAmountCents(catalog.premium);
 }
 
 export async function resolvePremiumAmountLabel(supabaseAdmin: SupabaseClient): Promise<string> {

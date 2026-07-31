@@ -1,21 +1,32 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   formatAmountLabelFromCents,
-  resolvePremiumAmountCents,
+  normalizeBillingCycle,
+  resolvePremiumBillingAmountCents,
+  type BillingCycle,
 } from "./plansCatalog.js";
 
 /** Valor em centavos para cobrança EFI (plano Premium padrão). */
 export async function resolveTenantPremiumAmountCents(
   supabaseAdmin: SupabaseClient,
-  _tenantId?: string | null
+  _tenantId?: string | null,
+  billingCycle: BillingCycle = "monthly"
 ): Promise<number> {
-  return resolvePremiumAmountCents(supabaseAdmin);
+  return resolvePremiumBillingAmountCents(
+    supabaseAdmin,
+    normalizeBillingCycle(billingCycle)
+  );
 }
 
 export async function resolveTenantPremiumAmountLabel(
   supabaseAdmin: SupabaseClient,
-  tenantId?: string | null
+  tenantId?: string | null,
+  billingCycle: BillingCycle = "monthly"
 ): Promise<string> {
-  const cents = await resolveTenantPremiumAmountCents(supabaseAdmin, tenantId);
+  const cents = await resolveTenantPremiumAmountCents(
+    supabaseAdmin,
+    tenantId,
+    billingCycle
+  );
   return formatAmountLabelFromCents(cents);
 }

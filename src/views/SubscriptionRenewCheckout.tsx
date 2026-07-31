@@ -38,6 +38,13 @@ function readTenantFromUrl(): string {
   return new URLSearchParams(window.location.search).get('tenant')?.trim() || '';
 }
 
+function readBillingFromUrl(): 'monthly' | 'annual' {
+  if (typeof window === 'undefined') return 'monthly';
+  return new URLSearchParams(window.location.search).get('billing') === 'annual'
+    ? 'annual'
+    : 'monthly';
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -48,6 +55,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 export default function SubscriptionRenewCheckout() {
   const { premium: catalogPrice, plans } = usePlansCatalog();
+  const billingCycle = readBillingFromUrl();
   const [tenantId, setTenantId] = useState('');
   const [ctx, setCtx] = useState<RenewContext | null>(null);
   const [amountLabel, setAmountLabel] = useState('');
@@ -82,7 +90,10 @@ export default function SubscriptionRenewCheckout() {
         setTenantId(resolvedTenant);
 
         const [cfgRes, ctxRes] = await Promise.all([
-          authFetch('/api/v1/checkout/efi/config', { cache: 'no-store', headers: await authHeaders() }),
+          authFetch(`/api/v1/checkout/efi/config?billingCycle=${billingCycle}`, {
+            cache: 'no-store',
+            headers: await authHeaders(),
+          }),
           authFetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(resolvedTenant)}`, {
             cache: 'no-store',
             headers: await authHeaders(),
@@ -113,8 +124,12 @@ export default function SubscriptionRenewCheckout() {
         }
 
         setAmountLabel(
-          String(cfg.amountLabel || '').trim() ||
-            `R$ ${formatPriceBRL(plans.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium)}/mês`,
+          (String(cfg.amountLabel || '').trim()
+            ? `${String(cfg.amountLabel).trim()}${String(cfg.periodLabel || (billingCycle === 'annual' ? '/ano' : '/mês'))}`
+            : '') ||
+            billingCycle === 'annual'
+              ? `R$ ${formatPriceBRL(plans.premium?.annual_price ?? (plans.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium) * 10)}/ano`
+              : `R$ ${formatPriceBRL(plans.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium)}/mês`,
         );
       } catch (e: unknown) {
         if (!cancelled) {
@@ -128,10 +143,14 @@ export default function SubscriptionRenewCheckout() {
     return () => {
       cancelled = true;
     };
-  }, [plans.premium?.price]);
+  }, [billingCycle, plans.premium?.annual_price, plans.premium?.price]);
 
-  const planName = plans.premium?.name || 'Plano Premium';
-  const displayPrice = amountLabel || `${catalogPrice.label}${catalogPrice.period}`;
+  const planName = billingCycle === 'annual' ? 'Premium Anual' : 'Premium Mensal';
+  const displayPrice =
+    amountLabel ||
+    (billingCycle === 'annual'
+      ? `${catalogPrice.annualLabel}/ano`
+      : `${catalogPrice.label}${catalogPrice.period}`);
 
   return (
     <div className="min-h-screen bg-[#080A0D] text-[#F1F5F9]">
@@ -181,11 +200,13 @@ export default function SubscriptionRenewCheckout() {
                   <div>
                     <h2 className="font-display text-lg font-bold text-[#F1F5F9]">Resumo do plano</h2>
                     <p className="mt-1 text-[11px] text-[#94A3B8]">
-                      Renove o acesso Premium do terreiro com pagamento seguro via EFI Bank.
+                      {billingCycle === 'annual'
+                        ? 'Garanta 12 meses de acesso Premium com dois meses de economia.'
+                        : 'Renove o acesso Premium do terreiro com pagamento seguro via EFI Bank.'}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
-                    Premium
+                    {billingCycle === 'annual' ? 'Anual · 2 meses grátis' : 'Mensal'}
                   </span>
                 </div>
 
@@ -248,7 +269,7 @@ export default function SubscriptionRenewCheckout() {
                     Pagamento protegido
                   </span>
                   <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
-                    Transações processadas pela EFI Bank (PIX e cartão). Confirmação automática e liberação imediata do
+                    Transações processadas pela EFI Bank via PIX. Confirmação automática e liberação imediata do
                     painel após o pagamento.
                   </p>
                 </div>
@@ -263,7 +284,9 @@ export default function SubscriptionRenewCheckout() {
                   </div>
                   <div>
                     <h2 className="font-display text-base font-bold text-[#F1F5F9]">Forma de pagamento</h2>
-                    <p className="text-[11px] text-[#94A3B8]">Escolha PIX ou cartão para renovar sua mensalidade.</p>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Gere o PIX para renovar sua {billingCycle === 'annual' ? 'anuidade' : 'mensalidade'}.
+                    </p>
                   </div>
                 </div>
 
@@ -272,6 +295,7 @@ export default function SubscriptionRenewCheckout() {
                     tenantId={tenantId}
                     variant="app"
                     purpose="renewal"
+                    billingCycle={billingCycle}
                     defaultHolderName={ctx?.nomeZelador || ctx?.nomeTerreiro || ''}
                     showFooter={false}
                   />

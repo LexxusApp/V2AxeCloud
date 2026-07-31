@@ -515,11 +515,12 @@ export function CommandShell({ session }: { session: Session }) {
   );
 }
 
-type CatalogEntry = { name: string; price: number; description: string };
+type CatalogEntry = { name: string; price: number; description: string; annual_price?: number };
 
 const CATALOG_DEFAULT_PREMIUM: CatalogEntry = {
   name: "Premium",
   price: 69.9,
+  annual_price: 699,
   description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
 };
 const CATALOG_DEFAULT_VITA: CatalogEntry = {
@@ -535,6 +536,14 @@ function pickCatalogEntry(raw: Record<string, unknown>, key: "premium" | "vita",
   return {
     name: typeof o.name === "string" && o.name.trim() ? o.name.trim() : defaults.name,
     price: typeof o.price === "number" && Number.isFinite(o.price) ? o.price : defaults.price,
+    ...(key === "premium"
+      ? {
+          annual_price:
+            typeof o.annual_price === "number" && Number.isFinite(o.annual_price)
+              ? o.annual_price
+              : defaults.annual_price,
+        }
+      : {}),
     description:
       typeof o.description === "string" && o.description.trim() ? o.description.trim() : defaults.description,
   };
@@ -545,11 +554,13 @@ function PlanCatalogCard({
   subtitle,
   data,
   onChange,
+  showAnnualPrice = false,
 }: {
   title: string;
   subtitle: string;
   data: CatalogEntry;
   onChange: (next: CatalogEntry) => void;
+  showAnnualPrice?: boolean;
 }) {
   return (
     <div className={admin.card}>
@@ -577,6 +588,22 @@ function PlanCatalogCard({
             onChange={(e) => onChange({ ...data, price: Number(e.target.value) || 0 })}
           />
         </div>
+        {showAnnualPrice ? (
+          <div>
+            <label className="admin-label">Preço anual</label>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              className="admin-input admin-mono mt-1"
+              value={Number.isFinite(data.annual_price) ? data.annual_price : 0}
+              onChange={(e) => onChange({ ...data, annual_price: Number(e.target.value) || 0 })}
+            />
+            <p className="mt-1 text-[10px] text-[var(--ac-text-muted)]">
+              Cobrado uma vez por ano no checkout Premium.
+            </p>
+          </div>
+        ) : null}
         <div>
           <label className="admin-label">Descrição</label>
           <textarea
@@ -623,8 +650,7 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
             <p className="admin-kicker">Catálogo</p>
             <h3 className="mt-1 text-lg font-semibold text-[var(--ac-text)]">Premium e Plano Vita</h3>
             <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--ac-text-muted)]">
-              Estes dois planos são os únicos comerciais do AxéCloud. O preço do Premium alimenta checkout, Pix e
-              cartão EFI na hora (tabela{" "}
+              O Premium possui ciclos mensal e anual; os valores alimentam checkout, Pix e cartão EFI na hora (tabela{" "}
               <code className="admin-mono text-[var(--ac-text)]">global_settings</code>, id{" "}
               <code className="admin-mono text-[var(--ac-text)]">plans</code>). Entradas antigas como Axé/Orô são
               ignoradas ao guardar.
@@ -640,6 +666,7 @@ function PlansEditor({ initial }: { initial: Record<string, unknown> }) {
           subtitle="Renovável — acesso completo às funções."
           data={premium}
           onChange={setPremium}
+          showAnnualPrice
         />
         <PlanCatalogCard
           title="Plano Vita"

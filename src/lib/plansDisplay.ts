@@ -5,6 +5,8 @@ export type PlanCatalogEntryClient = {
   price?: number;
   description?: string;
   price_cents?: number;
+  annual_price?: number;
+  annual_price_cents?: number;
 };
 
 export type PlansCatalogClient = Record<string, PlanCatalogEntryClient>;
@@ -26,6 +28,11 @@ export type PremiumDisplayPrice = {
   amount: number;
   label: string;
   period: string;
+  annualAmount: number;
+  annualLabel: string;
+  annualEquivalentMonthly: number;
+  annualSavings: number;
+  annualDiscountPercent: number;
   description: string;
   name: string;
 };
@@ -37,10 +44,18 @@ export function premiumDisplayFromCatalog(
   const p = plans.premium;
   const amount =
     Number(p?.price) > 0 ? Number(p.price) : (fallbacks?.amount ?? DEFAULT_PLAN_PRICES_REAIS.premium);
+  const annualAmount =
+    Number(p?.annual_price) > 0 ? Number(p.annual_price) : amount * 10;
+  const fullYear = amount * 12;
   return {
     amount,
     label: formatPriceLabel(p?.price, amount),
     period: fallbacks?.period ?? '/mês',
+    annualAmount,
+    annualLabel: formatPriceLabel(annualAmount),
+    annualEquivalentMonthly: annualAmount / 12,
+    annualSavings: Math.max(0, fullYear - annualAmount),
+    annualDiscountPercent: fullYear > 0 ? Math.round((1 - annualAmount / fullYear) * 100) : 0,
     description:
       (typeof p?.description === 'string' && p.description.trim()) ||
       fallbacks?.description ||

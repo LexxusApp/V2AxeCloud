@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TRIAL_DAYS } from "../../lib/planPricing.js";
-import { normalizePlansCatalog } from "./plansCatalog.js";
+import { normalizeBillingCycle, type BillingCycle } from "./plansCatalog.js";
 import { resolveTenantPremiumAmountCents } from "./premiumPricing.js";
 import {
   CONSOLE_ADMIN_INSTANCE_NAME,
@@ -67,9 +67,10 @@ export function efiNotificationUrl(): string {
 /** Preço do onboarding Premium: catálogo → env → fallback R$ 69,90. */
 export async function resolvePremiumOnboardingAmountCents(
   supabaseAdmin: SupabaseClient,
-  tenantId?: string | null
+  tenantId?: string | null,
+  billingCycle: BillingCycle = "monthly"
 ): Promise<number> {
-  return resolveTenantPremiumAmountCents(supabaseAdmin, tenantId);
+  return resolveTenantPremiumAmountCents(supabaseAdmin, tenantId, billingCycle);
 }
 
 export async function registerNewTenant(
@@ -239,35 +240,59 @@ export async function sendPostPaymentWelcomeWhatsApp(
 export async function activateTenantSubscription(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
-  opts?: { chargeId?: number; provider?: string }
+  opts?: {
+    chargeId?: number | string;
+    provider?: string;
+    billingCycle?: BillingCycle;
+  }
 ): Promise<{ alreadyActive: boolean }> {
   const tid = String(tenantId || "").trim();
   if (!tid) throw new Error("tenant_id inválido");
 
   const { data: sub, error: subErr } = await supabaseAdmin
     .from("subscriptions")
-    .select("id, status, plan, expires_at")
+    .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, last_activated_charge_id")
     .eq("id", tid)
     .maybeSingle();
   if (subErr) throw subErr;
 
-  if (isSubscriptionAccessActive(sub)) {
+  const chargeId = opts?.chargeId != null ? String(opts.chargeId) : "";
+  if (
+    chargeId &&
+    String(sub?.last_activated_charge_id || "") === chargeId
+  ) {
+    return { alreadyActive: true };
+  }
+  if (!chargeId && !sub?.pending_billing_cycle && isSubscriptionAccessActive(sub)) {
     return { alreadyActive: true };
   }
 
   const hadAccessBefore = String(sub?.status || "").toLowerCase() === "active";
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const billingCycle = normalizeBillingCycle(
+    opts?.billingCycle || sub?.pending_billing_cycle || sub?.billing_cycle
+  );
+  const periodDays = billingCycle === "annual" ? 365 : 30;
+  const currentExpiry = new Date(String(sub?.expires_at || "")).getTime();
+  const baseTime = Number.isFinite(currentExpiry)
+    ? Math.max(Date.now(), currentExpiry)
+    : Date.now();
+  const expiresAt = new Date(baseTime + periodDays * 24 * 60 * 60 * 1000).toISOString();
   const now = new Date().toISOString();
 
   const patch: Record<string, unknown> = {
     status: "active",
     plan: sub?.plan || "premium",
     expires_at: expiresAt,
+    billing_cycle: billingCycle,
+    pending_billing_cycle: null,
     payment_provider: opts?.provider || "efi",
     pending_since: null,
     updated_at: now,
   };
-  if (opts?.chargeId) patch.efi_charge_id = String(opts.chargeId);
+  if (chargeId) {
+    patch.efi_charge_id = chargeId;
+    patch.last_activated_charge_id = chargeId;
+  }
 
   const { error: upErr } = await updateSubscriptionResilient(supabaseAdmin, tid, patch);
 

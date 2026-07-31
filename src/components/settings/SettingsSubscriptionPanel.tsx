@@ -11,6 +11,7 @@ import { usePlansCatalog } from '../../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../../lib/plansDisplay';
 import { renewSubscriptionPath } from '../../lib/routes';
 import { supabase } from '../../lib/supabase';
+import { useSubscriptionBillingCycle } from '../../hooks/useSubscriptionBillingCycle';
 
 type SettingsSubscriptionPanelProps = {
   tenantData: Record<string, unknown> | null | undefined;
@@ -93,8 +94,14 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
     : `Plano ${currentPlanName}`;
   const accent = planAccent(planKey, isLifetime);
   const status = String(tenantData?.status || 'active');
-  const monthlyPrice = formatPriceBRL(
-    plansConfig.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium,
+  const billingCycle = useSubscriptionBillingCycle(
+    String(tenantData?.tenant_id || ''),
+    tenantData?.billing_cycle,
+  );
+  const monthlyPriceValue = plansConfig.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium;
+  const annualPriceValue = plansConfig.premium?.annual_price ?? monthlyPriceValue * 10;
+  const currentPrice = formatPriceBRL(
+    billingCycle === 'annual' ? annualPriceValue : monthlyPriceValue,
   );
 
   async function handleRenew() {
@@ -106,7 +113,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
         const { data } = await supabase.auth.getSession();
         tenantId = data.session?.user?.id || '';
       }
-      window.location.href = renewSubscriptionPath(tenantId);
+      window.location.href = renewSubscriptionPath(tenantId, billingCycle);
     } catch {
       setRenewError('Erro ao abrir o checkout. Tente novamente.');
       setRenewLoading(false);
@@ -122,7 +129,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
   }
 
   return (
-    <div className="animate-fadeIn space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:p-6">
+    <div className="settings-dark-surface animate-fadeIn space-y-6 rounded-[1.75rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.95)] sm:p-6">
       <div className="flex flex-col gap-2 border-b border-[#1E242B] pb-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Plano e Assinatura</h6>
@@ -162,11 +169,13 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
             {!isLifetime && (
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A]/60 p-3 sm:col-span-2">
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                  Valor mensal
+                  Valor {billingCycle === 'annual' ? 'anual' : 'mensal'}
                 </span>
                 <p className="text-xs font-bold text-[#F1F5F9]">
-                  R$ {monthlyPrice}
-                  <span className="ml-1 font-normal text-gray-500">/ mês</span>
+                  R$ {currentPrice}
+                  <span className="ml-1 font-normal text-gray-500">
+                    / {billingCycle === 'annual' ? 'ano' : 'mês'}
+                  </span>
                 </p>
               </div>
             )}
@@ -243,7 +252,11 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                     accent.badge,
                   )}
                 >
-                  {isLifetime ? 'Acesso vitalício' : 'Assinatura mensal'}
+                  {isLifetime
+                    ? 'Acesso vitalício'
+                    : billingCycle === 'annual'
+                      ? 'Assinatura anual'
+                      : 'Assinatura mensal'}
                 </span>
               </div>
 
@@ -261,7 +274,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                 Pagamento seguro
               </span>
               <p className="mt-0.5 text-[10px] font-light leading-relaxed text-gray-500">
-                Transações via PIX e cartão com EFI Bank. Dados criptografados e cancelamento a qualquer momento.
+                Transações via PIX com EFI Bank. Dados criptografados e confirmação automática.
               </p>
             </div>
           </div>

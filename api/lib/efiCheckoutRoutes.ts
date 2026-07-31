@@ -19,7 +19,11 @@ import {
   getEfiPixSetupDiagnostics,
   resolveEfiPixEnv,
 } from "./efiPixApi.js";
-import { formatAmountLabelFromCents } from "./plansCatalog.js";
+import {
+  formatAmountLabelFromCents,
+  normalizeBillingCycle,
+  type BillingCycle,
+} from "./plansCatalog.js";
 import {
   activateTenantSubscription,
   efiNotificationUrl,
@@ -60,7 +64,8 @@ async function resolveTenantFromAuth(
 
 async function assertPendingSubscription(
   supabaseAdmin: SupabaseClient,
-  tenantId: string
+  tenantId: string,
+  purpose: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   await ensurePendingSubscriptionRow(supabaseAdmin, tenantId);
 
@@ -70,7 +75,7 @@ async function assertPendingSubscription(
     .eq("id", tenantId)
     .maybeSingle();
 
-  if (isSubscriptionAccessActive(sub)) {
+  if (purpose !== "renewal" && isSubscriptionAccessActive(sub)) {
     return { ok: false, status: 200, error: "already_active" };
   }
   return { ok: true };
@@ -89,13 +94,17 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
 
     const tenant = await resolveTenantFromAuth(supabaseAdmin, req);
+    const billingCycle = normalizeBillingCycle(req.query.billingCycle);
     const amountCents = await resolvePremiumOnboardingAmountCents(
       supabaseAdmin,
-      tenant?.tenantId
+      tenant?.tenantId,
+      billingCycle
     );
     const publicConfig = {
       amountCents,
       amountLabel: formatAmountLabelFromCents(amountCents),
+      billingCycle,
+      periodLabel: billingCycle === "annual" ? "/ano" : "/mês",
       pixAvailable: !!pix,
       cardAvailable: EFI_CARD_CHECKOUT_ENABLED,
       cardTokenizationReady: EFI_CARD_CHECKOUT_ENABLED && !!payeeCode,
@@ -135,7 +144,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
     const { data: sub } = await supabaseAdmin
       .from("subscriptions")
-      .select("status, expires_at, efi_charge_id, efi_pix_txid, efi_subscription_id")
+      .select("status, expires_at, billing_cycle, efi_charge_id, efi_pix_txid, efi_subscription_id")
       .eq("id", tenant.tenantId)
       .maybeSingle();
 
@@ -147,6 +156,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       subscriptionStatus: sub?.status || "pending",
       // Trial expirado pode manter status "active" + expires_at passado — não liberar acesso.
       active: isSubscriptionAccessActive(sub),
+      billingCycle: normalizeBillingCycle(sub?.billing_cycle),
       efiPixTxid: sub?.efi_pix_txid || null,
       efiSubscriptionId: sub?.efi_subscription_id || null,
     });
@@ -165,7 +175,9 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const tenant = await resolveTenantFromAuth(supabaseAdmin, req, req.body?.tenantId);
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
 
-      const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
+      const purpose = String(req.body?.purpose || "onboarding").toLowerCase();
+      const billingCycle = normalizeBillingCycle(req.body?.billingCycle);
+      const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId, purpose);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
           return res.json({
@@ -185,13 +197,17 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const payerName = String(req.body?.payerName || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const payerCpf = String(req.body?.cpf || "").trim();
 
-      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin, tenant.tenantId);
+      const amountCents = await resolvePremiumOnboardingAmountCents(
+        supabaseAdmin,
+        tenant.tenantId,
+        billingCycle
+      );
       const charge = await efiPixCreateImmediateCharge(pixEnv, {
         tenantId: tenant.tenantId,
         amountCents,
         payerName,
         payerCpf: payerCpf || undefined,
-        description: `AxéCloud Premium — ${profile?.nome_terreiro || "Terreiro"}`,
+        description: `AxéCloud Premium ${billingCycle === "annual" ? "Anual" : "Mensal"} — ${profile?.nome_terreiro || "Terreiro"}`,
       });
 
       const qrCodeDataUrl = await QRCode.toDataURL(charge.copyPaste, {
@@ -204,7 +220,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         efi_pix_txid: charge.txid,
         efi_charge_id: `pix:${charge.txid}`,
         payment_provider: "efi_pix",
-        status: "pending",
+        pending_billing_cycle: billingCycle,
         updated_at: new Date().toISOString(),
       });
       if (subUpErr) {
@@ -221,6 +237,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         qrCodeDataUrl,
         status: charge.status,
         expiresIn: 3600,
+        billingCycle,
       });
     } catch (err: any) {
       console.error("[checkout/pix]", err?.response?.data || err?.message || err);
@@ -260,6 +277,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
       if (cob.paid) {
         await activateTenantSubscription(supabaseAdmin, tenant.tenantId, {
+          chargeId: `pix:${txid}`,
           provider: "efi_pix",
         });
         return res.json({ status: cob.status, paid: true, active: true });
@@ -286,7 +304,9 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const tenant = await resolveTenantFromAuth(supabaseAdmin, req, req.body?.tenantId);
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
 
-      const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId);
+      const purpose = String(req.body?.purpose || "onboarding").toLowerCase();
+      const billingCycle: BillingCycle = normalizeBillingCycle(req.body?.billingCycle);
+      const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId, purpose);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
           return res.json({
@@ -324,7 +344,11 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       const nome = String(customer.name || profile?.cargo || profile?.nome_terreiro || "Cliente").trim();
       const email = String(customer.email || profile?.email || tenant.email).trim();
 
-      const amountCents = await resolvePremiumOnboardingAmountCents(supabaseAdmin, tenant.tenantId);
+      const amountCents = await resolvePremiumOnboardingAmountCents(
+        supabaseAdmin,
+        tenant.tenantId,
+        billingCycle
+      );
       const result = await efiCreateCardSubscriptionOneStep(efi, {
         tenantId: tenant.tenantId,
         email,
@@ -333,6 +357,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         phoneNumber: String(customer.phone_number || customer.phone || ""),
         paymentToken,
         amountCents,
+        billingCycle,
         notificationUrl: efiNotificationUrl(),
         billingAddress: {
           street: String(billing.street || "").trim(),
@@ -351,7 +376,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
           efi_subscription_id: String(result.subscriptionId),
           efi_charge_id: result.chargeId ? String(result.chargeId) : null,
           payment_provider: "efi_card",
-          status: "pending",
+          pending_billing_cycle: billingCycle,
           updated_at: new Date().toISOString(),
         })
         .eq("id", tenant.tenantId);
@@ -372,6 +397,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         await activateTenantSubscription(supabaseAdmin, tenant.tenantId, {
           chargeId: result.chargeId,
           provider: "efi_card",
+          billingCycle,
         });
       }
 

@@ -235,15 +235,22 @@ export function pickLatestPaidStatus(entries: EfiNotificationEntry[]): {
   return { paid, chargeId, customId };
 }
 
-let cachedPremiumPlanId: number | null = null;
+let cachedPremiumPlanIds: Partial<Record<"monthly" | "annual", number>> = {};
 
-export async function efiEnsurePremiumPlan(env: EfiEnv): Promise<number> {
-  const fromEnv = Number(process.env.EFI_PREMIUM_PLAN_ID || "");
+export async function efiEnsurePremiumPlan(
+  env: EfiEnv,
+  billingCycle: "monthly" | "annual" = "monthly"
+): Promise<number> {
+  const annual = billingCycle === "annual";
+  const fromEnv = Number(
+    (annual ? process.env.EFI_PREMIUM_ANNUAL_PLAN_ID : process.env.EFI_PREMIUM_PLAN_ID) || ""
+  );
   if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-  if (cachedPremiumPlanId) return cachedPremiumPlanId;
+  if (cachedPremiumPlanIds[billingCycle]) return cachedPremiumPlanIds[billingCycle]!;
 
   const token = await efiGetAccessToken(env);
   const client = efiClient(env);
+  const planName = annual ? "AxéCloud Premium Anual" : "AxéCloud Premium";
 
   const { data: listData } = await client.get("/v1/plans", {
     headers: { Authorization: `Bearer ${token}` },
@@ -252,18 +259,18 @@ export async function efiEnsurePremiumPlan(env: EfiEnv): Promise<number> {
 
   const plans = Array.isArray(listData?.data) ? listData.data : [];
   const existing = plans.find(
-    (p: { name?: string }) => String(p?.name || "").toLowerCase() === "axecloud premium"
+    (p: { name?: string }) => String(p?.name || "").toLowerCase() === planName.toLowerCase()
   );
   if (existing?.plan_id) {
-    cachedPremiumPlanId = Number(existing.plan_id);
-    return cachedPremiumPlanId;
+    cachedPremiumPlanIds[billingCycle] = Number(existing.plan_id);
+    return cachedPremiumPlanIds[billingCycle]!;
   }
 
   const { data } = await client.post(
     "/v1/plan",
     {
-      name: "AxéCloud Premium",
-      interval: 1,
+      name: planName,
+      interval: annual ? 12 : 1,
       repeats: null,
     },
     { headers: { Authorization: `Bearer ${token}` } }
@@ -272,7 +279,7 @@ export async function efiEnsurePremiumPlan(env: EfiEnv): Promise<number> {
   const planId = Number(data?.data?.plan_id ?? data?.plan_id ?? 0);
   if (!planId) throw new Error("EFI: falha ao criar plano de assinatura Premium");
 
-  cachedPremiumPlanId = planId;
+  cachedPremiumPlanIds[billingCycle] = planId;
   return planId;
 }
 
@@ -284,6 +291,7 @@ export type EfiCardSubscriptionInput = {
   phoneNumber: string;
   paymentToken: string;
   amountCents: number;
+  billingCycle?: "monthly" | "annual";
   notificationUrl: string;
   billingAddress: {
     street: string;
@@ -303,11 +311,14 @@ export type EfiCardSubscriptionResult = {
   raw: unknown;
 };
 
-function buildEfiSubscriptionItems(amountCents: number) {
+function buildEfiSubscriptionItems(
+  amountCents: number,
+  billingCycle: "monthly" | "annual" = "monthly"
+) {
   const value = Math.max(100, Math.round(amountCents));
   return [
     {
-      name: "AxeCloud Premium mensalidade",
+      name: billingCycle === "annual" ? "AxeCloud Premium anual" : "AxeCloud Premium mensalidade",
       value,
       amount: 1,
     },
@@ -370,7 +381,7 @@ async function efiCreateCardSubscriptionTwoStep(
   const headers = { Authorization: `Bearer ${token}` };
 
   const subscriptionBody = {
-    items: buildEfiSubscriptionItems(input.amountCents),
+    items: buildEfiSubscriptionItems(input.amountCents, input.billingCycle),
     metadata: {
       custom_id: String(input.tenantId).slice(0, 64),
       notification_url: input.notificationUrl.trim(),
@@ -424,13 +435,13 @@ export async function efiCreateCardSubscriptionOneStep(
   env: EfiEnv,
   input: EfiCardSubscriptionInput
 ): Promise<EfiCardSubscriptionResult> {
-  const planId = await efiEnsurePremiumPlan(env);
+  const planId = await efiEnsurePremiumPlan(env, input.billingCycle);
   const token = await efiGetAccessToken(env);
   const client = efiClient(env);
   const headers = { Authorization: `Bearer ${token}` };
 
   const subscriptionBase = {
-    items: buildEfiSubscriptionItems(input.amountCents),
+    items: buildEfiSubscriptionItems(input.amountCents, input.billingCycle),
     metadata: {
       custom_id: String(input.tenantId).slice(0, 64),
       notification_url: input.notificationUrl.trim(),

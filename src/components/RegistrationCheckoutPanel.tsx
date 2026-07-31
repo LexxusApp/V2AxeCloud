@@ -30,6 +30,8 @@ type EfiConfig = {
   payeeCode: string | null;
   amountCents: number;
   amountLabel: string;
+  billingCycle: 'monthly' | 'annual';
+  periodLabel: '/mês' | '/ano';
   pixAvailable: boolean;
   pixSetup?: {
     hasClientCredentials: boolean;
@@ -153,6 +155,7 @@ export type RegistrationCheckoutPanelProps = {
   variant?: keyof typeof themes;
   /** onboarding = cadastro; renewal = zelador renovando assinatura */
   purpose?: 'onboarding' | 'renewal';
+  billingCycle?: 'monthly' | 'annual';
   /** Layout mais baixo para caber no painel do /register sem cortar o topo. */
   compact?: boolean;
   defaultHolderName?: string;
@@ -165,6 +168,7 @@ export function RegistrationCheckoutPanel({
   tenantId,
   variant = 'light',
   purpose = 'onboarding',
+  billingCycle = 'monthly',
   compact = false,
   defaultHolderName = '',
   defaultPhone = '',
@@ -202,11 +206,14 @@ export function RegistrationCheckoutPanel({
   );
 
   const isRenewal = purpose === 'renewal';
+  const periodText = billingCycle === 'annual' ? 'anuidade' : 'mensalidade';
+  const fallbackAmountLabel =
+    billingCycle === 'annual' ? catalogPrice.annualLabel : catalogPrice.label;
   const pixIntro = isRenewal
-    ? 'Gere o QR Code Pix para renovar sua mensalidade. A confirmação libera o painel automaticamente.'
+    ? `Gere o QR Code Pix para renovar sua ${periodText}. A confirmação libera o painel automaticamente.`
     : 'Gere o QR Code na hora. O Pix confirma em segundos e liberamos seu acesso automaticamente.';
   const cardIntro = isRenewal
-    ? 'Pague com cartão de crédito para renovar o acesso do terreiro. Cobrança recorrente via EFI Bank.'
+    ? `Pague com cartão de crédito para renovar o acesso do terreiro. Cobrança ${billingCycle === 'annual' ? 'anual' : 'mensal'} via EFI Bank.`
     : 'Assinatura mensal com cartão de crédito. Cobrança recorrente via EFI Bank.';
 
   const [method, setMethod] = useState<PayMethod>('pix');
@@ -245,7 +252,7 @@ export function RegistrationCheckoutPanel({
     setError(null);
     try {
       const [cfgRes, ctxRes] = await Promise.all([
-        authFetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
+        authFetch(`/api/v1/checkout/efi/config?billingCycle=${billingCycle}`, { cache: 'no-store' }),
         authFetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(tenantId)}`, {
           cache: 'no-store',
           headers: await authHeaders(),
@@ -263,7 +270,7 @@ export function RegistrationCheckoutPanel({
         const context = (await ctxRes.json()) as CheckoutContext;
         setCtx(context);
         setHolderName((prev) => prev || context.nomeZelador || context.nomeTerreiro || '');
-        if (context.active) setAlreadyActive(true);
+        if (context.active && !isRenewal) setAlreadyActive(true);
       } else {
         setHolderName((prev) => prev || defaultHolderName);
         setHolderPhone((prev) => prev || defaultPhone);
@@ -273,7 +280,7 @@ export function RegistrationCheckoutPanel({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, defaultHolderName, defaultPhone]);
+  }, [tenantId, defaultHolderName, defaultPhone, billingCycle, isRenewal]);
 
   useEffect(() => {
     void loadInitial();
@@ -341,6 +348,8 @@ export function RegistrationCheckoutPanel({
         headers: await authHeaders(),
         body: JSON.stringify({
           tenantId,
+          purpose,
+          billingCycle,
           payerName: holderName,
           cpf: holderCpf,
         }),
@@ -408,6 +417,8 @@ export function RegistrationCheckoutPanel({
         headers: await authHeaders(),
         body: JSON.stringify({
           tenantId,
+          purpose,
+          billingCycle,
           payment_token,
           customer: {
             name: holderName,
@@ -705,8 +716,8 @@ export function RegistrationCheckoutPanel({
             ) : (
               <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>
                 <p className={introClass}>
-                  {isRenewal ? cardIntro : 'Assinatura mensal'} ({config.amountLabel || catalogPrice.label}
-                  {catalogPrice.period}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
+                  {isRenewal ? cardIntro : `Assinatura ${billingCycle === 'annual' ? 'anual' : 'mensal'}`} ({config.amountLabel || fallbackAmountLabel}
+                  {config.periodLabel || (billingCycle === 'annual' ? '/ano' : catalogPrice.period)}). Cartão tokenizado pela Efí — não passa pelo nosso servidor.
                 </p>
 
                 {config.cardTokenizationReady === false && config.cardSetup?.issues?.length ? (
@@ -926,7 +937,8 @@ export function RegistrationCheckoutPanel({
           )}
         >
           <ShieldCheck className={cn('h-3.5 w-3.5', t.footerIcon)} />
-          Checkout EFI Bank · {config?.amountLabel || catalogPrice.label}/mês · Liberação automática
+          Checkout EFI Bank · {config?.amountLabel || fallbackAmountLabel}
+          {config?.periodLabel || (billingCycle === 'annual' ? '/ano' : '/mês')} · Liberação automática
         </p>
       )}
     </div>

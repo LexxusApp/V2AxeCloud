@@ -171,7 +171,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
 
       const leaderAuthId = leaderProfile.data?.id || leaderRef;
       const leaderSub = leaderAuthId
-        ? await sb.from("subscriptions").select("plan, status, expires_at").eq("id", leaderAuthId).maybeSingle()
+        ? await sb.from("subscriptions").select("plan, status, expires_at, billing_cycle").eq("id", leaderAuthId).maybeSingle()
         : { data: null, error: null };
       if (leaderSub.error) throw leaderSub.error;
 
@@ -194,6 +194,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         plan: filhoPlanSlug,
         status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
         expires_at: leaderSub.data?.expires_at || null,
+        billing_cycle: leaderSub.data?.billing_cycle || "monthly",
         foto_url: leaderProfile.data?.foto_url || null,
         tradicao: leaderProfile.data?.tradicao || "mista",
       });
@@ -209,7 +210,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       return res.status(403).json({ error: "Acesso suspenso", status: "blocked" });
     }
 
-    let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at").eq("id", userId).maybeSingle();
+    let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at, billing_cycle").eq("id", userId).maybeSingle();
     if (subRes.error) throw subRes.error;
 
     const isSuperAdmin =
@@ -258,7 +259,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         const zeladorAuthId = leaderProfile.data?.id || candidateLeaderId;
         const leaderSub = await sb
           .from("subscriptions")
-          .select("plan, status, expires_at")
+          .select("plan, status, expires_at, billing_cycle")
           .eq("id", zeladorAuthId)
           .maybeSingle();
         if (leaderSub.error) throw leaderSub.error;
@@ -304,6 +305,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       plan: plan,
       status: isSuperAdmin ? "active" : subRes.data?.status || null,
       expires_at: expiresOut,
+      billing_cycle: subRes.data?.billing_cycle || "monthly",
       foto_url: profileRes.data?.foto_url || null,
       terms_accepted_version: profileRes.data?.terms_accepted_version || null,
       tradicao: profileRes.data?.tradicao || "mista",

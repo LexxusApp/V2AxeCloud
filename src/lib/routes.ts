@@ -54,10 +54,16 @@ export function checkoutPathForTenant(tenantId: string | null | undefined): stri
 }
 
 /** Renovação de assinatura no painel (zelador logado). */
-export function renewSubscriptionPath(tenantId?: string | null): string {
+export function renewSubscriptionPath(
+  tenantId?: string | null,
+  billingCycle?: 'monthly' | 'annual'
+): string {
   const id = String(tenantId || '').trim();
-  if (!id) return ROUTES.renewSubscription;
-  return `${ROUTES.renewSubscription}?tenant=${encodeURIComponent(id)}`;
+  const params = new URLSearchParams();
+  if (id) params.set('tenant', id);
+  if (billingCycle) params.set('billing', billingCycle);
+  const query = params.toString();
+  return query ? `${ROUTES.renewSubscription}?${query}` : ROUTES.renewSubscription;
 }
 
 export function terreiroProfilePath(slug: string): string {
