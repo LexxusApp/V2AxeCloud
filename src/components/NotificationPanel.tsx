@@ -185,12 +185,19 @@ export default function NotificationPanel({
   useEffect(() => {
     if (isFilho) return;
     const acknowledged = loadStoredSet(PAYMENT_ACK_KEY);
-    const saved = loadNotifications().filter(
-      (notification) =>
-        !(notification.type === 'system' && notification.id.startsWith('sys_')) &&
-        !(notification.type === 'plan' && notification.id.startsWith('plan_')) &&
-        !(notification.type === 'payment' && acknowledged.has(notification.id)),
-    );
+    // Pagamentos reconhecidos permanecem na lista como lidos (não são recriados
+    // como novos pelo efeito de busca, que respeita o PAYMENT_ACK_KEY).
+    const saved = loadNotifications()
+      .filter(
+        (notification) =>
+          !(notification.type === 'system' && notification.id.startsWith('sys_')) &&
+          !(notification.type === 'plan' && notification.id.startsWith('plan_')),
+      )
+      .map((notification) =>
+        notification.type === 'payment' && acknowledged.has(notification.id)
+          ? { ...notification, read: true }
+          : notification,
+      );
     saveNotifications(saved);
     setNotifications(saved);
   }, [isFilho, tenantId, userId]);
@@ -537,6 +544,21 @@ export default function NotificationPanel({
     setOpen(false);
     onNavigate?.(notificationTarget(notification.type));
   };
+
+  // Ver é ler: abrir o painel marca tudo como lido (persistido), para as
+  // notificações não voltarem como "não lidas" após recarregar a página.
+  // O pequeno atraso deixa o usuário perceber o que era novidade; fechar o
+  // painel antes do atraso também marca (cleanup).
+  const markAllReadRef = useRef(markAllRead);
+  markAllReadRef.current = markAllRead;
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => markAllReadRef.current(), 1200);
+    return () => {
+      window.clearTimeout(timer);
+      markAllReadRef.current();
+    };
+  }, [open]);
 
   return (
     <div ref={rootRef} className="axecloud-notification-root">
