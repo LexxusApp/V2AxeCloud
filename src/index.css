@@ -5880,6 +5880,9 @@ html:has(.landing-mockup-nav) {
     width: 100%;
     min-width: 0;
     max-width: none;
+    /* Sem isso o flexbox espreme os cards para caber no max-height do rail,
+       cortando o conteúdo (cards "um em cima do outro"). */
+    flex-shrink: 0;
     padding: 1rem 0.85rem 1rem 3.25rem;
   }
 
