@@ -38,10 +38,10 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const { email, password, nome_terreiro, nome_zelador, whatsapp, conversion } = req.body || {};
+      const { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle, conversion } = req.body || {};
       const result = await registerNewTenant(
         supabaseAdmin,
-        { email, password, nome_terreiro, nome_zelador, whatsapp },
+        { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle },
         resolveEfiEnv()
       );
 

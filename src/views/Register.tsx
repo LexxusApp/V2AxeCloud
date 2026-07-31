@@ -40,8 +40,22 @@ const fieldShell = cn(
 const labelClass =
   'mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-800';
 
+function readPreferredBillingCycle(): 'monthly' | 'annual' {
+  if (typeof window === 'undefined') return 'monthly';
+  const queryCycle = new URLSearchParams(window.location.search).get('billing');
+  if (queryCycle === 'annual' || queryCycle === 'monthly') return queryCycle;
+  try {
+    return window.localStorage.getItem('axecloud:preferred-billing-cycle') === 'annual'
+      ? 'annual'
+      : 'monthly';
+  } catch {
+    return 'monthly';
+  }
+}
+
 export default function Register() {
   const { premium: catalogPrice } = usePlansCatalog();
+  const [billingCycle] = useState<'monthly' | 'annual'>(readPreferredBillingCycle);
   const [nomeTerreiro, setNomeTerreiro] = useState('');
   const [nomeZelador, setNomeZelador] = useState('');
   const [email, setEmail] = useState('');
@@ -64,7 +78,19 @@ export default function Register() {
 
   useEffect(() => {
     void trackConversionEvent('register_view');
-  }, []);
+    try {
+      window.localStorage.setItem('axecloud:preferred-billing-cycle', billingCycle);
+    } catch {
+      // O cadastro segue normalmente quando o navegador bloqueia o storage.
+    }
+  }, [billingCycle]);
+
+  const selectedPrice =
+    billingCycle === 'annual'
+      ? `${catalogPrice.annualLabel}/ano (R$ ${catalogPrice.annualEquivalentMonthly
+          .toFixed(2)
+          .replace('.', ',')}/mês)`
+      : `${catalogPrice.label}${catalogPrice.period}`;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -111,6 +137,7 @@ export default function Register() {
           email: email.trim(),
           password,
           whatsapp: whatsapp.trim(),
+          billingCycle,
           conversion: getConversionContext(),
         }),
       });
@@ -196,8 +223,7 @@ export default function Register() {
               <span className="font-bold text-[#f2b90f]">
                 {TRIAL_DAYS} dias grátis
               </span>
-              {' · '}Depois, {catalogPrice.label}
-              {catalogPrice.period} via PIX.
+              {' · '}Depois, {selectedPrice} via PIX.
             </p>
           </motion.div>
 
@@ -230,8 +256,7 @@ export default function Register() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">AxéCloud</p>
             <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
             <p className="mt-1 text-xs leading-relaxed text-zinc-600">
-              {TRIAL_DAYS} dias grátis para testar tudo · depois {catalogPrice.label}
-              {catalogPrice.period}
+              {TRIAL_DAYS} dias grátis para testar tudo · depois {selectedPrice}
             </p>
           </div>
 
@@ -241,7 +266,7 @@ export default function Register() {
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
               Crie sua conta e use o sistema completo por {TRIAL_DAYS} dias sem pagar. Após o período de teste,
-              a mensalidade é cobrada via PIX para manter o acesso.
+              o plano {billingCycle === 'annual' ? 'anual' : 'mensal'} escolhido é cobrado via PIX para manter o acesso.
             </p>
           </header>
 

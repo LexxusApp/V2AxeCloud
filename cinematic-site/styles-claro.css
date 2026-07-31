@@ -348,6 +348,36 @@ body.tema-claro .oferta-pilar {
   border-color: rgba(27, 24, 19, 0.08);
   background: rgba(255, 193, 7, 0.08);
 }
+body.tema-claro .oferta-planos-cabecalho strong,
+body.tema-claro .oferta-plano-preco > span,
+body.tema-claro .oferta-plano-preco small,
+body.tema-claro .oferta-plano-descricao,
+body.tema-claro .oferta-plano-equivalente,
+body.tema-claro .oferta-garantias {
+  color: rgba(27, 24, 19, 0.55);
+}
+body.tema-claro .oferta-plano-topo h4,
+body.tema-claro .oferta-plano-equivalente strong,
+body.tema-claro .oferta-economia span {
+  color: #1b1813;
+}
+body.tema-claro .oferta-plano-card {
+  border-color: rgba(27, 24, 19, 0.11);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 30px rgba(27, 24, 19, 0.05);
+}
+body.tema-claro .oferta-plano-anual {
+  border-color: rgba(204, 143, 0, 0.62);
+  background:
+    radial-gradient(95% 70% at 100% 0%, rgba(255, 193, 7, 0.26), transparent 62%),
+    linear-gradient(155deg, #fffbef, #fff6d8);
+  box-shadow: 0 18px 42px rgba(126, 85, 0, 0.15), inset 0 0 0 1px rgba(255, 193, 7, 0.1);
+}
+body.tema-claro .oferta-cta-secundario {
+  border-color: rgba(180, 83, 9, 0.3);
+  background: #fff;
+  color: #9b6a00;
+}
 body.tema-claro .oferta-valor {
   text-shadow: none;
 }

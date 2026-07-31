@@ -1025,7 +1025,7 @@ section { position: relative; padding: 15vh 8vw; }
 .oferta-palco {
   position: relative;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(300px, 0.82fr) minmax(520px, 1.18fr);
   gap: 0;
   border-radius: 32px;
   overflow: hidden;
@@ -1110,12 +1110,189 @@ section { position: relative; padding: 15vh 8vw; }
 .oferta-preco-lado {
   position: relative;
   z-index: 1;
-  padding: 52px 40px;
+  padding: 40px 34px 34px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  text-align: left;
+}
+.oferta-planos-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.oferta-planos-cabecalho span {
+  color: var(--ouro);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.oferta-planos-cabecalho strong {
+  color: var(--osso-fraco);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.oferta-planos-opcoes {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.oferta-plano-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 24px 20px 20px;
+  border: 1px solid rgba(245, 234, 211, 0.14);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.oferta-plano-anual {
+  overflow: hidden;
+  border-color: rgba(255, 193, 7, 0.62);
+  background:
+    radial-gradient(95% 70% at 100% 0%, rgba(255, 193, 7, 0.22), transparent 62%),
+    linear-gradient(155deg, rgba(255, 193, 7, 0.12), rgba(255, 193, 7, 0.035));
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 193, 7, 0.08);
+  transform: translateY(-5px);
+}
+.oferta-plano-destaque {
+  position: absolute;
+  right: -42px;
+  top: 18px;
+  width: 150px;
+  padding: 7px 0;
+  transform: rotate(42deg);
+  background: var(--ouro);
+  color: #1a1204;
   text-align: center;
+  font-size: 0.57rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.oferta-plano-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 61px;
+}
+.oferta-plano-kicker {
+  color: var(--ouro);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.oferta-plano-topo h4 {
+  max-width: 14ch;
+  margin-top: 5px;
+  color: var(--osso);
+  font-family: var(--fonte-display);
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+.oferta-plano-icone {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 193, 7, 0.28);
+  border-radius: 50%;
+  color: var(--ouro);
+  font-family: var(--fonte-display);
+  font-size: 0.84rem;
+}
+.oferta-plano-preco {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 22px;
+  color: var(--ouro);
+  white-space: nowrap;
+}
+.oferta-plano-preco > span {
+  align-self: flex-start;
+  margin-top: 8px;
+  color: var(--osso-fraco);
+  font-size: 0.78rem;
+}
+.oferta-plano-preco strong {
+  font-family: var(--fonte-display);
+  font-size: clamp(2.15rem, 3.5vw, 3rem);
+  font-weight: 400;
+  line-height: 0.95;
+}
+.oferta-plano-preco small {
+  padding-bottom: 3px;
+  color: var(--osso-fraco);
+  font-size: 0.72rem;
+}
+.oferta-plano-descricao,
+.oferta-plano-equivalente {
+  min-height: 34px;
+  margin-top: 10px;
+  color: var(--osso-fraco);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.oferta-plano-equivalente strong { color: var(--osso); font-weight: 700; }
+.oferta-economia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 193, 7, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 193, 7, 0.09);
+}
+.oferta-economia span {
+  color: var(--osso);
+  font-size: 0.7rem;
+}
+.oferta-economia strong {
+  color: var(--ouro);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.oferta-plano-card .oferta-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto;
+  padding: 13px 16px;
+  font-size: 0.76rem;
+}
+.oferta-cta-secundario {
+  border: 1px solid rgba(255, 193, 7, 0.32);
+  background: transparent;
+  color: var(--ouro);
+  box-shadow: none;
+}
+.oferta-cta-secundario:hover {
+  background: rgba(255, 193, 7, 0.08);
+  box-shadow: none;
+}
+.oferta-garantias {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 18px;
+  color: var(--osso-fraco);
+  font-size: 0.65rem;
 }
 .oferta-anel {
   position: relative;
@@ -1258,9 +1435,17 @@ section { position: relative; padding: 15vh 8vw; }
   .oferta-palco { grid-template-columns: 1fr; }
   .oferta-copy { border-right: none; border-bottom: 1px solid rgba(255, 193, 7, 0.12); padding: 36px 28px; }
   .oferta-preco-lado { padding: 40px 24px 36px; }
+  .oferta-planos-opcoes { grid-template-columns: 1fr 1.08fr; }
   .oferta-gb { right: 8px; top: 8px; width: 84px; height: 84px; }
   .oferta-gb strong { font-size: 1.3rem; }
   .oferta-pilares { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .oferta-planos-cabecalho { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .oferta-planos-opcoes { grid-template-columns: 1fr; }
+  .oferta-plano-anual { transform: none; }
+  .oferta-plano-card { padding: 24px 22px 22px; }
+  .oferta-plano-topo h4 { max-width: none; }
 }
 
 /* ── Quem está por trás ────────────────────────────────── */

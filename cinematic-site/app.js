@@ -616,7 +616,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   const grade = $("#planos-grade");
   // Vita só é aplicado pelo painel admin — não aparece no site público
   const fallback = [
-    { id: "premium", name: "Premium", price: 69.9, cycle: "/mês", desc: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.", destaque: true },
+    { id: "premium", name: "Premium", price: 69.9, annualPrice: 699, desc: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.", destaque: true },
   ];
 
   let planos = fallback;
@@ -632,7 +632,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
         id,
         name: String(p.name || p.title || id || "Premium"),
         price: Number(p.price ?? p.priceMonthly ?? p.amount ?? 0) || null,
-        cycle: "/mês",
+        annualPrice: Number(p.annual_price ?? p.annualPrice ?? 0) || null,
         desc: String(p.description || p.subtitle || "A gestão completa da casa de axé, com todos os módulos."),
         destaque: true,
       }));
@@ -650,15 +650,18 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ];
 
   const p = planos[0] || fallback[0];
-  const preco = p.price != null
-    ? `<span class="oferta-moeda">R$</span><span class="oferta-valor">${p.price.toFixed(2).replace(".", ",")}</span>`
-    : `<span class="oferta-valor">Consultar</span>`;
+  const mensal = p.price || fallback[0].price;
+  const anual = p.annualPrice || mensal * 10;
+  const economia = Math.max(0, mensal * 12 - anual);
+  const desconto = Math.round((economia / (mensal * 12)) * 100);
+  const equivalenteMensal = anual / 12;
+  const moeda = (valor) => valor.toFixed(2).replace(".", ",");
 
   grade.innerHTML = `
     <div class="oferta-palco">
       <div class="oferta-copy">
-        <span class="oferta-selo">✦ plano ${esc(p.name)}</span>
-        <h3>Gestão completa da casa — <em>sem surpresa</em></h3>
+        <span class="oferta-selo">✦ AxéCloud ${esc(p.name)}</span>
+        <h3>Um plano completo.<br><em>Você escolhe o ritmo.</em></h3>
         <p>${esc(p.desc)}</p>
         <div class="oferta-pilares">
           <div class="oferta-pilar"><strong>30 dias</strong><span>Teste grátis, sem cartão de crédito</span></div>
@@ -668,18 +671,55 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
         </div>
       </div>
       <div class="oferta-preco-lado">
-        <div class="oferta-anel">
-          <div class="oferta-gb" aria-hidden="true">
-            <div><strong>100<small>GB</small></strong><span>galeria</span></div>
-          </div>
-          <div class="oferta-preco-bloco">
-            <p class="oferta-nome">${esc(p.name)}</p>
-            <p class="oferta-preco">${preco}<span class="oferta-ciclo">${esc(p.cycle || "/mês")}</span></p>
-          </div>
+        <div class="oferta-planos-cabecalho">
+          <span>Escolha seu plano</span>
+          <strong>Todos os recursos incluídos</strong>
         </div>
-        <p class="oferta-gb-legenda"><strong>100 GB</strong> para o zelador guardar a memória da casa — fotos e vídeos das festas e giras.</p>
-        <a class="oferta-cta" href="/register">Começar 30 dias grátis</a>
-        <p class="oferta-nota">sem cartão · cancele quando quiser</p>
+        <div class="oferta-planos-opcoes">
+          <article class="oferta-plano-card oferta-plano-mensal">
+            <div class="oferta-plano-topo">
+              <div>
+                <p class="oferta-plano-kicker">Mensal</p>
+                <h4>Flexibilidade todo mês</h4>
+              </div>
+              <span class="oferta-plano-icone" aria-hidden="true">01</span>
+            </div>
+            <div class="oferta-plano-preco">
+              <span>R$</span><strong>${moeda(mensal)}</strong><small>/mês</small>
+            </div>
+            <p class="oferta-plano-descricao">Renovação mensal. Cancele quando quiser.</p>
+            <a class="oferta-cta oferta-cta-secundario" href="/register?billing=monthly" data-billing-cycle="monthly">
+              Testar plano mensal <span aria-hidden="true">→</span>
+            </a>
+          </article>
+
+          <article class="oferta-plano-card oferta-plano-anual">
+            <div class="oferta-plano-destaque">Melhor escolha</div>
+            <div class="oferta-plano-topo">
+              <div>
+                <p class="oferta-plano-kicker">Anual</p>
+                <h4>Mais economia para a casa</h4>
+              </div>
+              <span class="oferta-plano-icone" aria-hidden="true">12</span>
+            </div>
+            <div class="oferta-plano-preco">
+              <span>R$</span><strong>${moeda(anual)}</strong><small>/ano</small>
+            </div>
+            <p class="oferta-plano-equivalente">equivale a <strong>R$ ${moeda(equivalenteMensal)}/mês</strong></p>
+            <div class="oferta-economia">
+              <span>Economize R$ ${moeda(economia)}</span>
+              <strong>${desconto}% OFF · 2 meses grátis</strong>
+            </div>
+            <a class="oferta-cta" href="/register?billing=annual" data-billing-cycle="annual">
+              Quero o plano anual <span aria-hidden="true">→</span>
+            </a>
+          </article>
+        </div>
+        <div class="oferta-garantias">
+          <span>✓ 30 dias grátis</span>
+          <span>✓ Sem cartão no teste</span>
+          <span>✓ Pagamento via Pix</span>
+        </div>
       </div>
     </div>
     <div class="oferta-beneficios">
@@ -694,6 +734,16 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   gsap.from(".oferta-beneficios span", {
     y: 20, opacity: 0, stagger: 0.08, duration: 0.7, ease: "power2.out",
     scrollTrigger: { trigger: grade, start: "top 70%" },
+  });
+
+  grade.querySelectorAll("[data-billing-cycle]").forEach((link) => {
+    link.addEventListener("click", () => {
+      try {
+        localStorage.setItem("axecloud:preferred-billing-cycle", link.dataset.billingCycle || "monthly");
+      } catch {
+        /* A navegação continua mesmo com storage indisponível. */
+      }
+    });
   });
 })();
 

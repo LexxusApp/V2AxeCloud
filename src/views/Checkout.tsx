@@ -13,10 +13,18 @@ function readTenantFromUrl(): string {
   return new URLSearchParams(window.location.search).get('tenant')?.trim() || '';
 }
 
+function readBillingCycleFromUrl(): 'monthly' | 'annual' {
+  if (typeof window === 'undefined') return 'monthly';
+  return new URLSearchParams(window.location.search).get('billing') === 'annual'
+    ? 'annual'
+    : 'monthly';
+}
+
 /** Checkout do cadastro (passo 2 após /register). Renovação usa /assinatura/renovar. */
 export default function Checkout() {
   const { premium: landingPrice } = usePlansCatalog();
   const tenantId = readTenantFromUrl();
+  const billingCycle = readBillingCycleFromUrl();
 
   if (!tenantId) {
     return (
@@ -53,12 +61,18 @@ export default function Checkout() {
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f2b90f]">AxéCloud</p>
           <h1 className="mt-2 text-2xl font-black tracking-tight">Ativação do sistema</h1>
           <p className="mt-2 text-sm text-[#b8bbc4]">
-            Passo 2 — pagamento via PIX. Plano Premium {landingPrice.label}
-            {landingPrice.period}
+            Passo 2 — pagamento via PIX. Plano Premium{' '}
+            {billingCycle === 'annual' ? `${landingPrice.annualLabel}/ano` : `${landingPrice.label}${landingPrice.period}`}
           </p>
         </header>
 
-        <RegistrationCheckoutPanel tenantId={tenantId} variant="dark" purpose="onboarding" showFooter={false} />
+        <RegistrationCheckoutPanel
+          tenantId={tenantId}
+          variant="dark"
+          purpose="onboarding"
+          billingCycle={billingCycle}
+          showFooter={false}
+        />
 
         <p className="login-footer-rule mt-6 flex items-center justify-center gap-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-[#c8cad2]">
           <ShieldCheck className="h-4 w-4 text-[#f2b90f]" />

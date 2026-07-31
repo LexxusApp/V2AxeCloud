@@ -28,6 +28,7 @@ export type RegisterTenantInput = {
   nome_terreiro: string;
   nome_zelador: string;
   whatsapp?: string;
+  billingCycle?: BillingCycle;
 };
 
 export type RegisterTenantResult = {
@@ -85,6 +86,7 @@ export async function registerNewTenant(
   const nome_terreiro = String(input.nome_terreiro || "").trim();
   const nome_zelador = String(input.nome_zelador || "").trim();
   const whatsapp = String(input.whatsapp || "").trim();
+  const billingCycle = normalizeBillingCycle(input.billingCycle);
 
   if (!email || !password) {
     throw Object.assign(new Error("E-mail e senha são obrigatórios."), {
@@ -110,6 +112,7 @@ export async function registerNewTenant(
       whatsapp,
       onboarding: "public_register",
       is_trial: true,
+      billing_cycle: billingCycle,
     },
   });
 
@@ -155,6 +158,7 @@ export async function registerNewTenant(
     expires_at: trialEndsAt,
     efi_charge_id: null,
     payment_provider: (efi ?? resolveEfiEnv()) ? "efi" : null,
+    billing_cycle: billingCycle,
     pending_since: null,
     updated_at: now,
   });
@@ -173,7 +177,7 @@ export async function registerNewTenant(
     userId: tenantId,
     tenantId,
     email,
-    checkoutPath: `/checkout?tenant=${tenantId}`,
+    checkoutPath: `/checkout?tenant=${tenantId}&billing=${billingCycle}`,
     subscriptionStatus: "active",
     trialEndsAt,
     trialDays: TRIAL_DAYS,
