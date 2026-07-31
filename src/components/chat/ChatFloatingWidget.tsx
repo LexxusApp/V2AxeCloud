@@ -312,8 +312,9 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
       <div
         ref={rootRef}
         className={cn(
-          'pointer-events-none fixed right-5 z-[90] flex flex-col items-end gap-3 sm:right-6',
-          isZelador ? 'bottom-5 sm:bottom-6' : 'bottom-24 min-[880px]:bottom-6',
+          // A barra de navegação inferior (app-v5-bottom-nav) existe para todos os
+          // perfis abaixo de 880px, então o botão sobe para não cobrir o menu.
+          'pointer-events-none fixed bottom-24 right-5 z-[90] flex flex-col items-end gap-3 min-[880px]:bottom-6 sm:right-6',
         )}
       >
       {activeConversation ? (
