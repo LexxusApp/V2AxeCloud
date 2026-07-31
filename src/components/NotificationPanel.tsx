@@ -1,14 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   Bell,
+  BookOpen,
   CalendarDays,
   Check,
   CheckCheck,
   CreditCard,
   Flame,
+  HandHeart,
   Info,
-  Megaphone,
-  RefreshCw,
+  ShoppingBag,
   Sparkles,
   Trash2,
   X,
@@ -19,11 +21,12 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { fetchMinhasParticipacoes } from '../lib/giraOperations';
+import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 
 export interface AppNotification {
   id: string;
-  type: 'payment' | 'plan' | 'system' | 'info' | 'mural' | 'event' | 'obligation' | 'preceito';
+  type: 'payment' | 'reza' | 'event' | 'obligation' | 'store' | 'wafail' | 'library' | 'system' | 'info';
   title: string;
   body: string;
   read: boolean;
@@ -45,15 +48,45 @@ const TYPE_META: Record<
 > = {
   payment: {
     icon: <CreditCard className="h-4 w-4" />,
-    label: 'Financeiro',
+    label: 'Mensalidade',
     iconClass: 'text-emerald-300',
     surfaceClass: 'border-emerald-400/20 bg-emerald-400/10',
   },
-  plan: {
-    icon: <RefreshCw className="h-4 w-4" />,
-    label: 'Plano',
+  reza: {
+    icon: <HandHeart className="h-4 w-4" />,
+    label: 'Pedido de reza',
+    iconClass: 'text-rose-300',
+    surfaceClass: 'border-rose-400/20 bg-rose-400/10',
+  },
+  event: {
+    icon: <CalendarDays className="h-4 w-4" />,
+    label: 'Gira',
+    iconClass: 'text-cyan-300',
+    surfaceClass: 'border-cyan-400/20 bg-cyan-400/10',
+  },
+  obligation: {
+    icon: <Flame className="h-4 w-4" />,
+    label: 'Obrigação',
     iconClass: 'text-amber-300',
     surfaceClass: 'border-amber-400/20 bg-amber-400/10',
+  },
+  store: {
+    icon: <ShoppingBag className="h-4 w-4" />,
+    label: 'Loja',
+    iconClass: 'text-violet-300',
+    surfaceClass: 'border-violet-400/20 bg-violet-400/10',
+  },
+  wafail: {
+    icon: <AlertTriangle className="h-4 w-4" />,
+    label: 'Falha de envio',
+    iconClass: 'text-red-300',
+    surfaceClass: 'border-red-400/20 bg-red-400/10',
+  },
+  library: {
+    icon: <BookOpen className="h-4 w-4" />,
+    label: 'Biblioteca',
+    iconClass: 'text-sky-300',
+    surfaceClass: 'border-sky-400/20 bg-sky-400/10',
   },
   system: {
     icon: <Zap className="h-4 w-4" />,
@@ -67,35 +100,12 @@ const TYPE_META: Record<
     iconClass: 'text-slate-300',
     surfaceClass: 'border-white/10 bg-white/[0.05]',
   },
-  mural: {
-    icon: <Megaphone className="h-4 w-4" />,
-    label: 'Comunicado',
-    iconClass: 'text-violet-300',
-    surfaceClass: 'border-violet-400/20 bg-violet-400/10',
-  },
-  event: {
-    icon: <CalendarDays className="h-4 w-4" />,
-    label: 'Próxima gira',
-    iconClass: 'text-cyan-300',
-    surfaceClass: 'border-cyan-400/20 bg-cyan-400/10',
-  },
-  obligation: {
-    icon: <Flame className="h-4 w-4" />,
-    label: 'Obrigação',
-    iconClass: 'text-amber-300',
-    surfaceClass: 'border-amber-400/20 bg-amber-400/10',
-  },
-  preceito: {
-    icon: <Flame className="h-4 w-4" />,
-    label: 'Preceito',
-    iconClass: 'text-yellow-300',
-    surfaceClass: 'border-yellow-400/20 bg-yellow-400/10',
-  },
 };
 
-const STORAGE_KEY = 'axecloud_notifications';
-const MURAL_READ_KEY = 'axecloud_mural_read';
-const PAYMENT_ACK_KEY = 'axecloud_payment_notifs_ack';
+const READ_KEY = 'axecloud_notif_read_v2';
+const DISMISS_KEY = 'axecloud_notif_dismissed_v2';
+const SET_CAP = 400;
+const LIST_CAP = 30;
 
 function timeAgo(dateStr: string): string {
   const timestamp = new Date(dateStr).getTime();
@@ -109,18 +119,6 @@ function timeAgo(dateStr: string): string {
   return days === 1 ? 'Ontem' : `Há ${days} dias`;
 }
 
-function loadNotifications(): AppNotification[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as AppNotification[];
-  } catch {
-    return [];
-  }
-}
-
-function saveNotifications(notifications: AppNotification[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-}
-
 function loadStoredSet(key: string): Set<string> {
   try {
     return new Set(JSON.parse(localStorage.getItem(key) || '[]') as string[]);
@@ -130,24 +128,315 @@ function loadStoredSet(key: string): Set<string> {
 }
 
 function saveStoredSet(key: string, values: Set<string>) {
-  localStorage.setItem(key, JSON.stringify([...values]));
+  try {
+    localStorage.setItem(key, JSON.stringify([...values].slice(-SET_CAP)));
+  } catch {
+    /* armazenamento indisponível */
+  }
 }
 
-function acknowledgePayments(ids: string[]) {
-  const paymentIds = ids.filter((id) => id.startsWith('payment_'));
-  if (!paymentIds.length) return;
-  const acknowledged = loadStoredSet(PAYMENT_ACK_KEY);
-  paymentIds.forEach((id) => acknowledged.add(id));
-  saveStoredSet(PAYMENT_ACK_KEY, acknowledged);
+function formatBRL(value: unknown): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+    Number(value) || 0,
+  );
 }
 
-function notificationTarget(type: AppNotification['type']) {
-  if (type === 'payment') return 'financial';
-  if (type === 'mural') return 'mural';
-  if (type === 'event') return 'calendar';
-  if (type === 'obligation') return 'obrigacoes';
-  if (type === 'preceito') return 'profile';
-  return 'dashboard';
+function formatDay(dateStr: string): string {
+  const date = new Date(`${String(dateStr).slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('pt-BR');
+}
+
+function isoDaysAgo(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
+function dateStrPlusDays(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+function notificationTarget(type: AppNotification['type'], isFilho: boolean): string {
+  switch (type) {
+    case 'payment':
+      return 'financial';
+    case 'reza':
+      return 'atendimentos';
+    case 'event':
+      return 'calendar';
+    case 'obligation':
+      return isFilho ? 'obrigacoes' : 'children';
+    case 'store':
+      return 'store';
+    case 'wafail':
+      return 'settings';
+    case 'library':
+      return 'library';
+    default:
+      return isFilho ? 'profile' : 'dashboard';
+  }
+}
+
+type RawNotification = Omit<AppNotification, 'read'>;
+
+/** Fontes do sino do zelador: mensalidades pagas, pedidos de reza, lembretes de
+ *  gira e obrigação, pedidos da loja e falhas de envio de WhatsApp. */
+async function loadZeladorNotifications(
+  tenantId: string,
+  userId: string | null,
+): Promise<RawNotification[]> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [pagamentos, rezas, giras, obrigacoes, pedidosLoja, falhasEnvio] = await Promise.allSettled([
+    supabase
+      .from('financeiro')
+      .select('id, descricao, valor, created_at, categoria')
+      .eq('tenant_id', tenantId)
+      .eq('tipo', 'entrada')
+      .gte('created_at', isoDaysAgo(14))
+      .order('created_at', { ascending: false })
+      .limit(10),
+    authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${encodeURIComponent(tenantId)}`).then(
+      async (response) => {
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error || 'Erro ao carregar pedidos de reza');
+        return Array.isArray(json.data) ? json.data : [];
+      },
+    ),
+    authFetch(
+      `/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${today}&end=${dateStrPlusDays(7)}&scope=calendar`,
+    ).then(async (response) => {
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Erro ao carregar giras');
+      return Array.isArray(json.data) ? json.data : [];
+    }),
+    supabase
+      .from('calendario_axe')
+      .select('id, titulo, data')
+      .eq('tenant_id', tenantId)
+      .eq('tipo', 'Obrigação')
+      .gte('data', today)
+      .lte('data', dateStrPlusDays(14))
+      .order('data', { ascending: true })
+      .limit(5),
+    resolveStoreTenantPk({ tenantIdFromContext: tenantId, fallbackUserId: userId }).then(
+      async (pk) => {
+        if (!pk) return [];
+        const { data } = await supabase
+          .from('loja_pedidos')
+          .select('id, created_at, filho_nome, tipo, valor_total')
+          .eq('tenant_id', pk)
+          .gte('created_at', isoDaysAgo(14))
+          .order('created_at', { ascending: false })
+          .limit(5);
+        return data || [];
+      },
+    ),
+    supabase
+      .from('whatsapp_logs')
+      .select('id, tipo, telefone, created_at')
+      .eq('status', 'failed')
+      .gte('created_at', isoDaysAgo(7))
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
+
+  const items: RawNotification[] = [];
+  const nowIso = new Date().toISOString();
+
+  if (pagamentos.status === 'fulfilled') {
+    (pagamentos.value.data || [])
+      .filter(
+        (row) =>
+          String(row.categoria || '') === 'Mensalidade' ||
+          /^mensalidade/i.test(String(row.descricao || '')),
+      )
+      .slice(0, 5)
+      .forEach((row) => {
+        items.push({
+          id: `pago_${String(row.id)}`,
+          type: 'payment',
+          title: 'Mensalidade paga',
+          body: `${String(row.descricao || 'Mensalidade')} · ${formatBRL(row.valor)}`,
+          created_at: String(row.created_at || nowIso),
+        });
+      });
+  }
+
+  if (rezas.status === 'fulfilled') {
+    (rezas.value as any[])
+      .filter((pedido) => String(pedido.status || '') === 'pendente')
+      .slice(0, 5)
+      .forEach((pedido) => {
+        items.push({
+          id: `reza_${String(pedido.id)}`,
+          type: 'reza',
+          title: 'Novo pedido de reza',
+          body: `${String(pedido.nome || 'Consulente')} · ${String(pedido.mensagem || '').slice(0, 120)}`,
+          created_at: String(pedido.created_at || nowIso),
+        });
+      });
+  }
+
+  if (giras.status === 'fulfilled') {
+    (giras.value as any[])
+      .filter((event) => String(event.tipo || '').toLowerCase() !== 'obrigação')
+      .slice(0, 4)
+      .forEach((event) => {
+        const hora = event.hora ? ` às ${String(event.hora).slice(0, 5)}` : '';
+        items.push({
+          id: `gira_${String(event.id)}_${String(event.data)}`,
+          type: 'event',
+          title: `Lembrete de gira: ${String(event.titulo || 'gira marcada')}`,
+          body: `Marcada para ${formatDay(String(event.data))}${hora}.`,
+          created_at: nowIso,
+        });
+      });
+  }
+
+  if (obrigacoes.status === 'fulfilled') {
+    (obrigacoes.value.data || []).forEach((row) => {
+      items.push({
+        id: `obg_${String(row.id)}`,
+        type: 'obligation',
+        title: `Lembrete de obrigação: ${String(row.titulo || 'obrigação agendada')}`,
+        body: `Agendada para ${formatDay(String(row.data))}.`,
+        created_at: nowIso,
+      });
+    });
+  }
+
+  if (pedidosLoja.status === 'fulfilled') {
+    (pedidosLoja.value as any[]).forEach((pedido) => {
+      items.push({
+        id: `loja_${String(pedido.id)}`,
+        type: 'store',
+        title: pedido.tipo === 'reserva' ? 'Nova reserva na loja' : 'Novo pedido na loja',
+        body: `${String(pedido.filho_nome || 'Membro da casa')} · ${formatBRL(pedido.valor_total)}`,
+        created_at: String(pedido.created_at || nowIso),
+      });
+    });
+  }
+
+  if (falhasEnvio.status === 'fulfilled') {
+    (falhasEnvio.value.data || []).forEach((log) => {
+      items.push({
+        id: `wafail_${String(log.id)}`,
+        type: 'wafail',
+        title: 'Falha no envio de WhatsApp',
+        body: `A mensagem${log.tipo ? ` (${String(log.tipo)})` : ''} para ${String(log.telefone || 'o destinatário')} não foi entregue.`,
+        created_at: String(log.created_at || nowIso),
+      });
+    });
+  }
+
+  return items;
+}
+
+/** Fontes do sino do filho de santo: obrigação lançada no perfil, mensalidade,
+ *  evento novo no calendário e PDF novo na biblioteca. */
+async function loadFilhoNotifications(tenantId: string): Promise<RawNotification[]> {
+  const today = new Date();
+  const start = today.toISOString().slice(0, 10);
+  const end = dateStrPlusDays(120);
+  const nowIso = today.toISOString();
+
+  const [homeResult, participationResult, eventsResult, materialsResult] = await Promise.allSettled([
+    authFetch(`/api/v1/filho/home?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Erro ao carregar pendências');
+      return json;
+    }),
+    fetchMinhasParticipacoes(tenantId, start, end),
+    authFetch(
+      `/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${start}&end=${end}&scope=calendar`,
+    ).then(async (response) => {
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Erro ao carregar giras');
+      return Array.isArray(json.data) ? json.data : [];
+    }),
+    authFetch(`/api/v1/library/materials?tenantId=${encodeURIComponent(tenantId)}`).then(
+      async (response) => {
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error || 'Erro ao carregar biblioteca');
+        return Array.isArray(json.data) ? json.data : [];
+      },
+    ),
+  ]);
+
+  const items: RawNotification[] = [];
+
+  const home = homeResult.status === 'fulfilled' ? homeResult.value : null;
+  const financialStatus = String(home?.financialStatus || 'pago').toLowerCase();
+  if (!['pago', 'paid', 'quitado', 'em dia'].includes(financialStatus)) {
+    items.push({
+      id: `filho_payment_${tenantId}_${today.getFullYear()}-${today.getMonth() + 1}`,
+      type: 'payment',
+      title: financialStatus === 'vencido' ? 'Mensalidade vencida' : 'Mensalidade em aberto',
+      body: 'Confira os detalhes e a chave Pix disponibilizada pela casa.',
+      created_at: nowIso,
+    });
+  }
+
+  const participations = participationResult.status === 'fulfilled' ? participationResult.value : [];
+  const events = eventsResult.status === 'fulfilled' ? (eventsResult.value as any[]) : [];
+  const upcoming = events
+    .filter((item) => String(item.tipo || '').toLowerCase() !== 'obrigação')
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  const nextEvent = upcoming[0];
+  const nextParticipation = nextEvent
+    ? participations.find((item) => item.event_id === String(nextEvent.id))
+    : null;
+  if (nextEvent && (!nextParticipation || nextParticipation.status === 'pendente')) {
+    items.push({
+      id: `event_${String(nextEvent.id)}`,
+      type: 'event',
+      title: `Nova gira no calendário: ${String(nextEvent.titulo || 'próxima gira')}`,
+      body: `A casa aguarda sua confirmação para ${formatDay(String(nextEvent.data))}.`,
+      created_at: nowIso,
+    });
+  }
+
+  if (materialsResult.status === 'fulfilled') {
+    const recentLimit = new Date(isoDaysAgo(14)).getTime();
+    (materialsResult.value as any[])
+      .filter((material) => new Date(String(material.created_at || 0)).getTime() >= recentLimit)
+      .slice(0, 3)
+      .forEach((material) => {
+        items.push({
+          id: `pdf_${String(material.id)}`,
+          type: 'library',
+          title: 'Novo material na biblioteca',
+          body: `${String(material.titulo || 'Material de estudo')}${material.categoria ? ` · ${String(material.categoria)}` : ''}`,
+          created_at: String(material.created_at || nowIso),
+        });
+      });
+  }
+
+  const childId = String(home?.child?.id || '');
+  if (childId) {
+    const { data: obligations } = await supabase
+      .from('calendario_axe')
+      .select('id, titulo, data')
+      .eq('tipo', 'Obrigação')
+      .eq('tenant_id', tenantId)
+      .like('descricao', `%FILHO_ID:${childId}%`)
+      .order('data', { ascending: false })
+      .limit(10);
+    const seen = loadObrigacoesSeen(childId);
+    (obligations || [])
+      .filter((item) => !seen.has(String(item.id)))
+      .slice(0, 3)
+      .forEach((item) => {
+        items.push({
+          id: `obligation_${String(item.id)}`,
+          type: 'obligation',
+          title: String(item.titulo || 'Nova obrigação registrada'),
+          body: `Orientação registrada para ${formatDay(String(item.data))}.`,
+          created_at: String(item.data || nowIso),
+        });
+      });
+  }
+
+  return items;
 }
 
 export default function NotificationPanel({
@@ -158,12 +447,10 @@ export default function NotificationPanel({
 }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [muralNotifications, setMuralNotifications] = useState<AppNotification[]>([]);
-  const [pendingNotifications, setPendingNotifications] = useState<AppNotification[]>([]);
-  const [muralRead, setMuralRead] = useState<Set<string>>(() => loadStoredSet(MURAL_READ_KEY));
+  const [rawItems, setRawItems] = useState<RawNotification[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(() => loadStoredSet(READ_KEY));
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => loadStoredSet(DISMISS_KEY));
   const rootRef = useRef<HTMLDivElement>(null);
-  const paymentFetchRef = useRef<string | null>(null);
   const isFilho = userRole === 'filho';
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
 
@@ -183,294 +470,38 @@ export default function NotificationPanel({
   }, []);
 
   useEffect(() => {
-    if (isFilho) return;
-    const acknowledged = loadStoredSet(PAYMENT_ACK_KEY);
-    // Pagamentos reconhecidos permanecem na lista como lidos (não são recriados
-    // como novos pelo efeito de busca, que respeita o PAYMENT_ACK_KEY).
-    const saved = loadNotifications()
-      .filter(
-        (notification) =>
-          !(notification.type === 'system' && notification.id.startsWith('sys_')) &&
-          !(notification.type === 'plan' && notification.id.startsWith('plan_')),
-      )
-      .map((notification) =>
-        notification.type === 'payment' && acknowledged.has(notification.id)
-          ? { ...notification, read: true }
-          : notification,
-      );
-    saveNotifications(saved);
-    setNotifications(saved);
-  }, [isFilho, tenantId, userId]);
-
-  useEffect(() => {
-    if (isFilho || !tenantId) return;
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const notificationId = `payment_${tenantId}_${month}`;
-    const fetchKey = `${tenantId}:${month}`;
-    if (paymentFetchRef.current === fetchKey) return;
-    paymentFetchRef.current = fetchKey;
-    if (loadStoredSet(PAYMENT_ACK_KEY).has(notificationId)) return;
-
-    let cancelled = false;
-    void supabase
-      .from('financeiro')
-      .select('id, descricao, valor, created_at')
-      .eq('tenant_id', tenantId)
-      .eq('tipo', 'entrada')
-      .gte('created_at', `${month}-01`)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data || loadStoredSet(PAYMENT_ACK_KEY).has(notificationId)) return;
-        setNotifications((current) => {
-          if (current.some((notification) => notification.id === notificationId)) return current;
-          const updated: AppNotification[] = [
-            {
-              id: notificationId,
-              type: 'payment',
-              title: 'Nova entrada registrada',
-              body: `${data.descricao || 'Movimentação financeira'} · ${new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(Number(data.valor) || 0)}`,
-              read: false,
-              created_at: data.created_at,
-            },
-            ...current,
-          ];
-          saveNotifications(updated);
-          return updated;
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isFilho, tenantId]);
-
-  useEffect(() => {
-    if (isFilho || !tenantId) return;
-    let cancelled = false;
-    void authFetch(`/api/notifications?tenantId=${encodeURIComponent(tenantId)}&tipo=preceito_orientacao&limit=20`)
-      .then(async (response) => {
-        const json = await response.json();
-        if (!response.ok) throw new Error(json.error);
-        if (cancelled) return;
-        setNotifications((current) => {
-          const currentMap = new Map(current.map((item) => [item.id, item]));
-          const incoming: AppNotification[] = (json.data || []).map((item: any) => {
-            const id = `db_preceito_${String(item.id)}`;
-            return {
-              id,
-              type: 'preceito',
-              title: 'Pedido de orientação',
-              body: String(item.mensagem || 'Um membro pediu orientação sobre o ciclo de preceito.'),
-              read: currentMap.get(id)?.read ?? Boolean(item.lida),
-              created_at: String(item.created_at || new Date().toISOString()),
-            };
-          });
-          const incomingIds = new Set(incoming.map((item) => item.id));
-          const merged = [...incoming, ...current.filter((item) => !incomingIds.has(item.id))]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 40);
-          saveNotifications(merged);
-          return merged;
-        });
-      })
-      .catch((error) => console.warn('[notifications] preceito:', error));
-    return () => {
-      cancelled = true;
-    };
-  }, [isFilho, tenantId]);
-
-  useEffect(() => {
-    if (!isFilho || !tenantId) return;
-    let cancelled = false;
-
-    void supabase
-      .from('mural_avisos')
-      .select('id, titulo, conteudo, data_publicacao')
-      .eq('tenant_id', tenantId)
-      .order('data_publicacao', { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        const readIds = loadStoredSet(MURAL_READ_KEY);
-        setMuralRead(readIds);
-        setMuralNotifications(
-          data.map((item) => ({
-            id: `mural_${item.id}`,
-            type: 'mural' as const,
-            title: item.titulo,
-            body: String(item.conteudo || '').slice(0, 140),
-            read: readIds.has(`mural_${item.id}`),
-            created_at: item.data_publicacao,
-          })),
-        );
-      });
-
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-      channel = supabase
-        .channel(`notification_panel_mural_${tenantId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'mural_avisos',
-            filter: `tenant_id=eq.${tenantId}`,
-          },
-          (payload: { new: Record<string, unknown> }) => {
-            const item = payload.new;
-            setMuralNotifications((current) => [
-              {
-                id: `mural_${String(item.id)}`,
-                type: 'mural',
-                title: String(item.titulo || 'Novo comunicado'),
-                body: String(item.conteudo || '').slice(0, 140),
-                read: false,
-                created_at: String(item.data_publicacao || new Date().toISOString()),
-              },
-              ...current,
-            ]);
-          },
-        )
-        .subscribe();
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      if (channel) void supabase.removeChannel(channel);
-    };
-  }, [isFilho, tenantId]);
-
-  useEffect(() => {
-    if (!isFilho || !tenantId || !userId) {
-      setPendingNotifications([]);
+    if (!tenantId) {
+      setRawItems([]);
       return;
     }
     let cancelled = false;
     const load = async () => {
-      const today = new Date();
-      const start = today.toISOString().slice(0, 10);
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 120);
-      const end = endDate.toISOString().slice(0, 10);
-      const readIds = loadStoredSet(MURAL_READ_KEY);
-
-      const [homeResult, participationResult, eventsResult, preceitoResult] = await Promise.allSettled([
-        authFetch(`/api/v1/filho/home?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
-          const json = await response.json();
-          if (!response.ok) throw new Error(json.error || 'Erro ao carregar pendências');
-          return json;
-        }),
-        fetchMinhasParticipacoes(tenantId, start, end),
-        authFetch(`/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${start}&end=${end}&scope=calendar`).then(async (response) => {
-          const json = await response.json();
-          if (!response.ok) throw new Error(json.error || 'Erro ao carregar giras');
-          return Array.isArray(json.data) ? json.data : [];
-        }),
-        authFetch(`/api/v1/preceitos/current?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
-          const json = await response.json();
-          if (!response.ok) throw new Error(json.error || 'Erro ao carregar preceitos');
-          return Array.isArray(json.data) ? json.data : [];
-        }),
-      ]);
-      if (cancelled) return;
-
-      const next: AppNotification[] = [];
-      const home = homeResult.status === 'fulfilled' ? homeResult.value : null;
-      const financialStatus = String(home?.financialStatus || 'pago').toLowerCase();
-      if (!['pago', 'paid', 'quitado', 'em dia'].includes(financialStatus)) {
-        const id = `filho_payment_${tenantId}_${today.getFullYear()}-${today.getMonth() + 1}`;
-        next.push({
-          id,
-          type: 'payment',
-          title: financialStatus === 'vencido' ? 'Mensalidade vencida' : 'Mensalidade em aberto',
-          body: 'Confira os detalhes e a chave Pix disponibilizada pela casa.',
-          read: readIds.has(id),
-          created_at: new Date().toISOString(),
-        });
+      try {
+        const items = isFilho
+          ? await loadFilhoNotifications(tenantId)
+          : await loadZeladorNotifications(tenantId, userId ?? null);
+        if (!cancelled) setRawItems(items);
+      } catch (error) {
+        console.warn('[notifications] load:', error);
       }
-
-      const participations = participationResult.status === 'fulfilled' ? participationResult.value : [];
-      const events = eventsResult.status === 'fulfilled' ? eventsResult.value : [];
-      const activePreceitos = preceitoResult.status === 'fulfilled' ? preceitoResult.value : [];
-      activePreceitos.slice(0, 2).forEach((cycle: any) => {
-        const id = `preceito_${String(cycle.id)}`;
-        next.push({
-          id,
-          type: 'preceito',
-          title: String(cycle.titulo || 'Ciclo de preceito ativo'),
-          body: cycle.participacao?.status === 'ciente'
-            ? 'Sua leitura foi confirmada. Consulte novamente sempre que precisar.'
-            : 'A zeladoria publicou uma orientação protegida para você.',
-          read: readIds.has(id),
-          created_at: String(cycle.ativado_em || cycle.inicio_em || new Date().toISOString()),
-        });
-      });
-      const nextEvent = [...events]
-        .filter((item: any) => String(item.tipo || '').toLowerCase() !== 'obrigação')
-        .sort((a: any, b: any) => String(a.data).localeCompare(String(b.data)))[0];
-      const nextParticipation = nextEvent
-        ? participations.find((item) => item.event_id === String(nextEvent.id))
-        : null;
-      if (nextEvent && (!nextParticipation || nextParticipation.status === 'pendente')) {
-        const id = `event_${String(nextEvent.id)}`;
-        const eventDate = new Date(`${nextEvent.data}T12:00:00`);
-        next.push({
-          id,
-          type: 'event',
-          title: `Confirme: ${String(nextEvent.titulo || 'próxima gira')}`,
-          body: `A casa aguarda sua resposta para ${eventDate.toLocaleDateString('pt-BR')}.`,
-          read: readIds.has(id),
-          created_at: new Date().toISOString(),
-        });
-      }
-
-      const childId = String(home?.child?.id || '');
-      if (childId) {
-        const { data: obligations } = await supabase
-          .from('calendario_axe')
-          .select('id, titulo, data')
-          .eq('tipo', 'Obrigação')
-          .eq('tenant_id', tenantId)
-          .like('descricao', `%FILHO_ID:${childId}%`)
-          .order('data', { ascending: false })
-          .limit(10);
-        if (cancelled) return;
-        const seen = loadObrigacoesSeen(childId);
-        (obligations || []).filter((item) => !seen.has(String(item.id))).slice(0, 3).forEach((item) => {
-          const id = `obligation_${String(item.id)}`;
-          next.push({
-            id,
-            type: 'obligation',
-            title: String(item.titulo || 'Nova obrigação registrada'),
-            body: `Orientação registrada para ${new Date(`${item.data}T12:00:00`).toLocaleDateString('pt-BR')}.`,
-            read: readIds.has(id),
-            created_at: String(item.data || new Date().toISOString()),
-          });
-        });
-      }
-
-      if (!cancelled) setPendingNotifications(next);
     };
     void load();
+    const interval = window.setInterval(() => void load(), 120_000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [isFilho, tenantId, userId]);
 
-  const allNotifications = isFilho
-    ? [...pendingNotifications, ...muralNotifications].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      )
-    : notifications;
+  const allNotifications = useMemo<AppNotification[]>(
+    () =>
+      rawItems
+        .filter((item) => !dismissedIds.has(item.id))
+        .map((item) => ({ ...item, read: readIds.has(item.id) }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, LIST_CAP),
+    [rawItems, readIds, dismissedIds],
+  );
   const unread = allNotifications.filter((notification) => !notification.read).length;
   const visibleNotifications = useMemo(
     () =>
@@ -481,68 +512,34 @@ export default function NotificationPanel({
   );
 
   const markAllRead = () => {
-    if (isFilho) {
-      const updatedRead = new Set([...muralRead, ...allNotifications.map(({ id }) => id)]);
-      saveStoredSet(MURAL_READ_KEY, updatedRead);
-      setMuralRead(updatedRead);
-      setMuralNotifications((current) =>
-        current.map((notification) => ({ ...notification, read: true })),
-      );
-      setPendingNotifications((current) =>
-        current.map((notification) => ({ ...notification, read: true })),
-      );
-      return;
-    }
-    acknowledgePayments(notifications.map(({ id }) => id));
-    const updated = notifications.map((notification) => ({ ...notification, read: true }));
-    saveNotifications(updated);
-    setNotifications(updated);
+    setReadIds((current) => {
+      const updated = new Set([...current, ...allNotifications.map(({ id }) => id)]);
+      saveStoredSet(READ_KEY, updated);
+      return updated;
+    });
   };
 
   const markRead = (id: string) => {
-    if (isFilho) {
-      const updatedRead = new Set([...muralRead, id]);
-      saveStoredSet(MURAL_READ_KEY, updatedRead);
-      setMuralRead(updatedRead);
-      setMuralNotifications((current) =>
-        current.map((notification) =>
-          notification.id === id ? { ...notification, read: true } : notification,
-        ),
-      );
-      setPendingNotifications((current) =>
-        current.map((notification) =>
-          notification.id === id ? { ...notification, read: true } : notification,
-        ),
-      );
-      return;
-    }
-    acknowledgePayments([id]);
-    const updated = notifications.map((notification) =>
-      notification.id === id ? { ...notification, read: true } : notification,
-    );
-    saveNotifications(updated);
-    setNotifications(updated);
+    setReadIds((current) => {
+      const updated = new Set([...current, id]);
+      saveStoredSet(READ_KEY, updated);
+      return updated;
+    });
   };
 
   const dismiss = (id: string) => {
-    if (isFilho) {
-      const updatedRead = new Set([...muralRead, id]);
-      saveStoredSet(MURAL_READ_KEY, updatedRead);
-      setMuralRead(updatedRead);
-      setMuralNotifications((current) => current.filter((notification) => notification.id !== id));
-      setPendingNotifications((current) => current.filter((notification) => notification.id !== id));
-      return;
-    }
-    acknowledgePayments([id]);
-    const updated = notifications.filter((notification) => notification.id !== id);
-    saveNotifications(updated);
-    setNotifications(updated);
+    markRead(id);
+    setDismissedIds((current) => {
+      const updated = new Set([...current, id]);
+      saveStoredSet(DISMISS_KEY, updated);
+      return updated;
+    });
   };
 
   const openNotification = (notification: AppNotification) => {
     markRead(notification.id);
     setOpen(false);
-    onNavigate?.(notificationTarget(notification.type));
+    onNavigate?.(notificationTarget(notification.type, isFilho));
   };
 
   // Ver é ler: abrir o painel marca tudo como lido (persistido), para as
@@ -736,7 +733,7 @@ export default function NotificationPanel({
                     </p>
                     <p className="mt-1 max-w-[220px] text-center text-[11px] leading-relaxed text-[#738095]">
                       {isFilho
-                        ? 'Os novos comunicados do terreiro aparecerão aqui.'
+                        ? 'Os novos avisos da sua caminhada aparecerão aqui.'
                         : 'As novidades importantes da gestão aparecerão aqui.'}
                     </p>
                   </motion.div>
