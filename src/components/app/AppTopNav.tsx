@@ -6,6 +6,9 @@
   Lock,
   LogOut,
   Menu,
+  MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -25,6 +28,7 @@ import {
 } from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
 import Avatar from '../Avatar';
+import NotificationPanel from '../NotificationPanel';
 
 type AppTopNavProps = {
   activeTab: string;
@@ -183,6 +187,7 @@ function NavGroupMobileSection({
   onSelect,
   menuLabel,
   variant = 'grid',
+  defaultExpanded = false,
 }: {
   label: string;
   icon: LucideIcon;
@@ -192,9 +197,10 @@ function NavGroupMobileSection({
   onSelect: (item: AppNavItem) => void;
   menuLabel?: string;
   variant?: 'grid' | 'drawer';
+  defaultExpanded?: boolean;
 }) {
   const isGroupActive = items.some((i) => i.id === activeTab);
-  const [expanded, setExpanded] = useState(isGroupActive);
+  const [expanded, setExpanded] = useState(defaultExpanded || isGroupActive);
 
   useEffect(() => {
     if (isGroupActive) setExpanded(true);
@@ -282,117 +288,6 @@ function NavGroupMobileSection({
   );
 }
 
-function NavGroupDropdown({
-  label,
-  icon: GroupIcon,
-  items,
-  activeTab,
-  isItemLocked,
-  onSelect,
-  menuLabel,
-}: {
-  label: string;
-  icon: LucideIcon;
-  items: AppNavItem[];
-  activeTab: string;
-  isItemLocked: (item: AppNavItem) => boolean;
-  onSelect: (item: AppNavItem) => void;
-  menuLabel: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
-  const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const isGroupActive = items.some((i) => i.id === activeTab);
-
-  const syncMenuPosition = () => {
-    const button = buttonRef.current;
-    if (!button) return;
-    const rect = button.getBoundingClientRect();
-    setMenuPos({
-      top: rect.bottom + 6,
-      left: rect.left,
-    });
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    syncMenuPosition();
-    const onScrollOrResize = () => syncMenuPosition();
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('scroll', onScrollOrResize, true);
-    window.addEventListener('resize', onScrollOrResize);
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('scroll', onScrollOrResize, true);
-      window.removeEventListener('resize', onScrollOrResize);
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative shrink-0">
-      <button
-        ref={buttonRef}
-        type="button"
-        role="tab"
-        aria-selected={isGroupActive}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors',
-          isGroupActive || open
-            ? 'bg-primary text-[#080A0D] shadow-sm'
-            : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
-        )}
-      >
-        <GroupIcon className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={isGroupActive ? 2.25 : 1.75} />
-        <span className="whitespace-nowrap">{label}</span>
-        <ChevronDown
-          className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-200', open && 'rotate-180')}
-          aria-hidden
-        />
-      </button>
-
-      {open ? (
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label={menuLabel}
-          style={{ top: menuPos.top, left: menuPos.left }}
-          className="fixed z-[80] min-w-[12.5rem] rounded-xl border border-[#1E242B] bg-[#13171D] p-1 shadow-lg"
-        >
-          {items.map((item) => (
-            <NavTab
-              key={item.id}
-              item={item}
-              layout="dropdown"
-              isActive={activeTab === item.id}
-              isLocked={isItemLocked(item)}
-              onSelect={() => {
-                onSelect(item);
-                setOpen(false);
-              }}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function AppTopNav({
   activeTab,
   setActiveTab,
@@ -405,8 +300,14 @@ export default function AppTopNav({
   filhoFotoUrl,
   onFilhoFotoUpdated,
 }: AppTopNavProps) {
-  const isLgDesktop = useMediaQuery('(min-width: 1024px)');
+  const isLgDesktop = useMediaQuery('(min-width: 880px)');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopPinned, setDesktopPinned] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('axecloud:sidebar-pinned') === '1' : false,
+  );
+  const [desktopHovered, setDesktopHovered] = useState(false);
+  const desktopExpanded = desktopPinned || desktopHovered;
+  const desktopCompact = !desktopExpanded;
   const { isInstalled: isStandalonePwa, install } = usePwaInstall();
   const filhoPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFilhoPhoto, setIsUploadingFilhoPhoto] = useState(false);
@@ -427,6 +328,17 @@ export default function AppTopNav({
   useEffect(() => {
     if (isLgDesktop) setMobileOpen(false);
   }, [isLgDesktop]);
+
+  useEffect(() => {
+    localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
+    document.documentElement.style.setProperty(
+      '--app-sidebar-width',
+      desktopExpanded ? '18rem' : '5.5rem',
+    );
+    return () => {
+      document.documentElement.style.removeProperty('--app-sidebar-width');
+    };
+  }, [desktopExpanded, desktopPinned]);
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -474,6 +386,15 @@ export default function AppTopNav({
     () => (userRole === 'filho' ? null : buildZeladorNavEntries(tenantData?.tradicao)),
     [userRole, tenantData?.tradicao],
   );
+  const mobileDockItems = useMemo(() => {
+    const ids =
+      userRole === 'filho'
+        ? ['profile', 'calendar', 'financial', 'chat']
+        : ['dashboard', 'children', 'calendar', 'financial'];
+    return ids
+      .map((id) => navItems.find((item) => item.id === id))
+      .filter((item): item is AppNavItem => item != null);
+  }, [navItems, userRole]);
 
   const isItemLocked = (item: AppNavItem) =>
     userRole === 'admin' && !hasPlanAccess(tenantData?.plan, navItemPlanFeature(item.id), isAdmin);
@@ -547,20 +468,7 @@ export default function AppTopNav({
     </div>
   );
 
-  /** Ações do header desktop — sem «Instalar» (Chrome/Edge usam a omnibox). Mobile: drawer. */
-  const headerActions = (compact?: boolean) => (
-    <button
-      type="button"
-      onClick={() => void performFastLogout()}
-      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2 text-xs font-bold text-[#94A3B8] transition-all hover:border-[#2F3643] hover:text-[#F1F5F9] sm:px-3"
-      title="Sair"
-    >
-      <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className={compact ? 'sr-only sm:not-sr-only sm:inline' : undefined}>Sair</span>
-    </button>
-  );
-
-  const renderMobileDrawerEntry = (entry: ZeladorNavEntry, key: string) => {
+  const renderMobileDrawerEntry = (entry: ZeladorNavEntry, key: string, defaultExpanded = false) => {
     if (entry.type === 'item') {
       return (
         <NavTab
@@ -585,42 +493,160 @@ export default function AppTopNav({
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
         menuLabel={entry.type === 'casa' ? 'Módulos da casa' : 'Módulos financeiros'}
-      />
-    );
-  };
-
-  const renderDesktopEntry = (entry: ZeladorNavEntry, key: string) => {
-    if (entry.type === 'item') {
-      return (
-        <NavTab
-          key={key}
-          item={entry.item}
-          isActive={activeTab === entry.item.id}
-          isLocked={isItemLocked(entry.item)}
-          onSelect={() => handleSelect(entry.item)}
-        />
-      );
-    }
-
-    return (
-      <NavGroupDropdown
-        key={key}
-        label={entry.label}
-        icon={entry.icon}
-        items={entry.items}
-        activeTab={activeTab}
-        isItemLocked={isItemLocked}
-        onSelect={handleSelect}
-        menuLabel={entry.type === 'casa' ? 'Módulos da casa' : 'Módulos financeiros'}
+        defaultExpanded={defaultExpanded}
       />
     );
   };
 
   return (
     <>
+      <NotificationPanel
+        tenantData={tenantData}
+        userRole={userRole}
+        userId={userId}
+        onNavigate={setActiveTab}
+      />
+
+      <aside
+        onMouseEnter={() => setDesktopHovered(true)}
+        onMouseLeave={() => setDesktopHovered(false)}
+        onFocusCapture={() => setDesktopHovered(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setDesktopHovered(false);
+          }
+        }}
+        data-expanded={desktopExpanded ? 'true' : 'false'}
+        className={cn(
+          'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] transition-[width,box-shadow] duration-300 ease-out min-[880px]:flex',
+          desktopCompact ? 'w-[5.5rem]' : 'w-72',
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setDesktopPinned((value) => !value)}
+          title={desktopPinned ? 'Usar expansão automática' : 'Fixar menu aberto'}
+          aria-label={desktopPinned ? 'Desafixar menu lateral' : 'Fixar menu lateral aberto'}
+          aria-pressed={desktopPinned}
+          className="app-v5-sidebar-toggle absolute -right-3 top-5 z-10 grid h-8 w-8 place-items-center rounded-full border border-[#343C47] bg-[#151A21] text-[#CBD5E1] shadow-lg transition hover:border-primary/50 hover:bg-primary hover:text-[#17130D]"
+        >
+          {desktopPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </button>
+
+        <div className={cn('app-v5-brand border-b border-[#242A32] py-4', desktopCompact ? 'px-3' : 'px-5')}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('dashboard')}
+            className={cn(
+              'group flex w-full items-center rounded-2xl p-2 text-left transition-colors hover:bg-white/[0.04]',
+              desktopCompact ? 'justify-center' : 'gap-3',
+            )}
+            aria-label="Ir para o início"
+          >
+            {profileAvatar}
+            <span className={cn('app-v5-sidebar-copy min-w-0 flex-1', desktopCompact && 'sr-only')}>
+              <span className="block truncate font-display text-[15px] font-extrabold leading-tight text-[#F8FAFC]">
+                {terreiroNome}
+              </span>
+              <span className="mt-1 block truncate text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
+                {subtitle}
+              </span>
+            </span>
+          </button>
+        </div>
+
+        <div className={cn('pb-2 pt-4', desktopCompact ? 'px-2 text-center' : 'px-5')}>
+          <p className={cn('font-black uppercase tracking-[0.18em] text-[#738095]', desktopCompact ? 'text-[9px]' : 'px-3 text-xs')}>
+            {desktopCompact ? 'Axé' : 'Gestão da casa'}
+          </p>
+        </div>
+
+        <nav
+          className={cn(
+            'app-v5-primary-nav flex flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pb-5 no-scrollbar',
+            desktopCompact ? 'items-center px-2' : 'px-4',
+          )}
+          role="tablist"
+          aria-label="Módulos do AxéCloud"
+        >
+          {desktopCompact
+            ? navItems.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={item.label}
+                    aria-label={item.label}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={() => handleSelect(item)}
+                    className={cn(
+                      'relative grid h-12 w-12 shrink-0 place-items-center rounded-xl border transition-colors',
+                      active
+                        ? 'border-primary bg-primary text-[#080A0D]'
+                        : 'border-transparent text-[#9AA6B7] hover:border-white/10 hover:bg-white/5 hover:text-white',
+                    )}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </button>
+                );
+              })
+            : userRole === 'filho'
+            ? navItems.map((item) => (
+                <NavTab
+                  key={item.id}
+                  item={item}
+                  layout="drawer"
+                  isActive={activeTab === item.id}
+                  isLocked={isItemLocked(item)}
+                  badgeCount={badgeForItem(item.id)}
+                  onSelect={() => handleSelect(item)}
+                />
+              ))
+            : zeladorEntries?.map((entry, index) =>
+                renderMobileDrawerEntry(
+                  entry,
+                  entry.type === 'item' ? entry.item.id : `desktop-${index}`,
+                ),
+              )}
+        </nav>
+
+        <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-2 p-3' : 'p-4')}>
+          {showInstallButton ? (
+            <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-primary/15 bg-primary/[0.06] p-2')}>
+              <button
+                type="button"
+                onClick={() => void handleInstallApp()}
+                title="Instalar aplicativo"
+                className={cn(
+                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black text-[#080A0D] transition-colors hover:bg-[#FFD34E]',
+                  desktopCompact ? 'w-12 px-0' : 'w-full px-3',
+                )}
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                {!desktopCompact ? 'Instalar aplicativo' : <span className="sr-only">Instalar aplicativo</span>}
+              </button>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void performFastLogout()}
+            title="Sair"
+            className={cn(
+              'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#242A32] bg-[#12161A] text-sm font-bold text-[#94A3B8] transition-colors hover:border-red-500/30 hover:bg-red-500/[0.06] hover:text-red-300',
+              desktopCompact ? 'w-12 px-0' : 'w-full px-4',
+            )}
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+            {!desktopCompact ? 'Sair' : <span className="sr-only">Sair</span>}
+          </button>
+        </div>
+      </aside>
+
       {mobileOpen && !isLgDesktop ? (
         <div
-          className="fixed inset-0 z-[60] bg-black/65 lg:hidden"
+          className="fixed inset-0 z-[60] bg-black/65 min-[880px]:hidden"
           aria-hidden
           onClick={() => setMobileOpen(false)}
         />
@@ -628,7 +654,7 @@ export default function AppTopNav({
 
       <aside
         className={cn(
-          'fixed left-0 top-0 bottom-0 z-[70] w-[min(88vw,19.75rem)] flex-col border-r border-[#1E242B] bg-[#0B0D11] lg:hidden',
+          'app-v5-mobile-drawer fixed left-0 top-0 bottom-0 z-[70] w-[min(88vw,19.75rem)] flex-col border-r border-[#1E242B] bg-[#0B0D11] min-[880px]:hidden',
           mobileOpen ? 'flex' : 'hidden',
         )}
         role="dialog"
@@ -696,7 +722,7 @@ export default function AppTopNav({
 
       <header
         ref={headerRef}
-        className="relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#1E242B] bg-[#13171D] pt-[env(safe-area-inset-top,0px)]"
+        className="app-v5-mobile-header relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#242A32] bg-[#101319] pt-[env(safe-area-inset-top,0px)] min-[880px]:hidden"
       >
         <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
@@ -762,34 +788,36 @@ export default function AppTopNav({
           </div>
         </div>
 
-        {isLgDesktop ? (
-          <div className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div
-              className="flex w-max items-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5"
-              role="tablist"
-              aria-label="Módulos do AxéCloud"
-            >
-              {userRole === 'filho'
-                ? navItems.map((item) => (
-                    <NavTab
-                      key={item.id}
-                      item={item}
-                      isActive={activeTab === item.id}
-                      isLocked={isItemLocked(item)}
-                      badgeCount={badgeForItem(item.id)}
-                      onSelect={() => handleSelect(item)}
-                    />
-                  ))
-                : zeladorEntries?.map((entry, index) =>
-                    renderDesktopEntry(entry, entry.type === 'item' ? entry.item.id : `casa-${index}`),
-                  )}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="hidden shrink-0 items-center gap-2 pl-1 lg:flex">{headerActions()}</div>
       </div>
     </header>
+
+      <nav className="app-v5-bottom-nav fixed inset-x-3 bottom-3 z-[52] grid grid-cols-5 items-center min-[880px]:hidden" aria-label="Navegação principal">
+        {mobileDockItems.map((item) => {
+          const Icon = item.icon;
+          const active = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleSelect(item)}
+              aria-current={active ? 'page' : undefined}
+              className={cn('app-v5-bottom-nav__item', active && 'is-active')}
+            >
+              <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} aria-hidden />
+              <span>{item.label === 'Filhos de Santo' ? 'Corrente' : item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-expanded={mobileOpen}
+          className={cn('app-v5-bottom-nav__item', mobileOpen && 'is-active')}
+        >
+          <MoreHorizontal className="h-5 w-5" aria-hidden />
+          <span>Mais</span>
+        </button>
+      </nav>
     </>
   );
 }
@@ -804,7 +832,7 @@ export function AppPageShell({
   return (
     <div
       className={cn(
-        'mx-auto w-full flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8',
+        'app-view-canvas mx-auto w-full flex-1 px-4 py-5 sm:px-6 md:py-7 lg:px-8 xl:px-10',
         fullWidth ? 'max-w-none' : 'max-w-[1600px]',
       )}
     >

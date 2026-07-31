@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Camera, CheckCircle, Loader2 } from 'lucide-react';
+import { Building2, Camera, CheckCircle, Loader2, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { TRADICAO_OPTIONS } from '../../lib/tradicaoModules';
 
@@ -182,7 +182,7 @@ export function SettingsProfilePanel({
   }
 
   return (
-    <div className="animate-fadeIn space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:p-6">
+    <div className="animate-fadeIn space-y-4">
       {toast && (
         <div
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
@@ -197,158 +197,15 @@ export function SettingsProfilePanel({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border-b border-[#1E242B] pb-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Perfil do Zelador e do Terreiro</h6>
-          <p className="mt-0.5 text-[11px] font-light text-gray-400">
-            Nome litúrgico, identidade da casa e foto que aparecem no mural, financeiro e WhatsApp.
-          </p>
-        </div>
-        <span className="shrink-0 rounded border border-[#3B82F6]/20 bg-blue-950/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[#3B82F6]">
-          Perfil Ativo
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-12">
-        <div className="space-y-4 md:col-span-7">
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Nome Litúrgico do Zelador(a)
-            </label>
-            <input
-              type="text"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-              placeholder="Ex: Pai Alexandre de Ogum"
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Nome do Terreiro / Templo de Fé
-            </label>
-            <input
-              type="text"
-              value={profileTerreiro}
-              onChange={(e) => setProfileTerreiro(e.target.value)}
-              placeholder="Ex: Humaitá Luz do Amanhã"
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Tradição / Linha Dominante
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={tradicao}
-              className="w-full cursor-default rounded-lg border border-[#1E242B] bg-[#12161A]/60 p-2.5 text-xs text-gray-400"
-            />
-            <p className="text-[10px] font-light text-gray-500">
-              Altere em{' '}
-              {onOpenPortal ? (
-                <button
-                  type="button"
-                  onClick={onOpenPortal}
-                  className="font-semibold text-cyan-400 hover:text-cyan-300"
-                >
-                  Portal do Consulente
-                </button>
-              ) : (
-                <span className="font-semibold text-cyan-400">Portal do Consulente</span>
-              )}
-              .
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Cargo Litúrgico / Sacerdotal
-            </label>
-            <select
-              value={profileCargo}
-              onChange={(e) => setProfileCargo(e.target.value)}
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] accent-blue-500 focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
-            >
-              {CARGO_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-              {profileCargo && !CARGO_OPTIONS.includes(profileCargo as (typeof CARGO_OPTIONS)[number]) && (
-                <option value={profileCargo}>{profileCargo}</option>
-              )}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Foto de Perfil
-            </label>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#1E242B] bg-[#12161A] px-4 py-2.5 text-xs font-bold text-[#F1F5F9] transition-all hover:border-[#3B82F6]/50 hover:bg-[#1E2530] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isUploadingPhoto ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-[#3B82F6]" />
-                ) : (
-                  <Camera className="h-4 w-4 text-[#3B82F6]" />
-                )}
-                {isUploadingPhoto ? 'Enviando foto…' : 'Escolher do celular ou computador'}
-              </button>
-              {profileFoto ? (
-                <button
-                  type="button"
-                  onClick={() => setProfileFoto('')}
-                  className="text-[11px] font-semibold text-gray-500 hover:text-red-400"
-                >
-                  Remover foto
-                </button>
-              ) : null}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/*"
-              onChange={(e) => void handlePhotoUpload(e)}
-            />
-            <p className="text-[10px] font-light text-gray-500">
-              Tire uma foto ou escolha da galeria · JPG, PNG ou WebP · máx. 5 MB
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={isSaving}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/10 transition-all hover:bg-blue-500 disabled:opacity-50"
-            >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-              {isSaving ? 'Salvando…' : 'Salvar Configurações do Perfil'}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4 md:col-span-5">
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-            Crachá Sacerdotal Ativo
-          </span>
-
-          <div className="group relative overflow-hidden rounded-2xl border border-[#1E242B] bg-gradient-to-b from-[#1E2530] to-[#12161A] p-4 text-center shadow-lg">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600" />
-
-            <div className="relative space-y-3.5">
-              <div className="relative mx-auto mt-2 h-20 w-20">
-                <div className="absolute inset-0 animate-pulse rounded-full bg-blue-500/20 blur-md filter" />
-                <div className="relative z-10 mx-auto h-20 w-20 overflow-hidden rounded-full border-2 border-[#3B82F6] bg-[#12161A] shadow-inner">
+      <section className="settings-dark-surface overflow-hidden rounded-[1.75rem] border border-[#252C35] bg-[#11151A] shadow-[0_24px_60px_-38px_rgba(0,0,0,0.95)]">
+        <div className="relative overflow-hidden border-b border-[#2A323D] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.24),transparent_42%),linear-gradient(135deg,#171C23_0%,#101419_65%)] px-5 py-6 sm:px-7">
+          <div className="absolute -right-10 -top-16 h-44 w-44 rounded-full border border-blue-400/10" />
+          <div className="absolute -right-3 -top-7 h-28 w-28 rounded-full border border-blue-400/10" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="relative h-20 w-20 shrink-0">
+                <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-blue-500 via-cyan-400 to-primary opacity-80 blur-[2px]" />
+                <div className="relative h-20 w-20 overflow-hidden rounded-3xl border-4 border-[#151A21] bg-[#0B0D11]">
                   <img
                     src={profileFoto || FALLBACK_PHOTO}
                     alt={profileName}
@@ -359,39 +216,192 @@ export function SettingsProfilePanel({
                     }}
                   />
                 </div>
-                <span className="absolute bottom-0 right-1 z-20 h-4 w-4 rounded-full border-2 border-[#1E252E] bg-emerald-500" />
-              </div>
-
-              <div>
-                <h6 className="max-w-full truncate font-display text-sm font-black text-[#F1F5F9]">
-                  {profileName || 'Seu Nome de Fé'}
-                </h6>
-                <p className="mt-0.5 max-w-full truncate text-[10px] font-bold text-blue-400">
-                  {profileCargo || 'Cargo Sacerdotal'}
-                </p>
-                <span className="mt-1 inline-block max-w-full truncate rounded border border-cyan-500/10 bg-blue-950/40 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-cyan-400">
-                  🏛️ {profileTerreiro || 'Nome do Templo'}
+                <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-4 border-[#151A21] bg-emerald-500 text-[#07120D]">
+                  <CheckCircle className="h-3.5 w-3.5" aria-hidden />
                 </span>
               </div>
-
-              <div className="flex items-center justify-center gap-1 border-t border-[#1E242B]/80 pt-2.5 text-[9px] leading-normal text-[#94A3B8]">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                Sincronia com Corrente Sacerdotal Ativada
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                    Perfil ativo
+                  </span>
+                  <span className="rounded-full border border-blue-400/20 bg-blue-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-blue-300">
+                    {tradicao}
+                  </span>
+                </div>
+                <h3 className="truncate font-display text-xl font-black text-[#F8FAFC] sm:text-2xl">
+                  {profileTerreiro || 'Nome da sua casa'}
+                </h3>
+                <p className="mt-1 truncate text-sm font-semibold text-[#A8B4C4]">
+                  {profileName || 'Nome do zelador'} · {profileCargo || 'Cargo sacerdotal'}
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-1 rounded-xl border border-[#1E242B]/70 bg-zinc-950/40 p-3">
-            <span className="block text-[8px] font-extrabold uppercase tracking-wider text-blue-400">
-              Assinatura no WhatsApp Automatizado:
-            </span>
-            <p className="text-[10px] font-light italic leading-relaxed text-gray-400">
-              &quot;🕯️ Salve a Corrente! Lembra-se que hoje nossa sessão inicia às 20:00. Com amor,{' '}
-              <strong>{profileName || 'Zelador'}</strong> do <strong>{profileTerreiro || 'Terreiro'}</strong>.&quot;
-            </p>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-400/10 px-4 text-xs font-black text-blue-200 transition hover:bg-blue-400/15 disabled:opacity-60"
+              >
+                {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {isUploadingPhoto ? 'Enviando…' : 'Trocar foto'}
+              </button>
+              {profileFoto ? (
+                <button
+                  type="button"
+                  onClick={() => setProfileFoto('')}
+                  className="min-h-11 rounded-xl px-3 text-[11px] font-black text-rose-300 transition hover:bg-rose-500/10"
+                >
+                  Remover foto
+                </button>
+              ) : null}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                onChange={(e) => void handlePhotoUpload(e)}
+              />
+            </div>
           </div>
         </div>
-      </div>
+
+        <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+          <div className="flex flex-col p-5 sm:p-7 lg:border-r lg:border-[#252C35]">
+            <div className="mb-5">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-blue-300">
+                <UserRound className="h-4 w-4" aria-hidden />
+                Dados exibidos no sistema
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[#94A3B8]">
+                Essas informações aparecem no painel, nos avisos e no perfil da casa.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-[#A8B4C4]">
+                  Nome litúrgico do zelador(a)
+                </label>
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder="Ex: Pai Alexandre de Ogum"
+                  className="min-h-11 w-full rounded-xl border border-[#303946] bg-[#0D1116] px-3 text-sm font-semibold text-[#F8FAFC] placeholder:text-[#667385] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15"
+            />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-[#A8B4C4]">
+                  Nome do terreiro
+                </label>
+            <input
+              type="text"
+              value={profileTerreiro}
+              onChange={(e) => setProfileTerreiro(e.target.value)}
+              placeholder="Ex: Humaitá Luz do Amanhã"
+                  className="min-h-11 w-full rounded-xl border border-[#303946] bg-[#0D1116] px-3 text-sm font-semibold text-[#F8FAFC] placeholder:text-[#667385] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15"
+            />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-[#A8B4C4]">
+                  Tradição
+                </label>
+            <input
+              type="text"
+              readOnly
+              value={tradicao}
+                  className="min-h-11 w-full cursor-default rounded-xl border border-[#303946] bg-[#171C23] px-3 text-sm font-semibold text-[#CBD5E1]"
+            />
+                <p className="text-[10px] font-semibold text-[#7F8B9C]">
+                  Para alterar, acesse{' '}
+              {onOpenPortal ? (
+                <button
+                  type="button"
+                  onClick={onOpenPortal}
+                      className="font-black text-cyan-300 hover:text-cyan-200"
+                >
+                      Portal Público
+                </button>
+              ) : (
+                    <span className="font-black text-cyan-300">Portal Público</span>
+              )}
+              .
+            </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-[#A8B4C4]">
+                  Cargo litúrgico
+                </label>
+            <select
+              value={profileCargo}
+              onChange={(e) => setProfileCargo(e.target.value)}
+                  className="min-h-11 w-full rounded-xl border border-[#303946] bg-[#0D1116] px-3 text-sm font-semibold text-[#F8FAFC] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15"
+            >
+              {CARGO_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+              {profileCargo && !CARGO_OPTIONS.includes(profileCargo as (typeof CARGO_OPTIONS)[number]) && (
+                <option value={profileCargo}>{profileCargo}</option>
+              )}
+            </select>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={isSaving}
+              className="mt-5 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-blue-950/30 transition hover:bg-blue-500 disabled:opacity-50 lg:mt-auto"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              {isSaving ? 'Salvando…' : 'Salvar identidade'}
+            </button>
+          </div>
+
+          <aside className="relative overflow-hidden bg-[#0B0E12] p-5 sm:p-7">
+            <div className="absolute -bottom-20 -right-16 h-48 w-48 rounded-full bg-blue-600/10 blur-3xl" />
+            <div className="relative">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                <Sparkles className="h-4 w-4" aria-hidden />
+                Onde essa identidade aparece
+              </p>
+              <div className="mt-4 space-y-2">
+                {[
+                  { icon: Building2, color: 'text-cyan-300 bg-cyan-400/10', title: 'Menu e cabeçalho', body: 'Nome e foto identificam a casa em todas as páginas.' },
+                  { icon: ShieldCheck, color: 'text-emerald-300 bg-emerald-400/10', title: 'Comunicações oficiais', body: 'Zelador e terreiro assinam avisos enviados à corrente.' },
+                  { icon: UserRound, color: 'text-violet-300 bg-violet-400/10', title: 'Perfil público', body: 'A mesma identidade mantém a apresentação consistente.' },
+                ].map(({ icon: Icon, color, title, body }) => (
+                  <div key={title} className="flex items-center gap-3 rounded-xl border border-[#252C35] bg-[#141920] px-3 py-2.5">
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${color}`}>
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-[#F8FAFC]">{title}</p>
+                      <p className="truncate text-[9px] font-semibold text-[#94A3B8]">{body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-primary/20 bg-primary/[0.06] p-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-primary">Exemplo de assinatura</p>
+                <p className="mt-2 text-[11px] font-medium italic leading-relaxed text-[#CBD5E1]">
+                  “Com amor, <strong className="text-white">{profileName || 'Zelador'}</strong> do{' '}
+                  <strong className="text-white">{profileTerreiro || 'Terreiro'}</strong>.”
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
     </div>
   );
 }

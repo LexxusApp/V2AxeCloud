@@ -3,10 +3,14 @@ import {
   ArrowLeft,
   Camera,
   Film,
+  FolderOpen,
   Heart,
   Image as ImageIcon,
+  Images,
   Loader2,
   Plus,
+  Search,
+  Sparkles,
   Trash2,
   Upload,
   X,
@@ -15,7 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import { AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
+import {
+  AppDemoCard,
+  AppDemoPanelHeader,
+  AppPrimaryButton,
+  appInputClass,
+  appLabelClass,
+} from '../components/ui/appDemoUi';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { authFetch } from '../lib/authenticatedFetch';
 
@@ -58,10 +68,10 @@ type AlbumItem = {
 type ToastState = { message: string; type: 'success' | 'info' | 'error' } | null;
 
 const FILTER_CHIPS: { value: GalleryFilter; label: string }[] = [
-  { value: 'tudo', label: 'Ver Tudo 🎨' },
-  { value: 'gira', label: 'Giras de Santo 🕯️' },
-  { value: 'evento', label: 'Festas & Rituais 🏛️' },
-  { value: 'lembranca', label: 'União do Terreiro 🌿' },
+  { value: 'tudo', label: 'Todos' },
+  { value: 'gira', label: 'Giras' },
+  { value: 'evento', label: 'Festas e rituais' },
+  { value: 'lembranca', label: 'Memórias da casa' },
 ];
 
 const CATEGORY_BADGE: Record<GalleryCategory, string> = {
@@ -71,9 +81,9 @@ const CATEGORY_BADGE: Record<GalleryCategory, string> = {
 };
 
 const CATEGORY_LABEL: Record<GalleryCategory, string> = {
-  gira: 'Gira Ativa',
-  evento: 'Festa / Ritual',
-  lembranca: 'Preceito',
+  gira: 'Gira',
+  evento: 'Festa / ritual',
+  lembranca: 'Memória da casa',
 };
 
 function formatMuralDate(iso: string): string {
@@ -161,7 +171,7 @@ function AddAlbumModalPanel({
         aria-modal="true"
         aria-labelledby="add-album-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+        className="relative z-[101] flex max-h-[calc(100vh-6rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -170,10 +180,10 @@ function AddAlbumModalPanel({
             </div>
             <div className="min-w-0">
               <h3 id="add-album-title" className="text-base font-black text-white sm:text-lg">
-                Novo álbum
+                Criar novo álbum
               </h3>
               <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
-                Criar álbum com fotos da gira ou evento
+                Organize fotos e vídeos em uma coleção
               </p>
             </div>
           </div>
@@ -187,7 +197,7 @@ function AddAlbumModalPanel({
           </button>
         </div>
 
-        <div className="p-5 sm:p-6">
+        <div className="overflow-y-auto p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:gap-6">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
               <div>
@@ -196,7 +206,7 @@ function AddAlbumModalPanel({
                   type="text"
                   value={albumName}
                   onChange={(e) => setAlbumName(e.target.value)}
-                  placeholder="Ex: Gira de Ogum — Março 2026"
+                  placeholder="Ex.: Gira de Ogum — março de 2026"
                   className={appInputClass}
                 />
               </div>
@@ -209,7 +219,7 @@ function AddAlbumModalPanel({
                 >
                   <option value="gira">Gira de Trabalho</option>
                   <option value="evento">Festa / Evento Público</option>
-                  <option value="lembranca">Lembrança das Linhagens</option>
+                  <option value="lembranca">Memória da casa</option>
                 </select>
               </div>
               <div className="sm:col-span-2">
@@ -218,7 +228,7 @@ function AddAlbumModalPanel({
                   value={albumDescription}
                   onChange={(e) => setAlbumDescription(e.target.value)}
                   rows={2}
-                  placeholder="Breve história sobre a gira, as entidades que trabalharam…"
+                  placeholder="Conte brevemente o que aconteceu neste momento…"
                   className={cn(appInputClass, 'resize-none')}
                 />
               </div>
@@ -345,6 +355,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [activeFilter, setActiveFilter] = useState<GalleryFilter>('tudo');
+  const [gallerySearch, setGallerySearch] = useState('');
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [addAlbumModalOpen, setAddAlbumModalOpen] = useState(false);
@@ -633,9 +644,27 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
   const filteredAlbums = useMemo(() => {
     const withMedia = albums.filter((album) => album.media.length > 0);
-    if (activeFilter === 'tudo') return withMedia;
-    return withMedia.filter((album) => getAlbumCategory(album) === activeFilter);
-  }, [albums, activeFilter]);
+    const query = gallerySearch.trim().toLocaleLowerCase('pt-BR');
+    return withMedia.filter((album) => {
+      const matchesCategory = activeFilter === 'tudo' || getAlbumCategory(album) === activeFilter;
+      const matchesSearch =
+        !query ||
+        `${album.name} ${album.description || ''}`
+          .toLocaleLowerCase('pt-BR')
+          .includes(query);
+      return matchesCategory && matchesSearch;
+    });
+  }, [albums, activeFilter, gallerySearch]);
+
+  const galleryStats = useMemo(() => {
+    const media = albums.flatMap((album) => album.media);
+    return {
+      albums: albums.filter((album) => album.media.length > 0).length,
+      photos: media.filter((item) => item.media_type === 'image').length,
+      videos: media.filter((item) => item.media_type === 'video').length,
+      axe: media.reduce((sum, item) => sum + Number(item.likes_count || 0), 0),
+    };
+  }, [albums]);
 
   const closeAddAlbumModal = () => {
     if (uploading) return;
@@ -652,7 +681,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
         layout
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative flex h-full transform flex-col justify-between overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
+        className="group relative flex h-full transform flex-col justify-between overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
       >
         <button
           type="button"
@@ -699,7 +728,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
         <div className="flex flex-grow flex-col justify-between space-y-3.5 p-4">
           <div className="space-y-1.5">
-            <h6 className="font-display text-xs font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
+            <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
               {photo.title || photo.file_name}
             </h6>
             <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
@@ -755,7 +784,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             setSelectedAlbumId(album.id);
           }
         }}
-        className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
+        className="gallery-album-card group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
       >
         <div className="relative aspect-video w-full overflow-hidden bg-black/40">
           {cover ? (
@@ -796,6 +825,10 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             </span>
                 </div>
 
+          <div className="absolute bottom-2 right-2 rounded-lg border border-white/10 bg-black/65 px-2 py-1 text-[9px] font-black text-white backdrop-blur-sm">
+            {album.media.length} arquivo{album.media.length === 1 ? '' : 's'}
+          </div>
+
           {isAdmin && (
             <button
               type="button"
@@ -813,7 +846,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
         <div className="flex flex-grow flex-col justify-between space-y-3.5 p-4">
           <div className="space-y-1.5">
-            <h6 className="font-display text-xs font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
+            <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
               {album.name}
             </h6>
             <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
@@ -844,6 +877,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
   return (
     <AppPageShell>
+      <div className="gallery-v5-page">
       <div className="space-y-6 animate-fadeIn text-[#F1F5F9]">
         {toast && (
           <div
@@ -858,66 +892,73 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </div>
         )}
 
-        <div className="flex flex-col gap-4 border-b border-[#1E242B] pb-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h5 className="flex items-center gap-2 font-display text-xl font-black text-white">
-              <ImageIcon className="h-5 w-5 text-amber-500" />
-              Relicário de Axé (Álbuns de Lembranças)
-            </h5>
-            <p className="text-xs text-[#94A3B8]">
-              Cada gira ou evento vira um álbum — envie dezenas de fotos de uma vez e organize a memória do terreiro.
-            </p>
-          </div>
-
-          {isAdmin && !selectedAlbumId && (
-            <button
-              type="button"
-              onClick={() => setAddAlbumModalOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
-            >
-              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Novo Álbum
-            </button>
-          )}
-        </div>
+        <AppDemoPanelHeader
+          title={selectedAlbum ? selectedAlbum.name : 'Galeria da casa'}
+          description={
+            selectedAlbum
+              ? 'Veja as fotos e vídeos deste álbum.'
+              : 'Organize registros de giras, festas e momentos importantes em álbuns.'
+          }
+          action={
+            isAdmin && !selectedAlbumId ? (
+              <AppPrimaryButton
+                type="button"
+                onClick={() => setAddAlbumModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2"
+              >
+                <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                Criar álbum
+              </AppPrimaryButton>
+            ) : null
+          }
+        />
 
         {loading ? (
           <AppPanelLoading />
         ) : selectedAlbum ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
               <button
               type="button"
                 onClick={() => setSelectedAlbumId(null)}
-              className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#94A3B8] transition hover:border-amber-500/30 hover:text-white"
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-4 py-2 text-xs font-bold text-[#3D382F] transition hover:border-[#11151A] hover:text-[#11151A]"
               >
                 <ArrowLeft className="h-4 w-4" />
               Voltar aos álbuns
               </button>
 
-            <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+            <AppDemoCard>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
                   <span
                     className={cn(
-                      'mb-2 inline-block rounded border px-2.5 py-0.5 text-[8.5px] font-black uppercase',
+                      'mb-2 inline-block rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide',
                       CATEGORY_BADGE[getAlbumCategory(selectedAlbum)],
                     )}
                   >
                     {CATEGORY_LABEL[getAlbumCategory(selectedAlbum)]}
                   </span>
-                  <h2 className="font-display text-xl font-black text-white">{selectedAlbum.name}</h2>
                   {selectedAlbum.description && (
-                    <p className="mt-2 max-w-2xl text-sm text-gray-400">{selectedAlbum.description}</p>
+                    <p className="max-w-2xl text-sm font-medium leading-relaxed text-[#CBD5E1]">{selectedAlbum.description}</p>
                   )}
-                  <p className="mt-2 text-[10px] text-gray-500">
-                    {selectedAlbum.media.length} foto(s) · {formatMuralDate(selectedAlbum.created_at)} · Por{' '}
+                  <p className="mt-2 text-[10px] font-medium text-[#64748B]">
+                    Publicado em {formatMuralDate(selectedAlbum.created_at)} por{' '}
                     {selectedAlbum.media[0]?.author_name || zeladorName}
                   </p>
                 </div>
+                <div className="grid grid-cols-2 gap-2 sm:flex">
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 px-4 py-3 text-center">
+                    <span className="block text-xl font-black text-cyan-300">{selectedAlbum.media.length}</span>
+                    <span className="text-[9px] font-bold uppercase text-[#64748B]">arquivos</span>
+                  </div>
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-950/30 px-4 py-3 text-center">
+                    <span className="block text-xl font-black text-rose-300">{getAlbumAxeTotal(selectedAlbum)}</span>
+                    <span className="text-[9px] font-bold uppercase text-[#64748B]">Axé</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            </AppDemoCard>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="app-media-masonry grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {selectedAlbum.media.length === 0 ? (
                 <div className="col-span-full rounded-3xl border border-[#1E242B] bg-[#0C0E12] p-12 text-center text-sm text-gray-500">
                   Este álbum ainda não tem fotos.
@@ -928,44 +969,118 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="flex flex-col gap-4 rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1 text-center sm:text-left">
-                <h6 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Álbuns do Terreiro</h6>
-                <p className="text-[10px] text-gray-500">Clique em um álbum para ver todas as fotos.</p>
+          <div className="space-y-5">
+            <div className="app-metric-rail gallery-archive-ribbon grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Álbuns</span>
+                  <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{galleryStats.albums}</p>
+                  <p className="mt-1 text-[10px] text-[#64748B]">coleções publicadas</p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                  <FolderOpen className="h-5 w-5" />
+                </div>
+              </AppDemoCard>
+              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Fotos</span>
+                  <p className="mt-2 text-2xl font-black text-cyan-300">{galleryStats.photos}</p>
+                  <p className="mt-1 text-[10px] text-[#64748B]">imagens guardadas</p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/40 text-cyan-300">
+                  <Images className="h-5 w-5" />
+                </div>
+              </AppDemoCard>
+              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Vídeos</span>
+                  <p className="mt-2 text-2xl font-black text-violet-300">{galleryStats.videos}</p>
+                  <p className="mt-1 text-[10px] text-[#64748B]">registros em movimento</p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl border border-violet-500/20 bg-violet-950/40 text-violet-300">
+                  <Film className="h-5 w-5" />
+                </div>
+              </AppDemoCard>
+              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Axé recebido</span>
+                  <p className="mt-2 text-2xl font-black text-rose-300">{galleryStats.axe}</p>
+                  <p className="mt-1 text-[10px] text-[#64748B]">interações nas memórias</p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-300">
+                  <Heart className="h-5 w-5" />
+                </div>
+              </AppDemoCard>
             </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-1.5">
+            <AppDemoCard className="app-command-strip gallery-curator-bar space-y-4 p-4 sm:p-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h6 className="text-sm font-black text-[#F1F5F9]">Álbuns publicados</h6>
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    {filteredAlbums.length} de {galleryStats.albums} álbum{galleryStats.albums === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <label className="relative min-w-0 lg:w-72">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                  <input
+                    type="search"
+                    value={gallerySearch}
+                    onChange={(event) => setGallerySearch(event.target.value)}
+                    placeholder="Buscar álbum"
+                    className={cn(appInputClass, 'pl-9')}
+                  />
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-[#252B33] pt-4">
                 {FILTER_CHIPS.map((chip) => (
                   <button
                     key={chip.value}
                     type="button"
                     onClick={() => setActiveFilter(chip.value)}
                     className={cn(
-                      'cursor-pointer rounded-xl px-3 py-1.5 text-[10px] font-black transition-all',
+                      'cursor-pointer rounded-xl border px-3 py-2 text-[10px] font-black transition-all',
                       activeFilter === chip.value
-                        ? 'bg-[#D97706] text-white shadow-sm'
-                        : 'border border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:bg-white/5 hover:text-white',
+                        ? 'border-primary bg-primary text-[#080A0D] shadow-sm'
+                        : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-white',
                     )}
                   >
                     {chip.label}
                   </button>
                 ))}
               </div>
-            </div>
+            </AppDemoCard>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="app-gallery-ledger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredAlbums.length === 0 ? (
-                <div className="col-span-full space-y-3 rounded-3xl border border-[#1E242B] bg-[#0C0E12] p-12 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-lg text-amber-500">
-                    📸
+                <div
+                  className="app-demo-empty-preview col-span-full space-y-3 rounded-2xl border border-dashed border-[#303844] bg-[#11151A] px-6 py-14 text-center"
+                  data-preview="Exemplo de álbum · Gira de Xangô · 12 fotos"
+                >
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                    <Sparkles className="h-6 w-6" />
                   </div>
-                  <h6 className="font-display text-xs font-bold text-white">Nenhum álbum nesta seção</h6>
+                  <h6 className="font-display text-sm font-black text-white">
+                    {gallerySearch ? 'Nenhum álbum encontrado' : 'Sua galeria começa aqui'}
+                  </h6>
                   <p className="mx-auto max-w-sm text-[11px] text-gray-500">
-                    {isAdmin
-                      ? 'Clique em Novo Álbum para publicar fotos da gira ou evento.'
-                      : 'Ainda não há álbuns publicados para este filtro.'}
+                    {gallerySearch
+                      ? 'Tente outro nome ou escolha uma categoria diferente.'
+                      : isAdmin
+                        ? 'Crie um álbum para guardar fotos e vídeos de uma gira, festa ou momento especial.'
+                        : 'Ainda não há álbuns publicados nesta categoria.'}
                   </p>
+                  {isAdmin && !gallerySearch ? (
+                    <AppPrimaryButton
+                      type="button"
+                      onClick={() => setAddAlbumModalOpen(true)}
+                      className="mt-2 inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Criar primeiro álbum
+                    </AppPrimaryButton>
+                  ) : null}
                 </div>
               ) : (
                 filteredAlbums.map((album) => renderAlbumCard(album))
@@ -1055,6 +1170,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </BodyPortal>
         )}
       </AnimatePresence>
+      </div>
     </AppPageShell>
   );
 }

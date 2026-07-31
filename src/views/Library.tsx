@@ -11,7 +11,10 @@ import {
   ExternalLink,
   Trash2,
   AlertTriangle,
-  Lock
+  Lock,
+  CalendarDays,
+  Files,
+  Tags
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -25,6 +28,8 @@ import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass, appLa
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import { FundamentosAcervo } from '../components/library/FundamentosAcervo';
+import FilhoLibraryExperience from '../components/filho/FilhoLibraryExperience';
 
 interface LibraryProps {
   user: any;
@@ -37,7 +42,7 @@ interface LibraryProps {
   hideEmbeddedHeader?: boolean;
 }
 
-interface Material {
+export interface Material {
   id: string;
   titulo: string;
   categoria: string;
@@ -175,6 +180,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [libraryMode, setLibraryMode] = useState<'estudos' | 'fundamentos'>('estudos');
 
   const [newMaterial, setNewMaterial] = useState({
     titulo: '',
@@ -348,6 +354,19 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     });
   }, [materials, searchQuery, selectedCategory]);
 
+  const libraryStats = useMemo(() => {
+    const now = new Date();
+    const recent = materials.filter((material) => {
+      const createdAt = new Date(material.created_at);
+      return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
+    }).length;
+    return {
+      total: materials.length,
+      categories: new Set(materials.map((material) => material.categoria)).size,
+      recent,
+    };
+  }, [materials]);
+
   const openMaterial = (m: Material) => {
     if (embedded) {
       window.open(m.arquivo_url, '_blank', 'noopener,noreferrer');
@@ -356,8 +375,41 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     }
   };
 
+  if (!embedded && libraryMode === 'fundamentos') {
+    return (
+      <AppPageShell>
+        <FundamentosAcervo
+          tenantId={effectiveTenantId}
+          isAdmin={isAdmin}
+          onBack={() => setLibraryMode('estudos')}
+        />
+      </AppPageShell>
+    );
+  }
+
+  if (!embedded && !isAdmin) {
+    return (
+      <AppPageShell fullWidth>
+        <FilhoLibraryExperience
+          materials={materials}
+          loading={loading}
+          searchQuery={searchQuery}
+          selectedCategory={selectedCategory}
+          selectedMaterial={selectedMaterial}
+          categories={CATEGORIES}
+          user={user}
+          tenantId={effectiveTenantId}
+          onSearchChange={setSearchQuery}
+          onCategoryChange={setSelectedCategory}
+          onSelectMaterial={setSelectedMaterial}
+          onOpenFundamentos={() => setLibraryMode('fundamentos')}
+        />
+      </AppPageShell>
+    );
+  }
+
   const body = (
-    <div className={cn('flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden', embedded && 'min-h-0')}>
+    <div className={cn('library-v5-page flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden', embedded && 'min-h-0')}>
       <AnimatePresence mode="wait">
         {selectedMaterial && !embedded ? (
           <motion.div 
@@ -365,26 +417,27 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="mx-auto box-border w-full min-w-0 max-w-[1440px] flex-1 space-y-8 px-3 pb-10 sm:space-y-10 sm:px-4 sm:pb-12 md:px-6 lg:px-10 lg:pb-16"
+            className="mx-auto box-border w-full min-w-0 max-w-[1440px] flex-1 space-y-5 pb-10 sm:pb-12 lg:pb-16"
           >
             {/* Detail Header */}
             <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
               <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <button 
                   onClick={() => setSelectedMaterial(null)}
-                  className="shrink-0 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-[#94A3B8] transition hover:border-[#2F3643] hover:text-[#F1F5F9] sm:p-3.5"
+                  className="shrink-0 rounded-xl border border-[#D8D1C4] bg-white p-3 text-[#3D382F] transition hover:border-[#11151A] hover:text-[#11151A]"
+                  aria-label="Voltar para a biblioteca"
                 >
                   <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <h1 className="break-words text-xl font-bold tracking-tight text-[#F1F5F9] sm:text-2xl md:text-3xl">{selectedMaterial.titulo}</h1>
+                  <h1 className="break-words font-display text-xl font-black tracking-tight text-[#17130D] sm:text-2xl md:text-3xl">{selectedMaterial.titulo}</h1>
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">{selectedMaterial.categoria}</p>
                 </div>
               </div>
               
               <button 
                 onClick={() => window.open(selectedMaterial.arquivo_url, '_blank')}
-                className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3 text-sm font-bold text-[#F1F5F9] transition hover:border-primary/40 sm:w-auto md:px-6"
+                className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-black text-[#080A0D] transition hover:bg-[#fde047] sm:w-auto md:px-6"
               >
                 <Download className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 Baixar PDF
@@ -441,9 +494,18 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             ) : (
               <AppDemoPanelHeader
                 title="Biblioteca de estudos"
-                description="O conhecimento é a base do fundamento."
+                description="Organize apostilas, cantigas e fundamentos em um acervo acessível para a casa."
                 action={
-                  isAdmin ? (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLibraryMode('fundamentos')}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#BFA437]/30 bg-[#172018] px-3 py-2 text-xs font-bold text-[#E8D15E] transition hover:-translate-y-0.5 hover:border-[#BFA437]/60"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      Acervo restrito
+                    </button>
+                  {isAdmin ? (
                     <button
                       type="button"
                       onClick={() => setIsUploadModalOpen(true)}
@@ -457,19 +519,67 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                       ) : (
                         <Plus className="h-4 w-4" />
                       )}
-                      Subir material
+                      Adicionar material
                     </button>
-                  ) : null
+                  ) : null}
+                  </div>
                 }
               />
             )}
 
             <div className={cn(
-              'mx-auto box-border w-full min-w-0 max-w-[1440px] flex-1 space-y-10 px-3 pb-10 sm:px-4 sm:pb-12 md:px-6 lg:px-10 lg:pb-16',
+              'mx-auto box-border w-full min-w-0 max-w-[1440px] flex-1 space-y-5 px-0 pb-10 sm:pb-12 lg:pb-16',
               embedded && 'max-w-none flex min-h-0 flex-col space-y-3 px-0 pb-0 sm:space-y-3 sm:px-0 sm:pb-0 md:px-0 lg:px-0 lg:pb-0'
             )}>
+              {!embedded ? (
+                <div className="library-reading-room grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Materiais</span>
+                      <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{libraryStats.total}</p>
+                      <p className="mt-1 text-[10px] text-[#64748B]">PDFs disponíveis</p>
+                    </div>
+                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                      <Files className="h-5 w-5" />
+                    </div>
+                  </AppDemoCard>
+                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Categorias</span>
+                      <p className="mt-2 text-2xl font-black text-cyan-300">{libraryStats.categories}</p>
+                      <p className="mt-1 text-[10px] text-[#64748B]">áreas de estudo</p>
+                    </div>
+                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/40 text-cyan-300">
+                      <Tags className="h-5 w-5" />
+                    </div>
+                  </AppDemoCard>
+                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Novos no mês</span>
+                      <p className="mt-2 text-2xl font-black text-violet-300">{libraryStats.recent}</p>
+                      <p className="mt-1 text-[10px] text-[#64748B]">adições recentes</p>
+                    </div>
+                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-violet-500/20 bg-violet-950/40 text-violet-300">
+                      <CalendarDays className="h-5 w-5" />
+                    </div>
+                  </AppDemoCard>
+                </div>
+              ) : null}
+
               {/* Search & Filters */}
-            <div className={cn('flex min-w-0 max-w-full flex-col gap-4 sm:gap-6', embedded && 'shrink-0 gap-2 sm:gap-2')}>
+            <div className={cn(
+              'flex min-w-0 max-w-full flex-col gap-4',
+              !embedded && 'library-catalog rounded-2xl border border-[#252C35] bg-[#13171D] p-4 sm:p-5',
+              embedded && 'shrink-0 gap-2 sm:gap-2',
+            )}>
+              {!embedded ? (
+                <div>
+                  <h3 className="text-sm font-black text-[#F1F5F9]">Explorar acervo</h3>
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    {filteredMaterials.length} de {materials.length} material{materials.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              ) : null}
               <div className="relative min-w-0 flex-1 group">
                 <Search className={cn('absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-primary sm:left-3.5', embedded && 'left-3 h-3.5 w-3.5')} />
                 <input 
@@ -481,14 +591,15 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 />
               </div>
               <div className={cn(
-                'flex min-h-[40px] min-w-0 w-full max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto rounded-xl border border-[#1E242B] bg-[#12161A] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-                embedded && 'min-h-[36px]'
+                'flex min-h-[40px] min-w-0 w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                !embedded && 'border-t border-[#252B33] pt-4',
+                embedded && 'min-h-[36px] rounded-xl border border-[#1E242B] bg-[#12161A] p-1'
               )}>
                 <button 
                   onClick={() => setSelectedCategory(null)}
                   className={cn(
-                    'shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all whitespace-nowrap',
-                    !selectedCategory ? 'bg-primary text-[#080A0D] shadow-sm' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                    'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap',
+                    !selectedCategory ? 'border-primary bg-primary text-[#080A0D] shadow-sm' : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-[#F1F5F9]',
                     embedded && 'px-2.5 py-1.5 text-[10px]'
                   )}
                 >
@@ -499,8 +610,8 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      'shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all whitespace-nowrap',
-                      selectedCategory === cat ? 'bg-primary text-[#080A0D] shadow-sm' : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                      'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap',
+                      selectedCategory === cat ? 'border-primary bg-primary text-[#080A0D] shadow-sm' : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-[#F1F5F9]',
                       embedded && 'px-2.5 py-1.5 text-[10px]'
                     )}
                   >
@@ -512,14 +623,14 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
             {/* Materials Grid */}
             {loading && materials.length === 0 ? (
-              <div className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4', embedded && 'grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-2')}>
+              <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4', embedded && 'grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-2')}>
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <LibraryCardSkeleton key={i} embedded={embedded} />
                 ))}
               </div>
             ) : filteredMaterials.length > 0 ? (
               <div className={cn(
-                'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4',
+                'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
                 embedded && 'min-h-0 max-h-[min(340px,40vh)] flex-1 grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 [scrollbar-width:thin]'
               )}>
                 {filteredMaterials.map((material) => (
@@ -527,7 +638,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     key={material.id}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg"
+                    className="library-book-card group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
                   >
                     {/* Capa do PDF */}
                     <div
@@ -551,7 +662,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                       <div className="min-w-0">
                         <h3
                           className={cn(
-                            'line-clamp-2 cursor-pointer text-xs font-bold leading-snug text-[#F1F5F9] transition-colors group-hover:text-primary',
+                            'line-clamp-2 cursor-pointer text-sm font-black leading-snug text-[#F1F5F9] transition-colors group-hover:text-primary',
                             embedded && 'text-[10px] leading-tight'
                           )}
                           onClick={() => openMaterial(material)}
@@ -570,12 +681,13 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                           className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] py-2 text-[10px] font-bold text-[#F1F5F9] transition hover:border-primary/40"
                         >
                           <FileText className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{embedded ? 'Abrir PDF' : 'Estudar'}</span>
+                          <span className="truncate">{embedded ? 'Abrir PDF' : 'Abrir material'}</span>
                         </button>
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(material.id, (material as any).storage_path)}
                             className="shrink-0 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2 text-rose-300 transition hover:bg-rose-950/60"
+                            aria-label={`Excluir ${material.titulo}`}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -593,10 +705,30 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   <p className="mt-1 text-xs text-[#94A3B8]">Tente ajustar a busca ou veja a biblioteca completa.</p>
                 </div>
               ) : (
-              <AppDemoCard className="py-16 text-center sm:py-20">
-                <BookOpen className="mx-auto mb-4 h-12 w-12 text-primary/40" />
-                <h3 className="text-lg font-bold text-[#F1F5F9]">Nenhum material encontrado</h3>
-                <p className="mt-2 text-sm text-[#94A3B8]">Tente ajustar sua busca ou filtros.</p>
+              <AppDemoCard className="app-demo-empty-preview library-empty-preview border-dashed py-14 text-center">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <h3 className="mt-3 text-sm font-black text-[#F1F5F9]">
+                  {searchQuery ? 'Nenhum material encontrado' : 'A biblioteca começa aqui'}
+                </h3>
+                <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-[#64748B]">
+                  {searchQuery
+                    ? 'Tente outro termo ou escolha uma categoria diferente.'
+                    : isAdmin
+                      ? 'Adicione o primeiro PDF para disponibilizar estudos à casa.'
+                      : 'Ainda não há materiais publicados nesta categoria.'}
+                </p>
+                {isAdmin && materials.length === 0 ? (
+                  <AppPrimaryButton
+                    type="button"
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="mt-4 inline-flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar primeiro material
+                  </AppPrimaryButton>
+                ) : null}
               </AppDemoCard>
               )
             )}
@@ -619,12 +751,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl sm:max-w-lg"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#1E242B] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-[#F1F5F9] sm:text-lg">Subir material</h3>
-                  <p className="mt-0.5 text-xs text-[#94A3B8]">PDF para a biblioteca do terreiro</p>
+                  <h3 className="text-base font-black text-[#F1F5F9] sm:text-lg">Adicionar material</h3>
+                  <p className="mt-0.5 text-xs text-[#94A3B8]">Publique um PDF na biblioteca da casa.</p>
                 </div>
                 <button onClick={() => setIsUploadModalOpen(false)} className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
                   <X className="h-5 w-5" />
@@ -637,7 +769,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   <input type="text" value={newMaterial.titulo}
                     onChange={e => setNewMaterial({ ...newMaterial, titulo: e.target.value })}
                     className={appInputClass}
-                    placeholder="Ex: Cantigas de Oxóssi" />
+                    placeholder="Ex.: Cantigas de Oxóssi" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -657,17 +789,26 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     <input type="file" accept=".pdf"
                       onChange={e => setNewMaterial({ ...newMaterial, file: e.target.files?.[0] || null })}
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-4 py-6 transition hover:border-[#2F3643]">
-                      <Upload className="h-7 w-7 text-[#94A3B8]" />
+                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#303844] bg-[#12161A] px-4 py-8 transition hover:border-primary/40">
+                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                        <Upload className="h-5 w-5" />
+                      </div>
                       <p className="max-w-full truncate px-2 text-center text-xs font-bold text-[#94A3B8]" title={newMaterial.file?.name}>
                         {newMaterial.file ? newMaterial.file.name : 'Selecione ou arraste o PDF'}
                       </p>
+                      {newMaterial.file ? (
+                        <span className="text-[10px] font-bold text-[#64748B]">
+                          {(newMaterial.file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#64748B]">Somente arquivos PDF</span>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <AppPrimaryButton type="submit" disabled={uploading} className="flex w-full items-center justify-center gap-2">
-                  {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Subindo…</> : <><Upload className="h-4 w-4" />Confirmar upload</>}
+                  {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</> : <><Upload className="h-4 w-4" />Publicar material</>}
                 </AppPrimaryButton>
               </form>
             </motion.div>

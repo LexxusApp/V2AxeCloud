@@ -12,7 +12,10 @@ import {
   Copy, 
   CheckCircle2,
   MessageSquare,
-  Loader2
+  Loader2,
+  Boxes,
+  Pencil,
+  SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
@@ -20,7 +23,14 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
+import {
+  AppDemoCard,
+  AppDemoPanelHeader,
+  AppDemoTableShell,
+  AppPrimaryButton,
+  appInputClass,
+  appLabelClass,
+} from '../components/ui/appDemoUi';
 
 interface Product {
   id: string;
@@ -51,9 +61,11 @@ export default function Inventory({
   const tenantId = tenantData?.tenant_id;
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'em_dia' | 'baixo' | 'esgotado'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     item: '',
     categoria: 'Limpeza' as any,
@@ -93,35 +105,49 @@ export default function Inventory({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Usuário não autenticado');
 
-      const response = await authFetch('/api/inventory', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          item: formData.item,
-          categoria: formData.categoria,
-          quantidade_atual: Number(formData.quantidade_atual) || 0,
-          quantidade_minima: Number(formData.quantidade_minima) || 5,
-          autorId: session.user.id,
-          tenantId: tenantId
-        })
-      });
+      if (editingProduct) {
+        const { error } = await supabase
+          .from('almoxarifado')
+          .update({
+            item: formData.item,
+            categoria: formData.categoria,
+            quantidade_atual: Number(formData.quantidade_atual) || 0,
+            quantidade_minima: Number(formData.quantidade_minima) || 0,
+          })
+          .eq('id', editingProduct.id);
+        if (error) throw error;
+      } else {
+        const response = await authFetch('/api/inventory', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            item: formData.item,
+            categoria: formData.categoria,
+            quantidade_atual: Number(formData.quantidade_atual) || 0,
+            quantidade_minima: Number(formData.quantidade_minima) || 5,
+            autorId: session.user.id,
+            tenantId: tenantId
+          })
+        });
 
-      if (!response.ok) {
-        const text = await response.text();
-        let errDesc = 'Falha ao adicionar item';
-        try {
-          const errData = text ? JSON.parse(text) : {};
-          errDesc = errData.error || errDesc;
-        } catch (e) {
-          console.error('[INVENTORY] Error parsing error response:', text);
+        if (!response.ok) {
+          const text = await response.text();
+          let errDesc = 'Falha ao adicionar item';
+          try {
+            const errData = text ? JSON.parse(text) : {};
+            errDesc = errData.error || errDesc;
+          } catch (e) {
+            console.error('[INVENTORY] Error parsing error response:', text);
+          }
+          throw new Error(errDesc);
         }
-        throw new Error(errDesc);
       }
-      
+
       setIsAddItemModalOpen(false);
+      setEditingProduct(null);
       setFormData({
         item: '',
         categoria: 'Limpeza',
@@ -131,11 +157,39 @@ export default function Inventory({
       fetchInventory();
     } catch (error) {
       console.error('Error adding item:', error);
-      alert('Erro ao adicionar item ao almoxarifado.');
+      alert(editingProduct ? 'Erro ao atualizar item.' : 'Erro ao adicionar item ao almoxarifado.');
     } finally {
       setIsSubmitting(false);
     }
   }
+
+  const openNewItemModal = () => {
+    setEditingProduct(null);
+    setFormData({
+      item: '',
+      categoria: 'Limpeza',
+      quantidade_atual: 0,
+      quantidade_minima: 5,
+    });
+    setIsAddItemModalOpen(true);
+  };
+
+  const openEditItemModal = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      item: product.item,
+      categoria: product.categoria,
+      quantidade_atual: product.quantidade_atual,
+      quantidade_minima: product.quantidade_minima,
+    });
+    setIsAddItemModalOpen(true);
+  };
+
+  const closeItemModal = () => {
+    if (isSubmitting) return;
+    setIsAddItemModalOpen(false);
+    setEditingProduct(null);
+  };
 
   async function deleteItem(id: string) {
     if (!confirm('Deseja realmente excluir este item?')) return;
@@ -187,11 +241,24 @@ export default function Inventory({
   const filteredProducts = useMemo(() => products.filter(p => {
     const matchesCat = activeCategory === 'Todos' || p.categoria === activeCategory;
     const matchesSearch = p.item.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCat && matchesSearch;
-  }), [products, activeCategory, searchTerm]);
+    const matchesStatus =
+      statusFilter === 'todos' ||
+      (statusFilter === 'esgotado' && p.quantidade_atual <= 0) ||
+      (statusFilter === 'baixo' && p.quantidade_atual > 0 && p.quantidade_atual <= p.quantidade_minima) ||
+      (statusFilter === 'em_dia' && p.quantidade_atual > p.quantidade_minima);
+    return matchesCat && matchesSearch && matchesStatus;
+  }), [products, activeCategory, searchTerm, statusFilter]);
 
   const lowStockItems = useMemo(() => products.filter(p => p.quantidade_atual <= p.quantidade_minima), [products]);
   const outOfStockItems = useMemo(() => products.filter(p => p.quantidade_atual <= 0), [products]);
+  const totalUnits = useMemo(
+    () => products.reduce((total, product) => total + product.quantidade_atual, 0),
+    [products],
+  );
+  const healthyStockItems = useMemo(
+    () => products.filter((product) => product.quantidade_atual > product.quantidade_minima),
+    [products],
+  );
 
   const generateShoppingListText = () => {
     const list = lowStockItems.map(p => `• ${p.item}: Repor ${p.quantidade_minima * 2} un.`).join('\n');
@@ -214,6 +281,7 @@ export default function Inventory({
 
   return (
     <AppPageShell>
+      <div className="inventory-v5-page">
       <AppDemoPanelHeader
         title="Almoxarifado"
         description="Gestão de estoque e insumos de axé."
@@ -222,7 +290,7 @@ export default function Inventory({
             {isAdmin ? (
               <button
                 type="button"
-                onClick={() => setIsAddItemModalOpen(true)}
+                onClick={openNewItemModal}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
               >
                 <Plus className="h-4 w-4" />
@@ -232,7 +300,7 @@ export default function Inventory({
             <button
               type="button"
               onClick={() => setIsShoppingListOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-3 py-2 text-xs font-bold text-[#11151A] transition hover:border-[#11151A]"
             >
               <ShoppingCart className="h-4 w-4" />
               Lista de compras
@@ -246,178 +314,276 @@ export default function Inventory({
         }
       />
 
-      <div className="space-y-8">
-        
-        {/* Superior Dashboard Bento Grid */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-          
-          {/* Main Info Box */}
-          <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden md:col-span-6 lg:col-span-5">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-20 -mt-20 group-hover:bg-primary/20 transition-all duration-700" />
-             <div className="relative z-10 flex items-start justify-between">
-                <div>
-                  <h3 className="mb-1 text-xs font-black uppercase tracking-widest text-gray-400">Total em Estoque</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black tracking-tighter text-white">{products.length}</span>
-                    <span className="text-lg font-bold text-primary">itens</span>
-                  </div>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-md">
-                   <Package className="h-6 w-6 text-primary" />
-                </div>
-             </div>
-             
-             <div className="relative z-10 mt-5 flex items-center gap-3">
-               <div className="flex-1 bg-white/5 h-2 rounded-full overflow-hidden">
-                 <div className="h-full bg-primary w-full" />
-               </div>
-               <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Geral</span>
-             </div>
+      <div className="space-y-5">
+
+        <div className="inventory-pulse-board grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Itens cadastrados</span>
+              <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{products.length}</p>
+              <p className="mt-1 text-[10px] text-[#64748B]">{totalUnits} unidades no total</p>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+              <Boxes className="h-5 w-5" />
+            </div>
           </AppDemoCard>
-
-          {/* Alerts Box */}
-          <div className="grid grid-cols-1 gap-4 md:col-span-6 lg:col-span-7 sm:grid-cols-2">
-            <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden border-primary/25 bg-primary/5 hover:border-primary/40">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[50px] -mr-10 -mt-10" />
-               <div className="relative z-10 mb-3 flex items-center gap-3">
-                 <div className="rounded-lg bg-primary/20 p-2.5">
-                   <AlertTriangle className="h-5 w-5 text-primary" />
-                 </div>
-                 <span className="text-xs font-black uppercase tracking-widest text-primary">Atenção</span>
-               </div>
-               <div className="relative z-10">
-                 <div className="mb-1 text-3xl font-black tracking-tighter text-white">{lowStockItems.length}</div>
-                 <p className="text-xs font-bold leading-snug text-gray-400">Itens se aproximando do limite mínimo de estoque.</p>
-               </div>
-            </AppDemoCard>
-
-            <AppDemoCard className="relative flex min-h-[180px] flex-col justify-between overflow-hidden border-red-500/25 bg-red-500/5 hover:border-red-500/40">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-[50px] -mr-10 -mt-10" />
-               <div className="relative z-10 mb-3 flex items-center gap-3">
-                 <div className="rounded-lg bg-red-500/20 p-2.5">
-                   <XCircle className="h-5 w-5 text-red-500" />
-                 </div>
-                 <span className="text-xs font-black uppercase tracking-widest text-red-500">Crítico</span>
-               </div>
-               <div className="relative z-10">
-                 <div className="mb-1 text-3xl font-black tracking-tighter text-white">{outOfStockItems.length}</div>
-                 <p className="text-xs font-bold leading-snug text-gray-400">Itens que acabaram e precisam de reposição urgente.</p>
-               </div>
-            </AppDemoCard>
-          </div>
-
+          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Estoque em dia</span>
+              <p className="mt-2 text-2xl font-black text-emerald-400">{healthyStockItems.length}</p>
+              <p className="mt-1 text-[10px] text-[#64748B]">acima do mínimo</p>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </AppDemoCard>
+          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Estoque baixo</span>
+              <p className="mt-2 text-2xl font-black text-amber-300">
+                {Math.max(0, lowStockItems.length - outOfStockItems.length)}
+              </p>
+              <p className="mt-1 text-[10px] text-[#64748B]">pedem reposição</p>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+          </AppDemoCard>
+          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Esgotados</span>
+              <p className="mt-2 text-2xl font-black text-rose-400">{outOfStockItems.length}</p>
+              <p className="mt-1 text-[10px] text-[#64748B]">reposição urgente</p>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
+              <XCircle className="h-5 w-5" />
+            </div>
+          </AppDemoCard>
         </div>
 
-        {/* Filters & Search - Glass style */}
-        <div className="flex min-w-0 max-w-full flex-col gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-2 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-1 overflow-x-auto overscroll-x-contain p-1 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:max-w-[55%] xl:max-w-none">
+        <AppDemoCard className="inventory-command-deck space-y-4 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-sm font-black text-[#F1F5F9]">Controle de itens</h3>
+              <p className="mt-1 text-xs text-[#64748B]">
+                {filteredProducts.length} de {products.length} item{products.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-0 sm:w-72">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                <input
+                  type="search"
+                  placeholder="Buscar item"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={cn(appInputClass, 'pl-9')}
+                />
+              </div>
+              <div className="relative sm:w-44">
+                <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                <select
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(event.target.value as 'todos' | 'em_dia' | 'baixo' | 'esgotado')
+                  }
+                  className={cn(appInputClass, 'pl-9')}
+                  aria-label="Filtrar por situação do estoque"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="em_dia">Em dia</option>
+                  <option value="baixo">Estoque baixo</option>
+                  <option value="esgotado">Esgotados</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overscroll-x-contain border-t border-[#252B33] pt-4 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {visibleCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  'shrink-0 rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap sm:px-5 sm:py-2.5 sm:text-sm',
-                  activeCategory === cat 
-                    ? "bg-primary text-black shadow-lg shadow-primary/20 scale-100" 
-                    : "text-gray-400 hover:text-white hover:bg-white/5 scale-95 hover:scale-100"
+                  'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap sm:px-4',
+                  activeCategory === cat
+                    ? "border-primary bg-primary text-[#080A0D]"
+                    : "border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-white"
                 )}
               >
                 {cat}
               </button>
             ))}
           </div>
-          
-          <div className="relative w-full min-w-0 max-w-full p-1 lg:max-w-md xl:w-96 xl:max-w-none">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Buscar insumos, ferramentas..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:text-gray-600"
-            />
-          </div>
-        </div>
+        </AppDemoCard>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.length > 0 ? filteredProducts.map((product, idx) => {
-          const status = getStatus(product);
-          return (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
-              className="overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-1 transition-colors hover:border-[#2F3643] group flex flex-col"
-            >
-              {/* Product Background Decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none opacity-50" />
-              
-              <div className="p-5 flex-1 flex flex-col gap-5 relative z-10">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1 mt-1">
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none">{product.categoria}</span>
-                    <h4 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">
-                      {product.item}
-                    </h4>
-                  </div>
-                  <div className={cn("px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shrink-0", status.color, status.bg, status.border)}>
-                    {status.label}
-                  </div>
-                </div>
-
-                <div className="flex-1" />
-
-                {/* Stock Controls - Minimalist Look */}
-                <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-2">
-                  <div className="flex flex-col gap-1">
-                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">MIN: {product.quantidade_minima}</span>
-                     <div className="flex items-baseline gap-1.5">
-                       <span className="text-3xl font-black text-white leading-none tracking-tighter">{product.quantidade_atual}</span>
-                       <span className="text-[10px] font-bold text-gray-500 uppercase">UN</span>
-                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-1.5">
-                    <button 
-                      onClick={() => adjustStock(product.id, -1)}
-                      className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:bg-black hover:border-white/10 transition-all shadow-sm active:scale-95"
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => adjustStock(product.id, 1)}
-                      className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:scale-95"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                    {isAdmin && (
-                      <button 
-                        onClick={() => deleteItem(product.id)}
-                        className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95 ml-2"
-                        title="Excluir item"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          );
-        }) : (
-          <div className="col-span-full py-20 text-center space-y-6 glass-panel rounded-3xl border border-dashed border-white/10">
-            <div className="w-20 h-20 bg-primary/5 border border-primary/20 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-primary/5">
-              <Package className="w-10 h-10 text-primary" />
+        {filteredProducts.length > 0 ? (
+          <>
+            <div className="space-y-3 md:hidden">
+              {filteredProducts.map((product, idx) => {
+                const status = getStatus(product);
+                return (
+                  <motion.article
+                    key={product.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="rounded-2xl border border-[#252C35] bg-[#13171D] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-[#64748B]">{product.categoria}</p>
+                        <h4 className="mt-1 break-words text-base font-black text-[#F1F5F9]">{product.item}</h4>
+                      </div>
+                      <span className={cn("shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase", status.color, status.bg, status.border)}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-end justify-between border-t border-[#252B33] pt-4">
+                      <div>
+                        <span className="text-[9px] font-black uppercase text-[#64748B]">Quantidade</span>
+                        <p className="mt-1 text-2xl font-black text-white">
+                          {product.quantidade_atual}
+                          <span className="ml-1 text-[10px] text-[#64748B]">un.</span>
+                        </p>
+                        <p className="text-[10px] text-[#64748B]">Mínimo: {product.quantidade_minima}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void adjustStock(product.id, -1)}
+                          className="grid h-10 w-10 place-items-center rounded-xl border border-[#303844] bg-[#171C22] text-[#94A3B8]"
+                          aria-label={`Retirar uma unidade de ${product.item}`}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void adjustStock(product.id, 1)}
+                          className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-[#080A0D]"
+                          aria-label={`Adicionar uma unidade de ${product.item}`}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => openEditItemModal(product)}
+                            className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/30 text-cyan-300"
+                            aria-label={`Editar ${product.item}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </motion.article>
+                );
+              })}
             </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black text-white">Nenhum item encontrado</h3>
-              <p className="text-gray-500 max-w-xs mx-auto font-medium">Seu almoxarifado ainda não possui itens cadastrados para esta categoria.</p>
+
+            <div className="hidden md:block">
+              <AppDemoTableShell>
+                <table className="w-full min-w-[760px] text-left text-xs">
+                  <thead className="bg-[#12161A]">
+                    <tr className="border-b border-[#252B33]">
+                      {['Item', 'Categoria', 'Quantidade', 'Mínimo', 'Situação', 'Ações'].map((heading) => (
+                        <th
+                          key={heading}
+                          className={cn(
+                            'px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]',
+                            heading === 'Ações' && 'text-right',
+                          )}
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#252B33]">
+                    {filteredProducts.map((product) => {
+                      const status = getStatus(product);
+                      return (
+                        <tr key={product.id} className="inventory-stock-row transition hover:bg-[#1A2027]">
+                          <td className="px-4 py-3.5 font-black text-[#F1F5F9]">{product.item}</td>
+                          <td className="px-4 py-3.5 text-[#94A3B8]">{product.categoria}</td>
+                          <td className="px-4 py-3.5">
+                            <span className="text-base font-black text-white">{product.quantidade_atual}</span>
+                            <span className="ml-1 text-[9px] font-bold text-[#64748B]">UN.</span>
+                          </td>
+                          <td className="px-4 py-3.5 font-bold text-[#94A3B8]">{product.quantidade_minima}</td>
+                          <td className="px-4 py-3.5">
+                            <span className={cn("rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase", status.color, status.bg, status.border)}>
+                              {status.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => void adjustStock(product.id, -1)}
+                                className="grid h-9 w-9 place-items-center rounded-xl border border-[#303844] bg-[#171C22] text-[#94A3B8] transition hover:text-white"
+                                aria-label={`Retirar uma unidade de ${product.item}`}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void adjustStock(product.id, 1)}
+                                className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-[#080A0D]"
+                                aria-label={`Adicionar uma unidade de ${product.item}`}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                              {isAdmin ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditItemModal(product)}
+                                    className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/30 text-cyan-300 transition hover:bg-cyan-950/50"
+                                    aria-label={`Editar ${product.item}`}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void deleteItem(product.id)}
+                                    className="grid h-9 w-9 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/30 text-rose-300 transition hover:bg-rose-950/50"
+                                    aria-label={`Excluir ${product.item}`}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </AppDemoTableShell>
             </div>
+          </>
+        ) : (
+          <div
+            className="app-demo-empty-preview rounded-2xl border border-dashed border-[#303844] bg-[#11151A] px-6 py-14 text-center"
+            data-preview="Exemplo de item · Velas brancas · 24 unidades em estoque"
+          >
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+              <Package className="h-6 w-6" />
+            </div>
+            <h3 className="mt-3 text-sm font-black text-white">Nenhum item encontrado</h3>
+            <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-[#64748B]">
+              Ajuste a busca ou os filtros. Se o almoxarifado estiver vazio, cadastre o primeiro item.
+            </p>
+            {isAdmin && products.length === 0 ? (
+              <AppPrimaryButton type="button" onClick={openNewItemModal} className="mt-4 inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Cadastrar primeiro item
+              </AppPrimaryButton>
+            ) : null}
           </div>
         )}
-      </div>
 
       {/* Modal: Novo Item */}
       <AnimatePresence>
@@ -426,7 +592,7 @@ export default function Inventory({
           <div className="fixed inset-0 z-[100] flex min-h-0 items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsAddItemModalOpen(false)}
+              onClick={closeItemModal}
               className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
             />
             <motion.div 
@@ -434,33 +600,38 @@ export default function Inventory({
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#1F1F1F] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl sm:max-w-lg"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
                 <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-xl">Novo Item</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mt-0.5">Almoxarifado</p>
+                  <h3 className="text-base font-black text-white sm:text-xl">
+                    {editingProduct ? 'Editar item' : 'Cadastrar item'}
+                  </h3>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    {editingProduct ? 'Atualize os dados e limites de estoque' : 'Adicione um novo insumo ao estoque'}
+                  </p>
                 </div>
-                <button onClick={() => setIsAddItemModalOpen(false)} className="shrink-0 rounded-full p-2 text-gray-500 transition-colors hover:bg-white/5">
+                <button type="button" onClick={closeItemModal} className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Nome do Item</label>
+                  <label className={appLabelClass}>Nome do item</label>
                   <input required type="text" value={formData.item}
                     onChange={e => setFormData({ ...formData, item: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white outline-none transition-all focus:border-primary"
-                    placeholder="Ex: Vela de 7 Dias Branca" />
+                    className={appInputClass}
+                    placeholder="Ex.: Vela branca de 7 dias" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Categoria</label>
+                    <label className={appLabelClass}>Categoria</label>
                     <select value={formData.categoria}
                       onChange={e => setFormData({ ...formData, categoria: e.target.value as any })}
-                      className="w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white outline-none transition-all focus:border-primary [&>option]:bg-[#1B1C1C]">
+                      className={appInputClass}>
+                      <option value="Camarinha">Camarinha</option>
                       <option value="Limpeza">Limpeza</option>
                       <option value="Rituais">Rituais</option>
                       <option value="Cozinha de Santo">Cozinha</option>
@@ -468,24 +639,49 @@ export default function Inventory({
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Qtd. Atual</label>
+                    <label className={appLabelClass}>Quantidade atual</label>
                     <input required type="number" value={formData.quantidade_atual}
                       onChange={e => setFormData({ ...formData, quantidade_atual: parseInt(e.target.value) || 0 })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white outline-none transition-all focus:border-primary" />
+                      min="0"
+                      className={appInputClass} />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Qtd. Mínima (Alerta)</label>
+                  <label className={appLabelClass}>Estoque mínimo para alerta</label>
                   <input required type="number" value={formData.quantidade_minima}
                     onChange={e => setFormData({ ...formData, quantidade_minima: parseInt(e.target.value) || 0 })}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white outline-none transition-all focus:border-primary" />
+                    min="0"
+                    className={appInputClass} />
                 </div>
 
-                <button disabled={isSubmitting} type="submit"
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 font-black text-background shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Cadastrar Item'}
-                </button>
+                <div className="flex flex-col-reverse gap-2 border-t border-[#252B33] pt-4 sm:flex-row sm:justify-between">
+                  {editingProduct ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = editingProduct.id;
+                        closeItemModal();
+                        void deleteItem(id);
+                      }}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-rose-500/25 bg-rose-950/30 px-4 text-xs font-black text-rose-300"
+                    >
+                      Excluir item
+                    </button>
+                  ) : <span />}
+                  <AppPrimaryButton
+                    disabled={isSubmitting}
+                    type="submit"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                    {isSubmitting
+                      ? 'Salvando…'
+                      : editingProduct
+                        ? 'Salvar alterações'
+                        : 'Cadastrar item'}
+                  </AppPrimaryButton>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -547,6 +743,7 @@ export default function Inventory({
           </div>
         )}
       </AnimatePresence>
+      </div>
       </div>
     </AppPageShell>
   );

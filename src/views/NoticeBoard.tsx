@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { 
+import {
   Bell, 
   Plus, 
   Search, 
@@ -13,7 +13,16 @@ import {
   Trash2,
   Copy,
   CheckCircle2,
-  Share2
+  Share2,
+  Megaphone,
+  Send,
+  Users,
+  XCircle,
+  Smartphone,
+  History,
+  ArrowUpRight,
+  RefreshCw,
+  MessageSquareText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -32,8 +41,9 @@ import {
   appInputClass,
   appLabelClass,
 } from '../components/ui/appDemoUi';
+import FilhoNoticeExperience from '../components/filho/FilhoNoticeExperience';
 
-interface Notice {
+export interface Notice {
   id: string;
   titulo: string;
   conteudo: string;
@@ -43,7 +53,16 @@ interface Notice {
   tenant_id: string;
 }
 
-const categories = ['Todos', 'Urgente', 'Festas', 'Doutrina'] as const;
+interface BroadcastLog {
+  id: string;
+  telefone: string;
+  mensagem: string;
+  tipo: string;
+  status: string;
+  created_at: string;
+}
+
+const categories = ['Todos', 'Geral', 'Urgente', 'Festas', 'Doutrina'] as const;
 
 const categoryConfig = {
   Urgente: {
@@ -89,6 +108,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const [lastWhatsappResult, setLastWhatsappResult] = useState<{ sent: number; errors: number; skipped: number; status?: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
+  const [activeSection, setActiveSection] = useState<'published' | 'history'>('published');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [broadcastLogs, setBroadcastLogs] = useState<BroadcastLog[]>([]);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -126,7 +149,25 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   useEffect(() => {
     fetchNotices();
+    if (isAdmin) void fetchBroadcastLogs();
   }, [tenantId]);
+
+  async function fetchBroadcastLogs() {
+    try {
+      const response = await authFetch('/api/whatsapp/logs?limit=20', { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      const logs = Array.isArray(payload.logs) ? payload.logs : [];
+      setBroadcastLogs(
+        logs.filter((log: BroadcastLog) => {
+          const type = String(log.tipo || '').toLowerCase();
+          return type === 'transmissao_aviso' || type === 'mural_aviso' || type === 'broadcast';
+        }),
+      );
+    } catch {
+      setBroadcastLogs([]);
+    }
+  }
 
   async function fetchNotices() {
     setLoading(true);
@@ -204,8 +245,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       );
 
       setShowSuccessModal(true);
+      setComposerOpen(false);
       setFormData({ titulo: '', conteudo: '', categoria: 'Geral', expiracao: '' });
       fetchNotices();
+      void fetchBroadcastLogs();
     } catch (error: any) {
       console.error('Error posting notice:', error);
       if (error.code === 'PGRST205') {
@@ -236,6 +279,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       if (!response.ok) {
         throw new Error(payload.error || 'Não foi possível excluir o aviso.');
       }
+      setSelectedNotice(null);
       fetchNotices();
     } catch (error: unknown) {
       console.error('Error deleting notice:', error);
@@ -260,9 +304,34 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         return new Date(b.data_publicacao).getTime() - new Date(a.data_publicacao).getTime();
       });
   }, [notices, activeCategory, searchTerm]);
+  const activeNoticesCount = notices.filter((notice) => !notice.expiracao || new Date(notice.expiracao).getTime() >= Date.now()).length;
+  const successfulLogs = broadcastLogs.filter((log) => {
+    const status = String(log.status || '').toLowerCase();
+    return !['failed', 'falha', 'error', 'erro'].includes(status);
+  });
+  const failedLogs = broadcastLogs.length - successfulLogs.length;
 
   if (loading && notices.length === 0) {
     return <AppPanelLoading />;
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppPageShell fullWidth>
+        <FilhoNoticeExperience
+          notices={notices}
+          filteredNotices={filteredNotices}
+          activeCategory={activeCategory}
+          searchTerm={searchTerm}
+          selectedNotice={selectedNotice}
+          categories={categories}
+          houseName={tenantData?.nome || tenantData?.nome_terreiro || ''}
+          onCategoryChange={setActiveCategory}
+          onSearchChange={setSearchTerm}
+          onSelectNotice={setSelectedNotice}
+        />
+      </AppPageShell>
+    );
   }
 
   const searchBar = (
@@ -280,154 +349,175 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   return (
     <AppPageShell>
-      <AppDemoPanelHeader
-        title="Transmissão Aviso"
-        description="Publique avisos para a corrente no app e, se quiser, envie automaticamente via WhatsApp."
-        action={searchBar}
-      />
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setActiveCategory(cat)}
-            className={cn(
-              'rounded-lg border px-3 py-1.5 text-xs font-bold transition-all',
-              activeCategory === cat
-                ? 'border-primary/35 bg-primary/10 text-primary'
-                : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:text-[#F1F5F9]',
-            )}
-          >
-            {cat}
+      <div className="notice-v5-page">
+      <header className="comms-page-header">
+        <div className="comms-page-header__identity">
+          <span><Megaphone className="h-6 w-6" /></span>
+          <div>
+            <p>Comunicação da casa</p>
+            <h1>Comunicados</h1>
+            <small>Mensagens oficiais, orientações e avisos para toda a corrente.</small>
+          </div>
+        </div>
+        {isAdmin ? (
+          <button type="button" onClick={() => setComposerOpen(true)}>
+            <Plus className="h-4 w-4" /> Novo comunicado
           </button>
-        ))}
+        ) : searchBar}
+      </header>
+
+      <div className="hidden" aria-hidden="true">
+      <AppDemoPanelHeader
+        title="Central de Comunicados"
+        description="Publique no mural da casa e acompanhe as transmissões enviadas pelo WhatsApp."
+        action={isAdmin ? (
+          <button type="button" onClick={() => setComposerOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-[#17130D] hover:bg-[#FFD34E]">
+            <Plus className="h-4 w-4" />
+            Novo comunicado
+          </button>
+        ) : searchBar}
+      />
       </div>
 
-      <div className={cn('grid grid-cols-1 gap-6', isAdmin && 'lg:grid-cols-3')}>
-        {isAdmin ? (
-          <AppDemoCard>
-            <h4 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-[#F1F5F9]">
-              <Bell className="h-4 w-4 text-amber-400" aria-hidden />
-              Novo aviso
-            </h4>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className={appLabelClass}>Título</label>
-                <input
-                  required
-                  className={appInputClass}
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  placeholder="Ex: Escala da gira de sábado"
-                />
+      {isAdmin ? (
+        <section className="comms-old-metrics hidden" aria-label="Resumo dos comunicados">
+          {[
+            { label: 'Avisos ativos', value: activeNoticesCount, detail: 'visíveis no mural', icon: Megaphone, color: 'text-sky-300', bg: 'border-sky-400/20 bg-sky-400/10' },
+            { label: 'Entregas registradas', value: successfulLogs.length, detail: 'no histórico recente', icon: Send, color: 'text-emerald-300', bg: 'border-emerald-400/20 bg-emerald-400/10' },
+            { label: 'Falhas de envio', value: failedLogs, detail: failedLogs === 0 ? 'nenhuma falha recente' : 'precisam de atenção', icon: XCircle, color: 'text-rose-300', bg: 'border-rose-400/20 bg-rose-400/10' },
+            { label: 'Comunicados', value: notices.length, detail: 'publicados pela casa', icon: Users, color: 'text-violet-300', bg: 'border-violet-400/20 bg-violet-400/10' },
+          ].map((item) => {
+            const Icon = item.icon;
+            return <div key={item.label} className="rounded-2xl border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC]"><div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}><Icon className={cn('h-4 w-4', item.color)} /></div><p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p><p className="mt-1 text-xl font-black">{item.value}</p><p className="mt-1 text-xs font-semibold text-[#64748B]">{item.detail}</p></div>;
+          })}
+        </section>
+      ) : null}
+
+      {isAdmin ? (
+        <div className="mb-4 flex w-fit rounded-xl border border-[#252C35] bg-[#11151A] p-1">
+          <button type="button" onClick={() => setActiveSection('published')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', activeSection === 'published' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><MessageSquareText className="h-4 w-4" />Publicados</button>
+          <button type="button" onClick={() => setActiveSection('history')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', activeSection === 'history' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><History className="h-4 w-4" />Histórico de envios</button>
+        </div>
+      ) : null}
+
+      {composerOpen && isAdmin ? (
+        <section className="comms-composer mb-5 grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(18rem,.7fr)]">
+          <AppDemoCard className="p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Novo comunicado</p><h2 className="mt-1 text-lg font-black text-white">Escreva a mensagem da casa</h2></div><button type="button" onClick={() => setComposerOpen(false)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><X className="h-5 w-5" /></button></div>
+            <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2"><label className={appLabelClass}>Título</label><input required className={appInputClass} value={formData.titulo} onChange={(e) => setFormData({ ...formData, titulo: e.target.value })} placeholder="Ex: Orientações para a gira de sábado" /></div>
+              <div><label className={appLabelClass}>Categoria</label><select className={appInputClass} value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value as Notice['categoria'] })}><option value="Geral">Geral</option><option value="Urgente">Urgente</option><option value="Festas">Festas</option><option value="Doutrina">Doutrina</option></select></div>
+              <div><label className={appLabelClass}>Expiração</label><input type="date" className={appInputClass} value={formData.expiracao} onChange={(e) => setFormData({ ...formData, expiracao: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className={appLabelClass}>Mensagem</label><textarea required className={cn(appInputClass, 'min-h-32 resize-y text-sm')} value={formData.conteudo} onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })} placeholder="Escreva o comunicado que será visto pela corrente..." /></div>
+              <div className="space-y-2 sm:col-span-2">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#8E9AAA]">Canais de publicação</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[0.06] p-3"><Smartphone className="h-5 w-5 text-sky-300" /><div><p className="text-sm font-black text-white">Mural do aplicativo</p><p className="text-xs font-semibold text-[#64748B]">Sempre publicado</p></div><CheckCircle2 className="ml-auto h-4 w-4 text-emerald-400" /></div>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3"><MessageSquareText className="h-5 w-5 text-emerald-300" /><div><p className="text-sm font-black text-white">WhatsApp</p><p className="text-xs font-semibold text-[#64748B]">Com proteção anti-spam</p></div><input type="checkbox" checked={notifyWhatsApp} onChange={(e) => setNotifyWhatsApp(e.target.checked)} className="ml-auto h-4 w-4 accent-[#10B981]" /></label>
+                </div>
               </div>
-              <div>
-                <label className={appLabelClass}>Categoria</label>
-                <select
-                  className={appInputClass}
-                  value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value as Notice['categoria'] })}
-                >
-                  <option value="Geral">Geral</option>
-                  <option value="Urgente">Urgente</option>
-                  <option value="Festas">Festas</option>
-                  <option value="Doutrina">Doutrina</option>
-                </select>
-              </div>
-              <div>
-                <label className={appLabelClass}>Mensagem</label>
-                <textarea
-                  required
-                  className={cn(appInputClass, 'min-h-[88px] resize-y')}
-                  value={formData.conteudo}
-                  onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
-                  placeholder="Texto visível para a comunidade da casa..."
-                />
-              </div>
-              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-950/20 px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={notifyWhatsApp}
-                  onChange={(e) => setNotifyWhatsApp(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <span className="text-xs leading-relaxed text-[#94A3B8]">
-                  <strong className="text-emerald-300">Transmitir via WhatsApp</strong> para filhos com número cadastrado (com proteção anti-spam).
-                </span>
-              </label>
-              <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
-                {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Publicar e transmitir'}
-              </AppPrimaryButton>
+              <AppPrimaryButton type="submit" disabled={isSubmitting} className="sm:col-span-2 inline-flex items-center justify-center gap-2">{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" />Publicar comunicado</>}</AppPrimaryButton>
             </form>
           </AppDemoCard>
-        ) : null}
+          <AppDemoCard className="p-5">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">Prévia para o filho</p>
+            <div className="mx-auto mt-4 max-w-sm rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
+              <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
+                <p className="text-xs font-black text-[#075E54]">AxéCloud · {tenantData?.nome || 'Sua casa'}</p>
+                <p className="mt-2 text-sm font-black">{formData.titulo || 'Título do comunicado'}</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{formData.conteudo || 'A mensagem aparecerá aqui conforme você escreve.'}</p>
+                <p className="mt-2 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">O envio real inclui um link para o aviso completo no AxéCloud.</p>
+          </AppDemoCard>
+        </section>
+      ) : null}
 
-        <ul className={cn('space-y-3', isAdmin ? 'lg:col-span-2' : '')} role="list">
-          {filteredNotices.map((notice) => {
-            const isUrgent = notice.categoria === 'Urgente';
-            return (
-              <li
-                key={notice.id}
-                className={cn(
-                  'rounded-2xl border border-[#1E242B] bg-[#13171D] p-4 transition-colors hover:border-[#2F3643]',
-                  isUrgent && 'border-rose-500/25',
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {isUrgent ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-400">
-                          Urgente
-                        </span>
-                      ) : null}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                        {notice.categoria}
-                      </span>
-                      <span className="text-[10px] text-zinc-600">
-                        {format(new Date(notice.data_publicacao), "dd MMM yyyy", { locale: ptBR })}
-                      </span>
+      {activeSection === 'published' || !isAdmin ? (
+        <div className="comms-workspace">
+          <div className="comms-feed">
+          <section className="mb-4 rounded-2xl border border-[#252C35] bg-[#11151A] p-3 sm:p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="relative min-w-0 flex-1"><Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#7F8B9C]" /><input type="search" placeholder="Buscar por título ou conteúdo" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={cn(appInputClass, 'min-h-11 pl-10 text-sm')} /></div>
+              <div className="flex flex-wrap gap-2">{categories.map((cat) => <button key={cat} type="button" onClick={() => setActiveCategory(cat)} className={cn('rounded-lg border px-3 py-2 text-xs font-bold', activeCategory === cat ? 'border-primary bg-primary text-[#17130D]' : 'border-[#252C35] bg-[#151A21] text-[#94A3B8] hover:text-white')}>{cat}</button>)}</div>
+            </div>
+          </section>
+          <ul className="grid gap-3 lg:grid-cols-2" role="list">
+            {filteredNotices.map((notice) => {
+              const config = categoryConfig[notice.categoria] || categoryConfig.Geral;
+              const Icon = config.icon;
+              return (
+                <li key={notice.id}>
+                  <button type="button" onClick={() => setSelectedNotice(notice)} className={cn('flex h-full w-full items-start gap-4 rounded-2xl border bg-[#11151A] p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/25', notice.categoria === 'Urgente' ? 'border-rose-500/25' : 'border-[#252C35]')}>
+                    <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl border', config.bg, config.border)}><Icon className={cn('h-5 w-5', config.color)} /></span>
+                    <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="text-xs font-black text-primary">{notice.categoria}</span><span className="text-xs font-semibold text-[#64748B]">{format(new Date(notice.data_publicacao), 'dd MMM yyyy', { locale: ptBR })}</span></span><span className="mt-2 block truncate text-base font-black text-white">{notice.titulo}</span><span className="mt-1 line-clamp-2 text-sm font-medium leading-relaxed text-[#8E9AAA]">{notice.conteudo}</span></span>
+                    <ArrowUpRight className="h-4 w-4 shrink-0 text-[#64748B]" />
+                  </button>
+                </li>
+              );
+            })}
+            {filteredNotices.length === 0 ? <li className="col-span-full rounded-2xl border border-dashed border-[#BFB5A6] bg-white/55 px-4 py-12 text-center text-sm font-bold text-[#665F55]">Nenhum comunicado encontrado.</li> : null}
+          </ul>
+          </div>
+          {isAdmin ? (
+            <aside className="comms-control">
+              <div className="comms-control__heading">
+                <span><Send className="h-5 w-5" /></span>
+                <div><p>Central de envio</p><h2>Alcance da comunicação</h2></div>
+              </div>
+              <div className="comms-control__numbers">
+                <div><strong>{activeNoticesCount}</strong><span>ativos no mural</span></div>
+                <div><strong>{successfulLogs.length}</strong><span>entregas recentes</span></div>
+                <div className={failedLogs > 0 ? 'has-alert' : ''}><strong>{failedLogs}</strong><span>falhas de envio</span></div>
+              </div>
+              <button type="button" onClick={() => setComposerOpen(true)} className="comms-control__create">
+                <Plus className="h-4 w-4" /> Escrever comunicado
+              </button>
+              <div className="comms-control__recent">
+                <p>Atividade recente</p>
+                {broadcastLogs.slice(0, 3).map((log) => {
+                  const failed = ['failed', 'falha', 'error', 'erro'].includes(String(log.status).toLowerCase());
+                  return (
+                    <div key={log.id}>
+                      <span className={failed ? 'is-failed' : 'is-sent'}>{failed ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}</span>
+                      <div><strong>{failed ? 'Falha no envio' : 'Mensagem entregue'}</strong><small>{format(new Date(log.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</small></div>
                     </div>
-                    <h4 className="mt-2 text-sm font-bold text-[#F1F5F9]">{notice.titulo}</h4>
-                    <div className="prose prose-invert prose-sm mt-1.5 max-w-none text-xs leading-relaxed text-[#94A3B8] [&_p]:my-1">
-                      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{notice.conteudo}</ReactMarkdown>
-                    </div>
-                  </div>
-                  {isAdmin ? (
-                    <div className="flex shrink-0 flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => void deleteNotice(notice.id)}
-                        className="rounded p-1 text-zinc-500 hover:text-rose-400"
-                        aria-label="Remover aviso"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-                {isAdmin ? (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-[#1E242B] pt-3">
-                    <button
-                      type="button"
-                      onClick={() => void copyToClipboard(notice.titulo, notice.conteudo, notice.id)}
-                      className="rounded-lg border border-[#1E242B] px-2 py-1 text-[10px] font-bold text-[#94A3B8]"
-                    >
-                      {copiedId === notice.id ? 'Copiado' : 'Copiar texto'}
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-          {filteredNotices.length === 0 ? (
-            <li className="rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
-              Nenhum aviso publicado ainda.
-            </li>
+                  );
+                })}
+                {broadcastLogs.length === 0 ? <small className="comms-control__empty">Os próximos envios aparecerão aqui.</small> : null}
+              </div>
+              <button type="button" onClick={() => setActiveSection('history')} className="comms-control__history">
+                Ver histórico completo <ArrowUpRight className="h-4 w-4" />
+              </button>
+            </aside>
           ) : null}
-        </ul>
-      </div>
+        </div>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border border-[#252C35] bg-[#11151A] text-[#F8FAFC]">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4"><div><h2 className="text-lg font-black">Histórico de transmissões</h2><p className="text-xs font-semibold text-[#64748B]">Resultados recentes informados pelo canal oficial.</p></div><button type="button" onClick={() => void fetchBroadcastLogs()} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><RefreshCw className="h-4 w-4" /></button></div>
+          <div className="divide-y divide-white/10">
+            {broadcastLogs.map((log) => {
+              const failed = ['failed', 'falha', 'error', 'erro'].includes(String(log.status).toLowerCase());
+              return <div key={log.id} className="flex items-start gap-3 px-5 py-4"><span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl', failed ? 'bg-rose-400/10 text-rose-300' : 'bg-emerald-400/10 text-emerald-300')}>{failed ? <XCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{log.mensagem || 'Comunicado enviado'}</p><p className="mt-1 text-xs font-semibold text-[#64748B]">{log.telefone === 'corrente_geral' ? 'Corrente geral' : log.telefone || 'Destinatário'} · {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p></div><span className={cn('rounded-full px-2.5 py-1 text-xs font-black', failed ? 'bg-rose-400/10 text-rose-300' : 'bg-emerald-400/10 text-emerald-300')}>{failed ? 'Falhou' : 'Enviado'}</span></div>;
+            })}
+            {broadcastLogs.length === 0 ? <div className="px-5 py-12 text-center text-sm font-semibold text-[#64748B]">Nenhuma transmissão registrada ainda.</div> : null}
+          </div>
+        </section>
+      )}
+
+      <AnimatePresence>
+        {selectedNotice ? (
+          <>
+            <motion.button type="button" aria-label="Fechar comunicado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedNotice(null)} className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-[2px]" />
+            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-2xl" role="dialog" aria-modal="true">
+              <div className="flex items-center justify-between border-b border-white/10 p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">{selectedNotice.categoria}</p><h2 className="mt-1 text-lg font-black">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><X className="h-5 w-5" /></button></div>
+              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#64748B]">{format(new Date(selectedNotice.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p><h3 className="mt-3 text-2xl font-black">{selectedNotice.titulo}</h3><div className="prose prose-invert mt-5 max-w-none text-sm leading-relaxed text-[#CBD5E1]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo}</ReactMarkdown></div>{selectedNotice.expiracao ? <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs font-bold text-amber-200">Visível até {format(new Date(`${selectedNotice.expiracao}T12:00:00`), 'dd/MM/yyyy')}</div> : null}</div>
+              {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-white/10 p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-bold text-[#CBD5E1]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] text-sm font-bold text-rose-300"><Trash2 className="h-4 w-4" />Excluir</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-[#17130D]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
 
       {/* Success Modal */}
       <AnimatePresence>
@@ -489,6 +579,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           </div>
         )}
       </AnimatePresence>
+      </div>
     </AppPageShell>
   );
 }

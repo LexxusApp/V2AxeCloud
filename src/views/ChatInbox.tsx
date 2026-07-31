@@ -8,6 +8,7 @@ import type { ChatContact, ChatConversationSummary } from '../lib/chatTypes';
 import { formatChatTime } from '../lib/chatTypes';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import FilhoChatExperience from '../components/filho/FilhoChatExperience';
 
 type ChatInboxProps = {
   tenantData?: { tenant_id?: string; id?: string } | null;
@@ -143,6 +144,36 @@ export default function ChatInbox({ tenantData, userId, userRole }: ChatInboxPro
       <div className="flex min-h-[400px] items-center justify-center p-8 text-center text-sm text-[#64748B]">
         Terreiro não identificado. Recarregue a página.
       </div>
+    );
+  }
+
+  if (!isZelador) {
+    return (
+      <FilhoChatExperience
+        tenantId={tenantId}
+        userId={userId}
+        conversations={conversations}
+        contacts={filteredContacts}
+        selected={selected}
+        selectedId={selectedId}
+        loading={loading}
+        creating={creating}
+        showNewChat={showNewChat}
+        contactSearch={contactSearch}
+        totalUnread={totalUnread}
+        onSelect={setSelectedId}
+        onToggleNewChat={() => setShowNewChat((value) => !value)}
+        onContactSearch={setContactSearch}
+        onTalkToLeader={() => void openConversation({ withZelador: true })}
+        onTalkToContact={(filhoId) => void openConversation({ targetFilhoId: filhoId })}
+        onMessageSent={() => void loadConversations()}
+        onRead={(conversationId) => {
+          setConversations((previous) => previous.map((conversation) => (
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation
+          )));
+          void loadConversations();
+        }}
+      />
     );
   }
 

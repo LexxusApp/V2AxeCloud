@@ -2,23 +2,23 @@
 export const appSurface = {
   page: '#080A0D',
   shell: '#0B0D11',
-  content: '#0D0F12',
-  header: '#13171D',
-  card: '#13171D',
-  input: '#12161A',
-  border: '#1E242B',
-  borderMuted: '#2F3643',
-  text: '#F1F5F9',
+  content: '#0F1217',
+  header: '#101319',
+  card: '#151A21',
+  input: '#11161C',
+  border: '#252C35',
+  borderMuted: '#343E4A',
+  text: '#F8FAFC',
   muted: '#94A3B8',
 } as const;
 
 export const appInputClass =
-  'w-full rounded-lg border border-[#1E242B] bg-[#12161A] px-2.5 py-2 text-xs text-[#F1F5F9] placeholder:text-zinc-600 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30';
+  'app-v5-field min-h-11 w-full rounded-xl border border-[#2A323D] bg-[#11161C] px-3 py-2.5 text-sm text-[#F8FAFC] placeholder:text-[#526071] transition-colors focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15';
 
 export const appLabelClass =
-  'mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]';
+  'app-v5-label mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#94A3B8]';
 
 export const appPanelClass =
-  'rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm';
+  'app-v5-panel rounded-2xl border border-[#252C35] bg-[#151A21] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]';
 
-export const appCardClass = `${appPanelClass} p-5`;
+export const appCardClass = `${appPanelClass} p-5 sm:p-6`;

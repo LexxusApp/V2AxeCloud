@@ -1,12 +1,29 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, CheckCircle2, CreditCard, RefreshCw, Zap, Info, Trash2, Megaphone } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Bell,
+  CalendarDays,
+  Check,
+  CheckCheck,
+  CreditCard,
+  Flame,
+  Info,
+  Megaphone,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  X,
+  Zap,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { authFetch } from '../lib/authenticatedFetch';
+import { fetchMinhasParticipacoes } from '../lib/giraOperations';
+import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 
 export interface AppNotification {
   id: string;
-  type: 'payment' | 'plan' | 'system' | 'info' | 'mural';
+  type: 'payment' | 'plan' | 'system' | 'info' | 'mural' | 'event' | 'obligation' | 'preceito';
   title: string;
   body: string;
   read: boolean;
@@ -14,173 +31,207 @@ export interface AppNotification {
 }
 
 interface NotificationPanelProps {
-  tenantData?: any;
-  systemVersion: string;
+  tenantData?: {
+    tenant_id?: string | null;
+  } | null;
   userRole?: string | null;
   userId?: string | null;
+  onNavigate?: (tab: string) => void;
 }
 
-const TYPE_META: Record<AppNotification['type'], { icon: React.ReactNode; color: string; bg: string }> = {
+const TYPE_META: Record<
+  AppNotification['type'],
+  { icon: ReactNode; label: string; iconClass: string; surfaceClass: string }
+> = {
   payment: {
-    icon: <CreditCard className="w-4 h-4" />,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
+    icon: <CreditCard className="h-4 w-4" />,
+    label: 'Financeiro',
+    iconClass: 'text-emerald-300',
+    surfaceClass: 'border-emerald-400/20 bg-emerald-400/10',
   },
   plan: {
-    icon: <RefreshCw className="w-4 h-4" />,
-    color: 'text-[#FBBC00]',
-    bg: 'bg-[#FBBC00]/10 border-[#FBBC00]/20',
+    icon: <RefreshCw className="h-4 w-4" />,
+    label: 'Plano',
+    iconClass: 'text-amber-300',
+    surfaceClass: 'border-amber-400/20 bg-amber-400/10',
   },
   system: {
-    icon: <Zap className="w-4 h-4" />,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/20',
+    icon: <Zap className="h-4 w-4" />,
+    label: 'Sistema',
+    iconClass: 'text-sky-300',
+    surfaceClass: 'border-sky-400/20 bg-sky-400/10',
   },
   info: {
-    icon: <Info className="w-4 h-4" />,
-    color: 'text-gray-400',
-    bg: 'bg-white/5 border-white/10',
+    icon: <Info className="h-4 w-4" />,
+    label: 'Informação',
+    iconClass: 'text-slate-300',
+    surfaceClass: 'border-white/10 bg-white/[0.05]',
   },
   mural: {
-    icon: <Megaphone className="w-4 h-4" />,
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-500/10 border-yellow-500/20',
+    icon: <Megaphone className="h-4 w-4" />,
+    label: 'Comunicado',
+    iconClass: 'text-violet-300',
+    surfaceClass: 'border-violet-400/20 bg-violet-400/10',
+  },
+  event: {
+    icon: <CalendarDays className="h-4 w-4" />,
+    label: 'Próxima gira',
+    iconClass: 'text-cyan-300',
+    surfaceClass: 'border-cyan-400/20 bg-cyan-400/10',
+  },
+  obligation: {
+    icon: <Flame className="h-4 w-4" />,
+    label: 'Obrigação',
+    iconClass: 'text-amber-300',
+    surfaceClass: 'border-amber-400/20 bg-amber-400/10',
+  },
+  preceito: {
+    icon: <Flame className="h-4 w-4" />,
+    label: 'Preceito',
+    iconClass: 'text-yellow-300',
+    surfaceClass: 'border-yellow-400/20 bg-yellow-400/10',
   },
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Agora mesmo';
-  if (m < 60) return `${m}min atrás`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h atrás`;
-  return `${Math.floor(h / 24)}d atrás`;
-}
-
 const STORAGE_KEY = 'axecloud_notifications';
 const MURAL_READ_KEY = 'axecloud_mural_read';
-/** IDs de notificações de pagamento que o usuário já viu/dispensou — evita recriar no próximo mount. */
 const PAYMENT_ACK_KEY = 'axecloud_payment_notifs_ack';
 
-function loadNotifications(): AppNotification[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-function saveNotifications(notifs: AppNotification[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs));
-}
-function loadPaymentAck(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(PAYMENT_ACK_KEY) || '[]')); } catch { return new Set(); }
-}
-function ackPaymentKeys(ids: string[]) {
-  const paymentIds = ids.filter((id) => id.startsWith('payment_'));
-  if (paymentIds.length === 0) return;
-  const s = loadPaymentAck();
-  paymentIds.forEach((id) => s.add(id));
-  localStorage.setItem(PAYMENT_ACK_KEY, JSON.stringify([...s]));
-}
-function isPaymentAcked(id: string): boolean {
-  return id.startsWith('payment_') && loadPaymentAck().has(id);
-}
-function loadMuralRead(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(MURAL_READ_KEY) || '[]')); } catch { return new Set(); }
-}
-function saveMuralRead(ids: Set<string>) {
-  localStorage.setItem(MURAL_READ_KEY, JSON.stringify([...ids]));
+function timeAgo(dateStr: string): string {
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
+  if (minutes < 1) return 'Agora';
+  if (minutes < 60) return `Há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'Ontem' : `Há ${days} dias`;
 }
 
-export default function NotificationPanel({ tenantData, systemVersion, userRole, userId }: NotificationPanelProps) {
+function loadNotifications(): AppNotification[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as AppNotification[];
+  } catch {
+    return [];
+  }
+}
+
+function saveNotifications(notifications: AppNotification[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+}
+
+function loadStoredSet(key: string): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(key) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveStoredSet(key: string, values: Set<string>) {
+  localStorage.setItem(key, JSON.stringify([...values]));
+}
+
+function acknowledgePayments(ids: string[]) {
+  const paymentIds = ids.filter((id) => id.startsWith('payment_'));
+  if (!paymentIds.length) return;
+  const acknowledged = loadStoredSet(PAYMENT_ACK_KEY);
+  paymentIds.forEach((id) => acknowledged.add(id));
+  saveStoredSet(PAYMENT_ACK_KEY, acknowledged);
+}
+
+function notificationTarget(type: AppNotification['type']) {
+  if (type === 'payment') return 'financial';
+  if (type === 'mural') return 'mural';
+  if (type === 'event') return 'calendar';
+  if (type === 'obligation') return 'obrigacoes';
+  if (type === 'preceito') return 'profile';
+  return 'dashboard';
+}
+
+export default function NotificationPanel({
+  tenantData,
+  userRole,
+  userId,
+  onNavigate,
+}: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
-  const [notifs, setNotifs] = useState<AppNotification[]>([]);
-  // Avisos do mural (apenas para filhos de santo)
-  const [muralNotifs, setMuralNotifs] = useState<AppNotification[]>([]);
-  const [muralRead, setMuralRead] = useState<Set<string>>(loadMuralRead);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [muralNotifications, setMuralNotifications] = useState<AppNotification[]>([]);
+  const [pendingNotifications, setPendingNotifications] = useState<AppNotification[]>([]);
+  const [muralRead, setMuralRead] = useState<Set<string>>(() => loadStoredSet(MURAL_READ_KEY));
+  const rootRef = useRef<HTMLDivElement>(null);
   const paymentFetchRef = useRef<string | null>(null);
   const isFilho = userRole === 'filho';
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
 
-  // Fecha ao clicar fora
   useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
   }, []);
 
-  // ── Notificações do zelador ──
-  // Antes geravamos automaticamente "Sistema atualizado para vX" e "Plano ativo" a cada
-  // load. Como `performVersionBumpLogout` limpava o localStorage em todo deploy, essas
-  // notificações eram **recriadas** com `created_at: now` e voltavam a aparecer com
-  // "1min atrás". Além disso são informações repetidas e poluentes (o zelador sabe que
-  // o sistema está atualizado e que o plano dele está ativo).
-  //
-  // Agora geramos apenas notificações com utilidade real: pagamento/entrada registado
-  // neste mês. Também removemos automaticamente notificações residuais antigas de
-  // sistema/plano que possam estar no localStorage do usuário.
   useEffect(() => {
     if (isFilho) return;
-
-    let saved = loadNotifications();
-    const cleaned = saved.filter(
-      (n) =>
-        !(n.type === 'system' && typeof n.id === 'string' && n.id.startsWith('sys_')) &&
-        !(n.type === 'plan' && typeof n.id === 'string' && n.id.startsWith('plan_') && n.id.endsWith('_active')) &&
-        !(n.type === 'payment' && isPaymentAcked(n.id))
+    const acknowledged = loadStoredSet(PAYMENT_ACK_KEY);
+    const saved = loadNotifications().filter(
+      (notification) =>
+        !(notification.type === 'system' && notification.id.startsWith('sys_')) &&
+        !(notification.type === 'plan' && notification.id.startsWith('plan_')) &&
+        !(notification.type === 'payment' && acknowledged.has(notification.id)),
     );
-    if (cleaned.length !== saved.length) {
-      saved = cleaned;
-      saveNotifications(saved);
-    }
-    setNotifs(saved);
-  }, [isFilho, tenantId]);
+    saveNotifications(saved);
+    setNotifications(saved);
+  }, [isFilho, tenantId, userId]);
 
-  // Uma vez por tenant/mês: avisa se há entrada no mês, só se o usuário ainda não dispensou/leu.
   useEffect(() => {
     if (isFilho || !tenantId) return;
-
     const now = new Date();
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const payKey = `payment_${tenantId}_${thisMonth}`;
-    const fetchKey = `${tenantId}:${thisMonth}`;
-
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const notificationId = `payment_${tenantId}_${month}`;
+    const fetchKey = `${tenantId}:${month}`;
     if (paymentFetchRef.current === fetchKey) return;
     paymentFetchRef.current = fetchKey;
-
-    if (isPaymentAcked(payKey)) return;
+    if (loadStoredSet(PAYMENT_ACK_KEY).has(notificationId)) return;
 
     let cancelled = false;
-
-    supabase
+    void supabase
       .from('financeiro')
       .select('id, descricao, valor, created_at')
       .eq('tenant_id', tenantId)
       .eq('tipo', 'entrada')
-      .gte('created_at', `${thisMonth}-01`)
+      .gte('created_at', `${month}-01`)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
-        if (cancelled || !data || isPaymentAcked(payKey)) return;
-
-        setNotifs((prev) => {
-          const existing = prev.find((n) => n.id === payKey);
-          if (existing) return prev;
-
+        if (cancelled || !data || loadStoredSet(PAYMENT_ACK_KEY).has(notificationId)) return;
+        setNotifications((current) => {
+          if (current.some((notification) => notification.id === notificationId)) return current;
           const updated: AppNotification[] = [
             {
-              id: payKey,
+              id: notificationId,
               type: 'payment',
-              title: 'Entrada registrada',
-              body: `${data.descricao || 'Entrada'} — ${new Intl.NumberFormat('pt-BR', {
+              title: 'Nova entrada registrada',
+              body: `${data.descricao || 'Movimentação financeira'} · ${new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL',
-              }).format(Number(data.valor) || 0)}.`,
+              }).format(Number(data.valor) || 0)}`,
               read: false,
               created_at: data.created_at,
             },
-            ...prev,
+            ...current,
           ];
           saveNotifications(updated);
           return updated;
@@ -192,226 +243,491 @@ export default function NotificationPanel({ tenantData, systemVersion, userRole,
     };
   }, [isFilho, tenantId]);
 
-  // ── Avisos do mural para filho de santo ──
   useEffect(() => {
-    if (!isFilho || !tenantData?.tenant_id) return;
+    if (isFilho || !tenantId) return;
+    let cancelled = false;
+    void authFetch(`/api/notifications?tenantId=${encodeURIComponent(tenantId)}&tipo=preceito_orientacao&limit=20`)
+      .then(async (response) => {
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error);
+        if (cancelled) return;
+        setNotifications((current) => {
+          const currentMap = new Map(current.map((item) => [item.id, item]));
+          const incoming: AppNotification[] = (json.data || []).map((item: any) => {
+            const id = `db_preceito_${String(item.id)}`;
+            return {
+              id,
+              type: 'preceito',
+              title: 'Pedido de orientação',
+              body: String(item.mensagem || 'Um membro pediu orientação sobre o ciclo de preceito.'),
+              read: currentMap.get(id)?.read ?? Boolean(item.lida),
+              created_at: String(item.created_at || new Date().toISOString()),
+            };
+          });
+          const incomingIds = new Set(incoming.map((item) => item.id));
+          const merged = [...incoming, ...current.filter((item) => !incomingIds.has(item.id))]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 40);
+          saveNotifications(merged);
+          return merged;
+        });
+      })
+      .catch((error) => console.warn('[notifications] preceito:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [isFilho, tenantId]);
 
+  useEffect(() => {
+    if (!isFilho || !tenantId) return;
     let cancelled = false;
 
-    // Carrega avisos existentes
-    supabase
+    void supabase
       .from('mural_avisos')
       .select('id, titulo, conteudo, data_publicacao')
-      .eq('tenant_id', tenantData.tenant_id)
+      .eq('tenant_id', tenantId)
       .order('data_publicacao', { ascending: false })
       .limit(20)
       .then(({ data }) => {
         if (cancelled || !data) return;
-        const readIds = loadMuralRead();
-        const items: AppNotification[] = data.map(n => ({
-          id: `mural_${n.id}`,
-          type: 'mural' as const,
-          title: n.titulo,
-          body: (n.conteudo || '').substring(0, 120),
-          read: readIds.has(`mural_${n.id}`),
-          created_at: n.data_publicacao,
-        }));
-        setMuralNotifs(items);
+        const readIds = loadStoredSet(MURAL_READ_KEY);
+        setMuralRead(readIds);
+        setMuralNotifications(
+          data.map((item) => ({
+            id: `mural_${item.id}`,
+            type: 'mural' as const,
+            title: item.titulo,
+            body: String(item.conteudo || '').slice(0, 140),
+            read: readIds.has(`mural_${item.id}`),
+            created_at: item.data_publicacao,
+          })),
+        );
       });
 
-    // Realtime após tick: evita fechar WebSocket ainda em CONNECTING (React StrictMode / troca rápida de tela)
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    const subscribeTimer = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       if (cancelled) return;
       channel = supabase
-        .channel(`mural_filho_${tenantData.tenant_id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'mural_avisos',
-          filter: `tenant_id=eq.${tenantData.tenant_id}`,
-        }, (payload: any) => {
-          const n = payload.new;
-          const newNotif: AppNotification = {
-            id: `mural_${n.id}`,
-            type: 'mural',
-            title: n.titulo,
-            body: (n.conteudo || '').substring(0, 120),
-            read: false,
-            created_at: n.data_publicacao || new Date().toISOString(),
-          };
-          setMuralNotifs(prev => [newNotif, ...prev]);
-        })
+        .channel(`notification_panel_mural_${tenantId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'mural_avisos',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          (payload: { new: Record<string, unknown> }) => {
+            const item = payload.new;
+            setMuralNotifications((current) => [
+              {
+                id: `mural_${String(item.id)}`,
+                type: 'mural',
+                title: String(item.titulo || 'Novo comunicado'),
+                body: String(item.conteudo || '').slice(0, 140),
+                read: false,
+                created_at: String(item.data_publicacao || new Date().toISOString()),
+              },
+              ...current,
+            ]);
+          },
+        )
         .subscribe();
     }, 0);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(subscribeTimer);
-      if (channel) supabase.removeChannel(channel);
+      window.clearTimeout(timer);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [isFilho, tenantData?.tenant_id]);
+  }, [isFilho, tenantId]);
 
-  // Notificações combinadas para exibição
-  const allNotifs = isFilho ? muralNotifs : notifs;
-  const unread = allNotifs.filter(n => !n.read).length;
-
-  function markAllRead() {
-    if (isFilho) {
-      const newRead = new Set([...muralRead, ...muralNotifs.map(n => n.id)]);
-      saveMuralRead(newRead);
-      setMuralRead(newRead);
-      setMuralNotifs(prev => prev.map(n => ({ ...n, read: true })));
-    } else {
-      ackPaymentKeys(notifs.map((n) => n.id));
-      const updated = notifs.map(n => ({ ...n, read: true }));
-      saveNotifications(updated);
-      setNotifs(updated);
+  useEffect(() => {
+    if (!isFilho || !tenantId || !userId) {
+      setPendingNotifications([]);
+      return;
     }
-  }
+    let cancelled = false;
+    const load = async () => {
+      const today = new Date();
+      const start = today.toISOString().slice(0, 10);
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 120);
+      const end = endDate.toISOString().slice(0, 10);
+      const readIds = loadStoredSet(MURAL_READ_KEY);
 
-  function markRead(id: string) {
-    if (isFilho) {
-      const newRead = new Set([...muralRead, id]);
-      saveMuralRead(newRead);
-      setMuralRead(newRead);
-      setMuralNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    } else {
-      ackPaymentKeys([id]);
-      const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
-      saveNotifications(updated);
-      setNotifs(updated);
-    }
-  }
+      const [homeResult, participationResult, eventsResult, preceitoResult] = await Promise.allSettled([
+        authFetch(`/api/v1/filho/home?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
+          const json = await response.json();
+          if (!response.ok) throw new Error(json.error || 'Erro ao carregar pendências');
+          return json;
+        }),
+        fetchMinhasParticipacoes(tenantId, start, end),
+        authFetch(`/api/events?tenantId=${encodeURIComponent(tenantId)}&start=${start}&end=${end}&scope=calendar`).then(async (response) => {
+          const json = await response.json();
+          if (!response.ok) throw new Error(json.error || 'Erro ao carregar giras');
+          return Array.isArray(json.data) ? json.data : [];
+        }),
+        authFetch(`/api/v1/preceitos/current?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
+          const json = await response.json();
+          if (!response.ok) throw new Error(json.error || 'Erro ao carregar preceitos');
+          return Array.isArray(json.data) ? json.data : [];
+        }),
+      ]);
+      if (cancelled) return;
 
-  function dismiss(id: string) {
-    if (isFilho) {
-      setMuralNotifs(prev => prev.filter(n => n.id !== id));
-    } else {
-      ackPaymentKeys([id]);
-      const updated = notifs.filter(n => n.id !== id);
-      saveNotifications(updated);
-      setNotifs(updated);
-    }
-  }
+      const next: AppNotification[] = [];
+      const home = homeResult.status === 'fulfilled' ? homeResult.value : null;
+      const financialStatus = String(home?.financialStatus || 'pago').toLowerCase();
+      if (!['pago', 'paid', 'quitado', 'em dia'].includes(financialStatus)) {
+        const id = `filho_payment_${tenantId}_${today.getFullYear()}-${today.getMonth() + 1}`;
+        next.push({
+          id,
+          type: 'payment',
+          title: financialStatus === 'vencido' ? 'Mensalidade vencida' : 'Mensalidade em aberto',
+          body: 'Confira os detalhes e a chave Pix disponibilizada pela casa.',
+          read: readIds.has(id),
+          created_at: new Date().toISOString(),
+        });
+      }
 
-  function clearAll() {
+      const participations = participationResult.status === 'fulfilled' ? participationResult.value : [];
+      const events = eventsResult.status === 'fulfilled' ? eventsResult.value : [];
+      const activePreceitos = preceitoResult.status === 'fulfilled' ? preceitoResult.value : [];
+      activePreceitos.slice(0, 2).forEach((cycle: any) => {
+        const id = `preceito_${String(cycle.id)}`;
+        next.push({
+          id,
+          type: 'preceito',
+          title: String(cycle.titulo || 'Ciclo de preceito ativo'),
+          body: cycle.participacao?.status === 'ciente'
+            ? 'Sua leitura foi confirmada. Consulte novamente sempre que precisar.'
+            : 'A zeladoria publicou uma orientação protegida para você.',
+          read: readIds.has(id),
+          created_at: String(cycle.ativado_em || cycle.inicio_em || new Date().toISOString()),
+        });
+      });
+      const nextEvent = [...events]
+        .filter((item: any) => String(item.tipo || '').toLowerCase() !== 'obrigação')
+        .sort((a: any, b: any) => String(a.data).localeCompare(String(b.data)))[0];
+      const nextParticipation = nextEvent
+        ? participations.find((item) => item.event_id === String(nextEvent.id))
+        : null;
+      if (nextEvent && (!nextParticipation || nextParticipation.status === 'pendente')) {
+        const id = `event_${String(nextEvent.id)}`;
+        const eventDate = new Date(`${nextEvent.data}T12:00:00`);
+        next.push({
+          id,
+          type: 'event',
+          title: `Confirme: ${String(nextEvent.titulo || 'próxima gira')}`,
+          body: `A casa aguarda sua resposta para ${eventDate.toLocaleDateString('pt-BR')}.`,
+          read: readIds.has(id),
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      const childId = String(home?.child?.id || '');
+      if (childId) {
+        const { data: obligations } = await supabase
+          .from('calendario_axe')
+          .select('id, titulo, data')
+          .eq('tipo', 'Obrigação')
+          .eq('tenant_id', tenantId)
+          .like('descricao', `%FILHO_ID:${childId}%`)
+          .order('data', { ascending: false })
+          .limit(10);
+        if (cancelled) return;
+        const seen = loadObrigacoesSeen(childId);
+        (obligations || []).filter((item) => !seen.has(String(item.id))).slice(0, 3).forEach((item) => {
+          const id = `obligation_${String(item.id)}`;
+          next.push({
+            id,
+            type: 'obligation',
+            title: String(item.titulo || 'Nova obrigação registrada'),
+            body: `Orientação registrada para ${new Date(`${item.data}T12:00:00`).toLocaleDateString('pt-BR')}.`,
+            read: readIds.has(id),
+            created_at: String(item.data || new Date().toISOString()),
+          });
+        });
+      }
+
+      if (!cancelled) setPendingNotifications(next);
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFilho, tenantId, userId]);
+
+  const allNotifications = isFilho
+    ? [...pendingNotifications, ...muralNotifications].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    : notifications;
+  const unread = allNotifications.filter((notification) => !notification.read).length;
+  const visibleNotifications = useMemo(
+    () =>
+      filter === 'unread'
+        ? allNotifications.filter((notification) => !notification.read)
+        : allNotifications,
+    [allNotifications, filter],
+  );
+
+  const markAllRead = () => {
     if (isFilho) {
-      setMuralNotifs([]);
-    } else {
-      ackPaymentKeys(notifs.map((n) => n.id));
-      setNotifs([]);
-      saveNotifications([]);
+      const updatedRead = new Set([...muralRead, ...allNotifications.map(({ id }) => id)]);
+      saveStoredSet(MURAL_READ_KEY, updatedRead);
+      setMuralRead(updatedRead);
+      setMuralNotifications((current) =>
+        current.map((notification) => ({ ...notification, read: true })),
+      );
+      setPendingNotifications((current) =>
+        current.map((notification) => ({ ...notification, read: true })),
+      );
+      return;
     }
-  }
+    acknowledgePayments(notifications.map(({ id }) => id));
+    const updated = notifications.map((notification) => ({ ...notification, read: true }));
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const markRead = (id: string) => {
+    if (isFilho) {
+      const updatedRead = new Set([...muralRead, id]);
+      saveStoredSet(MURAL_READ_KEY, updatedRead);
+      setMuralRead(updatedRead);
+      setMuralNotifications((current) =>
+        current.map((notification) =>
+          notification.id === id ? { ...notification, read: true } : notification,
+        ),
+      );
+      setPendingNotifications((current) =>
+        current.map((notification) =>
+          notification.id === id ? { ...notification, read: true } : notification,
+        ),
+      );
+      return;
+    }
+    acknowledgePayments([id]);
+    const updated = notifications.map((notification) =>
+      notification.id === id ? { ...notification, read: true } : notification,
+    );
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const dismiss = (id: string) => {
+    if (isFilho) {
+      const updatedRead = new Set([...muralRead, id]);
+      saveStoredSet(MURAL_READ_KEY, updatedRead);
+      setMuralRead(updatedRead);
+      setMuralNotifications((current) => current.filter((notification) => notification.id !== id));
+      setPendingNotifications((current) => current.filter((notification) => notification.id !== id));
+      return;
+    }
+    acknowledgePayments([id]);
+    const updated = notifications.filter((notification) => notification.id !== id);
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const openNotification = (notification: AppNotification) => {
+    markRead(notification.id);
+    setOpen(false);
+    onNavigate?.(notificationTarget(notification.type));
+  };
 
   return (
-    <div ref={panelRef} className="relative">
-      {/* Botão sino */}
-      <button
-        aria-label="Notificações"
-        onClick={() => { setOpen(o => !o); }}
-        className="relative p-2 text-gray-400 hover:text-white transition-colors"
+    <div ref={rootRef} className="axecloud-notification-root">
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.9 }}
+        aria-label={
+          unread ? `Abrir notificações, ${unread} não ${unread === 1 ? 'lida' : 'lidas'}` : 'Abrir notificações'
+        }
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((current) => !current)}
+        className={cn('axecloud-notification-trigger', open && 'is-open')}
       >
-        <Bell className="w-5 h-5" />
-        {unread > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border border-black">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
-      </button>
-
-      {/* Painel dropdown */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full mt-2 w-[min(360px,90vw)] rounded-2xl border border-white/10 bg-[#161616] shadow-2xl z-[200] overflow-hidden"
+        <Bell className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
+        {unread > 0 ? (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="axecloud-notification-badge"
+            aria-hidden
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-[#FBBC00]" />
-                <span className="text-sm font-black text-white">
-                  {isFilho ? 'Avisos do Terreiro' : 'Notificações'}
-                </span>
-                {unread > 0 && (
-                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-black text-white">{unread}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {unread > 0 && (
-                  <button onClick={markAllRead} className="flex items-center gap-1 text-[10px] font-bold text-gray-500 hover:text-white transition-colors uppercase tracking-widest">
-                    <CheckCircle2 className="w-3 h-3" /> Marcar lidas
-                  </button>
-                )}
-                <button onClick={() => setOpen(false)} className="p-1 text-gray-500 hover:text-white transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            {unread > 9 ? '9+' : unread}
+          </motion.span>
+        ) : null}
+      </motion.button>
 
-            {/* Lista */}
-            <div className="max-h-[400px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {allNotifs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                  <Bell className="w-8 h-8 text-gray-700" />
-                  <p className="text-sm font-bold text-gray-600">
-                    {isFilho ? 'Nenhum aviso do terreiro.' : 'Nenhuma notificação'}
-                  </p>
-                  <p className="text-xs text-gray-700">
-                    {isFilho ? 'Quando o zelador postar, você verá aqui.' : 'Tudo em ordem no terreiro.'}
-                  </p>
+      <AnimatePresence>
+        {open ? (
+          <motion.section
+            role="dialog"
+            aria-label="Central de notificações"
+            initial={{ opacity: 0, y: -10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            className="axecloud-notification-popover"
+          >
+            <div className="axecloud-notification-header">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="axecloud-notification-heading-icon">
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                  </span>
+                  <h2 className="font-display text-base font-extrabold text-white">
+                    {isFilho ? 'Avisos da casa' : 'Notificações'}
+                  </h2>
                 </div>
-              ) : (
-                allNotifs.map(n => {
-                  const meta = TYPE_META[n.type];
-                  return (
-                    <div
-                      key={n.id}
-                      onClick={() => markRead(n.id)}
-                      className={cn(
-                        "flex items-start gap-3 px-4 py-3 border-b border-white/5 transition-colors cursor-pointer hover:bg-white/[0.03]",
-                        !n.read && "bg-white/[0.03]"
-                      )}
-                    >
-                      <div className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border", meta.bg, meta.color)}>
-                        {meta.icon}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={cn("text-xs font-black leading-tight", n.read ? "text-gray-400" : "text-white")}>
-                            {n.title}
-                          </p>
-                          {!n.read && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FBBC00]" />}
-                        </div>
-                        <p className="mt-0.5 text-[11px] leading-snug text-gray-500 line-clamp-2">{n.body}</p>
-                        <p className="mt-1 text-[10px] text-gray-700">{timeAgo(n.created_at)}</p>
-                      </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); dismiss(n.id); }}
-                        className="mt-0.5 shrink-0 text-gray-700 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+                <p className="mt-1 text-[11px] text-[#8B96A8]">
+                  {unread
+                    ? `${unread} ${unread === 1 ? 'novidade precisa' : 'novidades precisam'} da sua atenção`
+                    : 'Você está em dia com tudo'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="axecloud-notification-close"
+                aria-label="Fechar notificações"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
             </div>
 
-            {allNotifs.length > 0 && (
-              <div className="border-t border-white/5 px-4 py-2 text-center">
-                <button onClick={clearAll} className="text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-red-400 transition-colors">
-                  Limpar todas
+            <div className="axecloud-notification-toolbar">
+              <div className="axecloud-notification-filter" role="tablist" aria-label="Filtrar notificações">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === 'all'}
+                  onClick={() => setFilter('all')}
+                  className={cn(filter === 'all' && 'is-active')}
+                >
+                  Todas
+                  <span>{allNotifications.length}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === 'unread'}
+                  onClick={() => setFilter('unread')}
+                  className={cn(filter === 'unread' && 'is-active')}
+                >
+                  Não lidas
+                  <span>{unread}</span>
                 </button>
               </div>
-            )}
-          </motion.div>
-        )}
+              {unread > 0 ? (
+                <button type="button" onClick={markAllRead} className="axecloud-notification-read-all">
+                  <CheckCheck className="h-3.5 w-3.5" aria-hidden />
+                  Ler todas
+                </button>
+              ) : null}
+            </div>
+
+            <div className="axecloud-notification-list">
+              <AnimatePresence initial={false} mode="popLayout">
+                {visibleNotifications.length ? (
+                  visibleNotifications.map((notification) => {
+                    const meta = TYPE_META[notification.type];
+                    return (
+                      <motion.article
+                        layout
+                        key={notification.id}
+                        initial={{ opacity: 0, x: 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -12, height: 0 }}
+                        className={cn(
+                          'axecloud-notification-item',
+                          !notification.read && 'is-unread',
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => openNotification(notification)}
+                          className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                        >
+                          <span
+                            className={cn(
+                              'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border',
+                              meta.surfaceClass,
+                              meta.iconClass,
+                            )}
+                          >
+                            {meta.icon}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#748094]">
+                                {meta.label}
+                              </span>
+                              {!notification.read ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,199,0,.8)]" />
+                              ) : null}
+                            </span>
+                            <span
+                              className={cn(
+                                'mt-1 block text-[13px] font-bold leading-snug',
+                                notification.read ? 'text-[#B5BECC]' : 'text-white',
+                              )}
+                            >
+                              {notification.title}
+                            </span>
+                            <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-[#7E899A]">
+                              {notification.body}
+                            </span>
+                            <span className="mt-2 block text-[10px] font-semibold text-[#596578]">
+                              {timeAgo(notification.created_at)}
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => dismiss(notification.id)}
+                          className="axecloud-notification-dismiss"
+                          aria-label={`Remover ${notification.title}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      </motion.article>
+                    );
+                  })
+                ) : (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="axecloud-notification-empty"
+                  >
+                    <span className="axecloud-notification-empty-icon">
+                      <Check className="h-5 w-5" aria-hidden />
+                    </span>
+                    <p className="font-display text-sm font-bold text-white">
+                      {filter === 'unread' ? 'Tudo foi lido' : 'Tudo em ordem'}
+                    </p>
+                    <p className="mt-1 max-w-[220px] text-center text-[11px] leading-relaxed text-[#738095]">
+                      {isFilho
+                        ? 'Os novos comunicados do terreiro aparecerão aqui.'
+                        : 'As novidades importantes da gestão aparecerão aqui.'}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="axecloud-notification-footer">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Atualizações em tempo real
+            </div>
+          </motion.section>
+        ) : null}
       </AnimatePresence>
     </div>
   );

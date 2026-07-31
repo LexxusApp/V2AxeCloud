@@ -1,24 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
+  CalendarDays,
   Check,
+  ChevronRight,
   Clock,
   FileText,
   Flame,
   Loader2,
+  MessageCircle,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { cn } from '../lib/utils';
 import { AppPageShell } from '../components/app/AppTopNav';
-import {
-  filhoKickerClass,
-  filhoPanelClass,
-  filhoPanelInsetClass,
-  filhoSectionTitleClass,
-} from '../lib/filhoUiTokens';
 import { markObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 
 type Tenant =
@@ -53,8 +52,8 @@ function formatObligationDate(data: string, hora?: string): string {
     });
     const horaRaw = String(hora || '').trim();
     if (!horaRaw || horaRaw === '00:00' || horaRaw === '00:00:00') return datePart;
-    const m = horaRaw.match(/^(\d{1,2}):(\d{2})/);
-    const horaFmt = m ? `${m[1].padStart(2, '0')}:${m[2]}` : horaRaw.slice(0, 5);
+    const match = horaRaw.match(/^(\d{1,2}):(\d{2})/);
+    const horaFmt = match ? `${match[1].padStart(2, '0')}:${match[2]}` : horaRaw.slice(0, 5);
     return `${datePart} · ${horaFmt}`;
   } catch {
     return data;
@@ -66,12 +65,13 @@ function buildPdfViewUrl(tenantId: string, storagePath: string | null | undefine
   return `/api/v1/library/pdf-proxy?tenantId=${encodeURIComponent(tenantId)}&path=${encodeURIComponent(storagePath)}`;
 }
 
-export default function ObrigacoesFilho({ user, tenantData }: ObrigacoesFilhoProps) {
+export default function ObrigacoesFilho({ user, tenantData, setActiveTab }: ObrigacoesFilhoProps) {
   const tenantId = tenantData?.tenant_id;
   const [filhoId, setFilhoId] = useState<string | null>(null);
   const [obrigacoes, setObrigacoes] = useState<FilhoObrigacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingPdfUrl, setOpeningPdfUrl] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'todas' | 'proximas' | 'concluidas'>('todas');
 
   useEffect(() => {
     let cancelled = false;
@@ -109,16 +109,14 @@ export default function ObrigacoesFilho({ user, tenantData }: ObrigacoesFilhoPro
 
         if (!cancelled) setFilhoId(String(filho.id));
 
-        let obsQuery = supabase
+        const { data: rows, error: obsErr } = await supabase
           .from('calendario_axe')
           .select('id, titulo, data, hora, descricao, status_confirmacao, pdf_storage_path')
           .eq('tipo', 'Obrigação')
           .like('descricao', `%FILHO_ID:${filho.id}%`)
+          .eq('tenant_id', tenantId)
           .order('data', { ascending: false });
 
-        obsQuery = obsQuery.eq('tenant_id', tenantId);
-
-        const { data: rows, error: obsErr } = await obsQuery;
         if (obsErr) throw obsErr;
 
         const mapped: FilhoObrigacao[] = (rows || []).map((ob) => ({
@@ -133,10 +131,7 @@ export default function ObrigacoesFilho({ user, tenantData }: ObrigacoesFilhoPro
 
         if (!cancelled) {
           setObrigacoes(mapped);
-          markObrigacoesSeen(
-            String(filho.id),
-            mapped.map((ob) => ob.id),
-          );
+          markObrigacoesSeen(String(filho.id), mapped.map((ob) => ob.id));
         }
       } catch (err) {
         console.error('[ObrigacoesFilho] erro ao carregar:', err);
@@ -167,111 +162,146 @@ export default function ObrigacoesFilho({ user, tenantData }: ObrigacoesFilhoPro
     }
   }
 
+  const journey = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const all = obrigacoes.map((ob) => {
+      const date = new Date(`${ob.data.slice(0, 10)}T12:00:00`);
+      const status = String(ob.status_confirmacao || '').toLowerCase();
+      const done = ['confirmado', 'concluído', 'concluido'].includes(status);
+      return { ...ob, date, done, upcoming: !done && date.getTime() >= now.getTime() };
+    });
+    const next = [...all]
+      .filter((ob) => ob.upcoming)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())[0] || null;
+    const filtered = all.filter((ob) => (
+      filter === 'todas' ? true : filter === 'proximas' ? ob.upcoming : ob.done
+    ));
+    return {
+      all,
+      filtered,
+      next,
+      completed: all.filter((ob) => ob.done).length,
+      upcoming: all.filter((ob) => ob.upcoming).length,
+    };
+  }, [filter, obrigacoes]);
+
   return (
-    <AppPageShell>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <header className={cn(filhoPanelClass, 'px-6 py-8 sm:px-10')}>
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
-              <Flame className="h-6 w-6 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className={filhoKickerClass}>Seu caminho no Axé</p>
-              <h1 className={cn(filhoSectionTitleClass, 'mt-1 text-2xl sm:text-3xl')}>Obrigações</h1>
-              <p className="mt-2 text-sm text-[#94A3B8] max-w-2xl">
-                Obrigações cadastradas pelo zelador no seu prontuário. Abra o PDF anexo para ver a lista de itens e
-                orientações.
-              </p>
-            </div>
+    <AppPageShell fullWidth>
+      <div className="filho-journey-page">
+        <header className="filho-journey-hero">
+          <div className="filho-journey-hero__mark"><Flame /></div>
+          <div className="filho-journey-hero__copy">
+            <p><Sparkles /> Seu caminho no Axé</p>
+            <h1>Caderno de<br /><strong>caminhada.</strong></h1>
+            <span>Obrigações e marcos guardados com cuidado pela sua casa.</span>
+          </div>
+          <div className="filho-journey-hero__summary">
+            <div><small>Registros</small><strong>{journey.all.length}</strong></div>
+            <div><small>Concluídos</small><strong>{journey.completed}</strong></div>
+            <div><small>Próximos</small><strong>{journey.upcoming}</strong></div>
           </div>
         </header>
 
-        <section className={cn(filhoPanelClass, 'p-6 sm:p-8')}>
-          {loading ? (
-            <div className="flex min-h-[200px] items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {loading ? (
+          <div className="filho-journey-loading"><Loader2 /></div>
+        ) : !filhoId ? (
+          <section className="filho-journey-unlinked">
+            <ShieldCheck />
+            <div><h2>Seu vínculo ainda está sendo preparado</h2><p>Peça à zeladoria para conferir a vinculação do seu acesso ao cadastro da corrente.</p></div>
+            <button type="button" onClick={() => setActiveTab('chat')}><MessageCircle /> Falar com a casa</button>
+          </section>
+        ) : obrigacoes.length === 0 ? (
+          <section className="filho-journey-empty">
+            <div className="filho-journey-empty__preview" aria-hidden>
+              <span /><span /><span />
             </div>
-          ) : !filhoId ? (
-            <div className="rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-12 px-6 text-center">
-              <p className="text-sm font-bold text-gray-400">Perfil ainda não vinculado</p>
-              <p className="mt-2 text-xs text-gray-500">Contate o zelador do terreiro para liberar seu acesso.</p>
+            <div className="filho-journey-empty__copy">
+              <p>Seu caderno está pronto</p>
+              <h2>A caminhada será registrada aqui.</h2>
+              <span>Quando a zeladoria cadastrar uma obrigação, você encontrará a data, as orientações e os documentos neste espaço.</span>
+              <button type="button" onClick={() => setActiveTab('chat')}><MessageCircle /> Tirar uma dúvida</button>
             </div>
-          ) : obrigacoes.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-12 px-6 text-center">
-              <Flame className="mx-auto mb-3 h-10 w-10 text-primary/40" />
-              <p className="text-sm font-bold text-gray-300">Nenhuma obrigação registrada</p>
-              <p className="mt-2 text-xs text-gray-500 max-w-sm mx-auto">
-                Quando o zelador agendar uma obrigação no seu perfil, ela aparecerá aqui com data e documento, se houver.
-              </p>
-            </div>
-          ) : (
-            <div className="relative ml-4 space-y-6 border-l-2 border-[#1E242B] py-2 pl-8">
-              {obrigacoes.map((ob) => {
-                const done =
-                  ob.status_confirmacao === 'Confirmado' || ob.status_confirmacao === 'Concluído';
-                return (
-                  <article key={ob.id} className="group relative">
-                    <div
-                      className={cn(
-                        'absolute -left-[41px] top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-[#13171D]',
-                        done ? 'border-primary text-primary' : 'border-[#222B36] text-gray-600',
-                      )}
-                    >
-                      {done ? <Check className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                    </div>
-                    <div
-                      className={cn(
-                        filhoPanelInsetClass,
-                        'p-5 transition-colors hover:border-primary/25',
-                      )}
-                    >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <h2 className="text-base font-black text-white tracking-tight">{ob.titulo}</h2>
-                          <p className="text-xs font-semibold text-primary/90">
-                            {formatObligationDate(ob.data, ob.hora)}
-                          </p>
-                          {ob.descricao ? (
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#94A3B8]">
-                              {ob.descricao}
-                            </p>
-                          ) : null}
-                          {ob.pdfViewUrl ? (
-                            <button
-                              type="button"
-                              onClick={() => openObligationPdf(ob.pdfViewUrl!)}
-                              disabled={openingPdfUrl === ob.pdfViewUrl}
-                              className="mt-2 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20 disabled:opacity-50"
-                            >
-                              {openingPdfUrl === ob.pdfViewUrl ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <FileText className="h-3.5 w-3.5" />
-                              )}
-                              Ver lista em PDF
-                            </button>
-                          ) : (
-                            <p className="text-[11px] italic text-gray-600">Sem documento PDF anexado.</p>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            'shrink-0 self-start rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-wider',
-                            done
-                              ? 'border-primary/30 bg-primary/10 text-primary'
-                              : 'border-[#1E242B] bg-[#181C21] text-gray-500',
-                          )}
-                        >
-                          {done ? 'Concluída' : 'Pendente'}
-                        </span>
+          </section>
+        ) : (
+          <>
+            {journey.next ? (
+              <section className="filho-journey-next">
+                <div className="filho-journey-next__date">
+                  <span>{format(journey.next.date, 'MMM', { locale: ptBR }).replace('.', '')}</span>
+                  <strong>{format(journey.next.date, 'dd')}</strong>
+                </div>
+                <div className="filho-journey-next__copy">
+                  <p>Próximo marco</p>
+                  <h2>{journey.next.titulo}</h2>
+                  <span><CalendarDays /> {formatObligationDate(journey.next.data, journey.next.hora)}</span>
+                  {journey.next.descricao ? <em>{journey.next.descricao}</em> : null}
+                </div>
+                {journey.next.pdfViewUrl ? (
+                  <button type="button" onClick={() => void openObligationPdf(journey.next!.pdfViewUrl!)} disabled={openingPdfUrl === journey.next.pdfViewUrl}>
+                    {openingPdfUrl === journey.next.pdfViewUrl ? <Loader2 className="animate-spin" /> : <FileText />}
+                    Abrir orientações
+                  </button>
+                ) : <span className="filho-journey-next__pending"><Clock /> Orientações em preparação</span>}
+              </section>
+            ) : (
+              <section className="filho-journey-rest">
+                <span><Check /></span>
+                <div><p>Sua jornada está em dia</p><h2>Nenhum próximo marco agendado.</h2></div>
+              </section>
+            )}
+
+            <section className="filho-journey-ledger">
+              <header>
+                <div><p>Memória da caminhada</p><h2>Seus registros</h2></div>
+                <div className="filho-journey-filters">
+                  {([
+                    ['todas', 'Toda a jornada'],
+                    ['proximas', 'Próximas'],
+                    ['concluidas', 'Concluídas'],
+                  ] as const).map(([value, label]) => (
+                    <button key={value} type="button" onClick={() => setFilter(value)} className={filter === value ? 'is-active' : ''}>{label}</button>
+                  ))}
+                </div>
+              </header>
+
+              {journey.filtered.length ? (
+                <div className="filho-journey-list">
+                  {journey.filtered.map((ob, index) => (
+                    <article key={ob.id} className={cn(ob.done && 'is-done')}>
+                      <div className="filho-journey-list__rail">
+                        <span>{ob.done ? <Check /> : <Flame />}</span>
+                        {index < journey.filtered.length - 1 ? <i /> : null}
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                      <div className="filho-journey-list__date">
+                        <strong>{format(ob.date, 'dd')}</strong>
+                        <span>{format(ob.date, 'MMM yyyy', { locale: ptBR }).replace('.', '')}</span>
+                      </div>
+                      <div className="filho-journey-list__content">
+                        <div>
+                          <span>{ob.done ? 'Marco concluído' : ob.upcoming ? 'Próximo marco' : 'Registro da casa'}</span>
+                          <h3>{ob.titulo}</h3>
+                          <p>{formatObligationDate(ob.data, ob.hora)}</p>
+                        </div>
+                        {ob.descricao ? <p className="filho-journey-list__description">{ob.descricao}</p> : null}
+                      </div>
+                      <div className="filho-journey-list__action">
+                        {ob.pdfViewUrl ? (
+                          <button type="button" onClick={() => void openObligationPdf(ob.pdfViewUrl!)} disabled={openingPdfUrl === ob.pdfViewUrl}>
+                            {openingPdfUrl === ob.pdfViewUrl ? <Loader2 className="animate-spin" /> : <FileText />}
+                            <span>Orientações</span><ChevronRight />
+                          </button>
+                        ) : <span><Clock /> Documento não anexado</span>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="filho-journey-filter-empty"><Clock /><p>Nenhum registro encontrado neste filtro.</p></div>
+              )}
+            </section>
+          </>
+        )}
       </div>
     </AppPageShell>
   );

@@ -104,12 +104,12 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
         body: JSON.stringify({ tenantId, status }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro ao actualizar');
+      if (!res.ok) throw new Error(json.error || 'Erro ao atualizar');
       if (json.item) {
         setRawItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...json.item } : p)));
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erro ao actualizar');
+      setError(e instanceof Error ? e.message : 'Erro ao atualizar');
     } finally {
       setBusy(false);
     }
@@ -125,6 +125,7 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
 
   return (
     <AppPageShell>
+      <div className="atendimentos-v5-page">
       <PedidosRezaZeladorScreen
         items={uiItems}
         selectedId={selectedId}
@@ -144,7 +145,7 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
         description={
           <>
             Pedidos reais enviados pelo{' '}
-            <a href="/espaco-do-fiel" target="_blank" rel="noreferrer" className="font-semibold text-[#FACC15] hover:underline">
+            <a href="/espaco-do-fiel" target="_blank" rel="noreferrer" className="font-black text-[#8A6500] hover:underline">
               Espaço do Fiel
             </a>{' '}
             — ao aceitar, o fiel recebe WhatsApp informando que a reza será na próxima gira.
@@ -154,12 +155,13 @@ export default function Atendimentos({ tenantData, setActiveTab }: AtendimentosP
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-3 py-2 text-xs font-bold text-[#11151A] transition hover:border-[#11151A]"
           >
             Configurar portal
           </button>
         }
       />
+      </div>
     </AppPageShell>
   );
 }

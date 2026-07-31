@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { CreditCard, Globe2, Loader2, MessageCircleMore, UserRound } from 'lucide-react';
 import { PortalConsulenteSettings } from '../components/settings/PortalConsulenteSettings';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
 import { SettingsAccountCredentialsPanel } from '../components/settings/SettingsAccountCredentialsPanel';
-import { SettingsSubNav, SettingsTabHeader, type SettingsSection } from '../components/settings/SettingsSubNav';
+import {
+  SettingsDangerZone,
+  SettingsSubNav,
+  SettingsTabHeader,
+  type SettingsSection,
+} from '../components/settings/SettingsSubNav';
 import { SettingsWhatsAppPanel } from '../components/settings/SettingsWhatsAppPanel';
 import * as Dialog from '@radix-ui/react-dialog';
 import { supabase } from '../lib/supabase';
@@ -12,7 +17,32 @@ import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
 import { SettingsSubscriptionPanel } from '../components/settings/SettingsSubscriptionPanel';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import { AppDemoCard } from '../components/ui/appDemoUi';
+
+const SECTION_COPY: Record<SettingsSection, { title: string; description: string }> = {
+  profile: {
+    title: 'Identidade e acesso',
+    description: 'Dados do zelador, identidade da casa, foto, e-mail e senha de acesso.',
+  },
+  whatsapp: {
+    title: 'WhatsApp e automações',
+    description: 'Confira o canal oficial, escolha os avisos automáticos e acompanhe os envios recentes.',
+  },
+  subscription: {
+    title: 'Plano e assinatura',
+    description: 'Veja o plano atual, recursos disponíveis e opções para evoluir a conta.',
+  },
+  portal: {
+    title: 'Portal público da casa',
+    description: 'Defina como a casa aparece no diretório e recebe pedidos de reza.',
+  },
+};
+
+const SECTION_ICON = {
+  profile: UserRound,
+  whatsapp: MessageCircleMore,
+  subscription: CreditCard,
+  portal: Globe2,
+} satisfies Record<SettingsSection, typeof UserRound>;
 
 interface SettingsProps {
   user: any;
@@ -34,6 +64,8 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string>(String(user?.email || ''));
+  const activeSectionCopy = SECTION_COPY[activeSection];
+  const ActiveSectionIcon = SECTION_ICON[activeSection];
 
   useEffect(() => {
     const handleOpenSubscription = () => {
@@ -142,70 +174,76 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
   return (
     <AppPageShell>
-      <div className="settings-render-shell animate-fadeIn space-y-6 text-[#F1F5F9]">
+      <div className="settings-v5-page">
+      <div className="settings-render-shell animate-fadeIn space-y-5">
         <SettingsTabHeader />
 
-        <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-          <div className="lg:col-span-3">
-            <SettingsSubNav
-              active={activeSection}
-              onChange={setActiveSection}
+        <SettingsSubNav active={activeSection} onChange={setActiveSection} />
+
+        <div className="flex items-start gap-3 border-b border-[#D8D0C4] pb-5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[#D8D0C4] bg-[#FFFDF8] text-[#2563EB] shadow-sm">
+            <ActiveSectionIcon className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9A7600]">
+              Central de configuração
+            </p>
+            <h2 className="mt-0.5 text-lg font-black text-[#17130D]">{activeSectionCopy.title}</h2>
+            <p className="mt-1 max-w-3xl text-xs font-semibold leading-relaxed text-[#665F55]">
+              {activeSectionCopy.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-5">
+        {activeSection === 'profile' ? (
+          <>
+            {error && (
+              <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400">
+                {error}
+              </p>
+            )}
+            <SettingsProfilePanel
+              user={user}
+              tenantId={tenantId}
+              profile={profile}
+              onProfileChange={setProfile}
+              onRefresh={onRefresh}
+              onOpenPortal={() => setActiveSection('portal')}
+            />
+            <SettingsAccountCredentialsPanel
+              userEmail={accountEmail}
+              onEmailChanged={(email) => {
+                setAccountEmail(email);
+                if (profile) setProfile({ ...profile, email });
+              }}
+            />
+            <SettingsDangerZone
               onDeleteAccount={() => {
                 setDeleteConfirmEmail('');
                 setDeleteError(null);
                 setDeleteModalOpen(true);
               }}
             />
-          </div>
-
-          <div className="min-w-0 space-y-10 lg:col-span-9">
-          {activeSection === 'profile' ? (
-            <>
-              {error && (
-                <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400">
-                  {error}
-                </p>
-              )}
-              <SettingsProfilePanel
-                user={user}
-                tenantId={tenantId}
-                profile={profile}
-                onProfileChange={setProfile}
-                onRefresh={onRefresh}
-                onOpenPortal={() => setActiveSection('portal')}
-              />
-              <SettingsAccountCredentialsPanel
-                userEmail={accountEmail}
-                onEmailChanged={(email) => {
-                  setAccountEmail(email);
-                  if (profile) setProfile({ ...profile, email });
-                }}
-              />
-            </>
-          ) : activeSection === 'whatsapp' ? (
-            <SettingsWhatsAppPanel />
-          ) : activeSection === 'subscription' ? (
+          </>
+        ) : activeSection === 'whatsapp' ? (
+          <SettingsWhatsAppPanel />
+        ) : activeSection === 'subscription' ? (
+          <div className="space-y-5">
             <SettingsSubscriptionPanel tenantData={tenantData} />
-          ) : activeSection === 'portal' ? (
-            <AppDemoCard>
-              <PortalConsulenteSettings />
-            </AppDemoCard>
-          ) : null}
+            <Subscription
+              session={session}
+              tenantData={tenantData}
+              onPlanUpdated={onRefresh || (() => {})}
+              onlyAvailablePlans={true}
+              setActiveTab={setActiveTab}
+            />
           </div>
+        ) : activeSection === 'portal' ? (
+          <PortalConsulenteSettings />
+        ) : null}
         </div>
       </div>
-
-      {activeSection === 'subscription' && (
-        <div className="mt-12 w-full">
-          <Subscription 
-            session={session} 
-            tenantData={tenantData} 
-            onPlanUpdated={onRefresh || (() => {})} 
-            onlyAvailablePlans={true} 
-            setActiveTab={setActiveTab}
-          />
-        </div>
-      )}
 
       <Dialog.Root
         open={deleteModalOpen}
@@ -226,7 +264,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             </Dialog.Title>
             <Dialog.Description className="mt-3 text-sm text-gray-400 leading-relaxed">
               Todos os dados deste terreiro serão apagados no banco (financeiro, mural, calendário, filhos, galeria, loja, etc.),
-              ficheiros no armazenamento e as contas de autenticação dos filhos com login. Esta ação não pode ser desfeita.
+              arquivos armazenados e as contas de acesso dos filhos. Esta ação não pode ser desfeita.
             </Dialog.Description>
             <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
               Digite seu e-mail para confirmar
@@ -278,6 +316,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+      </div>
     </AppPageShell>
   );
 }

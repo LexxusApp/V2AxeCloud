@@ -9,8 +9,9 @@ import * as Dialog from '@radix-ui/react-dialog';
 import * as Toast from '@radix-ui/react-toast';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoPanelHeader, AppDemoCard, AppDemoTableShell, AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
+import FilhoStoreExperience from '../components/filho/FilhoStoreExperience';
 
-interface Product {
+export interface Product {
   id: string;
   nome: string;
   descricao: string;
@@ -419,6 +420,26 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   return (
     <Toast.Provider swipeDirection="right">
       <AppPageShell>
+        {!isAdmin ? (
+          <FilhoStoreExperience
+            products={products}
+            loading={loading}
+            cartQuantity={cartQuantity}
+            cartTotal={cartTotal}
+            memberName={filhoNome}
+            onOpenCart={() => setIsCartOpen(true)}
+            onBuy={(product) => {
+              setIntencaoLojaFilho('compra');
+              addToCart(product);
+            }}
+            onReserve={(product) => {
+              setIntencaoLojaFilho('reserva');
+              addToCart(product);
+              setIsCartOpen(true);
+            }}
+          />
+        ) : (
+        <div className="store-v5-page">
         <AppDemoPanelHeader
           title="Loja do Axé"
           description={
@@ -632,6 +653,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           </AppDemoCard>
         )}
         </div>
+        </div>
+        )}
       </AppPageShell>
 
       {/* Cart Sheet */}
@@ -641,6 +664,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           <Dialog.Content
             className={cn(
               'fixed z-[101] flex w-full max-w-md flex-col overflow-hidden bg-[#13171D] p-6 shadow-2xl',
+              userRole === 'filho' && 'filho-store-cart-sheet',
               'max-h-[min(92dvh,calc(100dvh-2rem))] rounded-2xl border border-[#1E242B]',
               'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[min(28rem,calc(100vw-2rem))]',
               'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300',
@@ -884,7 +908,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           <X className="w-4 h-4" />
         </Toast.Close>
       </Toast.Root>
-      <Toast.Viewport className="fixed bottom-0 right-0 p-6 flex flex-col gap-2 w-[390px] max-w-[100vw] m-0 list-none z-[200] outline-none" />
+      <Toast.Viewport className="fixed bottom-24 right-0 m-0 flex w-[390px] max-w-[100vw] list-none flex-col gap-2 p-4 outline-none z-[200] min-[880px]:bottom-0 min-[880px]:p-6" />
     </Toast.Provider>
   );
 }

@@ -56,6 +56,8 @@ import { registerEventRsvpRoutes } from "./api/lib/eventRsvpRoutes.js";
 import { registerGiraOperationsRoutes, newPublicToken } from "./api/lib/giraOperationsRoutes.js";
 import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
+import { registerFundamentosRoutes } from "./api/lib/fundamentosRoutes.js";
+import { registerPreceitoRoutes } from "./api/lib/preceitoRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit, webhookRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
@@ -3164,6 +3166,8 @@ async function startServer() {
   registerGiraOperationsRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
+  registerFundamentosRoutes(app, { supabaseAdmin });
+  registerPreceitoRoutes(app, { supabaseAdmin });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);

@@ -1,4 +1,5 @@
-import { Check, ExternalLink, Flame, Heart } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ExternalLink, Flame, Heart, Search } from 'lucide-react';
 import {
   CANDLE_COLOR_HEX,
   CANDLE_DOT_CLASS,
@@ -57,15 +58,29 @@ export function PedidosRezaZeladorPanel({
   busy = false,
   maxHeightClass = 'max-h-[620px]',
 }: PedidosRezaZeladorPanelProps) {
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'Todos' | PedidoRezaUiItem['status']>('Todos');
   const pendingCount = items.filter((r) => r.status === 'Pendente').length;
   const currentReq = items.find((r) => r.id === selectedId) ?? null;
   const waDigits = String(currentReq?.whatsapp || '').replace(/\D/g, '');
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
+    return items.filter((item) => {
+      const matchesStatus = statusFilter === 'Todos' || item.status === statusFilter;
+      const matchesQuery =
+        !normalizedQuery ||
+        `${item.solicitante} ${item.categoria} ${item.linha} ${item.intencao}`
+          .toLocaleLowerCase('pt-BR')
+          .includes(normalizedQuery);
+      return matchesStatus && matchesQuery;
+    });
+  }, [items, query, statusFilter]);
 
   return (
-    <div className={cn('grid grid-cols-1 gap-6 lg:grid-cols-12', maxHeightClass && '')}>
+    <div className={cn('pedido-reza-workspace grid grid-cols-1 gap-6 lg:grid-cols-12', maxHeightClass && '')}>
       <div
         className={cn(
-          'flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm lg:col-span-5',
+          'pedido-reza-queue flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm lg:col-span-5',
           maxHeightClass,
         )}
       >
@@ -81,17 +96,46 @@ export function PedidosRezaZeladorPanel({
           </span>
         </div>
 
-        <div className="flex gap-1.5 border-b border-[#1E242B] bg-[#12161A]/50 p-3">
-          <span className="rounded border border-[#1E242B] bg-[#1E252E] px-2 py-1 text-[9px] font-bold uppercase text-[#94A3B8]">
-            Pedidos Ativos
-          </span>
+        <div className="space-y-2 border-b border-[#1E242B] bg-[#12161A]/50 p-3">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748B]" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar pedido ou pessoa"
+              className="h-9 w-full rounded-xl border border-[#303844] bg-[#0F1318] pl-9 pr-3 text-[11px] font-semibold text-[#F1F5F9] outline-none transition placeholder:text-[#64748B] focus:border-primary/40"
+            />
+          </label>
+          <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {(['Todos', 'Pendente', 'Aceito', 'Em Oração'] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={cn(
+                  'shrink-0 rounded-lg border px-2.5 py-1.5 text-[8.5px] font-black uppercase tracking-wide transition',
+                  statusFilter === status
+                    ? 'border-primary bg-primary text-[#080A0D]'
+                    : 'border-[#303844] bg-[#171C22] text-[#94A3B8] hover:text-white',
+                )}
+              >
+                {status === 'Em Oração' ? 'Em oração' : status}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="max-h-[500px] flex-grow space-y-2 overflow-y-auto p-2">
-          {items.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-500">Nenhum pedido de amparo encontrado.</div>
+          {filteredItems.length === 0 ? (
+            <div
+              className="app-demo-empty-preview atendimento-empty-preview p-8 text-center text-xs text-gray-500"
+              data-preview="Exemplo · Pedido de proteção · Aguardando acolhimento"
+            >
+              {items.length === 0 ? 'Nenhum pedido de amparo recebido.' : 'Nenhum pedido corresponde aos filtros.'}
+            </div>
           ) : (
-            items.map((req) => {
+            filteredItems.map((req) => {
               const isSelected = req.id === selectedId;
               return (
                 <button
@@ -158,7 +202,7 @@ export function PedidosRezaZeladorPanel({
 
       <div
         className={cn(
-          'flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 shadow-lg lg:col-span-7',
+          'pedido-reza-focus flex flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 shadow-lg lg:col-span-7',
           maxHeightClass,
         )}
       >
@@ -313,7 +357,7 @@ export function PedidosRezaZeladorPanel({
                         Em Oração Ativa na Casa
                       </span>
                       <span className="mt-0.5 block text-[9px] text-[#94A3B8]">
-                        Sua casa está ativamente emanando bençãos.
+                        Sua casa está ativamente emanando bênçãos.
                       </span>
                     </div>
                     <button

@@ -24,7 +24,19 @@ import { cn } from '../lib/utils';
 import PixPaymentModal, { PixConfig, buildPixPayload } from '../components/PixPaymentModal';
 import Library from './Library';
 import { AppPageShell } from '../components/app/AppTopNav';
+import {
+  HouseTimeline,
+  type HouseTimelineEvent,
+} from '../components/dashboard/HouseTimeline';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import FilhoMobileCentral from '../components/filho/FilhoMobileCentral';
+import FilhoPreceitoActive from '../components/preceito/FilhoPreceitoActive';
+import { useObrigacoesUnread } from '../hooks/useObrigacoesUnread';
+import {
+  fetchMinhasParticipacoes,
+  respondParticipacao,
+  type ParticipanteStatus,
+} from '../lib/giraOperations';
 import {
   filhoKickerClass,
   filhoModuleClass,
@@ -104,6 +116,7 @@ function formatHoraEvento(hora?: string): string {
 
 interface FilhoData {
   id: string;
+  nome?: string;
   created_at?: string;
   data_entrada?: string;
 }
@@ -175,6 +188,14 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   /** Dia de vencimento configurado pelo zelador (Pix / financeiro). */
   const [diaVencimentoMensalidade, setDiaVencimentoMensalidade] = useState(10);
   const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
+  const [participacoes, setParticipacoes] = useState<Record<string, ParticipanteStatus>>({});
+  const [participationBusy, setParticipationBusy] = useState(false);
+  const { unreadCount: obligationsUnread } = useObrigacoesUnread(
+    true,
+    user.id,
+    tenantId,
+    user.email,
+  );
 
   // 1. Dados do filho (vínculo, datas para mensalidade)
   useEffect(() => {
@@ -183,13 +204,13 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       try {
         let { data, error } = await supabase
           .from('filhos_de_santo')
-          .select('id, created_at, data_entrada')
+          .select('id, nome, created_at, data_entrada')
           .eq('user_id', user.id)
           .maybeSingle();
         if (!data && user.email) {
           const { data: byEmail, error: emailErr } = await supabase
             .from('filhos_de_santo')
-            .select('id, created_at, data_entrada')
+            .select('id, nome, created_at, data_entrada')
             .eq('email', user.email)
             .maybeSingle();
           if (!emailErr && byEmail) data = byEmail;
@@ -354,6 +375,24 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
   }, [tenantId]);
 
   useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    const start = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const end = format(endOfMonth(addMonths(new Date(), 5)), 'yyyy-MM-dd');
+    void fetchMinhasParticipacoes(tenantId, start, end)
+      .then((rows) => {
+        if (cancelled) return;
+        setParticipacoes(Object.fromEntries(rows.map((row) => [row.event_id, row.status])));
+      })
+      .catch(() => {
+        if (!cancelled) setParticipacoes({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  useEffect(() => {
     if (!tenantId) {
       setPixFetched(false);
       setPixConfig(null);
@@ -468,9 +507,92 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
     }
   }, [proximoEvento]);
 
+  const nextParticipation = proximoEvento ? participacoes[proximoEvento.id] || null : null;
+
+  const handleMobileParticipation = async (action: 'confirmar' | 'declinar') => {
+    if (!proximoEvento || !tenantId || participationBusy) return;
+    setParticipationBusy(true);
+    try {
+      const result = await respondParticipacao(proximoEvento.id, tenantId, action);
+      const nextStatus = action === 'declinar'
+        ? 'recusado'
+        : result?.status === 'pendente' || result?.awaitingApproval
+          ? 'pendente'
+          : 'confirmado';
+      setParticipacoes((current) => ({ ...current, [proximoEvento.id]: nextStatus }));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Não foi possível registrar sua resposta.');
+    } finally {
+      setParticipationBusy(false);
+    }
+  };
+
+  const personalTimelineEvents = useMemo<HouseTimelineEvent[]>(() => {
+    const events: HouseTimelineEvent[] = [];
+
+    if (proximoEvento) {
+      events.push({
+        id: String(proximoEvento.id),
+        kind: 'gira',
+        title: String(proximoEvento.titulo || 'Próximo encontro da casa'),
+        detail: `${proximoEvento.tipo || 'Gira'}${proximoEvento.hora ? ` · ${proximoEvento.hora.slice(0, 5)}` : ''}`,
+        date: `${proximoEvento.data}T${proximoEvento.hora || '12:00:00'}`,
+        tab: 'calendar',
+        future: true,
+      });
+    }
+
+    sortedNotices.slice(0, 4).forEach((notice) => {
+      events.push({
+        id: String(notice.id),
+        kind: 'notice',
+        title: String(notice.titulo || 'Novo comunicado da casa'),
+        detail: `${notice.categoria} · publicado para a corrente`,
+        date: String(notice.data_publicacao),
+        tab: 'mural',
+      });
+    });
+
+    const admissionDate = String(filho?.data_entrada || filho?.created_at || '');
+    if (filho?.id && admissionDate) {
+      const memberName = String(
+        user.user_metadata?.full_name ||
+        user.user_metadata?.nome ||
+        user.email?.split('@')[0] ||
+        'Você',
+      );
+      events.push({
+        id: String(filho.id),
+        kind: 'member',
+        title: `${memberName} passou a fazer parte desta corrente`,
+        detail: 'Início da caminhada registrada no AxéCloud',
+        date: admissionDate,
+        tab: 'profile',
+      });
+    }
+
+    return events.filter((event) => !Number.isNaN(new Date(event.date).getTime()));
+  }, [filho, proximoEvento, sortedNotices, user.email, user.user_metadata]);
+
   return (
     <AppPageShell fullWidth>
-      <div className="flex w-full flex-col gap-3">
+      {tenantId ? <FilhoPreceitoActive tenantId={tenantId} onNavigate={setActiveTab} /> : null}
+      <FilhoMobileCentral
+        memberName={filho?.nome || user.user_metadata?.nome || user.user_metadata?.full_name || 'Filho de Santo'}
+        houseName={tenantData?.nome || 'Minha casa de axé'}
+        memberSince={filho?.data_entrada || filho?.created_at}
+        hasDebt={hasDebt}
+        debtLoading={loadingDebt}
+        nextEvent={proximoEvento}
+        nextParticipation={nextParticipation}
+        participationBusy={participationBusy}
+        obligationsUnread={obligationsUnread}
+        notices={sortedNotices}
+        onNavigate={setActiveTab}
+        onRespond={(action) => void handleMobileParticipation(action)}
+      />
+      {false && (
+      <div className="hidden">
         {/* Mensalidade | Agenda */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
           <section className={filhoModuleClass}>
@@ -604,6 +726,14 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           </section>
         </div>
 
+        <HouseTimeline
+          events={personalTimelineEvents}
+          onNavigate={setActiveTab}
+          kicker="Sua caminhada"
+          title="Trajetória na casa"
+          description="Giras, avisos e marcos importantes reunidos em um só caminho."
+        />
+
         {/* Mural | Biblioteca */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
           <section className={filhoModuleClass}>
@@ -725,6 +855,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
           </div>
         </section>
       </div>
+      )}
 
       <PixPaymentModal
         open={pixModalOpen}

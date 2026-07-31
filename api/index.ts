@@ -70,6 +70,8 @@ import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroVali
 import { notifyMensalidadeConfirmadaWhatsApp } from "./lib/mensalidadeWhatsAppNotify.js";
 import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
+import { registerFundamentosRoutes } from "./lib/fundamentosRoutes.js";
+import { registerPreceitoRoutes } from "./lib/preceitoRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
@@ -3718,6 +3720,8 @@ async function startServer() {
   });
   registerStoreCheckoutRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerFilhoHomeRoutes(app, { supabaseAdmin });
+  registerFundamentosRoutes(app, { supabaseAdmin });
+  registerPreceitoRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerChatRoutes(app, {
     supabaseAdmin,

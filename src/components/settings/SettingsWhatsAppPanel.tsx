@@ -1,11 +1,14 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
+  Clock3,
   MessageSquare,
+  Radio,
   Send,
   Settings,
   Shield,
   Wifi,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
@@ -24,7 +27,7 @@ type WaLogUi = {
   mensagem: string;
   data: string;
   tipo: WaLogTipo;
-  status: 'Enviado' | 'Falha' | 'Parcial';
+  status: 'Enviado' | 'Falha' | 'Parcial' | 'Entregue' | 'Lido' | 'Aceito pela Meta';
 };
 
 type WaPreferences = {
@@ -95,6 +98,7 @@ function WaLiveDot({ active, className }: { active: boolean; className?: string 
 }
 
 export function SettingsWhatsAppPanel() {
+  const [waView, setWaView] = useState<'automacoes' | 'teste' | 'historico'>('automacoes');
   const [connected, setConnected] = useState(false);
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
@@ -218,6 +222,7 @@ export function SettingsWhatsAppPanel() {
 
   const visibleLogs = logs.slice(0, MAX_VISIBLE_LOGS);
   const hiddenLogsCount = Math.max(logs.length - visibleLogs.length, 0);
+  const enabledAutomations = Object.values(preferences).filter(Boolean).length;
 
   const persistPreferences = (next: WaPreferences) => {
     if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
@@ -323,33 +328,86 @@ export function SettingsWhatsAppPanel() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 border-b border-[#1E242B] pb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h5 className="flex items-center gap-2 font-display text-lg font-bold text-[#F1F5F9]">
-            <MessageSquare className="h-5 w-5 text-[#10B981]" />
-            Integração & Configuração do WhatsApp
-          </h5>
-          <p className="text-xs text-[#94A3B8]">
-            Notificações automáticas para filhos de santo saem pelo WhatsApp Business oficial do AxéCloud, com o nome
-            do membro e do seu terreiro em cada mensagem.
-          </p>
+      <section className="wa-identity-hero relative overflow-hidden rounded-[1.75rem] border border-emerald-400/20 bg-[#071A13] p-5 text-[#F8FAFC] shadow-[0_24px_58px_-34px_rgba(5,150,105,0.75)] sm:p-6">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border border-emerald-300/10 bg-emerald-400/[0.05]" />
+        <div className="pointer-events-none absolute -right-4 -top-8 h-32 w-32 rounded-full border border-emerald-300/10" />
+        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(19rem,0.75fr)] lg:items-end">
+          <div className="flex items-start gap-4">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#25D366] text-[#052E20] shadow-lg shadow-emerald-950/40">
+              <MessageSquare className="h-7 w-7" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#5EEBA5]">Central de comunicação</p>
+              <h3 className="mt-1 font-display text-2xl font-black tracking-tight text-white">WhatsApp AxéCloud</h3>
+              <p className="mt-1 max-w-2xl text-xs font-semibold leading-relaxed text-emerald-50/65">
+                Automações, testes e rastreamento dos avisos oficiais da sua casa em um só canal.
+              </p>
+              <span
+                className={cn(
+                  'mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-wider',
+                  connected
+                    ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200'
+                    : 'border-amber-300/20 bg-amber-300/10 text-amber-200',
+                )}
+              >
+                <WaLiveDot active={connected} className="h-2 w-2" />
+                {connected ? 'Canal oficial ativo' : 'Canal inicializando'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+            <div className="border-r border-white/10 p-3">
+              <Zap className="h-4 w-4 text-amber-300" aria-hidden />
+              <p className="mt-2 text-lg font-black text-white">{enabledAutomations}/4</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-50/50">automações</p>
+            </div>
+            <div className="border-r border-white/10 p-3">
+              <Clock3 className="h-4 w-4 text-sky-300" aria-hidden />
+              <p className="mt-2 text-lg font-black text-white">{logs.length}</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-50/50">registros</p>
+            </div>
+            <div className="p-3">
+              <Radio className="h-4 w-4 text-[#5EEBA5]" aria-hidden />
+              <p className="mt-2 text-sm font-black text-white">Meta</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-50/50">API oficial</p>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase ${
-                connected
-                  ? 'border-[#10B981]/20 bg-emerald-950/20 text-[#10B981]'
-                  : 'border-[#1E242B] bg-[#1E252E] text-[#94A3B8]'
-              }`}
-            >
-              <WaLiveDot active={connected} className="h-2 w-2" />
-            {connected ? 'Canal Oficial Ativo' : 'Canal Indisponível'}
-          </span>
-        </div>
+      </section>
+
+      <div className="wa-view-tabs flex gap-1 overflow-x-auto rounded-2xl border border-[#252C35] bg-[#11151A] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Áreas do WhatsApp">
+        {[
+          { id: 'automacoes' as const, label: 'Automações', icon: Zap },
+          { id: 'teste' as const, label: 'Testar envio', icon: Send },
+          { id: 'historico' as const, label: 'Histórico', icon: Clock3 },
+        ].map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={waView === id}
+            aria-controls={`wa-panel-${id}`}
+            onClick={() => {
+              setWaView(id);
+              if (id === 'historico') void loadLogs();
+            }}
+            className={cn(
+              'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-xs font-black transition',
+              waView === id
+                ? 'bg-[#25D366] text-[#052E20] shadow-sm'
+                : 'border border-[#303844] bg-[#171C22] text-[#94A3B8] hover:text-white',
+            )}
+          >
+            <Icon className="h-4 w-4" aria-hidden />
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="wa-settings-panel__layout grid min-w-0 grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-        <div className="min-w-0 space-y-6 lg:col-span-7">
+      <div id={`wa-panel-${waView}`} role="tabpanel" className="wa-settings-panel__layout grid min-w-0 grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+        <div className={cn('min-w-0 space-y-6', waView === 'historico' ? 'hidden' : 'lg:col-span-12')}>
+          {waView !== 'historico' ? (
           <div className="wa-settings-panel__card relative overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <div
               className="pointer-events-none absolute right-0 top-0 hidden h-32 w-32 rounded-full bg-[#10B981]/10 sm:block"
@@ -358,7 +416,7 @@ export function SettingsWhatsAppPanel() {
 
             <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Shield className="h-4 w-4" />
-              1. Canal Oficial AxéCloud (Meta Cloud API)
+              Canal oficial AxéCloud
             </h6>
 
             <div className="relative space-y-4">
@@ -374,15 +432,15 @@ export function SettingsWhatsAppPanel() {
                     <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — AxéCloud</h6>
                     <p className="text-[9.5px] text-gray-400">
                       {channelMessage ||
-                        'Template Meta conta_ativa_axecloud: confirma cadastro + registro. Senha e link vão na mensagem seguinte.'}
+                        'Canal pronto para enviar mensagens automáticas da sua casa.'}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs leading-relaxed text-[#94A3B8]">
-                Não é necessário escanear QR Code nem parear celular. Cada terreiro envia apenas para os próprios
-                filhos de santo — o isolamento é garantido pelo cadastro no Supabase.
+                Não é necessário escanear QR Code ou manter um celular conectado. As mensagens são enviadas pelo canal
+                oficial do AxéCloud somente para os contatos da sua casa.
               </div>
 
               <div className="flex flex-col gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
@@ -394,15 +452,16 @@ export function SettingsWhatsAppPanel() {
               </div>
             </div>
           </div>
+          ) : null}
 
+          {waView === 'automacoes' ? (
           <div className="wa-settings-panel__card overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
               <Settings className="h-4 w-4" />
-              2. Filhos de Santo & Fiel: Preferências de Gatilho
+              Avisos automáticos
             </h6>
             <p className="mb-4 text-xs font-light leading-relaxed text-gray-400">
-              Escolha quais acontecimentos administrativos ou religiosos gerarão mensagens automáticas enviadas para os
-              respectivos celulares dos filhos de santo ou fiéis:
+              Escolha quais acontecimentos devem gerar mensagens para filhos de santo ou fiéis:
             </p>
             <div className="wa-settings-pref-grid grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2">
               {prefCards.map((card) => (
@@ -453,11 +512,13 @@ export function SettingsWhatsAppPanel() {
               ))}
             </div>
           </div>
+          ) : null}
 
+          {waView === 'teste' ? (
           <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
               <Send className="h-4 w-4" />
-              3. Testar no seu celular
+              Testar no seu celular
             </h6>
             <div className="space-y-3">
               <p className="text-[11px] leading-relaxed text-gray-400">
@@ -484,25 +545,29 @@ export function SettingsWhatsAppPanel() {
               </div>
             </div>
           </div>
+          ) : null}
 
+          {waView === 'automacoes' ? (
           <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
             <h6 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400">
               <Send className="h-4 w-4" />
-              4. Transmissão Aviso
+              Onde enviar comunicados
             </h6>
             <p className="text-[11px] leading-relaxed text-gray-400">
-              Para avisar a corrente via WhatsApp, use o menu <strong className="text-gray-300">Transmissão Aviso</strong>.
+              Para avisar a corrente via WhatsApp, use o menu <strong className="text-gray-300">Comunicados</strong>.
               Lá você publica o aviso no app e pode marcar a opção de transmitir automaticamente — com proteção anti-spam integrada.
             </p>
           </div>
+          ) : null}
         </div>
 
-        <div className="wa-settings-panel__logs flex min-w-0 flex-col justify-between rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 lg:col-span-5 lg:overflow-hidden">
+        {waView === 'historico' ? (
+        <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col justify-between overflow-hidden rounded-[1.5rem] border border-[#1E242B] bg-[#0E1318] p-5 lg:col-span-12">
           <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">
                 <WaLiveDot active className="h-1.5 w-1.5" />
-                <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Painel de Transmissões Recentes</h6>
+                <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Histórico de envios</h6>
               </div>
               <span className="rounded border border-emerald-500/20 bg-[#12161A] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-[#10B981]">
                 Últimas {visibleLogs.length || 0}
@@ -574,6 +639,7 @@ export function SettingsWhatsAppPanel() {
             </p>
           </div>
         </div>
+        ) : null}
       </div>
     </div>
   );

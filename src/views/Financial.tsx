@@ -1,6 +1,30 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useSWR from 'swr';
-import { DollarSign, Download, Plus, Loader2, X, CheckCircle2, MessageCircle, Lock, Smartphone, Bell, Target, Save, Undo2, Trash2, MoreVertical } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  DollarSign,
+  Download,
+  Loader2,
+  Lock,
+  MessageCircle,
+  MoreVertical,
+  Plus,
+  Save,
+  Search,
+  ShieldCheck,
+  Smartphone,
+  Target,
+  Trash2,
+  Undo2,
+  WalletCards,
+  X,
+  Bell,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
@@ -204,6 +228,9 @@ export default function Financial({
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [openTransactionActions, setOpenTransactionActions] = useState<string | null>(null);
+  const [financeSearch, setFinanceSearch] = useState('');
+  const [financeTypeFilter, setFinanceTypeFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [mensalidadeSearch, setMensalidadeSearch] = useState('');
 
   // Pix Config State
   const [pixConfig, setPixConfig] = useState({
@@ -396,10 +423,24 @@ export default function Financial({
     () => mensalidades.filter((r) => mensalidadeRowIsPagaForTabs(r)),
     [mensalidades]
   );
+  const mensalidadesPendentesFiltradas = useMemo(() => {
+    const query = mensalidadeSearch.trim().toLocaleLowerCase('pt-BR');
+    if (!query) return mensalidadesPendentes;
+    return mensalidadesPendentes.filter((row) =>
+      String(row.filhos_de_santo?.nome || '').toLocaleLowerCase('pt-BR').includes(query)
+    );
+  }, [mensalidadesPendentes, mensalidadeSearch]);
+  const mensalidadesPagasFiltradas = useMemo(() => {
+    const query = mensalidadeSearch.trim().toLocaleLowerCase('pt-BR');
+    if (!query) return mensalidadesPagas;
+    return mensalidadesPagas.filter((row) =>
+      String(row.filhos_de_santo?.nome || '').toLocaleLowerCase('pt-BR').includes(query)
+    );
+  }, [mensalidadesPagas, mensalidadeSearch]);
 
   useEffect(() => {
     if (!isAdmin || isBasicFinancePlan || !tenantId) return;
-    if (activeView !== 'mensalidades') return;
+    if (activeView !== 'mensalidades' && activeView !== 'overview') return;
     void refreshMensalidades();
   }, [activeView, tenantId, isAdmin, isBasicFinancePlan, refreshMensalidades]);
 
@@ -902,6 +943,34 @@ export default function Financial({
   }, [cashTransactions]);
 
   const saldo = useMemo(() => stats.entradas - stats.saidas, [stats]);
+  const filteredCashTransactions = useMemo(() => {
+    const query = financeSearch.trim().toLocaleLowerCase('pt-BR');
+    return cashTransactions.filter((transaction) => {
+      const movementType = normalizeMovimentoTipo(transaction.tipo);
+      const matchesType = financeTypeFilter === 'todos' || movementType === financeTypeFilter;
+      const matchesSearch =
+        !query ||
+        `${transaction.descricao} ${transaction.categoria}`
+          .toLocaleLowerCase('pt-BR')
+          .includes(query);
+      return matchesType && matchesSearch;
+    });
+  }, [cashTransactions, financeSearch, financeTypeFilter]);
+  const pendingMonthlyTotal = useMemo(
+    () => mensalidadesPendentes.reduce((total, row) => total + (Number(row.valor) || 0), 0),
+    [mensalidadesPendentes]
+  );
+  const paidMonthlyTotal = useMemo(
+    () => mensalidadesPagas.reduce((total, row) => total + (Number(row.valor) || 0), 0),
+    [mensalidadesPagas]
+  );
+  const overdueMonthlyCount = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return mensalidadesPendentes.filter((row) => {
+      const dueDate = mensalidadeYmdPreferVenc(row);
+      return Boolean(dueDate && dueDate < today);
+    }).length;
+  }, [mensalidadesPendentes]);
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -993,22 +1062,25 @@ export default function Financial({
 
   return (
     <AppPageShell>
+      <div className="financial-v5-page">
       <AppDemoPanelHeader
         title={pageHeader.title}
         description={pageHeader.description}
         action={
           isAdmin && activeView === 'overview' ? (
-            <button
-              type="button"
-              onClick={handleDownloadReport}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]',
-                !hasReportsAccess && 'opacity-60',
-              )}
-            >
-              <Download className="h-4 w-4" />
-              Relatório PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadReport}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-3 py-2 text-xs font-bold text-[#11151A] transition hover:border-[#11151A]',
+                  !hasReportsAccess && 'opacity-60',
+                )}
+              >
+                <Download className="h-4 w-4" />
+                Relatório PDF
+              </button>
+            </div>
           ) : null
         }
       />
@@ -1016,42 +1088,67 @@ export default function Financial({
       <div className="space-y-6">
         {activeView === 'overview' ? (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <AppDemoCard className="flex items-center justify-between">
+          <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Entradas</span>
-                <p className="mt-1 text-xl font-bold text-emerald-400">{formatBRL(stats.entradas)}</p>
+                <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(stats.entradas)}</p>
+                <p className="mt-1 text-[10px] font-medium text-[#64748B]">receitas confirmadas</p>
               </div>
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/40 p-2.5 text-emerald-400">
-                <Plus className="h-5 w-5" />
+                <ArrowUpRight className="h-5 w-5" />
               </div>
             </AppDemoCard>
-            <AppDemoCard className="flex items-center justify-between">
+            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Saídas</span>
-                <p className="mt-1 text-xl font-bold text-rose-400">{formatBRL(stats.saidas)}</p>
+                <p className="mt-2 text-2xl font-black text-rose-400">{formatBRL(stats.saidas)}</p>
+                <p className="mt-1 text-[10px] font-medium text-[#64748B]">despesas registradas</p>
               </div>
               <div className="rounded-xl border border-rose-500/20 bg-rose-950/40 p-2.5 text-rose-400">
-                <Trash2 className="h-5 w-5" />
+                <ArrowDownRight className="h-5 w-5" />
               </div>
             </AppDemoCard>
-            <AppDemoCard className="flex items-center justify-between border-primary/25">
+            <AppDemoCard className="group flex min-h-[118px] items-center justify-between border-primary/25">
               <div>
                 <span className="text-[10px] font-bold uppercase text-primary">Saldo</span>
-                <p className={cn('mt-1 text-xl font-bold', saldo >= 0 ? 'text-[#F1F5F9]' : 'text-rose-400')}>
+                <p className={cn('mt-2 text-2xl font-black', saldo >= 0 ? 'text-[#F1F5F9]' : 'text-rose-400')}>
                   {formatBRL(saldo)}
                 </p>
+                <p className="mt-1 text-[10px] font-medium text-[#64748B]">saldo financeiro real</p>
               </div>
               <div className="rounded-xl border border-primary/20 bg-[#1E252E] p-2.5 text-primary">
-                <DollarSign className="h-5 w-5" />
+                <WalletCards className="h-5 w-5" />
+              </div>
+            </AppDemoCard>
+            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">A receber</span>
+                <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
+                <p className="mt-1 text-[10px] font-medium text-[#64748B]">
+                  {mensalidadesPendentes.length} mensalidade{mensalidadesPendentes.length === 1 ? '' : 's'} pendente{mensalidadesPendentes.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-950/40 p-2.5 text-amber-300">
+                <Clock3 className="h-5 w-5" />
               </div>
             </AppDemoCard>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="app-finance-workbench grid grid-cols-1 items-start gap-5 xl:grid-cols-5">
             {isAdmin ? (
-              <AppDemoCard>
-                <h4 className="mb-4 text-sm font-bold text-[#F1F5F9]">Novo lançamento</h4>
+              <AppDemoCard className="xl:col-span-2">
+                <div className="mb-5 flex items-start gap-3 border-b border-[#252B33] pb-4">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-[#080A0D]">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-[#F1F5F9]">Novo lançamento</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-[#94A3B8]">
+                      Registre uma entrada ou saída no caixa da casa.
+                    </p>
+                  </div>
+                </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div>
                     <label className={appLabelClass}>Descrição</label>
@@ -1142,9 +1239,43 @@ export default function Financial({
               </AppDemoCard>
             ) : null}
 
-            <div className={cn(isAdmin ? 'lg:col-span-2' : 'lg:col-span-3')}>
+            <div className={cn('min-w-0', isAdmin ? 'xl:col-span-3' : 'xl:col-span-5')}>
+              <div className="mb-3 rounded-2xl border border-[#1E242B] bg-[#11151A] p-3 sm:p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-[#F1F5F9]">Movimentações financeiras</h4>
+                    <p className="mt-1 text-xs text-[#64748B]">
+                      {filteredCashTransactions.length} de {cashTransactions.length} lançamento{cashTransactions.length === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <label className="relative min-w-0 sm:w-64">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                      <input
+                        type="search"
+                        value={financeSearch}
+                        onChange={(event) => setFinanceSearch(event.target.value)}
+                        placeholder="Buscar descrição ou categoria"
+                        className={cn(appInputClass, 'pl-9')}
+                      />
+                    </label>
+                    <select
+                      value={financeTypeFilter}
+                      onChange={(event) =>
+                        setFinanceTypeFilter(event.target.value as 'todos' | 'entrada' | 'saida')
+                      }
+                      className={cn(appInputClass, 'sm:w-36')}
+                      aria-label="Filtrar movimentações por fluxo"
+                    >
+                      <option value="todos">Todos os fluxos</option>
+                      <option value="entrada">Entradas</option>
+                      <option value="saida">Saídas</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
               <div className="space-y-3 sm:hidden">
-                {cashTransactions.map((t) => (
+                {filteredCashTransactions.map((t) => (
                   <article key={t.id} className="rounded-2xl border border-[#1E242B] bg-[#12161A] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -1184,9 +1315,15 @@ export default function Financial({
                     </div>
                   </article>
                 ))}
-                {cashTransactions.length === 0 ? (
-                  <div className="rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-12 text-center text-sm text-[#94A3B8]">
-                    Nenhum lançamento registrado ainda.
+                {filteredCashTransactions.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[#303844] bg-[#12161A] px-4 py-12 text-center">
+                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
+                      <DollarSign className="h-6 w-6 text-primary" aria-hidden />
+                    </div>
+                    <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">Seu histórico financeiro começa aqui</p>
+                    <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                      Registre a primeira entrada ou saída para acompanhar o saldo e gerar relatórios da casa.
+                    </p>
                   </div>
                 ) : null}
               </div>
@@ -1219,7 +1356,7 @@ export default function Financial({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1E242B]">
-                      {cashTransactions.map((t) => (
+                      {filteredCashTransactions.map((t) => (
                         <tr key={t.id} className="hover:bg-[#1E242B]/40">
                           <td className="px-4 py-3.5">
                             <p className="line-clamp-2 break-words font-medium leading-snug text-[#F1F5F9]">{t.descricao}</p>
@@ -1252,10 +1389,16 @@ export default function Financial({
                           <td className="px-4 py-3.5 text-right">{renderTransactionActions(t)}</td>
                         </tr>
                       ))}
-                      {cashTransactions.length === 0 ? (
+                      {filteredCashTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
-                            Nenhum lançamento registrado ainda.
+                          <td colSpan={6} className="px-4 py-12 text-center">
+                            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
+                              <DollarSign className="h-6 w-6 text-primary" aria-hidden />
+                            </div>
+                            <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">Seu histórico financeiro começa aqui</p>
+                            <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                              Use o formulário ao lado para registrar a primeira movimentação da casa.
+                            </p>
                           </td>
                         </tr>
                       ) : null}
@@ -1269,7 +1412,41 @@ export default function Financial({
       ) : (
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
-            <AppDemoCard>
+            <>
+              <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <AppDemoCard className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Em aberto</span>
+                    <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
+                    <p className="mt-1 text-[10px] text-[#64748B]">{mensalidadesPendentes.length} cobranças pendentes</p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
+                    <Clock3 className="h-5 w-5" />
+                  </div>
+                </AppDemoCard>
+                <AppDemoCard className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Recebido</span>
+                    <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(paidMonthlyTotal)}</p>
+                    <p className="mt-1 text-[10px] text-[#64748B]">{mensalidadesPagas.length} pagamentos confirmados</p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                </AppDemoCard>
+                <AppDemoCard className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Em atraso</span>
+                    <p className="mt-2 text-2xl font-black text-rose-400">{overdueMonthlyCount}</p>
+                    <p className="mt-1 text-[10px] text-[#64748B]">pedem acompanhamento</p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
+                    <CalendarDays className="h-5 w-5" />
+                  </div>
+                </AppDemoCard>
+              </div>
+
+              <AppDemoCard>
               <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
                   <button
@@ -1352,6 +1529,26 @@ export default function Financial({
                 ) : null}
               </div>
 
+              {mensalidadeAtiva ? (
+                <div className="mb-5 flex flex-col gap-3 border-y border-[#252B33] py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="relative min-w-0 sm:w-80">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                    <input
+                      type="search"
+                      value={mensalidadeSearch}
+                      onChange={(event) => setMensalidadeSearch(event.target.value)}
+                      placeholder="Buscar filho de santo"
+                      className={cn(appInputClass, 'pl-9')}
+                    />
+                  </label>
+                  <p className="text-xs font-medium text-[#64748B]">
+                    {mensalidadesTab === 'pendentes'
+                      ? `${mensalidadesPendentesFiltradas.length} cobrança${mensalidadesPendentesFiltradas.length === 1 ? '' : 's'} em aberto`
+                      : `${mensalidadesPagasFiltradas.length} pagamento${mensalidadesPagasFiltradas.length === 1 ? '' : 's'} confirmado${mensalidadesPagasFiltradas.length === 1 ? '' : 's'}`}
+                  </p>
+                </div>
+              ) : null}
+
               {!mensalidadeAtiva ? (
                 <div className="rounded-xl border border-[#1E242B] bg-[#12161A] px-6 py-12 text-center">
                   <p className="text-sm font-bold text-[#F1F5F9]">Mensalidade desativada</p>
@@ -1371,7 +1568,7 @@ export default function Financial({
 
               {mensalidadeAtiva && mensalidadesTab === 'pendentes' ? (
                 <div role="tabpanel" aria-labelledby="tab-mensalidades-pendentes">
-                  {mensalidadesPendentes.length === 0 && !mensalidadesLoading ? (
+                  {mensalidadesPendentesFiltradas.length === 0 && !mensalidadesLoading ? (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-950/30 px-6 py-14 text-center">
                       <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-400" aria-hidden />
                       <p className="text-lg font-bold text-[#F1F5F9]">Tudo em dia!</p>
@@ -1382,7 +1579,7 @@ export default function Financial({
                   ) : (
                     <>
                       <div className="space-y-3 sm:hidden">
-                        {mensalidadesPendentes.map((row) => {
+                        {mensalidadesPendentesFiltradas.map((row) => {
                           const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                           const fid = row.filho_id || '';
                           const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
@@ -1456,14 +1653,14 @@ export default function Financial({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#1E242B]">
-                            {mensalidadesPendentes.map((row) => {
+                            {mensalidadesPendentesFiltradas.map((row) => {
                               const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                               const fid = row.filho_id || '';
                               const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
                               const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
                               return (
-                                <tr key={row.id} className="transition-colors hover:bg-[#12161A]/60">
-                                  <td className="px-4 py-3 font-bold text-[#F1F5F9]">{nome}</td>
+                                <tr key={row.id} className="transition-colors hover:bg-[#F1ECE3]">
+                                  <td className="px-4 py-3 font-bold text-[#25211B]">{nome}</td>
                                   <td className="px-4 py-3">
                                     <input
                                       type="number"
@@ -1475,7 +1672,7 @@ export default function Financial({
                                       className={cn(appInputClass, 'w-28')}
                                     />
                                   </td>
-                                  <td className="px-4 py-3 text-sm font-medium text-[#94A3B8]">
+                                  <td className="px-4 py-3 text-sm font-medium text-[#657083]">
                                     {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                   </td>
                                   <td className="px-4 py-3">
@@ -1516,14 +1713,14 @@ export default function Financial({
                 </div>
               ) : mensalidadeAtiva && mensalidadesTab === 'pagas' ? (
                 <div role="tabpanel" aria-labelledby="tab-mensalidades-pagas" className="space-y-4">
-                  {mensalidadesPagas.length === 0 && !mensalidadesLoading ? (
+                  {mensalidadesPagasFiltradas.length === 0 && !mensalidadesLoading ? (
                     <p className="rounded-xl border border-[#1E242B] bg-[#12161A] py-10 text-center text-sm text-[#94A3B8]">
                       Nenhuma mensalidade paga registrada no mês atual.
                     </p>
                   ) : (
                     <>
                       <div className="space-y-3 sm:hidden">
-                        {mensalidadesPagas.map((row) => {
+                        {mensalidadesPagasFiltradas.map((row) => {
                           const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                           const pay = String(row.data || '').slice(0, 10);
                           return (
@@ -1575,18 +1772,18 @@ export default function Financial({
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1E242B]">
-                              {mensalidadesPagas.map((row) => {
+                              {mensalidadesPagasFiltradas.map((row) => {
                                 const nome = row.filhos_de_santo?.nome || 'Filho de santo';
                                 const pay = String(row.data || '').slice(0, 10);
                                 return (
-                                  <tr key={row.id} className="transition-colors hover:bg-[#12161A]/60">
-                                    <td className="px-4 py-3 font-bold text-[#F1F5F9]">{nome}</td>
+                                  <tr key={row.id} className="transition-colors hover:bg-[#F1ECE3]">
+                                    <td className="px-4 py-3 font-bold text-[#25211B]">{nome}</td>
                                     <td className="px-4 py-3 text-sm font-bold text-emerald-400">
                                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                         Number(row.valor) || 0
                                       )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-[#94A3B8]">
+                                    <td className="px-4 py-3 text-sm text-[#657083]">
                                       {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -1610,7 +1807,8 @@ export default function Financial({
                   )}
                 </div>
               ) : null}
-            </AppDemoCard>
+              </AppDemoCard>
+            </>
           ) : activeView === 'caixinha' ? (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -1715,15 +1913,15 @@ export default function Financial({
               </div>
             </div>
           ) : (
-            <div className="mx-auto max-w-2xl">
-              <AppDemoCard className="space-y-6">
+            <div className="financial-pix-console grid grid-cols-1 items-start gap-5 xl:grid-cols-5">
+              <AppDemoCard className="financial-pix-form space-y-6 xl:col-span-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
                     <Smartphone className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-[#F1F5F9]">Recebimento via Pix</h4>
-                    <p className="text-xs text-[#94A3B8]">Chave Pix, valor padrão da mensalidade e vencimento mensal.</p>
+                    <h4 className="text-sm font-black text-[#F1F5F9]">Dados de recebimento</h4>
+                    <p className="mt-1 text-xs text-[#94A3B8]">Configure como a casa recebe as mensalidades via Pix.</p>
                   </div>
                 </div>
                 <form onSubmit={handleSavePixConfig} className="space-y-4">
@@ -1747,7 +1945,7 @@ export default function Financial({
                       <select
                         value={pixConfig.tipo_chave}
                         onChange={(e) => setPixConfig({ ...pixConfig, tipo_chave: e.target.value })}
-                        className={cn(appInputClass, '[&>option]:bg-[#13171D]')}
+                        className={appInputClass}
                       >
                         <option value="cpf">CPF</option>
                         <option value="cnpj">CNPJ</option>
@@ -1795,13 +1993,102 @@ export default function Financial({
                     </div>
                   </div>
                   <div className="flex justify-end pt-2">
-                    <AppPrimaryButton type="submit" disabled={isSavingPix} className="inline-flex items-center gap-2">
+                    <AppPrimaryButton type="submit" disabled={isSavingPix} className="inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                       {isSavingPix ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       {isSavingPix ? 'Salvando…' : 'Salvar configurações'}
                     </AppPrimaryButton>
                   </div>
                 </form>
               </AppDemoCard>
+
+              <div className="space-y-4 xl:col-span-2">
+                <AppDemoCard className="financial-pix-preview overflow-hidden p-0">
+                  <div className="border-b border-[#252B33] px-5 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Prévia</span>
+                        <h4 className="mt-1 text-sm font-black text-[#F1F5F9]">Cartão de pagamento</h4>
+                      </div>
+                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <div className="financial-pix-payment-card rounded-2xl border border-primary/25 bg-gradient-to-br from-[#1A2027] to-[#0D1014] p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Mensalidade da casa</p>
+                          <p className="mt-2 text-3xl font-black text-[#F1F5F9]">
+                            {formatBRL(Number(pixConfig.valor_mensalidade) || 0)}
+                          </p>
+                        </div>
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-[#080A0D]">
+                          <DollarSign className="h-5 w-5" />
+                        </div>
+                      </div>
+                      <div className="mt-6 space-y-3 border-t border-[#2A313A] pt-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Vencimento</span>
+                          <span className="text-xs font-black text-[#CBD5E1]">Dia {pixConfig.dia_vencimento || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Beneficiário</span>
+                          <p className="mt-1 truncate text-xs font-black text-[#CBD5E1]">
+                            {pixConfig.nome_beneficiario || 'Nome ainda não informado'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Chave Pix</span>
+                          <div className="mt-1 flex items-center gap-2">
+                            <p className="min-w-0 flex-1 truncate text-xs font-black text-primary">
+                              {pixConfig.chave_pix || 'Chave ainda não informada'}
+                            </p>
+                            {pixConfig.chave_pix ? (
+                              <button
+                                type="button"
+                                onClick={() => void navigator.clipboard?.writeText(pixConfig.chave_pix)}
+                                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#303844] text-[#94A3B8] transition hover:border-primary/40 hover:text-primary"
+                                aria-label="Copiar chave Pix"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </AppDemoCard>
+
+                <AppDemoCard className="financial-pix-status">
+                  <h4 className="text-sm font-black text-[#F1F5F9]">Status da configuração</h4>
+                  <div className="mt-4 space-y-3">
+                    {[
+                      ['Chave Pix cadastrada', Boolean(pixConfig.chave_pix)],
+                      ['Beneficiário identificado', Boolean(pixConfig.nome_beneficiario)],
+                      ['Valor da mensalidade definido', Number(pixConfig.valor_mensalidade) > 0],
+                      ['Cobrança mensal ativa', mensalidadeAtiva],
+                    ].map(([label, ready]) => (
+                      <div key={String(label)} className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            'grid h-7 w-7 shrink-0 place-items-center rounded-full border',
+                            ready
+                              ? 'border-emerald-500/30 bg-emerald-950/50 text-emerald-400'
+                              : 'border-[#303844] bg-[#171C22] text-[#64748B]',
+                          )}
+                        >
+                          {ready ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+                        </div>
+                        <span className={cn('text-xs font-bold', ready ? 'text-[#CBD5E1]' : 'text-[#64748B]')}>
+                          {String(label)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </AppDemoCard>
+              </div>
             </div>
           )}
         </div>
@@ -1946,6 +2233,7 @@ export default function Financial({
           </div>
         )}
       </AnimatePresence>
+      </div>
       </div>
     </AppPageShell>
   );

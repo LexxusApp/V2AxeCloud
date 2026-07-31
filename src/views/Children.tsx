@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle, MoreVertical, Send } from 'lucide-react';
+import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle, MoreVertical, Send, UserCheck, Clock3, Users, Cake, AlertCircle, CalendarDays, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -17,8 +17,9 @@ import {
 } from '../components/ui/appDemoUi';
 import Avatar from '../components/Avatar';
 import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
+import ChildrenCurrentExperience from '../components/children/ChildrenCurrentExperience';
 
-interface Child {
+export interface Child {
   id: string;
   nome: string;
   foto_url: string;
@@ -28,6 +29,10 @@ interface Child {
   data_entrada: string;
   status: 'Ativo' | 'Pendente' | 'Inativo';
   quizilas: string[];
+  whatsapp_phone?: string | null;
+  telefone?: string | null;
+  cpf?: string | null;
+  created_at?: string | null;
 }
 
 interface ChildrenProps {
@@ -74,6 +79,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [resendingWelcome, setResendingWelcome] = useState(false);
   const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   const [sendingCredentialsId, setSendingCredentialsId] = useState<string | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [sortBy, setSortBy] = useState<'nome' | 'entrada' | 'aniversario'>('nome');
+  const [previewChildId, setPreviewChildId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({ ...EMPTY_CHILD_FORM, data_entrada: new Date().toISOString().split('T')[0] });
@@ -124,17 +132,33 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     try {
       if (!user) throw new Error("Usuário não autenticado");
       
-      const response = await authFetch(
-        `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
-        { cache: 'no-store' },
-      );
-      const result = await response.json();
+      const [response, paymentsResponse] = await Promise.all([
+        authFetch(
+          `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
+          { cache: 'no-store' },
+        ),
+        authFetch(
+          `/api/transactions?tenantId=${encodeURIComponent(tenantId || '')}&userId=${encodeURIComponent(user.id)}&userRole=admin&limit=400`,
+          { cache: 'no-store' },
+        ),
+      ]);
+      const [result, paymentsResult] = await Promise.all([
+        response.json(),
+        paymentsResponse.json().catch(() => ({ data: [] })),
+      ]);
 
       if (!response.ok) {
         throw new Error(result.error || "Erro ao buscar filhos");
       }
 
       setChildren(result.data || []);
+      setPendingPayments(
+        (paymentsResult.data || []).filter((transaction: any) => {
+          const category = String(transaction?.categoria || '').toLowerCase();
+          const status = String(transaction?.status || '').toLowerCase();
+          return category === 'mensalidade' && (status === 'pendente' || status === 'atrasado');
+        }),
+      );
     } catch (error) {
       console.error('Error fetching children:', error);
     } finally {
@@ -296,12 +320,36 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   }
 
   const filteredChildren = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
     return children.filter(child => {
-      const matchesSearch = child.nome.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = [child.nome, child.cargo, child.whatsapp_phone, child.telefone]
+        .some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
       const matchesStatus = filterStatus === 'Todos' || child.status === filterStatus;
       return matchesSearch && matchesStatus;
+    }).sort((a, b) => {
+      if (sortBy === 'entrada') {
+        return String(b.data_entrada || '').localeCompare(String(a.data_entrada || ''));
+      }
+      if (sortBy === 'aniversario') {
+        return String(a.data_nascimento || '').slice(5).localeCompare(String(b.data_nascimento || '').slice(5));
+      }
+      return a.nome.localeCompare(b.nome, 'pt-BR');
     });
-  }, [children, searchTerm, filterStatus]);
+  }, [children, searchTerm, filterStatus, sortBy]);
+
+  const incompleteChildren = useMemo(
+    () => children.filter((child) => !String(child.whatsapp_phone || child.telefone || '').trim() || !String(child.data_nascimento || '').trim()).length,
+    [children],
+  );
+  const birthdaysThisMonth = useMemo(() => {
+    const month = new Date().getMonth() + 1;
+    return children.filter((child) => Number(String(child.data_nascimento || '').slice(5, 7)) === month).length;
+  }, [children]);
+  const pendingChildIds = useMemo(
+    () => new Set(pendingPayments.map((payment) => String(payment?.filho_id || payment?.child_id || '')).filter(Boolean)),
+    [pendingPayments],
+  );
+  const previewChild = children.find((child) => child.id === previewChildId) || null;
   
   const currentPlan = canonicalPlanSlug(tenantData?.plan);
   const childLimit = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.premium;
@@ -312,26 +360,16 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   }
 
   const searchBar = (
-    <div className="flex w-full flex-col gap-2 sm:w-64">
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#94A3B8]" aria-hidden />
-        <input
-          type="search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Buscar por nome..."
-          className={cn(appInputClass, 'pl-9')}
-        />
-      </div>
+    <div className="flex flex-col items-end gap-2">
       <button
         type="button"
         onClick={openAddModal}
         disabled={isLimitReached}
         className={cn(
-          'inline-flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-all',
+          'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition-all',
           isLimitReached
             ? 'cursor-not-allowed border-[#1E242B] bg-[#12161A] text-zinc-600'
-            : 'border-primary/35 bg-[#12161A] text-primary hover:border-primary/50 hover:bg-primary/10',
+            : 'border-primary bg-primary text-[#17130D] shadow-sm hover:bg-[#FFD34E]',
         )}
       >
         {isLimitReached ? (
@@ -339,7 +377,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         ) : (
           <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
-        Adicionar
+        Cadastrar filho
       </button>
       {isLimitReached ? (
         <p className="text-[10px] leading-snug text-[#94A3B8]">
@@ -351,20 +389,125 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   return (
     <AppPageShell>
+      <div className="children-v5-page">
+      <ChildrenCurrentExperience
+        childrenData={children}
+        filteredChildren={filteredChildren}
+        pendingChildIds={pendingChildIds}
+        incompleteChildren={incompleteChildren}
+        birthdaysThisMonth={birthdaysThisMonth}
+        searchTerm={searchTerm}
+        filterStatus={filterStatus}
+        sortBy={sortBy}
+        isLimitReached={isLimitReached}
+        childLimit={childLimit}
+        planName={PLAN_NAMES[currentPlan] || currentPlan}
+        resendingWelcome={resendingWelcome}
+        openActionsId={openActionsId}
+        deletingId={deletingId}
+        sendingCredentialsId={sendingCredentialsId}
+        onSearchChange={setSearchTerm}
+        onStatusChange={setFilterStatus}
+        onSortChange={setSortBy}
+        onAdd={openAddModal}
+        onResendAll={() => void handleResendDadosAcessoWhatsApp()}
+        onPreview={setPreviewChildId}
+        onActionsChange={setOpenActionsId}
+        onSendCredentials={(id, name) => void handleSendCredentials(id, name)}
+        onDelete={(id, name) => void handleDelete(id, name)}
+      />
+
+      <div className="hidden" aria-hidden="true">
       <AppDemoPanelHeader
         title="Filhos de Santo"
-        description="Cadastro litúrgico com cargo, orixá de frente e status — ambiente real do seu terreiro."
+        description={`${children.length} ${children.length === 1 ? 'pessoa cadastrada' : 'pessoas cadastradas'} na corrente da casa.`}
         action={searchBar}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="app-metric-rail mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[
+          {
+            label: 'Filhos ativos',
+            value: children.filter((child) => child.status === 'Ativo').length,
+            icon: UserCheck,
+            color: 'text-emerald-300',
+            bg: 'border-emerald-400/20 bg-emerald-400/10',
+          },
+          {
+            label: 'Cadastros incompletos',
+            value: incompleteChildren,
+            icon: AlertCircle,
+            color: 'text-amber-300',
+            bg: 'border-amber-400/20 bg-amber-400/10',
+          },
+          {
+            label: 'Mensalidades pendentes',
+            value: pendingPayments.length,
+            icon: Clock3,
+            color: 'text-rose-300',
+            bg: 'border-rose-400/20 bg-rose-400/10',
+          },
+          {
+            label: 'Aniversários no mês',
+            value: birthdaysThisMonth,
+            icon: Cake,
+            color: 'text-violet-300',
+            bg: 'border-violet-400/20 bg-violet-400/10',
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.label}
+              className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#252C35] bg-[#151A21] p-4 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]"
+            >
+              <span className={cn('hidden h-10 w-10 shrink-0 place-items-center rounded-xl border sm:grid', item.bg)}>
+                <Icon className={cn('h-5 w-5', item.color)} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">
+                  {item.label}
+                </p>
+                <p className="font-display text-xl font-black text-[#F8FAFC] sm:text-2xl">{item.value}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <section className="app-command-strip mb-4 rounded-2xl border border-[#252C35] bg-[#11151A] p-3 sm:p-4" aria-label="Busca e filtros">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#7F8B9C]" aria-hidden />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nome, telefone ou cargo"
+              className={cn(appInputClass, 'min-h-11 pl-10 text-sm')}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs font-bold text-[#8E9AAA]">
+            Ordenar por
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
+              className={cn(appInputClass, 'min-h-11 w-auto py-2 text-sm')}
+            >
+              <option value="nome">Nome</option>
+              <option value="entrada">Entrada na casa</option>
+              <option value="aniversario">Aniversário</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
         {['Todos', 'Ativo', 'Pendente', 'Inativo'].map((status) => (
           <button
             key={status}
             type="button"
             onClick={() => setFilterStatus(status)}
             className={cn(
-              'rounded-lg border px-3 py-1.5 text-xs font-bold transition-all',
+              'rounded-lg border px-3 py-2 text-xs font-bold transition-all',
               filterStatus === status
                 ? 'border-primary/35 bg-primary/10 text-primary'
                 : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:text-[#F1F5F9]',
@@ -391,9 +534,47 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           )}
           Enviar acesso via WhatsApp
         </button>
-      </div>
+        </div>
+      </section>
 
       <div className="space-y-3">
+        <div className="grid gap-3 md:hidden">
+          {filteredChildren.map((child) => {
+            const phone = child.whatsapp_phone || child.telefone;
+            const hasPendingPayment = pendingChildIds.has(child.id);
+            return (
+              <button
+                key={child.id}
+                type="button"
+                onClick={() => setPreviewChildId(child.id)}
+                className="rounded-2xl border border-[#252C35] bg-[#151A21] p-4 text-left text-[#F8FAFC] transition hover:border-primary/30"
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar src={child.foto_url} name={child.nome} shape="circle" textSize="text-sm" className="h-12 w-12 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black">{child.nome}</p>
+                    <p className="mt-0.5 truncate text-xs font-semibold text-[#8E9AAA]">{child.cargo || 'Função não informada'} · {child.orixa_frente || 'Orixá não informado'}</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-[#64748B]" aria-hidden />
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className={childStatusClass(child.status)}>{child.status}</span>
+                  {hasPendingPayment ? <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-1 text-xs font-bold text-rose-300">Mensalidade pendente</span> : null}
+                  {phone ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#8E9AAA]"><Phone className="h-3 w-3" />{phone}</span> : null}
+                </div>
+              </button>
+            );
+          })}
+          {filteredChildren.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#BFB5A6] bg-white/55 px-5 py-10 text-center text-[#17130D]">
+              <Users className="mx-auto h-8 w-8 text-[#9A6A00]" />
+              <p className="mt-3 text-sm font-black">{children.length === 0 ? 'Sua corrente começa aqui' : 'Nenhum resultado encontrado'}</p>
+              <p className="mt-1 text-xs font-semibold text-[#665F55]">{children.length === 0 ? 'Cadastre o primeiro filho de santo.' : 'Ajuste a busca ou os filtros.'}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="hidden md:block">
         <AppDemoTableShell>
             <table className="min-w-full divide-y divide-[#1E242B] text-xs">
               <thead className="bg-[#12161A]">
@@ -405,10 +586,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     Cargo
                   </th>
                   <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:table-cell">
-                    Orixá
+                    Contato
                   </th>
                   <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:table-cell">
-                    Guia
+                    Entrada na casa
                   </th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] md:px-4">
                     Status
@@ -427,8 +608,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     className="cursor-pointer transition-colors hover:bg-[#1E242B]/40"
                     onClick={() => {
                       setOpenActionsId(null);
-                      setSelectedChildId(child.id);
-                      setActiveTab('profile');
+                      setPreviewChildId(child.id);
                     }}
                   >
                     <td className="whitespace-nowrap px-3 py-3.5 font-medium text-[#F1F5F9] md:px-4">
@@ -444,11 +624,11 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                       </div>
                     </td>
                     <td className="px-3 py-3.5 text-[#94A3B8] md:px-4">{child.cargo || '—'}</td>
-                    <td className="hidden px-4 py-3.5 font-semibold text-primary md:table-cell">
-                      {child.orixa_frente || '—'}
+                    <td className="hidden px-4 py-3.5 text-[#AAB4C2] md:table-cell">
+                      {child.whatsapp_phone || child.telefone || 'Não informado'}
                     </td>
-                    <td className="hidden px-4 py-3.5 italic text-[#94A3B8] md:table-cell">
-                      {child.quizilas?.[0] || '—'}
+                    <td className="hidden px-4 py-3.5 text-[#94A3B8] md:table-cell">
+                      {child.data_entrada ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${child.data_entrada.slice(0, 10)}T12:00:00`)) : '—'}
                     </td>
                     <td className="px-3 py-3.5 md:px-4">
                       <span className={childStatusClass(child.status)}>{child.status}</span>
@@ -512,14 +692,35 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 })}
                 {filteredChildren.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-[#94A3B8]">
-                      Nenhum filho encontrado.
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
+                        <Users className="h-6 w-6 text-primary" aria-hidden />
+                      </div>
+                      <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">
+                        {children.length === 0 ? 'Sua corrente começa aqui' : 'Nenhum resultado encontrado'}
+                      </p>
+                      <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                        {children.length === 0
+                          ? 'Cadastre o primeiro filho de santo para organizar dados, acessos e mensalidades.'
+                          : 'Tente outro nome ou ajuste o filtro de status.'}
+                      </p>
+                      {children.length === 0 && !isLimitReached ? (
+                        <button
+                          type="button"
+                          onClick={openAddModal}
+                          className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-[#080A0D]"
+                        >
+                          <Plus className="h-4 w-4" aria-hidden />
+                          Cadastrar primeiro filho
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </AppDemoTableShell>
+        </div>
           <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3.5 text-[11px] text-[#94A3B8]">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
             <span>
@@ -529,6 +730,114 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             </span>
           </div>
         </div>
+      </div>
+
+      <AnimatePresence>
+        {previewChild ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fechar resumo"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPreviewChildId(null)}
+              className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-[2px]"
+            />
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={MODAL_TW}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="child-preview-title"
+              className="current-person-dossier fixed inset-y-0 right-0 z-[81] flex h-[100dvh] max-h-[100dvh] w-full max-w-[27rem] flex-col overflow-hidden border-l border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-2xl"
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Resumo do cadastro</p>
+                  <h2 id="child-preview-title" className="mt-0.5 text-base font-black">Filho de Santo</h2>
+                </div>
+                <button type="button" onClick={() => setPreviewChildId(null)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white" aria-label="Fechar">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar src={previewChild.foto_url} name={previewChild.nome} shape="circle" textSize="text-base" className="h-16 w-16 shrink-0" />
+                  <div className="min-w-0">
+                    <h3 className="truncate text-lg font-black">{previewChild.nome}</h3>
+                    <p className="mt-0.5 text-xs font-bold text-primary">{previewChild.cargo || 'Função não informada'}</p>
+                    <div className="mt-1.5"><span className={childStatusClass(previewChild.status)}>{previewChild.status}</span></div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
+                    <p className="text-[10px] font-bold text-[#7F8B9C]">Orixá de frente</p>
+                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.orixa_frente || 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
+                    <p className="text-[10px] font-bold text-[#7F8B9C]">Entrada na casa</p>
+                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.data_entrada ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_entrada.slice(0, 10)}T12:00:00`)) : 'Não informada'}</p>
+                  </div>
+                  <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
+                    <p className="text-[10px] font-bold text-[#7F8B9C]">Contato</p>
+                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.whatsapp_phone || previewChild.telefone || 'Não informado'}</p>
+                  </div>
+                </div>
+
+                <div className={cn(
+                  'mt-3 flex items-center gap-3 rounded-xl border p-3',
+                  pendingChildIds.has(previewChild.id)
+                    ? 'border-rose-400/20 bg-rose-400/[0.07]'
+                    : 'border-emerald-400/20 bg-emerald-400/[0.07]',
+                )}>
+                  {pendingChildIds.has(previewChild.id) ? <AlertCircle className="h-5 w-5 text-rose-300" /> : <UserCheck className="h-5 w-5 text-emerald-300" />}
+                  <div>
+                    <p className="text-xs font-black">{pendingChildIds.has(previewChild.id) ? 'Mensalidade pendente' : 'Sem mensalidade pendente'}</p>
+                    <p className="text-[10px] font-semibold text-[#7F8B9C]">Situação financeira atual</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-sky-300" />
+                    <p className="text-xs font-black">Nascimento</p>
+                  </div>
+                  <p className="mt-1 text-[10px] font-semibold text-[#8E9AAA]">{previewChild.data_nascimento ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_nascimento.slice(0, 10)}T12:00:00`)) : 'Data não informada'}</p>
+                </div>
+              </div>
+
+              <div className="shrink-0 space-y-2 border-t border-white/10 bg-[#0F1318] p-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedChildId(previewChild.id);
+                    setPreviewChildId(null);
+                    setActiveTab('profile');
+                  }}
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-[#17130D] hover:bg-[#FFD34E]"
+                >
+                  Ver perfil completo
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSendCredentials(previewChild.id, previewChild.nome)}
+                  disabled={sendingCredentialsId === previewChild.id}
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] px-4 text-sm font-bold text-emerald-300 hover:bg-emerald-400/[0.12]"
+                >
+                  {sendingCredentialsId === previewChild.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                  Enviar acesso pelo WhatsApp
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {addModalOpen ? (
@@ -697,6 +1006,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           </div>
         ) : null}
       </AnimatePresence>
+      </div>
     </AppPageShell>
   );
 }

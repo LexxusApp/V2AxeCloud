@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import AppTopNav from './components/app/AppTopNav';
+import { ContextualActionBar } from './components/app/ContextualActionBar';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
@@ -1233,9 +1234,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }
 
   const navigateToTab = (tab: string) => {
-    setActiveTab(userRole === 'filho' ? normalizeFilhoTab(tab) : tab);
+    const nextTab = userRole === 'filho' ? normalizeFilhoTab(tab) : tab;
+    if (nextTab === activeTab) return;
+    const transitionDocument = document as Document & { startViewTransition?: (update: () => void) => void };
+    if (typeof transitionDocument.startViewTransition === 'function')
+      return void transitionDocument.startViewTransition(() => setActiveTab(nextTab));
+    setActiveTab(nextTab);
   };
-
   const renderView = () => {
     // SISTEMA DO FILHO: Se for filho, ele tem um sistema de visualização dedicado
     // Independente de planos ou assinaturas do zelador.
@@ -1428,7 +1433,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   return (
     <>
-    <div className="app-v3 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9] font-sans selection:bg-primary selection:text-[#080A0D]">
+    <div className="app-v3 app-v4-experiment app-v5-identity flex h-[100dvh] w-full flex-col overflow-hidden bg-[#F7F3EA] text-[#211D17] font-sans selection:bg-primary selection:text-[#080A0D]">
       <AppTopNav
         activeTab={activeTab}
         setActiveTab={navigateToTab}
@@ -1442,7 +1447,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         onFilhoFotoUpdated={setFilhoFotoUrl}
       />
 
-      <div className="app-v3-scroll relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#0D0F12] pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] transition-[padding] duration-200 min-[880px]:pl-[var(--app-sidebar-width,18rem)]">
           <main
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
@@ -1456,6 +1461,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
                 />
               </div>
             ) : null}
+            <ContextualActionBar activeTab={activeTab} userRole={userRole} onNavigate={navigateToTab} />
             <div className="flex-1">
               <Suspense
                 fallback={
@@ -1464,7 +1470,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
                   </div>
                 }
               >
-                {renderView()}
+                <div key={`${activeTab}:${selectedChildId || ''}`} className="app-view-transition">
+                  {renderView()}
+                </div>
               </Suspense>
             </div>
             <AppFooter />
@@ -1472,18 +1480,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       </div>
     </div>
     {showLegalTermsModal ? (
-      <LegalTermsModal
-        open
-        onAccept={handleAcceptLegalTerms}
-        accepting={legalTermsAccepting}
-      />
+      <LegalTermsModal open onAccept={handleAcceptLegalTerms} accepting={legalTermsAccepting} />
     ) : null}
     {session && effectiveTenantId && !blockingSpinnerActive ? (
-      <ChatFloatingWidget
-        tenantData={tenantData}
-        userId={session.user.id}
-        userRole={userRole}
-      />
+      <ChatFloatingWidget tenantData={tenantData} userId={session.user.id} userRole={userRole} />
     ) : null}
     </>
   );

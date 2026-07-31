@@ -25,6 +25,7 @@ import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/staleCache';
 import { format, setDate, addMonths, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import FilhoMonthlyExperience from '../components/filho/FilhoMonthlyExperience';
 
 interface MensalidadeFilhoProps {
   user: any;
@@ -339,6 +340,43 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
   const pixNotConfigured = pixFetched && !loadingPix && !pixConfig?.chave_pix;
 
+  const monthlyExperience = true;
+  if (monthlyExperience) {
+    return (
+      <AppPageShell fullWidth>
+        <FilhoMonthlyExperience
+          active={mensalidadeAtiva}
+          pending={pendingMensalidade}
+          configuredValue={valorMensalidadeConfig}
+          dueDay={diaVencimento}
+          pixConfig={pixConfig}
+          pixUnavailable={pixNotConfigured}
+          uploading={comprovanteUploading}
+          history={mensalidades}
+          receiptInputRef={comprovanteInputRef}
+          onOpenPix={() => void openPixModal()}
+          onSelectReceipt={(file) => void handleEnviarComprovante(file)}
+          onTalkToHouse={() => setActiveTab('chat')}
+        />
+        <PixPaymentModal
+          open={pixModalOpen}
+          onClose={() => setPixModalOpen(false)}
+          loading={loadingPix}
+          pixConfig={pixConfig}
+          valor={pendingMensalidade?.valor || valorMensalidadeConfig}
+          descricao="Mensalidade Terreiro"
+          txid={(filho?.id || user.id).slice(0, 16).replace(/-/g, '')}
+          vencimento={(() => {
+            const hoje = new Date();
+            let venc = setDate(hoje, diaVencimento);
+            if (isBefore(venc, hoje)) venc = setDate(addMonths(hoje, 1), diaVencimento);
+            return format(venc, "dd/MM/yyyy");
+          })()}
+        />
+      </AppPageShell>
+    );
+  }
+
   if (!loading && pixFetched && !mensalidadeAtiva) {
     return (
       <AppPageShell>
@@ -361,7 +399,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     <AppPageShell>
       <AppDemoPanelHeader title="Minhas mensalidades" description="Controle suas contribuições com o terreiro." />
 
-      <div className="space-y-8">
+      <div className="filho-monthly-page space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Main Payment Section */}

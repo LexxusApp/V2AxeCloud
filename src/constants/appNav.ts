@@ -72,7 +72,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'financial', label: 'Financeiro', icon: PieChart },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
-  { id: 'mural', label: 'Transmissão Aviso', icon: Megaphone },
+  { id: 'mural', label: 'Comunicados', icon: Megaphone },
   { id: 'chat', label: 'Mensagens', icon: MessageCircle },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
@@ -143,13 +143,13 @@ export function flattenZeladorNavEntries(entries: ZeladorNavEntry[]): AppNavItem
 }
 
 export const FILHO_NAV: AppNavItem[] = [
-  { id: 'profile', label: 'Meu Perfil', icon: UserCircle },
+  { id: 'profile', label: 'Início', icon: UserCircle },
   { id: 'obrigacoes', label: 'Obrigações', icon: Flame },
   { id: 'financial', label: 'Mensalidade', icon: Wallet },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
-  { id: 'mural', label: 'Transmissão Aviso', icon: Newspaper },
+  { id: 'mural', label: 'Comunicados', icon: Newspaper },
   { id: 'chat', label: 'Conversas', icon: MessageCircle },
 ];
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Check, Ticket, MessageSquare, ImagePlus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Check, Ticket, MessageSquare, ImagePlus, Pencil, Trash2, LayoutList, CalendarRange, Users, UserRoundX, RefreshCw, Share2, ArrowUpRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,8 +29,11 @@ import {
   type EventoConfirmadoResumo,
   type ParticipanteStatus,
 } from '../lib/giraOperations';
+import GiraRitualCommand from '../components/gira/GiraRitualCommand';
+import BodyPortal from '../components/BodyPortal';
+import FilhoGirasExperience from '../components/filho/FilhoGirasExperience';
 
-interface Event {
+export interface CalendarEvent {
   id: string;
   titulo: string;
   data: string;
@@ -310,6 +313,86 @@ function EventDetailModalPanel({
   );
 }
 
+type Event = CalendarEvent;
+
+function AdminEventDrawer({
+  event,
+  confirmed,
+  onClose,
+  onEdit,
+  onNotify,
+  onOperations,
+}: {
+  event: Event;
+  confirmed: EventoConfirmadoResumo[];
+  onClose: () => void;
+  onEdit: () => void;
+  onNotify: () => void;
+  onOperations: () => void;
+}) {
+  const passed = new Date(`${event.data}T${formatHoraEvento(event.hora) || '00:00'}`).getTime() < Date.now();
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <BodyPortal>
+      <motion.button type="button" aria-label="Fechar detalhes da gira" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-[2px]" />
+      <motion.aside
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={MODAL_TW}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-event-title"
+        className="fixed right-3 top-20 z-[101] flex max-h-[calc(100dvh-6rem)] w-[calc(100%-1.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-[0_30px_90px_rgba(0,0,0,.55)] sm:right-5"
+      >
+        <div className={cn('relative shrink-0 overflow-hidden bg-[#11151A]', event.banner_url ? 'h-36' : 'h-24')}>
+          {event.banner_url ? <img src={event.banner_url} alt="" className="h-full w-full object-cover" /> : (
+            <div className="grid h-full place-items-center bg-gradient-to-br from-primary/15 to-sky-400/5"><CalendarDays className="h-10 w-10 text-primary/30" /></div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0F1318] via-transparent to-black/25" />
+          <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-xl bg-black/55 text-white backdrop-blur hover:bg-black/75" aria-label="Fechar"><X className="h-4 w-4" /></button>
+          <span className={cn('absolute bottom-3 left-4 rounded-full px-2.5 py-1 text-[10px] font-black', passed ? 'bg-zinc-700 text-zinc-200' : 'bg-primary text-[#17130D]')}>{passed ? 'Concluído' : event.tipo || 'Gira'}</span>
+        </div>
+
+        <div className="min-h-0 overflow-y-auto p-4">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">{event.tipo || 'Evento da casa'}</p>
+          <h2 id="admin-event-title" className="mt-1 text-xl font-black">{event.titulo}</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5"><p className="text-[10px] font-bold text-[#7F8B9C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5"><p className="text-[10px] font-bold text-[#7F8B9C]">Horário</p><p className="mt-0.5 text-sm font-black">{formatHoraEvento(event.hora) || 'Não informado'}</p></div>
+          </div>
+          {event.descricao ? <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3"><p className="text-[10px] font-bold text-[#7F8B9C]">Informações</p><p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-xs font-medium leading-relaxed text-[#CBD5E1]">{event.descricao}</p></div> : null}
+
+          <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.05] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-sm font-black">{confirmed.length} confirmado{confirmed.length === 1 ? '' : 's'}</p><p className="text-xs font-semibold text-[#7F8B9C]">Respostas recebidas para esta gira</p></div>
+              <Users className="h-4 w-4 text-emerald-300" />
+            </div>
+            {confirmed.length ? <div className="mt-2"><EventConfirmedAvatars members={confirmed} /></div> : null}
+          </div>
+
+          <button type="button" onClick={onOperations} className="mt-3 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-left hover:bg-primary/[0.1]">
+            <span><span className="block text-sm font-black text-primary">Convites, QR Code e presença</span><span className="block text-xs font-semibold text-[#7F8B9C]">Gerenciar a operação completa da gira</span></span>
+            <ArrowUpRight className="h-4 w-4 text-primary" />
+          </button>
+        </div>
+
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-white/10 p-3">
+          {!passed ? <button type="button" onClick={onNotify} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] text-xs font-bold text-emerald-300"><Bell className="h-3.5 w-3.5" />Lembrar</button> : null}
+          <button type="button" onClick={onEdit} className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-black text-[#17130D]', passed && 'col-span-2')}><Pencil className="h-3.5 w-3.5" />Editar gira</button>
+        </div>
+      </motion.aside>
+    </BodyPortal>
+  );
+}
+
 type EventFormData = {
   titulo: string;
   data: string;
@@ -399,6 +482,10 @@ function AddEventModalPanel({
         <form onSubmit={onSubmit} className="overflow-y-auto overscroll-y-contain p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
             <div className="sm:col-span-2">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">1. Informações da gira</p>
+              <p className="mt-1 text-xs font-semibold text-[#64748B]">Nome, tipo e destaque do evento.</p>
+            </div>
+            <div className="sm:col-span-2">
               <label className={appLabelClass}>Nome</label>
               <input
                 required
@@ -433,6 +520,10 @@ function AddEventModalPanel({
                 <option value="Especial">Especial / obrigação</option>
               </select>
             </div>
+            <div className="mt-2 border-t border-white/10 pt-4 sm:col-span-2">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">2. Data e detalhes</p>
+              <p className="mt-1 text-xs font-semibold text-[#64748B]">Defina quando acontecerá e inclua as orientações.</p>
+            </div>
             <div>
               <label className={appLabelClass}>Data</label>
               <input
@@ -462,6 +553,10 @@ function AddEventModalPanel({
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                 placeholder="Detalhes do evento…"
               />
+            </div>
+            <div className="mt-2 border-t border-white/10 pt-4 sm:col-span-2">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">3. Convites e publicação</p>
+              <p className="mt-1 text-xs font-semibold text-[#64748B]">Configure divulgação, vagas, senhas e imagem.</p>
             </div>
             <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 sm:col-span-2">
               <input
@@ -620,9 +715,27 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [removeBannerOnSave, setRemoveBannerOnSave] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const [adminView, setAdminView] = useState<'agenda' | 'calendar'>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 880 ? 'agenda' : 'calendar',
+  );
+  const [totalActiveChildren, setTotalActiveChildren] = useState(0);
 
   const hasAccess = hasPlanAccess(tenantData?.plan, 'gestao_eventos', tenantData?.is_admin_global);
   const effectiveTenantId = tenantData?.tenant_id || (!isFilho ? user?.id : undefined);
+
+  useEffect(() => {
+    if (isFilho || !effectiveTenantId || !user?.id) return;
+    authFetch(`/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(effectiveTenantId)}`)
+      .then((response) => response.ok ? response.json() : { data: [] })
+      .then((payload) => {
+        const active = (payload.data || []).filter((child: any) => {
+          const status = String(child?.status || 'Ativo').toLowerCase();
+          return status === 'ativo' || status === 'active';
+        });
+        setTotalActiveChildren(active.length);
+      })
+      .catch(() => setTotalActiveChildren(0));
+  }, [effectiveTenantId, isFilho, user?.id]);
 
   const closeNotifyChannelModal = () => {
     if (isNotifying) return;
@@ -1014,20 +1127,22 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   const getEventColor = (type: string) => {
     switch (type) {
-      case 'Festa': return 'bg-green-500';
+      case 'Festa': return 'bg-violet-400';
       case 'Obrigação': return 'bg-amber-500';
-      case 'Manutenção': return 'bg-blue-500';
-      case 'Gira': return 'bg-white';
+      case 'Gira': return 'bg-sky-400';
+      case 'Manutenção':
+      case 'Reunião': return 'bg-zinc-400';
       default: return 'bg-primary';
     }
   };
 
   const getEventStyles = (type: string) => {
     switch (type) {
-      case 'Festa': return 'bg-green-500/10 text-green-500 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]';
+      case 'Festa': return 'bg-violet-500/10 text-violet-300 border-violet-500/20';
       case 'Obrigação': return 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]';
-      case 'Manutenção': return 'bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
-      case 'Gira': return 'bg-white/5 text-white border-white/10 shadow-[0_0_10px_rgba(255,255,255,0.05)]';
+      case 'Gira': return 'bg-sky-500/10 text-sky-300 border-sky-500/20';
+      case 'Manutenção':
+      case 'Reunião': return 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20';
       default: return 'bg-[#FBBC00]/10 text-[#FBBC00] border-[#FBBC00]/20 shadow-[0_0_10px_rgba(251,188,0,0.1)]';
     }
   };
@@ -1063,6 +1178,15 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   }, [events]);
 
   const eventsNewestFirst = useMemo(() => [...eventsSorted].reverse(), [eventsSorted]);
+  const adminAgendaEvents = useMemo(() => {
+    const now = Date.now();
+    const future = eventsSorted.filter((event) => parseEventDateTime(event).getTime() >= now);
+    const past = eventsSorted.filter((event) => parseEventDateTime(event).getTime() < now).reverse();
+    return [...future, ...past];
+  }, [eventsSorted]);
+  const eventsThisMonth = events.filter((event) => isSameMonth(parseISO(event.data), new Date()));
+  const nextConfirmedCount = nextUpcomingEvent ? (confirmadosByEvent[nextUpcomingEvent.id] ?? []).length : 0;
+  const nextUnconfirmedCount = nextUpcomingEvent ? Math.max(0, totalActiveChildren - nextConfirmedCount) : 0;
 
   if (loading && events.length === 0) {
     return (
@@ -1073,6 +1197,33 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   }
 
   // Layout exclusivo para filhos de santo: calendário compacto + lista de eventos abaixo
+  const filhoGirasExperience = true;
+  if (isFilho && filhoGirasExperience) {
+    return (
+      <AppPageShell fullWidth>
+        <CalendarToast toast={toast} />
+        <FilhoGirasExperience
+          events={events}
+          currentMonth={currentMonth}
+          loading={loading}
+          error={eventsFetchError}
+          participations={participacoes}
+          busyEventId={partBusy}
+          onPreviousMonth={prevMonth}
+          onNextMonth={nextMonth}
+          onRefresh={() => void fetchEvents()}
+          onOpenEvent={setEventDetailModal}
+          onRespond={(eventId, action) => void handleFilhoParticipacao(eventId, action)}
+        />
+        <AnimatePresence>
+          {eventDetailModal && (
+            <EventDetailModalPanel event={eventDetailModal} onClose={() => setEventDetailModal(null)} />
+          )}
+        </AnimatePresence>
+      </AppPageShell>
+    );
+  }
+
   if (isFilho) {
     const upcomingEvents = [...events]
       .sort((a, b) => {
@@ -1346,31 +1497,101 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     <>
       <CalendarToast toast={toast} />
       <AppPageShell>
+        <div className="calendar-v5-page">
+        <GiraRitualCommand
+          events={events}
+          agendaEvents={adminAgendaEvents}
+          nextEvent={nextUpcomingEvent}
+          eventsThisMonth={eventsThisMonth}
+          calendarDays={calendarDays}
+          currentMonth={currentMonth}
+          monthStart={monthStart}
+          view={adminView}
+          nextConfirmedCount={nextConfirmedCount}
+          nextUnconfirmedCount={nextUnconfirmedCount}
+          confirmationsByEvent={confirmadosByEvent}
+          loading={loading}
+          isNotifying={isNotifying}
+          hasAccess={hasAccess}
+          fetchError={eventsFetchError}
+          tenantId={effectiveTenantId}
+          onNavigate={setActiveTab}
+          onViewChange={setAdminView}
+          onCreate={openCreateEventModal}
+          onRefresh={() => void fetchEvents()}
+          onShare={() => {
+            const url = `${window.location.origin}/eventos`;
+            void navigator.clipboard?.writeText(url);
+            setToast({ type: 'success', message: 'Link do calendário público copiado.' });
+          }}
+          onOpen={setEventDetailModal}
+          onNotify={setNotifyChannelEvent}
+          onEdit={openEditEventModal}
+          onOperations={setSelectedEventForOps}
+          onDelete={(event) => setItemToDelete({ id: event.id, type: 'event', title: event.titulo })}
+          onPreviousMonth={prevMonth}
+          onNextMonth={nextMonth}
+          onToday={() => setCurrentMonth(new Date())}
+        />
+
+        <div className="hidden" aria-hidden="true">
         <AppDemoPanelHeader
-          title="Calendário de giras"
-          description="Agende trabalhos espirituais, festas e giras — com lembretes automáticos no WhatsApp."
+          title="Giras e eventos"
+          description={`${eventsThisMonth.length} ${eventsThisMonth.length === 1 ? 'evento programado' : 'eventos programados'} neste mês.`}
           action={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => void fetchEvents()}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#252C35] bg-[#151A21] px-3 text-sm font-bold text-[#CBD5E1]"
                 title="Atualizar"
               >
-                <Loader2 className={cn('h-4 w-4', loading && 'animate-spin')} />
-                Atualizar
+                <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+                <span className="hidden sm:inline">Atualizar</span>
               </button>
-              <button 
-              type="button"
-              onClick={() => openCreateEventModal()}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-[#12161A] px-3 py-2 text-xs font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
-                >
-              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Adicionar
-                </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/eventos`;
+                  void navigator.clipboard?.writeText(url);
+                  setToast({ type: 'success', message: 'Link do calendário público copiado.' });
+                }}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#252C35] bg-[#151A21] px-3 text-sm font-bold text-[#CBD5E1]"
+              >
+                <Share2 className="h-4 w-4 text-sky-300" />
+                <span className="hidden sm:inline">Compartilhar</span>
+              </button>
+              <button type="button" onClick={() => openCreateEventModal()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-[#17130D] hover:bg-[#FFD34E]">
+                <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                Criar gira
+              </button>
             </div>
           }
         />
+
+        <section className="app-metric-rail mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo das giras">
+          {[
+            { label: 'Próxima gira', value: nextUpcomingEvent ? format(parseISO(nextUpcomingEvent.data), 'dd/MM') : '—', detail: nextUpcomingEvent?.titulo || 'nenhuma agendada', icon: CalendarDays, color: 'text-sky-300', bg: 'border-sky-400/20 bg-sky-400/10' },
+            { label: 'Eventos no mês', value: String(eventsThisMonth.length), detail: format(new Date(), 'MMMM', { locale: ptBR }), icon: CalendarRange, color: 'text-violet-300', bg: 'border-violet-400/20 bg-violet-400/10' },
+            { label: 'Confirmações', value: String(nextConfirmedCount), detail: nextUpcomingEvent ? 'na próxima gira' : 'aguardando agenda', icon: Users, color: 'text-emerald-300', bg: 'border-emerald-400/20 bg-emerald-400/10' },
+            { label: 'Sem confirmar', value: String(nextUnconfirmedCount), detail: nextUpcomingEvent ? 'pessoas da corrente' : 'aguardando agenda', icon: UserRoundX, color: 'text-amber-300', bg: 'border-amber-400/20 bg-amber-400/10' },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.label} className="rounded-2xl border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC]">
+                <div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}><Icon className={cn('h-4 w-4', item.color)} /></div>
+                <p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p>
+                <p className="mt-1 text-xl font-black">{item.value}</p>
+                <p className="mt-1 truncate text-xs font-semibold text-[#64748B]">{item.detail}</p>
+              </div>
+            );
+          })}
+        </section>
+
+        <div className="mb-4 flex w-fit rounded-xl border border-[#252C35] bg-[#11151A] p-1">
+          <button type="button" onClick={() => setAdminView('agenda')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', adminView === 'agenda' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><LayoutList className="h-4 w-4" />Agenda</button>
+          <button type="button" onClick={() => setAdminView('calendar')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', adminView === 'calendar' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><CalendarRange className="h-4 w-4" />Calendário</button>
+        </div>
 
         <div className="space-y-3">
           {eventsFetchError ? (
@@ -1385,8 +1606,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               </button>
             </div>
           ) : null}
-          <div className="flex flex-wrap justify-center gap-3 sm:grid sm:grid-cols-[repeat(auto-fill,minmax(17.5rem,20rem))] sm:justify-items-stretch">
-              {eventsNewestFirst.map((event) => {
+          {adminView === 'agenda' ? (
+            <>
+          <div className="app-agenda-stream space-y-3">
+              {adminAgendaEvents.map((event) => {
                 const passed = isEventPassed(event.data, event.hora);
                 const isEspecial =
                   event.status_confirmacao === 'Especial' || event.tipo === 'Obrigação';
@@ -1394,16 +1617,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   <article
                     key={event.id}
                     className={cn(
-                      'group flex w-full max-w-[20rem] flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] transition-all hover:border-[#2F3643] hover:shadow-lg sm:max-w-none',
+                      'group flex w-full flex-col overflow-hidden rounded-2xl border border-[#252C35] bg-[#11151A] transition-all hover:border-primary/25 hover:shadow-lg lg:flex-row',
                       passed && 'opacity-70',
                     )}
                   >
                     <button
                       type="button"
                       onClick={() => setEventDetailModal(event)}
-                      className="relative w-full cursor-pointer text-left"
+                      className="relative w-full min-w-0 flex-1 cursor-pointer text-left sm:grid sm:grid-cols-[9rem_1fr]"
                     >
-                    <div className="relative h-36 w-full overflow-hidden bg-[#0d0d0d] sm:h-40">
+                    <div className="relative h-32 w-full overflow-hidden bg-[#0d0d0d] sm:h-full sm:min-h-32">
                     {event.banner_url ? (
                         <img
                           src={event.banner_url}
@@ -1436,7 +1659,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         ) : null}
                     </div>
                       </div>
-                    <div className="p-4">
+                    <div className="p-4 sm:self-center">
                       <h4 className="text-base font-black leading-tight text-[#F1F5F9]">{event.titulo}</h4>
                       {event.descricao ? (
                         <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#94A3B8]">{event.descricao}</p>
@@ -1451,12 +1674,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                         {event.hora}
                         </span>
                       </div>
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary/70">
-                        Toque para ver detalhes
+                      <p className="mt-2 text-xs font-bold text-primary/80">
+                        Abrir detalhes e confirmações
                       </p>
                     </div>
                     </button>
-                    <div className="grid grid-cols-2 gap-2 border-t border-[#1E242B] p-3">
+                    <div className="grid grid-cols-2 gap-2 border-t border-[#1E242B] p-3 lg:w-48 lg:shrink-0 lg:border-l lg:border-t-0">
                       {!passed ? (
                         <button
                           type="button"
@@ -1511,7 +1734,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   </article>
                 );
               })}
-              {eventsNewestFirst.length === 0 && !eventsFetchError ? (
+              {adminAgendaEvents.length === 0 && !eventsFetchError ? (
                 <div className="col-span-full w-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
               </div>
@@ -1530,7 +1753,90 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 </p>
                   </div>
                 </div>
+            </>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+              <AppDemoCard className="overflow-hidden p-0">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-primary">Calendário mensal</p>
+                    <h3 className="mt-1 text-lg font-black capitalize text-white">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setCurrentMonth(new Date())} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-[#CBD5E1] hover:bg-white/5">Hoje</button>
+                    <button type="button" onClick={prevMonth} className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white" aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></button>
+                    <button type="button" onClick={nextMonth} className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white" aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></button>
+                  </div>
                 </div>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[680px] p-4">
+                    <div className="grid grid-cols-7">
+                      {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => <div key={day} className="px-2 py-2 text-center text-xs font-black text-[#64748B]">{day}</div>)}
+                    </div>
+                    <div className="grid grid-cols-7 overflow-hidden rounded-xl border border-white/10">
+                      {calendarDays.map((day) => {
+                        const dayEvents = events.filter((event) => isSameDay(parseISO(event.data), day));
+                        const today = isSameDay(day, new Date());
+                        const current = isSameMonth(day, monthStart);
+                        return (
+                          <div key={day.toISOString()} className={cn('min-h-24 border-b border-r border-white/10 p-2', !current && 'bg-black/20 opacity-45', today && 'bg-primary/[0.06]')}>
+                            <button type="button" onClick={() => setSelectedDate(day)} className={cn('grid h-7 w-7 place-items-center rounded-full text-xs font-black', today ? 'bg-primary text-[#17130D]' : 'text-[#CBD5E1]')}>{format(day, 'd')}</button>
+                            <div className="mt-1.5 space-y-1">
+                              {dayEvents.slice(0, 2).map((event) => (
+                                <button key={event.id} type="button" onClick={() => setEventDetailModal(event)} className={cn('block w-full truncate rounded-md border px-1.5 py-1 text-left text-[10px] font-bold', getEventStyles(event.tipo))}>{formatHoraEvento(event.hora)} {event.titulo}</button>
+                              ))}
+                              {dayEvents.length > 2 ? <button type="button" onClick={() => { setSelectedDate(day); setAdminView('agenda'); }} className="px-1 text-[10px] font-black text-primary">+{dayEvents.length - 2} eventos</button> : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-4">
+                      {[{ tipo: 'Gira', color: 'bg-sky-400' }, { tipo: 'Festa', color: 'bg-violet-400' }, { tipo: 'Obrigação', color: 'bg-amber-400' }, { tipo: 'Interno', color: 'bg-zinc-400' }].map((item) => <span key={item.tipo} className="flex items-center gap-2 text-xs font-bold text-[#7F8B9C]"><span className={cn('h-2 w-2 rounded-full', item.color)} />{item.tipo}</span>)}
+                    </div>
+                  </div>
+                </div>
+              </AppDemoCard>
+
+              <div className="space-y-4">
+                <AppDemoCard className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-xs font-black uppercase tracking-[0.12em] text-primary">Próxima gira</p><h3 className="mt-1 text-lg font-black text-white">{nextUpcomingEvent?.titulo || 'Nenhuma agendada'}</h3></div>
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                  </div>
+                  {nextUpcomingEvent ? (
+                    <>
+                      <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3">
+                        <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><span className="text-lg font-black">{format(parseISO(nextUpcomingEvent.data), 'dd')}</span></div>
+                        <div><p className="text-sm font-black text-white">{format(parseISO(nextUpcomingEvent.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p><p className="text-xs font-semibold text-[#7F8B9C]">{formatHoraEvento(nextUpcomingEvent.hora)} · {nextUpcomingEvent.tipo}</p></div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-emerald-400/[0.06] p-3"><p className="text-xl font-black text-emerald-300">{nextConfirmedCount}</p><p className="text-xs font-bold text-[#7F8B9C]">confirmados</p></div>
+                        <div className="rounded-xl bg-amber-400/[0.06] p-3"><p className="text-xl font-black text-amber-300">{nextUnconfirmedCount}</p><p className="text-xs font-bold text-[#7F8B9C]">sem resposta</p></div>
+                      </div>
+                      <button type="button" onClick={() => setEventDetailModal(nextUpcomingEvent)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-[#17130D]">Ver detalhes <ArrowUpRight className="h-4 w-4" /></button>
+                    </>
+                  ) : <button type="button" onClick={openCreateEventModal} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/30 text-sm font-black text-primary"><Plus className="h-4 w-4" />Criar primeira gira</button>}
+                </AppDemoCard>
+
+                <AppDemoCard className="p-5">
+                  <h3 className="text-sm font-black text-white">Próximos eventos</h3>
+                  <div className="mt-3 space-y-2">
+                    {eventsSorted.filter((event) => !isEventPassed(event.data, event.hora)).slice(0, 3).map((event) => (
+                      <button key={event.id} type="button" onClick={() => setEventDetailModal(event)} className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-left hover:border-primary/25">
+                        <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', getEventColor(event.tipo))} />
+                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{event.titulo}</span><span className="block text-xs font-semibold text-[#64748B]">{format(parseISO(event.data), 'dd/MM')} · {formatHoraEvento(event.hora)}</span></span>
+                        <ChevronRight className="h-4 w-4 text-[#64748B]" />
+                      </button>
+                    ))}
+                  </div>
+                </AppDemoCard>
+              </div>
+            </div>
+          )}
+                </div>
+        </div>
+        </div>
       </AppPageShell>
 
       <AnimatePresence>
@@ -1564,10 +1870,19 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           />
         ) : null}
         {eventDetailModal && (
-          <EventDetailModalPanel
+          <AdminEventDrawer
             event={eventDetailModal}
+            confirmed={confirmadosByEvent[eventDetailModal.id] ?? []}
             onClose={() => setEventDetailModal(null)}
             onEdit={() => openEditEventModal(eventDetailModal)}
+            onNotify={() => {
+              setNotifyChannelEvent(eventDetailModal);
+              setEventDetailModal(null);
+            }}
+            onOperations={() => {
+              setSelectedEventForOps(eventDetailModal);
+              setEventDetailModal(null);
+            }}
           />
         )}
       </AnimatePresence>

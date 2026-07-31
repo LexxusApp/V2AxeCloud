@@ -116,7 +116,7 @@ export function SettingsAccountCredentialsPanel({
   }
 
   return (
-    <div className="animate-fadeIn space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-5 sm:p-6">
+    <section className="animate-fadeIn space-y-4">
       {toast && (
         <div
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
@@ -129,16 +129,15 @@ export function SettingsAccountCredentialsPanel({
         </div>
       )}
 
-      <div className="border-b border-[#1E242B] pb-3.5">
-        <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Conta de Acesso</h6>
-        <p className="mt-0.5 text-[11px] font-light text-gray-400">
-          Altere o e-mail de login ou a senha da sua conta de zelador. Para sua segurança, confirme sempre com a senha
-          atual.
+      <div className="border-b border-[#D8D0C4] pb-3.5">
+        <h3 className="font-display text-lg font-black text-[#17130D]">Segurança e acesso</h3>
+        <p className="mt-1 text-xs font-semibold text-[#665F55]">
+          Altere separadamente o e-mail de login ou a senha da conta.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-stretch">
-        <div className="flex h-full flex-col gap-4">
+      <div className="settings-security-workbench grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
+        <div className="settings-dark-surface flex h-full flex-col gap-4 rounded-[1.5rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Mail className="h-4 w-4 text-[#3B82F6]" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar e-mail</span>
@@ -195,7 +194,7 @@ export function SettingsAccountCredentialsPanel({
           </button>
         </div>
 
-        <div className="flex h-full flex-col gap-4">
+        <div className="settings-dark-surface flex h-full flex-col gap-4 rounded-[1.5rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Lock className="h-4 w-4 text-amber-400" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar senha</span>
@@ -275,6 +274,6 @@ export function SettingsAccountCredentialsPanel({
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

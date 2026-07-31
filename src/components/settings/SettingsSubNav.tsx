@@ -14,17 +14,16 @@ export type SettingsSection = 'profile' | 'whatsapp' | 'subscription' | 'portal'
 type NavItem = {
   id: SettingsSection;
   label: string;
-  shortLabel: string;
+  description: string;
   icon: LucideIcon;
   iconClass?: string;
-  activeBorder?: string;
 };
 
 const ITEMS: NavItem[] = [
-  { id: 'profile', label: 'Perfil e Terreiro', shortLabel: 'Perfil', icon: User, iconClass: 'text-[#3B82F6]', activeBorder: 'border-l-[#3B82F6]' },
-  { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', icon: MessageSquare, iconClass: 'text-[#10B981]', activeBorder: 'border-l-[#10B981]' },
-  { id: 'subscription', label: 'Assinatura', shortLabel: 'Plano', icon: CreditCard, iconClass: 'text-primary', activeBorder: 'border-l-primary' },
-  { id: 'portal', label: 'Portal do Consulente', shortLabel: 'Portal', icon: Globe, iconClass: 'text-sky-400', activeBorder: 'border-l-sky-400' },
+  { id: 'profile', label: 'Conta e Casa', description: 'Identidade, foto e acesso', icon: User, iconClass: 'text-[#60A5FA]' },
+  { id: 'whatsapp', label: 'WhatsApp', description: 'Canal e automações', icon: MessageSquare, iconClass: 'text-[#34D399]' },
+  { id: 'subscription', label: 'Plano', description: 'Assinatura e recursos', icon: CreditCard, iconClass: 'text-primary' },
+  { id: 'portal', label: 'Portal Público', description: 'Diretório e pedidos', icon: Globe, iconClass: 'text-sky-300' },
 ];
 
 type SettingsSubNavProps = {
@@ -33,23 +32,23 @@ type SettingsSubNavProps = {
   onDeleteAccount?: () => void;
 };
 
-function SettingsDangerZone({ onDeleteAccount }: { onDeleteAccount?: () => void }) {
+export function SettingsDangerZone({ onDeleteAccount }: { onDeleteAccount?: () => void }) {
   if (!onDeleteAccount) return null;
   return (
-    <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3">
-      <span className="block text-[10px] font-bold uppercase tracking-wider text-rose-400/90">
-        Zona de perigo
-      </span>
-      <p className="mt-1 text-[9px] leading-normal text-gray-500">
-        Exclusão permanente da conta e de todos os dados do terreiro.
-      </p>
+    <div className="flex flex-col gap-3 rounded-2xl border border-rose-500/45 bg-[#2A0F15] p-4 shadow-[0_14px_36px_-28px_rgba(190,24,93,0.9)] sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <span className="block text-[10px] font-black uppercase tracking-wider text-rose-300">Zona de perigo</span>
+        <p className="mt-1 text-xs font-semibold leading-relaxed text-rose-100/80">
+          Exclui permanentemente a conta, o terreiro e todos os dados relacionados.
+        </p>
+      </div>
       <button
         type="button"
         onClick={onDeleteAccount}
-        className="mt-3 flex w-full items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-950/25 px-3 py-2.5 text-left text-[11px] font-bold text-rose-400 transition-colors hover:border-rose-500/35 hover:bg-rose-950/45 hover:text-rose-300"
+        className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-600 px-4 text-xs font-black text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-500"
       >
-        <Trash2 className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-        Excluir conta permanentemente
+        <Trash2 className="h-4 w-4" aria-hidden />
+        Excluir conta
       </button>
     </div>
   );
@@ -59,97 +58,65 @@ function NavButton({
   item,
   isActive,
   onChange,
-  compact = false,
 }: {
   item: NavItem;
   isActive: boolean;
   onChange: (section: SettingsSection) => void;
-  compact?: boolean;
 }) {
   const Icon = item.icon;
   return (
     <button
       type="button"
       onClick={() => onChange(item.id)}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-2 font-bold transition-all',
-        compact
-          ? cn(
-              'min-h-[44px] min-w-[calc(50%-0.25rem)] flex-1 items-center justify-center rounded-xl border px-3 py-3 text-xs touch-manipulation',
-              isActive
-                ? 'border-primary/40 bg-primary/15 text-primary'
-                : 'border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:text-white',
-            )
-          : cn(
-              'w-full rounded-xl px-3.5 py-3 text-left text-xs',
-              isActive
-                ? cn('border-l-2 bg-[#1E252E] text-white shadow-sm', item.activeBorder)
-                : 'text-[#94A3B8] hover:bg-white/5 hover:text-white',
-            ),
+        'group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border p-3 text-left transition',
+        isActive
+          ? 'border-primary/55 bg-[#11151A] shadow-[0_16px_34px_-24px_rgba(23,19,13,0.9)]'
+          : 'border-[#252C35] bg-[#13171D] hover:border-[#3B4654] hover:bg-[#171C22]',
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', item.iconClass)} aria-hidden />
-      {compact ? item.shortLabel : item.label}
+      <span
+        className={cn(
+          'absolute inset-y-0 left-0 w-1 transition-colors',
+          isActive ? 'bg-primary' : 'bg-transparent group-hover:bg-[#3B4654]',
+        )}
+      />
+      <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/5 bg-[#0F1318]', item.iconClass)}>
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <span className="min-w-0">
+        <span className={cn('block text-xs font-black', isActive ? 'text-white' : 'text-[#CBD5E1]')}>{item.label}</span>
+        <span className="mt-0.5 block text-[10px] font-semibold text-[#94A3B8]">{item.description}</span>
+      </span>
     </button>
   );
 }
 
-export function SettingsSubNav({ active, onChange, onDeleteAccount }: SettingsSubNavProps) {
+export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
   return (
-    <>
-      <div className="settings-subnav lg:hidden">
-        <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Sub-Menus</p>
-        <div className="flex flex-wrap gap-2 px-1">
-          {ITEMS.map((item) => (
-            <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} compact />
-          ))}
-        </div>
-        <div className="mt-3 space-y-3">
-          <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-500">
-              Identidade de Fé
-            </span>
-            <p className="mt-1 text-[9px] leading-normal text-gray-400">
-              As alterações refletem no mural, financeiro e na corrente de filhos de santo.
-            </p>
-          </div>
-          <SettingsDangerZone onDeleteAccount={onDeleteAccount} />
-        </div>
-      </div>
-
-      <div className="hidden space-y-2 lg:block">
-        <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Sub-Menus</p>
-        {ITEMS.map((item) => (
-          <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} />
-        ))}
-
-        <div className="mt-4 space-y-3 border-t border-[#1E242B] px-2 pt-4">
-          <div className="rounded-lg border border-[#1E242B] bg-[#12161A]/80 p-3 text-center">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-500">
-              Identidade de Fé
-            </span>
-            <p className="text-[9px] leading-normal text-gray-400">
-              As atualizações feitas aqui refletem nas assinaturas de mensagens, no mural, no financeiro e na corrente
-              de filhos de santo do terreiro.
-            </p>
-          </div>
-          <SettingsDangerZone onDeleteAccount={onDeleteAccount} />
-        </div>
-      </div>
-    </>
+    <nav
+      aria-label="Áreas de configuração"
+      className="settings-subnav grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+    >
+      {ITEMS.map((item) => (
+        <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} />
+      ))}
+    </nav>
   );
 }
 
 export function SettingsTabHeader() {
   return (
-    <div className="settings-tab-header flex flex-col gap-4 border-b border-[#1E242B] pb-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="settings-tab-header flex flex-col gap-4 border-b border-[#D8D0C4] pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h5 className="flex items-center gap-2 font-display text-lg font-bold text-[#F1F5F9]">
-          <Settings className="h-5 w-5 text-[#3B82F6]" aria-hidden />
-          Configurações da Zeladoria
-        </h5>
-        <p className="text-xs text-[#94A3B8]">
-          Gerencie a identidade da casa de Axé, customize assinaturas litúrgicas e conecte o WhatsApp do terreiro.
+        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Painel da casa</p>
+        <h1 className="flex items-center gap-2 font-display text-2xl font-black tracking-tight text-[#17130D] sm:text-3xl">
+          <Settings className="h-6 w-6 text-[#3B82F6]" aria-hidden />
+          Configurações
+        </h1>
+        <p className="mt-1.5 max-w-3xl text-sm font-semibold leading-relaxed text-[#665F55]">
+          Organize a identidade da casa, acessos, comunicações e presença pública.
         </p>
       </div>
     </div>

@@ -1,17 +1,37 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import {
+  ArrowUpRight,
+  CalendarDays,
+  Heart,
+  Megaphone,
   Plus,
   ChevronRight,
   ChevronDown,
+  Users,
   Wallet,
   Cake,
+  AlertTriangle,
+  CheckCircle2,
+  Circle,
+  Settings,
+  Sparkles,
+  ArrowRight,
+  Landmark,
+  Images,
+  Package,
+  BookOpen,
+  HandHeart,
+  TrendingUp,
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
-import { DashboardCalendar } from '../components/dashboard/DashboardCalendar';
+import PreceitoCommandCenter from '../components/preceito/PreceitoCommandCenter';
 import {
-  DashboardProximaGira,
+  HouseTimeline,
+  type HouseTimelineEvent,
+} from '../components/dashboard/HouseTimeline';
+import {
   pickNextUpcomingEvent,
   type DashboardNextEvent,
 } from '../components/dashboard/DashboardProximaGira';
@@ -25,8 +45,10 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
+  Tooltip,
   ResponsiveContainer,
   CartesianGrid,
   XAxis,
@@ -35,7 +57,6 @@ import {
 import { cn } from '../lib/utils';
 import LuxuryLoading from '../components/LuxuryLoading';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import Avatar from '../components/Avatar';
 import { supabase } from '../lib/supabase';
 import {
@@ -97,6 +118,12 @@ type DashboardBundle = {
   pedidosData: DashboardPedidoReza[];
   noticesData: DashboardNotice[];
   birthdayData: DashboardBirthday[];
+  upcomingEvents: DashboardNextEvent[];
+  pixConfig: {
+    chave_pix?: string | null;
+    valor_mensalidade?: number | null;
+    mensalidade_ativa?: boolean | null;
+  } | null;
 };
 
 function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
@@ -151,7 +178,7 @@ async function fetchDashboardFinanceBundle(
 
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
     const today = format(new Date(), 'yyyy-MM-dd');
-    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes] = await Promise.all([
+    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -197,6 +224,11 @@ async function fetchDashboardFinanceBundle(
       authFetch(`/api/events?tenantId=${tidEnc}&start=${today}&scope=calendar`).then((r) =>
         parseApiJson<{ data?: any[] }>(r, { data: [] })
       ),
+      userRole !== 'filho'
+        ? authFetch(`/api/v1/financial/pix-config?tenantId=${tidEnc}`).then((r) =>
+            parseApiJson<any>(r, null)
+          )
+        : Promise.resolve(null),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -273,6 +305,14 @@ async function fetchDashboardFinanceBundle(
       )
       .slice(0, 8);
 
+    const upcomingEvents = [...((eventsRes.data || []) as DashboardNextEvent[])]
+      .sort((a, b) => {
+        const first = new Date(`${a.data}T${a.hora || '00:00'}`).getTime();
+        const second = new Date(`${b.data}T${b.hora || '00:00'}`).getTime();
+        return first - second;
+      })
+      .slice(0, 4);
+
     return {
       transactions: normalized,
       childrenData: children.slice(0, 4),
@@ -282,6 +322,8 @@ async function fetchDashboardFinanceBundle(
       pedidosData,
       noticesData,
       birthdayData: birthdaysThisMonth(children),
+      upcomingEvents,
+      pixConfig: pixConfigRes?.data || pixConfigRes || null,
     };
   } catch (e) {
     if (e instanceof Error && e.message === SESSION_EXPIRED_ERR) throw e;
@@ -296,6 +338,8 @@ async function fetchDashboardFinanceBundle(
       pedidosData: [],
       noticesData: [],
       birthdayData: [],
+      upcomingEvents: [],
+      pixConfig: null,
     };
   }
 }
@@ -380,6 +424,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const allChildren = resolvedBundle?.allChildren ?? [];
   const pedidosData = resolvedBundle?.pedidosData ?? [];
   const birthdayData = resolvedBundle?.birthdayData ?? [];
+  const upcomingEvents = resolvedBundle?.upcomingEvents ?? [];
+  const pixConfig = resolvedBundle?.pixConfig ?? null;
 
   const birthdayMonthLabel = useMemo(() => {
     const raw = format(new Date(), 'MMMM', { locale: ptBR });
@@ -449,36 +495,38 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       return `01/${abbr}`;
     };
 
-    const monthlyFlow: Array<{ name: string; val: number }> = [];
+    const monthlyFlow: Array<{ name: string; entradas: number; saidas: number; saldo: number }> = [];
     for (let i = 5; i >= 0; i--) {
       const monthRef = subMonths(anchor, i);
-      let monthNet = 0;
+      let entradas = 0;
+      let saidas = 0;
       for (const t of counted) {
         if (!isLancamentoNoMesRef(t, monthRef)) continue;
         const n = Number(t.valor) || 0;
         const mt = normalizeMovimentoTipo(t.tipo);
-        if (mt === 'entrada') monthNet += n;
-        else if (mt === 'saida') monthNet -= n;
+        if (mt === 'entrada') entradas += n;
+        else if (mt === 'saida') saidas += n;
       }
-      monthlyFlow.push({ name: monthLabel(monthRef), val: Math.max(0, monthNet) });
+      monthlyFlow.push({ name: monthLabel(monthRef), entradas, saidas, saldo: entradas - saidas });
     }
 
     const daysInMonth = eachDayOfInterval({ start: startOfMonth(anchor), end: endOfMonth(anchor) });
-    const dailyFlow: Array<{ name: string; val: number }> = daysInMonth.map((day) => {
-      let dayNet = 0;
+    const dailyFlow: Array<{ name: string; entradas: number; saidas: number; saldo: number }> = daysInMonth.map((day) => {
+      let entradas = 0;
+      let saidas = 0;
       for (const t of counted) {
         const d = parseFinanceiroDataRef(t);
         if (!d || !isSameDay(d, day)) continue;
         const n = Number(t.valor) || 0;
         const mt = normalizeMovimentoTipo(t.tipo);
-        if (mt === 'entrada') dayNet += n;
-        else if (mt === 'saida') dayNet -= n;
+        if (mt === 'entrada') entradas += n;
+        else if (mt === 'saida') saidas += n;
       }
-      return { name: format(day, 'dd', { locale: ptBR }), val: Math.max(0, dayNet) };
+      return { name: format(day, 'dd', { locale: ptBR }), entradas, saidas, saldo: entradas - saidas };
     });
 
     const flowSeries = monthlyFlow;
-    const flowMax = Math.max(...flowSeries.map((p) => p.val), 0);
+    const flowMax = Math.max(...flowSeries.flatMap((p) => [p.entradas, p.saidas, Math.abs(p.saldo)]), 0);
     const flowYMax =
       flowMax <= 0
         ? 5000
@@ -504,11 +552,152 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   );
 
   const activeFlowYMax = useMemo(() => {
-    const max = Math.max(...activeFlowChart.map((p) => p.val), 0);
+    const max = Math.max(
+      ...activeFlowChart.flatMap((p) => [p.entradas, p.saidas, Math.abs(p.saldo)]),
+      0,
+    );
     if (max <= 0) return flowPeriod === 'month' ? 1000 : flowYMax;
     const step = max <= 1000 ? 200 : 1000;
     return Math.ceil(max / step) * step;
   }, [activeFlowChart, flowPeriod, flowYMax]);
+
+  const pendingMensalidades = useMemo(
+    () =>
+      transactions.filter((transaction) => {
+        const categoria = String(transaction?.categoria || '').trim().toLowerCase();
+        const status = String(transaction?.status || '').trim().toLowerCase();
+        return categoria === 'mensalidade' && (status === 'pendente' || status === 'atrasado');
+      }).length,
+    [transactions],
+  );
+  const pendingMensalidadesValue = useMemo(
+    () =>
+      transactions
+        .filter((transaction) => {
+          const categoria = String(transaction?.categoria || '').trim().toLowerCase();
+          const status = String(transaction?.status || '').trim().toLowerCase();
+          return categoria === 'mensalidade' && (status === 'pendente' || status === 'atrasado');
+        })
+        .reduce((total, transaction) => total + (Number(transaction?.valor) || 0), 0),
+    [transactions],
+  );
+  const pendingRezas = pedidosData.filter((pedido) => pedido.status === 'pendente').length;
+  const incompleteProfiles = allChildren.filter(
+    (child) => !String(child?.telefone || child?.celular || '').trim() || !String(child?.data_nascimento || '').trim(),
+  ).length;
+  const houseTimelineEvents = useMemo<HouseTimelineEvent[]>(() => {
+    const events: HouseTimelineEvent[] = [];
+
+    upcomingEvents.slice(0, 2).forEach((event) => {
+      if (!event?.id || !event?.data) return;
+      events.push({
+        id: String(event.id),
+        kind: 'gira',
+        title: String(event.titulo || 'Próxima gira da casa'),
+        detail: event.descricao
+          ? String(event.descricao)
+          : `${event.tipo || 'Encontro'}${event.hora ? ` · ${String(event.hora).slice(0, 5)}` : ''}`,
+        date: `${event.data}T${event.hora || '12:00:00'}`,
+        tab: 'calendar',
+        future: true,
+      });
+    });
+
+    [...allChildren]
+      .filter((child) => child?.id && child?.created_at)
+      .sort(
+        (a, b) =>
+          new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime(),
+      )
+      .slice(0, 4)
+      .forEach((child) => {
+        events.push({
+          id: String(child.id),
+          kind: 'member',
+          title: `${String(child.nome || 'Novo membro')} passou a fazer parte da corrente`,
+          detail: child.orixa_frente
+            ? `Cadastro espiritual · ${String(child.orixa_frente)}`
+            : 'Novo cadastro na comunidade da casa',
+          date: String(child.created_at),
+          tab: 'children',
+        });
+      });
+
+    [...transactions]
+      .filter((transaction) => transaction?.id && transaction?.data)
+      .sort(
+        (a, b) =>
+          new Date(String(b.data)).getTime() - new Date(String(a.data)).getTime(),
+      )
+      .slice(0, 5)
+      .forEach((transaction) => {
+        const movement = normalizeMovimentoTipo(transaction.tipo);
+        const amount = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(Number(transaction.valor) || 0);
+        const category = String(transaction.categoria || '').trim();
+        events.push({
+          id: String(transaction.id),
+          kind: 'finance',
+          title:
+            category.toLowerCase() === 'mensalidade'
+              ? 'Mensalidade registrada'
+              : movement === 'saida'
+                ? 'Saída registrada no caixa'
+                : 'Entrada registrada no caixa',
+          detail: `${String(transaction.descricao || category || 'Movimentação financeira')} · ${amount}`,
+          date: String(transaction.data),
+          tab: 'financial',
+        });
+      });
+
+    noticesData.slice(0, 4).forEach((notice) => {
+      const date = String(notice.data_publicacao || notice.created_at || '');
+      if (!notice?.id || !date) return;
+      events.push({
+        id: String(notice.id),
+        kind: 'notice',
+        title: 'Comunicado publicado para a corrente',
+        detail: String(notice.titulo || notice.categoria || 'Novo aviso da casa'),
+        date,
+        tab: 'mural',
+      });
+    });
+
+    pedidosData.slice(0, 4).forEach((pedido) => {
+      if (!pedido?.id || !pedido?.created_at) return;
+      const isPending = pedido.status === 'pendente';
+      events.push({
+        id: String(pedido.id),
+        kind: 'care',
+        title: isPending ? 'Novo pedido de reza recebido' : 'Pedido de reza acolhido',
+        detail: `${String(pedido.nome || 'Fiel')} · ${String(pedido.categoria || pedido.linha || 'Acolhimento espiritual')}`,
+        date: String(pedido.created_at),
+        tab: 'atendimentos',
+      });
+    });
+
+    return events
+      .filter((event) => !Number.isNaN(new Date(event.date).getTime()))
+      .sort((a, b) => {
+        if (a.future !== b.future) return a.future ? -1 : 1;
+        const first = new Date(a.date).getTime();
+        const second = new Date(b.date).getTime();
+        return a.future ? first - second : second - first;
+      });
+  }, [allChildren, noticesData, pedidosData, transactions, upcomingEvents]);
+  const [directorsInvited, setDirectorsInvited] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('axecloud:onboarding-directors') === '1' : false,
+  );
+
+  const toggleDirectorsInvited = () => {
+    setDirectorsInvited((current) => {
+      const next = !current;
+      localStorage.setItem('axecloud:onboarding-directors', next ? '1' : '0');
+      return next;
+    });
+  };
 
   useEffect(() => {
     const onFinanceUpdated = () => {
@@ -607,9 +796,21 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
+  const setupStepsV5 = [
+    Boolean(allChildren.length),
+    Boolean(String(pixConfig?.chave_pix || '').trim()),
+    Boolean(pixConfig?.mensalidade_ativa && Number(pixConfig?.valor_mensalidade) > 0),
+    Boolean(nextEvent),
+    Boolean(noticesData.length),
+    directorsInvited,
+  ];
+  const setupProgressV5 = Math.round(
+    (setupStepsV5.filter(Boolean).length / setupStepsV5.length) * 100,
+  );
 
   return (
     <AppPageShell>
+      <div className="dashboard-v5">
       {fetchFailed && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <p className="text-sm font-medium text-amber-200">
@@ -639,28 +840,446 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
       )}
 
-      <AppDemoPanelHeader
-        title={`${timeGreeting}, ${firstName}`}
-        description={formattedDate}
-      />
+      <section className="dashboard-v5-hero mb-6 overflow-hidden rounded-[2rem]" aria-labelledby="dashboard-v5-title">
+        <div className="dashboard-v5-hero__content">
+          <div className="min-w-0">
+            <p className="dashboard-v5-eyebrow">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              AxéCloud · casa em movimento
+            </p>
+            <h1 id="dashboard-v5-title" className="mt-3 font-display text-3xl font-black tracking-[-0.035em] text-[#FFFDF7] sm:text-4xl">
+              {timeGreeting}, {firstName}.
+            </h1>
+            <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-[#D8E0D7]">
+              {formattedDate}. Sua casa, sua corrente e sua rotina reunidas com clareza.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <button type="button" onClick={() => setActiveTab('calendar')} className="dashboard-v5-hero__primary">
+                <CalendarDays className="h-4 w-4" aria-hidden />
+                {nextEvent ? 'Ver próxima gira' : 'Agendar primeira gira'}
+              </button>
+              <button type="button" onClick={() => setActiveTab('children')} className="dashboard-v5-hero__secondary">
+                Ver corrente
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+
+          <div className="dashboard-v5-hero__moment">
+            <div className="flex items-center justify-between gap-3">
+              <span className="dashboard-v5-hero__moment-label">Próximo movimento</span>
+              <Landmark className="h-4 w-4 text-[#E8C767]" aria-hidden />
+            </div>
+            {nextEvent ? (
+              <>
+                <p className="mt-5 text-2xl font-black leading-tight text-white">{nextEvent.titulo}</p>
+                <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-[#D8E0D7]">
+                  {format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}
+                  {nextEvent.hora ? ` · ${nextEvent.hora.slice(0, 5)}` : ''}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-5 text-xl font-black leading-tight text-white">A agenda está livre</p>
+                <p className="mt-2 text-xs font-semibold leading-relaxed text-[#B8C5BB]">
+                  Organize a próxima gira para manter toda a corrente informada.
+                </p>
+              </>
+            )}
+            <div className="mt-5 h-px bg-white/10" />
+            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#AEBBAF]">
+              “Organização também é uma forma de cuidado.”
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <PreceitoCommandCenter tenantId={tenantId} />
+
+      <div className="dashboard-v5-home grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.55fr)]">
+        <div className="space-y-5">
+          <section className="dashboard-v5-module-launcher" aria-labelledby="quick-access-v5">
+            <div className="dashboard-v5-section-heading">
+              <div>
+                <p className="dashboard-v5-section-kicker">Sua rotina</p>
+                <h2 id="quick-access-v5">Acesso rápido</h2>
+              </div>
+              <p>Entre direto no que precisa fazer.</p>
+            </div>
+            <div className="dashboard-v5-module-grid">
+              {[
+                { label: 'Corrente', detail: `${allChildren.length} pessoas`, icon: Users, tab: 'children', tone: 'blue' },
+                { label: 'Giras', detail: nextEvent ? 'agenda ativa' : 'sem agenda', icon: CalendarDays, tab: 'calendar', tone: 'gold' },
+                { label: 'Financeiro', detail: `${pendingMensalidades} pendências`, icon: Wallet, tab: 'financial', tone: 'green' },
+                { label: 'Comunicados', detail: `${noticesData.length} publicados`, icon: Megaphone, tab: 'mural', tone: 'terra' },
+                { label: 'Galeria', detail: 'memórias da casa', icon: Images, tab: 'gallery', tone: 'violet' },
+                { label: 'Almoxarifado', detail: 'itens e estoque', icon: Package, tab: 'inventory', tone: 'blue' },
+                { label: 'Biblioteca', detail: 'estudo e tradição', icon: BookOpen, tab: 'library', tone: 'gold' },
+                { label: 'Atendimentos', detail: `${pendingRezas} aguardando`, icon: HandHeart, tab: 'atendimentos', tone: 'terra' },
+              ].map((module) => {
+                const Icon = module.icon;
+                return (
+                  <button
+                    key={module.label}
+                    type="button"
+                    onClick={() => setActiveTab(module.tab)}
+                    className="dashboard-v5-module"
+                    data-tone={module.tone}
+                  >
+                    <span className="dashboard-v5-module__icon"><Icon className="h-5 w-5" aria-hidden /></span>
+                    <span className="min-w-0">
+                      <strong>{module.label}</strong>
+                      <small>{module.detail}</small>
+                    </span>
+                    <ArrowUpRight className="dashboard-v5-module__arrow h-4 w-4" aria-hidden />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="dashboard-v5-routine" aria-labelledby="routine-v5">
+            <div className="dashboard-v5-section-heading">
+              <div>
+                <p className="dashboard-v5-section-kicker">Agora</p>
+                <h2 id="routine-v5">O que movimenta a casa</h2>
+              </div>
+              <p>Uma leitura simples do que merece atenção hoje.</p>
+            </div>
+            <div className="dashboard-v5-routine-list">
+              {[
+                pendingMensalidades > 0
+                  ? {
+                      label: 'Mensalidades aguardando revisão',
+                      detail: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} · ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue)}`,
+                      tab: 'financial',
+                      status: 'Financeiro',
+                      tone: 'gold',
+                    }
+                  : {
+                      label: 'Mensalidades em ordem',
+                      detail: 'Nenhuma cobrança pendente neste momento',
+                      tab: 'financial',
+                      status: 'Tudo certo',
+                      tone: 'green',
+                    },
+                nextEvent
+                  ? {
+                      label: nextEvent.titulo,
+                      detail: `Próxima gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}`,
+                      tab: 'calendar',
+                      status: 'Agenda',
+                      tone: 'blue',
+                    }
+                  : {
+                      label: 'A próxima gira ainda não foi marcada',
+                      detail: 'Organize a agenda e avise toda a corrente',
+                      tab: 'calendar',
+                      status: 'Agendar',
+                      tone: 'blue',
+                    },
+                pendingRezas > 0
+                  ? {
+                      label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`,
+                      detail: 'Pessoas aguardando acolhimento da casa',
+                      tab: 'atendimentos',
+                      status: 'Acolher',
+                      tone: 'terra',
+                    }
+                  : {
+                      label: 'Pedidos de reza acompanhados',
+                      detail: 'Nenhum pedido aguardando acolhimento',
+                      tab: 'atendimentos',
+                      status: 'Em dia',
+                      tone: 'green',
+                    },
+              ].map((item, index) => (
+                <button key={`${item.label}-${index}`} type="button" onClick={() => setActiveTab(item.tab)} className="dashboard-v5-routine-item" data-tone={item.tone}>
+                  <span className="dashboard-v5-routine-index">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="min-w-0 flex-1">
+                    <strong>{item.label}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                  <span className="dashboard-v5-routine-status">{item.status}</span>
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-5">
+          <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="dashboard-v5-section-kicker">Jornada da casa</p>
+                <h2 id="progress-v5">Estrutura no AxéCloud</h2>
+              </div>
+              <TrendingUp className="h-5 w-5 text-[#D8AD37]" aria-hidden />
+            </div>
+            <div className="dashboard-v5-progress__body">
+              <div className="dashboard-v5-progress__ring" style={{ '--progress': `${setupProgressV5 * 3.6}deg` } as React.CSSProperties}>
+                <span>{setupProgressV5}%</span>
+              </div>
+              <div>
+                <strong>{setupStepsV5.filter(Boolean).length} de {setupStepsV5.length} etapas</strong>
+                <p>Complete a estrutura básica para aproveitar toda a gestão da casa.</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => setActiveTab('settings')} className="dashboard-v5-progress__action">
+              Continuar configuração <ArrowRight className="h-4 w-4" />
+            </button>
+          </section>
+
+          <section className="dashboard-v5-message">
+            <p className="dashboard-v5-section-kicker">Mensagem da casa</p>
+            <blockquote>“Organizar é abrir espaço para cuidar melhor de cada pessoa da corrente.”</blockquote>
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <span>AxéCloud</span>
+              <Sparkles className="h-4 w-4 text-[#E8C767]" aria-hidden />
+            </div>
+          </section>
+
+          <section className="dashboard-v5-current">
+            <div>
+              <p className="dashboard-v5-section-kicker">Sua corrente</p>
+              <h2>Presenças que constroem a casa</h2>
+            </div>
+            <div className="mt-5 flex items-center">
+              {childrenData.slice(0, 5).map((filho, index) => (
+                <Avatar
+                  key={filho.id}
+                  src={filho.foto_url}
+                  name={filho.nome}
+                  shape="circle"
+                  textSize="text-xs"
+                  className={cn('h-10 w-10 border-2 border-[#FFFDF8]', index > 0 && '-ml-2.5')}
+                />
+              ))}
+              <button type="button" onClick={() => setActiveTab('children')} className="ml-3 text-xs font-black text-[#526A55]">
+                Ver {allChildren.length} pessoas
+              </button>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <HouseTimeline events={houseTimelineEvents} onNavigate={setActiveTab} />
+
+      <div className="dashboard-v5-legacy">
+      <section className="app-metric-rail mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo da casa">
+        {[
+          {
+            label: 'Filhos ativos',
+            value: String(allChildren.length),
+            helper: allChildren.length === 1 ? 'pessoa na corrente' : 'pessoas na corrente',
+            icon: Users,
+            accent: 'text-sky-300',
+            iconBg: 'border-sky-400/20 bg-sky-400/10',
+            action: () => setActiveTab('children'),
+          },
+          {
+            label: 'Cobranças pendentes',
+            value: String(pendingMensalidades),
+            helper:
+              pendingMensalidades > 0
+                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue)
+                : 'nenhuma pendência',
+            icon: Wallet,
+            accent: pendingMensalidades > 0 ? 'text-amber-300' : 'text-[#CBD5E1]',
+            iconBg:
+              pendingMensalidades > 0
+                ? 'border-amber-400/20 bg-amber-400/10'
+                : 'border-white/10 bg-white/[0.04]',
+            action: () => setActiveTab('financial'),
+          },
+          {
+            label: 'Avisos recentes',
+            value: String(noticesData.length),
+            helper: noticesData.length === 1 ? 'comunicado publicado' : 'comunicados publicados',
+            icon: Megaphone,
+            accent: 'text-violet-300',
+            iconBg: 'border-violet-400/20 bg-violet-400/10',
+            action: () => setActiveTab('mural'),
+          },
+          {
+            label: 'Pedidos de reza',
+            value: String(pedidosData.filter((pedido) => pedido.status === 'pendente').length),
+            helper: 'aguardando acolhimento',
+            icon: Heart,
+            accent: 'text-rose-300',
+            iconBg: 'border-rose-400/20 bg-rose-400/10',
+            action: () => setActiveTab('atendimentos'),
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={item.action}
+              className="group rounded-2xl border border-[#252C35] bg-[#151A21] p-4 text-left shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)] transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-[#181E26] sm:p-5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className={cn('grid h-10 w-10 place-items-center rounded-xl border', item.iconBg)}>
+                  <Icon className={cn('h-5 w-5', item.accent)} aria-hidden />
+                </span>
+                <ArrowUpRight
+                  className="h-4 w-4 text-[#475569] transition-colors group-hover:text-primary"
+                  aria-hidden
+                />
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.12em] text-[#AAB4C2]">
+                {item.label}
+              </p>
+              <p className="mt-1 truncate font-display text-2xl font-black tracking-tight text-[#F8FAFC] sm:text-3xl">
+                {item.value}
+              </p>
+              <p className="mt-1 truncate text-xs font-semibold text-[#7F8B9C]">{item.helper}</p>
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="app-command-strip mb-6 rounded-2xl border border-[#252C35] bg-[#12161A] p-3 sm:p-4" aria-label="Ações rápidas">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="shrink-0 px-1 xl:w-44">
+            <p className="text-sm font-extrabold text-[#F8FAFC]">Ações rápidas</p>
+            <p className="mt-0.5 text-xs font-medium text-[#64748B]">Resolva a rotina em poucos cliques.</p>
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-4">
+            {[
+              allChildren.length === 0
+                ? { label: 'Cadastrar primeiro filho', icon: Users, tab: 'children', primary: true }
+                : pendingMensalidades > 0
+                  ? { label: 'Revisar cobranças', icon: Wallet, tab: 'financial', primary: true }
+                  : !nextEvent
+                    ? { label: 'Agendar próxima gira', icon: CalendarDays, tab: 'calendar', primary: true }
+                    : { label: 'Publicar novo aviso', icon: Megaphone, tab: 'mural', primary: true },
+              { label: 'Cadastrar filho', icon: Users, tab: 'children', primary: false },
+              { label: 'Lançar movimentação', icon: Wallet, tab: 'financial', primary: false },
+              { label: 'Criar gira', icon: CalendarDays, tab: 'calendar', primary: false },
+            ].map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => setActiveTab(action.tab)}
+                  className={cn(
+                    'flex min-h-12 items-center gap-2.5 rounded-xl border px-3 text-left text-sm font-bold transition-all sm:px-4',
+                    action.primary
+                      ? 'border-primary bg-primary text-[#17130D] shadow-sm hover:bg-[#FFD34E]'
+                      : 'border-[#252C35] bg-[#181D24] text-[#CBD5E1] hover:border-primary/30 hover:bg-primary/[0.08] hover:text-[#F8FAFC]',
+                  )}
+                >
+                  <Icon className={cn('h-4 w-4 shrink-0', action.primary ? 'text-[#17130D]' : 'text-primary')} aria-hidden />
+                  <span>{action.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <div className="app-focus-board mb-6 grid gap-4 xl:grid-cols-2">
+        <section className="rounded-2xl border border-[#252C35] bg-[#11151A] p-5 text-[#F8FAFC]" aria-labelledby="attention-title">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-300">Prioridades</p>
+              <h2 id="attention-title" className="mt-1 text-lg font-black">O que precisa de atenção</h2>
+            </div>
+            <AlertTriangle className="h-5 w-5 text-amber-300" aria-hidden />
+          </div>
+          <div className="space-y-2">
+            {[
+              pendingMensalidades > 0
+                ? { label: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} pendente${pendingMensalidades === 1 ? '' : 's'}`, detail: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue), tab: 'financial', color: 'text-amber-300' }
+                : null,
+              pendingRezas > 0
+                ? { label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`, detail: 'aguardando acolhimento', tab: 'atendimentos', color: 'text-rose-300' }
+                : null,
+              !nextEvent
+                ? { label: 'Próxima gira não agendada', detail: 'organize o calendário da casa', tab: 'calendar', color: 'text-sky-300' }
+                : null,
+              incompleteProfiles > 0
+                ? { label: `${incompleteProfiles} cadastro${incompleteProfiles === 1 ? '' : 's'} incompleto${incompleteProfiles === 1 ? '' : 's'}`, detail: 'faltam contato ou nascimento', tab: 'children', color: 'text-violet-300' }
+                : null,
+            ].filter(Boolean).map((item) => item && (
+              <button key={item.label} type="button" onClick={() => setActiveTab(item.tab)} className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3 text-left transition hover:border-primary/25 hover:bg-white/[0.06]">
+                <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full bg-current', item.color)} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-white">{item.label}</span>
+                  <span className="block text-xs font-semibold text-[#7F8B9C]">{item.detail}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#64748B]" aria-hidden />
+              </button>
+            ))}
+            {pendingMensalidades === 0 && pendingRezas === 0 && nextEvent && incompleteProfiles === 0 ? (
+              <div className="flex min-h-24 items-center justify-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-4 text-center">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                <p className="text-sm font-bold text-emerald-200">Tudo em ordem por aqui.</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#252C35] bg-[#11151A] p-5 text-[#F8FAFC]" aria-labelledby="onboarding-title">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Primeiros passos</p>
+              <h2 id="onboarding-title" className="mt-1 text-lg font-black">Prepare sua casa no AxéCloud</h2>
+            </div>
+            <Settings className="h-5 w-5 text-primary" aria-hidden />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[
+              { label: 'Cadastrar um filho', done: allChildren.length > 0, tab: 'children' },
+              { label: 'Configurar chave Pix', done: Boolean(String(pixConfig?.chave_pix || '').trim()), tab: 'financial-configs' },
+              { label: 'Ativar mensalidade', done: Boolean(pixConfig?.mensalidade_ativa && Number(pixConfig?.valor_mensalidade) > 0), tab: 'financial-configs' },
+              { label: 'Agendar primeira gira', done: Boolean(nextEvent), tab: 'calendar' },
+              { label: 'Publicar primeiro aviso', done: noticesData.length > 0, tab: 'mural' },
+              { label: 'Convidar diretoria', done: directorsInvited, tab: 'settings', manual: true },
+            ].map((step) => (
+              <button
+                key={step.label}
+                type="button"
+                onClick={() => step.manual ? toggleDirectorsInvited() : setActiveTab(step.tab)}
+                className={cn(
+                  'flex min-h-11 items-center gap-2.5 rounded-xl border px-3 text-left text-sm font-bold transition',
+                  step.done
+                    ? 'border-emerald-400/15 bg-emerald-400/[0.05] text-[#9CA8B8]'
+                    : 'border-white/10 bg-white/[0.035] text-white hover:border-primary/30',
+                )}
+              >
+                {step.done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" /> : <Circle className="h-4 w-4 shrink-0 text-[#64748B]" />}
+                <span className={cn(step.done && 'line-through decoration-[#64748B]')}>{step.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-xs font-semibold text-[#64748B]">O item “Convidar diretoria” pode ser marcado manualmente.</p>
+        </section>
+      </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         
         {/* Left Section (65%) */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="space-y-6 lg:col-span-8">
           
           {/* Card: entradas + fluxo financeiro */}
-          <div className="app-v3-panel p-6 md:p-8 relative overflow-hidden group">
+          <div className="app-v3-panel group relative overflow-hidden p-5 sm:p-6">
             <div className="relative z-10 flex justify-between items-start gap-4 mb-4">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-400 leading-snug">
-                  Entradas no caixa (acumulado)
+                <p className="text-sm font-bold text-gray-300 leading-snug">
+                  Movimentação financeira
                 </p>
-                <h2 className="text-3xl md:text-4xl font-black mt-1 tracking-tighter text-white truncate">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceita)}
-                </h2>
-                <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] font-bold leading-snug">
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                  <div><p className="text-xs font-semibold text-gray-500">Entradas</p><p className="text-lg font-black text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalReceita)}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Saídas</p><p className="text-lg font-black text-rose-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalDespesa)}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Saldo líquido</p><p className={cn('text-lg font-black', stats.lucroLiquido >= 0 ? 'text-primary' : 'text-rose-400')}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.lucroLiquido)}</p></div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs font-bold leading-snug">
                   {stats.growthPct !== null ? (
                     <>
                       <span
@@ -749,7 +1368,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               </div>
             </div>
 
-            <div className="h-48 md:h-56 w-full relative z-10 min-w-0">
+            <div className="relative z-10 h-44 w-full min-w-0 sm:h-48">
               {!hasMonthFinanceData ? (
                 <div className="flex h-full min-h-[192px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/25 px-6 text-center">
                   <Wallet className="mb-3 h-10 w-10 text-[#FF9F0A]/35" aria-hidden />
@@ -760,7 +1379,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={192} debounce={50}>
-                  <AreaChart
+                  <ComposedChart
                     data={activeFlowChart}
                     margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                   >
@@ -783,35 +1402,55 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }}
-                      domain={[0, activeFlowYMax]}
+                      domain={[-activeFlowYMax, activeFlowYMax]}
                       tickCount={6}
                       width={48}
                       tickFormatter={(v) =>
                         v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
                       }
                     />
+                    <Tooltip
+                      contentStyle={{ background: '#0B0D11', border: '1px solid #303844', borderRadius: 12 }}
+                      labelStyle={{ color: '#F8FAFC', fontWeight: 800 }}
+                      formatter={(value: number, name: string) => [
+                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value),
+                        name === 'entradas' ? 'Entradas' : name === 'saidas' ? 'Saídas' : 'Saldo',
+                      ]}
+                    />
                     <Area
                       type="monotone"
-                      dataKey="val"
-                      stroke="#FF9F0A"
-                      strokeWidth={2.5}
-                      fill="url(#fluxoOrangeGradient)"
-                      fillOpacity={1}
-                      dot={{ r: 4, fill: '#FF9F0A', strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#FF9F0A', stroke: '#121212', strokeWidth: 2 }}
+                      dataKey="entradas"
+                      stroke="#34D399"
+                      strokeWidth={2}
+                      fill="#34D399"
+                      fillOpacity={0.12}
+                      dot={false}
                       isAnimationActive={!reduceChartGpu}
                       animationDuration={reduceChartGpu ? 0 : 800}
                     />
-                  </AreaChart>
+                    <Area
+                      type="monotone"
+                      dataKey="saidas"
+                      stroke="#FB7185"
+                      strokeWidth={2}
+                      fill="#FB7185"
+                      fillOpacity={0.1}
+                      dot={false}
+                      isAnimationActive={!reduceChartGpu}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="saldo"
+                      stroke="#FFC107"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: '#FFC107', strokeWidth: 0 }}
+                      isAnimationActive={!reduceChartGpu}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               )}
             </div>
           </div>
-
-          <DashboardCalendar
-            tenantId={tenantId}
-            onOpenCalendar={() => setActiveTab('calendar')}
-          />
 
           {userRole !== 'filho' && tenantId && (
             <DashboardPedidosRezaAltar
@@ -864,86 +1503,106 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                     <p className="text-[10px] text-gray-500 mt-0.5 text-center truncate w-full uppercase tracking-widest font-medium">Ativo</p>
                   </div>
                 ))}
-                {childrenData.length === 0 && Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center opacity-20">
-                     <div className="w-20 h-20 rounded-full bg-white/5"></div>
-                     <div className="w-16 h-2 bg-white/5 mt-4 rounded"></div>
+                {childrenData.length === 0 ? (
+                  <div className="col-span-2 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#303844] bg-black/15 px-5 text-center md:col-span-4">
+                    <div className="grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
+                      <Users className="h-6 w-6 text-primary" aria-hidden />
+                    </div>
+                    <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">Comece cadastrando a corrente</p>
+                    <p className="mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                      Adicione os primeiros filhos de santo para organizar contatos, mensalidades e acessos ao portal.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('children')}
+                      className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-[#080A0D] transition-colors hover:bg-[#FFD34E]"
+                    >
+                      <Plus className="h-4 w-4" aria-hidden />
+                      Cadastrar primeiro filho
+                    </button>
                   </div>
-                ))}
+                ) : null}
              </div>
           </div>
         </div>
 
         {/* Right Section (35%) */}
-        <div className="lg:col-span-4 space-y-8">
-
-          <DashboardProximaGira
-            event={nextEvent}
-            onOpenCalendar={() => setActiveTab('calendar')}
-          />
-
-          {/* Card: Aniversariantes do mês */}
-          <div className="app-v3-panel p-8">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="space-y-6 lg:col-span-4">
+          <section className="app-v3-panel p-5 sm:p-6" aria-labelledby="agenda-title">
+            <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-                  <Cake className="h-5 w-5 text-primary" aria-hidden />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/10">
+                  <CalendarDays className="h-5 w-5 text-sky-300" aria-hidden />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Aniversariantes do mês</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">{birthdayMonthLabel}</p>
+                  <h3 id="agenda-title" className="text-lg font-black">Agenda e lembretes</h3>
+                  <p className="text-xs font-bold text-[#7F8B9C]">Próximos compromissos da casa</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setActiveTab('children')}
-                className="text-xs font-bold uppercase tracking-widest text-primary hover:underline"
+                onClick={() => setActiveTab('calendar')}
+                className="text-xs font-black text-primary hover:underline"
               >
-                Ver membros
+                Abrir agenda
               </button>
             </div>
 
-            {birthdayData.length > 0 ? (
-              <div className="space-y-4">
-                {birthdayData.map((person) => (
+            {upcomingEvents.length > 0 ? (
+              <div className="space-y-2">
+                {upcomingEvents.map((event, index) => {
+                  const eventDate = new Date(`${event.data}T12:00:00`);
+                  return (
                   <button
-                    key={person.id}
+                    key={event.id}
                     type="button"
-                    onClick={() => {
-                      if (setSelectedChildId) {
-                        setSelectedChildId(person.id);
-                        setActiveTab('profile');
-                      }
-                    }}
-                    className="flex w-full items-center gap-4 rounded-2xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 text-left transition-colors hover:border-primary/25 hover:bg-white/[0.03]"
+                    onClick={() => setActiveTab('calendar')}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors hover:border-primary/25',
+                      index === 0 ? 'border-primary/20 bg-primary/[0.07]' : 'border-white/10 bg-white/[0.025]',
+                    )}
                   >
-                    <Avatar
-                      src={person.foto_url}
-                      name={person.nome}
-                      shape="circle"
-                      textSize="text-sm"
-                      className="h-11 w-11 shrink-0"
-                    />
+                    <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl border text-center', index === 0 ? 'border-primary/25 bg-primary/10 text-primary' : 'border-sky-400/20 bg-sky-400/10 text-sky-300')}>
+                      <span className="text-base font-black leading-none">{format(eventDate, 'dd')}</span>
+                      <span className="text-[9px] font-black uppercase leading-none">{format(eventDate, 'MMM', { locale: ptBR }).replace('.', '')}</span>
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-white">{person.nome}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                        Dia {person.day}
-                      </p>
+                      <p className="truncate text-sm font-bold text-white">{event.titulo}</p>
+                      <p className="mt-0.5 text-xs font-semibold text-[#7F8B9C]">{event.hora ? `${event.hora.slice(0, 5)} · ` : ''}{index === 0 ? 'próximo evento' : event.tipo || 'compromisso'}</p>
                     </div>
-                    <Cake className="h-4 w-4 shrink-0 text-primary/50" aria-hidden />
+                    <ChevronRight className="h-4 w-4 text-[#64748B]" aria-hidden />
+                  </button>
+                )})}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-7 text-center">
+                <CalendarDays className="mx-auto mb-2 h-7 w-7 text-sky-300/40" />
+                <p className="text-sm font-bold text-gray-300">Nenhum evento agendado</p>
+                <button type="button" onClick={() => setActiveTab('calendar')} className="mt-3 text-xs font-black text-primary hover:underline">Agendar primeira gira</button>
+              </div>
+            )}
+
+            <div className="my-5 h-px bg-white/10" />
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cake className="h-4 w-4 text-violet-300" aria-hidden />
+                <h4 className="text-sm font-black">Aniversariantes de {birthdayMonthLabel}</h4>
+              </div>
+              <button type="button" onClick={() => setActiveTab('children')} className="text-xs font-bold text-primary hover:underline">Ver membros</button>
+            </div>
+            {birthdayData.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {birthdayData.slice(0, 5).map((person) => (
+                  <button key={person.id} type="button" onClick={() => { if (setSelectedChildId) { setSelectedChildId(person.id); setActiveTab('profile'); } }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] py-1.5 pl-1.5 pr-3 hover:border-violet-300/30">
+                    <Avatar src={person.foto_url} name={person.nome} shape="circle" textSize="text-xs" className="h-7 w-7" />
+                    <span className="max-w-24 truncate text-xs font-bold text-white">{person.nome.split(' ')[0]} · {person.day}</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-[100px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 text-center">
-                <Cake className="mb-2 h-8 w-8 text-primary/30" aria-hidden />
-                <p className="text-sm font-bold text-gray-400">Nenhum aniversariante em {birthdayMonthLabel}</p>
-                <p className="mt-1 text-xs font-medium text-gray-600">
-                  Cadastre a data de nascimento nos perfis dos filhos de santo.
-                </p>
-              </div>
+              <p className="rounded-xl bg-white/[0.025] px-3 py-3 text-xs font-semibold text-[#7F8B9C]">Nenhum aniversariante neste mês.</p>
             )}
-          </div>
+          </section>
         </div>
 
       </div>
@@ -957,6 +1616,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           onOpenFinancial={() => setActiveTab('financial')}
           onOpenMural={() => setActiveTab('mural')}
         />
+      </div>
+      </div>
       </div>
     </AppPageShell>
   );

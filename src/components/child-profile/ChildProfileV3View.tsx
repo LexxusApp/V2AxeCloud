@@ -20,6 +20,9 @@ import {
   StickyNote,
   User,
   Camera,
+  AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import Avatar from '../Avatar';
 import { cn } from '../../lib/utils';
@@ -105,23 +108,18 @@ function matricula(child: Record<string, unknown>): string {
   );
 }
 
-function maturityPercent(anos: number | null): number {
-  if (anos == null || anos <= 0) return 12;
-  return Math.min(100, Math.round((anos / 7) * 100));
-}
-
 function InfoField({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }) {
   const filled = value && value !== EMPTY;
   return (
     <div className="space-y-1">
-      <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-[#94A3B8]">
+      <span className="flex items-center gap-1.5 text-xs font-bold text-[#8E9AAA]">
         {Icon ? <Icon className="h-3 w-3 text-[#FACC15]" /> : null}
         {label}
       </span>
       <span
         className={cn(
-          'block text-sm font-extrabold',
-          filled ? 'font-display text-[#F1F5F9]' : 'italic font-normal text-gray-500 text-xs',
+          'block text-sm font-extrabold leading-relaxed',
+          filled ? 'text-[#F1F5F9]' : 'italic font-normal text-gray-500',
         )}
       >
         {filled ? value : EMPTY}
@@ -161,6 +159,7 @@ export function ChildProfileV3View({
   isUploadingPhoto,
 }: ChildProfileV3ViewProps) {
   const [openingPdfUrl, setOpeningPdfUrl] = useState<string | null>(null);
+  const [showCpf, setShowCpf] = useState(false);
   const nome = String(child.nome || 'Filho de Santo');
   const cargo = String(child.cargo || 'Filho de Santo');
   const orixaFrente = String(child.orixa_frente || '');
@@ -169,7 +168,15 @@ export function ChildProfileV3View({
   const quizilas = quizilasText(child);
   const waLink = whatsappHref(contato);
   const registro = matricula(child);
-  const maturity = maturityPercent(anosDeCasa);
+  const cpfDigits = cpf.replace(/\D/g, '');
+  const maskedCpf = cpfDigits.length === 11
+    ? `***.${cpfDigits.slice(3, 6)}.***-${cpfDigits.slice(-2)}`
+    : cpf
+      ? 'CPF protegido'
+      : EMPTY;
+  const nextObligation = [...childObligations]
+    .filter((obligation) => obligation.status_confirmacao !== 'Confirmado' && obligation.status_confirmacao !== 'Concluído')
+    .sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')))[0];
 
   async function openObligationPdf(url: string) {
     try {
@@ -195,38 +202,28 @@ export function ChildProfileV3View({
   ];
 
   return (
-    <div className="animate-fadeIn space-y-6 text-[#F1F5F9]">
+    <div className="animate-fadeIn space-y-5">
       {/* Breadcrumb */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1E242B] bg-[#13171D] px-5 py-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex cursor-pointer items-center gap-1 font-bold text-[#94A3B8] transition-colors hover:text-[#FACC15]"
+            className="flex cursor-pointer items-center gap-1.5 font-bold text-[#665F55] transition-colors hover:text-[#9A6A00]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar para a Corrente
+            Filhos de Santo
           </button>
-          <span className="text-gray-600">/</span>
-          <span className="font-medium text-gray-400">Perfil Sacerdotal</span>
-          <span className="text-gray-600">/</span>
-          <span className="font-black tracking-wider text-[#FACC15]">{nome.toUpperCase()}</span>
+          <span className="text-[#A49A8C]">/</span>
+          <span className="font-black text-[#17130D]">{nome}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-900 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            Sessão Segura
-          </span>
-          {hasDebt && isSelfView && (
-            <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Mensalidade pendente</span>
-          )}
-        </div>
+        {hasDebt && isSelfView ? <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-black text-red-600">Mensalidade pendente</span> : null}
       </div>
 
       {/* Passport header */}
       <div className="relative overflow-hidden rounded-2xl border border-[#222B36] bg-[#13171D] shadow-2xl before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-r before:from-[#FACC15]/5 before:to-transparent">
         <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-[#FACC15] to-amber-600" />
-        <div className="relative flex flex-col items-center justify-between gap-6 p-6 md:flex-row md:p-8">
+        <div className="relative flex flex-col items-center justify-between gap-6 p-5 md:flex-row md:p-6">
           <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:w-auto">
             <div className="group relative shrink-0">
               <div className="relative">
@@ -234,7 +231,7 @@ export function ChildProfileV3View({
                   src={typeof child.foto_url === 'string' ? child.foto_url : ''}
                   name={nome}
                   shape="square"
-                  className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-28 md:w-28"
+                  className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-24 md:w-24"
                   textSize="text-2xl"
                 />
                 {!isSelfView && (
@@ -256,21 +253,24 @@ export function ChildProfileV3View({
                 )}
               </div>
               <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={onPhotoChange} />
-              <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#13171D] bg-[#10B981] px-3 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#080A0D] shadow-md">
-                ● {status.toUpperCase()} NA CORRENTE
+              <span className={cn(
+                'absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#13171D] px-3 py-1 text-[10px] font-extrabold text-[#080A0D] shadow-md',
+                status.toLowerCase() === 'ativo' ? 'bg-[#10B981]' : 'bg-amber-400',
+              )}>
+                {status} na corrente
               </span>
             </div>
 
             <div className="space-y-1.5 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
                 <h2 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{nome}</h2>
-                <span className="rounded-md border border-[#FACC15]/30 bg-amber-500/10 px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#FACC15]">
-                  {cargo.toUpperCase()}
+                <span className="rounded-full border border-[#FACC15]/30 bg-amber-500/10 px-3 py-1 text-xs font-black text-[#FACC15]">
+                  {cargo}
                 </span>
               </div>
-              <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-400 sm:justify-start">
-                <span>Consagrado sob a coroa de</span>
-                <span className="font-semibold text-[#FACC15]">{orixaFrente || '—'}</span>
+              <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-400 sm:justify-start">
+                <span>Orixá de frente:</span>
+                <span className="font-black text-[#FACC15]">{orixaFrente || 'não informado'}</span>
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4 pt-1 text-xs text-[#94A3B8] sm:justify-start">
                 <span className="rounded-md border border-[#222B36] bg-[#1C232E] px-2.5 py-1 font-mono text-[10.5px] tracking-wider">
@@ -278,21 +278,13 @@ export function ChildProfileV3View({
                 </span>
                 <span className="flex items-center gap-1 font-bold text-emerald-400">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  Ficha Integral Verificada
+                  Cadastro verificado
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex w-full items-center justify-end gap-3 border-t border-[#222B36]/50 pt-4 sm:w-auto md:border-0 md:pt-0">
-            <button
-              type="button"
-              onClick={onBack}
-              className="group cursor-pointer rounded-xl border border-[#2B3645] bg-[#1C222B] p-3 text-gray-400 shadow-md transition-all hover:bg-[#252F3C] hover:text-white"
-              title="Voltar"
-            >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            </button>
             {waLink && (
               <a
                 href={waLink}
@@ -316,8 +308,57 @@ export function ChildProfileV3View({
         </div>
       </div>
 
-      {/* Tabs — flex-wrap no mobile evita barra de rolagem horizontal */}
-      <div className="flex flex-wrap gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-1.5">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo do perfil">
+        {[
+          {
+            label: 'Situação cadastral',
+            value: cpf && contato ? 'Cadastro completo' : 'Revisar cadastro',
+            detail: cpf && contato ? 'dados essenciais informados' : 'há informações ausentes',
+            icon: cpf && contato ? ShieldCheck : AlertCircle,
+            color: cpf && contato ? 'text-emerald-300' : 'text-amber-300',
+            bg: cpf && contato ? 'border-emerald-400/20 bg-emerald-400/10' : 'border-amber-400/20 bg-amber-400/10',
+          },
+          {
+            label: 'Mensalidade',
+            value: hasDebt ? 'Pendente' : 'Em dia',
+            detail: `valor mensal R$ ${valorMensalidade.toFixed(2).replace('.', ',')}`,
+            icon: Coins,
+            color: hasDebt ? 'text-rose-300' : 'text-emerald-300',
+            bg: hasDebt ? 'border-rose-400/20 bg-rose-400/10' : 'border-emerald-400/20 bg-emerald-400/10',
+          },
+          {
+            label: 'Tempo de casa',
+            value: anosDeCasa == null ? 'Não informado' : `${anosDeCasa} ${anosDeCasa === 1 ? 'ano' : 'anos'}`,
+            detail: child.data_entrada ? `desde ${formatDate(child.data_entrada)}` : 'adicione a data de entrada',
+            icon: Clock,
+            color: 'text-sky-300',
+            bg: 'border-sky-400/20 bg-sky-400/10',
+          },
+          {
+            label: 'Próxima obrigação',
+            value: nextObligation?.titulo || 'Não agendada',
+            detail: nextObligation?.data ? formatDate(nextObligation.data) : 'nenhuma obrigação pendente',
+            icon: Calendar,
+            color: 'text-violet-300',
+            bg: 'border-violet-400/20 bg-violet-400/10',
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="rounded-2xl border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
+              <div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}>
+                <Icon className={cn('h-4 w-4', item.color)} />
+              </div>
+              <p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p>
+              <p className="mt-1 truncate text-sm font-black text-white">{item.value}</p>
+              <p className="mt-1 truncate text-xs font-semibold text-[#64748B]">{item.detail}</p>
+            </div>
+          );
+        })}
+      </section>
+
+      {/* Tabs — fixas durante a leitura do prontuário */}
+      <div className="sticky top-0 z-20 flex flex-wrap gap-1 rounded-xl border border-[#252C35] bg-[#11151A]/95 p-1.5 shadow-lg backdrop-blur">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
           const Icon = tab.icon;
@@ -328,8 +369,8 @@ export function ChildProfileV3View({
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative flex min-w-[calc(50%-0.25rem)] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-[11px] font-bold transition-all touch-manipulation sm:min-w-0 sm:shrink-0 sm:justify-start sm:px-5 sm:py-2.5 sm:text-xs',
-                active ? 'bg-[#FACC15] font-black text-[#080A0D] shadow-md' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white',
+                'relative flex min-w-[calc(50%-0.25rem)] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border-b-2 px-3 py-3 text-xs font-bold transition-all touch-manipulation sm:min-w-0 sm:shrink-0 sm:px-5 sm:text-sm',
+                active ? 'border-[#FACC15] bg-[#FACC15]/10 font-black text-[#FACC15]' : 'border-transparent text-[#94A3B8] hover:bg-white/5 hover:text-white',
                 locked && !active && 'opacity-50',
               )}
             >
@@ -346,31 +387,31 @@ export function ChildProfileV3View({
         {activeTab === 'info' && (
           <>
             <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
-              <div className="flex flex-col justify-between space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-6 md:col-span-2">
+              <div className="flex flex-col space-y-5 rounded-2xl border border-[#252C35] bg-[#11151A] p-5 md:col-span-2 sm:p-6">
                 <div>
                   <div className="flex items-center justify-between border-b border-[#222B36] pb-3.5">
-                    <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-white">
+                    <h4 className="flex items-center gap-2 text-base font-black text-white">
                       <Crown className="h-4 w-4 text-[#FACC15]" />
                       Coroa Espiritual e Sacerdócio
                     </h4>
-                    <span className="font-mono text-[10px] uppercase text-gray-500">Liturgia nº {registro}</span>
+                    <span className="hidden font-mono text-xs text-gray-500 sm:block">Registro {registro}</span>
                   </div>
-                  <div className="grid grid-cols-1 gap-6 pt-5 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-2">
                     <div className="group relative overflow-hidden rounded-xl border border-[#2B3545] bg-gradient-to-br from-[#1E2530] to-[#12161E] p-4">
                       <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-500">
                         1º
                       </div>
-                      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Orixá de Frente</span>
+                      <span className="mb-1 block text-xs font-bold text-[#94A3B8]">Orixá de frente</span>
                       <span className="block font-display text-lg font-black tracking-tight text-[#FACC15]">
                         {orixaFrente || EMPTY}
                       </span>
-                      <span className="mt-2 block text-[10px] font-light text-gray-500">Guia e regente primordial nos aspectos mentais e rituais.</span>
+                      <span className="mt-2 block text-xs font-medium leading-relaxed text-gray-500">Informação litúrgica principal do cadastro.</span>
                     </div>
                     <div className="group relative overflow-hidden rounded-xl border border-[#2B3545] bg-gradient-to-br from-[#1E2530] to-[#12161E] p-4">
                       <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/10 text-xs font-bold text-[#FACC15]">
                         2º
                       </div>
-                      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Orixá Adjuntó (Equilibrista)</span>
+                      <span className="mb-1 block text-xs font-bold text-[#94A3B8]">Orixá adjuntó</span>
                       <span
                         className={cn(
                           'block font-display text-lg font-black',
@@ -379,7 +420,7 @@ export function ChildProfileV3View({
                       >
                         {adjunto || EMPTY}
                       </span>
-                      <span className="mt-2 block text-[10px] font-light text-gray-500">Atua em complementação de energia com o orixá de frente.</span>
+                      <span className="mt-2 block text-xs font-medium leading-relaxed text-gray-500">Informação complementar do cadastro litúrgico.</span>
                     </div>
                     <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A]/65 p-4">
                       <InfoField label="Data de Entrada Oficial" value={formatDate(child.data_entrada)} icon={Calendar} />
@@ -389,34 +430,27 @@ export function ChildProfileV3View({
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-[#1E242B]/80 bg-[#12161A] p-4 sm:flex-row">
-                  <div className="space-y-1 text-center sm:text-left">
-                    <span className="block text-[9px] font-bold uppercase leading-none tracking-widest text-[#94A3B8]">Maturação Litúrgica</span>
-                    <span className="block text-xs font-black text-white">Tempo de Ritualística do Filho de Santo</span>
-                  </div>
-                  <div className="flex w-full items-center gap-3 sm:w-1/2">
-                    <div className="relative h-2 flex-1 overflow-hidden rounded-full border border-white/5 bg-[#1A222B]">
-                      <div
-                        className="absolute bottom-0 left-0 top-0 rounded-full bg-gradient-to-r from-amber-500 to-[#FACC15]"
-                        style={{ width: `${maturity}%` }}
-                      />
-                    </div>
-                    <span className="font-mono text-xs font-black text-[#FACC15]">
-                      {maturity}% {anosDeCasa != null ? `(${anosDeCasa} ${anosDeCasa === 1 ? 'Ano' : 'Anos'})` : ''}
-                    </span>
-                  </div>
-                </div>
               </div>
 
-              <div className="flex flex-col justify-between space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-6">
+              <div className="flex flex-col justify-between space-y-6 rounded-2xl border border-[#252C35] bg-[#11151A] p-5 sm:p-6">
                 <div className="space-y-5">
-                  <h4 className="flex items-center gap-2 border-b border-[#222B36] pb-3.5 text-sm font-black uppercase tracking-wider text-white">
+                  <h4 className="flex items-center gap-2 border-b border-[#222B36] pb-3.5 text-base font-black text-white">
                     <User className="h-4 w-4 text-[#FACC15]" />
                     Cadastro Civil
                   </h4>
                   <div className="space-y-4">
                     <InfoField label="Nascimento" value={formatDate(child.data_nascimento)} />
-                    <InfoField label="CPF Registrado" value={cpf || EMPTY} />
+                    <div className="space-y-1">
+                      <span className="block text-xs font-bold text-[#8E9AAA]">CPF registrado</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-extrabold text-[#F1F5F9]">{showCpf ? cpf || EMPTY : maskedCpf}</span>
+                        {cpf ? (
+                          <button type="button" onClick={() => setShowCpf((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg text-[#7F8B9C] hover:bg-white/5 hover:text-white" aria-label={showCpf ? 'Ocultar CPF' : 'Revelar CPF'}>
+                            {showCpf ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
                     <InfoField label="Localização / Residência" value={endereco || EMPTY} />
                     <InfoField label="WhatsApp de Contato" value={contato || EMPTY} />
                   </div>
@@ -432,19 +466,19 @@ export function ChildProfileV3View({
               </div>
             </div>
 
-            <div className="mt-6 space-y-4 rounded-2xl border border-[#1E242B] bg-[#13171D] p-6">
-              <h4 className="flex items-center gap-2 border-b border-[#222B36] pb-3.5 text-sm font-black uppercase tracking-wider text-white">
+            <div className="mt-6 space-y-4 rounded-2xl border border-[#252C35] bg-[#11151A] p-5 sm:p-6">
+              <h4 className="flex items-center gap-2 border-b border-[#222B36] pb-3.5 text-base font-black text-white">
                 <Flame className="h-4 w-4 text-[#FACC15]" />
-                Quizilas, Interdições & Preceitos Litúrgicos de Cabeça
+                Quizilas, interdições e preceitos
               </h4>
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-4">
                 <div className="space-y-2 md:col-span-3">
-                  <span className="block font-mono text-[9.5px] font-bold uppercase tracking-widest text-amber-500">
-                    EW_S & RESTRIÇÕES ESPIRITUAIS
+                  <span className="block text-xs font-bold text-amber-400">
+                    Restrições espirituais registradas
                   </span>
                   <p
                     className={cn(
-                      'text-xs leading-relaxed',
+                      'text-sm leading-relaxed',
                       quizilas ? 'font-medium text-gray-300' : 'italic text-gray-500',
                     )}
                   >
@@ -453,7 +487,7 @@ export function ChildProfileV3View({
                 </div>
                 <div className="flex h-full flex-col justify-center space-y-1 rounded-xl border border-amber-500/20 bg-amber-950/20 p-4 text-center">
                   <span className="block text-xs font-black uppercase tracking-wider text-[#FACC15]">Atenção no Congá</span>
-                  <span className="block text-[10px] font-light text-gray-400">Respeitar as restrições alimentares do Orixá nas datas festivas.</span>
+                  <span className="block text-xs font-medium leading-relaxed text-gray-400">Respeitar as restrições registradas nas atividades da casa.</span>
                 </div>
               </div>
             </div>
@@ -476,7 +510,7 @@ export function ChildProfileV3View({
                 <button
                   type="button"
                   onClick={onAddObligation}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#FACC15]/30 bg-[#FACC15]/5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#FACC15] transition-colors hover:bg-[#FACC15]/10"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#FACC15]/30 bg-[#FACC15]/5 px-4 py-2 text-xs font-black text-[#FACC15] transition-colors hover:bg-[#FACC15]/10"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Agendar Obrigação
@@ -509,7 +543,7 @@ export function ChildProfileV3View({
                           <h5 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
                             {ob.titulo || 'Obrigação'}
                           </h5>
-                          <p className="text-[11px] font-light text-gray-500">
+                          <p className="text-xs font-medium text-gray-500">
                             {ob.data
                               ? `Registrada para: ${new Date(ob.data).toLocaleDateString('pt-BR')}`
                               : 'Aguardando data na corrente.'}
@@ -522,7 +556,7 @@ export function ChildProfileV3View({
                               type="button"
                               onClick={() => openObligationPdf(ob.pdfViewUrl!)}
                               disabled={openingPdfUrl === ob.pdfViewUrl || pdfBusy}
-                              className="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#FACC15] transition hover:text-[#fde047] disabled:opacity-50"
+                              className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-[#FACC15] transition hover:text-[#fde047] disabled:opacity-50"
                             >
                               {openingPdfUrl === ob.pdfViewUrl ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -586,23 +620,23 @@ export function ChildProfileV3View({
           <div className="space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-[8.5px] font-bold uppercase tracking-widest text-gray-500">MENSALIDADE FIXA</span>
+                <span className="block text-xs font-bold text-gray-500">Mensalidade fixa</span>
                 <span className="block font-display text-xl font-black text-[#FACC15]">
                   R$ {valorMensalidade.toFixed(2).replace('.', ',')}
                 </span>
-                <span className="block text-[10px] text-emerald-400">Contábil Litúrgico Ativo</span>
+                <span className="block text-xs font-semibold text-emerald-400">Configuração financeira ativa</span>
               </div>
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-[8.5px] font-bold uppercase tracking-widest text-gray-500">SITUAÇÃO ATUAL</span>
+                <span className="block text-xs font-bold text-gray-500">Situação atual</span>
                 <span className={cn('block font-display text-xl font-black', hasDebt ? 'text-red-400' : 'text-emerald-400')}>
                   {hasDebt ? 'Pendente' : 'Em Dia'}
                 </span>
-                <span className="block text-[10px] text-gray-500">Status de contribuição do filho</span>
+                <span className="block text-xs font-semibold text-gray-500">Status da contribuição</span>
               </div>
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-[8.5px] font-bold uppercase tracking-widest text-gray-500">REGULARIZAÇÃO</span>
+                <span className="block text-xs font-bold text-gray-500">Regularização</span>
                 <span className="block font-display text-xl font-black text-white">{hasDebt ? 'Necessária' : 'Não requerida'}</span>
-                <span className="block text-[10px] text-gray-400">
+                <span className="block text-xs font-semibold text-gray-400">
                   {hasDebt ? 'Há parcelas em aberto' : 'Contribuição regularizada'}
                 </span>
               </div>
@@ -614,7 +648,7 @@ export function ChildProfileV3View({
               </div>
             )}
 
-            <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-[11px] leading-relaxed text-gray-400">
+            <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-sm leading-relaxed text-gray-400">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#FACC15]" />
               <span>
                 <strong>Aviso Litúrgico de Tesouraria:</strong> O caixa da casa destina-se à aquisição de insumos comunitários de giras (velas, ervas, defumadores, flores e reformas estruturais). Filhos de santo com mensalidades pendentes devem contatar a Zeladoria diretamente.
@@ -639,7 +673,7 @@ export function ChildProfileV3View({
                 <button
                   type="button"
                   onClick={onNewNote}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#FACC15] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#080A0D] shadow-md transition-all hover:bg-[#FDE047]"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#FACC15] px-4 py-2 text-xs font-black text-[#080A0D] shadow-md transition-all hover:bg-[#FDE047]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Nova nota
@@ -663,11 +697,11 @@ export function ChildProfileV3View({
                     className="group relative w-full cursor-pointer space-y-2 overflow-hidden rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-left transition-all hover:border-[#FACC15]/25"
                   >
                     <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-[#FACC15]" />
-                    <div className="flex items-center justify-between font-mono text-[10px] text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
                       <span className="font-extrabold uppercase tracking-wider text-[#FACC15]">{note.title || 'Sem título'}</span>
                       <span>{formatNoteDate(note.updatedAt)}</span>
                     </div>
-                    <p className="line-clamp-3 text-xs font-light leading-relaxed text-gray-300">{note.content}</p>
+                    <p className="line-clamp-3 text-sm font-medium leading-relaxed text-gray-300">{note.content}</p>
                     {!isSelfView && (
                       <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600 opacity-0 transition-opacity group-hover:opacity-100">
                         Clique para editar

@@ -309,7 +309,13 @@ export function ChatFloatingWidget({ tenantData, userId, userRole }: ChatFloatin
         />
       ) : null}
 
-      <div ref={rootRef} className="pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+      <div
+        ref={rootRef}
+        className={cn(
+          'pointer-events-none fixed right-5 z-[90] flex flex-col items-end gap-3 sm:right-6',
+          isZelador ? 'bottom-5 sm:bottom-6' : 'bottom-24 min-[880px]:bottom-6',
+        )}
+      >
       {activeConversation ? (
         <div className="pointer-events-auto w-[min(calc(100vw-2.5rem),380px)] animate-in fade-in slide-in-from-bottom-2 duration-200">
           <ChatThread

@@ -779,7 +779,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       <AppPageShell>
         <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-6 p-8 text-center">
           <AlertTriangle className="mb-4 h-16 w-16 text-[#FACC15]" />
-          <h2 className="text-2xl font-black text-white">{error || 'Filho de santo não encontrado.'}</h2>
+          <h2 className="text-2xl font-black text-[#17130D]">{error || 'Filho de santo não encontrado.'}</h2>
           <button
             type="button"
             onClick={() => setActiveTab('children')}
@@ -816,7 +816,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   return (
     <AppPageShell>
-      <div className="w-full px-4 py-4 md:px-8 md:py-6">
+      <div className="child-profile-v5-page w-full pb-4">
         <ChildProfileV3View
           child={child}
           isSelfView={isSelfView}
