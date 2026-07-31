@@ -73,6 +73,10 @@ import { notifySessionExpired } from '../lib/supabase';
 const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
 const DASHBOARD_FETCH_ERR = 'DASHBOARD_FETCH_FAILED';
 
+// Painel administrativo antigo, substituído pela home V5 (.dashboard-v5-legacy
+// fica com display:none no CSS). Mantido no código como referência/rollback.
+const SHOW_LEGACY_DASHBOARD = false;
+
 function bundleHasMeaningfulData(bundle: DashboardBundle | null | undefined): boolean {
   if (!bundle) return false;
   return (
@@ -1066,6 +1070,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
       <HouseTimeline events={houseTimelineEvents} onNavigate={setActiveTab} />
 
+      {/* Painel administrativo antigo: substituído pela home V5 e oculto via CSS.
+          Não montar evita DOM morto e os warnings de 0x0 do Recharts no console. */}
+      {SHOW_LEGACY_DASHBOARD && (
       <div className="dashboard-v5-legacy">
       <section className="app-metric-rail mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo da casa">
         {[
@@ -1618,6 +1625,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         />
       </div>
       </div>
+      )}
       </div>
     </AppPageShell>
   );
