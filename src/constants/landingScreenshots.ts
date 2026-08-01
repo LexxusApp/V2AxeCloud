@@ -1,5 +1,5 @@
 /** Bump ao atualizar PNGs em public/screenshots (tour, hero, apps). */
-export const LANDING_SCREENSHOT_VERSION = '20260714a';
+export const LANDING_SCREENSHOT_VERSION = '20260801-brand';
 
 export function landingScreenshot(file: string): string {
   const name = file.replace(/^\/?screenshots\//, '');

@@ -28,6 +28,7 @@ import {
 } from '../../constants/appNav';
 import { performFastLogout } from '../../lib/logout';
 import Avatar from '../Avatar';
+import { AxeCloudEmblem, AxeCloudLogoMark } from '../AxeCloudLogoMark';
 import NotificationPanel from '../NotificationPanel';
 
 type AppTopNavProps = {
@@ -533,26 +534,36 @@ export default function AppTopNav({
           {desktopPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
 
-        <div className={cn('app-v5-brand border-b border-[#242A32] py-4', desktopCompact ? 'px-3' : 'px-5')}>
+        <div className={cn('app-v5-brand border-b border-[#242A32] py-4', desktopCompact ? 'px-3' : 'px-4')}>
           <button
             type="button"
             onClick={() => setActiveTab('dashboard')}
             className={cn(
-              'group flex w-full items-center rounded-2xl p-2 text-left transition-colors hover:bg-white/[0.04]',
-              desktopCompact ? 'justify-center' : 'gap-3',
+              'group flex w-full items-center rounded-2xl text-left transition-colors hover:bg-white/[0.04]',
+              desktopCompact ? 'justify-center p-1.5' : 'px-2 py-1',
             )}
             aria-label="Ir para o início"
           >
-            {profileAvatar}
-            <span className={cn('app-v5-sidebar-copy min-w-0 flex-1', desktopCompact && 'sr-only')}>
-              <span className="block truncate font-display text-[15px] font-extrabold leading-tight text-[#F8FAFC]">
-                {terreiroNome}
-              </span>
-              <span className="mt-1 block truncate text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
-                {subtitle}
-              </span>
-            </span>
+            {desktopCompact ? (
+              <AxeCloudEmblem className="h-11 w-11" />
+            ) : (
+              <AxeCloudLogoMark size="compact" className="h-11 max-w-full" />
+            )}
           </button>
+          {!desktopCompact ? (
+            <button
+              type="button"
+              onClick={() => setActiveTab(userRole === 'filho' ? 'profile' : 'settings')}
+              className="app-v5-sidebar-copy mt-3 flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-2.5 text-left transition-colors hover:bg-white/[0.05]"
+              aria-label={userRole === 'filho' ? 'Abrir meu perfil' : 'Abrir configurações da casa'}
+            >
+              {profileAvatar}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-display text-[13px] font-extrabold leading-tight text-[#F8FAFC]">{terreiroNome}</span>
+                <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-[0.12em] text-primary">{subtitle}</span>
+              </span>
+            </button>
+          ) : null}
         </div>
 
         <div className={cn('pb-2 pt-4', desktopCompact ? 'px-2 text-center' : 'px-5')}>
@@ -662,7 +673,8 @@ export default function AppTopNav({
         aria-label="Menu de módulos do AxéCloud"
       >
         <div className="flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-[#1E242B] px-4 py-3">
-          <div className="min-w-0">
+          <AxeCloudEmblem className="h-9 w-9" />
+          <div className="min-w-0 flex-1">
             <p className="truncate font-display text-sm font-bold text-[#F1F5F9]">{terreiroNome}</p>
             <p className="truncate text-[11px] font-medium text-primary">{subtitle}</p>
           </div>

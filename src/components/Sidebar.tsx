@@ -10,7 +10,6 @@ import {
   PieChart,
   Settings as SettingsIcon,
   LogOut,
-  Flame,
   BookOpen,
   ShoppingBag,
   Lock,
@@ -23,6 +22,7 @@ import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import { hasPlanAccess } from '../constants/plans';
+import { AxeCloudLogoMark } from './AxeCloudLogoMark';
 
 interface SidebarProps {
   activeTab: string;
@@ -167,19 +167,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
       )}>
         <div className="flex flex-col h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1f252d] scrollbar-track-transparent">
           <div className="mb-5 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-amber-500">
-                <Flame className="h-4 w-4 text-[#13171D]" aria-hidden />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <div className="whitespace-nowrap font-display text-lg font-bold leading-none tracking-tight text-[#F1F5F9]">
-                  AxéCloud
-                </div>
-                <p className="mt-0.5 whitespace-nowrap text-[10px] font-bold tracking-[0.14em] text-primary">
-                  GESTÃO SAGRADA
-                </p>
-              </div>
-            </div>
+            <AxeCloudLogoMark size="compact" className="h-11 max-w-full" />
           </div>
 
           <div className="-mx-4 mb-5 h-px shrink-0 bg-[#1E242B]" />

@@ -7,7 +7,7 @@ import { ROUTES } from '../lib/routes';
 import { navigateTo } from '../lib/navigation';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LIGHT_SRC, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
 import { humanizePasswordPolicyError, PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
 
 const fontLogin =
@@ -105,7 +105,7 @@ export default function ResetPassword() {
           <header className="space-y-2.5 text-center">
             <div className="flex justify-center">
               <img
-                src={BRAND_LOGO_SRC}
+                src={BRAND_LOGO_LIGHT_SRC}
                 alt={BRAND_LOGO_ALT}
                 width={BRAND_LOGO_WIDTH}
                 height={BRAND_LOGO_HEIGHT}

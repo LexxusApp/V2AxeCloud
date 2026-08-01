@@ -52,6 +52,8 @@ export default defineConfig(({mode}) => {
           'pwa-96.png',
           'pwa-192.png',
           'pwa-512.png',
+          'pwa-maskable-192.png',
+          'pwa-maskable-512.png',
           'notification-badge.png',
           'login-bg-desktop.png',
           'sw-push.js',
@@ -80,8 +82,8 @@ export default defineConfig(({mode}) => {
               id: 'https://axecloud.com.br/',
             },
           ],
-          theme_color: '#000000',
-          background_color: '#000000',
+          theme_color: '#17251D',
+          background_color: '#17251D',
           display: 'standalone',
           display_override: ['standalone'],
           icons: [
@@ -104,7 +106,7 @@ export default defineConfig(({mode}) => {
               purpose: 'any',
             },
             {
-              src: '/pwa-192.png',
+              src: '/pwa-maskable-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable',
@@ -116,7 +118,7 @@ export default defineConfig(({mode}) => {
               purpose: 'any',
             },
             {
-              src: '/pwa-512.png',
+              src: '/pwa-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -125,7 +127,7 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v120',
+          cacheId: 'axecloud-v121',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           /** Sem fallback de navegação — evita no-response do Workbox em /dashboard e outras rotas do app. */

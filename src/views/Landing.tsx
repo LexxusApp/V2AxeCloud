@@ -195,9 +195,9 @@ function ClosingSection() {
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         >
           <img
-            src="/ile-ase-logo.png"
+            src="/brand/axecloud-logo-light.svg"
             alt=""
-            className="relative z-10 mx-auto h-12 brightness-0 invert opacity-90 md:h-14"
+            className="relative z-10 mx-auto h-14 w-auto opacity-95 md:h-16"
             aria-hidden
           />
           <h2 className="relative z-10 mt-6 text-3xl font-extrabold tracking-tight text-[#fdf8f0] md:text-4xl">

@@ -1,5 +1,5 @@
 /**
- * Regenera favicon.ico (PNG-in-ICO) e PNGs 48/96 a partir de public/axecloud_192.png.
+ * Regenera favicon, app tile/PWA e arquivos legados a partir da marca vetorial oficial.
  * Uso: node scripts/generate-favicons.mjs
  *
  * Usa PNG embutido no .ico (não BMP clássico): Chrome/Edge/Firefox renderizam
@@ -13,10 +13,16 @@ import sharp from 'sharp';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC = path.join(ROOT, 'public');
-const SOURCE = path.join(PUBLIC, 'axecloud_192.png');
+const FAVICON_SOURCE = path.join(PUBLIC, 'favicon.svg');
+const PWA_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-app-tile.svg');
+const LOGO_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-logo-dark.svg');
+const LOGO_LIGHT_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-logo-light.svg');
+const SYMBOL_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-symbol.svg');
+const ADMIN_PUBLIC = path.join(ROOT, 'axecloud-admin', 'public');
+const ASSETS = path.join(ROOT, 'assets');
 
-if (!fs.existsSync(SOURCE)) {
-  throw new Error(`Fonte ausente: ${SOURCE}`);
+for (const source of [FAVICON_SOURCE, PWA_SOURCE, LOGO_SOURCE, LOGO_LIGHT_SOURCE, SYMBOL_SOURCE]) {
+  if (!fs.existsSync(source)) throw new Error(`Fonte ausente: ${source}`);
 }
 
 /** Empacota PNGs num .ico moderno (PNG-in-ICO). */
@@ -63,27 +69,69 @@ function pngsToIco(pngBuffers) {
   return out;
 }
 
-async function resizePng(size) {
-  return sharp(SOURCE)
+async function resizePng(source, size) {
+  return sharp(source, { density: 384 })
     .resize(size, size, {
       fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 1 },
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png()
     .toBuffer();
 }
 
-const png16 = await resizePng(16);
-const png32 = await resizePng(32);
-const png48 = await resizePng(48);
-const png96 = await resizePng(96);
+async function resizeMaskablePng(size) {
+  return sharp(PWA_SOURCE, { density: 384 })
+    .flatten({ background: '#17251D' })
+    .resize(size, size, { fit: 'cover' })
+    .png()
+    .toBuffer();
+}
 
-fs.writeFileSync(path.join(PUBLIC, 'favicon.ico'), pngsToIco([png16, png32, png48]));
-fs.writeFileSync(path.join(PUBLIC, 'axecloud_32.png'), png32);
-fs.writeFileSync(path.join(PUBLIC, 'axecloud_48.png'), png48);
-fs.writeFileSync(path.join(PUBLIC, 'axecloud_96.png'), png96);
-fs.writeFileSync(path.join(PUBLIC, 'pwa-32.png'), png32);
-fs.writeFileSync(path.join(PUBLIC, 'pwa-48.png'), png48);
-fs.writeFileSync(path.join(PUBLIC, 'pwa-96.png'), png96);
+const faviconPngs = new Map();
+const pwaPngs = new Map();
+for (const size of [16, 32, 48, 96, 192, 512]) {
+  faviconPngs.set(size, await resizePng(FAVICON_SOURCE, size));
+  pwaPngs.set(size, await resizePng(PWA_SOURCE, size));
+}
 
-console.log('[favicons] favicon.ico (PNG-in-ICO 16/32/48), axecloud_32/48/96, pwa-32/48/96 atualizados');
+const faviconIco = pngsToIco([faviconPngs.get(16), faviconPngs.get(32), faviconPngs.get(48)]);
+fs.writeFileSync(path.join(PUBLIC, 'favicon.ico'), faviconIco);
+for (const size of [32, 48, 96, 192, 512]) {
+  fs.writeFileSync(path.join(PUBLIC, `axecloud_${size}.png`), faviconPngs.get(size));
+  fs.writeFileSync(path.join(PUBLIC, `pwa-${size}.png`), pwaPngs.get(size));
+}
+for (const size of [192, 512]) {
+  fs.writeFileSync(path.join(PUBLIC, `pwa-maskable-${size}.png`), await resizeMaskablePng(size));
+}
+
+fs.mkdirSync(ADMIN_PUBLIC, { recursive: true });
+fs.writeFileSync(path.join(ADMIN_PUBLIC, 'favicon.ico'), faviconIco);
+fs.writeFileSync(path.join(ADMIN_PUBLIC, 'favicon-48.png'), faviconPngs.get(48));
+fs.writeFileSync(path.join(ADMIN_PUBLIC, 'apple-touch-icon.png'), pwaPngs.get(192));
+
+const legacyLogo = await sharp(LOGO_SOURCE, { density: 384 }).resize({ width: 1120 }).png().toBuffer();
+fs.writeFileSync(path.join(PUBLIC, 'logo-axecloud.png'), legacyLogo);
+fs.writeFileSync(path.join(PUBLIC, 'ile-ase-logo.png'), legacyLogo);
+fs.mkdirSync(ASSETS, { recursive: true });
+fs.writeFileSync(path.join(ASSETS, 'logo-axecloud.png'), legacyLogo);
+
+const matrixLogo = await resizePng(SYMBOL_SOURCE, 512);
+fs.writeFileSync(path.join(PUBLIC, 'logo-topo-matriz.png'), matrixLogo);
+await sharp(matrixLogo).resize(128, 128).webp({ quality: 92 }).toFile(path.join(PUBLIC, 'logo-topo-matriz-128.webp'));
+
+const ogBackground = Buffer.from(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
+    <rect width="1200" height="630" fill="#17251D"/>
+    <circle cx="1120" cy="60" r="250" fill="none" stroke="#F7C928" stroke-width="3" opacity=".12"/>
+    <circle cx="1120" cy="60" r="170" fill="none" stroke="#F7C928" stroke-width="2" opacity=".1"/>
+    <circle cx="70" cy="610" r="190" fill="#F7C928" opacity=".05"/>
+    <text x="600" y="500" text-anchor="middle" fill="#C7D0C9" font-family="Outfit,Arial,sans-serif" font-size="22" font-weight="600" letter-spacing="2">FINANCEIRO · GIRAS · CORRENTE · MEMÓRIA</text>
+  </svg>
+`);
+const ogLogo = await sharp(LOGO_LIGHT_SOURCE, { density: 384 }).resize({ width: 920 }).png().toBuffer();
+await sharp(ogBackground)
+  .composite([{ input: ogLogo, left: 140, top: 150 }])
+  .png()
+  .toFile(path.join(PUBLIC, 'og-image.png'));
+
+console.log('[brand] favicon, PWA, app tile, admin e arquivos legados atualizados');

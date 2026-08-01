@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Activity, ArrowRight, Database, KeyRound, LockKeyhole, LogOut, Shield, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Database, KeyRound, LockKeyhole, LogOut, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { apiJson, isApiUnreachable, postAuthAuditLog, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -101,7 +101,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
         <div className="admin-login-showcase-glow" />
         <div className="admin-login-showcase-content">
           <div className="admin-login-brandmark">
-            <div><Shield className="h-6 w-6" /></div>
+            <div><img src="/apple-touch-icon.png" alt="" className="h-full w-full rounded-[inherit] object-cover" /></div>
             <span>AXÉCLOUD</span>
             <b>CONTROL CENTER</b>
           </div>
@@ -122,7 +122,7 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
       <div className="admin-login-form-side">
         <div className="admin-login-card">
           <div className="admin-login-mobile-logo">
-            <div className="admin-login-logo-icon"><Shield className="h-5 w-5" /></div>
+            <div className="admin-login-logo-icon"><img src="/apple-touch-icon.png" alt="" className="h-full w-full rounded-[inherit] object-cover" /></div>
             <strong>AxéCloud Control</strong>
           </div>
           <div className="admin-login-heading">

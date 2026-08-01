@@ -11,6 +11,7 @@ import {
 import { cn } from '../lib/utils';
 import { performFastLogout } from '../lib/logout';
 import Avatar from './Avatar';
+import { AxeCloudLogoMark } from './AxeCloudLogoMark';
 
 const MOBILE_DRAWER_TRANSITION =
   'will-change-transform [transition:transform_250ms_cubic-bezier(0.4,0,0.2,1)] lg:will-change-auto';
@@ -57,6 +58,7 @@ export default function FilhoSidebar({
   const SidebarContent = () => (
     <div className="flex flex-col h-full justify-between">
       <div className="space-y-10">
+        <AxeCloudLogoMark size="compact" className="mx-auto h-11 max-w-full" />
         <div className="flex flex-col items-center text-center pt-2">
           <div className="relative mb-5">
             <div className="w-20 h-20 rounded-full border-4 border-primary/25 p-1 bg-[#12161A] shadow-lg shadow-primary/5 overflow-hidden ring-2 ring-[#0B0D11]">

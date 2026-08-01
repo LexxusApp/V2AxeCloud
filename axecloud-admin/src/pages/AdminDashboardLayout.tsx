@@ -17,7 +17,6 @@ import {
   PlusCircle,
   Radio,
   ScrollText,
-  Shield,
   Sparkles,
   X,
 } from "lucide-react";
@@ -83,8 +82,7 @@ function SidebarBrand() {
     <div className="admin-sidebar-brand">
       <div className="admin-brand-inner">
         <div className="admin-brand-symbol">
-          <Shield className="h-5 w-5" strokeWidth={2.2} />
-          <span className="admin-brand-pulse" />
+          <img src="/apple-touch-icon.png" alt="" className="h-full w-full rounded-[inherit] object-cover" />
         </div>
         <div className="min-w-0">
           <p className="admin-brand-name">AxéCloud</p>

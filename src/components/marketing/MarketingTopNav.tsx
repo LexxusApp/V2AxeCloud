@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { appHref } from '../../lib/appHref';
 import { ROUTES } from '../../lib/routes';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_NAV_CLASS, BRAND_LOGO_NAV_FOOTER_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
+import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LIGHT_SRC, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_NAV_CLASS, BRAND_LOGO_NAV_FOOTER_CLASS, BRAND_LOGO_SRC, BRAND_LOGO_WIDTH } from '../../constants/brandLogo';
 
 type NavItem = {
   id: string;
@@ -23,7 +23,7 @@ function sectionHref(sectionBase: string, id: string) {
   return sectionBase ? `${sectionBase}#${id}` : `#${id}`;
 }
 
-const LOGO_SRC = BRAND_LOGO_SRC;
+const LOGO_SRC = BRAND_LOGO_LIGHT_SRC;
 
 export function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -35,7 +35,7 @@ export function LogoMark({ compact = false }: { compact?: boolean }) {
       decoding="async"
       className={cn(
         'block w-auto shrink-0 object-contain object-left',
-        compact ? 'h-[3.5rem] sm:h-[4.25rem] md:h-[5rem]' : 'h-[3.75rem] sm:h-[4.5rem] md:h-[5.25rem]',
+        compact ? 'h-9 sm:h-10 md:h-11' : 'h-10 sm:h-11 md:h-12',
       )}
     />
   );
