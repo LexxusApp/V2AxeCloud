@@ -348,13 +348,18 @@ body::before {
   letter-spacing: 0.02em;
 }
 .marca em { color: var(--ouro); font-style: normal; }
-.marca-ponto {
-  width: 30px;
-  height: 30px;
-  color: var(--ouro);
-  animation: girar-lento 40s linear infinite;
+.marca-simbolo {
+  display: block;
+  width: auto;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(23, 37, 29, 0.14));
+  transition: transform 0.3s ease, filter 0.3s ease;
 }
-@keyframes girar-lento { to { transform: rotate(-360deg); } }
+.marca:hover .marca-simbolo {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 5px 10px rgba(242, 185, 15, 0.24));
+}
 .nav-links { display: flex; gap: 30px; }
 .nav-links a {
   color: var(--osso-fraco);
