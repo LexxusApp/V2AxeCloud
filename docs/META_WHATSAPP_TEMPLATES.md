@@ -200,11 +200,18 @@ Por favor, providencie a reposição conforme necessário.
 
 ---
 
-## 7. `aviso_portal_axecloud` (recomendado — transmissão / mural)
+## 7. `aviso_portal_conta_axecloud` (recomendado — transmissão / mural)
 
 **Uso:** publicar aviso no Mural com WhatsApp + transmissão manual + teste.
 
-**Categoria Meta:** Utilidade (atualização de conta / portal).
+**Categoria Meta:** Utility aprovado (ago/2026). O `aviso_portal_axecloud` original e o
+`aviso_portal_util_axecloud` foram recategorizados como Marketing pela Meta (sofrem o
+bloqueio #131049). O texto que passou como Utility é o de "aviso administrativo de conta":
+
+```
+Ola, {{1}}. Registramos uma atualizacao administrativa na sua conta de membro
+do {{2}}. Os detalhes estao disponiveis na sua area do portal do filho de santo.
+```
 
 **Fluxo:** igual ao `conta_ativa_axecloud` — template curto abre a janela de 24h → mensagem de texto livre com título + conteúdo + assinatura.
 
@@ -238,8 +245,8 @@ Salve a corrente! Hoje nossa gira inicia às 20h…
 **Env:**
 
 ```env
-WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_axecloud
-WA_META_TEMPLATE_BROADCAST=aviso_portal_axecloud
+WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_conta_axecloud
+WA_META_TEMPLATE_BROADCAST=aviso_portal_conta_axecloud
 ```
 
 ---
@@ -453,8 +460,8 @@ WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud
 WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
 WA_META_TEMPLATE_CONVITE_EVENTO=convite_evento_axecloud
 WA_META_TEMPLATE_ESTOQUE_CRITICO=estoque_critico_axecloud
-WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_axecloud
-WA_META_TEMPLATE_BROADCAST=aviso_portal_axecloud
+WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_conta_axecloud
+WA_META_TEMPLATE_BROADCAST=aviso_portal_conta_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_util_axecloud
 WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
