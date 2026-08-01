@@ -184,7 +184,8 @@ export function isAvisoPortalTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo).startsWith("aviso_portal");
 }
 
-/** Mural/transmissão usa somente o template aviso_portal_axecloud. */
+/** Mural/transmissão: só o template Meta (sem 2ª mensagem em texto livre).
+ * A 2ª mensagem exigiria janela de 24h aberta pelo destinatário e quase nunca chega. */
 export function usesTransmissaoTwoStepFlow(tipo: string): boolean {
   void tipo;
   return false;

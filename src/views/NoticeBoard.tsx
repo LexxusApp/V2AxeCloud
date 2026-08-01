@@ -422,7 +422,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           </AppDemoCard>
           <AppDemoCard className="p-5">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">Prévia para o filho</p>
-            <div className="mx-auto mt-4 max-w-sm space-y-2 rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
+            <div className="mx-auto mt-4 max-w-sm rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
               <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
                 <p className="text-xs font-black text-[#075E54]">AxéCloud · {tenantData?.nome || 'Sua casa'}</p>
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed">
@@ -430,15 +430,9 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                 </p>
                 <p className="mt-2 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
               </div>
-              <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
-                <p className="text-sm font-black">{formData.titulo || 'Título do comunicado'}</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{formData.conteudo || 'O texto do comunicado aparecerá aqui conforme você escreve.'}</p>
-                <p className="mt-2 text-xs font-semibold text-[#4A5A52]">— {tenantData?.nome || 'Sua casa'}</p>
-                <p className="mt-1 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
-              </div>
             </div>
             <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">
-              A 1ª mensagem é o aviso padrão aprovado pelo WhatsApp (texto fixo) e chega para todos. A 2ª, com o comunicado completo, só é entregue aos filhos que interagiram com o número da casa nas últimas 24h — regra do WhatsApp. Para os demais, o comunicado fica disponível no mural do aplicativo.
+              O WhatsApp envia só este aviso padrão (texto fixo aprovado pela Meta). O comunicado completo que você escreveu fica publicado no mural do aplicativo — o filho lê lá no portal.
             </p>
           </AppDemoCard>
         </section>
