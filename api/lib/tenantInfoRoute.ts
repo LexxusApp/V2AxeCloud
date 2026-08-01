@@ -210,7 +210,14 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       return res.status(403).json({ error: "Acesso suspenso", status: "blocked" });
     }
 
-    let subRes: any = await sb.from("subscriptions").select("plan, status, expires_at, billing_cycle").eq("id", userId).maybeSingle();
+    let subRes: any = await sb
+      .from("subscriptions")
+      .select("plan, status, expires_at, billing_cycle, efi_charge_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (subRes.error && /efi_charge_id/i.test(String(subRes.error.message || ""))) {
+      subRes = await sb.from("subscriptions").select("plan, status, expires_at, billing_cycle").eq("id", userId).maybeSingle();
+    }
     if (subRes.error) throw subRes.error;
 
     const isSuperAdmin =
@@ -295,6 +302,16 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         ? null
         : subRes.data?.expires_at || null;
 
+    // Trial: conta criada no cadastro público (metadata is_trial) que ainda não
+    // confirmou nenhum pagamento (efi_charge_id vazio). Pagamento limpa a flag.
+    const isTrial =
+      !isSuperAdmin &&
+      !lifetime &&
+      roleOut !== "filho" &&
+      String(subRes.data?.status || "") === "active" &&
+      (authUser as any)?.user_metadata?.is_trial === true &&
+      !subRes.data?.efi_charge_id;
+
     res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
     return res.json({
       nome_terreiro: profileRes.data?.nome_terreiro || null,
@@ -305,6 +322,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       plan: plan,
       status: isSuperAdmin ? "active" : subRes.data?.status || null,
       expires_at: expiresOut,
+      is_trial: isTrial,
       billing_cycle: subRes.data?.billing_cycle || "monthly",
       foto_url: profileRes.data?.foto_url || null,
       terms_accepted_version: profileRes.data?.terms_accepted_version || null,

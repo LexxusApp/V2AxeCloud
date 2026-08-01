@@ -308,10 +308,17 @@ export async function activateTenantSubscription(
     .eq("id", tid)
     .maybeSingle();
 
-  const metaWhatsapp = await supabaseAdmin.auth.admin
-    .getUserById(tid)
-    .then((r) => String(r.data.user?.user_metadata?.whatsapp || ""))
-    .catch(() => "");
+  const authUserRes = await supabaseAdmin.auth.admin.getUserById(tid).catch(() => null);
+  const userMeta = (authUserRes?.data.user?.user_metadata || {}) as Record<string, unknown>;
+  const metaWhatsapp = String(userMeta.whatsapp || "");
+
+  // Pagamento confirmado encerra o período de teste: sem isso o painel
+  // continuaria rotulando a conta como trial.
+  if (userMeta.is_trial === true) {
+    await supabaseAdmin.auth.admin
+      .updateUserById(tid, { user_metadata: { ...userMeta, is_trial: false } })
+      .catch(() => undefined);
+  }
 
   if (!hadAccessBefore) {
     await sendPostPaymentWelcomeWhatsApp(supabaseAdmin, {

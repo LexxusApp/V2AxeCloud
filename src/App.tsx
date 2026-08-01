@@ -187,6 +187,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     tenant_id?: string;
     expires_at?: string;
     status?: string;
+    is_trial?: boolean;
+    billing_cycle?: string;
     foto_url?: string;
     cargo?: string | null;
     role?: string | null;
@@ -646,6 +648,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           tenant_id: String(tenantId || '').trim() || undefined,
           expires_at: data.expires_at,
           status: data.status,
+          is_trial: data.is_trial === true,
+          billing_cycle: data.billing_cycle || undefined,
           foto_url: tenantFotoUrl,
           cargo: data.cargo ?? undefined,
           role: role,

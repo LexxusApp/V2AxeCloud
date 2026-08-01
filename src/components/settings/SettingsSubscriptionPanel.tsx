@@ -51,7 +51,14 @@ function planAccent(planKey: string, isLifetime: boolean) {
   };
 }
 
-function statusBadge(status: string | undefined, isLifetime: boolean) {
+function statusBadge(status: string | undefined, isLifetime: boolean, isTrial: boolean) {
+  if (isTrial && !isLifetime) {
+    return (
+      <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-950/50 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-300">
+        Período de teste
+      </span>
+    );
+  }
   const active = status === 'active' || isLifetime;
   if (active) {
     return (
@@ -94,6 +101,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
     : `Plano ${currentPlanName}`;
   const accent = planAccent(planKey, isLifetime);
   const status = String(tenantData?.status || 'active');
+  const isTrial = tenantData?.is_trial === true && !isLifetime;
   const billingCycle = useSubscriptionBillingCycle(
     String(tenantData?.tenant_id || ''),
     tenantData?.billing_cycle,
@@ -137,7 +145,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
             Situação da mensalidade e benefícios liberados para o terreiro.
           </p>
         </div>
-        {statusBadge(status, isLifetime)}
+        {statusBadge(status, isLifetime, isTrial)}
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -160,7 +168,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                     Vitalício — sem expiração
                   </>
                 ) : expiresAt ? (
-                  `Até ${expiresAt}`
+                  isTrial ? `Teste grátis até ${expiresAt}` : `Até ${expiresAt}`
                 ) : (
                   'Sem data definida'
                 )}
@@ -200,6 +208,13 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
 
           {!isLifetime && (
             <div className="space-y-2">
+              {isTrial ? (
+                <p className="rounded-xl border border-sky-500/25 bg-sky-950/30 px-3 py-2 text-[11px] font-medium leading-snug text-sky-200">
+                  Você está no teste grátis de 30 dias — nenhum pagamento foi realizado ainda.
+                  Assine agora para garantir o acesso {billingCycle === 'annual' ? 'por 1 ano' : 'contínuo'} após{' '}
+                  {expiresAt || 'o fim do teste'}.
+                </p>
+              ) : null}
               {renewError ? (
                 <p className="rounded-xl border border-red-500/30 bg-red-950/30 px-3 py-2 text-xs font-bold text-red-300">
                   {renewError}
@@ -216,7 +231,11 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Renovar assinatura
+              {isTrial
+                ? billingCycle === 'annual'
+                  ? 'Assinar plano anual agora'
+                  : 'Assinar agora'
+                : 'Renovar assinatura'}
             </button>
             </div>
           )}
@@ -254,9 +273,11 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                 >
                   {isLifetime
                     ? 'Acesso vitalício'
-                    : billingCycle === 'annual'
-                      ? 'Assinatura anual'
-                      : 'Assinatura mensal'}
+                    : isTrial
+                      ? 'Teste grátis · 30 dias'
+                      : billingCycle === 'annual'
+                        ? 'Assinatura anual'
+                        : 'Assinatura mensal'}
                 </span>
               </div>
 
