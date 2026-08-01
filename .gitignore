@@ -25,8 +25,16 @@ axecloud-deploy*.tgz
 .deploy-out.txt
 tmp-*.json
 
-# Projeto Android fora do escopo deste repositório web
-/android/
+# Aplicativo Android nativo versionado neste repositório
+/android/.gradle/
+/android/.idea/
+/android/.kotlin/
+/android/local.properties
+/android/**/build/
+/android/captures/
+/android/*.jks
+/android/*.keystore
+/android/axecloud-native.png
 
 # Utilitários operacionais locais (podem alterar segredos/infraestrutura)
 /deploy/scripts/*b2*
