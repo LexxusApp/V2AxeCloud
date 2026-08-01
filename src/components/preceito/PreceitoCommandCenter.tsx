@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import BodyPortal from '../BodyPortal';
 import { cn } from '../../lib/utils';
 
 type ChildOption = {
@@ -309,6 +310,9 @@ export default function PreceitoCommandCenter({ tenantId }: Props) {
         {error && !wizardOpen && !detailOpen ? <p className="relative mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500">{error}</p> : null}
       </section>
 
+      {/* Portal no body: ancestrais com transform (animações do dashboard) fariam
+          o fixed ancorar na seção e o modal abrir fora da tela. */}
+      <BodyPortal>
       <AnimatePresence>
         {wizardOpen ? (
           <div className="fixed inset-0 z-[140] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4">
@@ -504,6 +508,7 @@ export default function PreceitoCommandCenter({ tenantId }: Props) {
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
     </>
   );
 }
