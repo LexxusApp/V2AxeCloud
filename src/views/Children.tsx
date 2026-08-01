@@ -973,10 +973,15 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     <div className="relative">
                       <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#6F675C]" />
                       <input
+                        required
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{10,13}"
+                        title="Informe DDD + número, somente dígitos (ex: 11999999999)"
+                        maxLength={13}
                         className={cn(paperInputClass, 'pl-9')}
                         value={formData.whatsapp_phone}
-                        onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value.replace(/\D/g, '') })}
                         placeholder="11999999999"
                       />
                     </div>
