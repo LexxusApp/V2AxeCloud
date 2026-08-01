@@ -438,7 +438,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
               </div>
             </div>
             <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">
-              A 1ª mensagem é o aviso padrão aprovado pelo WhatsApp (texto fixo). O comunicado completo segue automaticamente na 2ª mensagem, com a assinatura da casa. O aviso também fica publicado no mural do aplicativo.
+              A 1ª mensagem é o aviso padrão aprovado pelo WhatsApp (texto fixo) e chega para todos. A 2ª, com o comunicado completo, só é entregue aos filhos que interagiram com o número da casa nas últimas 24h — regra do WhatsApp. Para os demais, o comunicado fica disponível no mural do aplicativo.
             </p>
           </AppDemoCard>
         </section>
