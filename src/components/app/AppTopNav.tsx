@@ -677,6 +677,9 @@ export default function AppTopNav({
         </div>
 
         <nav
+          // Remonta o conteúdo a cada abertura para os grupos (Casa/Financeiro)
+          // voltarem recolhidos — o drawer fica no DOM mesmo fechado.
+          key={mobileOpen ? 'drawer-open' : 'drawer-closed'}
           className="flex flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-4 no-scrollbar"
           role="tablist"
           aria-label="Módulos do AxéCloud"
