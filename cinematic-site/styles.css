@@ -340,25 +340,22 @@ body::before {
 .marca {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--osso);
   text-decoration: none;
-  font-family: var(--fonte-display);
-  font-size: 1.25rem;
-  letter-spacing: 0.02em;
 }
-.marca em { color: var(--ouro); font-style: normal; }
-.marca-simbolo {
+.marca-assinatura {
   display: block;
-  width: auto;
-  height: 34px;
+  width: 168px;
+  height: auto;
   object-fit: contain;
   filter: drop-shadow(0 3px 8px rgba(23, 37, 29, 0.14));
   transition: transform 0.3s ease, filter 0.3s ease;
 }
-.marca:hover .marca-simbolo {
+.marca:hover .marca-assinatura {
   transform: translateY(-1px);
   filter: drop-shadow(0 5px 10px rgba(242, 185, 15, 0.24));
+}
+@media (max-width: 520px) {
+  .marca-assinatura { width: 148px; }
 }
 .nav-links { display: flex; gap: 30px; }
 .nav-links a {
