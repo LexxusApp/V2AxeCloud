@@ -422,15 +422,24 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           </AppDemoCard>
           <AppDemoCard className="p-5">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">Prévia para o filho</p>
-            <div className="mx-auto mt-4 max-w-sm rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
+            <div className="mx-auto mt-4 max-w-sm space-y-2 rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
               <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
                 <p className="text-xs font-black text-[#075E54]">AxéCloud · {tenantData?.nome || 'Sua casa'}</p>
-                <p className="mt-2 text-sm font-black">{formData.titulo || 'Título do comunicado'}</p>
-                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{formData.conteudo || 'A mensagem aparecerá aqui conforme você escreve.'}</p>
+                <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed">
+                  Olá, [nome do filho]. Registramos uma atualização administrativa na sua conta de membro do {tenantData?.nome || 'seu terreiro'}. Os detalhes estão disponíveis na sua área do portal do filho de santo.
+                </p>
                 <p className="mt-2 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
               </div>
+              <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
+                <p className="text-sm font-black">{formData.titulo || 'Título do comunicado'}</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{formData.conteudo || 'O texto do comunicado aparecerá aqui conforme você escreve.'}</p>
+                <p className="mt-2 text-xs font-semibold text-[#4A5A52]">— {tenantData?.nome || 'Sua casa'}</p>
+                <p className="mt-1 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
+              </div>
             </div>
-            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">O envio real inclui um link para o aviso completo no AxéCloud.</p>
+            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">
+              A 1ª mensagem é o aviso padrão aprovado pelo WhatsApp (texto fixo). O comunicado completo segue automaticamente na 2ª mensagem, com a assinatura da casa. O aviso também fica publicado no mural do aplicativo.
+            </p>
           </AppDemoCard>
         </section>
       ) : null}
