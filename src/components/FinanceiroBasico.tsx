@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { countsTowardSaldo, normalizeMovimentoTipo } from '../lib/financeiroSaldo';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { supabase } from '../lib/supabase';
+import BodyPortal from './BodyPortal';
 
 interface Transaction {
   id: string;
@@ -182,36 +183,37 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
       </div>
 
       {/* Modal de Lançamento */}
+      <BodyPortal>
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl sm:max-w-md"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-md"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
-                <h3 className="text-base font-black text-white sm:text-xl">Novo Registro</h3>
-                <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 transition-colors hover:text-white">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
+                <h3 className="text-base font-display font-black text-[#171A16] sm:text-xl">Novo Registro</h3>
+                <button onClick={() => setIsModalOpen(false)} className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, tipo: 'entrada' })}
                     className={cn(
                       "py-3 rounded-xl font-bold border transition-all",
-                      formData.tipo === 'entrada' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" : "bg-white/5 border-white/5 text-gray-500"
+                      formData.tipo === 'entrada' ? "bg-[#3F7258]/10 border-[#3F7258]/30 text-[#3F7258]" : "bg-white border-[#E3DCCE] text-[#6F675C]"
                     )}
                   >
                     Entrada
@@ -221,7 +223,7 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
                     onClick={() => setFormData({ ...formData, tipo: 'saida' })}
                     className={cn(
                       "py-3 rounded-xl font-bold border transition-all",
-                      formData.tipo === 'saida' ? "bg-red-500/10 border-red-500/30 text-red-500" : "bg-white/5 border-white/5 text-gray-500"
+                      formData.tipo === 'saida' ? "bg-[#B04A32]/10 border-[#B04A32]/30 text-[#B04A32]" : "bg-white border-[#E3DCCE] text-[#6F675C]"
                     )}
                   >
                     Saída
@@ -230,29 +232,29 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Valor (R$)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#6F675C] ml-0.5">Valor (R$)</label>
                     <input required type="number" step="0.01" value={formData.valor}
                       onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-primary"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
                       placeholder="0,00" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Descrição</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#6F675C] ml-0.5">Descrição</label>
                     <input required type="text" value={formData.descricao}
                       onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-primary"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
                       placeholder="Ex: Compra de Velas" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-0.5">Data</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[#6F675C] ml-0.5">Data</label>
                     <input required type="date" value={formData.data}
                       onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-primary" />
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15" />
                   </div>
                 </div>
 
                 <button type="submit" disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3 font-black text-background disabled:opacity-50">
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#17251D] py-3 font-black text-[#FFFAF0] hover:bg-[#20342A] disabled:opacity-50">
                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                   Salvar Registro
                 </button>
@@ -269,22 +271,22 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsUpgradeModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 w-full space-y-5 rounded-3xl border border-primary/20 bg-[#1B1C1C] px-6 py-8 text-center sm:max-w-md sm:px-10"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col space-y-5 overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md sm:px-10"
             >
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Lock className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 bg-[#F1E8D2] rounded-full flex items-center justify-center mx-auto shrink-0">
+                <Lock className="w-10 h-10 text-[#8F7724]" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-white">Recurso Exclusivo</h3>
-                <p className="text-gray-400 font-medium">
-                  A automação de mensagens e envio de comprovantes via WhatsApp é exclusiva para assinantes do <span className="text-primary font-bold">Plano Premium</span> ou <span className="text-primary font-bold">Plano Vita</span>.
+                <h3 className="text-2xl font-display font-black text-[#171A16]">Recurso Exclusivo</h3>
+                <p className="text-[#6F675C] font-medium">
+                  A automação de mensagens e envio de comprovantes via WhatsApp é exclusiva para assinantes do <span className="text-[#8F7724] font-bold">Plano Premium</span> ou <span className="text-[#8F7724] font-bold">Plano Vita</span>.
                 </p>
               </div>
               <div className="pt-4 space-y-3">
@@ -294,13 +296,13 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
                     // Aqui você pode disparar uma navegação para a aba de assinaturas
                     window.dispatchEvent(new CustomEvent('navigate-to-subscription'));
                   }}
-                  className="w-full bg-primary text-background font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                  className="w-full bg-[#17251D] text-[#FFFAF0] font-black py-4 rounded-2xl shadow-lg hover:bg-[#20342A] hover:scale-105 transition-transform"
                 >
                   Fazer Upgrade Agora
                 </button>
                 <button 
                   onClick={() => setIsUpgradeModalOpen(false)}
-                  className="w-full text-gray-500 font-bold py-2 hover:text-white transition-colors"
+                  className="w-full text-[#6F675C] font-bold py-2 hover:text-[#171A16] transition-colors"
                 >
                   Talvez mais tarde
                 </button>
@@ -309,6 +311,7 @@ export default function FinanceiroBasico({ tenantId, userId }: FinanceiroBasicoP
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
     </div>
   );
 }

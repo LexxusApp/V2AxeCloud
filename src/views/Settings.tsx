@@ -257,16 +257,16 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[201] w-[min(100vw-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-red-500/30 bg-background p-6 shadow-2xl outline-none">
-            <Dialog.Title className="text-lg font-black text-red-500">
+          <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[201] w-[min(100vw-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl outline-none">
+            <Dialog.Title className="text-lg font-black text-[#B04A32]">
               Excluir conta e terreiro permanentemente?
             </Dialog.Title>
-            <Dialog.Description className="mt-3 text-sm text-gray-400 leading-relaxed">
+            <Dialog.Description className="mt-3 text-sm text-[#6F675C] leading-relaxed">
               Todos os dados deste terreiro serão apagados no banco (financeiro, mural, calendário, filhos, galeria, loja, etc.),
               arquivos armazenados e as contas de acesso dos filhos. Esta ação não pode ser desfeita.
             </Dialog.Description>
-            <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+            <p className="mt-4 text-xs font-bold text-[#6F675C] uppercase tracking-widest">
               Digite seu e-mail para confirmar
             </p>
             <input
@@ -275,9 +275,9 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
               value={deleteConfirmEmail}
               onChange={(e) => setDeleteConfirmEmail(e.target.value)}
               placeholder={user?.email || 'seu@email.com'}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-red-500/50"
+              className="mt-2 w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-3 text-sm text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
             />
-            <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+            <p className="mt-4 text-xs font-bold text-[#6F675C] uppercase tracking-widest">
               Confirme sua senha atual
             </p>
             <input
@@ -285,15 +285,15 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
               autoComplete="current-password"
               value={deleteCurrentPassword}
               onChange={(e) => setDeleteCurrentPassword(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-red-500/50"
+              className="mt-2 w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-3 text-sm text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
             />
-            {deleteError && <p className="mt-2 text-xs font-bold text-red-400">{deleteError}</p>}
+            {deleteError && <p className="mt-2 text-xs font-bold text-[#B04A32]">{deleteError}</p>}
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Dialog.Close asChild>
                 <button
                   type="button"
                   disabled={isDeletingAccount}
-                  className="rounded-xl border border-white/10 px-4 py-3 text-sm font-black text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                  className="rounded-xl border border-[#D8D2C4] bg-white px-4 py-3 text-sm font-black text-[#4A463E] hover:bg-[#F5F0E5] disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -302,7 +302,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                 type="button"
                 disabled={isDeletingAccount}
                 onClick={() => void handlePermanentDelete()}
-                className="rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-500 disabled:opacity-50"
+                className="rounded-xl bg-[#B04A32] px-4 py-3 text-sm font-black text-white hover:bg-[#9C3F2A] disabled:opacity-50"
               >
                 {isDeletingAccount ? (
                   <span className="flex items-center justify-center gap-2">

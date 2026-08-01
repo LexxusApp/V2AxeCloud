@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { cn } from '../../lib/utils';
+import BodyPortal from '../BodyPortal';
 
 type AccessLevel = 'corrente' | 'cargo' | 'individual' | 'zeladoria';
 type ItemStatus = 'rascunho' | 'publicado' | 'arquivado';
@@ -416,21 +417,22 @@ export function FundamentosAcervo({ tenantId, isAdmin, onBack }: Props) {
         </main>
       </section>
 
+      <BodyPortal>
       <AnimatePresence>
         {selected ? (
-          <div className="fixed inset-0 z-[120] flex justify-end bg-black/55 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[120] flex justify-end bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="flex h-full w-full max-w-2xl flex-col bg-[#FAF7F0] shadow-2xl"
+              className="flex h-full w-full max-w-2xl flex-col border-l border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-[#DDD6C8] px-5 py-4 sm:px-7">
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[.2em] text-[#8B772B]">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-7">
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">
                   <ShieldCheck className="h-4 w-4" /> Leitura protegida
                 </div>
-                <button type="button" onClick={() => setSelected(null)} className="rounded-full bg-[#ECE6DA] p-2 text-[#373A34]"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => setSelected(null)} className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button>
               </div>
               <article className="min-h-0 flex-1 overflow-y-auto px-5 py-7 sm:px-9 sm:py-10">
                 <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#9A8125]">{categoryMeta(selected.categoria).label} · {selected.tradicao}</p>
@@ -446,19 +448,19 @@ export function FundamentosAcervo({ tenantId, isAdmin, onBack }: Props) {
         ) : null}
 
         {formOpen ? (
-          <div className="fixed inset-0 z-[130] flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto overscroll-y-contain bg-black/70 p-4 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, y: 30, scale: .98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20 }}
-              className="flex max-h-[94dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[26px] bg-[#FAF7F0] shadow-2xl sm:rounded-[26px]"
+              className="relative flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-[#DED7CA] px-5 py-4 sm:px-7">
+              <div className="flex items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-7">
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-[.2em] text-[#967E25]">Curadoria da zeladoria</p>
-                  <h2 className="mt-1 font-display text-xl font-black text-[#171A15]">{editing ? 'Editar fundamento' : 'Novo fundamento'}</h2>
+                  <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">Curadoria da zeladoria</p>
+                  <h2 className="mt-1 font-display text-xl font-black text-[#171A16]">{editing ? 'Editar fundamento' : 'Novo fundamento'}</h2>
                 </div>
-                <button type="button" onClick={() => setFormOpen(false)} className="rounded-full bg-[#EDE7DB] p-2"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => setFormOpen(false)} className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button>
               </div>
               <form onSubmit={save} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -529,7 +531,7 @@ export function FundamentosAcervo({ tenantId, isAdmin, onBack }: Props) {
                   <textarea required minLength={3} value={form.conteudo} onChange={(e) => setForm({ ...form, conteudo: e.target.value })} className="mt-2 min-h-[230px] w-full resize-y rounded-2xl border border-[#D8D0C1] bg-white px-4 py-4 text-sm font-medium leading-7 text-[#242620] outline-none focus:border-[#A58C2C]" placeholder={'Orientação\n\nMateriais necessários\n\nModo de preparo\n\nCuidados e restrições'} />
                 </label>
 
-                <button disabled={saving} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#101713] px-5 py-4 text-sm font-black text-white transition hover:bg-[#1D2A21] disabled:opacity-60">
+                <button disabled={saving} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#17251D] px-5 py-4 text-sm font-black text-[#FFFAF0] transition hover:bg-[#20342A] disabled:opacity-60">
                   {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5 text-[#E3C64B]" />}
                   {saving ? 'Protegendo conteúdo...' : form.status === 'publicado' ? 'Salvar e publicar com acesso controlado' : 'Salvar no acervo'}
                 </button>
@@ -538,6 +540,7 @@ export function FundamentosAcervo({ tenantId, isAdmin, onBack }: Props) {
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
     </div>
   );
 }

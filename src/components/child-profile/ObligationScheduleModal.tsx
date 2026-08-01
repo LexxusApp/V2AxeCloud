@@ -2,9 +2,14 @@ import React, { useRef } from 'react';
 import { CalendarDays, CheckCircle2, FileText, Loader2, Upload, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../../lib/modalMotion';
-import { appInputClass, appLabelClass } from '../../lib/appUiTokens';
 import { AppPrimaryButton } from '../ui/appDemoUi';
 import { cn } from '../../lib/utils';
+import BodyPortal from '../BodyPortal';
+
+const paperLabelClass =
+  'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
+const paperInputClass =
+  'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15';
 
 export type ObligationFormData = {
   titulo: string;
@@ -42,14 +47,15 @@ export function ObligationScheduleModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+    <BodyPortal>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={MODAL_TW}
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         aria-hidden
       />
       <motion.div
@@ -61,18 +67,18 @@ export function ObligationScheduleModal({
         aria-modal="true"
         aria-labelledby="obligation-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] my-auto flex w-full max-h-[min(85dvh,calc(100dvh-5rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-2xl"
+        className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-md flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1E242B] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <CalendarDays className="h-4 w-4 text-primary" aria-hidden />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F1E8D2]">
+              <CalendarDays className="h-4 w-4 text-[#8F7724]" aria-hidden />
             </div>
             <div className="min-w-0">
-              <h3 id="obligation-modal-title" className="text-sm font-bold text-[#F1F5F9] sm:text-base">
+              <h3 id="obligation-modal-title" className="font-display text-sm font-black text-[#171A16] sm:text-base">
                 Agendar obrigação
               </h3>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-[#94A3B8]">
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">
                 Calendário do Axé
               </p>
             </div>
@@ -81,7 +87,7 @@ export function ObligationScheduleModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition-colors hover:bg-[#12161A] hover:text-[#F1F5F9] disabled:opacity-50"
+            className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white disabled:opacity-50"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -92,53 +98,53 @@ export function ObligationScheduleModal({
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-5">
             <div className="space-y-3">
             <div>
-              <label className={appLabelClass}>Título da obrigação</label>
+              <label className={paperLabelClass}>Título da obrigação</label>
               <input
                 required
                 type="text"
                 value={formData.titulo}
                 onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                className={appInputClass}
+                className={paperInputClass}
                 placeholder="Ex: Obrigação de 7 anos"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={appLabelClass}>Data prevista</label>
+                <label className={paperLabelClass}>Data prevista</label>
                 <input
                   required
                   type="date"
                   value={formData.data}
                   onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                  className={appInputClass}
+                  className={paperInputClass}
                 />
               </div>
               <div>
-                <label className={appLabelClass}>Hora</label>
+                <label className={paperLabelClass}>Hora</label>
                 <input
                   required
                   type="time"
                   value={formData.hora}
                   onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
-                  className={appInputClass}
+                  className={paperInputClass}
                 />
               </div>
             </div>
 
             <div>
-              <label className={appLabelClass}>Observações</label>
+              <label className={paperLabelClass}>Observações</label>
               <textarea
                 value={formData.descricao}
                 rows={2}
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                className={cn(appInputClass, 'min-h-[72px] resize-none py-2')}
+                className={cn(paperInputClass, 'min-h-[72px] resize-none py-2')}
                 placeholder="Detalhes sobre a obrigação…"
               />
             </div>
 
             <div>
-              <label className={appLabelClass}>Anexo PDF (opcional)</label>
+              <label className={paperLabelClass}>Anexo PDF (opcional)</label>
               <input
                 ref={pdfInputRef}
                 type="file"
@@ -168,21 +174,21 @@ export function ObligationScheduleModal({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') pdfInputRef.current?.click();
                 }}
-                className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-3 py-3 text-left transition hover:border-[#2F3643] aria-disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#D8D2C4] bg-white px-3 py-3 text-left transition hover:border-[#B8AF9D] aria-disabled:opacity-50"
                 aria-disabled={isSubmitting}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#13171D]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F1ECE0]">
                   {pdfFile ? (
-                    <FileText className="h-4 w-4 text-primary" />
+                    <FileText className="h-4 w-4 text-[#8F7724]" />
                   ) : (
-                    <Upload className="h-4 w-4 text-[#94A3B8]" />
+                    <Upload className="h-4 w-4 text-[#6F675C]" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold text-[#F1F5F9]">
+                  <p className="truncate text-xs font-bold text-[#171A16]">
                     {pdfFile ? pdfFile.name : 'Anexar documento da obrigação'}
                   </p>
-                  <p className="text-[10px] text-[#64748B]">
+                  <p className="text-[10px] text-[#6F675C]">
                     {pdfFile ? 'Toque para trocar o arquivo' : 'PDF até 15 MB'}
                   </p>
                 </div>
@@ -202,7 +208,7 @@ export function ObligationScheduleModal({
                         if (pdfInputRef.current) pdfInputRef.current.value = '';
                       }
                     }}
-                    className="shrink-0 rounded-lg p-1.5 text-[#94A3B8] hover:bg-[#1E242B] hover:text-[#F1F5F9]"
+                    className="shrink-0 rounded-lg p-1.5 text-[#6F675C] hover:bg-[#F1ECE0] hover:text-[#171A16]"
                     aria-label="Remover PDF"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -220,29 +226,29 @@ export function ObligationScheduleModal({
                     onChange={(e) => setFormData({ ...formData, notifyChild: e.target.checked })}
                     className="peer sr-only"
                   />
-                  <div className="flex h-4 w-4 items-center justify-center rounded border border-[#2F3643] bg-[#12161A] transition-all peer-checked:border-primary peer-checked:bg-primary">
-                    <CheckCircle2 className="h-3 w-3 text-[#080A0D] opacity-0 transition-opacity peer-checked:opacity-100" />
+                  <div className="flex h-4 w-4 items-center justify-center rounded border border-[#C9C1B3] bg-white transition-all peer-checked:border-[#17251D] peer-checked:bg-[#17251D]">
+                    <CheckCircle2 className="h-3 w-3 text-[#FFFAF0] opacity-0 transition-opacity peer-checked:opacity-100" />
                   </div>
                 </div>
-                <span className="text-xs text-[#94A3B8]">Enviar aviso para o filho</span>
+                <span className="text-xs text-[#6F675C]">Enviar aviso para o filho</span>
               </label>
             ) : null}
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#1E242B] px-5 py-3.5">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#DED8CB] px-5 py-3.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#94A3B8] transition hover:text-[#F1F5F9] disabled:opacity-50"
+              className="rounded-xl border border-[#D8D2C4] bg-white px-4 py-2 text-xs font-bold text-[#4A463E] transition hover:bg-[#F5F0E5] disabled:opacity-50"
             >
               Cancelar
             </button>
             <AppPrimaryButton
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex min-w-[140px] items-center justify-center gap-2"
+              className="inline-flex min-w-[140px] items-center justify-center gap-2 bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A]"
             >
               {isSubmitting ? (
                 <>
@@ -257,5 +263,6 @@ export function ObligationScheduleModal({
         </form>
       </motion.div>
     </div>
+    </BodyPortal>
   );
 }

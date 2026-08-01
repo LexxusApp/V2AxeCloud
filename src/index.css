@@ -5991,7 +5991,10 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .app-view-transition {
   min-height: 100%;
-  animation: app-view-continuity 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* fill-mode "backwards" (não "both"): manter transform/filter após a animação
+     transforma este wrapper em containing block e desancora todos os modais
+     position:fixed renderizados dentro das telas. */
+  animation: app-view-continuity 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 @keyframes app-view-continuity {

@@ -29,7 +29,6 @@ import {
   AppDemoTableShell,
   AppPrimaryButton,
   appInputClass,
-  appLabelClass,
 } from '../components/ui/appDemoUi';
 
 interface Product {
@@ -589,48 +588,48 @@ export default function Inventory({
       <AnimatePresence>
         {isAddItemModalOpen && (
           <BodyPortal>
-          <div className="fixed inset-0 z-[100] flex min-h-0 items-center justify-center overflow-y-auto overscroll-y-contain p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeItemModal}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div 
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
-                  <h3 className="text-base font-black text-white sm:text-xl">
+                  <h3 className="font-display text-base font-black text-[#171A16] sm:text-xl">
                     {editingProduct ? 'Editar item' : 'Cadastrar item'}
                   </h3>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[#6F675C]">
                     {editingProduct ? 'Atualize os dados e limites de estoque' : 'Adicione um novo insumo ao estoque'}
                   </p>
                 </div>
-                <button type="button" onClick={closeItemModal} className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5">
+                <button type="button" onClick={closeItemModal} className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Nome do item</label>
+                  <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Nome do item</label>
                   <input required type="text" value={formData.item}
                     onChange={e => setFormData({ ...formData, item: e.target.value })}
-                    className={appInputClass}
+                    className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
                     placeholder="Ex.: Vela branca de 7 dias" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className={appLabelClass}>Categoria</label>
+                    <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Categoria</label>
                     <select value={formData.categoria}
                       onChange={e => setFormData({ ...formData, categoria: e.target.value as any })}
-                      className={appInputClass}>
+                      className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15 [&>option]:bg-white">
                       <option value="Camarinha">Camarinha</option>
                       <option value="Limpeza">Limpeza</option>
                       <option value="Rituais">Rituais</option>
@@ -639,23 +638,23 @@ export default function Inventory({
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className={appLabelClass}>Quantidade atual</label>
+                    <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Quantidade atual</label>
                     <input required type="number" value={formData.quantidade_atual}
                       onChange={e => setFormData({ ...formData, quantidade_atual: parseInt(e.target.value) || 0 })}
                       min="0"
-                      className={appInputClass} />
+                      className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Estoque mínimo para alerta</label>
+                  <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Estoque mínimo para alerta</label>
                   <input required type="number" value={formData.quantidade_minima}
                     onChange={e => setFormData({ ...formData, quantidade_minima: parseInt(e.target.value) || 0 })}
                     min="0"
-                    className={appInputClass} />
+                    className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15" />
                 </div>
 
-                <div className="flex flex-col-reverse gap-2 border-t border-[#252B33] pt-4 sm:flex-row sm:justify-between">
+                <div className="flex flex-col-reverse gap-2 border-t border-[#E3DCCE] pt-4 sm:flex-row sm:justify-between">
                   {editingProduct ? (
                     <button
                       type="button"
@@ -664,7 +663,7 @@ export default function Inventory({
                         closeItemModal();
                         void deleteItem(id);
                       }}
-                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-rose-500/25 bg-rose-950/30 px-4 text-xs font-black text-rose-300"
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#B04A32] px-4 text-xs font-black text-white transition hover:bg-[#9C3F2A]"
                     >
                       Excluir item
                     </button>
@@ -672,7 +671,7 @@ export default function Inventory({
                   <AppPrimaryButton
                     disabled={isSubmitting}
                     type="submit"
-                    className="inline-flex items-center justify-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A]"
                   >
                     {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                     {isSubmitting
@@ -690,51 +689,52 @@ export default function Inventory({
       </AnimatePresence>
 
       {/* Shopping List Modal */}
+      <BodyPortal>
       <AnimatePresence>
         {isShoppingListOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsShoppingListOpen(false)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#1F1F1F] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                    <ShoppingCart className="h-5 w-5 text-primary" />
+                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+                    <ShoppingCart className="h-5 w-5 text-[#8F7724]" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-base font-black text-white sm:text-xl">Lista de Compras</h3>
-                    <p className="text-xs text-gray-500 font-medium">Itens para reposição imediata.</p>
+                    <h3 className="font-display text-base font-black text-[#171A16] sm:text-xl">Lista de Compras</h3>
+                    <p className="text-xs text-[#6F675C] font-medium">Itens para reposição imediata.</p>
                   </div>
                 </div>
-                <button onClick={() => setIsShoppingListOpen(false)} className="shrink-0 rounded-xl p-2 text-gray-500 transition-colors hover:bg-white/5">
+                <button onClick={() => setIsShoppingListOpen(false)} className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="rounded-2xl border border-white/5 bg-background/50 p-4 font-mono text-sm leading-relaxed text-gray-300 whitespace-pre-wrap sm:p-6">
+                <div className="rounded-2xl border border-[#E3DCCE] bg-white p-4 font-mono text-sm leading-relaxed text-[#4A463E] whitespace-pre-wrap sm:p-6">
                   {generateShoppingListText()}
                 </div>
               </div>
 
-              <div className="flex shrink-0 gap-3 border-t border-white/5 bg-background/30 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 gap-3 border-t border-[#DED8CB] bg-white/70 px-5 py-4 sm:px-6">
                 <button onClick={copyToClipboard}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/5 py-3 font-black text-white transition-all hover:bg-white/10">
-                  {copied ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <Copy className="h-5 w-5" />}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#D8D2C4] bg-white py-3 font-black text-[#4A463E] transition-all hover:bg-[#F5F0E5]">
+                  {copied ? <CheckCircle2 className="h-5 w-5 text-[#3F7258]" /> : <Copy className="h-5 w-5" />}
                   <span className="text-sm">{copied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
                 <a href={`https://wa.me/?text=${encodeURIComponent(generateShoppingListText())}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 font-black text-background shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#17251D] py-3 font-black text-[#FFFAF0] shadow-lg transition-all hover:scale-[1.02] hover:bg-[#20342A]">
                   <MessageSquare className="h-5 w-5" />
                   <span className="text-sm">WhatsApp</span>
                 </a>
@@ -743,6 +743,7 @@ export default function Inventory({
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
       </div>
       </div>
     </AppPageShell>

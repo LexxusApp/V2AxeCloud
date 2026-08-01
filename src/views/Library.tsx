@@ -24,7 +24,8 @@ import { cn } from '../lib/utils';
 import { hasPlanAccess } from '../constants/plans';
 import CommentSection from '../components/CommentSection';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
+import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass } from '../components/ui/appDemoUi';
+import BodyPortal from '../components/BodyPortal';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
@@ -738,45 +739,47 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     </AnimatePresence>
 
       {/* Upload Modal */}
+      <BodyPortal>
       <AnimatePresence>
         {isUploadModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsUploadModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div 
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-[#1E242B] px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
-                  <h3 className="text-base font-black text-[#F1F5F9] sm:text-lg">Adicionar material</h3>
-                  <p className="mt-0.5 text-xs text-[#94A3B8]">Publique um PDF na biblioteca da casa.</p>
+                  <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">Biblioteca da casa</p>
+                  <h3 className="mt-1 font-display text-base font-black text-[#171A16] sm:text-lg">Adicionar material</h3>
+                  <p className="mt-0.5 text-xs text-[#6F675C]">Publique um PDF na biblioteca da casa.</p>
                 </div>
-                <button onClick={() => setIsUploadModalOpen(false)} className="shrink-0 rounded-lg p-2 text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
+                <button onClick={() => setIsUploadModalOpen(false)} className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition hover:bg-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <form onSubmit={handleUpload} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Título do material</label>
+                  <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Título do material</label>
                   <input type="text" value={newMaterial.titulo}
                     onChange={e => setNewMaterial({ ...newMaterial, titulo: e.target.value })}
-                    className={appInputClass}
+                    className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15"
                     placeholder="Ex.: Cantigas de Oxóssi" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Categoria</label>
+                  <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Categoria</label>
                   <select value={newMaterial.categoria}
                     onChange={e => setNewMaterial({ ...newMaterial, categoria: e.target.value })}
-                    className={cn(appInputClass, '[&>option]:bg-[#13171D]')}>
+                    className="min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15 [&>option]:bg-white">
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
@@ -784,30 +787,30 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Arquivo PDF</label>
+                  <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Arquivo PDF</label>
                   <div className="relative">
                     <input type="file" accept=".pdf"
                       onChange={e => setNewMaterial({ ...newMaterial, file: e.target.files?.[0] || null })}
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#303844] bg-[#12161A] px-4 py-8 transition hover:border-primary/40">
-                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                    <div className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#D8D2C4] bg-white px-4 py-8 transition hover:border-[#8F7724]/50">
+                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#E7DDC0] bg-[#F1E8D2] text-[#8F7724]">
                         <Upload className="h-5 w-5" />
                       </div>
-                      <p className="max-w-full truncate px-2 text-center text-xs font-bold text-[#94A3B8]" title={newMaterial.file?.name}>
+                      <p className="max-w-full truncate px-2 text-center text-xs font-bold text-[#6F675C]" title={newMaterial.file?.name}>
                         {newMaterial.file ? newMaterial.file.name : 'Selecione ou arraste o PDF'}
                       </p>
                       {newMaterial.file ? (
-                        <span className="text-[10px] font-bold text-[#64748B]">
+                        <span className="text-[10px] font-bold text-[#9B9184]">
                           {(newMaterial.file.size / 1024 / 1024).toFixed(2)} MB
                         </span>
                       ) : (
-                        <span className="text-[10px] text-[#64748B]">Somente arquivos PDF</span>
+                        <span className="text-[10px] text-[#9B9184]">Somente arquivos PDF</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <AppPrimaryButton type="submit" disabled={uploading} className="flex w-full items-center justify-center gap-2">
+                <AppPrimaryButton type="submit" disabled={uploading} className="flex w-full items-center justify-center gap-2 bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A]">
                   {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</> : <><Upload className="h-4 w-4" />Publicar material</>}
                 </AppPrimaryButton>
               </form>
@@ -815,6 +818,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
     </div>
   );
 

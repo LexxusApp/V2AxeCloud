@@ -24,7 +24,6 @@ import {
   AppDemoPanelHeader,
   AppPrimaryButton,
   appInputClass,
-  appLabelClass,
 } from '../components/ui/appDemoUi';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -66,6 +65,13 @@ type AlbumItem = {
 };
 
 type ToastState = { message: string; type: 'success' | 'info' | 'error' } | null;
+
+// Campos do modal de álbum (portal fora do escopo .app-v5-identity): tokens de papel explícitos.
+const paperModalInputClass =
+  'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15';
+
+const paperModalLabelClass =
+  'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
 
 const FILTER_CHIPS: { value: GalleryFilter; label: string }[] = [
   { value: 'tudo', label: 'Todos' },
@@ -152,14 +158,14 @@ function AddAlbumModalPanel({
   zeladorName,
 }: AddAlbumModalPanelProps) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-4 pt-20 sm:p-8 sm:pt-24">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 sm:p-8">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={MODAL_TW}
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         aria-hidden
       />
       <motion.div
@@ -171,18 +177,18 @@ function AddAlbumModalPanel({
         aria-modal="true"
         aria-labelledby="add-album-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] flex max-h-[calc(100vh-6rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[#303844] bg-[#11151A] shadow-2xl"
+        className="relative z-[101] flex max-h-[88dvh] w-full max-w-5xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-              <Camera className="h-5 w-5 text-primary" aria-hidden />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+              <Camera className="h-5 w-5 text-[#8F7724]" aria-hidden />
             </div>
             <div className="min-w-0">
-              <h3 id="add-album-title" className="text-base font-black text-white sm:text-lg">
+              <h3 id="add-album-title" className="font-display text-base font-black text-[#171A16] sm:text-lg">
                 Criar novo álbum
               </h3>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-[#6F675C]">
                 Organize fotos e vídeos em uma coleção
               </p>
             </div>
@@ -190,32 +196,32 @@ function AddAlbumModalPanel({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto p-5 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:gap-6">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
               <div>
-                <label className={appLabelClass}>Nome do álbum</label>
+                <label className={paperModalLabelClass}>Nome do álbum</label>
                 <input
                   type="text"
                   value={albumName}
                   onChange={(e) => setAlbumName(e.target.value)}
                   placeholder="Ex.: Gira de Ogum — março de 2026"
-                  className={appInputClass}
+                  className={paperModalInputClass}
                 />
               </div>
               <div>
-                <label className={appLabelClass}>Tipo da atividade</label>
+                <label className={paperModalLabelClass}>Tipo da atividade</label>
                 <select
                   value={albumCategory}
                   onChange={(e) => setAlbumCategory(e.target.value as GalleryCategory)}
-                  className={cn(appInputClass, 'cursor-pointer')}
+                  className={cn(paperModalInputClass, 'cursor-pointer')}
                 >
                   <option value="gira">Gira de Trabalho</option>
                   <option value="evento">Festa / Evento Público</option>
@@ -223,23 +229,23 @@ function AddAlbumModalPanel({
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className={appLabelClass}>Legenda do álbum</label>
+                <label className={paperModalLabelClass}>Legenda do álbum</label>
                 <textarea
                   value={albumDescription}
                   onChange={(e) => setAlbumDescription(e.target.value)}
                   rows={2}
                   placeholder="Conte brevemente o que aconteceu neste momento…"
-                  className={cn(appInputClass, 'resize-none')}
+                  className={cn(paperModalInputClass, 'resize-none')}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={appLabelClass}>Fotos e vídeos (múltiplos)</label>
+                <label className={paperModalLabelClass}>Fotos e vídeos (múltiplos)</label>
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#8F7724]/30 bg-[#F1E8D2] px-4 py-2.5 text-xs font-bold text-[#8F7724] transition hover:bg-[#EBDFC0] disabled:opacity-60"
                   >
                     {uploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -258,7 +264,7 @@ function AddAlbumModalPanel({
                     disabled={uploading}
                   />
                   {selectedFiles.length > 0 ? (
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[11px] text-[#6F675C]">
                       {selectedFiles.length} arquivo(s) selecionado(s)
                     </span>
                   ) : null}
@@ -266,24 +272,24 @@ function AddAlbumModalPanel({
               </div>
             </div>
 
-            <div className="flex min-h-[10.5rem] flex-col space-y-3 rounded-2xl border border-[#1E242B] bg-[#0C0E12]/80 p-4 lg:min-h-0">
+            <div className="flex min-h-[10.5rem] flex-col space-y-3 rounded-2xl border border-[#E3DCCE] bg-[#F1ECE0] p-4 lg:min-h-0">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#8F7724]">
                   Pré-visualização
                 </span>
                 {selectedFiles.length > 0 ? (
                   <button
                     type="button"
                     onClick={onClear}
-                    className="text-[9px] font-bold text-gray-500 hover:text-white"
+                    className="text-[9px] font-bold text-[#6F675C] hover:text-[#171A16]"
                   >
                     Limpar
                   </button>
                 ) : null}
               </div>
               {previewUrls.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#1E242B] bg-[#12161A] px-4 py-8 text-center">
-                  <p className="text-[10px] text-gray-500">
+                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#D8D2C4] bg-white px-4 py-8 text-center">
+                  <p className="text-[10px] text-[#6F675C]">
                     Selecione várias fotos de uma gira — todas ficarão neste álbum.
                   </p>
                 </div>
@@ -295,7 +301,7 @@ function AddAlbumModalPanel({
                     return (
                       <div
                         key={url}
-                        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#1E242B] bg-black sm:h-[4.5rem] sm:w-[4.5rem]"
+                        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#E3DCCE] bg-black sm:h-[4.5rem] sm:w-[4.5rem]"
                       >
                         {isVideo ? (
                           <video src={url} className="h-full w-full object-cover" muted playsInline />
@@ -310,8 +316,8 @@ function AddAlbumModalPanel({
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4 sm:mt-6">
-            <p className="font-mono text-[9.5px] italic text-gray-500">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#DED8CB] pt-4 sm:mt-6">
+            <p className="font-mono text-[9.5px] italic text-[#6F675C]">
               Assinado por {zeladorName} (Zeladoria)
             </p>
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -320,7 +326,7 @@ function AddAlbumModalPanel({
                   type="button"
                   onClick={onClear}
                   disabled={uploading}
-                  className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50"
+                  className="cursor-pointer px-4 py-2 text-xs font-bold text-[#4A463E] hover:text-[#171A16] disabled:opacity-50"
                 >
                   Limpar
                 </button>
@@ -329,7 +335,7 @@ function AddAlbumModalPanel({
                 type="button"
                 onClick={onPublish}
                 disabled={uploading}
-                className="inline-flex min-w-[10rem] items-center justify-center"
+                className="inline-flex min-w-[10rem] items-center justify-center bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A]"
               >
                 {uploading
                   ? `Enviando ${uploadProgress.current}/${uploadProgress.total}…`
@@ -1090,6 +1096,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
         )}
       </div>
 
+      <BodyPortal>
       <AnimatePresence>
         {addAlbumModalOpen ? (
           <AddAlbumModalPanel
@@ -1112,6 +1119,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           />
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
 
       <AnimatePresence>
         {lightboxItem && (

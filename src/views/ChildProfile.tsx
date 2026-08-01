@@ -10,6 +10,7 @@ import { ChildProfileV3View } from '../components/child-profile/ChildProfileV3Vi
 import { resolveChildWhatsAppPhone } from '../lib/whatsappPhone';
 import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
 import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
+import BodyPortal from '../components/BodyPortal';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -861,6 +862,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         />
       </div>
       {/* Modal: criar / editar nota individual */}
+      <BodyPortal>
       <AnimatePresence>
         {isNoteModalOpen && !isSelfView && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
@@ -869,25 +871,25 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeNoteModal}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-[#FBBC00]/20 bg-[#1F1F1F] shadow-2xl sm:max-h-[88dvh] sm:max-w-xl"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-xl"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FBBC00]/10 ring-1 ring-[#FBBC00]/30">
-                    <NotebookPen className="h-5 w-5 text-[#FBBC00]" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1E8D2]">
+                    <NotebookPen className="h-5 w-5 text-[#8F7724]" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-base font-black text-white sm:text-lg">
+                    <h3 className="font-display text-base font-black text-[#171A16] sm:text-lg">
                       {selectedNoteId ? 'Editar nota' : 'Nova nota'}
                     </h3>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-0.5">
+                    <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724] mt-0.5">
                       Apenas o Zelador acessa
                     </p>
                   </div>
@@ -895,7 +897,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
                 <button
                   type="button"
                   onClick={closeNoteModal}
-                  className="shrink-0 rounded-2xl p-2 text-gray-500 transition-colors hover:bg-white/5"
+                  className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -904,40 +906,40 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
               <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 no-scrollbar">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Título</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#6F675C]">Título</label>
                   <input
                     type="text"
                     value={noteDraftTitle}
                     onChange={(e) => setNoteDraftTitle(e.target.value)}
                     placeholder="Ex.: Orientação do dia, observação espiritual..."
-                    className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none transition-all focus:border-[#FBBC00]/50"
+                    className="w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-3 text-sm font-bold text-[#171A16] placeholder:text-[#9B9184] outline-none transition-all focus:border-[#526A55] focus:ring-2 focus:ring-[#526A55]/15"
                     maxLength={120}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Conteúdo</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#6F675C]">Conteúdo</label>
                   <textarea
                     value={noteDraftContent}
                     onChange={(e) => setNoteDraftContent(e.target.value)}
                     placeholder="Escreva aqui o conteúdo da nota..."
                     rows={10}
-                    className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium leading-relaxed text-white outline-none transition-all focus:border-[#FBBC00]/50 resize-none"
+                    className="w-full rounded-xl border border-[#D8D2C4] bg-white px-4 py-3 text-sm font-medium leading-relaxed text-[#171A16] placeholder:text-[#9B9184] outline-none transition-all focus:border-[#526A55] focus:ring-2 focus:ring-[#526A55]/15 resize-none"
                   />
                 </div>
                 {selectedNoteId && (
-                  <p className="text-[10px] text-gray-600">
+                  <p className="text-[10px] text-[#6F675C]">
                     Criada em {formatNoteDate(zeladorNotes.find((n) => n.id === selectedNoteId)?.createdAt || '')}
                   </p>
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/5 bg-[#181818] px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[#DED8CB] bg-white/70 px-5 py-4 sm:px-6">
                 {selectedNoteId ? (
                   <button
                     type="button"
                     onClick={handleDeleteCurrentNote}
                     disabled={isSavingNotes}
-                    className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#B04A32] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white transition-all hover:bg-[#9C3F2A] disabled:opacity-50"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Excluir
@@ -950,7 +952,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
                     type="button"
                     onClick={closeNoteModal}
                     disabled={isSavingNotes}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-gray-300 transition-all hover:bg-white/10 disabled:opacity-50"
+                    className="rounded-xl border border-[#D8D2C4] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#4A463E] transition-all hover:bg-[#F5F0E5] disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -958,7 +960,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
                     type="button"
                     onClick={handleSaveCurrentNote}
                     disabled={isSavingNotes}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#FBBC00] px-5 py-2 text-[11px] font-black uppercase tracking-widest text-black shadow-lg shadow-[#FBBC00]/20 transition-all hover:scale-105 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#17251D] px-5 py-2 text-[11px] font-black uppercase tracking-widest text-[#FFFAF0] shadow-lg transition-all hover:scale-105 hover:bg-[#20342A] disabled:opacity-50"
                   >
                     {isSavingNotes ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     {isSavingNotes ? 'Salvando…' : 'Salvar nota'}
@@ -969,6 +971,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
 
       {/* Modal: Editar prontuário */}
       <AnimatePresence>

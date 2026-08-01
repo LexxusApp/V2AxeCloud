@@ -8,9 +8,6 @@ import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import {
   AppDemoCard,
   AppDemoPanelHeader,
-  AppPrimaryButton,
-  appInputClass,
-  appLabelClass,
 } from '../components/ui/appDemoUi';
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
@@ -32,6 +29,12 @@ import {
 import GiraRitualCommand from '../components/gira/GiraRitualCommand';
 import BodyPortal from '../components/BodyPortal';
 import FilhoGirasExperience from '../components/filho/FilhoGirasExperience';
+
+const paperLabelClass =
+  'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
+
+const paperInputClass =
+  'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15';
 
 export interface CalendarEvent {
   id: string;
@@ -199,44 +202,43 @@ function EventDetailModalPanel({
   const detailsBlock = (
     <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
       <div className="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
-        <div className="flex items-center gap-2 text-white">
-          <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
+        <div className="flex items-center gap-2 text-[#171A16]">
+          <CalendarIcon className="h-4 w-4 shrink-0 text-[#8F7724]" />
           <span className="font-bold">
             {format(parseISO(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
           </span>
         </div>
         {horaFmt ? (
-          <div className="flex items-center gap-2 text-white">
-            <Clock className="h-4 w-4 shrink-0 text-primary" />
+          <div className="flex items-center gap-2 text-[#171A16]">
+            <Clock className="h-4 w-4 shrink-0 text-[#8F7724]" />
             <span className="font-bold">{horaFmt}</span>
           </div>
         ) : null}
       </div>
       {descricao ? (
         <div>
-          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500">Descrição</p>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300">{descricao}</p>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-[#6F675C]">Descrição</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#171A16]">{descricao}</p>
         </div>
       ) : null}
     </div>
   );
 
   return (
-    <>
+    <BodyPortal>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm"
         aria-hidden
       />
       <div
-        className="fixed inset-0 z-[101] overflow-y-auto overscroll-y-contain"
+        className="fixed inset-0 z-[101] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4"
         onClick={onClose}
         role="presentation"
       >
-        <div className="flex min-h-full items-center justify-center p-4 sm:p-6 pointer-events-none">
           <motion.div
             initial={MODAL_PANEL_IN}
             animate={MODAL_PANEL_DONE}
@@ -247,20 +249,20 @@ function EventDetailModalPanel({
             aria-labelledby="event-detail-title"
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'pointer-events-auto my-auto flex w-full max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl',
+              'relative my-auto flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl',
               hasBanner ? 'max-w-[min(96vw,52rem)]' : 'max-w-sm',
             )}
           >
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                <CalendarIcon className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+                <CalendarIcon className="h-5 w-5 text-[#8F7724]" />
               </div>
               <div className="min-w-0">
-                <h3 id="event-detail-title" className="truncate text-base font-black text-white sm:text-lg">
+                <h3 id="event-detail-title" className="truncate font-display text-base font-black text-[#171A16] sm:text-lg">
                   {event.titulo}
                 </h3>
-                <p className="truncate text-xs font-medium uppercase tracking-widest text-gray-500">{event.tipo}</p>
+                <p className="truncate text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">{event.tipo}</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -268,7 +270,7 @@ function EventDetailModalPanel({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#D8D2C4] bg-white px-3 py-2 text-xs font-bold text-[#4A463E] transition-colors hover:bg-[#F5F0E5]"
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Editar
@@ -277,7 +279,7 @@ function EventDetailModalPanel({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
                 aria-label="Fechar"
               >
                 <X className="h-5 w-5" />
@@ -288,7 +290,7 @@ function EventDetailModalPanel({
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
             {hasBanner ? (
               <div className="flex min-h-0 flex-col sm:flex-row sm:items-stretch">
-                <div className="flex shrink-0 items-center justify-center border-b border-white/5 bg-[#0a0c0f] p-3 sm:w-[min(44%,18rem)] sm:border-b-0 sm:border-r sm:p-4">
+                <div className="flex shrink-0 items-center justify-center border-b border-[#E3DCCE] bg-[#141C17] p-3 sm:w-[min(44%,18rem)] sm:border-b-0 sm:border-r sm:p-4">
                   <img
                     src={event.banner_url!}
                     alt={event.titulo}
@@ -299,17 +301,16 @@ function EventDetailModalPanel({
               </div>
             ) : (
               <>
-                <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-transparent">
-                  <CalendarIcon className="h-12 w-12 text-white/15" />
+                <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-[#F1E8D2] to-transparent">
+                  <CalendarIcon className="h-12 w-12 text-[#8F7724]/40" />
                 </div>
                 <div className="px-5 py-5 sm:px-6">{detailsBlock}</div>
               </>
             )}
           </div>
           </motion.div>
-        </div>
       </div>
-    </>
+    </BodyPortal>
   );
 }
 
@@ -341,7 +342,7 @@ function AdminEventDrawer({
 
   return (
     <BodyPortal>
-      <motion.button type="button" aria-label="Fechar detalhes da gira" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-[2px]" />
+      <motion.button type="button" aria-label="Fechar detalhes da gira" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
       <motion.aside
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -350,43 +351,43 @@ function AdminEventDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-event-title"
-        className="fixed right-3 top-20 z-[101] flex max-h-[calc(100dvh-6rem)] w-[calc(100%-1.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-[0_30px_90px_rgba(0,0,0,.55)] sm:right-5"
+        className="fixed right-3 top-20 z-[101] flex max-h-[calc(100dvh-6rem)] w-[calc(100%-1.5rem)] max-w-sm flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:right-5"
       >
-        <div className={cn('relative shrink-0 overflow-hidden bg-[#11151A]', event.banner_url ? 'h-36' : 'h-24')}>
+        <div className={cn('relative shrink-0 overflow-hidden bg-[#141C17]', event.banner_url ? 'h-36' : 'h-24')}>
           {event.banner_url ? <img src={event.banner_url} alt="" className="h-full w-full object-cover" /> : (
-            <div className="grid h-full place-items-center bg-gradient-to-br from-primary/15 to-sky-400/5"><CalendarDays className="h-10 w-10 text-primary/30" /></div>
+            <div className="grid h-full place-items-center bg-gradient-to-br from-[#F1E8D2] to-transparent"><CalendarDays className="h-10 w-10 text-[#8F7724]/40" /></div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F1318] via-transparent to-black/25" />
-          <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-xl bg-black/55 text-white backdrop-blur hover:bg-black/75" aria-label="Fechar"><X className="h-4 w-4" /></button>
-          <span className={cn('absolute bottom-3 left-4 rounded-full px-2.5 py-1 text-[10px] font-black', passed ? 'bg-zinc-700 text-zinc-200' : 'bg-primary text-[#17130D]')}>{passed ? 'Concluído' : event.tipo || 'Gira'}</span>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#F9F6EE] via-transparent to-black/25" />
+          <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-[#DCD6CA] bg-white/70 text-[#171A16] backdrop-blur hover:bg-white" aria-label="Fechar"><X className="h-4 w-4" /></button>
+          <span className={cn('absolute bottom-3 left-4 rounded-full px-2.5 py-1 text-[10px] font-black', passed ? 'bg-[#E3DCCE] text-[#4A463E]' : 'bg-[#17251D] text-[#FFFAF0]')}>{passed ? 'Concluído' : event.tipo || 'Gira'}</span>
         </div>
 
         <div className="min-h-0 overflow-y-auto p-4">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">{event.tipo || 'Evento da casa'}</p>
-          <h2 id="admin-event-title" className="mt-1 text-xl font-black">{event.titulo}</h2>
+          <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">{event.tipo || 'Evento da casa'}</p>
+          <h2 id="admin-event-title" className="mt-1 font-display text-xl font-black text-[#171A16]">{event.titulo}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5"><p className="text-[10px] font-bold text-[#7F8B9C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5"><p className="text-[10px] font-bold text-[#7F8B9C]">Horário</p><p className="mt-0.5 text-sm font-black">{formatHoraEvento(event.hora) || 'Não informado'}</p></div>
+            <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
+            <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Horário</p><p className="mt-0.5 text-sm font-black">{formatHoraEvento(event.hora) || 'Não informado'}</p></div>
           </div>
-          {event.descricao ? <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3"><p className="text-[10px] font-bold text-[#7F8B9C]">Informações</p><p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-xs font-medium leading-relaxed text-[#CBD5E1]">{event.descricao}</p></div> : null}
+          {event.descricao ? <div className="mt-3 rounded-xl border border-[#E3DCCE] bg-white p-3"><p className="text-[10px] font-bold text-[#6F675C]">Informações</p><p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-xs font-medium leading-relaxed text-[#171A16]">{event.descricao}</p></div> : null}
 
-          <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.05] p-3">
+          <div className="mt-3 rounded-xl border border-[#3F7258]/25 bg-[#3F7258]/[0.06] p-3">
             <div className="flex items-center justify-between gap-3">
-              <div><p className="text-sm font-black">{confirmed.length} confirmado{confirmed.length === 1 ? '' : 's'}</p><p className="text-xs font-semibold text-[#7F8B9C]">Respostas recebidas para esta gira</p></div>
-              <Users className="h-4 w-4 text-emerald-300" />
+              <div><p className="text-sm font-black">{confirmed.length} confirmado{confirmed.length === 1 ? '' : 's'}</p><p className="text-xs font-semibold text-[#6F675C]">Respostas recebidas para esta gira</p></div>
+              <Users className="h-4 w-4 text-[#3F7258]" />
             </div>
             {confirmed.length ? <div className="mt-2"><EventConfirmedAvatars members={confirmed} /></div> : null}
           </div>
 
-          <button type="button" onClick={onOperations} className="mt-3 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-left hover:bg-primary/[0.1]">
-            <span><span className="block text-sm font-black text-primary">Convites, QR Code e presença</span><span className="block text-xs font-semibold text-[#7F8B9C]">Gerenciar a operação completa da gira</span></span>
-            <ArrowUpRight className="h-4 w-4 text-primary" />
+          <button type="button" onClick={onOperations} className="mt-3 flex w-full items-center justify-between rounded-xl border border-[#E3D9BC] bg-[#F1E8D2] px-3 py-2.5 text-left hover:bg-[#EDE2C4]">
+            <span><span className="block text-sm font-black text-[#8F7724]">Convites, QR Code e presença</span><span className="block text-xs font-semibold text-[#6F675C]">Gerenciar a operação completa da gira</span></span>
+            <ArrowUpRight className="h-4 w-4 text-[#8F7724]" />
           </button>
         </div>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-white/10 p-3">
-          {!passed ? <button type="button" onClick={onNotify} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] text-xs font-bold text-emerald-300"><Bell className="h-3.5 w-3.5" />Lembrar</button> : null}
-          <button type="button" onClick={onEdit} className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-black text-[#17130D]', passed && 'col-span-2')}><Pencil className="h-3.5 w-3.5" />Editar gira</button>
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-[#DED8CB] p-3">
+          {!passed ? <button type="button" onClick={onNotify} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#3F7258]/30 bg-[#3F7258]/10 text-xs font-bold text-[#3F7258]"><Bell className="h-3.5 w-3.5" />Lembrar</button> : null}
+          <button type="button" onClick={onEdit} className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#17251D] px-3 text-xs font-black text-[#FFFAF0] hover:bg-[#20342A]', passed && 'col-span-2')}><Pencil className="h-3.5 w-3.5" />Editar gira</button>
         </div>
       </motion.aside>
     </BodyPortal>
@@ -434,14 +435,15 @@ function AddEventModalPanel({
   hasExistingBanner,
 }: AddEventModalPanelProps) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+    <BodyPortal>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={MODAL_TW}
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         aria-hidden
       />
       <motion.div
@@ -453,18 +455,18 @@ function AddEventModalPanel({
         aria-modal="true"
         aria-labelledby="add-event-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+        className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-              <CalendarDays className="h-5 w-5 text-primary" aria-hidden />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+              <CalendarDays className="h-5 w-5 text-[#8F7724]" aria-hidden />
             </div>
             <div className="min-w-0">
-              <h3 id="add-event-title" className="text-base font-black text-white sm:text-lg">
+              <h3 id="add-event-title" className="font-display text-base font-black text-[#171A16] sm:text-lg">
                 {mode === 'edit' ? 'Editar gira / evento' : 'Nova gira / evento'}
               </h3>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">
                 {mode === 'edit' ? 'Atualizar dados no calendário' : 'Agendar no calendário do terreiro'}
               </p>
             </div>
@@ -472,34 +474,34 @@ function AddEventModalPanel({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="overflow-y-auto overscroll-y-contain p-5 sm:p-6">
+        <form onSubmit={onSubmit} className="flex-1 overflow-y-auto overscroll-y-contain p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
             <div className="sm:col-span-2">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">1. Informações da gira</p>
-              <p className="mt-1 text-xs font-semibold text-[#64748B]">Nome, tipo e destaque do evento.</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">1. Informações da gira</p>
+              <p className="mt-1 text-xs font-semibold text-[#6F675C]">Nome, tipo e destaque do evento.</p>
             </div>
             <div className="sm:col-span-2">
-              <label className={appLabelClass}>Nome</label>
+              <label className={paperLabelClass}>Nome</label>
               <input
                 required
-                className={appInputClass}
+                className={paperInputClass}
                 value={formData.titulo}
                 onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                 placeholder="Ex: Gira Caboclos Penacho"
               />
             </div>
             <div>
-              <label className={appLabelClass}>Tipo de trabalho</label>
+              <label className={paperLabelClass}>Tipo de trabalho</label>
               <select
                 required
-                className={appInputClass}
+                className={paperInputClass}
                 value={formData.tipo}
                 onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
               >
@@ -510,9 +512,9 @@ function AddEventModalPanel({
               </select>
             </div>
             <div>
-              <label className={appLabelClass}>Destaque</label>
+              <label className={paperLabelClass}>Destaque</label>
               <select
-                className={appInputClass}
+                className={paperInputClass}
                 value={formData.status_confirmacao}
                 onChange={(e) => setFormData({ ...formData, status_confirmacao: e.target.value })}
               >
@@ -520,61 +522,61 @@ function AddEventModalPanel({
                 <option value="Especial">Especial / obrigação</option>
               </select>
             </div>
-            <div className="mt-2 border-t border-white/10 pt-4 sm:col-span-2">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">2. Data e detalhes</p>
-              <p className="mt-1 text-xs font-semibold text-[#64748B]">Defina quando acontecerá e inclua as orientações.</p>
+            <div className="mt-2 border-t border-[#E3DCCE] pt-4 sm:col-span-2">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">2. Data e detalhes</p>
+              <p className="mt-1 text-xs font-semibold text-[#6F675C]">Defina quando acontecerá e inclua as orientações.</p>
             </div>
             <div>
-              <label className={appLabelClass}>Data</label>
+              <label className={paperLabelClass}>Data</label>
               <input
                 required
                 type="date"
-                className={appInputClass}
+                className={paperInputClass}
                 value={formData.data}
                 onChange={(e) => setFormData({ ...formData, data: e.target.value })}
               />
             </div>
             <div>
-              <label className={appLabelClass}>Horário</label>
+              <label className={paperLabelClass}>Horário</label>
               <input
                 required
                 type="time"
-                className={appInputClass}
+                className={paperInputClass}
                 value={formData.hora}
                 onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={appLabelClass}>Descrição (opcional)</label>
+              <label className={paperLabelClass}>Descrição (opcional)</label>
               <textarea
                 rows={2}
-                className={cn(appInputClass, 'resize-none')}
+                className={cn(paperInputClass, 'resize-none')}
                 value={formData.descricao}
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                 placeholder="Detalhes do evento…"
               />
             </div>
-            <div className="mt-2 border-t border-white/10 pt-4 sm:col-span-2">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">3. Convites e publicação</p>
-              <p className="mt-1 text-xs font-semibold text-[#64748B]">Configure divulgação, vagas, senhas e imagem.</p>
+            <div className="mt-2 border-t border-[#E3DCCE] pt-4 sm:col-span-2">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">3. Convites e publicação</p>
+              <p className="mt-1 text-xs font-semibold text-[#6F675C]">Configure divulgação, vagas, senhas e imagem.</p>
             </div>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2.5 sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E3DCCE] bg-[#F1ECE0] px-3 py-2.5 sm:col-span-2">
               <input
                 type="checkbox"
                 checked={formData.evento_publico}
                 onChange={(e) => setFormData({ ...formData, evento_publico: e.target.checked })}
-                className="h-4 w-4 accent-[#FBBC00]"
+                className="h-4 w-4 accent-[#8F7724]"
               />
-              <span className="text-xs font-semibold text-[#94A3B8]">
+              <span className="text-xs font-semibold text-[#6F675C]">
                 Divulgar no portal público (/eventos)
               </span>
             </label>
             <div>
-              <label className={appLabelClass}>Vagas máximas (opcional)</label>
+              <label className={paperLabelClass}>Vagas máximas (opcional)</label>
               <input
                 type="number"
                 min={0}
-                className={appInputClass}
+                className={paperInputClass}
                 placeholder="Sem limite"
                 value={formData.vagas_maximas}
                 onChange={(e) => setFormData({ ...formData, vagas_maximas: e.target.value })}
@@ -591,25 +593,25 @@ function AddEventModalPanel({
                     ...(e.target.checked ? { evento_publico: true } : {}),
                   })
                 }
-                className="h-4 w-4 accent-[#FBBC00]"
+                className="h-4 w-4 accent-[#8F7724]"
               />
-              <span className="text-xs text-[#94A3B8]">Senhas online para visitantes</span>
+              <span className="text-xs text-[#6F675C]">Senhas online para visitantes</span>
             </label>
             {formData.senhas_ativas ? (
               <div>
-                <label className={appLabelClass}>Senhas disponíveis (visitantes)</label>
+                <label className={paperLabelClass}>Senhas disponíveis (visitantes)</label>
                 <input
                   type="number"
                   min={1}
-                  className={appInputClass}
+                  className={paperInputClass}
                   placeholder="Ex: 50"
                   value={formData.senhas_maximas}
                   onChange={(e) => setFormData({ ...formData, senhas_maximas: e.target.value })}
                 />
               </div>
             ) : null}
-            <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 sm:col-span-2">
-              <label className={appLabelClass}>Banner (opcional)</label>
+            <div className="rounded-xl border border-[#E3DCCE] bg-[#F1ECE0] p-3 sm:col-span-2">
+              <label className={paperLabelClass}>Banner (opcional)</label>
               <input
                 ref={bannerInputRef}
                 type="file"
@@ -641,16 +643,16 @@ function AddEventModalPanel({
                 <button
                   type="button"
                   onClick={() => bannerInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 text-xs font-bold text-[#94A3B8] hover:text-[#F1F5F9]"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-[#6F675C] hover:text-[#171A16]"
                 >
-                  <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                  <ImagePlus className="h-3.5 w-3.5 text-[#8F7724]" />
                   {bannerPreview ? 'Trocar imagem' : 'Adicionar imagem'}
                 </button>
                 {bannerPreview && onRemoveBanner ? (
                   <button
                     type="button"
                     onClick={onRemoveBanner}
-                    className="text-xs font-bold text-rose-400 hover:text-rose-300"
+                    className="text-xs font-bold text-[#B04A32] hover:text-[#9C3F2A]"
                   >
                     Remover banner
                   </button>
@@ -658,10 +660,10 @@ function AddEventModalPanel({
               </div>
             </div>
           </div>
-          <AppPrimaryButton
+          <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-5 inline-flex w-full items-center justify-center sm:mt-6"
+            className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#17251D] px-4 py-2.5 text-sm font-black text-[#FFFAF0] shadow-sm transition hover:bg-[#20342A] disabled:opacity-50 sm:mt-6"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -670,10 +672,11 @@ function AddEventModalPanel({
             ) : (
               'Marcar na agenda'
             )}
-          </AppPrimaryButton>
+          </button>
         </form>
       </motion.div>
     </div>
+    </BodyPortal>
   );
 }
 
@@ -1913,33 +1916,34 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       ) : null}
 
       {/* Delete Confirmation Modal */}
+      <BodyPortal>
       <AnimatePresence>
         {itemToDelete && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !isDeleting && setItemToDelete(null)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 w-full space-y-5 rounded-3xl border border-white/10 bg-card px-6 py-8 text-center shadow-2xl sm:max-w-md"
+              className="relative z-10 w-full space-y-5 rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md"
             >
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
-                <X className="h-8 w-8 text-red-500" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#B04A32]/10">
+                <X className="h-8 w-8 text-[#B04A32]" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-white">Confirmar Exclusão</h3>
-                <p className="text-sm font-medium text-[#94A3B8]">
+                <h3 className="font-display text-xl font-black text-[#171A16]">Confirmar Exclusão</h3>
+                <p className="text-sm font-medium text-[#6F675C]">
                   Deseja realmente excluir o evento &quot;{itemToDelete.title}&quot;?
                 </p>
               </div>
               <div className="flex gap-3">
                 <button disabled={isDeleting} onClick={() => setItemToDelete(null)}
-                  className="flex-1 rounded-2xl py-3 font-black text-sm text-gray-400 transition-all hover:bg-white/5">
+                  className="flex-1 rounded-2xl border border-[#D8D2C4] bg-white py-3 font-black text-sm text-[#4A463E] transition-all hover:bg-[#F5F0E5]">
                   Cancelar
                 </button>
                 <button disabled={isDeleting}
@@ -1957,7 +1961,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       setIsDeleting(false);
                     }
                   }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-3 font-black text-sm text-white shadow-lg shadow-red-500/20 transition-all hover:scale-105">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#B04A32] py-3 font-black text-sm text-white shadow-lg shadow-[#B04A32]/20 transition-all hover:scale-105 hover:bg-[#9C3F2A]">
                   {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Excluir'}
                 </button>
               </div>
@@ -1965,8 +1969,10 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
 
       {/* Escolher canal do aviso (Push ou WhatsApp) */}
+      <BodyPortal>
       <AnimatePresence>
         {notifyChannelEvent ? (
           <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
@@ -1975,7 +1981,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeNotifyChannelModal}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
@@ -1985,16 +1991,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               role="dialog"
               aria-modal="true"
               aria-labelledby="notify-channel-title"
-              className="relative z-10 w-full space-y-5 rounded-3xl border border-white/10 bg-card px-6 py-8 shadow-2xl sm:max-w-md"
+              className="relative z-10 w-full space-y-5 rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-[#171A16] shadow-2xl sm:max-w-md"
             >
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Bell className="h-8 w-8 text-primary" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#F1E8D2]">
+                <Bell className="h-8 w-8 text-[#8F7724]" />
               </div>
               <div className="space-y-2 text-center">
-                <h3 id="notify-channel-title" className="text-xl font-black text-white">
+                <h3 id="notify-channel-title" className="font-display text-xl font-black text-[#171A16]">
                   Enviar aviso
                 </h3>
-                <p className="text-sm font-medium text-[#94A3B8]">
+                <p className="text-sm font-medium text-[#6F675C]">
                   Como deseja avisar a corrente sobre &quot;{notifyChannelEvent.titulo}&quot;?
                 </p>
               </div>
@@ -2003,9 +2009,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   type="button"
                   disabled={Boolean(isNotifying)}
                   onClick={() => void handleNotifyPush(notifyChannelEvent)}
-                  className="flex items-center gap-3 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10 disabled:opacity-50"
+                  className="flex items-center gap-3 rounded-2xl border border-[#E3DCCE] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#8F7724]/40 hover:bg-[#F1E8D2]/60 disabled:opacity-50"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F1E8D2] text-[#8F7724]">
                     {isNotifying && notifyChannel === 'push' ? (
                       <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
                     ) : (
@@ -2013,8 +2019,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     )}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-black text-white">Notificação push</span>
-                    <span className="mt-0.5 block text-xs font-medium text-[#94A3B8]">
+                    <span className="block text-sm font-black text-[#171A16]">Notificação push</span>
+                    <span className="mt-0.5 block text-xs font-medium text-[#6F675C]">
                       Envia para o app/navegador dos filhos inscritos.
                     </span>
                   </span>
@@ -2023,9 +2029,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   type="button"
                   disabled={Boolean(isNotifying)}
                   onClick={() => void handleNotifyWhatsApp(notifyChannelEvent)}
-                  className="flex items-center gap-3 rounded-2xl border border-[#1E242B] bg-[#12161A] px-4 py-3.5 text-left transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 disabled:opacity-50"
+                  className="flex items-center gap-3 rounded-2xl border border-[#E3DCCE] bg-white px-4 py-3.5 text-left transition-colors hover:border-[#3F7258]/40 hover:bg-[#3F7258]/10 disabled:opacity-50"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#3F7258]/10 text-[#3F7258]">
                     {isNotifying && notifyChannel === 'whatsapp' ? (
                       <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
                     ) : (
@@ -2033,8 +2039,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     )}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-black text-white">WhatsApp</span>
-                    <span className="mt-0.5 block text-xs font-medium text-[#94A3B8]">
+                    <span className="block text-sm font-black text-[#171A16]">WhatsApp</span>
+                    <span className="mt-0.5 block text-xs font-medium text-[#6F675C]">
                       Envia o template de aviso para filhos com telefone cadastrado.
                     </span>
                   </span>
@@ -2044,7 +2050,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 type="button"
                 disabled={Boolean(isNotifying)}
                 onClick={closeNotifyChannelModal}
-                className="w-full rounded-2xl py-3 text-sm font-black text-gray-400 transition-all hover:bg-white/5 disabled:opacity-50"
+                className="w-full rounded-2xl border border-[#D8D2C4] bg-white py-3 text-sm font-black text-[#4A463E] transition-all hover:bg-[#F5F0E5] disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -2052,6 +2058,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
     </>
   );
 }

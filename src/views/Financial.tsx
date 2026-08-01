@@ -2095,28 +2095,29 @@ export default function Financial({
       )}
 
       {/* Modal de Upgrade */}
+      <BodyPortal>
       <AnimatePresence>
         {isUpgradeModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsUpgradeModalOpen(false)}
-              className="absolute inset-0 bg-black/[0.92] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 w-full space-y-5 rounded-3xl border border-primary/20 bg-[#1B1C1C] px-6 py-8 text-center sm:max-w-md sm:px-10"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col space-y-5 overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md sm:px-10"
             >
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Lock className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 bg-[#F1E8D2] rounded-full flex items-center justify-center mx-auto shrink-0">
+                <Lock className="w-10 h-10 text-[#8F7724]" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-white">Recurso Exclusivo</h3>
-                <p className="text-gray-400 font-medium">
-                  A automação de mensagens e relatórios avançados são exclusivos para assinantes do <span className="text-primary font-bold">Plano Premium</span> ou <span className="text-primary font-bold">Plano Vita</span>.
+                <h3 className="text-2xl font-display font-black text-[#171A16]">Recurso Exclusivo</h3>
+                <p className="text-[#6F675C] font-medium">
+                  A automação de mensagens e relatórios avançados são exclusivos para assinantes do <span className="text-[#8F7724] font-bold">Plano Premium</span> ou <span className="text-[#8F7724] font-bold">Plano Vita</span>.
                 </p>
               </div>
               <div className="pt-4 space-y-3">
@@ -2125,13 +2126,13 @@ export default function Financial({
                     setIsUpgradeModalOpen(false);
                     window.dispatchEvent(new CustomEvent('navigate-to-subscription'));
                   }}
-                  className="w-full bg-primary text-background font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                  className="w-full bg-[#17251D] text-[#FFFAF0] font-black py-4 rounded-2xl shadow-lg hover:bg-[#20342A] hover:scale-105 transition-transform"
                 >
                   Fazer Upgrade Agora
                 </button>
                 <button 
                   onClick={() => setIsUpgradeModalOpen(false)}
-                  className="w-full text-gray-500 font-bold py-2 hover:text-white transition-colors"
+                  className="w-full text-[#6F675C] font-bold py-2 hover:text-[#171A16] transition-colors"
                 >
                   Talvez mais tarde
                 </button>
@@ -2140,8 +2141,10 @@ export default function Financial({
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
 
       {/* Modal Nova Meta */}
+      <BodyPortal>
       <AnimatePresence>
         {isMetaModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto overscroll-y-contain p-6">
@@ -2150,68 +2153,68 @@ export default function Financial({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMetaModalOpen(false)}
-              className="absolute inset-0 bg-background/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_DLG_IN}
               animate={MODAL_DLG_DONE}
               exit={MODAL_DLG_OUT}
               transition={MODAL_TW}
-              className="bg-card border border-white/10 w-full max-w-sm rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative z-10 flex w-full max-w-sm max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
-              <div className="p-5 sm:p-6 border-b border-white/5 flex items-center justify-between shrink-0">
+              <div className="p-5 sm:p-6 border-b border-[#DED8CB] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Target className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#F1E8D2] flex items-center justify-center">
+                    <Target className="w-5 h-5 sm:w-6 sm:h-6 text-[#8F7724]" />
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-white">Nova Meta</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 font-medium uppercase tracking-widest">Caixinha do Axé</p>
+                    <h3 className="text-xl sm:text-2xl font-display font-black text-[#171A16]">Nova Meta</h3>
+                    <p className="text-xs sm:text-sm text-[#6F675C] font-medium uppercase tracking-widest">Caixinha do Axé</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsMetaModalOpen(false)}
-                  className="p-2 hover:bg-white/5 rounded-xl text-gray-500 transition-colors"
+                  className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
                 >
                   <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateMeta} className="p-5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto no-scrollbar">
+              <form onSubmit={handleCreateMeta} className="flex-1 p-5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto no-scrollbar">
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Título da Meta</label>
+                    <label className="text-[10px] sm:text-xs font-black text-[#6F675C] uppercase tracking-widest ml-1">Título da Meta</label>
                     <input
                       required
                       type="text"
                       value={metaFormData.titulo}
                       onChange={(e) => setMetaFormData({ ...metaFormData, titulo: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm sm:text-base text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15 transition-all"
                       placeholder="Ex: Reforma do Telhado"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Valor Alvo (R$)</label>
+                    <label className="text-[10px] sm:text-xs font-black text-[#6F675C] uppercase tracking-widest ml-1">Valor Alvo (R$)</label>
                     <input
                       required
                       type="number"
                       step="0.01"
                       value={metaFormData.valor_alvo}
                       onChange={(e) => setMetaFormData({ ...metaFormData, valor_alvo: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm sm:text-base text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15 transition-all"
                       placeholder="0.00"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest ml-1">QR Code Pix (URL da Imagem)</label>
+                    <label className="text-[10px] sm:text-xs font-black text-[#6F675C] uppercase tracking-widest ml-1">QR Code Pix (URL da Imagem)</label>
                     <input
                       type="url"
                       value={qrCodeFile || ''}
                       onChange={(e) => setQrCodeFile(e.target.value)}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm sm:text-base text-white focus:border-primary outline-none transition-all"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm sm:text-base text-[#171A16] placeholder:text-[#9B9184] focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15 transition-all"
                       placeholder="https://..."
                     />
-                    <p className="text-[10px] text-gray-500 italic ml-1">Insira o link da imagem do seu QR Code Pix pessoal.</p>
+                    <p className="text-[10px] text-[#6F675C] italic ml-1">Insira o link da imagem do seu QR Code Pix pessoal.</p>
                   </div>
                 </div>
 
@@ -2219,7 +2222,7 @@ export default function Financial({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-primary text-background py-3 sm:py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 text-sm sm:text-base cursor-pointer"
+                    className="w-full bg-[#17251D] text-[#FFFAF0] py-3 sm:py-4 rounded-xl font-black shadow-lg hover:bg-[#20342A] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 text-sm sm:text-base cursor-pointer"
                   >
                     {isSubmitting ? (
                       <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin mx-auto" />
@@ -2233,6 +2236,7 @@ export default function Financial({
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
       </div>
       </div>
     </AppPageShell>

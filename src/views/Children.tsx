@@ -12,12 +12,17 @@ import {
   AppDemoTableShell,
   AppPrimaryButton,
   appInputClass,
-  appLabelClass,
   childStatusClass,
 } from '../components/ui/appDemoUi';
 import Avatar from '../components/Avatar';
 import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 import ChildrenCurrentExperience from '../components/children/ChildrenCurrentExperience';
+import BodyPortal from '../components/BodyPortal';
+
+const paperLabelClass =
+  'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
+const paperInputClass =
+  'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15';
 
 export interface Child {
   id: string;
@@ -732,6 +737,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         </div>
       </div>
 
+      {/* Portal: fixed do dossiê ancora na viewport (evita drawer "gigante" no mobile). */}
+      <BodyPortal>
       <AnimatePresence>
         {previewChild ? (
           <>
@@ -742,7 +749,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setPreviewChildId(null)}
-              className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-[2px]"
+              className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm"
             />
             <motion.aside
               initial={{ x: '100%' }}
@@ -838,17 +845,19 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           </>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
 
+      <BodyPortal>
       <AnimatePresence>
         {addModalOpen ? (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4 pt-20 sm:p-8 sm:pt-24">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={MODAL_TW}
               onClick={closeAddModal}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
               aria-hidden
             />
             <motion.div
@@ -860,18 +869,18 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               aria-modal="true"
               aria-labelledby="add-child-title"
               onClick={(e) => e.stopPropagation()}
-              className="relative z-[101] my-auto flex w-full max-h-[min(80dvh,calc(100dvh-7rem))] max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+              className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4 sm:px-6">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                    <Plus className="h-5 w-5 text-primary" aria-hidden />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+                    <Plus className="h-5 w-5 text-[#8F7724]" aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <h3 id="add-child-title" className="text-base font-black text-white sm:text-lg">
+                    <h3 id="add-child-title" className="font-display text-base font-black text-[#171A16] sm:text-lg">
                       Adicionar filho de santo
                     </h3>
-                    <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                    <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">
                       Cadastro litúrgico
                     </p>
                   </div>
@@ -879,7 +888,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 <button
                   type="button"
                   onClick={closeAddModal}
-                  className="shrink-0 rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                  className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition-colors hover:bg-white"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -888,20 +897,20 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
               <form
                 onSubmit={handleSubmit}
-                className="overflow-y-auto overscroll-y-contain p-5 sm:p-6"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5 sm:p-6"
               >
                 {submitError ? (
-                  <p className="mb-4 rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
+                  <p className="mb-4 rounded-lg border border-[#B04A32]/30 bg-[#B04A32]/10 px-3 py-2 text-xs text-[#B04A32]">
                     {submitError}
                   </p>
                 ) : null}
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
                   <div>
-                    <label className={appLabelClass}>CPF</label>
+                    <label className={paperLabelClass}>CPF</label>
                     <input
                       required
-                      className={appInputClass}
+                      className={paperInputClass}
                       inputMode="numeric"
                       maxLength={11}
                       value={formData.cpf}
@@ -910,20 +919,20 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     />
                   </div>
                   <div>
-                    <label className={appLabelClass}>Nome</label>
+                    <label className={paperLabelClass}>Nome</label>
                     <input
                       required
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.nome}
                       onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                       placeholder="Ex: Mariana de Iansã"
                     />
                   </div>
                   <div>
-                    <label className={appLabelClass}>Cargo</label>
+                    <label className={paperLabelClass}>Cargo</label>
                     <select
                       required
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.cargo}
                       onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
                     >
@@ -938,19 +947,19 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     </select>
                   </div>
                   <div>
-                    <label className={appLabelClass}>Orixá de frente</label>
+                    <label className={paperLabelClass}>Orixá de frente</label>
                     <input
                       required
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.orixa_frente}
                       onChange={(e) => setFormData({ ...formData, orixa_frente: e.target.value })}
                       placeholder="Ex: Oxum"
                     />
                   </div>
                   <div>
-                    <label className={appLabelClass}>Status</label>
+                    <label className={paperLabelClass}>Status</label>
                     <select
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as Child['status'] })}
                     >
@@ -960,12 +969,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     </select>
                   </div>
                   <div>
-                    <label className={appLabelClass}>WhatsApp</label>
+                    <label className={paperLabelClass}>WhatsApp</label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#94A3B8]" />
+                      <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#6F675C]" />
                       <input
                         type="tel"
-                        className={cn(appInputClass, 'pl-9')}
+                        className={cn(paperInputClass, 'pl-9')}
                         value={formData.whatsapp_phone}
                         onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value })}
                         placeholder="11999999999"
@@ -973,21 +982,21 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     </div>
                   </div>
                   <div>
-                    <label className={appLabelClass}>Nascimento</label>
+                    <label className={paperLabelClass}>Nascimento</label>
                     <input
                       required
                       type="date"
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.data_nascimento}
                       onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className={appLabelClass}>Entrada</label>
+                    <label className={paperLabelClass}>Entrada</label>
                     <input
                       required
                       type="date"
-                      className={appInputClass}
+                      className={paperInputClass}
                       value={formData.data_entrada}
                       onChange={(e) => setFormData({ ...formData, data_entrada: e.target.value })}
                     />
@@ -997,7 +1006,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 <AppPrimaryButton
                   type="submit"
                   disabled={isSubmitting}
-                  className="mt-5 inline-flex w-full items-center justify-center sm:mt-6"
+                  className="mt-5 inline-flex w-full items-center justify-center bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A] sm:mt-6"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar filho'}
                 </AppPrimaryButton>
@@ -1006,6 +1015,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
       </div>
     </AppPageShell>
   );

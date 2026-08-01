@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import BodyPortal from '../../components/BodyPortal';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
 import { PortalNewsletterForm } from '../../components/portal/PortalNewsletterForm';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../../lib/modalMotion';
@@ -328,22 +329,23 @@ export default function EventosPublicPage() {
         </section>
       </main>
 
+      <BodyPortal>
       <AnimatePresence>
         {detail ? (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setDetail(null)}
-              className="absolute inset-0 bg-[#1b1813]/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className={`relative z-10 w-full overflow-hidden rounded-3xl border border-[#e8dfd0] bg-white shadow-2xl shadow-black/10 ${
+              className={`relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl ${
                 detail.bannerUrl ? 'max-w-[min(96vw,42rem)]' : 'max-w-lg'
               }`}
             >
@@ -362,33 +364,33 @@ export default function EventosPublicPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex aspect-[16/9] shrink-0 items-center justify-center bg-gradient-to-br from-[#ffc107]/10 to-transparent">
-                    <CalendarDays className="h-12 w-12 text-[#1b1813]/15" />
+                  <div className="flex aspect-[16/9] shrink-0 items-center justify-center bg-gradient-to-br from-[#F1E8D2] to-transparent">
+                    <CalendarDays className="h-12 w-12 text-[#171A16]/15" />
                   </div>
                 )}
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">
+                      <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">
                         {detail.tipo}
                       </p>
-                      <h3 className="mt-1 text-lg font-black leading-snug text-[#1b1813] sm:text-xl">
+                      <h3 className="mt-1 font-display text-lg font-black leading-snug text-[#171A16] sm:text-xl">
                         {detail.titulo}
                       </h3>
                     </div>
                     <button
                       type="button"
                       onClick={() => setDetail(null)}
-                      className="shrink-0 rounded-full border border-[#e8dfd0] p-2 text-[#1b1813]/68 transition hover:bg-[#ffc107]/10"
+                      className="shrink-0 rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition hover:bg-white"
                       aria-label="Fechar"
                     >
                       <X className="h-5 w-5" />
                     </button>
                   </div>
-                  <div className="mt-4 space-y-3 overflow-y-auto">
-                    <div className="space-y-2 text-sm text-[#1b1813]">
+                  <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
+                    <div className="space-y-2 text-sm text-[#171A16]">
                       <p className="flex items-start gap-2 font-bold leading-snug">
-                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#a87400]" />
+                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#8F7724]" />
                         <span className="capitalize">
                           {(() => {
                             try {
@@ -402,13 +404,13 @@ export default function EventosPublicPage() {
                         </span>
                       </p>
                       <p className="flex items-center gap-2 font-bold">
-                        <Clock className="h-4 w-4 shrink-0 text-[#a87400]" />
+                        <Clock className="h-4 w-4 shrink-0 text-[#8F7724]" />
                         {detail.hora}
                       </p>
                     </div>
                     <a
                       href={terreiroProfilePath(detail.terreiro.slug)}
-                      className="inline-flex items-start gap-2 text-sm font-semibold leading-snug text-[#1b1813]/75 hover:text-[#a87400]"
+                      className="inline-flex items-start gap-2 text-sm font-semibold leading-snug text-[#6F675C] hover:text-[#8F7724]"
                     >
                       <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>
@@ -417,14 +419,14 @@ export default function EventosPublicPage() {
                       </span>
                     </a>
                     {detail.descricao ? (
-                      <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed text-[#1b1813]/65">
+                      <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed text-[#6F675C]">
                         {detail.descricao}
                       </p>
                     ) : null}
                     {detail.eventoPageUrl ? (
                       <a
                         href={detail.eventoPageUrl}
-                        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#ffc107] px-4 py-3 text-sm font-black text-[#1b1813] transition hover:bg-[#ffcd38]"
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#17251D] px-4 py-3 text-sm font-black text-[#FFFAF0] transition hover:bg-[#20342A]"
                       >
                         {detail.senhasAtivas ? 'Ver evento e receber senha' : 'Ver página do evento'}
                       </a>
@@ -436,6 +438,7 @@ export default function EventosPublicPage() {
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
     </div>
   );
 }

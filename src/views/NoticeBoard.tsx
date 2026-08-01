@@ -42,6 +42,7 @@ import {
   appLabelClass,
 } from '../components/ui/appDemoUi';
 import FilhoNoticeExperience from '../components/filho/FilhoNoticeExperience';
+import BodyPortal from '../components/BodyPortal';
 
 export interface Notice {
   id: string;
@@ -506,63 +507,66 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         </section>
       )}
 
+      <BodyPortal>
       <AnimatePresence>
         {selectedNotice ? (
           <>
-            <motion.button type="button" aria-label="Fechar comunicado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedNotice(null)} className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-[2px]" />
-            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-2xl" role="dialog" aria-modal="true">
-              <div className="flex items-center justify-between border-b border-white/10 p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">{selectedNotice.categoria}</p><h2 className="mt-1 text-lg font-black">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><X className="h-5 w-5" /></button></div>
-              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#64748B]">{format(new Date(selectedNotice.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p><h3 className="mt-3 text-2xl font-black">{selectedNotice.titulo}</h3><div className="prose prose-invert mt-5 max-w-none text-sm leading-relaxed text-[#CBD5E1]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo}</ReactMarkdown></div>{selectedNotice.expiracao ? <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs font-bold text-amber-200">Visível até {format(new Date(`${selectedNotice.expiracao}T12:00:00`), 'dd/MM/yyyy')}</div> : null}</div>
-              {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-white/10 p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-bold text-[#CBD5E1]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] text-sm font-bold text-rose-300"><Trash2 className="h-4 w-4" />Excluir</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-[#17130D]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
+            <motion.button type="button" aria-label="Fechar comunicado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedNotice(null)} className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
+            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl" role="dialog" aria-modal="true">
+              <div className="flex items-center justify-between border-b border-[#DED8CB] p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">{selectedNotice.categoria}</p><h2 className="mt-1 font-display text-lg font-black text-[#171A16]">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-full border border-[#DCD6CA] bg-white/70 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button></div>
+              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{format(new Date(selectedNotice.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo}</ReactMarkdown></div>{selectedNotice.expiracao ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {format(new Date(`${selectedNotice.expiracao}T12:00:00`), 'dd/MM/yyyy')}</div> : null}</div>
+              {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-[#DED8CB] p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white text-sm font-bold text-[#4A463E] hover:bg-[#F5F0E5]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B04A32] text-sm font-bold text-white hover:bg-[#9C3F2A]"><Trash2 className="h-4 w-4" />Excluir</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17251D] text-sm font-black text-[#FFFAF0] hover:bg-[#20342A]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
             </motion.aside>
           </>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
 
       {/* Success Modal */}
+      <BodyPortal>
       <AnimatePresence>
         {showSuccessModal && lastPostedNotice && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowSuccessModal(false)}
-              className="absolute inset-0 bg-black/[0.94] backdrop-blur-none"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={MODAL_PANEL_IN}
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 w-[min(100%,20rem)] mx-3 sm:mx-4 sm:w-full overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[0_0_32px_rgba(251,188,0,0.08)] sm:max-w-sm"
+              className="relative z-10 flex w-[min(100%,20rem)] mx-3 sm:mx-4 sm:w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-sm"
             >
-              <div className="overflow-y-auto px-4 py-5 sm:px-5 sm:py-6 text-center space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-h-[88dvh] sm:max-h-[90dvh]">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-                  <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-500" />
+              <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5 sm:py-6 text-center space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#EAF2EC] rounded-full flex items-center justify-center mx-auto border border-[#CDE0D3]">
+                  <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-[#3F7258]" />
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-black text-white leading-tight">Aviso <span className="text-primary">publicado!</span></h3>
+                  <h3 className="font-display text-lg sm:text-xl font-black text-[#171A16] leading-tight">Aviso <span className="text-[#8F7724]">publicado!</span></h3>
                   {lastWhatsappResult ? (
-                    <p className="text-xs sm:text-sm text-emerald-400 font-medium">
+                    <p className="text-xs sm:text-sm text-[#3F7258] font-medium">
                       WhatsApp: {lastWhatsappResult.sent} enviado(s)
                       {lastWhatsappResult.errors > 0 ? `, ${lastWhatsappResult.errors} falha(s)` : ''}
                       {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} fora do lote` : ''}.
                     </p>
                   ) : (
-                    <p className="text-xs sm:text-sm text-gray-400 font-medium">Publicado no app sem disparo WhatsApp.</p>
+                    <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Publicado no app sem disparo WhatsApp.</p>
                   )}
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Compartilhe manualmente se precisar.</p>
+                  <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Compartilhe manualmente se precisar.</p>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:gap-2.5">
                   <a href={generateWhatsAppLink(lastPostedNotice.titulo, lastPostedNotice.conteudo)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-primary bg-black px-3 py-2.5 font-black text-xs sm:text-sm text-primary shadow-[0_0_16px_rgba(251,188,0,0.08)] transition-all hover:bg-primary/5 active:scale-95">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#17251D] px-3 py-2.5 font-black text-xs sm:text-sm text-[#FFFAF0] transition-all hover:bg-[#20342A] active:scale-95">
                     <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
                     Compartilhar manualmente
                   </a>
                   <button onClick={() => copyToClipboard(lastPostedNotice.titulo, lastPostedNotice.conteudo)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/5 px-3 py-2.5 font-black text-xs sm:text-sm text-white transition-all hover:bg-white/10 active:scale-95">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 font-black text-xs sm:text-sm text-[#4A463E] transition-all hover:bg-[#F5F0E5] active:scale-95">
                     <Copy className="h-4 w-4 sm:h-5 sm:w-5" />
                     Copiar texto
                   </button>
@@ -570,7 +574,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
                 <button 
                   onClick={() => setShowSuccessModal(false)}
-                  className="text-gray-500 text-sm font-bold hover:text-white transition-colors pt-1"
+                  className="text-[#6F675C] text-sm font-bold hover:text-[#171A16] transition-colors pt-1"
                 >
                   Fechar e voltar
                 </button>
@@ -579,6 +583,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
           </div>
         )}
       </AnimatePresence>
+      </BodyPortal>
       </div>
     </AppPageShell>
   );

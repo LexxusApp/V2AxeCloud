@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import BodyPortal from '../BodyPortal';
 
 type ActiveCycle = {
   id: string;
@@ -132,11 +133,12 @@ export default function FilhoPreceitoActive({ tenantId, onNavigate, onStateChang
         </div>
       </motion.section>
 
+      <BodyPortal>
       <AnimatePresence>
         {open ? (
           <div className="fixed inset-0 z-[150] flex justify-end bg-black/70 backdrop-blur-sm">
-            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 330, damping: 35 }} className="flex h-full w-full max-w-2xl flex-col bg-[#FAF7F0]">
-              <header className="shrink-0 bg-[#111A14] px-5 py-5 text-white sm:px-8 sm:py-7">
+            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 330, damping: 35 }} className="flex h-full w-full max-w-2xl flex-col bg-[#F9F6EE]">
+              <header className="shrink-0 bg-[#141C17] px-5 py-5 text-white sm:px-8 sm:py-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[.2em] text-[#D7BC4E]"><ShieldCheck className="h-4 w-4" /> Orientação protegida da sua casa</div>
@@ -177,6 +179,7 @@ export default function FilhoPreceitoActive({ tenantId, onNavigate, onStateChang
           </div>
         ) : null}
       </AnimatePresence>
+      </BodyPortal>
     </>
   );
 }

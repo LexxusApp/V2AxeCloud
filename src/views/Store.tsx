@@ -8,8 +8,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Toast from '@radix-ui/react-toast';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoPanelHeader, AppDemoCard, AppDemoTableShell, AppPrimaryButton, appInputClass, appLabelClass } from '../components/ui/appDemoUi';
+import { AppDemoPanelHeader, AppDemoCard, AppDemoTableShell, AppPrimaryButton } from '../components/ui/appDemoUi';
 import FilhoStoreExperience from '../components/filho/FilhoStoreExperience';
+
+// Campos dos modais (portais fora do escopo .app-v5-identity): tokens de papel explícitos.
+const paperModalInputClass =
+  'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white px-3 py-2.5 text-sm text-[#171A16] placeholder:text-[#9B9184] transition-colors focus:border-[#526A55] focus:outline-none focus:ring-2 focus:ring-[#526A55]/15';
+
+const paperModalLabelClass =
+  'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
 
 export interface Product {
   id: string;
@@ -660,53 +667,53 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       {/* Cart Sheet */}
       <Dialog.Root open={isCartOpen} onOpenChange={setIsCartOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content
             className={cn(
-              'fixed z-[101] flex w-full max-w-md flex-col overflow-hidden bg-[#13171D] p-6 shadow-2xl',
+              'fixed z-[101] flex w-full max-w-md flex-col overflow-hidden bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl',
               userRole === 'filho' && 'filho-store-cart-sheet',
-              'max-h-[min(92dvh,calc(100dvh-2rem))] rounded-2xl border border-[#1E242B]',
+              'max-h-[min(92dvh,calc(100dvh-2rem))] rounded-[26px] border border-[#DED8CB]',
               'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[min(28rem,calc(100vw-2rem))]',
               'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300',
               'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-              'sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:bottom-0 sm:h-auto sm:max-h-none sm:max-w-md sm:translate-x-0 sm:translate-y-0 sm:rounded-none sm:border sm:border-l sm:border-y-0 sm:border-r-0 sm:border-b-0 sm:border-[#1E242B]',
+              'sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:bottom-0 sm:h-auto sm:max-h-none sm:max-w-md sm:translate-x-0 sm:translate-y-0 sm:rounded-none sm:border sm:border-l sm:border-y-0 sm:border-r-0 sm:border-b-0 sm:border-[#DED8CB]',
               'sm:data-[state=closed]:slide-out-to-right-full sm:data-[state=open]:slide-in-from-right-full sm:data-[state=closed]:zoom-out-100 sm:data-[state=open]:zoom-in-100',
             )}
           >
             <div className="mb-8 flex items-center justify-between">
-              <Dialog.Title className="flex items-center gap-3 text-xl font-bold text-[#F1F5F9]">
-                <ShoppingBag className="h-6 w-6 text-primary" />
+              <Dialog.Title className="flex items-center gap-3 text-xl font-bold text-[#171A16]">
+                <ShoppingBag className="h-6 w-6 text-[#8F7724]" />
                 Seu pedido
               </Dialog.Title>
-              <Dialog.Close className="rounded-lg p-2 text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
+              <Dialog.Close className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition hover:bg-white">
                 <X className="h-5 w-5" />
               </Dialog.Close>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto no-scrollbar">
               {cart.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center space-y-4 text-[#64748B]">
+                <div className="flex h-full flex-col items-center justify-center space-y-4 text-[#6F675C]">
                   <ShoppingBag className="h-12 w-12 opacity-30" />
                   <p>Seu carrinho está vazio.</p>
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.id} className="flex items-center gap-4 rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#13171D]">
+                  <div key={item.id} className="flex items-center gap-4 rounded-xl border border-[#E3DCCE] bg-white p-4">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#F1ECE0]">
                       {item.imagem_url ? (
                         <img src={item.imagem_url} alt={item.nome} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-6 w-6 text-[#64748B]" /></div>
+                        <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-6 w-6 text-[#6F675C]" /></div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-sm font-bold text-[#F1F5F9]">{item.nome}</h4>
-                      <p className="text-sm font-bold text-primary">R$ {item.preco.toFixed(2)}</p>
+                      <h4 className="truncate text-sm font-bold text-[#171A16]">{item.nome}</h4>
+                      <p className="text-sm font-bold text-[#8F7724]">R$ {item.preco.toFixed(2)}</p>
                     </div>
-                    <div className="flex items-center gap-3 rounded-lg border border-[#1E242B] bg-[#13171D] p-1">
-                      <button onClick={() => updateQuantity(item.id, -1)} className="p-1 text-[#94A3B8] hover:text-[#F1F5F9]"><Minus className="h-4 w-4" /></button>
+                    <div className="flex items-center gap-3 rounded-lg border border-[#D8D2C4] bg-[#F1ECE0] p-1">
+                      <button onClick={() => updateQuantity(item.id, -1)} className="p-1 text-[#6F675C] hover:text-[#171A16]"><Minus className="h-4 w-4" /></button>
                       <span className="w-4 text-center text-sm font-bold">{item.quantidade}</span>
-                      <button onClick={() => updateQuantity(item.id, 1)} className="p-1 text-[#94A3B8] hover:text-[#F1F5F9]"><Plus className="h-4 w-4" /></button>
+                      <button onClick={() => updateQuantity(item.id, 1)} className="p-1 text-[#6F675C] hover:text-[#171A16]"><Plus className="h-4 w-4" /></button>
                     </div>
                   </div>
                 ))
@@ -714,14 +721,14 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             </div>
 
             {cart.length > 0 && (
-              <div className="mt-6 space-y-6 border-t border-[#1E242B] pt-6">
+              <div className="mt-6 space-y-6 border-t border-[#E3DCCE] pt-6">
                 <div className="flex items-center justify-between text-lg">
-                  <span className="font-bold text-[#94A3B8]">Total</span>
-                  <span className="text-2xl font-bold text-primary">R$ {cartTotal.toFixed(2)}</span>
+                  <span className="font-bold text-[#6F675C]">Total</span>
+                  <span className="text-2xl font-bold text-[#8F7724]">R$ {cartTotal.toFixed(2)}</span>
                 </div>
 
                 {userRole === 'filho' && (
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#64748B]">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#6F675C]">
                     {intencaoLojaFilho === 'reserva' ? 'Reserva (sem pagamento agora)' : 'Compra — escolha como pagar'}
                   </p>
                 )}
@@ -733,18 +740,18 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                         type="button"
                         onClick={() => handleCheckout('mensalidade')}
                         disabled={isCheckoutLoading}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold text-[#080A0D] transition hover:bg-[#fde047] disabled:opacity-50"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#17251D] py-4 text-sm font-bold text-[#FFFAF0] transition hover:bg-[#20342A] disabled:opacity-50"
                       >
-                        {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#080A0D]/30 border-t-[#080A0D]" /> : 'Pagamento na mensalidade'}
+                        {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FFFAF0]/30 border-t-[#FFFAF0]" /> : 'Pagamento na mensalidade'}
                       </button>
 
                       <button 
                         type="button"
                         onClick={() => handleCheckout('pix')}
                         disabled={isCheckoutLoading}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] py-4 text-sm font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:opacity-50"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white py-4 text-sm font-bold text-[#4A463E] transition hover:bg-[#F5F0E5] disabled:opacity-50"
                       >
-                        {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#94A3B8]/30 border-t-[#F1F5F9]" /> : 'Pagamento via PIX'}
+                        {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4A463E]/30 border-t-[#4A463E]" /> : 'Pagamento via PIX'}
                       </button>
                     </>
                   )}
@@ -754,9 +761,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                       type="button"
                       onClick={() => handleCheckout('reserva')}
                       disabled={isCheckoutLoading}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-4 text-sm font-bold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#D8BE52]/60 bg-[#FFF7D6] py-4 text-sm font-bold text-[#8F7724] transition hover:bg-[#FFF2B8] disabled:opacity-50"
                     >
-                      {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400" /> : 'Confirmar reserva'}
+                      {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#8F7724]/30 border-t-[#8F7724]" /> : 'Confirmar reserva'}
                     </button>
                   )}
 
@@ -765,9 +772,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                       type="button"
                       onClick={() => handleCheckout('pix')}
                       disabled={isCheckoutLoading}
-                      className="w-full rounded-xl border border-[#1E242B] bg-[#12161A] py-4 text-sm font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:opacity-50"
+                      className="w-full rounded-xl border border-[#D8D2C4] bg-white py-4 text-sm font-bold text-[#4A463E] transition hover:bg-[#F5F0E5] disabled:opacity-50"
                     >
-                      {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#94A3B8]/30 border-t-[#F1F5F9]" /> : 'Pagamento via PIX'}
+                      {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4A463E]/30 border-t-[#4A463E]" /> : 'Pagamento via PIX'}
                     </button>
                   )}
                 </div>
@@ -780,41 +787,41 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       {/* Add Product Dialog */}
       <Dialog.Root open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-[101] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-[#1E242B] bg-[#13171D] p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-8">
+          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className="fixed left-[50%] top-[50%] z-[101] flex max-h-[88dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-8">
             <div className="mb-6 flex items-center justify-between">
-              <Dialog.Title className="text-xl font-bold text-[#F1F5F9]">Novo produto</Dialog.Title>
-              <Dialog.Close className="rounded-lg p-2 text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
+              <Dialog.Title className="text-xl font-bold text-[#171A16]">Novo produto</Dialog.Title>
+              <Dialog.Close className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition hover:bg-white">
                 <X className="h-5 w-5" />
               </Dialog.Close>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4">
+            <form onSubmit={handleSaveProduct} className="min-h-0 flex-1 space-y-4 overflow-y-auto">
               <div className="space-y-1.5">
-                <label className={appLabelClass}>Nome do produto</label>
+                <label className={paperModalLabelClass}>Nome do produto</label>
                 <input 
                   type="text" 
                   required
                   value={newProduct.nome}
                   onChange={e => setNewProduct({...newProduct, nome: e.target.value})}
-                  className={appInputClass}
+                  className={paperModalInputClass}
                   placeholder="Ex: Vela de 7 dias"
                 />
               </div>
               
               <div className="space-y-1.5">
-                <label className={appLabelClass}>Descrição</label>
+                <label className={paperModalLabelClass}>Descrição</label>
                 <textarea 
                   value={newProduct.descricao}
                   onChange={e => setNewProduct({...newProduct, descricao: e.target.value})}
-                  className={cn(appInputClass, 'h-24 resize-none')}
+                  className={cn(paperModalInputClass, 'h-24 resize-none')}
                   placeholder="Detalhes do produto..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Preço (R$)</label>
+                  <label className={paperModalLabelClass}>Preço (R$)</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -822,15 +829,15 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                     required
                     value={newProduct.preco}
                     onChange={e => setNewProduct({...newProduct, preco: parseFloat(e.target.value) || 0})}
-                    className={appInputClass}
+                    className={paperModalInputClass}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Categoria</label>
+                  <label className={paperModalLabelClass}>Categoria</label>
                   <select 
                     value={newProduct.categoria}
                     onChange={e => setNewProduct({...newProduct, categoria: e.target.value})}
-                    className={cn(appInputClass, '[&>option]:bg-[#13171D]')}
+                    className={cn(paperModalInputClass, '[&>option]:bg-white')}
                   >
                     <option value="Velas">Velas</option>
                     <option value="Guias">Guias</option>
@@ -843,41 +850,41 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Estoque atual</label>
+                  <label className={paperModalLabelClass}>Estoque atual</label>
                   <input 
                     type="number" 
                     min="0"
                     required
                     value={newProduct.estoque_atual}
                     onChange={e => setNewProduct({...newProduct, estoque_atual: parseInt(e.target.value) || 0})}
-                    className={appInputClass}
+                    className={paperModalInputClass}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className={appLabelClass}>Estoque mínimo</label>
+                  <label className={paperModalLabelClass}>Estoque mínimo</label>
                   <input 
                     type="number" 
                     min="0"
                     required
                     value={newProduct.estoque_minimo}
                     onChange={e => setNewProduct({...newProduct, estoque_minimo: parseInt(e.target.value) || 0})}
-                    className={appInputClass}
+                    className={paperModalInputClass}
                   />
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 border-t border-[#1E242B] pt-4">
+              <div className="mt-6 flex justify-end gap-3 border-t border-[#E3DCCE] pt-4">
                 <Dialog.Close asChild>
-                  <button type="button" className="rounded-xl px-6 py-3 font-bold text-[#94A3B8] transition hover:bg-[#12161A] hover:text-[#F1F5F9]">
+                  <button type="button" className="rounded-xl border border-[#D8D2C4] bg-white px-6 py-3 font-bold text-[#4A463E] transition hover:bg-[#F5F0E5]">
                     Cancelar
                   </button>
                 </Dialog.Close>
                 <AppPrimaryButton 
                   type="submit" 
                   disabled={isSavingProduct}
-                  className="flex items-center gap-2 px-6 py-3"
+                  className="flex items-center gap-2 bg-[#17251D] px-6 py-3 text-[#FFFAF0] hover:bg-[#20342A]"
                 >
-                  {isSavingProduct ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#080A0D]/30 border-t-[#080A0D]" /> : 'Salvar produto'}
+                  {isSavingProduct ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FFFAF0]/30 border-t-[#FFFAF0]" /> : 'Salvar produto'}
                 </AppPrimaryButton>
               </div>
             </form>

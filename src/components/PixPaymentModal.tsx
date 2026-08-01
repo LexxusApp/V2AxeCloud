@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { X, Copy, CheckCircle2, Loader2, CalendarDays } from 'lucide-react';
 import { cn } from '../lib/utils';
+import BodyPortal from './BodyPortal';
 import QRCode from 'qrcode';
 
 export interface PixConfig {
@@ -100,6 +101,7 @@ export default function PixPaymentModal({
   };
 
   return (
+    <BodyPortal>
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
@@ -108,30 +110,30 @@ export default function PixPaymentModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/[0.9] backdrop-blur-none"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           />
           <motion.div
             initial={MODAL_DLG_IN}
             animate={MODAL_DLG_DONE}
             exit={MODAL_DLG_OUT}
             transition={MODAL_TW}
-            className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-5 shadow-2xl"
+            className="relative z-10 flex w-full max-w-sm max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-black text-white uppercase tracking-tight">Pagamento via Pix</h2>
-              <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-xl transition-colors">
-                <X className="w-4 h-4 text-gray-500" />
+            <div className="flex shrink-0 items-center justify-between pb-5">
+              <h2 className="text-base font-display font-black text-[#171A16] uppercase tracking-tight">Pagamento via Pix</h2>
+              <button onClick={onClose} className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] hover:bg-white transition-colors">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                <Loader2 className="w-7 h-7 text-primary animate-spin" />
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Carregando...</p>
+                <Loader2 className="w-7 h-7 text-[#8F7724] animate-spin" />
+                <p className="text-xs font-bold text-[#6F675C] uppercase tracking-widest">Carregando...</p>
               </div>
             ) : pixConfig ? (
-              <div className="space-y-5">
+              <div className="flex-1 space-y-5 overflow-y-auto">
                 {/* QR Code */}
                 <div className="flex justify-center">
                   <div className="bg-white p-3 rounded-2xl shadow-lg">
@@ -142,24 +144,24 @@ export default function PixPaymentModal({
                 {/* Valor + Vencimento */}
                 <div className="flex items-center justify-between px-1">
                   <div>
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Valor</p>
-                    <p className="text-2xl font-black text-white">R$ {valor.toFixed(2).replace('.', ',')}</p>
+                    <p className="text-[9px] font-black text-[#6F675C] uppercase tracking-widest">Valor</p>
+                    <p className="text-2xl font-black text-[#171A16]">R$ {valor.toFixed(2).replace('.', ',')}</p>
                   </div>
                   {vencimento && (
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-end gap-1">
+                      <p className="text-[9px] font-black text-[#6F675C] uppercase tracking-widest flex items-center justify-end gap-1">
                         <CalendarDays className="w-3 h-3" /> Vencimento
                       </p>
-                      <p className="text-sm font-black text-primary">{vencimento}</p>
+                      <p className="text-sm font-black text-[#8F7724]">{vencimento}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Copia e Cola */}
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Pix Copia e Cola</p>
-                  <div className="bg-white/5 border border-white/5 rounded-xl px-3 py-2">
-                    <p className="text-[10px] font-mono text-gray-400 break-all leading-relaxed select-all">
+                  <p className="text-[9px] font-black text-[#6F675C] uppercase tracking-widest">Pix Copia e Cola</p>
+                  <div className="bg-white border border-[#E3DCCE] rounded-xl px-3 py-2">
+                    <p className="text-[10px] font-mono text-[#6F675C] break-all leading-relaxed select-all">
                       {pixPayload.slice(0, 60)}...
                     </p>
                   </div>
@@ -168,8 +170,8 @@ export default function PixPaymentModal({
                     className={cn(
                       "w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
                       copied
-                        ? "bg-emerald-500 text-white"
-                        : "bg-primary text-background hover:scale-[1.02] active:scale-95"
+                        ? "bg-[#3F7258] text-white"
+                        : "bg-[#17251D] text-[#FFFAF0] hover:bg-[#20342A] hover:scale-[1.02] active:scale-95"
                     )}
                   >
                     {copied ? (
@@ -181,29 +183,30 @@ export default function PixPaymentModal({
                 </div>
 
                 {/* Beneficiário */}
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                <div className="pt-2 border-t border-[#E3DCCE] flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Beneficiário</p>
-                    <p className="text-xs font-bold text-white mt-0.5">{pixConfig.nome_beneficiario}</p>
+                    <p className="text-[9px] font-black text-[#6F675C] uppercase tracking-widest">Beneficiário</p>
+                    <p className="text-xs font-bold text-[#171A16] mt-0.5">{pixConfig.nome_beneficiario}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Chave ({pixConfig.tipo_chave})</p>
-                    <p className="text-xs font-mono text-primary mt-0.5">{pixConfig.chave_pix}</p>
+                    <p className="text-[9px] font-black text-[#6F675C] uppercase tracking-widest">Chave ({pixConfig.tipo_chave})</p>
+                    <p className="text-xs font-mono text-[#8F7724] mt-0.5">{pixConfig.chave_pix}</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-10 space-y-3">
-                <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <X className="w-7 h-7 text-red-500" />
+                <div className="w-14 h-14 bg-[#B04A32]/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <X className="w-7 h-7 text-[#B04A32]" />
                 </div>
-                <p className="text-sm font-bold text-white">Pix não configurado</p>
-                <p className="text-xs text-gray-500">O zelador ainda não cadastrou uma chave Pix.</p>
+                <p className="text-sm font-bold text-[#171A16]">Pix não configurado</p>
+                <p className="text-xs text-[#6F675C]">O zelador ainda não cadastrou uma chave Pix.</p>
               </div>
             )}
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+    </BodyPortal>
   );
 }
