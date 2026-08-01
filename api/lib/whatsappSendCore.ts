@@ -23,6 +23,7 @@ import {
   sendMetaCloudTemplate,
   sendMetaCloudText,
 } from "./metaCloudSend.js";
+import { waitTenantSendSlot } from "./whatsappTenantPacer.js";
 import {
   buildCredentialsFollowUpText,
   buildCredenciaisAcessoComponents,
@@ -417,6 +418,9 @@ async function sendMetaTemplateMessage(
 
   try {
     if (isMetaCloudDirectConfigured()) {
+      // Ritmo por terreiro: campanhas (aviso_gira, mural, broadcast) esperam a vez
+      // do próprio tenant sem atrasar envios de outros terreiros.
+      await waitTenantSendSlot(opts?.tenantId, tipo);
       const out = await sendMetaCloudTemplate(phone, templateName, language, components);
       console.log(`[WHATSAPP] template Meta direct (${templateName}) → ${phone.slice(0, 4)}…`);
       return out;

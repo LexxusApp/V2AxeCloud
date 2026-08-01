@@ -112,7 +112,9 @@ Consulte o AxéCloud para mais detalhes.
 **Env:**
 
 ```env
-WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_axecloud
+# Em produção usamos a variante Utility (sem header de imagem) para evitar o
+# bloqueio #131049 aplicado a templates Marketing: aviso_gira_util_axecloud.
+WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
 WA_META_EVENT_DEFAULT_BANNER_URL=https://axecloud.com.br/og-image.png
 ```
 
@@ -343,7 +345,7 @@ Olá, {{1}}! O zelador de {{2}} aceitou seu pedido. Sua reza será realizada na 
 | {{1}} | João Santos |
 | {{2}} | Casa de Umbanda Axé |
 
-**Env:** `WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_axecloud`
+**Env:** `WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_util_axecloud` (variante Utility aprovada; a original `pedido_reza_aceito_fiel_axecloud` ficou como Marketing)
 
 **Disparo:** Atendimentos → aceitar pedido de reza → WhatsApp do fiel (telefone informado no pedido).
 
@@ -448,13 +450,13 @@ O código envia o OTP no formato de autenticação Meta (corpo + botão Copiar c
 WA_META_TEMPLATE_FINANCEIRO=financeiro_axecloud
 WA_META_TEMPLATE_COBRANCA_MENSALIDADE=cobranca_mensalidade_axecloud
 WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud
-WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_axecloud
+WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
 WA_META_TEMPLATE_CONVITE_EVENTO=convite_evento_axecloud
 WA_META_TEMPLATE_ESTOQUE_CRITICO=estoque_critico_axecloud
 WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_axecloud
 WA_META_TEMPLATE_BROADCAST=aviso_portal_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
-WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_axecloud
+WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_util_axecloud
 WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
 WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
 ```

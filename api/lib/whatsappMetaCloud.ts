@@ -144,7 +144,8 @@ export function isConviteEventoTemplate(tipo: string): boolean {
 }
 
 export function isAvisoGiraTemplate(tipo: string): boolean {
-  return resolveMetaTemplateName(tipo) === AVISO_GIRA_TEMPLATE;
+  // Aceita variantes (ex.: aviso_gira_util_axecloud em categoria Utility).
+  return resolveMetaTemplateName(tipo).startsWith("aviso_gira");
 }
 
 export function isMuralAvisoTemplate(tipo: string): boolean {
@@ -179,7 +180,8 @@ const META_BROADCAST_TEMPLATE_TIPOS = new Set([
 ]);
 
 export function isAvisoPortalTemplate(tipo: string): boolean {
-  return resolveMetaTemplateName(tipo) === AVISO_PORTAL_TEMPLATE;
+  // Aceita variantes (ex.: aviso_portal_util_axecloud em categoria Utility).
+  return resolveMetaTemplateName(tipo).startsWith("aviso_portal");
 }
 
 /** Mural/transmissão usa somente o template aviso_portal_axecloud. */
@@ -354,17 +356,24 @@ export function buildAvisoGiraComponents(
   const titulo = String(variables?.nome_evento || variables?.titulo_evento || variables?.titulo || "Gira");
   const data = String(variables?.data_evento || "");
   const hora = String(variables?.hora_evento || "");
-  const bannerUrl = resolveEventBannerUrl(variables);
 
+  const body: MetaTemplateComponent = {
+    type: "body",
+    parameters: [textParam(titulo), textParam(data || "—"), textParam(hora || "—")],
+  };
+
+  // Só o template original tem header de imagem; variantes Utility são corpo puro.
+  if (resolveMetaTemplateName("aviso_gira") !== AVISO_GIRA_TEMPLATE) {
+    return [body];
+  }
+
+  const bannerUrl = resolveEventBannerUrl(variables);
   return [
     {
       type: "header",
       parameters: [{ type: "image", image: { link: bannerUrl } }],
     },
-    {
-      type: "body",
-      parameters: [textParam(titulo), textParam(data || "—"), textParam(hora || "—")],
-    },
+    body,
   ];
 }
 
