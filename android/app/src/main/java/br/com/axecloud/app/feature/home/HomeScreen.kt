@@ -96,6 +96,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
+import br.com.axecloud.app.feature.finance.FinanceRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
 import br.com.axecloud.app.feature.notifications.NotificationInbox
@@ -237,7 +238,7 @@ private fun HomeScreen(
                             )
                             HomeTab.AGENDA -> GirasRoute()
                             HomeTab.AVISOS -> NoticesRoute()
-                            HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt)
+                            HomeTab.FINANCEIRO -> if (state.snapshot.isFilho) NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt) else FinanceRoute()
                             HomeTab.FILHOS -> ChildrenRoute()
                             HomeTab.FREQUENCIA -> FrequencyRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
