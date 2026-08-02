@@ -17,7 +17,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | PARCIAL — formulário e persistência nativos; validação em aparelho pendente |
 | Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL — fluxo nativo completo compilado; upload real e reprodução de vídeo em aparelho pendentes |
 | Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
-| Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL |
+| Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL — PDFs e Acervo de Fundamentos nativos; banhos/ervas/rituais, tradição, cargo, acesso individual, rascunho/publicação/arquivo compilados; validação real pendente |
 | Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL — central nativa de pedidos, busca, acolhimento, oração, notas, WhatsApp e conclusão compilados; agenda/cadastro/histórico dependem de API Web equivalente |
 | Loja | produtos, categorias, cadastro/edição, estoque, pedidos e status | PARCIAL — vitrine, busca, sacola, checkout, catálogo, edição, exclusão e pedidos recentes nativos; gestão de status dos pedidos pendente |
 | Preceitos | criar, ativar para corrente/grupos, instruções, ciência, orientação e encerramento | PARCIAL |
@@ -32,7 +32,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Obrigações | preceitos ativos, instruções, ciência e pedido de orientação | PARCIAL |
 | Mensalidade | situação, Pix/QR, copiar, comprovante e histórico | PARCIAL |
 | Giras | agenda, detalhes e confirmação de presença | PARCIAL |
-| Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL |
+| Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL — PDFs e fundamentos filtrados no servidor por tradição, cargo e autorização individual; validação em aparelho pendente |
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva e cobrança na mensalidade nativos; validação real em aparelho pendente |
 | Comunicados | mural, categorias, anexos e leitura | PARCIAL |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL |
