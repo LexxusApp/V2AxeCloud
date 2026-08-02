@@ -97,7 +97,11 @@ class HomeViewModel @Inject constructor(
         }
 
     fun uploadProfilePhoto(uri: Uri) = runAction("profile_photo", "Foto atualizada.") {
-        repository.uploadChildProfilePhoto(uri)
+        repository.uploadProfilePhoto(uri)
+    }
+
+    fun validatePaymentReceipt(uri: Uri) = runAction("payment_receipt", "Comprovante validado. Mensalidade confirmada. Axé!") {
+        repository.validatePaymentReceipt(uri)
     }
 
     private fun runAction(id: String, success: String, block: suspend () -> Unit) = viewModelScope.launch {

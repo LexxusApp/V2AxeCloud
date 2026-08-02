@@ -23,6 +23,8 @@ data class HomeSnapshot(
     val pixPayload: String = "",
     val pixBeneficiary: String = "",
     val monthlyItems: List<HomeFeedItem> = emptyList(),
+    val paidMonthlyItems: List<HomeFeedItem> = emptyList(),
+    val transactionItems: List<HomeFeedItem> = emptyList(),
     val galleryItems: List<HomeFeedItem> = emptyList(),
     val inventoryItems: List<HomeFeedItem> = emptyList(),
     val storeItems: List<HomeFeedItem> = emptyList(),

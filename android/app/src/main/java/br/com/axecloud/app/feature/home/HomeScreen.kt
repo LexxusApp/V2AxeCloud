@@ -122,6 +122,7 @@ fun HomeRoute(
         onAddInventory = viewModel::addInventoryItem,
         onAddProduct = viewModel::addStoreProduct,
         onUploadProfilePhoto = viewModel::uploadProfilePhoto,
+        onValidatePaymentReceipt = viewModel::validatePaymentReceipt,
     )
 }
 
@@ -144,11 +145,13 @@ private fun HomeScreen(
     onAddInventory: (String, String, String, String) -> Unit,
     onAddProduct: (String, String, String, String) -> Unit,
     onUploadProfilePhoto: (Uri) -> Unit,
+    onValidatePaymentReceipt: (Uri) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val chromeVisible = !state.loading && state.error == null && interaction.conversationId == null
+    val hasLoadedContent = state.snapshot.houseName.isNotBlank() || state.snapshot.greetingName.isNotBlank()
+    val chromeVisible = state.error == null && interaction.conversationId == null && (!state.loading || hasLoadedContent)
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -174,6 +177,7 @@ private fun HomeScreen(
                         selectedTab = selectedTab,
                         onAvatarClick = { scope.launch { drawerState.open() } },
                         onNotifications = { selectedTab = HomeTab.AVISOS },
+                        onRefresh = onRetry,
                     )
                 }
             },
@@ -201,7 +205,7 @@ private fun HomeScreen(
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).background(AxeCloudThemeTokens.Canvas)) {
                 when {
-                    state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AxeCloudThemeTokens.Forest)
+                    state.loading && !hasLoadedContent -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AxeCloudThemeTokens.Forest)
                     state.error != null -> ErrorState(state.error, onRetry, Modifier.align(Alignment.Center))
                     interaction.conversationId != null -> ChatScreen(interaction, onCloseConversation, onSendMessage)
                     else -> AnimatedContent(
@@ -220,7 +224,7 @@ private fun HomeScreen(
                             )
                             HomeTab.AGENDA -> NativeAgendaScreen(state.snapshot, interaction, onCreateEvent)
                             HomeTab.AVISOS -> NativeNoticesScreen(state.snapshot.noticeItems)
-                            HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly)
+                            HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt)
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -232,6 +236,13 @@ private fun HomeScreen(
                             HomeTab.PERFIL -> NativeProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
                         }
                     }
+                }
+                if (state.loading && hasLoadedContent) {
+                    androidx.compose.material3.LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                        color = AxeCloudThemeTokens.Forest,
+                        trackColor = AxeCloudThemeTokens.Gold.copy(alpha = .2f),
+                    )
                 }
             }
         }
@@ -245,6 +256,7 @@ private fun NativeTopBar(
     selectedTab: HomeTab,
     onAvatarClick: () -> Unit,
     onNotifications: () -> Unit,
+    onRefresh: () -> Unit,
 ) {
     TopAppBar(
         navigationIcon = {
@@ -259,6 +271,9 @@ private fun NativeTopBar(
             }
         },
         actions = {
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Outlined.Refresh, "Atualizar", tint = AxeCloudThemeTokens.Forest)
+            }
             IconButton(onClick = onNotifications) {
                 Icon(Icons.Outlined.Notifications, "Notificações", tint = AxeCloudThemeTokens.Forest)
             }

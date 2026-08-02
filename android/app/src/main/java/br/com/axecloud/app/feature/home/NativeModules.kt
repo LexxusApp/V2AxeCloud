@@ -313,10 +313,12 @@ internal fun NativeFinanceScreen(
     data: HomeSnapshot,
     interaction: InteractionUiState,
     onSettle: (HomeFeedItem) -> Unit,
+    onReceipt: (Uri) -> Unit,
 ) {
     var filter by rememberSaveable { mutableStateOf("Pendentes") }
     var selected by remember { mutableStateOf<HomeFeedItem?>(null) }
     val clipboard = LocalClipboardManager.current
+    val receiptPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) onReceipt(uri) }
     val total = data.monthlyItems.sumOf { it.amount }
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
@@ -340,13 +342,26 @@ internal fun NativeFinanceScreen(
                 !data.monthlyActive -> item { NativeEmptyState(Icons.Outlined.Payments, "Cobrança desativada", "A casa não utiliza mensalidade no momento.") }
                 data.pixPayload.isBlank() -> item { NativeEmptyState(Icons.Outlined.WarningAmber, "PIX não configurado", "Peça à liderança para configurar os dados de recebimento.") }
                 else -> item {
-                    PixPaymentCard(data) { clipboard.setText(AnnotatedString(data.pixPayload)) }
+                    PixPaymentCard(
+                        data = data,
+                        busy = interaction.actionInProgress == "payment_receipt",
+                        onCopy = { clipboard.setText(AnnotatedString(data.pixPayload)) },
+                        onReceipt = { receiptPicker.launch("image/*") },
+                    )
+                }
+            }
+            if (data.transactionItems.isNotEmpty()) {
+                item { Text("Histórico recente", color = AxeCloudThemeTokens.Ink, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold) }
+                items(data.transactionItems.take(8), key = { it.id.ifBlank { it.title + it.detail } }) { transaction ->
+                    TransactionRow(transaction)
                 }
             }
         } else {
             item { ChipRow(listOf("Pendentes", "Pagas"), filter) { filter = it } }
-            if (filter == "Pagas") {
-                item { NativeEmptyState(Icons.Outlined.CheckCircle, "Histórico em preparação", "As mensalidades baixadas serão reunidas aqui na próxima conexão do histórico financeiro.") }
+            if (filter == "Pagas" && data.paidMonthlyItems.isEmpty()) {
+                item { NativeEmptyState(Icons.Outlined.CheckCircle, "Nenhum pagamento nesta visão", "As mensalidades confirmadas aparecerão aqui automaticamente.") }
+            } else if (filter == "Pagas") {
+                items(data.paidMonthlyItems, key = { it.id.ifBlank { it.title + it.detail } }) { monthly -> MonthlyPaidRow(monthly) }
             } else if (data.monthlyItems.isEmpty()) {
                 item { NativeEmptyState(Icons.Outlined.CheckCircle, "Tudo recebido", "Não há mensalidades pendentes para esta competência.") }
             } else {
@@ -375,7 +390,7 @@ internal fun NativeFinanceScreen(
 }
 
 @Composable
-private fun PixPaymentCard(data: HomeSnapshot, onCopy: () -> Unit) {
+private fun PixPaymentCard(data: HomeSnapshot, busy: Boolean, onCopy: () -> Unit, onReceipt: () -> Unit) {
     Surface(shape = RoundedCornerShape(26.dp), color = AxeCloudThemeTokens.Surface, border = BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
         Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -397,7 +412,44 @@ private fun PixPaymentCard(data: HomeSnapshot, onCopy: () -> Unit) {
                 Spacer(Modifier.size(8.dp))
                 Text("Copiar código PIX", fontWeight = FontWeight.Bold)
             }
+            OutlinedButton(onClick = onReceipt, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp)) {
+                if (busy) {
+                    androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = NativeGreen)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Validando...")
+                } else {
+                    Icon(Icons.Outlined.PhotoCamera, null)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Enviar comprovante", fontWeight = FontWeight.Bold)
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun MonthlyPaidRow(item: HomeFeedItem) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = AxeCloudThemeTokens.Surface, border = BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
+        Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(42.dp).background(NativeGreenSoft, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.CheckCircle, null, tint = NativeGreen) }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(item.title, color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(item.detail.ifBlank { "Pagamento confirmado" }, color = AxeCloudThemeTokens.Muted, fontSize = 11.sp)
+            }
+            Text(item.amount.asMoney(), color = NativeGreen, fontWeight = FontWeight.Black)
+        }
+    }
+}
+
+@Composable
+private fun TransactionRow(item: HomeFeedItem) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.Payments, null, tint = NativeGreen, modifier = Modifier.size(22.dp))
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(item.title, color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(item.detail, color = AxeCloudThemeTokens.Muted, fontSize = 10.sp)
+        }
+        Text(item.amount.asMoney(), color = NativeGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
     }
 }
 
@@ -429,20 +481,22 @@ private fun NativePageHeader(
     background: Color = NativeGreen,
     accent: Color = NativeGold,
 ) {
-    Surface(shape = RoundedCornerShape(28.dp), color = background, shadowElevation = 5.dp) {
-        Column(Modifier.fillMaxWidth().padding(22.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(42.dp).background(accent.copy(alpha = .16f), CircleShape), contentAlignment = Alignment.Center) { Icon(icon, null, tint = accent) }
-                Text(eyebrow, Modifier.padding(start = 12.dp).weight(1f), color = accent, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(metric, color = AxeCloudThemeTokens.Ivory, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                    Text(metricLabel, color = AxeCloudThemeTokens.Ivory.copy(alpha = .58f), fontSize = 9.sp)
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(42.dp).background(background, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = accent, modifier = Modifier.size(22.dp))
+            }
+            Text(eyebrow, Modifier.padding(start = 12.dp).weight(1f), color = AxeCloudThemeTokens.Muted, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+            Surface(shape = RoundedCornerShape(50), color = background.copy(alpha = .08f)) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(metric, color = AxeCloudThemeTokens.Ink, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    Text("  $metricLabel", color = AxeCloudThemeTokens.Muted, fontSize = 10.sp)
                 }
             }
-            Spacer(Modifier.height(20.dp))
-            Text(title, color = AxeCloudThemeTokens.Ivory, fontSize = 27.sp, lineHeight = 30.sp, fontWeight = FontWeight.Black)
-            Text(subtitle, Modifier.padding(top = 7.dp), color = AxeCloudThemeTokens.Ivory.copy(alpha = .68f), fontSize = 13.sp, lineHeight = 18.sp)
         }
+        Spacer(Modifier.height(18.dp))
+        Text(title, color = AxeCloudThemeTokens.Ink, fontSize = 30.sp, lineHeight = 33.sp, fontWeight = FontWeight.Black)
+        Text(subtitle, Modifier.padding(top = 7.dp), color = AxeCloudThemeTokens.Muted, fontSize = 13.sp, lineHeight = 19.sp)
     }
 }
 
@@ -789,27 +843,28 @@ internal fun NativeProfileScreen(
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) onUploadPhoto(uri) }
     LazyColumn(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Surface(shape = RoundedCornerShape(28.dp), color = Color(0xFF18263B), shadowElevation = 6.dp) {
-                Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(shape = CircleShape, color = NativeGreen, border = BorderStroke(3.dp, NativeGold)) {
-                        if (data.profilePhotoUrl.isNotBlank()) AsyncImage(model = data.profilePhotoUrl, contentDescription = "Foto de perfil", modifier = Modifier.size(104.dp), contentScale = ContentScale.Crop)
-                        else Box(Modifier.size(104.dp), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Person, null, tint = NativeGold, modifier = Modifier.size(48.dp)) }
-                    }
-                    Text(data.greetingName, Modifier.padding(top = 16.dp), color = AxeCloudThemeTokens.Ivory, fontSize = 24.sp, fontWeight = FontWeight.Black)
-                    Text(data.houseName.ifBlank { "AxéCloud" }, color = AxeCloudThemeTokens.Ivory.copy(alpha = .65f), fontSize = 13.sp)
-                    Surface(Modifier.padding(top = 12.dp), shape = RoundedCornerShape(50), color = Color(0xFF91B5FF).copy(alpha = .15f)) {
-                        Text(if (data.isFilho) "FILHO DE SANTO" else "GESTÃO DA CASA", Modifier.padding(horizontal = 13.dp, vertical = 7.dp), color = Color(0xFFB8CDFF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = CircleShape, color = NativeGreen, border = BorderStroke(3.dp, NativeGold)) {
+                    if (data.profilePhotoUrl.isNotBlank()) AsyncImage(model = data.profilePhotoUrl, contentDescription = "Foto de perfil", modifier = Modifier.size(88.dp), contentScale = ContentScale.Crop)
+                    else Box(Modifier.size(88.dp), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Person, null, tint = NativeGold, modifier = Modifier.size(42.dp)) }
+                }
+                Column(Modifier.weight(1f).padding(start = 18.dp)) {
+                    Text("CONTA AXÉCLOUD", color = AxeCloudThemeTokens.Muted, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                    Text(data.greetingName, Modifier.padding(top = 6.dp), color = AxeCloudThemeTokens.Ink, fontSize = 25.sp, fontWeight = FontWeight.Black)
+                    Text(data.houseName.ifBlank { "AxéCloud" }, color = AxeCloudThemeTokens.Muted, fontSize = 13.sp)
+                    Surface(Modifier.padding(top = 9.dp), shape = RoundedCornerShape(50), color = NativeGreenSoft) {
+                        Text(if (data.isFilho) "FILHO DE SANTO" else "GESTÃO DA CASA", Modifier.padding(horizontal = 11.dp, vertical = 6.dp), color = NativeGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
         interaction.feedback?.let { item { NativeFeedback(it) } }
-        if (data.isFilho) {
-            item {
-                ProfileAction(Icons.Outlined.PhotoCamera, "Trocar foto", "Atualize sua identificação nas conversas e no perfil.") { picker.launch("image/*") }
-            }
-        } else {
-            item { NativeInfoBand("Foto da casa", "A edição da identidade do terreiro será conectada ao perfil administrativo.", Icons.Outlined.PhotoCamera) }
+        item {
+            ProfileAction(
+                Icons.Outlined.PhotoCamera,
+                if (data.isFilho) "Trocar minha foto" else "Trocar foto da casa",
+                if (data.isFilho) "Atualize sua identificação nas conversas e no perfil." else "A nova imagem será usada no menu e na identidade administrativa.",
+            ) { picker.launch("image/*") }
         }
         item {
             ProfileAction(Icons.Outlined.Notifications, "Notificações", "Abra as permissões de aviso deste aplicativo.") {

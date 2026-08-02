@@ -185,24 +185,55 @@ class HomeRepository @Inject constructor(
         )
     }
 
-    suspend fun uploadChildProfilePhoto(uri: Uri) {
+    suspend fun uploadProfilePhoto(uri: Uri) {
         val session = authenticatedSession()
-        check(session.isFilho) { "A troca de foto do zelador será liberada no próximo módulo." }
-        val mime = context.contentResolver.getType(uri)?.lowercase() ?: "image/jpeg"
-        check(mime in setOf("image/jpeg", "image/png", "image/webp")) { "Escolha uma imagem JPEG, PNG ou WebP." }
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: error("Não foi possível ler a imagem.")
-        check(bytes.size <= 5 * 1024 * 1024) { "A imagem deve ter no máximo 5 MB." }
+        val (mime, encoded) = readImage(uri)
+        val endpoint = if (session.isFilho) "/api/v1/filho/profile-photo" else "/api/v1/profile/upload-photo"
         val response = http.post(
-            api("/api/v1/filho/profile-photo"),
+            api(endpoint),
             buildJsonObject {
-                put("fileData", Base64.encodeToString(bytes, Base64.NO_WRAP))
+                put("fileData", encoded)
                 put("contentType", mime)
+                if (!session.isFilho) put("fileName", "${session.userId}-${System.currentTimeMillis()}.${mime.substringAfter('/')}")
             },
             session.accessToken,
         ).asObject()
         val url = response.text("publicUrl", "url")
-        if (url.isNotBlank()) sessions.save(session.copy(profilePhotoUrl = url))
+        check(url.isNotBlank()) { "O servidor não retornou a nova foto." }
+        if (!session.isFilho) {
+            http.post(
+                api("/api/v1/settings/save"),
+                buildJsonObject {
+                    put("userId", session.userId)
+                    put("tenantId", session.tenantId)
+                    put("profile", buildJsonObject {
+                        put("zelador", session.email.substringBefore('@'))
+                        put("nome_terreiro", session.houseName)
+                        put("cargo", session.role)
+                        put("foto_url", url)
+                        put("email", session.email)
+                    })
+                },
+                session.accessToken,
+            )
+        }
+        sessions.save(session.copy(profilePhotoUrl = url))
+    }
+
+    suspend fun validatePaymentReceipt(uri: Uri) {
+        val session = authenticatedSession()
+        check(session.isFilho) { "O envio de comprovante pertence ao acesso do filho de santo." }
+        val (mime, encoded) = readImage(uri)
+        val result = http.post(
+            api("/api/v1/financeiro/validar-comprovante"),
+            buildJsonObject {
+                put("tenant_id", session.tenantId)
+                put("fileData", encoded)
+                put("contentType", mime)
+            },
+            session.accessToken,
+        ).asObject()
+        check(result.bool("success") != false) { result.text("error", "message").ifBlank { "Não foi possível validar o comprovante." } }
     }
 
     suspend fun load(): HomeSnapshot {
@@ -220,6 +251,9 @@ class HomeRepository @Inject constructor(
         val pixCall = async { safeGet("/api/v1/financial/pix-config?tenantId=$tenant", session.accessToken) }
         val galleryCall = async { safeGet("/api/v1/gallery/albums?tenantId=$tenant", session.accessToken) }
         val storeCall = async { safeGet("/api/v1/store/products?tenantId=$tenant", session.accessToken) }
+        val transactionsCall = async {
+            safeGet("/api/transactions?tenantId=$tenant&userId=${encode(session.userId)}&userRole=filho&limit=100", session.accessToken)
+        }
         val root = homeCall.await().asObject()
         val child = root.obj("child")
         val financialStatus = root.text("financialStatus", "financial_status").lowercase()
@@ -262,6 +296,7 @@ class HomeRepository @Inject constructor(
             profilePhotoUrl = session.profilePhotoUrl.ifBlank { child.text("foto_url", "photo_url") },
             galleryItems = galleryCall.await().asList("albums", "data", "items").map { it.asObject().toGalleryItem() },
             storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
+            transactionItems = transactionsCall.await().asList("transactions", "items", "data").map { it.asObject().toTransactionItem() },
         )
     }
 
@@ -277,6 +312,7 @@ class HomeRepository @Inject constructor(
         val libraryCall = async { safeGet("/api/v1/library/materials?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val chatsCall = async { safeGet("/api/v1/chat/conversations?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val monthlyCall = async { safeGet("/api/v1/financial/mensalidades?tenantId=${encode(session.tenantId)}&view=pendentes", session.accessToken) }
+        val paidMonthlyCall = async { safeGet("/api/v1/financial/mensalidades?tenantId=${encode(session.tenantId)}&view=pagas", session.accessToken) }
         val galleryCall = async { safeGet("/api/v1/gallery/albums?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val inventoryCall = async { safeGet("/api/inventory?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val storeCall = async { safeGet("/api/v1/store/products?tenantId=${encode(session.tenantId)}", session.accessToken) }
@@ -316,6 +352,8 @@ class HomeRepository @Inject constructor(
             conversationItems = chatsCall.await().asList("conversations", "data", "items").take(20).map { it.asObject().toConversationItem() },
             monthlyActive = true,
             monthlyItems = monthlyCall.await().asList("data", "items").map { it.asObject().toMonthlyItem() },
+            paidMonthlyItems = paidMonthlyCall.await().asList("data", "items").map { it.asObject().toMonthlyItem() },
+            transactionItems = transactions.take(100).map { it.asObject().toTransactionItem() },
             galleryItems = galleryCall.await().asList("albums", "data", "items").map { it.asObject().toGalleryItem() },
             inventoryItems = inventoryCall.await().asList("data", "items").map { it.asObject().toInventoryItem() },
             storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
@@ -331,6 +369,15 @@ class HomeRepository @Inject constructor(
     private fun encode(value: String) = URLEncoder.encode(value, Charsets.UTF_8.name())
     private fun authenticatedSession(): SessionSnapshot = sessions.current().also {
         check(it.isAuthenticated) { "Entre novamente para continuar." }
+    }
+
+    private fun readImage(uri: Uri): Pair<String, String> {
+        val mime = context.contentResolver.getType(uri)?.lowercase() ?: "image/jpeg"
+        check(mime in setOf("image/jpeg", "image/png", "image/webp")) { "Escolha uma imagem JPEG, PNG ou WebP." }
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("Não foi possível ler a imagem.")
+        check(bytes.size <= 5 * 1024 * 1024) { "A imagem deve ter no máximo 5 MB." }
+        return mime to Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 }
 
@@ -390,6 +437,13 @@ private fun JsonObject.toMonthlyItem() = HomeFeedItem(
     },
     detail = listOf(text("vencimento", "data_vencimento", "due_date"), text("status")).filter(String::isNotBlank).joinToString(" · "),
     status = text("status").ifBlank { "pendente" },
+    amount = number("valor", "value", "amount"),
+)
+private fun JsonObject.toTransactionItem() = HomeFeedItem(
+    id = text("id"),
+    title = text("descricao", "description", "categoria", "category").ifBlank { "Movimentação financeira" },
+    detail = listOf(text("data", "date", "created_at"), text("categoria", "category")).filter(String::isNotBlank).joinToString(" · "),
+    status = text("fluxo", "flow", "tipo", "type", "status"),
     amount = number("valor", "value", "amount"),
 )
 private fun JsonObject.toGalleryItem(): HomeFeedItem {
