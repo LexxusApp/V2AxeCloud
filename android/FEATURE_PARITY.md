@@ -21,7 +21,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL — central nativa de pedidos, busca, acolhimento, oração, notas, WhatsApp e conclusão compilados; agenda/cadastro/histórico dependem de API Web equivalente |
 | Loja | produtos, categorias, cadastro/edição, estoque, pedidos e status | PARCIAL — vitrine, busca, sacola, checkout, catálogo, edição, exclusão e pedidos recentes nativos; gestão de status dos pedidos pendente |
 | Preceitos | criar, ativar para corrente/grupos, instruções, ciência, orientação e encerramento | PARCIAL |
-| Configurações | identidade, conta, casa, foto, segurança, plano, WhatsApp legado, portal público e exclusão | PARCIAL |
+| Configurações | identidade, conta, casa, foto, segurança, plano, WhatsApp legado, portal público e exclusão | PARCIAL — identidade, portal público, pedidos de reza, notificações e plano em central nativa; senha, e-mail, assinatura e exclusão ainda pendentes |
 
 ## Filho de Santo
 

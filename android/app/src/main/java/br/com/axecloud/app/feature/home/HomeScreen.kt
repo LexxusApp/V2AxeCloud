@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
@@ -101,6 +102,7 @@ import br.com.axecloud.app.feature.giras.GirasRoute
 import br.com.axecloud.app.feature.gallery.GalleryRoute
 import br.com.axecloud.app.feature.care.CareRoute
 import br.com.axecloud.app.feature.store.StoreRoute
+import br.com.axecloud.app.feature.settings.SettingsRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
@@ -251,7 +253,7 @@ private fun HomeScreen(
                             HomeTab.GALERIA -> GalleryRoute()
                             HomeTab.ATENDIMENTOS -> CareRoute()
                             HomeTab.LOJA -> StoreRoute()
-                            HomeTab.GESTAO -> NativeManagementScreen(
+                            HomeTab.GESTAO -> if (!state.snapshot.isFilho) SettingsRoute() else NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
                                 onPrayerStatus = onPrayerStatus,
@@ -434,7 +436,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.GALERIA -> "Galeria"
     HomeTab.ATENDIMENTOS -> "Atendimentos"
     HomeTab.LOJA -> "Loja do Axé"
-    HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
+    HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Configurações"
 }
 
 @Composable
@@ -1217,7 +1219,7 @@ private enum class HomeTab(
     GALERIA("Galeria", Icons.Outlined.PhotoLibrary, false),
     ATENDIMENTOS("Atendimentos", Icons.Outlined.VolunteerActivism, false, true),
     LOJA("Loja", Icons.Outlined.Storefront, false),
-    GESTAO("Gestão", Icons.Outlined.Groups, false),
+    GESTAO("Gestão", Icons.Outlined.Settings, false),
 
     ;
 
