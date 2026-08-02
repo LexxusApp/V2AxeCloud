@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
@@ -90,6 +91,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
+import br.com.axecloud.app.feature.children.ChildrenRoute
+import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -184,7 +187,7 @@ private fun HomeScreen(
             bottomBar = {
                 if (chromeVisible) {
                     NavigationBar(containerColor = AxeCloudThemeTokens.ForestDeep) {
-                        HomeTab.entries.filter { it.showInNavigation }.forEach { tab ->
+                        HomeTab.entries.filter { it.showInNavigation && it.allowedFor(state.snapshot.isFilho) }.forEach { tab ->
                             NavigationBarItem(
                                 selected = selectedTab == tab,
                                 onClick = { selectedTab = tab },
@@ -225,6 +228,8 @@ private fun HomeScreen(
                             HomeTab.AGENDA -> NativeAgendaScreen(state.snapshot, interaction, onCreateEvent)
                             HomeTab.AVISOS -> NativeNoticesScreen(state.snapshot.noticeItems)
                             HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt)
+                            HomeTab.FILHOS -> ChildrenRoute()
+                            HomeTab.FREQUENCIA -> FrequencyRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -309,7 +314,7 @@ private fun AppDrawer(
             HorizontalDivider(color = AxeCloudThemeTokens.Ivory.copy(alpha = .12f))
             Spacer(Modifier.height(12.dp))
             Text("NAVEGAÇÃO", Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = AxeCloudThemeTokens.Ivory.copy(alpha = .55f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            HomeTab.entries.forEach { tab ->
+            HomeTab.entries.filter { it.allowedFor(data.isFilho) }.forEach { tab ->
                 NavigationDrawerItem(
                     label = { Text(drawerLabel(tab, data.isFilho), fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Medium) },
                     selected = selectedTab == tab,
@@ -375,6 +380,8 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.AVISOS -> "Avisos"
     HomeTab.PERFIL -> "Perfil e conta"
     HomeTab.FINANCEIRO -> "Financeiro"
+    HomeTab.FILHOS -> "Filhos de Santo"
+    HomeTab.FREQUENCIA -> "Frequência"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
 }
 
@@ -1139,14 +1146,25 @@ private fun ModuleHero(
 
 internal fun Double.asMoney(): String = "R$ " + String.format(java.util.Locale("pt", "BR"), "%,.2f", this)
 
-private enum class HomeTab(val label: String, val icon: ImageVector, val showInNavigation: Boolean = true) {
+private enum class HomeTab(
+    val label: String,
+    val icon: ImageVector,
+    val showInNavigation: Boolean = true,
+    val leaderOnly: Boolean = false,
+) {
     INICIO("Início", Icons.Outlined.Home),
     ROTINA("Rotina", Icons.Outlined.MenuBook),
     AGENDA("Agenda", Icons.Outlined.CalendarMonth),
     AVISOS("Avisos", Icons.Outlined.Notifications),
     PERFIL("Perfil", Icons.Outlined.Person),
     FINANCEIRO("Financeiro", Icons.Outlined.AccountBalanceWallet, false),
+    FILHOS("Corrente", Icons.Outlined.Groups, false, true),
+    FREQUENCIA("Frequência", Icons.Outlined.Timeline, false, true),
     GESTAO("Gestão", Icons.Outlined.Groups, false),
+
+    ;
+
+    fun allowedFor(isFilho: Boolean): Boolean = !leaderOnly || !isFilho
 }
 
 @Composable

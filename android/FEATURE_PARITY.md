@@ -1,0 +1,49 @@
+# AxéCloud Android — matriz de paridade
+
+Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CONCLUÍDO` depois de funcionar com dados reais, ter tratamento de erro e ser validado em aparelho.
+
+## Zeladoria
+
+| Módulo | Funções do Web que precisam existir no Android | Estado |
+|---|---|---|
+| Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL |
+| Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | EM IMPLEMENTAÇÃO |
+| Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
+| Frequência | chamada, leitura de QR, histórico e indicadores por filho/gira | AUSENTE |
+| Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
+| Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL |
+| Financeiro | resumo, lançamentos, filtros, criar/editar/excluir, relatório e caixinha | PARCIAL |
+| Mensalidades | pendentes/pagas, cobrar, liquidar, estornar, comprovantes e histórico | PARCIAL |
+| Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | AUSENTE |
+| Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL |
+| Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
+| Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL |
+| Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL |
+| Loja | produtos, categorias, cadastro/edição, estoque, pedidos e status | PARCIAL |
+| Preceitos | criar, ativar para corrente/grupos, instruções, ciência, orientação e encerramento | PARCIAL |
+| Configurações | identidade, conta, casa, foto, segurança, plano, WhatsApp legado, portal público e exclusão | PARCIAL |
+
+## Filho de Santo
+
+| Módulo | Funções do Web que precisam existir no Android | Estado |
+|---|---|---|
+| Central | resumo pessoal, pendências, agenda, avisos e atalhos | PARCIAL |
+| Perfil | cadastro civil, trajetória, coroa, quizilas, sacramentos, foto e contato | PARCIAL |
+| Obrigações | preceitos ativos, instruções, ciência e pedido de orientação | PARCIAL |
+| Mensalidade | situação, Pix/QR, copiar, comprovante e histórico | PARCIAL |
+| Giras | agenda, detalhes e confirmação de presença | PARCIAL |
+| Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL |
+| Loja | vitrine, detalhes e pedidos | PARCIAL |
+| Comunicados | mural, categorias, anexos e leitura | PARCIAL |
+| Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL |
+| Notificações | pendências reais, push, deep links, preferências e histórico | AUSENTE |
+
+## Qualidade obrigatória
+
+- Navegação nativa e destinos independentes, sem WebView.
+- Material 3 com identidade visual AxéCloud, componentes reutilizáveis e modo responsivo.
+- Animações funcionais, continuidade entre lista/detalhe, estados vazios demonstrativos e feedback háptico onde fizer sentido.
+- Acessibilidade, teclado, contraste, tamanhos de toque e suporte ao aumento de fonte.
+- Cache e estados offline, carregamento incremental e recuperação de falhas.
+- Testes unitários, instrumentados, auditoria de segurança e validação em aparelho real.
+- APK e AAB assináveis, ícone adaptativo, splash, política de privacidade e checklist da Play Store.

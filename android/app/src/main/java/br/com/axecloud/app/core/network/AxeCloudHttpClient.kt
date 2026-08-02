@@ -57,6 +57,24 @@ class AxeCloudHttpClient @Inject constructor(
                 .build()
         )
 
+    suspend fun put(url: String, body: JsonElement, accessToken: String? = null): JsonElement =
+        execute(
+            Request.Builder()
+                .url(url)
+                .apply { if (!accessToken.isNullOrBlank()) header("Authorization", "Bearer $accessToken") }
+                .put(body.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+        )
+
+    suspend fun delete(url: String, accessToken: String? = null): JsonElement =
+        execute(
+            Request.Builder()
+                .url(url)
+                .apply { if (!accessToken.isNullOrBlank()) header("Authorization", "Bearer $accessToken") }
+                .delete()
+                .build()
+        )
+
     private suspend fun execute(request: Request): JsonElement = withContext(Dispatchers.IO) {
         client.newCall(request).execute().use { response ->
             val raw = response.body?.string().orEmpty()

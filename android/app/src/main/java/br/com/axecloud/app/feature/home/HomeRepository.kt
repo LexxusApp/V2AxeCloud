@@ -201,18 +201,10 @@ class HomeRepository @Inject constructor(
         val url = response.text("publicUrl", "url")
         check(url.isNotBlank()) { "O servidor não retornou a nova foto." }
         if (!session.isFilho) {
-            http.post(
-                api("/api/v1/settings/save"),
+            http.patch(
+                api("/api/v1/profile/photo"),
                 buildJsonObject {
-                    put("userId", session.userId)
-                    put("tenantId", session.tenantId)
-                    put("profile", buildJsonObject {
-                        put("zelador", session.email.substringBefore('@'))
-                        put("nome_terreiro", session.houseName)
-                        put("cargo", session.role)
-                        put("foto_url", url)
-                        put("email", session.email)
-                    })
+                    put("photoUrl", url)
                 },
                 session.accessToken,
             )

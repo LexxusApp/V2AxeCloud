@@ -3274,6 +3274,42 @@ async function startServer() {
   });
 
   // API Route: Save User Settings (Bypasses RLS — somente zelador)
+  // Atualiza somente a foto da liderança. Mantida separada de settings/save para
+  // que um upload do aplicativo não substitua nome, cargo ou identidade da casa.
+  app.patch("/api/v1/profile/photo", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const filhoSelf = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
+      if (filhoSelf) return res.status(403).json({ error: "Acesso negado" });
+
+      const photoUrl = String(req.body?.photoUrl || "").trim();
+      let parsed: URL;
+      try {
+        parsed = new URL(photoUrl);
+      } catch {
+        return res.status(400).json({ error: "URL da foto inválida." });
+      }
+      if (parsed.protocol !== "https:") {
+        return res.status(400).json({ error: "A foto precisa usar uma URL segura." });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("perfil_lider")
+        .update({ foto_url: photoUrl, updated_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .select("foto_url")
+        .single();
+      if (error) throw error;
+
+      res.json({ success: true, photoUrl: data?.foto_url || photoUrl });
+    } catch (error: unknown) {
+      console.error("[SERVER] Erro ao salvar foto do perfil:", error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao salvar foto") });
+    }
+  });
+
   app.post("/api/v1/settings/save", async (req, res) => {
     const { userId, tenantId, profile } = req.body;
 
