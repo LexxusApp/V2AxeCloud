@@ -111,6 +111,7 @@ import br.com.axecloud.app.feature.care.CareRoute
 import br.com.axecloud.app.feature.store.StoreRoute
 import br.com.axecloud.app.feature.settings.SettingsRoute
 import br.com.axecloud.app.feature.foundations.FoundationRoute
+import br.com.axecloud.app.feature.childprofile.ChildProfileRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
@@ -276,7 +277,7 @@ private fun HomeScreen(
                                 onAddInventory = onAddInventory,
                                 onAddProduct = onAddProduct,
                             )
-                            HomeTab.PERFIL -> NativeProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
+                            HomeTab.PERFIL -> if (state.snapshot.isFilho) ChildProfileRoute() else NativeProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
                         }
                     }
                 }

@@ -87,6 +87,43 @@ type Deps = {
 export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
   const { supabaseAdmin } = deps;
 
+  app.get("/api/v1/filho/profile", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    try {
+      const ref = await loadFilhoRecordForUser(supabaseAdmin, user);
+      if (!ref?.id) return res.status(404).json({ error: "Perfil de filho de santo não encontrado." });
+      const { data, error } = await supabaseAdmin.from("filhos_de_santo").select("*").eq("id", ref.id).maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Perfil não encontrado." });
+      const { notas_sigilosas: _privateNotes, ...safeProfile } = data as Record<string, unknown>;
+      res.json({ data: safeProfile });
+    } catch (error) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar perfil.") });
+    }
+  });
+
+  app.patch("/api/v1/filho/profile", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    try {
+      const ref = await loadFilhoRecordForUser(supabaseAdmin, user);
+      if (!ref?.id) return res.status(404).json({ error: "Perfil de filho de santo não encontrado." });
+      const body = req.body || {};
+      const update: Record<string, unknown> = {};
+      for (const key of ["telefone", "whatsapp", "endereco"] as const) {
+        if (body[key] !== undefined) update[key] = String(body[key] || "").trim().slice(0, key === "endereco" ? 500 : 30) || null;
+      }
+      if (!Object.keys(update).length) return res.status(400).json({ error: "Nada para atualizar." });
+      const { data, error } = await supabaseAdmin.from("filhos_de_santo").update(update).eq("id", ref.id).select("*").single();
+      if (error) throw error;
+      const { notas_sigilosas: _privateNotes, ...safeProfile } = data as Record<string, unknown>;
+      res.json({ data: safeProfile });
+    } catch (error) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar perfil.") });
+    }
+  });
+
   app.get("/api/v1/filho/home", async (req: Request, res: Response) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;

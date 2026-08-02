@@ -28,7 +28,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Módulo | Funções do Web que precisam existir no Android | Estado |
 |---|---|---|
 | Central | resumo pessoal, pendências, agenda, avisos e atalhos | PARCIAL |
-| Perfil | cadastro civil, trajetória, coroa, quizilas, sacramentos, foto e contato | PARCIAL |
+| Perfil | cadastro civil, trajetória, coroa, quizilas, sacramentos, foto e contato | PARCIAL — identidade nativa, coroa, adjunto, cadastro civil, contato editável, trajetória e quizilas ligados ao perfil real; sacramentos e histórico estruturado pendentes |
 | Obrigações | preceitos ativos, instruções, ciência e pedido de orientação | PARCIAL |
 | Mensalidade | situação, Pix/QR, copiar, comprovante e histórico | PARCIAL |
 | Giras | agenda, detalhes e confirmação de presença | PARCIAL |
