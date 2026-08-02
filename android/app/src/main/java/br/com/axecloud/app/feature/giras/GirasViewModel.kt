@@ -21,6 +21,20 @@ class GirasViewModel @Inject constructor(private val repository: GirasRepository
     }
     fun filter(value: GiraFilter) = mutableState.update { it.copy(filter = value) }
     fun select(value: GiraEvent?) = mutableState.update { it.copy(selected = value) }
+    fun openOperations(event: GiraEvent) = viewModelScope.launch {
+        mutableState.update { it.copy(selected = null, operationsEvent = event, operations = null, loadingOperations = true, error = null) }
+        runCatching { repository.loadOperations(event.id) }
+            .onSuccess { data -> mutableState.update { it.copy(loadingOperations = false, operations = data) } }
+            .onFailure { e -> mutableState.update { it.copy(loadingOperations = false, error = e.message) } }
+    }
+    fun closeOperations() = mutableState.update { it.copy(operationsEvent = null, operations = null, error = null) }
+    fun approve(participant: GiraParticipant) = viewModelScope.launch {
+        val event = state.value.operationsEvent ?: return@launch
+        mutableState.update { it.copy(actionId = participant.id, error = null) }
+        runCatching { repository.approve(event.id, participant.id); repository.loadOperations(event.id) }
+            .onSuccess { data -> mutableState.update { it.copy(actionId = null, operations = data, message = "Participação aprovada.") } }
+            .onFailure { e -> mutableState.update { it.copy(actionId = null, error = e.message) } }
+    }
     fun create() = mutableState.update { it.copy(creating = true, editing = null) }
     fun edit(value: GiraEvent) = mutableState.update { it.copy(editing = value, creating = false, selected = null) }
     fun closeEditor() = mutableState.update { it.copy(creating = false, editing = null) }

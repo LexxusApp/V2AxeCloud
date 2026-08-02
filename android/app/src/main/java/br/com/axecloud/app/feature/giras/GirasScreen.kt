@@ -117,8 +117,13 @@ private fun GirasScreen(state: GirasUiState, snackbar: SnackbarHostState, viewMo
         }
     }
     state.selected?.let { event ->
-        GiraDetailSheet(event, state.isFilho, state.actionId == event.id, { viewModel.select(null) }, { viewModel.edit(event) }, { deleteCandidate = event }, { viewModel.respond(event, it) }, { viewModel.notify(event) })
+        GiraDetailSheet(event, state.isFilho, state.actionId == event.id, { viewModel.select(null) }, { viewModel.edit(event) }, { deleteCandidate = event }, { viewModel.respond(event, it) }, { viewModel.notify(event) }, { viewModel.openOperations(event) })
     }
+    state.operationsEvent?.let { event -> GiraOperationsSheet(
+        event = event, operations = state.operations, loading = state.loadingOperations,
+        actionId = state.actionId, error = state.error, onDismiss = viewModel::closeOperations,
+        onApprove = viewModel::approve,
+    ) }
     if (state.creating || state.editing != null) GiraEditorSheet(state.editing, state.actionId == "save", state.error, viewModel::closeEditor, viewModel::save)
     deleteCandidate?.let { event -> AlertDialog(
         onDismissRequest = { deleteCandidate = null }, icon = { Icon(Icons.Outlined.WarningAmber, null, tint = MaterialTheme.colorScheme.error) },
@@ -178,7 +183,7 @@ private fun ParticipationPill(status: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GiraDetailSheet(event: GiraEvent, isFilho: Boolean, busy: Boolean, dismiss: () -> Unit, edit: () -> Unit, delete: () -> Unit, respond: (Boolean) -> Unit, notify: () -> Unit) {
+private fun GiraDetailSheet(event: GiraEvent, isFilho: Boolean, busy: Boolean, dismiss: () -> Unit, edit: () -> Unit, delete: () -> Unit, respond: (Boolean) -> Unit, notify: () -> Unit, operations: () -> Unit) {
     ModalBottomSheet(onDismissRequest = dismiss, containerColor = AxeCloudThemeTokens.Canvas) {
         Column(Modifier.navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 24.dp)) {
             if (event.bannerUrl.isNotBlank()) AsyncImage(event.bannerUrl, event.title, Modifier.fillMaxWidth().height(150.dp).background(AxeCloudThemeTokens.Forest, RoundedCornerShape(20.dp)), contentScale = ContentScale.Crop)
@@ -196,6 +201,10 @@ private fun GiraDetailSheet(event: GiraEvent, isFilho: Boolean, busy: Boolean, d
                     Button(onClick = { respond(true) }, Modifier.weight(1f), enabled = !busy, colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest)) { Icon(Icons.Outlined.Check, null); Spacer(Modifier.width(5.dp)); Text("Confirmar") }
                 }
             } else {
+                Button(operations, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Gold, contentColor = AxeCloudThemeTokens.ForestDeep)) {
+                    Icon(Icons.Outlined.Groups, null); Spacer(Modifier.width(6.dp)); Text("Abrir central da gira", fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(9.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                     OutlinedButton(delete, Modifier.weight(1f)) { Icon(Icons.Outlined.DeleteOutline, null); Spacer(Modifier.width(5.dp)); Text("Excluir") }
                     OutlinedButton(notify, Modifier.weight(1f), enabled = !busy) { Icon(Icons.Outlined.NotificationsActive, null); Spacer(Modifier.width(5.dp)); Text("Lembrar") }

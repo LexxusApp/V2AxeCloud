@@ -86,6 +86,32 @@ class GirasRepository @Inject constructor(private val http: AxeCloudHttpClient, 
         }, session.accessToken)
     }
 
+    suspend fun loadOperations(eventId: String): GiraOperations {
+        val session = session(); check(!session.isFilho) { "Acesso negado." }
+        val root = http.get(api("/api/v1/events/${encode(eventId)}/participantes?tenantId=${encode(session.tenantId)}"), session.accessToken).asObject()
+        val stats = root.obj("stats")
+        return GiraOperations(
+            participants = root.array("data").map { element ->
+                val row = element.asObject(); val child = row.obj("filhos_de_santo")
+                GiraParticipant(
+                    id = row.text("id"), childId = row.text("filho_id"),
+                    name = child.text("nome").ifBlank { "Filho de Santo" }, role = child.text("cargo"),
+                    photoUrl = child.text("foto_url"), status = row.text("status").ifBlank { "pendente" },
+                    justification = row.text("justificativa"),
+                )
+            },
+            total = stats.int("total"), confirmed = stats.int("confirmados"), present = stats.int("presentes"),
+            remaining = stats.intOrNull("vagas_restantes"), checkinUrl = root.text("checkinUrl"), publicUrl = root.text("eventoPublicUrl"),
+        )
+    }
+
+    suspend fun approve(eventId: String, participantId: String) {
+        val session = session(); check(!session.isFilho) { "Acesso negado." }
+        http.post(api("/api/v1/events/${encode(eventId)}/participantes/${encode(participantId)}/approve"), buildJsonObject {
+            put("tenantId", session.tenantId)
+        }, session.accessToken)
+    }
+
     suspend fun notify(id: String, title: String, date: String, time: String) {
         val session = session(); check(!session.isFilho) { "Acesso negado." }
         http.post(api("/api/push-broadcast"), buildJsonObject {
@@ -102,7 +128,9 @@ class GirasRepository @Inject constructor(private val http: AxeCloudHttpClient, 
 
 private fun JsonElement?.asObject() = this as? JsonObject ?: JsonObject(emptyMap())
 private fun JsonObject.array(vararg keys: String) = keys.firstNotNullOfOrNull { this[it] as? JsonArray } ?: JsonArray(emptyList())
+private fun JsonObject.obj(key: String) = this[key].asObject()
 private fun JsonObject.text(vararg keys: String) = keys.firstNotNullOfOrNull { runCatching { this[it]?.jsonPrimitive?.content }.getOrNull()?.takeIf(String::isNotBlank) }.orEmpty()
 private fun JsonObject.bool(key: String) = runCatching { this[key]?.jsonPrimitive?.content?.toBooleanStrictOrNull() }.getOrNull() ?: false
 private fun JsonObject.intOrNull(key: String) = runCatching { this[key]?.jsonPrimitive?.content?.toInt() }.getOrNull()
+private fun JsonObject.int(key: String) = intOrNull(key) ?: 0
 private fun String.asBrDate() = takeIf { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }?.let { "${it.takeLast(2)}/${it.substring(5, 7)}/${it.take(4)}" } ?: this

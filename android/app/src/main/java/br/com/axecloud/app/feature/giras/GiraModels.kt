@@ -17,6 +17,26 @@ data class GiraEvent(
     val confirmedCount: Int = 0,
 )
 
+data class GiraParticipant(
+    val id: String,
+    val childId: String,
+    val name: String,
+    val role: String,
+    val photoUrl: String,
+    val status: String,
+    val justification: String,
+)
+
+data class GiraOperations(
+    val participants: List<GiraParticipant> = emptyList(),
+    val total: Int = 0,
+    val confirmed: Int = 0,
+    val present: Int = 0,
+    val remaining: Int? = null,
+    val checkinUrl: String = "",
+    val publicUrl: String = "",
+)
+
 data class GiraForm(
     val title: String = "",
     val date: String = "",
@@ -51,6 +71,9 @@ data class GirasUiState(
     val selected: GiraEvent? = null,
     val editing: GiraEvent? = null,
     val creating: Boolean = false,
+    val operationsEvent: GiraEvent? = null,
+    val operations: GiraOperations? = null,
+    val loadingOperations: Boolean = false,
     val error: String? = null,
     val message: String? = null,
 ) {
