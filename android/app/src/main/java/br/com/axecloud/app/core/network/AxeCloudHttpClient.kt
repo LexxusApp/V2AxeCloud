@@ -66,6 +66,19 @@ class AxeCloudHttpClient @Inject constructor(
                 .build()
         )
 
+    suspend fun putBytes(
+        url: String,
+        bytes: ByteArray,
+        contentType: String,
+        headers: Map<String, String> = emptyMap(),
+    ): JsonElement = execute(
+        Request.Builder()
+            .url(url)
+            .apply { headers.forEach { (key, value) -> header(key, value) } }
+            .put(bytes.toRequestBody(contentType.toMediaType()))
+            .build()
+    )
+
     suspend fun delete(url: String, accessToken: String? = null): JsonElement =
         execute(
             Request.Builder()

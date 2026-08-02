@@ -1,0 +1,3 @@
+package br.com.axecloud.app.feature.library
+data class LibraryMaterial(val id:String,val title:String,val category:String,val url:String,val storagePath:String,val createdAt:String)
+data class LibraryUiState(val loading:Boolean=true,val uploading:Boolean=false,val materials:List<LibraryMaterial> = emptyList(),val isFilho:Boolean=false,val query:String="",val category:String="Todos",val uploadOpen:Boolean=false,val actionId:String?=null,val error:String?=null,val message:String?=null){val visible get()=materials.filter{(category=="Todos"||it.category==category)&&(query.isBlank()||it.title.contains(query,true))};val categories get()=listOf("Todos")+materials.map{it.category}.filter(String::isNotBlank).distinct()}

@@ -1,0 +1,8 @@
+package br.com.axecloud.app.feature.library
+import android.net.Uri
+import androidx.lifecycle.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+@HiltViewModel class LibraryViewModel @Inject constructor(private val repo:LibraryRepository):ViewModel(){private val mutable=MutableStateFlow(LibraryUiState());val state=mutable.asStateFlow();init{load()};fun load()=viewModelScope.launch{mutable.update{it.copy(loading=true,error=null)};runCatching{repo.load()}.onSuccess{(f,d)->mutable.update{it.copy(loading=false,isFilho=f,materials=d)}}.onFailure{e->mutable.update{it.copy(loading=false,error=e.message)}}};fun query(v:String)=mutable.update{it.copy(query=v)};fun category(v:String)=mutable.update{it.copy(category=v)};fun openUpload()=mutable.update{it.copy(uploadOpen=true)};fun closeUpload()=mutable.update{it.copy(uploadOpen=false,error=null)};fun consume()=mutable.update{it.copy(message=null)};fun upload(uri:Uri,title:String,category:String)=viewModelScope.launch{mutable.update{it.copy(uploading=true,error=null)};runCatching{repo.upload(uri,title,category);repo.load()}.onSuccess{(f,d)->mutable.update{it.copy(uploading=false,uploadOpen=false,isFilho=f,materials=d,message="Material publicado.")}}.onFailure{e->mutable.update{it.copy(uploading=false,error=e.message)}}};fun delete(m:LibraryMaterial)=viewModelScope.launch{mutable.update{it.copy(actionId=m.id,error=null)};runCatching{repo.delete(m.id)}.onSuccess{mutable.update{it.copy(actionId=null,materials=it.materials.filterNot{r->r.id==m.id},message="Material excluído.")}}.onFailure{e->mutable.update{it.copy(actionId=null,error=e.message)}}}}
