@@ -25,9 +25,6 @@ import {
 } from "./metaCloudSend.js";
 import { waitTenantSendSlot } from "./whatsappTenantPacer.js";
 import {
-  buildCredentialsFollowUpText,
-  buildCredenciaisAcessoComponents,
-  buildCredentialsPackedInAvisoGeralComponents,
   buildMetaTemplateComponentsForTipo,
   buildSignedWhatsAppBody,
   buildTransmissaoFollowUpText,
@@ -36,7 +33,6 @@ import {
   isAvisoGiraTemplate,
   isConviteEventoTemplate,
   isCredentialsAccessTemplate,
-  resolveCredenciaisTemplateName,
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
   resolveTransmissaoFollowUpDelayMs,
@@ -487,80 +483,8 @@ async function sendCredentialsFollowUpMessage(
 }
 
 /**
- * 2ª mensagem de dados_acesso: template Meta (obrigatório fora da janela do cliente).
- * Preferência: credenciais_acesso_axecloud → senão empacota em aviso_geral_axecloud → por último texto livre.
- */
-async function sendCredentialsFollowUpReliable(
-  phone: string,
-  tipo: string,
-  nomeMembro: string,
-  variables: Record<string, string | number>,
-  opts?: {
-    tenantId?: string;
-    filhoId?: string | null;
-    sb?: SupabaseClient;
-  }
-): Promise<{ messageId?: string }> {
-  const followUpText = buildCredentialsFollowUpText(variables);
-  if (!followUpText.trim()) {
-    throw httpError("Registro/senha do filho não encontrados para envio de credenciais.", 400);
-  }
-
-  const language = resolveMetaTemplateLanguage();
-  const dedicatedName = resolveCredenciaisTemplateName();
-  const packedName = String(process.env.WA_META_TEMPLATE_DEFAULT || "aviso_geral_axecloud").trim();
-
-  if (isMetaCloudDirectConfigured()) {
-    try {
-      const out = await sendMetaCloudTemplate(
-        phone,
-        dedicatedName,
-        language,
-        buildCredenciaisAcessoComponents(variables)
-      );
-      console.log(`[WHATSAPP] credenciais template Meta (${dedicatedName}) → ${phone.slice(0, 4)}…`);
-      return out;
-    } catch (err) {
-      console.warn(
-        `[WHATSAPP] template ${dedicatedName} indisponível, empacotando em ${packedName}:`,
-        err instanceof Error ? err.message : err
-      );
-    }
-
-    try {
-      const out = await sendMetaCloudTemplate(
-        phone,
-        packedName,
-        language,
-        buildCredentialsPackedInAvisoGeralComponents(nomeMembro, variables)
-      );
-      console.log(`[WHATSAPP] credenciais template Meta (${packedName} pack) → ${phone.slice(0, 4)}…`);
-      return out;
-    } catch (err) {
-      console.warn(
-        `[WHATSAPP] pack ${packedName} falhou, tentando texto livre:`,
-        err instanceof Error ? err.message : err
-      );
-    }
-
-    // Último recurso — só entrega se o destinatário já tiver janela de 24h aberta.
-    return sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
-      ...opts,
-      nomeMembro,
-    });
-  }
-
-  return sendCredentialsFollowUpMessage(phone, followUpText, tipo, {
-    ...opts,
-    nomeMembro,
-  });
-}
-
-/**
- * Enviar acesso / dados_acesso: UMA mensagem com registro + senha.
- * Antes eram 2 (conta_ativa + credenciais); a de boas-vindas era redundante no
- * "Enviar acesso" e confundia o membro. Senha vai empacotada no aviso_geral
- * (template dedicado de credenciais a Meta rejeita como Utility).
+ * Enviar acesso / dados_acesso: UMA mensagem — conta_ativa_axecloud
+ * (registro + botão "Acessar o portal"). Sem a 2ª mensagem de senha.
  */
 async function sendCredentialsAccessPair(
   phone: string,
@@ -575,20 +499,14 @@ async function sendCredentialsAccessPair(
     fallbackText?: string;
   }
 ): Promise<{ messageId?: string; templateMessageId?: string; followUpMessageId?: string }> {
-  void nomeTerreiro;
-  const followUpText = buildCredentialsFollowUpText(variables);
-  if (!followUpText.trim()) {
-    throw httpError("Registro/senha do filho não encontrados para envio de credenciais.", 400);
-  }
-
   try {
-    const out = await sendCredentialsFollowUpReliable(phone, tipo, nomeMembro, variables, opts);
-    return { messageId: out.messageId, followUpMessageId: out.messageId };
+    const out = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
+    return { messageId: out.messageId, templateMessageId: out.messageId };
   } catch (err) {
     const fallback = String(opts?.fallbackText || "").trim();
     if (!fallback) throw err;
     console.error(
-      `[WHATSAPP] credenciais template falhou (${tipo}), fallback texto único:`,
+      `[WHATSAPP] template conta_ativa falhou (${tipo}), fallback texto único:`,
       err instanceof Error ? err.message : err
     );
     const out = await sendWhatsAppTextMessage(phone, fallback, {
@@ -732,17 +650,15 @@ export async function logAndSendWhatsApp(
     : buildWhatsAppAuditMessage(tipo, input.variables, input.nomeMembro, input.nomeTerreiro) || textToSend;
 
   const followUpPreview = useCredentialsTwoStep
-    ? buildCredentialsFollowUpText(variables)
+    ? ""
     : useTransmissaoTwoStep
       ? buildTransmissaoFollowUpText(input.nomeTerreiro, variables, zelador)
       : "";
-  const followUpLabel = useCredentialsTwoStep ? "credenciais" : "comunicado";
-  // dados_acesso: 1 mensagem (registro+senha). Transmissão two-step: 2 (se ligado).
-  const quotaText = useCredentialsTwoStep
-    ? followUpPreview || auditBase
-    : useTransmissaoTwoStep
-      ? `${auditBase}\n\n--- ${followUpLabel} (texto livre) ---\n${followUpPreview}`
-      : textToSend;
+  const followUpLabel = "comunicado";
+  // dados_acesso: 1 mensagem (conta_ativa + link portal). Transmissão two-step: 2 (se ligado).
+  const quotaText = useTransmissaoTwoStep
+    ? `${auditBase}\n\n--- ${followUpLabel} (texto livre) ---\n${followUpPreview}`
+    : textToSend;
 
   const { fingerprint } = await assertWhatsAppOutboundAllowed(sb, {
     tenantId,
@@ -797,11 +713,9 @@ export async function logAndSendWhatsApp(
   }
 
   const messageId = sent.messageId;
-  let auditMessage = useCredentialsTwoStep
-    ? followUpPreview || auditBase
-    : useTransmissaoTwoStep
-      ? `${auditBase}\n\n--- ${followUpLabel} ---\n${followUpPreview}`
-      : auditBase;
+  let auditMessage = useTransmissaoTwoStep
+    ? `${auditBase}\n\n--- ${followUpLabel} ---\n${followUpPreview}`
+    : auditBase;
   if (fingerprint) {
     auditMessage = appendFingerprintMarker(auditMessage, fingerprint);
   }

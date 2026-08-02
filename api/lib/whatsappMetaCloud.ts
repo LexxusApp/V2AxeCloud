@@ -167,8 +167,8 @@ export function isContaAtivaTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo) === CONTA_ATIVA_TEMPLATE;
 }
 
-/** Enviar acesso: uma mensagem (registro + senha). Mantém o nome histórico
- * "two-step" só para o gate do tipo dados_acesso. */
+/** Enviar acesso: uma mensagem (conta_ativa + link do portal). Mantém o nome
+ * histórico "two-step" só para o gate do tipo dados_acesso. */
 export function usesCredentialsTwoStepFlow(tipo: string): boolean {
   return isCredentialsAccessTemplate(tipo) && isContaAtivaTemplate(tipo);
 }
