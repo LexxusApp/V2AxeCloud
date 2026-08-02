@@ -19,7 +19,7 @@ import {
   whatsappRailwayJsonBody,
 } from '../../lib/whatsappApiUrl';
 
-type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'transmissao' | 'broadcast' | 'teste';
+type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'transmissao' | 'broadcast' | 'acesso' | 'teste';
 
 type WaLogUi = {
   id: string;
@@ -51,9 +51,20 @@ const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
   financeiro: 'bg-blue-950/40 text-blue-400 border-blue-600/10',
   reza: 'bg-rose-950/40 text-rose-400 border-rose-600/10',
+  acesso: 'bg-sky-950/40 text-sky-300 border-sky-600/10',
   teste: 'bg-amber-950/40 text-[#FACC15] border-amber-600/10',
   broadcast: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
   transmissao: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
+};
+
+const BADGE_LABELS: Record<WaLogTipo, string> = {
+  gira: 'gira',
+  financeiro: 'financeiro',
+  reza: 'reza',
+  acesso: 'acesso',
+  teste: 'teste',
+  broadcast: 'broadcast',
+  transmissao: 'transmissão',
 };
 
 function mapLogTipo(raw: string | null | undefined): WaLogTipo {
@@ -61,8 +72,20 @@ function mapLogTipo(raw: string | null | undefined): WaLogTipo {
   if (t.includes('gira') || t.includes('convite') || t.includes('evento')) return 'gira';
   if (t.includes('financ') || t.includes('mensal') || t.includes('cobran')) return 'financeiro';
   if (t.includes('reza') || t.includes('altar') || t.includes('vela')) return 'reza';
+  if (
+    t.includes('acesso') ||
+    t.includes('credencial') ||
+    t.includes('conta_ativa') ||
+    t.includes('senha') ||
+    t.includes('forgot') ||
+    t.includes('recuperar')
+  ) {
+    return 'acesso';
+  }
   if (t === 'broadcast') return 'broadcast';
-  if (t === 'transmissao_aviso' || t === 'mural_aviso') return 'transmissao';
+  if (t === 'transmissao_aviso' || t === 'mural_aviso' || t.includes('mural') || t.includes('portal')) {
+    return 'transmissao';
+  }
   if (t === 'teste') return 'teste';
   return 'teste';
 }
@@ -596,7 +619,7 @@ export function SettingsWhatsAppPanel() {
                         <span
                           className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${BADGE_COLORS[log.tipo]}`}
                         >
-                          {log.tipo}
+                          {BADGE_LABELS[log.tipo]}
                         </span>
                       </div>
                       <span className="shrink-0 font-mono text-[8px] text-gray-500">{log.data}</span>

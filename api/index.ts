@@ -4982,7 +4982,7 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
       const requestedLimit = Number(req.query?.limit ?? 12);
-      const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 20) : 12;
+      const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 50) : 12;
       const { data, error } = await supabaseAdmin
         .from("whatsapp_logs")
         .select("id, telefone, mensagem, tipo, status, created_at")
