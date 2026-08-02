@@ -956,14 +956,14 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   ? {
                       label: 'Mensalidades aguardando revisão',
                       detail: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} · ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue)}`,
-                      tab: 'financial',
-                      status: 'Financeiro',
+                      tab: 'financial-mensalidades',
+                      status: 'Mensalidades',
                       tone: 'gold',
                     }
                   : {
                       label: 'Mensalidades em ordem',
                       detail: 'Nenhuma cobrança pendente neste momento',
-                      tab: 'financial',
+                      tab: 'financial-mensalidades',
                       status: 'Tudo certo',
                       tone: 'green',
                     },
@@ -1201,7 +1201,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <div className="space-y-2">
             {[
               pendingMensalidades > 0
-                ? { label: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} pendente${pendingMensalidades === 1 ? '' : 's'}`, detail: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue), tab: 'financial', color: 'text-amber-300' }
+                ? { label: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} pendente${pendingMensalidades === 1 ? '' : 's'}`, detail: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue), tab: 'financial-mensalidades', color: 'text-amber-300' }
                 : null,
               pendingRezas > 0
                 ? { label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`, detail: 'aguardando acolhimento', tab: 'atendimentos', color: 'text-rose-300' }
