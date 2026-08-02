@@ -43,6 +43,9 @@ function assertFile(file) {
 function digest(file) {
   return createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 12);
 }
+function digestContent(content) {
+  return createHash('sha256').update(content).digest('hex').slice(0, 12);
+}
 function outputName(source) {
   const ext = path.extname(source);
   const base = path.basename(source, ext).replace(/\.min$/i, '');
@@ -73,6 +76,17 @@ for (const [publicPath, source] of assets) {
   urls.set(publicPath, `/m-assets/cinematic/${name}`);
 }
 
+const homeStylesContent = Buffer.concat([
+  fs.readFileSync(assets.get('/styles.css')),
+  Buffer.from('\n'),
+  fs.readFileSync(assets.get('/styles-claro.css')),
+  Buffer.from('\n'),
+  fs.readFileSync(assets.get('/shared-footer.css')),
+]);
+const homeStylesName = `home-${digestContent(homeStylesContent)}.css`;
+fs.writeFileSync(path.join(ASSET_OUT, homeStylesName), homeStylesContent);
+const homeStylesUrl = `/m-assets/cinematic/${homeStylesName}`;
+
 const leafletImages = path.join(ROOT, 'node_modules', 'leaflet', 'dist', 'images');
 const leafletImageOut = path.join(ASSET_OUT, 'images');
 fs.mkdirSync(leafletImageOut, { recursive: true });
@@ -90,6 +104,15 @@ for (const [sourceName, outputRelative] of pages) {
   for (const [from, to] of [...urls.entries()].sort((a, b) => b[0].length - a[0].length)) {
     html = html.replaceAll(`"${from}"`, `"${to}"`).replaceAll(`'${from}'`, `'${to}'`);
   }
+  if (sourceName === 'index.html') {
+    html = html
+      .replace(
+        `<link rel="stylesheet" href="${urls.get('/styles.css')}" />`,
+        `<link rel="stylesheet" href="${homeStylesUrl}" />`,
+      )
+      .replace(`  <link rel="stylesheet" href="${urls.get('/styles-claro.css')}" />\n`, '')
+      .replace(`  <link rel="stylesheet" href="${urls.get('/shared-footer.css')}" />\n`, '');
+  }
   html = html.replace(/\s*<link rel="manifest" href="\/site\.webmanifest" \/>/, '');
   html = html.replace(/(<body\b[^>]*>)/i, `$1\n  <script defer src="${bridgeUrl}"></script>`);
   html = html.replace('</head>', `  <meta name="axecloud-marketing-build" content="cinematic-production" />\n</head>`);
@@ -103,4 +126,4 @@ for (const [sourceName, outputRelative] of pages) {
   fs.writeFileSync(destination, html, 'utf8');
 }
 
-console.log(`[cinematic] ${pages.size} páginas instaladas com ${assets.size} assets versionados.`);
+console.log(`[cinematic] ${pages.size} páginas instaladas com ${assets.size + 1} assets versionados.`);
