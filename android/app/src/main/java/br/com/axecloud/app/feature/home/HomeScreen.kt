@@ -93,6 +93,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
+import br.com.axecloud.app.feature.giras.GirasRoute
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -225,7 +226,7 @@ private fun HomeScreen(
                                 onGuidance = onGuidance,
                                 onOpenConversation = onOpenConversation,
                             )
-                            HomeTab.AGENDA -> NativeAgendaScreen(state.snapshot, interaction, onCreateEvent)
+                            HomeTab.AGENDA -> GirasRoute()
                             HomeTab.AVISOS -> NativeNoticesScreen(state.snapshot.noticeItems)
                             HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt)
                             HomeTab.FILHOS -> ChildrenRoute()
