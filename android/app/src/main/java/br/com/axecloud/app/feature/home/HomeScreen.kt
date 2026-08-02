@@ -2,6 +2,7 @@ package br.com.axecloud.app.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +62,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -72,6 +77,8 @@ import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
+import coil.compose.AsyncImage
+import android.net.Uri
 
 @Composable
 fun HomeRoute(
@@ -93,6 +100,10 @@ fun HomeRoute(
         onSettleMonthly = viewModel::settleMonthlyPayment,
         onCreateEvent = viewModel::createEvent,
         onPrayerStatus = viewModel::updatePrayerStatus,
+        onCreateAlbum = viewModel::createAlbum,
+        onAddInventory = viewModel::addInventoryItem,
+        onAddProduct = viewModel::addStoreProduct,
+        onUploadProfilePhoto = viewModel::uploadProfilePhoto,
     )
 }
 
@@ -110,6 +121,10 @@ private fun HomeScreen(
     onSettleMonthly: (HomeFeedItem) -> Unit,
     onCreateEvent: (String, String, String, String, String) -> Unit,
     onPrayerStatus: (HomeFeedItem, String) -> Unit,
+    onCreateAlbum: (String, String) -> Unit,
+    onAddInventory: (String, String, String, String) -> Unit,
+    onAddProduct: (String, String, String, String) -> Unit,
+    onUploadProfilePhoto: (Uri) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
     Scaffold(
@@ -152,8 +167,16 @@ private fun HomeScreen(
             selectedTab == HomeTab.AGENDA -> AgendaScreen(state.snapshot, interaction, onCreateEvent)
             selectedTab == HomeTab.AVISOS -> FeedScreen("Mural da casa", "Comunicados oficiais em um só lugar.", state.snapshot.noticeItems, Icons.Outlined.Notifications)
             selectedTab == HomeTab.FINANCEIRO -> FinanceScreen(state.snapshot, interaction, onSettleMonthly) { selectedTab = HomeTab.INICIO }
-            selectedTab == HomeTab.GESTAO -> ManagementScreen(state.snapshot, interaction, onPrayerStatus) { selectedTab = HomeTab.INICIO }
-            else -> ProfileScreen(state.snapshot, onLogout)
+            selectedTab == HomeTab.GESTAO -> ManagementScreen(
+                data = state.snapshot,
+                interaction = interaction,
+                onPrayerStatus = onPrayerStatus,
+                onCreateAlbum = onCreateAlbum,
+                onAddInventory = onAddInventory,
+                onAddProduct = onAddProduct,
+                onBack = { selectedTab = HomeTab.INICIO },
+            )
+            else -> ProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
         }
     }
     }
@@ -276,10 +299,14 @@ private fun QuickAccess(title: String, subtitle: String, icon: ImageVector, modi
 private fun FeedScreen(title: String, subtitle: String, items: List<HomeFeedItem>, icon: ImageVector) {
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Text("AXÉCLOUD · SUA CASA", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(title, color = AxeCloudThemeTokens.ForestDeep, fontSize = 30.sp, fontWeight = FontWeight.Black)
-            Text(subtitle, color = AxeCloudThemeTokens.Muted, fontSize = 13.sp)
-            Spacer(Modifier.height(10.dp))
+            ModuleHero(
+                eyebrow = "A VOZ OFICIAL DA CASA",
+                title = "Recados que mantêm a corrente próxima.",
+                subtitle = subtitle,
+                icon = icon,
+                background = Color(0xFF33251D),
+                accent = Color(0xFFFFB36B),
+            )
         }
         if (items.isEmpty()) {
             item {
@@ -322,14 +349,15 @@ private fun AgendaScreen(
     var description by rememberSaveable { mutableStateOf("") }
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
-                    Text("AGENDA RITUAL", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text("Movimentos da casa", color = AxeCloudThemeTokens.ForestDeep, fontSize = 29.sp, fontWeight = FontWeight.Black)
-                    Text("Giras, festas e compromissos da corrente.", color = AxeCloudThemeTokens.Muted, fontSize = 12.sp)
-                }
-                if (!data.isFilho) Button(onClick = { formOpen = !formOpen }, colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest)) { Text(if (formOpen) "Fechar" else "+ Nova") }
-            }
+            ModuleHero(
+                eyebrow = "CENTRAL DE OPERAÇÃO RITUAL",
+                title = "O tempo da casa também é fundamento.",
+                subtitle = "Giras, festas e compromissos organizados sem perder o sentido.",
+                icon = Icons.Outlined.CalendarMonth,
+                background = Color(0xFF18241D),
+                accent = AxeCloudThemeTokens.Gold,
+            )
+            if (!data.isFilho) Button(onClick = { formOpen = !formOpen }, modifier = Modifier.padding(top = 10.dp), colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest)) { Text(if (formOpen) "Fechar criação" else "+ Criar movimento") }
         }
         interaction.feedback?.let { message -> item { Surface(shape = RoundedCornerShape(14.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(13.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } } }
         item {
@@ -389,12 +417,57 @@ private fun EventField(value: String, onChange: (String) -> Unit, label: String,
 }
 
 @Composable
-private fun ProfileScreen(data: HomeSnapshot, onLogout: () -> Unit) {
+private fun ProfileScreen(
+    data: HomeSnapshot,
+    interaction: InteractionUiState,
+    onUploadPhoto: (Uri) -> Unit,
+    onLogout: () -> Unit,
+) {
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) onUploadPhoto(uri)
+    }
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Text("MINHA CONTA", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(data.greetingName, color = AxeCloudThemeTokens.ForestDeep, fontSize = 30.sp, fontWeight = FontWeight.Black)
-            Text(data.houseName, color = AxeCloudThemeTokens.Muted)
+            ModuleHero(
+                eyebrow = "IDENTIDADE NA CORRENTE",
+                title = data.greetingName,
+                subtitle = data.houseName.ifBlank { "Sua presença dentro do AxéCloud." },
+                icon = Icons.Outlined.Person,
+                background = Color(0xFF182139),
+                accent = Color(0xFF91B5FF),
+            )
+        }
+        interaction.feedback?.let { message ->
+            item { Surface(shape = RoundedCornerShape(14.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(13.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } }
+        }
+        item {
+            Surface(shape = RoundedCornerShape(24.dp), color = AxeCloudThemeTokens.Surface, border = androidx.compose.foundation.BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
+                Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (data.profilePhotoUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = data.profilePhotoUrl,
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.size(72.dp).clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Box(Modifier.size(72.dp).background(AxeCloudThemeTokens.Forest, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.Person, null, tint = AxeCloudThemeTokens.Gold, modifier = Modifier.size(34.dp))
+                        }
+                    }
+                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                        Text("Foto de identificação", color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold)
+                        Text("Usada no perfil e nas conversas da casa.", color = AxeCloudThemeTokens.Muted, fontSize = 11.sp)
+                        if (data.isFilho) {
+                            OutlinedButton(
+                                onClick = { photoPicker.launch("image/*") },
+                                enabled = interaction.actionInProgress == null,
+                                modifier = Modifier.padding(top = 8.dp),
+                            ) { Text("Trocar foto", fontSize = 11.sp) }
+                        }
+                    }
+                }
+            }
         }
         item {
             Surface(shape = RoundedCornerShape(24.dp), color = AxeCloudThemeTokens.Forest) {
@@ -426,9 +499,14 @@ private fun JourneyScreen(
     val uriHandler = LocalUriHandler.current
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Text("SUA CAMINHADA", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(if (data.isFilho) "Fundamento que acompanha." else "A casa em profundidade.", color = AxeCloudThemeTokens.ForestDeep, fontSize = 28.sp, fontWeight = FontWeight.Black, lineHeight = 31.sp)
-            Text("Preceitos, estudos e conversas conectados à rotina.", color = AxeCloudThemeTokens.Muted, fontSize = 13.sp)
+            ModuleHero(
+                eyebrow = "CADERNO DE FUNDAMENTO",
+                title = if (data.isFilho) "Conhecimento que acompanha a caminhada." else "Memória viva, acesso responsável.",
+                subtitle = "Preceitos, estudos e conversas reunidos com contexto.",
+                icon = Icons.Outlined.MenuBook,
+                background = Color(0xFF3C3022),
+                accent = Color(0xFFE7B959),
+            )
         }
         interaction.feedback?.let { message ->
             item {
@@ -604,13 +682,15 @@ private fun FinanceScreen(
     val clipboard = LocalClipboardManager.current
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Voltar", tint = AxeCloudThemeTokens.Forest) }
-                Column {
-                    Text("FINANCEIRO", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text(if (data.isFilho) "Minha mensalidade" else "Mensalidades da casa", color = AxeCloudThemeTokens.ForestDeep, fontSize = 27.sp, fontWeight = FontWeight.Black)
-                }
-            }
+            IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Voltar", tint = AxeCloudThemeTokens.Forest) }
+            ModuleHero(
+                eyebrow = "LIVRO CAIXA DA CASA",
+                title = if (data.isFilho) "Contribuir também é sustentar." else "Clareza para cuidar do que mantém a casa.",
+                subtitle = if (data.isFilho) "Mensalidade, PIX e histórico em um fluxo simples." else "Pendências e recebimentos com leitura imediata.",
+                icon = Icons.Outlined.AccountBalanceWallet,
+                background = Color(0xFF0E2A20),
+                accent = Color(0xFF55D69A),
+            )
         }
         interaction.feedback?.let { message ->
             item { Surface(shape = RoundedCornerShape(15.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(14.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } }
@@ -683,21 +763,78 @@ private fun ManagementScreen(
     data: HomeSnapshot,
     interaction: InteractionUiState,
     onPrayerStatus: (HomeFeedItem, String) -> Unit,
+    onCreateAlbum: (String, String) -> Unit,
+    onAddInventory: (String, String, String, String) -> Unit,
+    onAddProduct: (String, String, String, String) -> Unit,
     onBack: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
     val uriHandler = LocalUriHandler.current
+    var formKind by rememberSaveable { mutableStateOf<String?>(null) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf("") }
+    var valueOne by rememberSaveable { mutableStateOf("") }
+    var valueTwo by rememberSaveable { mutableStateOf("") }
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Voltar", tint = AxeCloudThemeTokens.Forest) }
-                Column {
-                    Text("CASA EM MOVIMENTO", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text(if (data.isFilho) "Espaços da minha casa" else "Central de gestão", color = AxeCloudThemeTokens.ForestDeep, fontSize = 27.sp, fontWeight = FontWeight.Black)
+            IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Voltar", tint = AxeCloudThemeTokens.Forest) }
+            ModuleHero(
+                eyebrow = "CASA EM MOVIMENTO",
+                title = if (data.isFilho) "Memórias e caminhos da casa." else "Uma central que enxerga a casa inteira.",
+                subtitle = if (data.isFilho) "Galeria e produtos conectados à sua comunidade." else "Acervo, estoque, loja e acolhimentos numa mesma leitura.",
+                icon = Icons.Outlined.Groups,
+                background = Color(0xFF15372C),
+                accent = Color(0xFF64D9A9),
+            )
+        }
+        interaction.feedback?.let { message -> item { Surface(shape = RoundedCornerShape(14.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(13.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } } }
+        if (!data.isFilho) {
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    listOf("album" to "Novo álbum", "estoque" to "Novo item", "produto" to "Novo produto").forEach { (kind, label) ->
+                        OutlinedButton(
+                            onClick = { formKind = if (formKind == kind) null else kind; name = ""; description = ""; category = ""; valueOne = ""; valueTwo = "" },
+                            modifier = Modifier.weight(1f),
+                        ) { Text(label, fontSize = 9.sp, maxLines = 1) }
+                    }
+                }
+            }
+            item {
+                AnimatedVisibility(formKind != null) {
+                    Surface(shape = RoundedCornerShape(22.dp), color = AxeCloudThemeTokens.ForestDeep) {
+                        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text(
+                                when (formKind) { "album" -> "Criar álbum"; "estoque" -> "Adicionar ao almoxarifado"; else -> "Cadastrar produto" },
+                                color = AxeCloudThemeTokens.Gold,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp,
+                            )
+                            EventField(name, { name = it }, when (formKind) { "album" -> "Nome do álbum"; "estoque" -> "Nome do item"; else -> "Nome do produto" })
+                            EventField(description, { description = it }, if (formKind == "estoque") "Categoria" else "Descrição")
+                            if (formKind != "album") {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    EventField(valueOne, { valueOne = it }, if (formKind == "estoque") "Quantidade atual" else "Preço", Modifier.weight(1f))
+                                    EventField(valueTwo, { valueTwo = it }, if (formKind == "estoque") "Estoque mínimo" else "Estoque", Modifier.weight(1f))
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    when (formKind) {
+                                        "album" -> onCreateAlbum(name, description)
+                                        "estoque" -> onAddInventory(name, description, valueOne, valueTwo)
+                                        "produto" -> onAddProduct(name, description, valueOne, valueTwo)
+                                    }
+                                },
+                                enabled = interaction.actionInProgress == null,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Gold, contentColor = AxeCloudThemeTokens.ForestDeep),
+                            ) { Text("Salvar", fontWeight = FontWeight.Bold) }
+                        }
+                    }
                 }
             }
         }
-        interaction.feedback?.let { message -> item { Surface(shape = RoundedCornerShape(14.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(13.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } } }
         item { ManagementSection("Galeria da casa", data.galleryItems, Icons.Outlined.PhotoLibrary, "Nenhum álbum publicado") { item -> if (item.url.isNotBlank()) uriHandler.openUri(item.url) } }
         item { ManagementSection("Loja do axé", data.storeItems, Icons.Outlined.Storefront, "Nenhum produto disponível", showMoney = true) }
         if (!data.isFilho) {
@@ -777,6 +914,42 @@ private fun QrCode(payload: String, modifier: Modifier = Modifier) {
         }
     }
     Image(bitmap.asImageBitmap(), contentDescription = "QR Code PIX", modifier = modifier)
+}
+
+@Composable
+private fun ModuleHero(
+    eyebrow: String,
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    background: Color,
+    accent: Color,
+) {
+    Surface(shape = RoundedCornerShape(28.dp), color = Color.Transparent, shadowElevation = 7.dp) {
+        Box(
+            Modifier.fillMaxWidth().height(190.dp)
+                .background(Brush.linearGradient(listOf(background, background.copy(alpha = .88f))))
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawCircle(accent.copy(alpha = .10f), radius = size.minDimension * .58f, center = androidx.compose.ui.geometry.Offset(size.width * .92f, size.height * .05f))
+                drawCircle(accent.copy(alpha = .12f), radius = size.minDimension * .33f, center = androidx.compose.ui.geometry.Offset(size.width * .92f, size.height * .05f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
+                drawCircle(accent.copy(alpha = .08f), radius = size.minDimension * .18f, center = androidx.compose.ui.geometry.Offset(size.width * .92f, size.height * .05f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
+            }
+            Column(Modifier.fillMaxSize().padding(21.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(38.dp).background(accent, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                        Icon(icon, null, tint = background, modifier = Modifier.size(20.dp))
+                    }
+                    Text(eyebrow, Modifier.padding(start = 10.dp), color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.1.sp)
+                }
+                Column(Modifier.fillMaxWidth(.86f)) {
+                    Text(title, color = AxeCloudThemeTokens.Ivory, fontSize = 24.sp, lineHeight = 26.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.height(6.dp))
+                    Text(subtitle, color = AxeCloudThemeTokens.Ivory.copy(alpha = .68f), fontSize = 11.sp, lineHeight = 15.sp)
+                }
+            }
+        }
+    }
 }
 
 private fun Double.asMoney(): String = "R$ " + String.format(java.util.Locale("pt", "BR"), "%,.2f", this)

@@ -1,5 +1,8 @@
 package br.com.axecloud.app.feature.home
 
+import android.content.Context
+import android.net.Uri
+import android.util.Base64
 import br.com.axecloud.app.BuildConfig
 import br.com.axecloud.app.core.network.AxeCloudHttpClient
 import br.com.axecloud.app.core.session.SessionSnapshot
@@ -18,11 +21,13 @@ import kotlinx.serialization.json.put
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
 class HomeRepository @Inject constructor(
     private val http: AxeCloudHttpClient,
     private val sessions: SessionStore,
+    @ApplicationContext private val context: Context,
 ) {
     fun session(): SessionSnapshot = sessions.current()
 
@@ -130,6 +135,76 @@ class HomeRepository @Inject constructor(
         )
     }
 
+    suspend fun createAlbum(name: String, description: String) {
+        val session = authenticatedSession()
+        check(!session.isFilho) { "Somente a zeladoria pode criar álbuns." }
+        http.post(
+            api("/api/v1/gallery/albums"),
+            buildJsonObject {
+                put("tenantId", session.tenantId)
+                put("name", name.trim())
+                put("description", description.trim())
+                put("category", "lembranca")
+            },
+            session.accessToken,
+        )
+    }
+
+    suspend fun addInventoryItem(name: String, category: String, current: Int, minimum: Int) {
+        val session = authenticatedSession()
+        check(!session.isFilho) { "Somente a zeladoria pode alterar o estoque." }
+        http.post(
+            api("/api/inventory"),
+            buildJsonObject {
+                put("item", name.trim())
+                put("categoria", category.trim().ifBlank { "Geral" })
+                put("quantidade_atual", current.coerceAtLeast(0))
+                put("quantidade_minima", minimum.coerceAtLeast(0))
+                put("tenantId", session.tenantId)
+                put("autorId", session.userId)
+            },
+            session.accessToken,
+        )
+    }
+
+    suspend fun addStoreProduct(name: String, description: String, price: Double, stock: Int) {
+        val session = authenticatedSession()
+        check(!session.isFilho) { "Somente a zeladoria pode cadastrar produtos." }
+        http.post(
+            api("/api/v1/store/products"),
+            buildJsonObject {
+                put("tenantId", session.tenantId)
+                put("nome", name.trim())
+                put("descricao", description.trim())
+                put("preco", price.coerceAtLeast(0.0))
+                put("estoque_atual", stock.coerceAtLeast(0))
+                put("estoque_minimo", 0)
+                put("categoria", "Outros")
+            },
+            session.accessToken,
+        )
+    }
+
+    suspend fun uploadChildProfilePhoto(uri: Uri) {
+        val session = authenticatedSession()
+        check(session.isFilho) { "A troca de foto do zelador será liberada no próximo módulo." }
+        val mime = context.contentResolver.getType(uri)?.lowercase() ?: "image/jpeg"
+        check(mime in setOf("image/jpeg", "image/png", "image/webp")) { "Escolha uma imagem JPEG, PNG ou WebP." }
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("Não foi possível ler a imagem.")
+        check(bytes.size <= 5 * 1024 * 1024) { "A imagem deve ter no máximo 5 MB." }
+        val response = http.post(
+            api("/api/v1/filho/profile-photo"),
+            buildJsonObject {
+                put("fileData", Base64.encodeToString(bytes, Base64.NO_WRAP))
+                put("contentType", mime)
+            },
+            session.accessToken,
+        ).asObject()
+        val url = response.text("publicUrl", "url")
+        if (url.isNotBlank()) sessions.save(session.copy(profilePhotoUrl = url))
+    }
+
     suspend fun load(): HomeSnapshot {
         val session = sessions.current()
         check(session.isAuthenticated) { "Entre novamente para continuar." }
@@ -184,6 +259,7 @@ class HomeRepository @Inject constructor(
             monthlyDueDay = pix.number("dia_vencimento").toInt().takeIf { it in 1..31 } ?: 10,
             pixPayload = pixPayload,
             pixBeneficiary = pix.text("nome_beneficiario"),
+            profilePhotoUrl = session.profilePhotoUrl.ifBlank { child.text("foto_url", "photo_url") },
             galleryItems = galleryCall.await().asList("albums", "data", "items").map { it.asObject().toGalleryItem() },
             storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
         )
@@ -244,6 +320,7 @@ class HomeRepository @Inject constructor(
             inventoryItems = inventoryCall.await().asList("data", "items").map { it.asObject().toInventoryItem() },
             storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
             prayerItems = prayers.map { it.asObject().toPrayerItem() },
+            profilePhotoUrl = session.profilePhotoUrl,
         )
     }
 

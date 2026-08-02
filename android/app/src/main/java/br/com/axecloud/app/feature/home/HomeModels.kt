@@ -27,6 +27,7 @@ data class HomeSnapshot(
     val inventoryItems: List<HomeFeedItem> = emptyList(),
     val storeItems: List<HomeFeedItem> = emptyList(),
     val prayerItems: List<HomeFeedItem> = emptyList(),
+    val profilePhotoUrl: String = "",
 )
 
 data class HomeFeedItem(

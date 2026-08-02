@@ -1,5 +1,6 @@
 package br.com.axecloud.app.feature.home
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,6 +76,28 @@ class HomeViewModel @Inject constructor(
 
     fun updatePrayerStatus(item: HomeFeedItem, status: String) = runAction(item.id, "Pedido atualizado.") {
         repository.updatePrayerStatus(item.id, status)
+    }
+
+    fun createAlbum(name: String, description: String) = runAction("new_album", "Álbum criado.") {
+        require(name.isNotBlank()) { "Informe o nome do álbum." }
+        repository.createAlbum(name, description)
+    }
+
+    fun addInventoryItem(name: String, category: String, current: String, minimum: String) =
+        runAction("new_inventory", "Item adicionado ao almoxarifado.") {
+            require(name.isNotBlank()) { "Informe o nome do item." }
+            repository.addInventoryItem(name, category, current.toIntOrNull() ?: 0, minimum.toIntOrNull() ?: 0)
+        }
+
+    fun addStoreProduct(name: String, description: String, price: String, stock: String) =
+        runAction("new_product", "Produto cadastrado na loja.") {
+            require(name.isNotBlank()) { "Informe o nome do produto." }
+            val parsedPrice = price.replace(',', '.').toDoubleOrNull() ?: 0.0
+            repository.addStoreProduct(name, description, parsedPrice, stock.toIntOrNull() ?: 0)
+        }
+
+    fun uploadProfilePhoto(uri: Uri) = runAction("profile_photo", "Foto atualizada.") {
+        repository.uploadChildProfilePhoto(uri)
     }
 
     private fun runAction(id: String, success: String, block: suspend () -> Unit) = viewModelScope.launch {
