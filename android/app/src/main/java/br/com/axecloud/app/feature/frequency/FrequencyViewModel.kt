@@ -21,4 +21,5 @@ class FrequencyViewModel @Inject constructor(private val repository: FrequencyRe
             .onFailure { error -> mutableState.update { it.copy(loading = false, error = error.message) } }
     }
     fun query(value: String) = mutableState.update { it.copy(query = value) }
+    fun select(member: FrequencyMember?) = mutableState.update { it.copy(selected = member) }
 }

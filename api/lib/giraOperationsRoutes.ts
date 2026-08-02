@@ -664,7 +664,8 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
 
       const byFilho = (filhos || []).map((f) => {
         const rows = (participacoes || []).filter((p) => p.filho_id === f.id);
-        const confirmados = rows.filter((r) => String(r.status) === "confirmado").length;
+        const confirmados = rows.filter((r) => ["confirmado", "presente"].includes(String(r.status))).length;
+        const presentes = rows.filter((r) => String(r.status) === "presente").length;
         const total = rows.length;
         const assiduidade = total > 0 ? Math.round((confirmados / total) * 100) : 0;
         return {
@@ -674,9 +675,21 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
           foto_url: f.foto_url,
           total_eventos: total,
           confirmados,
-          presentes: confirmados,
+          presentes,
           faltas: rows.filter((r) => r.status === "recusado").length,
           assiduidade_pct: assiduidade,
+          historico: rows
+            .map((r) => {
+              const evento = Array.isArray(r.calendario_axe) ? r.calendario_axe[0] : r.calendario_axe;
+              return {
+                event_id: r.event_id,
+                titulo: evento?.titulo || "Gira",
+                data: evento?.data || "",
+                tipo: evento?.tipo || "",
+                status: String(r.status || "pendente"),
+              };
+            })
+            .sort((a, b) => String(b.data).localeCompare(String(a.data))),
         };
       });
 

@@ -30,6 +30,16 @@ class FrequencyRepository @Inject constructor(private val http: AxeCloudHttpClie
                 present = item.int("presentes", "confirmados"),
                 absences = item.int("faltas"),
                 attendance = item.int("assiduidade_pct").coerceIn(0, 100),
+                history = item.array("historico").mapNotNull { historyElement ->
+                    val history = historyElement as? JsonObject ?: return@mapNotNull null
+                    FrequencyEvent(
+                        id = history.text("event_id", "id"),
+                        title = history.text("titulo", "title").ifBlank { "Gira" },
+                        date = history.text("data", "date"),
+                        type = history.text("tipo", "type"),
+                        status = history.text("status").ifBlank { "pendente" },
+                    )
+                },
             )
         }
     }

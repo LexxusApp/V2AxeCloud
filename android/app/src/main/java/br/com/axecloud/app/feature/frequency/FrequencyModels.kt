@@ -9,12 +9,22 @@ data class FrequencyMember(
     val present: Int,
     val absences: Int,
     val attendance: Int,
+    val history: List<FrequencyEvent> = emptyList(),
+)
+
+data class FrequencyEvent(
+    val id: String,
+    val title: String,
+    val date: String,
+    val type: String,
+    val status: String,
 )
 
 data class FrequencyUiState(
     val loading: Boolean = true,
     val members: List<FrequencyMember> = emptyList(),
     val query: String = "",
+    val selected: FrequencyMember? = null,
     val error: String? = null,
 ) {
     val visible: List<FrequencyMember> get() = members.filter {

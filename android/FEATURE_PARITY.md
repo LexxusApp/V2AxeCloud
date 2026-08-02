@@ -9,7 +9,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL |
 | Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | EM IMPLEMENTAÇÃO |
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
-| Frequência | chamada, leitura de QR, histórico e indicadores por filho/gira | PARCIAL — chamada e indicadores nativos; leitura de QR e validação real pendentes |
+| Frequência | relatório, histórico e indicadores por filho/gira; operação de presença por evento | PARCIAL — relatório e histórico detalhado nativos; operação por gira fica no Centro de Gira; validação real pendente |
 | Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
 | Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL — texto, imagem, vídeo, seleção e gravação nativa de áudio, leitura e atualização contínua a cada 5s compilados; player e realtime Supabase pendentes |
 | Financeiro | resumo, lançamentos, filtros, criar/editar/excluir, relatório e caixinha | PARCIAL |
