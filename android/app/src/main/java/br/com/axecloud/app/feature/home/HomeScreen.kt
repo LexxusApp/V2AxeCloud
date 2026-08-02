@@ -100,6 +100,7 @@ import br.com.axecloud.app.feature.finance.FinanceRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
 import br.com.axecloud.app.feature.gallery.GalleryRoute
 import br.com.axecloud.app.feature.care.CareRoute
+import br.com.axecloud.app.feature.store.StoreRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
@@ -249,6 +250,7 @@ private fun HomeScreen(
                             HomeTab.BIBLIOTECA -> LibraryRoute()
                             HomeTab.GALERIA -> GalleryRoute()
                             HomeTab.ATENDIMENTOS -> CareRoute()
+                            HomeTab.LOJA -> StoreRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -431,6 +433,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.BIBLIOTECA -> "Biblioteca"
     HomeTab.GALERIA -> "Galeria"
     HomeTab.ATENDIMENTOS -> "Atendimentos"
+    HomeTab.LOJA -> "Loja do Axé"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
 }
 
@@ -468,7 +471,7 @@ private fun HomeContent(data: HomeSnapshot, onTab: (HomeTab) -> Unit) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 QuickAccess("Galeria", "${data.galleryItems.size} álbum(ns)", Icons.Outlined.PhotoLibrary, Modifier.weight(1f)) { onTab(HomeTab.GALERIA) }
-                QuickAccess("Loja", "${data.storeItems.size} produto(s)", Icons.Outlined.Storefront, Modifier.weight(1f)) { onTab(HomeTab.GESTAO) }
+                QuickAccess("Loja", "${data.storeItems.size} produto(s)", Icons.Outlined.Storefront, Modifier.weight(1f)) { onTab(HomeTab.LOJA) }
             }
         }
         item { Spacer(Modifier.height(18.dp)) }
@@ -1213,6 +1216,7 @@ private enum class HomeTab(
     BIBLIOTECA("Biblioteca", Icons.Outlined.MenuBook, false),
     GALERIA("Galeria", Icons.Outlined.PhotoLibrary, false),
     ATENDIMENTOS("Atendimentos", Icons.Outlined.VolunteerActivism, false, true),
+    LOJA("Loja", Icons.Outlined.Storefront, false),
     GESTAO("Gestão", Icons.Outlined.Groups, false),
 
     ;

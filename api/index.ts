@@ -1839,6 +1839,32 @@ async function startServer() {
   app.post("/api/v1/store/products", handleStoreProductsPost);
   app.post("/api/store/products", handleStoreProductsPost);
 
+  app.patch("/api/v1/store/products/:id", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const id = String(req.params.id || "").trim();
+      const tenantId = String(req.body?.tenantId || "").trim();
+      if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId são obrigatórios" });
+      if (!(await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId))) return res.status(403).json({ error: "Acesso negado" });
+      const allowed: Record<string, unknown> = {};
+      if (req.body.nome !== undefined) allowed.nome = String(req.body.nome).trim();
+      if (req.body.descricao !== undefined) allowed.descricao = String(req.body.descricao || "").trim();
+      if (req.body.preco !== undefined) allowed.preco = Math.max(0, Number(req.body.preco) || 0);
+      if (req.body.estoque_atual !== undefined) allowed.estoque_atual = Math.max(0, Number(req.body.estoque_atual) || 0);
+      if (req.body.estoque_minimo !== undefined) allowed.estoque_minimo = Math.max(0, Number(req.body.estoque_minimo) || 0);
+      if (req.body.categoria !== undefined) allowed.categoria = String(req.body.categoria || "Geral").trim();
+      if (req.body.imagem_url !== undefined) allowed.imagem_url = String(req.body.imagem_url || "").trim() || null;
+      if (!Object.keys(allowed).length || allowed.nome === "") return res.status(400).json({ error: "Dados do produto inválidos" });
+      const { data, error } = await supabaseAdmin.from("produtos").update(allowed).eq("id", id).eq("tenant_id", tenantId).is("deleted_at", null).select("*").maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Produto não encontrado" });
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao atualizar produto") });
+    }
+  });
+
   const handleStoreProductDelete = async (req: express.Request, res: express.Response) => {
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
