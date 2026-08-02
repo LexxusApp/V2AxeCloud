@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,6 +52,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +71,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -70,15 +86,17 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.axecloud.app.designsystem.component.AxeCloudBrand
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import coil.compose.AsyncImage
 import android.net.Uri
+import br.com.axecloud.app.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeRoute(
@@ -107,6 +125,7 @@ fun HomeRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeScreen(
     state: HomeUiState,
@@ -127,79 +146,231 @@ private fun HomeScreen(
     onUploadProfilePhoto: (Uri) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
-    Scaffold(
-        containerColor = AxeCloudThemeTokens.Canvas,
-        bottomBar = {
-            if (!state.loading && state.error == null && interaction.conversationId == null) {
-                NavigationBar(containerColor = AxeCloudThemeTokens.ForestDeep) {
-                    HomeTab.entries.filter { it.showInNavigation }.forEach { tab ->
-                        NavigationBarItem(
-                            selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
-                            icon = { Icon(tab.icon, tab.label) },
-                            label = { Text(tab.label, fontSize = 10.sp) },
-                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                                selectedIconColor = AxeCloudThemeTokens.ForestDeep,
-                                selectedTextColor = AxeCloudThemeTokens.Gold,
-                                indicatorColor = AxeCloudThemeTokens.Gold,
-                                unselectedIconColor = AxeCloudThemeTokens.Ivory.copy(alpha = .7f),
-                                unselectedTextColor = AxeCloudThemeTokens.Ivory.copy(alpha = .7f),
-                            ),
-                        )
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val chromeVisible = !state.loading && state.error == null && interaction.conversationId == null
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = chromeVisible,
+        drawerContent = {
+            AppDrawer(
+                data = state.snapshot,
+                selectedTab = selectedTab,
+                onSelect = { tab ->
+                    selectedTab = tab
+                    scope.launch { drawerState.close() }
+                },
+                onLogout = onLogout,
+            )
+        },
+    ) {
+        Scaffold(
+            containerColor = AxeCloudThemeTokens.Canvas,
+            topBar = {
+                if (chromeVisible) {
+                    NativeTopBar(
+                        data = state.snapshot,
+                        selectedTab = selectedTab,
+                        onAvatarClick = { scope.launch { drawerState.open() } },
+                        onNotifications = { selectedTab = HomeTab.AVISOS },
+                    )
+                }
+            },
+            bottomBar = {
+                if (chromeVisible) {
+                    NavigationBar(containerColor = AxeCloudThemeTokens.ForestDeep) {
+                        HomeTab.entries.filter { it.showInNavigation }.forEach { tab ->
+                            NavigationBarItem(
+                                selected = selectedTab == tab,
+                                onClick = { selectedTab = tab },
+                                icon = { Icon(tab.icon, tab.label) },
+                                label = { Text(tab.label, fontSize = 10.sp) },
+                                colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                    selectedIconColor = AxeCloudThemeTokens.ForestDeep,
+                                    selectedTextColor = AxeCloudThemeTokens.Gold,
+                                    indicatorColor = AxeCloudThemeTokens.Gold,
+                                    unselectedIconColor = AxeCloudThemeTokens.Ivory.copy(alpha = .7f),
+                                    unselectedTextColor = AxeCloudThemeTokens.Ivory.copy(alpha = .7f),
+                                ),
+                            )
+                        }
+                    }
+                }
+            },
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding).background(AxeCloudThemeTokens.Canvas)) {
+                when {
+                    state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AxeCloudThemeTokens.Forest)
+                    state.error != null -> ErrorState(state.error, onRetry, Modifier.align(Alignment.Center))
+                    interaction.conversationId != null -> ChatScreen(interaction, onCloseConversation, onSendMessage)
+                    else -> AnimatedContent(
+                        targetState = selectedTab,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "home-module-transition",
+                    ) { tab ->
+                        when (tab) {
+                            HomeTab.INICIO -> HomeContent(state.snapshot) { selectedTab = it }
+                            HomeTab.ROTINA -> JourneyScreen(
+                                data = state.snapshot,
+                                interaction = interaction,
+                                onAcknowledge = onAcknowledge,
+                                onGuidance = onGuidance,
+                                onOpenConversation = onOpenConversation,
+                            )
+                            HomeTab.AGENDA -> AgendaScreen(state.snapshot, interaction, onCreateEvent)
+                            HomeTab.AVISOS -> FeedScreen("Mural da casa", "Comunicados oficiais em um só lugar.", state.snapshot.noticeItems, Icons.Outlined.Notifications)
+                            HomeTab.FINANCEIRO -> FinanceScreen(state.snapshot, interaction, onSettleMonthly) { selectedTab = HomeTab.INICIO }
+                            HomeTab.GESTAO -> ManagementScreen(
+                                data = state.snapshot,
+                                interaction = interaction,
+                                onPrayerStatus = onPrayerStatus,
+                                onCreateAlbum = onCreateAlbum,
+                                onAddInventory = onAddInventory,
+                                onAddProduct = onAddProduct,
+                                onBack = { selectedTab = HomeTab.INICIO },
+                            )
+                            HomeTab.PERFIL -> ProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
+                        }
                     }
                 }
             }
-        },
-    ) { padding ->
-    Box(Modifier.fillMaxSize().padding(padding).background(AxeCloudThemeTokens.Canvas)) {
-        when {
-            state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AxeCloudThemeTokens.Forest)
-            state.error != null -> ErrorState(state.error, onRetry, Modifier.align(Alignment.Center))
-            interaction.conversationId != null -> ChatScreen(interaction, onCloseConversation, onSendMessage)
-            selectedTab == HomeTab.INICIO -> HomeContent(state.snapshot, onLogout) { selectedTab = it }
-            selectedTab == HomeTab.ROTINA -> JourneyScreen(
-                data = state.snapshot,
-                interaction = interaction,
-                onAcknowledge = onAcknowledge,
-                onGuidance = onGuidance,
-                onOpenConversation = onOpenConversation,
-            )
-            selectedTab == HomeTab.AGENDA -> AgendaScreen(state.snapshot, interaction, onCreateEvent)
-            selectedTab == HomeTab.AVISOS -> FeedScreen("Mural da casa", "Comunicados oficiais em um só lugar.", state.snapshot.noticeItems, Icons.Outlined.Notifications)
-            selectedTab == HomeTab.FINANCEIRO -> FinanceScreen(state.snapshot, interaction, onSettleMonthly) { selectedTab = HomeTab.INICIO }
-            selectedTab == HomeTab.GESTAO -> ManagementScreen(
-                data = state.snapshot,
-                interaction = interaction,
-                onPrayerStatus = onPrayerStatus,
-                onCreateAlbum = onCreateAlbum,
-                onAddInventory = onAddInventory,
-                onAddProduct = onAddProduct,
-                onBack = { selectedTab = HomeTab.INICIO },
-            )
-            else -> ProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NativeTopBar(
+    data: HomeSnapshot,
+    selectedTab: HomeTab,
+    onAvatarClick: () -> Unit,
+    onNotifications: () -> Unit,
+) {
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onAvatarClick, modifier = Modifier.padding(start = 8.dp)) {
+                HouseAvatar(data.profilePhotoUrl, 38.dp)
+            }
+        },
+        title = {
+            Column {
+                Text(selectedTab.label, color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                Text(data.houseName.ifBlank { "AxéCloud" }, color = AxeCloudThemeTokens.Muted, fontSize = 11.sp, maxLines = 1)
+            }
+        },
+        actions = {
+            IconButton(onClick = onNotifications) {
+                Icon(Icons.Outlined.Notifications, "Notificações", tint = AxeCloudThemeTokens.Forest)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = AxeCloudThemeTokens.Canvas),
+    )
+}
+
+@Composable
+private fun AppDrawer(
+    data: HomeSnapshot,
+    selectedTab: HomeTab,
+    onSelect: (HomeTab) -> Unit,
+    onLogout: () -> Unit,
+) {
+    ModalDrawerSheet(
+        modifier = Modifier.width(312.dp),
+        drawerContainerColor = AxeCloudThemeTokens.ForestDeep,
+        drawerContentColor = AxeCloudThemeTokens.Ivory,
+    ) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 14.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 26.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                HouseAvatar(data.profilePhotoUrl, 58.dp)
+                Column(Modifier.weight(1f)) {
+                    Text(data.houseName.ifBlank { "Minha casa" }, color = AxeCloudThemeTokens.Ivory, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 2)
+                    Text(if (data.isFilho) "Filho de santo" else "Gestão do terreiro", color = AxeCloudThemeTokens.Gold, fontSize = 12.sp)
+                }
+            }
+            HorizontalDivider(color = AxeCloudThemeTokens.Ivory.copy(alpha = .12f))
+            Spacer(Modifier.height(12.dp))
+            Text("NAVEGAÇÃO", Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = AxeCloudThemeTokens.Ivory.copy(alpha = .55f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            HomeTab.entries.forEach { tab ->
+                NavigationDrawerItem(
+                    label = { Text(drawerLabel(tab, data.isFilho), fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Medium) },
+                    selected = selectedTab == tab,
+                    onClick = { onSelect(tab) },
+                    icon = { Icon(tab.icon, null) },
+                    badge = { Icon(Icons.Outlined.ChevronRight, null, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.padding(vertical = 2.dp),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = AxeCloudThemeTokens.Gold,
+                        selectedIconColor = AxeCloudThemeTokens.ForestDeep,
+                        selectedTextColor = AxeCloudThemeTokens.ForestDeep,
+                        selectedBadgeColor = AxeCloudThemeTokens.ForestDeep,
+                        unselectedContainerColor = Color.Transparent,
+                        unselectedIconColor = AxeCloudThemeTokens.Ivory.copy(alpha = .72f),
+                        unselectedTextColor = AxeCloudThemeTokens.Ivory.copy(alpha = .82f),
+                        unselectedBadgeColor = AxeCloudThemeTokens.Ivory.copy(alpha = .35f),
+                    ),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            HorizontalDivider(color = AxeCloudThemeTokens.Ivory.copy(alpha = .12f))
+            NavigationDrawerItem(
+                label = { Text("Sair da conta") },
+                selected = false,
+                onClick = onLogout,
+                icon = { Icon(Icons.Outlined.Logout, null) },
+                modifier = Modifier.padding(vertical = 14.dp),
+                colors = NavigationDrawerItemDefaults.colors(
+                    unselectedContainerColor = Color.Transparent,
+                    unselectedIconColor = AxeCloudThemeTokens.Gold,
+                    unselectedTextColor = AxeCloudThemeTokens.Ivory,
+                ),
+            )
+        }
     }
 }
 
 @Composable
-private fun HomeContent(data: HomeSnapshot, onLogout: () -> Unit, onTab: (HomeTab) -> Unit) {
+private fun HouseAvatar(photoUrl: String, size: androidx.compose.ui.unit.Dp) {
+    Surface(
+        modifier = Modifier.size(size),
+        shape = CircleShape,
+        color = AxeCloudThemeTokens.Forest,
+        border = androidx.compose.foundation.BorderStroke(2.dp, AxeCloudThemeTokens.Gold),
+    ) {
+        if (photoUrl.isNotBlank()) {
+            AsyncImage(model = photoUrl, contentDescription = "Foto da casa", contentScale = ContentScale.Crop)
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_axecloud_mark),
+                contentDescription = "Menu da casa",
+                tint = Color.Unspecified,
+                modifier = Modifier.padding(size * .16f),
+            )
+        }
+    }
+}
+
+private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
+    HomeTab.INICIO -> "Início"
+    HomeTab.ROTINA -> if (isFilho) "Minha caminhada" else "Rotina da casa"
+    HomeTab.AGENDA -> "Agenda e giras"
+    HomeTab.AVISOS -> "Avisos"
+    HomeTab.PERFIL -> "Perfil e conta"
+    HomeTab.FINANCEIRO -> "Financeiro"
+    HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
+}
+
+@Composable
+private fun HomeContent(data: HomeSnapshot, onTab: (HomeTab) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AxeCloudBrand(modifier = Modifier.weight(1f))
-                IconButton(onClick = { onTab(HomeTab.AVISOS) }) {
-                    Icon(Icons.Outlined.Notifications, "Notificações", tint = AxeCloudThemeTokens.Forest)
-                }
-                IconButton(onClick = onLogout) {
-                    Icon(Icons.Outlined.Logout, "Sair", tint = AxeCloudThemeTokens.Muted)
-                }
-            }
-        }
         item { Hero(data) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
