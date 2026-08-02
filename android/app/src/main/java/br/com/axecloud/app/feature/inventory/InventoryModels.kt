@@ -1,0 +1,4 @@
+package br.com.axecloud.app.feature.inventory
+data class InventoryItem(val id:String,val name:String,val category:String,val quantity:Int,val minimum:Int)
+data class InventoryForm(val name:String="",val category:String="Ritual",val quantity:String="0",val minimum:String="5"){companion object{fun from(i:InventoryItem)=InventoryForm(i.name,i.category,i.quantity.toString(),i.minimum.toString())}}
+data class InventoryUiState(val loading:Boolean=true,val saving:Boolean=false,val items:List<InventoryItem> = emptyList(),val query:String="",val lowOnly:Boolean=false,val editing:InventoryItem?=null,val creating:Boolean=false,val actionId:String?=null,val error:String?=null,val message:String?=null){val visible get()=items.filter{(!lowOnly||it.quantity<=it.minimum)&&(query.isBlank()||it.name.contains(query,true)||it.category.contains(query,true))};val lowCount get()=items.count{it.quantity<=it.minimum}}

@@ -98,6 +98,7 @@ import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import br.com.axecloud.app.feature.finance.FinanceRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
+import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
 import br.com.axecloud.app.feature.notifications.NotificationInbox
 import br.com.axecloud.app.feature.notifications.nativeUnreadCount
@@ -241,6 +242,7 @@ private fun HomeScreen(
                             HomeTab.FINANCEIRO -> if (state.snapshot.isFilho) NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt) else FinanceRoute()
                             HomeTab.FILHOS -> ChildrenRoute()
                             HomeTab.FREQUENCIA -> FrequencyRoute()
+                            HomeTab.ALMOXARIFADO -> InventoryRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -418,6 +420,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.FINANCEIRO -> "Financeiro"
     HomeTab.FILHOS -> "Filhos de Santo"
     HomeTab.FREQUENCIA -> "Frequência"
+    HomeTab.ALMOXARIFADO -> "Almoxarifado"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
 }
 
@@ -1196,6 +1199,7 @@ private enum class HomeTab(
     FINANCEIRO("Financeiro", Icons.Outlined.AccountBalanceWallet, false),
     FILHOS("Corrente", Icons.Outlined.Groups, false, true),
     FREQUENCIA("Frequência", Icons.Outlined.Timeline, false, true),
+    ALMOXARIFADO("Almoxarifado", Icons.Outlined.Inventory2, false, true),
     GESTAO("Gestão", Icons.Outlined.Groups, false),
 
     ;

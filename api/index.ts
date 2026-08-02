@@ -3310,6 +3310,52 @@ async function startServer() {
     }
   });
 
+  app.patch("/api/inventory/:id", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const id = String(req.params.id || "").trim();
+      const tenantId = normalizeQueryTenantId(req.body?.tenantId);
+      if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId são obrigatórios" });
+      const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenantId);
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
+      const { data: existing } = await supabaseAdmin.from("almoxarifado").select("id, tenant_id, lider_id").eq("id", id).maybeSingle();
+      if (!existing) return res.status(404).json({ error: "Item não encontrado" });
+      const resolved = await resolveLeaderId(tenantId);
+      if (![tenantId, resolved, user.id].includes(String(existing.tenant_id || existing.lider_id || ""))) return res.status(403).json({ error: "Acesso negado" });
+      const patch: Record<string, unknown> = {};
+      for (const key of ["item", "categoria", "quantidade_atual", "quantidade_minima"] as const) {
+        if (req.body?.[key] !== undefined) patch[key] = key.startsWith("quantidade_") ? Number(req.body[key]) || 0 : String(req.body[key]).trim();
+      }
+      const { data, error } = await supabaseAdmin.from("almoxarifado").update(patch).eq("id", id).select().single();
+      if (error) throw error;
+      res.json({ data });
+    } catch (error: any) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar item") });
+    }
+  });
+
+  app.delete("/api/inventory/:id", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+      const id = String(req.params.id || "").trim();
+      const tenantId = normalizeQueryTenantId(req.query.tenantId);
+      if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId são obrigatórios" });
+      const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenantId);
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
+      const { data: existing } = await supabaseAdmin.from("almoxarifado").select("id, tenant_id, lider_id").eq("id", id).maybeSingle();
+      if (!existing) return res.status(404).json({ error: "Item não encontrado" });
+      const resolved = await resolveLeaderId(tenantId);
+      if (![tenantId, resolved, user.id].includes(String(existing.tenant_id || existing.lider_id || ""))) return res.status(403).json({ error: "Acesso negado" });
+      const { error } = await supabaseAdmin.from("almoxarifado").delete().eq("id", id);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir item") });
+    }
+  });
+
   app.post("/api/v1/settings/save", async (req, res) => {
     const { userId, tenantId, profile } = req.body;
 

@@ -1,0 +1,8 @@
+package br.com.axecloud.app.feature.inventory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+@HiltViewModel class InventoryViewModel @Inject constructor(private val repo:InventoryRepository):ViewModel(){private val mutable=MutableStateFlow(InventoryUiState());val state=mutable.asStateFlow();init{load()};fun load()=viewModelScope.launch{mutable.update{it.copy(loading=true,error=null)};runCatching{repo.load()}.onSuccess{d->mutable.update{it.copy(loading=false,items=d)}}.onFailure{e->mutable.update{it.copy(loading=false,error=e.message)}}};fun query(v:String)=mutable.update{it.copy(query=v)};fun low(v:Boolean)=mutable.update{it.copy(lowOnly=v)};fun create()=mutable.update{it.copy(creating=true)};fun edit(i:InventoryItem)=mutable.update{it.copy(editing=i)};fun close()=mutable.update{it.copy(creating=false,editing=null,error=null)};fun consume()=mutable.update{it.copy(message=null)};fun save(f:InventoryForm)=act("save","Item salvo."){require(f.name.isNotBlank()){"Informe o nome do item."};repo.save(state.value.editing?.id,f)};fun delete(i:InventoryItem)=act(i.id,"Item excluído."){repo.delete(i.id)};private fun act(id:String,msg:String,b:suspend()->Unit)=viewModelScope.launch{mutable.update{it.copy(saving=true,actionId=id,error=null)};runCatching{b();repo.load()}.onSuccess{d->mutable.update{it.copy(saving=false,actionId=null,creating=false,editing=null,items=d,message=msg)}}.onFailure{e->mutable.update{it.copy(saving=false,actionId=null,error=e.message)}}}}
