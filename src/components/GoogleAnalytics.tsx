@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { GOOGLE_ADS_ID } from '../constants/googleAds';
 
 declare global {
   interface Window {
@@ -8,30 +9,53 @@ declare global {
 }
 
 const GA_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined)?.trim();
+const ADS_ID = GOOGLE_ADS_ID;
 
-function loadGa(measurementId: string) {
+function ensureGtag() {
   if (typeof document === 'undefined') return;
-  if (document.getElementById('axecloud-ga4')) return;
-
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer?.push(args);
-  };
-  window.gtag('js', new Date());
-  window.gtag('config', measurementId, { anonymize_ip: true });
+  if (typeof window.gtag !== 'function') {
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer?.push(args);
+    };
+  }
+}
 
+function loadGtagScript(primaryId: string) {
+  if (document.getElementById('axecloud-gtag')) return;
   const script = document.createElement('script');
-  script.id = 'axecloud-ga4';
+  script.id = 'axecloud-gtag';
   script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(primaryId)}`;
   document.head.appendChild(script);
 }
 
-/** GA4 opcional — só monta se `VITE_GA_MEASUREMENT_ID` estiver definido. */
+function loadTags() {
+  if (typeof document === 'undefined') return;
+  // Snippet estático no <head> (marketing) já pode ter carregado o gtag.
+  if (document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
+    ensureGtag();
+    if (GA_ID) window.gtag?.('config', GA_ID, { anonymize_ip: true });
+    if (ADS_ID) window.gtag?.('config', ADS_ID);
+    return;
+  }
+
+  const primaryId = GA_ID || ADS_ID;
+  if (!primaryId) return;
+
+  ensureGtag();
+  window.gtag?.('js', new Date());
+  if (GA_ID) window.gtag?.('config', GA_ID, { anonymize_ip: true });
+  if (ADS_ID) window.gtag?.('config', ADS_ID);
+  loadGtagScript(primaryId);
+}
+
+/** GA4 + Google Ads — Ads sempre ativo no marketing; GA4 só se VITE_GA_MEASUREMENT_ID existir. */
 export function GoogleAnalytics() {
   useEffect(() => {
-    if (!import.meta.env.PROD || !GA_ID) return;
-    loadGa(GA_ID);
+    if (!import.meta.env.PROD) return;
+    if (!GA_ID && !ADS_ID) return;
+    loadTags();
   }, []);
 
   return null;

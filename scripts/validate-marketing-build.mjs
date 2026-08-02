@@ -38,6 +38,9 @@ for (const relative of CINEMATIC) {
   if (!html.includes('axecloud-marketing-build" content="cinematic-production')) {
     fail(`marcador cinematográfico ausente: ${relative}`);
   }
+  if (!html.includes('AW-18367072937') && !html.includes('googletagmanager.com/gtag/js')) {
+    fail(`tag Google Ads ausente: ${relative}`);
+  }
   if (!/<link rel="canonical" href="https:\/\/axecloud\.com\.br\//.test(html)) {
     fail(`canonical de produção ausente: ${relative}`);
   }

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildGoogleAdsHeadSnippet } from './google-ads-snippet.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'cinematic-site');
@@ -115,7 +116,11 @@ for (const [sourceName, outputRelative] of pages) {
   }
   html = html.replace(/\s*<link rel="manifest" href="\/site\.webmanifest" \/>/, '');
   html = html.replace(/(<body\b[^>]*>)/i, `$1\n  <script defer src="${bridgeUrl}"></script>`);
-  html = html.replace('</head>', `  <meta name="axecloud-marketing-build" content="cinematic-production" />\n</head>`);
+  const adsSnippet = buildGoogleAdsHeadSnippet();
+  html = html.replace(
+    '</head>',
+    `${adsSnippet ? `  ${adsSnippet.replace(/\n/g, '\n  ')}\n` : ''}  <meta name="axecloud-marketing-build" content="cinematic-production" />\n</head>`,
+  );
 
   const forbidden = ['/vendor/', 'href="/styles.css"', 'src="/app.js"', 'src="/shared-footer.js"'];
   const unresolved = forbidden.find((token) => html.includes(token));
