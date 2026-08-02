@@ -98,6 +98,7 @@ import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import br.com.axecloud.app.feature.finance.FinanceRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
+import br.com.axecloud.app.feature.gallery.GalleryRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
@@ -245,6 +246,7 @@ private fun HomeScreen(
                             HomeTab.FREQUENCIA -> FrequencyRoute()
                             HomeTab.ALMOXARIFADO -> InventoryRoute()
                             HomeTab.BIBLIOTECA -> LibraryRoute()
+                            HomeTab.GALERIA -> GalleryRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -354,8 +356,9 @@ private fun AppDrawer(
             HorizontalDivider(color = AxeCloudThemeTokens.Ivory.copy(alpha = .12f))
             Spacer(Modifier.height(12.dp))
             Text("NAVEGAÇÃO", Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = AxeCloudThemeTokens.Ivory.copy(alpha = .55f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            HomeTab.entries.filter { it.allowedFor(data.isFilho) }.forEach { tab ->
-                NavigationDrawerItem(
+            LazyColumn(Modifier.weight(1f)) {
+                HomeTab.entries.filter { it.allowedFor(data.isFilho) }.forEach { tab -> item {
+                    NavigationDrawerItem(
                     label = { Text(drawerLabel(tab, data.isFilho), fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Medium) },
                     selected = selectedTab == tab,
                     onClick = { onSelect(tab) },
@@ -372,9 +375,9 @@ private fun AppDrawer(
                         unselectedTextColor = AxeCloudThemeTokens.Ivory.copy(alpha = .82f),
                         unselectedBadgeColor = AxeCloudThemeTokens.Ivory.copy(alpha = .35f),
                     ),
-                )
+                    )
+                } }
             }
-            Spacer(Modifier.weight(1f))
             HorizontalDivider(color = AxeCloudThemeTokens.Ivory.copy(alpha = .12f))
             NavigationDrawerItem(
                 label = { Text("Sair da conta") },
@@ -424,6 +427,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.FREQUENCIA -> "Frequência"
     HomeTab.ALMOXARIFADO -> "Almoxarifado"
     HomeTab.BIBLIOTECA -> "Biblioteca"
+    HomeTab.GALERIA -> "Galeria"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
 }
 
@@ -460,7 +464,7 @@ private fun HomeContent(data: HomeSnapshot, onTab: (HomeTab) -> Unit) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickAccess("Galeria", "${data.galleryItems.size} álbum(ns)", Icons.Outlined.PhotoLibrary, Modifier.weight(1f)) { onTab(HomeTab.GESTAO) }
+                QuickAccess("Galeria", "${data.galleryItems.size} álbum(ns)", Icons.Outlined.PhotoLibrary, Modifier.weight(1f)) { onTab(HomeTab.GALERIA) }
                 QuickAccess("Loja", "${data.storeItems.size} produto(s)", Icons.Outlined.Storefront, Modifier.weight(1f)) { onTab(HomeTab.GESTAO) }
             }
         }
@@ -1204,6 +1208,7 @@ private enum class HomeTab(
     FREQUENCIA("Frequência", Icons.Outlined.Timeline, false, true),
     ALMOXARIFADO("Almoxarifado", Icons.Outlined.Inventory2, false, true),
     BIBLIOTECA("Biblioteca", Icons.Outlined.MenuBook, false),
+    GALERIA("Galeria", Icons.Outlined.PhotoLibrary, false),
     GESTAO("Gestão", Icons.Outlined.Groups, false),
 
     ;

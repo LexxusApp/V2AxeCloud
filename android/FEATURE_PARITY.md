@@ -9,13 +9,13 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL |
 | Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | EM IMPLEMENTAÇÃO |
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
-| Frequência | chamada, leitura de QR, histórico e indicadores por filho/gira | AUSENTE |
+| Frequência | chamada, leitura de QR, histórico e indicadores por filho/gira | PARCIAL — chamada e indicadores nativos; leitura de QR e validação real pendentes |
 | Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
 | Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL |
 | Financeiro | resumo, lançamentos, filtros, criar/editar/excluir, relatório e caixinha | PARCIAL |
 | Mensalidades | pendentes/pagas, cobrar, liquidar, estornar, comprovantes e histórico | PARCIAL |
-| Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | AUSENTE |
-| Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL |
+| Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | PARCIAL — formulário e persistência nativos; validação em aparelho pendente |
+| Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL — fluxo nativo completo compilado; upload real e reprodução de vídeo em aparelho pendentes |
 | Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
 | Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL |
 | Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL |
