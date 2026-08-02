@@ -211,7 +211,7 @@ private fun HomeScreen(
                     ) { tab ->
                         when (tab) {
                             HomeTab.INICIO -> HomeContent(state.snapshot) { selectedTab = it }
-                            HomeTab.ROTINA -> JourneyScreen(
+                            HomeTab.ROTINA -> NativeJourneyScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
                                 onAcknowledge = onAcknowledge,
@@ -221,16 +221,15 @@ private fun HomeScreen(
                             HomeTab.AGENDA -> NativeAgendaScreen(state.snapshot, interaction, onCreateEvent)
                             HomeTab.AVISOS -> NativeNoticesScreen(state.snapshot.noticeItems)
                             HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly)
-                            HomeTab.GESTAO -> ManagementScreen(
+                            HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
                                 onPrayerStatus = onPrayerStatus,
                                 onCreateAlbum = onCreateAlbum,
                                 onAddInventory = onAddInventory,
                                 onAddProduct = onAddProduct,
-                                onBack = { selectedTab = HomeTab.INICIO },
                             )
-                            HomeTab.PERFIL -> ProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
+                            HomeTab.PERFIL -> NativeProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
                         }
                     }
                 }
