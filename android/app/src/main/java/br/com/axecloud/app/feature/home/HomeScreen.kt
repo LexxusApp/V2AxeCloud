@@ -31,6 +31,10 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -88,6 +92,7 @@ fun HomeRoute(
         onSendMessage = viewModel::sendMessage,
         onSettleMonthly = viewModel::settleMonthlyPayment,
         onCreateEvent = viewModel::createEvent,
+        onPrayerStatus = viewModel::updatePrayerStatus,
     )
 }
 
@@ -104,6 +109,7 @@ private fun HomeScreen(
     onSendMessage: (String) -> Unit,
     onSettleMonthly: (HomeFeedItem) -> Unit,
     onCreateEvent: (String, String, String, String, String) -> Unit,
+    onPrayerStatus: (HomeFeedItem, String) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
     Scaffold(
@@ -146,6 +152,7 @@ private fun HomeScreen(
             selectedTab == HomeTab.AGENDA -> AgendaScreen(state.snapshot, interaction, onCreateEvent)
             selectedTab == HomeTab.AVISOS -> FeedScreen("Mural da casa", "Comunicados oficiais em um só lugar.", state.snapshot.noticeItems, Icons.Outlined.Notifications)
             selectedTab == HomeTab.FINANCEIRO -> FinanceScreen(state.snapshot, interaction, onSettleMonthly) { selectedTab = HomeTab.INICIO }
+            selectedTab == HomeTab.GESTAO -> ManagementScreen(state.snapshot, interaction, onPrayerStatus) { selectedTab = HomeTab.INICIO }
             else -> ProfileScreen(state.snapshot, onLogout)
         }
     }
@@ -185,13 +192,19 @@ private fun HomeContent(data: HomeSnapshot, onLogout: () -> Unit, onTab: (HomeTa
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 QuickAccess("Agenda", "${data.events} evento(s)", Icons.Outlined.CalendarMonth, Modifier.weight(1f)) { onTab(HomeTab.AGENDA) }
-                QuickAccess(if (data.isFilho) "Estudos" else "Corrente", if (data.isFilho) "Biblioteca da casa" else data.primaryLabel, if (data.isFilho) Icons.Outlined.MenuBook else Icons.Outlined.Groups, Modifier.weight(1f)) { }
+                QuickAccess(if (data.isFilho) "Estudos" else "Gestão", if (data.isFilho) "Biblioteca da casa" else "Estoque e atendimentos", if (data.isFilho) Icons.Outlined.MenuBook else Icons.Outlined.Groups, Modifier.weight(1f)) { onTab(if (data.isFilho) HomeTab.ROTINA else HomeTab.GESTAO) }
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 QuickAccess("Financeiro", data.financialMessage, Icons.Outlined.AccountBalanceWallet, Modifier.weight(1f)) { onTab(HomeTab.FINANCEIRO) }
                 QuickAccess("Avisos", "${data.notices} publicado(s)", Icons.Outlined.Notifications, Modifier.weight(1f)) { onTab(HomeTab.AVISOS) }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                QuickAccess("Galeria", "${data.galleryItems.size} álbum(ns)", Icons.Outlined.PhotoLibrary, Modifier.weight(1f)) { onTab(HomeTab.GESTAO) }
+                QuickAccess("Loja", "${data.storeItems.size} produto(s)", Icons.Outlined.Storefront, Modifier.weight(1f)) { onTab(HomeTab.GESTAO) }
             }
         }
         item { Spacer(Modifier.height(18.dp)) }
@@ -666,6 +679,94 @@ private fun EmptyFinanceCard(message: String) {
 }
 
 @Composable
+private fun ManagementScreen(
+    data: HomeSnapshot,
+    interaction: InteractionUiState,
+    onPrayerStatus: (HomeFeedItem, String) -> Unit,
+    onBack: () -> Unit,
+) {
+    BackHandler(onBack = onBack)
+    val uriHandler = LocalUriHandler.current
+    LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Voltar", tint = AxeCloudThemeTokens.Forest) }
+                Column {
+                    Text("CASA EM MOVIMENTO", color = AxeCloudThemeTokens.GoldStrong, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(if (data.isFilho) "Espaços da minha casa" else "Central de gestão", color = AxeCloudThemeTokens.ForestDeep, fontSize = 27.sp, fontWeight = FontWeight.Black)
+                }
+            }
+        }
+        interaction.feedback?.let { message -> item { Surface(shape = RoundedCornerShape(14.dp), color = AxeCloudThemeTokens.Gold.copy(alpha = .2f)) { Text(message, Modifier.padding(13.dp), color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold) } } }
+        item { ManagementSection("Galeria da casa", data.galleryItems, Icons.Outlined.PhotoLibrary, "Nenhum álbum publicado") { item -> if (item.url.isNotBlank()) uriHandler.openUri(item.url) } }
+        item { ManagementSection("Loja do axé", data.storeItems, Icons.Outlined.Storefront, "Nenhum produto disponível", showMoney = true) }
+        if (!data.isFilho) {
+            item { ManagementSection("Almoxarifado", data.inventoryItems, Icons.Outlined.Inventory2, "Estoque ainda não cadastrado", showQuantity = true) }
+            item {
+                Surface(shape = RoundedCornerShape(22.dp), color = AxeCloudThemeTokens.Surface, border = androidx.compose.foundation.BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
+                    Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.VolunteerActivism, null, tint = AxeCloudThemeTokens.Forest)
+                            Text("Pedidos de reza", Modifier.padding(start = 10.dp), color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                        }
+                        if (data.prayerItems.isEmpty()) Text("Nenhum pedido aguardando acolhimento.", color = AxeCloudThemeTokens.Muted, fontSize = 12.sp)
+                        data.prayerItems.take(10).forEach { item ->
+                            Column(Modifier.fillMaxWidth().background(AxeCloudThemeTokens.Ivory, RoundedCornerShape(15.dp)).padding(13.dp)) {
+                                Text(item.title, color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold)
+                                Text(item.detail, color = AxeCloudThemeTokens.Muted, fontSize = 11.sp, maxLines = 3)
+                                Text(item.status.replace('_', ' ').uppercase(), color = AxeCloudThemeTokens.GoldStrong, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = { onPrayerStatus(item, "aceito") }, enabled = interaction.actionInProgress == null, colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest)) { Text("Acolher", fontSize = 10.sp) }
+                                    OutlinedButton(onClick = { onPrayerStatus(item, "em_oracao") }, enabled = interaction.actionInProgress == null) { Text("Iniciar oração", fontSize = 10.sp) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManagementSection(
+    title: String,
+    items: List<HomeFeedItem>,
+    icon: ImageVector,
+    empty: String,
+    showMoney: Boolean = false,
+    showQuantity: Boolean = false,
+    onClick: (HomeFeedItem) -> Unit = {},
+) {
+    Surface(shape = RoundedCornerShape(22.dp), color = AxeCloudThemeTokens.Surface, border = androidx.compose.foundation.BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
+        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = AxeCloudThemeTokens.Forest)
+                Text(title, Modifier.padding(start = 10.dp), color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            }
+            if (items.isEmpty()) Text(empty, color = AxeCloudThemeTokens.Muted, fontSize = 12.sp)
+            items.take(8).forEach { item ->
+                Row(
+                    Modifier.fillMaxWidth().background(AxeCloudThemeTokens.Ivory, RoundedCornerShape(14.dp)).clickable { onClick(item) }.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(item.title, color = AxeCloudThemeTokens.ForestDeep, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        if (item.detail.isNotBlank()) Text(item.detail, color = AxeCloudThemeTokens.Muted, fontSize = 10.sp, maxLines = 2)
+                        if (item.status.isNotBlank()) Text(item.status.uppercase(), color = if (item.status.contains("baixo")) AxeCloudThemeTokens.Error else AxeCloudThemeTokens.ForestSoft, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                    when {
+                        showMoney -> Text(item.amount.asMoney(), color = AxeCloudThemeTokens.Forest, fontWeight = FontWeight.ExtraBold)
+                        showQuantity -> Text(item.amount.toInt().toString(), color = AxeCloudThemeTokens.Forest, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        else -> Icon(Icons.Outlined.ChevronRight, null, tint = AxeCloudThemeTokens.GoldStrong)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun QrCode(payload: String, modifier: Modifier = Modifier) {
     val bitmap = androidx.compose.runtime.remember(payload) {
         val matrix = MultiFormatWriter().encode(payload, BarcodeFormat.QR_CODE, 600, 600)
@@ -687,6 +788,7 @@ private enum class HomeTab(val label: String, val icon: ImageVector, val showInN
     AVISOS("Avisos", Icons.Outlined.Notifications),
     PERFIL("Perfil", Icons.Outlined.Person),
     FINANCEIRO("Financeiro", Icons.Outlined.AccountBalanceWallet, false),
+    GESTAO("Gestão", Icons.Outlined.Groups, false),
 }
 
 @Composable

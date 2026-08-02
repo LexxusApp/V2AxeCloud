@@ -73,6 +73,10 @@ class HomeViewModel @Inject constructor(
             repository.createEvent(title, date, time, type, description)
         }
 
+    fun updatePrayerStatus(item: HomeFeedItem, status: String) = runAction(item.id, "Pedido atualizado.") {
+        repository.updatePrayerStatus(item.id, status)
+    }
+
     private fun runAction(id: String, success: String, block: suspend () -> Unit) = viewModelScope.launch {
         mutableInteraction.update { it.copy(actionInProgress = id, feedback = null) }
         runCatching { block() }

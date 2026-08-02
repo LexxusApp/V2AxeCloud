@@ -117,6 +117,19 @@ class HomeRepository @Inject constructor(
         )
     }
 
+    suspend fun updatePrayerStatus(id: String, status: String) {
+        val session = authenticatedSession()
+        check(!session.isFilho) { "Somente a zeladoria pode acolher pedidos." }
+        http.patch(
+            api("/api/v1/atendimentos/pedidos-reza/${encode(id)}"),
+            buildJsonObject {
+                put("tenantId", session.tenantId)
+                put("status", status)
+            },
+            session.accessToken,
+        )
+    }
+
     suspend fun load(): HomeSnapshot {
         val session = sessions.current()
         check(session.isAuthenticated) { "Entre novamente para continuar." }
@@ -130,6 +143,8 @@ class HomeRepository @Inject constructor(
         val libraryCall = async { safeGet("/api/v1/library/materials?tenantId=$tenant", session.accessToken) }
         val chatsCall = async { safeGet("/api/v1/chat/conversations?tenantId=$tenant", session.accessToken) }
         val pixCall = async { safeGet("/api/v1/financial/pix-config?tenantId=$tenant", session.accessToken) }
+        val galleryCall = async { safeGet("/api/v1/gallery/albums?tenantId=$tenant", session.accessToken) }
+        val storeCall = async { safeGet("/api/v1/store/products?tenantId=$tenant", session.accessToken) }
         val root = homeCall.await().asObject()
         val child = root.obj("child")
         val financialStatus = root.text("financialStatus", "financial_status").lowercase()
@@ -169,6 +184,8 @@ class HomeRepository @Inject constructor(
             monthlyDueDay = pix.number("dia_vencimento").toInt().takeIf { it in 1..31 } ?: 10,
             pixPayload = pixPayload,
             pixBeneficiary = pix.text("nome_beneficiario"),
+            galleryItems = galleryCall.await().asList("albums", "data", "items").map { it.asObject().toGalleryItem() },
+            storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
         )
     }
 
@@ -184,6 +201,9 @@ class HomeRepository @Inject constructor(
         val libraryCall = async { safeGet("/api/v1/library/materials?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val chatsCall = async { safeGet("/api/v1/chat/conversations?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val monthlyCall = async { safeGet("/api/v1/financial/mensalidades?tenantId=${encode(session.tenantId)}&view=pendentes", session.accessToken) }
+        val galleryCall = async { safeGet("/api/v1/gallery/albums?tenantId=${encode(session.tenantId)}", session.accessToken) }
+        val inventoryCall = async { safeGet("/api/inventory?tenantId=${encode(session.tenantId)}", session.accessToken) }
+        val storeCall = async { safeGet("/api/v1/store/products?tenantId=${encode(session.tenantId)}", session.accessToken) }
 
         val children = childrenCall.await().asList("children", "items", "data")
         val transactions = transactionsCall.await().asList("transactions", "items", "data")
@@ -220,6 +240,10 @@ class HomeRepository @Inject constructor(
             conversationItems = chatsCall.await().asList("conversations", "data", "items").take(20).map { it.asObject().toConversationItem() },
             monthlyActive = true,
             monthlyItems = monthlyCall.await().asList("data", "items").map { it.asObject().toMonthlyItem() },
+            galleryItems = galleryCall.await().asList("albums", "data", "items").map { it.asObject().toGalleryItem() },
+            inventoryItems = inventoryCall.await().asList("data", "items").map { it.asObject().toInventoryItem() },
+            storeItems = storeCall.await().asList("data", "items", "products").map { it.asObject().toStoreItem() },
+            prayerItems = prayers.map { it.asObject().toPrayerItem() },
         )
     }
 
@@ -290,6 +314,36 @@ private fun JsonObject.toMonthlyItem() = HomeFeedItem(
     detail = listOf(text("vencimento", "data_vencimento", "due_date"), text("status")).filter(String::isNotBlank).joinToString(" · "),
     status = text("status").ifBlank { "pendente" },
     amount = number("valor", "value", "amount"),
+)
+private fun JsonObject.toGalleryItem(): HomeFeedItem {
+    val firstMedia = array("media").firstOrNull().asObject()
+    return HomeFeedItem(
+        id = text("id"),
+        title = text("nome", "name", "titulo", "title").ifBlank { "Álbum da casa" },
+        detail = "${array("media").size} memória(s)",
+        url = firstMedia.text("public_url", "url", "media_url", "arquivo_url"),
+    )
+}
+private fun JsonObject.toInventoryItem() = HomeFeedItem(
+    id = text("id"),
+    title = text("item", "nome", "name").ifBlank { "Item do estoque" },
+    detail = text("categoria", "category"),
+    status = if (number("quantidade_atual") <= number("quantidade_minima")) "estoque baixo" else "disponível",
+    amount = number("quantidade_atual", "quantity"),
+)
+private fun JsonObject.toStoreItem() = HomeFeedItem(
+    id = text("id"),
+    title = text("nome", "name").ifBlank { "Produto da casa" },
+    detail = text("descricao", "description", "categoria"),
+    url = text("imagem_url", "image_url"),
+    status = if (number("estoque_atual", "stock") > 0) "disponível" else "esgotado",
+    amount = number("preco", "price"),
+)
+private fun JsonObject.toPrayerItem() = HomeFeedItem(
+    id = text("id"),
+    title = text("nome", "name").ifBlank { "Pedido de reza" },
+    detail = listOf(text("categoria"), text("vela"), text("pedido", "mensagem", "descricao")).filter(String::isNotBlank).joinToString(" · ").take(140),
+    status = text("status").ifBlank { "pendente" },
 )
 
 private fun buildPixPayload(key: String, beneficiary: String, value: Double, txid: String): String {
