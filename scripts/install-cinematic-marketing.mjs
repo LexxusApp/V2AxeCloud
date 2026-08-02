@@ -32,7 +32,6 @@ const assets = new Map([
   ['/assets/hero-fundo.webp', path.join(SOURCE, 'assets', 'hero-fundo.webp')],
   ['/vendor/gsap.min.js', path.join(ROOT, 'node_modules', 'gsap', 'dist', 'gsap.min.js')],
   ['/vendor/ScrollTrigger.min.js', path.join(ROOT, 'node_modules', 'gsap', 'dist', 'ScrollTrigger.min.js')],
-  ['/vendor/lenis.min.js', path.join(ROOT, 'node_modules', 'lenis', 'dist', 'lenis.min.js')],
   ['/vendor/leaflet/leaflet.js', path.join(ROOT, 'node_modules', 'leaflet', 'dist', 'leaflet.js')],
   ['/vendor/leaflet/leaflet.css', path.join(ROOT, 'node_modules', 'leaflet', 'dist', 'leaflet.css')],
   ['/vendor/L.TileLayer.NoGap.js', path.join(SOURCE, 'vendor', 'L.TileLayer.NoGap.js')],
@@ -57,7 +56,13 @@ fs.mkdirSync(ASSET_OUT, { recursive: true });
 // /terreiro/:slug e outras páginas públicas dinâmicas.
 const reactShellSource = path.join(OUT, 'index.html');
 assertFile(reactShellSource);
-fs.copyFileSync(reactShellSource, path.join(OUT, '__react_shell.html'));
+const reactShellOut = path.join(OUT, '__react_shell.html');
+const currentIndex = fs.readFileSync(reactShellSource, 'utf8');
+if (!currentIndex.includes('axecloud-marketing-build')) {
+  fs.copyFileSync(reactShellSource, reactShellOut);
+} else {
+  assertFile(reactShellOut);
+}
 
 const urls = new Map();
 for (const [publicPath, source] of assets) {
@@ -86,7 +91,7 @@ for (const [sourceName, outputRelative] of pages) {
     html = html.replaceAll(`"${from}"`, `"${to}"`).replaceAll(`'${from}'`, `'${to}'`);
   }
   html = html.replace(/\s*<link rel="manifest" href="\/site\.webmanifest" \/>/, '');
-  html = html.replace(/(<body\b[^>]*>)/i, `$1\n  <script src="${bridgeUrl}"></script>`);
+  html = html.replace(/(<body\b[^>]*>)/i, `$1\n  <script defer src="${bridgeUrl}"></script>`);
   html = html.replace('</head>', `  <meta name="axecloud-marketing-build" content="cinematic-production" />\n</head>`);
 
   const forbidden = ['/vendor/', 'href="/styles.css"', 'src="/app.js"', 'src="/shared-footer.js"'];

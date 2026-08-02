@@ -26,9 +26,16 @@
   <meta property="og:image:alt" content="AxéCloud — gestão de terreiros" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="https://axecloud.com.br/og-image.png" />
+  <link rel="preload" as="image" href="/assets/hero-fundo.webp" type="image/webp" fetchpriority="high" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+    media="print"
+    onload="this.media='all'"
+  />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/styles-claro.css" />
   <noscript><style>#preloader{display:none!important}[data-reveal]{opacity:1!important;transform:none!important}</style></noscript>
@@ -38,7 +45,7 @@
 <body class="tema-claro">
 
   <!-- ══════════ PRELOADER — A FIRMEZA ══════════ -->
-  <div id="preloader" aria-hidden="true">
+  <div id="preloader" aria-hidden="true" hidden>
     <div class="firmeza">
       <div class="vela">
         <div class="chama"></div>
@@ -411,10 +418,32 @@
   <div id="site-footer"></div>
 
   <link rel="stylesheet" href="/shared-footer.css" />
-  <script src="/vendor/gsap.min.js" onerror="axeCinematicAssetError()"></script>
-  <script src="/vendor/ScrollTrigger.min.js" onerror="axeCinematicAssetError()"></script>
-  <script src="/vendor/lenis.min.js" onerror="axeCinematicAssetError()"></script>
-  <script src="/app.js" onerror="axeCinematicAssetError()"></script>
-  <script src="/shared-footer.js"></script>
+  <script defer src="/shared-footer.js"></script>
+  <script>
+    (function () {
+      var iniciou = false;
+      var assets = ["/vendor/gsap.min.js", "/vendor/ScrollTrigger.min.js", "/app.js"];
+
+      function carregarCinematico() {
+        if (iniciou) return;
+        iniciou = true;
+        var indice = 0;
+        function proximo() {
+          if (indice >= assets.length) return;
+          var script = document.createElement("script");
+          script.src = assets[indice++];
+          script.onload = proximo;
+          script.onerror = axeCinematicAssetError;
+          document.body.appendChild(script);
+        }
+        proximo();
+      }
+
+      window.axeLoadCinematic = carregarCinematico;
+      ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (evento) {
+        window.addEventListener(evento, carregarCinematico, { once: true, passive: true });
+      });
+    })();
+  </script>
 </body>
 </html>

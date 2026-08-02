@@ -36,7 +36,7 @@ body.tema-claro ::selection {
 
 /* ── Preloader ─────────────────────────────────────────── */
 body.tema-claro #preloader {
-  background: #faf8f4;
+  display: none !important;
 }
 body.tema-claro .firmeza-texto {
   color: rgba(27, 24, 19, 0.55);
@@ -55,14 +55,12 @@ body.tema-claro .clarao-fogueira {
 
 /* Canvas de pó dourado (pemba) — visível e discreto */
 body.tema-claro #embers {
-  display: block;
-  opacity: 0.9;
-  mix-blend-mode: multiply;
+  display: none;
 }
 
 /* Halo dourado respirando (substitui o clarão da fogueira) */
 body.tema-claro .luz-ambiente {
-  display: block;
+  display: none;
   position: fixed;
   inset: 0;
   z-index: 1;
@@ -347,6 +345,17 @@ body.tema-claro .oferta-copy {
 body.tema-claro .oferta-pilar {
   border-color: rgba(27, 24, 19, 0.08);
   background: rgba(255, 193, 7, 0.08);
+}
+
+/* Mantém o primeiro viewport estável e barato para CPU/GPU. */
+body.tema-claro .fumaca,
+body.tema-claro #pontos-fumaca,
+body.tema-claro .hero-fumaca {
+  display: none !important;
+}
+body.tema-claro .pr-estrela,
+body.tema-claro .dica-batida {
+  animation: none;
 }
 body.tema-claro .oferta-planos-cabecalho strong,
 body.tema-claro .oferta-plano-preco > span,

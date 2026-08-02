@@ -65,6 +65,7 @@ body::before {
   transition: opacity 1.1s ease, visibility 1.1s;
 }
 #preloader.apagado { opacity: 0; visibility: hidden; }
+#preloader[hidden] { display: none !important; }
 .cinematic-fallback #preloader { display: none !important; }
 .cinematic-fallback [data-reveal] { opacity: 1 !important; transform: none !important; }
 .firmeza { text-align: center; }

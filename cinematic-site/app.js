@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    AxéCloud — Protótipo Cinematográfico
-   Animações (GSAP + Lenis), brasas em canvas e dados reais
+   Animações GSAP, interações e dados reais
    puxados da API do sistema via /api.
    ═══════════════════════════════════════════════════════════ */
 
@@ -11,17 +11,13 @@ const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 const reduzMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* ── Scroll suave (Lenis) ─────────────────────────────────── */
-const lenis = reduzMovimento
-  ? { scrollTo: (alvo) => alvo?.scrollIntoView?.({ behavior: "auto", block: "start" }) }
-  : new Lenis({ duration: 1.15, smoothWheel: true, syncTouch: false });
-if (!reduzMovimento) {
-  lenis.on("scroll", ScrollTrigger.update);
-  gsap.ticker.add((t) => lenis.raf(t * 1000));
-  /* lagSmoothing ajuda a recuperar FPS sem “pular” o visual de uma vez */
-  gsap.ticker.lagSmoothing(500, 33);
-  gsap.ticker.fps(60);
-}
+/* Scroll nativo: evita um ticker permanente na thread principal. */
+const lenis = {
+  scrollTo: (alvo) => alvo?.scrollIntoView?.({
+    behavior: reduzMovimento ? "auto" : "smooth",
+    block: "start",
+  }),
+};
 ScrollTrigger.config({ ignoreMobileResize: true, limitCallbacks: true });
 
 /* Pausa animações CSS pesadas com a aba oculta (sem mudar o look quando volta) */
@@ -126,7 +122,7 @@ document.addEventListener("visibilitychange", () => {
     return p;
   }
 
-  const QTD = reduzMovimento
+  const QTD = reduzMovimento || temaClaro
     ? 0
     : temaClaro
       ? Math.min(38, Math.floor(innerWidth / 32))
@@ -170,7 +166,7 @@ document.addEventListener("visibilitychange", () => {
 
 /* ── Pontos riscados subindo na defumação ─────────────────── */
 (function pontosNaFumaca() {
-  if (reduzMovimento) return;
+  if (reduzMovimento || document.body.classList.contains("tema-claro")) return;
   const palco = $("#pontos-fumaca");
   if (!palco) return;
   const temaClaro = document.body.classList.contains("tema-claro");
@@ -275,47 +271,10 @@ document.addEventListener("visibilitychange", () => {
   });
 })();
 
-/* ── Preloader (só na primeira visita da sessão) ──────────── */
+/* Hero visível no primeiro frame: loaders artificiais pioram LCP e Speed Index. */
 (function preloader() {
-  let jaEntrou = false;
-  try { jaEntrou = sessionStorage.getItem("axe-licenca") === "1"; } catch { /* navegador restritivo */ }
-  if (jaEntrou || reduzMovimento) {
-    $("#preloader").style.display = "none";
-    abrirPortao();
-    return;
-  }
-  try { sessionStorage.setItem("axe-licenca", "1"); } catch { /* navegador restritivo */ }
-
-  const barra = $(".firmeza-progresso");
-  let prog = 0;
-  const iv = setInterval(() => {
-    prog = Math.min(100, prog + 8 + Math.random() * 16);
-    barra.style.width = prog + "%";
-    if (prog >= 100) {
-      clearInterval(iv);
-      setTimeout(abrirPortao, 80);
-    }
-  }, 55);
-
-  function abrirPortao() {
-    $("#preloader").classList.add("apagado");
-    if (reduzMovimento) return;
-    // Entrada do hero — AxéCloud surge bem devagar (só opacity/y — sem blur, evita travar)
-    const tl = gsap.timeline({ delay: 0.35 });
-    tl.from(".hero-titulo .letra", {
-      opacity: 0,
-      y: 10,
-      stagger: 0.16,
-      duration: 2.6,
-      ease: "sine.out",
-      force3D: true,
-    })
-      .from(".hero-saudacao span", { yPercent: 110, duration: 1.1, ease: "power3.out" }, "-=0.5")
-      .from(".hero-sub span", { yPercent: 110, duration: 1, ease: "power3.out" }, "-=0.55")
-      .from(".hero-sub2 span", { yPercent: 110, duration: 1, ease: "power3.out" }, "-=0.65")
-      .from(".hero-ctas .btn", { y: 26, opacity: 0, stagger: 0.14, duration: 0.85 }, "-=0.4")
-      .from(".hero-scroll-dica", { opacity: 0, duration: 1.1 }, "-=0.2");
-  }
+  const elemento = $("#preloader");
+  if (elemento) elemento.style.display = "none";
 })();
 
 /* ── Ponto riscado: desenhado pela pemba conforme o scroll ── */
