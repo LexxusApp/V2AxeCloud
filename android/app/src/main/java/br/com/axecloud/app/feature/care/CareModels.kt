@@ -1,0 +1,4 @@
+package br.com.axecloud.app.feature.care
+
+data class PrayerRequest(val id:String,val name:String,val whatsapp:String,val message:String,val status:String,val note:String,val category:String,val line:String,val candle:String,val houseName:String,val createdAt:String)
+data class CareUiState(val loading:Boolean=true,val requests:List<PrayerRequest> = emptyList(),val filter:String="todos",val query:String="",val selected:PrayerRequest?=null,val actionId:String?=null,val error:String?=null,val message:String?=null){val visible get()=requests.filter{(filter=="todos"||it.status==filter)&&(query.isBlank()||(it.name+it.message+it.category).contains(query,true))};val pending get()=requests.count{it.status=="pendente"};val inPrayer get()=requests.count{it.status=="em_oracao"};val accepted get()=requests.count{it.status=="aceito"}}

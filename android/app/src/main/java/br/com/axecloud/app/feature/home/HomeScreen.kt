@@ -99,6 +99,7 @@ import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import br.com.axecloud.app.feature.finance.FinanceRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
 import br.com.axecloud.app.feature.gallery.GalleryRoute
+import br.com.axecloud.app.feature.care.CareRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
 import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
@@ -247,6 +248,7 @@ private fun HomeScreen(
                             HomeTab.ALMOXARIFADO -> InventoryRoute()
                             HomeTab.BIBLIOTECA -> LibraryRoute()
                             HomeTab.GALERIA -> GalleryRoute()
+                            HomeTab.ATENDIMENTOS -> CareRoute()
                             HomeTab.GESTAO -> NativeManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -428,6 +430,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.ALMOXARIFADO -> "Almoxarifado"
     HomeTab.BIBLIOTECA -> "Biblioteca"
     HomeTab.GALERIA -> "Galeria"
+    HomeTab.ATENDIMENTOS -> "Atendimentos"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Gestão da casa"
 }
 
@@ -1209,6 +1212,7 @@ private enum class HomeTab(
     ALMOXARIFADO("Almoxarifado", Icons.Outlined.Inventory2, false, true),
     BIBLIOTECA("Biblioteca", Icons.Outlined.MenuBook, false),
     GALERIA("Galeria", Icons.Outlined.PhotoLibrary, false),
+    ATENDIMENTOS("Atendimentos", Icons.Outlined.VolunteerActivism, false, true),
     GESTAO("Gestão", Icons.Outlined.Groups, false),
 
     ;

@@ -18,7 +18,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL — fluxo nativo completo compilado; upload real e reprodução de vídeo em aparelho pendentes |
 | Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
 | Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL |
-| Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL |
+| Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL — central nativa de pedidos, busca, acolhimento, oração, notas, WhatsApp e conclusão compilados; agenda/cadastro/histórico dependem de API Web equivalente |
 | Loja | produtos, categorias, cadastro/edição, estoque, pedidos e status | PARCIAL |
 | Preceitos | criar, ativar para corrente/grupos, instruções, ciência, orientação e encerramento | PARCIAL |
 | Configurações | identidade, conta, casa, foto, segurança, plano, WhatsApp legado, portal público e exclusão | PARCIAL |
