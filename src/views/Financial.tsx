@@ -79,7 +79,7 @@ const CAIXINHA_ENABLED = false;
 /** Alinha status do financeiro (pt) com filtros de aba pending/paid. */
 function mensalidadeStatusIsPending(status: string | null) {
   const t = String(status ?? '').toLowerCase();
-  return t === 'pendente' || t === 'pending';
+  return t === 'pendente' || t === 'pending' || t === 'atrasado' || t === 'overdue';
 }
 function mensalidadeStatusIsPaid(status: string | null) {
   const t = String(status ?? '').toLowerCase();
@@ -154,7 +154,7 @@ function rowIsMensalidadePagaLegacy(row: MensalidadeZeladorRow): boolean {
   );
 }
 
-/** Aba Pendentes: coluna status OU legado por texto na descrição (API já filtra mês; UI não pode descartar status null). */
+/** Aba Pendentes: coluna status OU legado por texto na descrição (API lista em aberto de qualquer mês). */
 function mensalidadeRowIsPendenteForTabs(row: MensalidadeZeladorRow): boolean {
   if (mensalidadeStatusIsPaid(row.status)) return false;
   if (mensalidadeStatusIsPending(row.status)) return true;
@@ -1573,7 +1573,7 @@ export default function Financial({
                       <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-400" aria-hidden />
                       <p className="text-lg font-bold text-[#F1F5F9]">Tudo em dia!</p>
                       <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94A3B8]">
-                        Nenhuma mensalidade pendente para este período.
+                        Nenhuma mensalidade em aberto.
                       </p>
                     </div>
                   ) : (

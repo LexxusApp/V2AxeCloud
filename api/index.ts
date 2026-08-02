@@ -399,13 +399,13 @@ function rowIsMensalidadePagaSemStatusColumn(row: any): boolean {
   );
 }
 
-/** Com coluna `status`: pendente explícito OU legado com status vazio (evita sync inserir de novo). */
+/** Com coluna `status`: pendente/atrasado explícito OU legado com status vazio (evita sync inserir de novo). */
 function rowIsMensalidadePendenteForDueCheck(row: any, supportsStatus: boolean): boolean {
   if (String(row.categoria || "") !== "Mensalidade" || !deriveMensalidadeFilhoId(row)) return false;
   if (!supportsStatus) return rowIsMensalidadePendenteSemStatusColumn(row);
   const st = String(row.status ?? "").trim().toLowerCase();
   if (st === "pago" || st === "paid" || st === "confirmado") return false;
-  if (st === "pendente" || st === "pending") return true;
+  if (st === "pendente" || st === "pending" || st === "atrasado" || st === "overdue") return true;
   return rowIsMensalidadePendenteSemStatusColumn(row);
 }
 
@@ -582,14 +582,10 @@ async function loadTenantChildrenForMensalidade(
 async function fetchMensalidadesPendentesList(
   supabaseAdmin: any,
   tenantId: string,
-  ref: Date = new Date()
+  _ref: Date = new Date()
 ): Promise<MensalidadeZeladorRow[]> {
+  void _ref;
   const supportsStatus = await resolveFinanceiroStatusColumnSupported(supabaseAdmin);
-  const y = ref.getFullYear();
-  const m0 = ref.getMonth();
-  const start = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
-  const last = new Date(y, m0 + 1, 0).getDate();
-  const endStr = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
 
   let diaVenc = 10;
   const { data: pix } = await supabaseAdmin
@@ -617,22 +613,24 @@ async function fetchMensalidadesPendentesList(
   }
   const { data, error } = await q;
   if (error) throw error;
-  const pendentesMesAtual = ((data || []) as MensalidadeZeladorRow[]).filter((row) => {
-    const ymd = mensalidadeVencimentoOuDataYmd(row);
-    if (!mensalidadeYmdDentroDoMesCalendario(ymd, start, endStr)) return false;
+  // Todas as cobranças em aberto (qualquer mês). Filtrar só o mês atual escondia
+  // pendências de julho/etc. quando o mês virava — Filhos mostrava, Financeiro não.
+  const pendentesEmAberto = ((data || []) as MensalidadeZeladorRow[]).filter((row) => {
     const fid = deriveMensalidadeFilhoId(row);
     if (!fid) return false;
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) return false;
+    const ymd = mensalidadeVencimentoOuDataYmd(row);
     const child = childById.get(fid);
     if (!child) return true;
-    return childEligibleForDueMonth(child, ymd!, diaVenc);
+    if (!ymd) return true;
+    return childEligibleForDueMonth(child, ymd, diaVenc);
   });
-  pendentesMesAtual.sort((a, b) => {
+  pendentesEmAberto.sort((a, b) => {
     const aRef = String((a as any).data_vencimento || a.data || "").slice(0, 10);
     const bRef = String((b as any).data_vencimento || b.data || "").slice(0, 10);
     return aRef.localeCompare(bRef);
   });
-  const deduped = dedupeMensalidadesPendentesPorFilhoMes(pendentesMesAtual);
+  const deduped = dedupeMensalidadesPendentesPorFilhoMes(pendentesEmAberto);
   deduped.sort((a, b) => {
     const aRef = String((a as any).data_vencimento || a.data || "").slice(0, 10);
     const bRef = String((b as any).data_vencimento || b.data || "").slice(0, 10);
@@ -733,7 +731,7 @@ async function syncMensalidadesPendentes(
 
     const nome = String((child as any).nome || "Filho").trim() || "Filho";
     const insert: Record<string, unknown> = {
-      tipo: "conta_receber",
+      tipo: "entrada",
       valor: valorPadrao,
       categoria: "Mensalidade",
       data: dueStr,
@@ -761,6 +759,16 @@ async function syncMensalidadesPendentes(
       insErr = r4.error;
     }
     if (!insErr) created += 1;
+    else {
+      console.warn(
+        "[SERVER] syncMensalidadesPendentes: insert falhou filho=",
+        fid,
+        "due=",
+        dueStr,
+        "err=",
+        insErr?.message || insErr
+      );
+    }
   }
 
   let removed = 0;
@@ -774,7 +782,7 @@ async function syncMensalidadesPendentes(
       .select(cols)
       .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
       .eq("categoria", "Mensalidade");
-    if (supportsStatus) q = q.eq("status", "pendente");
+    if (supportsStatus) q = q.in("status", ["pendente", "atrasado", "pending", "overdue"]);
     return q;
   };
   let { data: pendRows, error: pendErr } = await buildCleanQuery(
@@ -788,7 +796,14 @@ async function syncMensalidadesPendentes(
   for (const row of pendRows || []) {
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) continue;
     const ymd = mensalidadeVencimentoOuDataYmd(row);
-    if (!ymd || !mensalidadeYmdDentroDoMesCalendario(ymd, monthStart, monthEnd)) continue;
+    if (!ymd) continue;
+    // Meses anteriores em aberto: remove (só o mês corrente permanece cobrável).
+    if (ymd < monthStart.slice(0, 10)) {
+      const { error: delOldErr } = await supabaseAdmin.from("financeiro").delete().eq("id", row.id);
+      if (!delOldErr) removed += 1;
+      continue;
+    }
+    if (!mensalidadeYmdDentroDoMesCalendario(ymd, monthStart, monthEnd)) continue;
     const fid = deriveMensalidadeFilhoId(row);
     if (!fid) continue;
     const child = childById.get(fid);
@@ -929,7 +944,7 @@ async function estornarMensalidadePaga(
   const nome = String(child?.nome || "Filho").trim() || "Filho";
 
   const up: Record<string, unknown> = {
-    tipo: "conta_receber",
+    tipo: "entrada",
     data: due,
     descricao: `Mensalidade - ${nome} (vencimento ${due}) (ID:${filhoId})`,
   };

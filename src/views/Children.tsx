@@ -142,8 +142,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
           { cache: 'no-store' },
         ),
+        // Mesma fonte do Controle de Mensalidades (em aberto, qualquer mês).
         authFetch(
-          `/api/transactions?tenantId=${encodeURIComponent(tenantId || '')}&userId=${encodeURIComponent(user.id)}&userRole=admin&limit=400`,
+          `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId || '')}&view=pendentes`,
           { cache: 'no-store' },
         ),
       ]);
@@ -158,11 +159,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
       setChildren(result.data || []);
       setPendingPayments(
-        (paymentsResult.data || []).filter((transaction: any) => {
-          const category = String(transaction?.categoria || '').toLowerCase();
-          const status = String(transaction?.status || '').toLowerCase();
-          return category === 'mensalidade' && (status === 'pendente' || status === 'atrasado');
-        }),
+        paymentsResponse.ok
+          ? (paymentsResult.data || [])
+          : []
       );
     } catch (error) {
       console.error('Error fetching children:', error);

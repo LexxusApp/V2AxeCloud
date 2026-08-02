@@ -23,6 +23,7 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { fetchMinhasParticipacoes } from '../lib/giraOperations';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
+import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 
 export interface AppNotification {
   id: string;
@@ -188,12 +189,13 @@ async function loadZeladorNotifications(
   const [pagamentos, rezas, giras, obrigacoes, pedidosLoja, falhasEnvio] = await Promise.allSettled([
     supabase
       .from('financeiro')
-      .select('id, descricao, valor, created_at, categoria')
+      .select('id, descricao, valor, created_at, categoria, tipo, status')
       .eq('tenant_id', tenantId)
       .eq('tipo', 'entrada')
+      .eq('categoria', 'Mensalidade')
       .gte('created_at', isoDaysAgo(14))
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(20),
     authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${encodeURIComponent(tenantId)}`).then(
       async (response) => {
         const json = await response.json();
@@ -244,11 +246,15 @@ async function loadZeladorNotifications(
 
   if (pagamentos.status === 'fulfilled') {
     (pagamentos.value.data || [])
-      .filter(
-        (row) =>
-          String(row.categoria || '') === 'Mensalidade' ||
-          /^mensalidade/i.test(String(row.descricao || '')),
-      )
+      .filter((row) => {
+        // Cobrança em aberto (vencimento) nunca vira "Mensalidade paga" no sino.
+        if (/\(vencimento/i.test(String(row.descricao || ''))) return false;
+        const st = String((row as { status?: string }).status || '').toLowerCase();
+        if (st === 'pendente' || st === 'pending' || st === 'atrasado' || st === 'overdue') {
+          return false;
+        }
+        return isPaidMensalidadeFinanceRow(row as Record<string, unknown>);
+      })
       .slice(0, 5)
       .forEach((row) => {
         items.push({
