@@ -9,10 +9,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,6 +25,97 @@ class HomeRepository @Inject constructor(
     private val sessions: SessionStore,
 ) {
     fun session(): SessionSnapshot = sessions.current()
+
+    suspend fun acknowledgePrecept(id: String) {
+        val session = authenticatedSession()
+        http.post(
+            api("/api/v1/preceitos/${encode(id)}/acknowledge"),
+            buildJsonObject { put("tenantId", session.tenantId) },
+            session.accessToken,
+        )
+    }
+
+    suspend fun requestPreceptGuidance(id: String) {
+        val session = authenticatedSession()
+        http.post(
+            api("/api/v1/preceitos/${encode(id)}/guidance"),
+            buildJsonObject { put("tenantId", session.tenantId) },
+            session.accessToken,
+        )
+    }
+
+    suspend fun loadMessages(conversationId: String): List<ChatMessage> {
+        val session = authenticatedSession()
+        val root = http.get(
+            api("/api/v1/chat/conversations/${encode(conversationId)}/messages?limit=80"),
+            session.accessToken,
+        ).asObject()
+        runCatching {
+            http.post(
+                api("/api/v1/chat/conversations/${encode(conversationId)}/read"),
+                buildJsonObject { },
+                session.accessToken,
+            )
+        }
+        return root.array("messages", "data").map { element ->
+            val item = element.asObject()
+            ChatMessage(
+                id = item.text("id"),
+                body = item.text("body", "message").ifBlank { when (item.text("messageType")) {
+                    "audio" -> "Áudio"
+                    "image" -> "Imagem"
+                    "video" -> "Vídeo"
+                    else -> "Mensagem"
+                } },
+                senderName = item.text("senderNome", "senderName").ifBlank { "Casa" },
+                createdAt = item.text("createdAt", "created_at"),
+                isOwn = item.bool("isOwn", "is_own") == true,
+            )
+        }
+    }
+
+    suspend fun sendTextMessage(conversationId: String, body: String) {
+        val session = authenticatedSession()
+        http.post(
+            api("/api/v1/chat/conversations/${encode(conversationId)}/messages"),
+            buildJsonObject {
+                put("body", body.trim())
+                put("messageType", "text")
+            },
+            session.accessToken,
+        )
+    }
+
+    suspend fun settleMonthlyPayment(id: String, amount: Double) {
+        val session = authenticatedSession()
+        http.post(
+            api("/api/v1/financial/mensalidades/liquidar"),
+            buildJsonObject {
+                put("id", id)
+                put("tenant_id", session.tenantId)
+                if (amount > 0) put("valor", amount)
+            },
+            session.accessToken,
+        )
+    }
+
+    suspend fun createEvent(title: String, date: String, time: String, type: String, description: String) {
+        val session = authenticatedSession()
+        check(!session.isFilho) { "Somente a zeladoria pode criar giras." }
+        http.post(
+            api("/api/events"),
+            buildJsonObject {
+                put("titulo", title.trim())
+                put("data", date.trim())
+                put("hora", time.trim())
+                put("tipo", type.trim().ifBlank { "Gira" })
+                put("descricao", description.trim())
+                put("status_confirmacao", "Confirmado")
+                put("evento_publico", false)
+            },
+            session.accessToken,
+        )
+    }
 
     suspend fun load(): HomeSnapshot {
         val session = sessions.current()
@@ -36,13 +129,24 @@ class HomeRepository @Inject constructor(
         val preceptsCall = async { safeGet("/api/v1/preceitos/current?tenantId=$tenant", session.accessToken) }
         val libraryCall = async { safeGet("/api/v1/library/materials?tenantId=$tenant", session.accessToken) }
         val chatsCall = async { safeGet("/api/v1/chat/conversations?tenantId=$tenant", session.accessToken) }
+        val pixCall = async { safeGet("/api/v1/financial/pix-config?tenantId=$tenant", session.accessToken) }
         val root = homeCall.await().asObject()
         val child = root.obj("child")
-        val financial = root.obj("financialStatus")
+        val financialStatus = root.text("financialStatus", "financial_status").lowercase()
         val notices = root.array("notices")
         val name = child.text("nome", "name", "full_name").firstName()
-        val pending = financial.number("pendingCount", "pending_count", "pendentes").toInt()
-        val inGoodStanding = financial.bool("isUpToDate", "em_dia") ?: (pending == 0)
+        val pending = if (financialStatus in listOf("pago", "paid", "em_dia", "em dia", "")) 0 else 1
+        val inGoodStanding = pending == 0
+        val pix = pixCall.await().asObject().obj("data")
+        val monthlyActive = pix.bool("mensalidade_ativa") != false
+        val monthlyValue = pix.number("valor_mensalidade")
+        val pixKey = pix.text("chave_pix")
+        val pixPayload = if (monthlyActive && pixKey.isNotBlank() && monthlyValue > 0) buildPixPayload(
+            key = pixKey,
+            beneficiary = pix.text("nome_beneficiario").ifBlank { session.houseName },
+            value = monthlyValue,
+            txid = child.text("id").ifBlank { session.userId },
+        ) else ""
         HomeSnapshot(
             greetingName = name.ifBlank { "irmão" },
             houseName = session.houseName,
@@ -60,6 +164,11 @@ class HomeRepository @Inject constructor(
             preceptItems = preceptsCall.await().asList("data", "items").map { it.asObject().toPreceptItem() },
             libraryItems = libraryCall.await().asList("data", "items", "materials").take(20).map { it.asObject().toLibraryItem() },
             conversationItems = chatsCall.await().asList("conversations", "data", "items").take(20).map { it.asObject().toConversationItem() },
+            monthlyActive = monthlyActive,
+            monthlyValue = monthlyValue,
+            monthlyDueDay = pix.number("dia_vencimento").toInt().takeIf { it in 1..31 } ?: 10,
+            pixPayload = pixPayload,
+            pixBeneficiary = pix.text("nome_beneficiario"),
         )
     }
 
@@ -74,6 +183,7 @@ class HomeRepository @Inject constructor(
         val preceptsCall = async { safeGet("/api/v1/preceitos?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val libraryCall = async { safeGet("/api/v1/library/materials?tenantId=${encode(session.tenantId)}", session.accessToken) }
         val chatsCall = async { safeGet("/api/v1/chat/conversations?tenantId=${encode(session.tenantId)}", session.accessToken) }
+        val monthlyCall = async { safeGet("/api/v1/financial/mensalidades?tenantId=${encode(session.tenantId)}&view=pendentes", session.accessToken) }
 
         val children = childrenCall.await().asList("children", "items", "data")
         val transactions = transactionsCall.await().asList("transactions", "items", "data")
@@ -108,6 +218,8 @@ class HomeRepository @Inject constructor(
             preceptItems = preceptsCall.await().asList("data", "items").take(20).map { it.asObject().toPreceptItem() },
             libraryItems = libraryCall.await().asList("data", "items", "materials").take(20).map { it.asObject().toLibraryItem() },
             conversationItems = chatsCall.await().asList("conversations", "data", "items").take(20).map { it.asObject().toConversationItem() },
+            monthlyActive = true,
+            monthlyItems = monthlyCall.await().asList("data", "items").map { it.asObject().toMonthlyItem() },
         )
     }
 
@@ -116,6 +228,9 @@ class HomeRepository @Inject constructor(
 
     private fun api(path: String) = BuildConfig.API_BASE_URL.trimEnd('/') + path
     private fun encode(value: String) = URLEncoder.encode(value, Charsets.UTF_8.name())
+    private fun authenticatedSession(): SessionSnapshot = sessions.current().also {
+        check(it.isAuthenticated) { "Entre novamente para continuar." }
+    }
 }
 
 private fun JsonElement?.asObject(): JsonObject = this as? JsonObject ?: JsonObject(emptyMap())
@@ -138,24 +253,59 @@ private fun JsonObject.bool(vararg keys: String): Boolean? = keys.firstNotNullOf
 private fun String.firstName() = trim().substringBefore(' ').replaceFirstChar { it.uppercase() }
 private fun Double.asCurrency(): String = "R$ " + String.format(java.util.Locale("pt", "BR"), "%,.2f", this)
 private fun JsonObject.toEventItem() = HomeFeedItem(
+    id = text("id"),
     title = text("titulo", "title", "nome", "name").ifBlank { "Gira da casa" },
-    detail = listOf(text("data", "date", "start_date", "starts_at"), text("horario", "time")).filter(String::isNotBlank).joinToString(" · "),
+    detail = listOf(text("data", "date", "start_date", "starts_at"), text("hora", "horario", "time")).filter(String::isNotBlank).joinToString(" · "),
 )
 private fun JsonObject.toNoticeItem() = HomeFeedItem(
+    id = text("id"),
     title = text("titulo", "title", "assunto", "subject", "tipo").ifBlank { "Aviso da casa" },
     detail = text("conteudo", "content", "mensagem", "message", "descricao").take(100),
 )
 private fun JsonObject.toPreceptItem() = HomeFeedItem(
+    id = text("id"),
     title = text("titulo", "title").ifBlank { "Preceito da casa" },
     detail = listOf(text("tipo", "type"), text("inicio_em", "start_date"), text("fim_em", "end_date")).filter(String::isNotBlank).joinToString(" · "),
+    status = obj("participacao").text("status").ifBlank { text("status") },
 )
 private fun JsonObject.toLibraryItem() = HomeFeedItem(
+    id = text("id"),
     title = text("titulo", "title", "nome", "name").ifBlank { "Material de estudo" },
     detail = text("categoria", "category", "descricao", "description"),
+    url = text("arquivo_url", "fileUrl", "url"),
 )
 private fun JsonObject.toConversationItem() = HomeFeedItem(
+    id = text("id"),
     title = text("title", "titulo").ifBlank {
         obj("peer").text("name", "nome", "displayName").ifBlank { "Conversa da casa" }
     },
     detail = text("lastMessagePreview", "ultima_mensagem", "message").ifBlank { "Abra para acompanhar" },
+    status = number("unreadCount", "unread_count").toInt().takeIf { it > 0 }?.toString().orEmpty(),
 )
+private fun JsonObject.toMonthlyItem() = HomeFeedItem(
+    id = text("id"),
+    title = text("nome", "filho_nome", "child_name").ifBlank {
+        obj("filhos_de_santo").text("nome", "name").ifBlank { text("descricao").ifBlank { "Mensalidade" } }
+    },
+    detail = listOf(text("vencimento", "data_vencimento", "due_date"), text("status")).filter(String::isNotBlank).joinToString(" · "),
+    status = text("status").ifBlank { "pendente" },
+    amount = number("valor", "value", "amount"),
+)
+
+private fun buildPixPayload(key: String, beneficiary: String, value: Double, txid: String): String {
+    fun field(id: String, value: String) = id + value.toByteArray(Charsets.UTF_8).size.toString().padStart(2, '0') + value
+    val cleanName = beneficiary.uppercase().replace(Regex("[^A-Z0-9 ]"), "").take(25).ifBlank { "TERREIRO" }
+    val cleanTxid = txid.filter(Char::isLetterOrDigit).take(25).padEnd(5, '0')
+    val merchant = field("00", "br.gov.bcb.pix") + field("01", key.trim()) + field("02", "Mensalidade")
+    val additional = field("05", cleanTxid)
+    val raw = "000201" + "010212" + field("26", merchant) + "52040000" + "5303986" +
+        field("54", String.format(java.util.Locale.US, "%.2f", value)) + "5802BR" + field("59", cleanName) +
+        field("60", "BRASIL") + field("62", additional) + "6304"
+    var crc = 0xFFFF
+    raw.toByteArray(Charsets.UTF_8).forEach { byte ->
+        crc = crc xor ((byte.toInt() and 0xFF) shl 8)
+        repeat(8) { crc = if ((crc and 0x8000) != 0) (crc shl 1) xor 0x1021 else crc shl 1 }
+        crc = crc and 0xFFFF
+    }
+    return raw + crc.toString(16).uppercase().padStart(4, '0')
+}
