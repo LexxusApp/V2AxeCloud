@@ -218,9 +218,9 @@ private fun HomeScreen(
                                 onGuidance = onGuidance,
                                 onOpenConversation = onOpenConversation,
                             )
-                            HomeTab.AGENDA -> AgendaScreen(state.snapshot, interaction, onCreateEvent)
-                            HomeTab.AVISOS -> FeedScreen("Mural da casa", "Comunicados oficiais em um só lugar.", state.snapshot.noticeItems, Icons.Outlined.Notifications)
-                            HomeTab.FINANCEIRO -> FinanceScreen(state.snapshot, interaction, onSettleMonthly) { selectedTab = HomeTab.INICIO }
+                            HomeTab.AGENDA -> NativeAgendaScreen(state.snapshot, interaction, onCreateEvent)
+                            HomeTab.AVISOS -> NativeNoticesScreen(state.snapshot.noticeItems)
+                            HomeTab.FINANCEIRO -> NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly)
                             HomeTab.GESTAO -> ManagementScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
@@ -1075,7 +1075,7 @@ private fun ManagementSection(
 }
 
 @Composable
-private fun QrCode(payload: String, modifier: Modifier = Modifier) {
+internal fun QrCode(payload: String, modifier: Modifier = Modifier) {
     val bitmap = androidx.compose.runtime.remember(payload) {
         val matrix = MultiFormatWriter().encode(payload, BarcodeFormat.QR_CODE, 600, 600)
         Bitmap.createBitmap(600, 600, Bitmap.Config.ARGB_8888).also { image ->
@@ -1123,7 +1123,7 @@ private fun ModuleHero(
     }
 }
 
-private fun Double.asMoney(): String = "R$ " + String.format(java.util.Locale("pt", "BR"), "%,.2f", this)
+internal fun Double.asMoney(): String = "R$ " + String.format(java.util.Locale("pt", "BR"), "%,.2f", this)
 
 private enum class HomeTab(val label: String, val icon: ImageVector, val showInNavigation: Boolean = true) {
     INICIO("Início", Icons.Outlined.Home),
