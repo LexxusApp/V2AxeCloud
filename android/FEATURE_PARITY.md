@@ -11,7 +11,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
 | Frequência | chamada, leitura de QR, histórico e indicadores por filho/gira | PARCIAL — chamada e indicadores nativos; leitura de QR e validação real pendentes |
 | Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
-| Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL |
+| Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL — texto, imagem, vídeo, áudio, leitura e atualização contínua a cada 5s compilados; gravação nativa, player e realtime Supabase pendentes |
 | Financeiro | resumo, lançamentos, filtros, criar/editar/excluir, relatório e caixinha | PARCIAL |
 | Mensalidades | pendentes/pagas, cobrar, liquidar, estornar, comprovantes e histórico | PARCIAL |
 | Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | PARCIAL — formulário e persistência nativos; validação em aparelho pendente |
@@ -35,7 +35,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL — PDFs e fundamentos filtrados no servidor por tradição, cargo e autorização individual; validação em aparelho pendente |
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva e cobrança na mensalidade nativos; validação real em aparelho pendente |
 | Comunicados | mural, categorias, anexos e leitura | PARCIAL |
-| Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL |
+| Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia e atualização contínua compilados; gravação nativa, player e realtime Supabase pendentes |
 | Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
 
 ## Qualidade obrigatória

@@ -3,6 +3,7 @@ package br.com.axecloud.app.feature.home
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import android.provider.OpenableColumns
 import br.com.axecloud.app.BuildConfig
 import br.com.axecloud.app.core.network.AxeCloudHttpClient
 import br.com.axecloud.app.core.session.SessionSnapshot
@@ -75,6 +76,9 @@ class HomeRepository @Inject constructor(
                 senderName = item.text("senderNome", "senderName").ifBlank { "Casa" },
                 createdAt = item.text("createdAt", "created_at"),
                 isOwn = item.bool("isOwn", "is_own") == true,
+                mediaType = item.text("messageType", "message_type").ifBlank { "text" },
+                mediaUrl = item.text("mediaUrl", "media_url"),
+                mediaMime = item.text("mediaMime", "media_mime"),
             )
         }
     }
@@ -89,6 +93,21 @@ class HomeRepository @Inject constructor(
             },
             session.accessToken,
         )
+    }
+
+    suspend fun sendMediaMessage(conversationId: String, uri: Uri) {
+        val session = authenticatedSession()
+        val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+        check(mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/")) { "Escolha uma imagem, vídeo ou áudio." }
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Não foi possível ler o arquivo.")
+        val fileName = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment ?: "midia"
+        val prep = http.post(api("/api/v1/chat/upload-url"), buildJsonObject {
+            put("tenantId", session.tenantId); put("conversationId", conversationId); put("fileName", fileName); put("contentType", mime); put("sizeBytes", bytes.size)
+        }, session.accessToken).asObject()
+        http.putBytes(prep.text("uploadUrl"), bytes, mime)
+        http.post(api("/api/v1/chat/conversations/${encode(conversationId)}/messages"), buildJsonObject {
+            put("body", ""); put("messageType", prep.text("messageType")); put("mediaUrl", prep.text("publicUrl")); put("mediaPath", prep.text("storageKey")); put("mediaMime", mime)
+        }, session.accessToken)
     }
 
     suspend fun settleMonthlyPayment(id: String, amount: Double) {

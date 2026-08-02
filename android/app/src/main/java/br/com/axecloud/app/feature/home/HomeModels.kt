@@ -47,6 +47,9 @@ data class ChatMessage(
     val senderName: String,
     val createdAt: String,
     val isOwn: Boolean,
+    val mediaType: String = "text",
+    val mediaUrl: String = "",
+    val mediaMime: String = "",
 )
 
 data class InteractionUiState(

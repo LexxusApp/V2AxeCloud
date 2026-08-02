@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
 @HiltViewModel
@@ -19,6 +22,7 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeUiState> = mutableState.asStateFlow()
     private val mutableInteraction = MutableStateFlow(InteractionUiState())
     val interaction: StateFlow<InteractionUiState> = mutableInteraction.asStateFlow()
+    private var conversationRefresh: Job? = null
 
     init { load() }
 
@@ -38,13 +42,20 @@ class HomeViewModel @Inject constructor(
     }
 
     fun openConversation(id: String, title: String) = viewModelScope.launch {
+        conversationRefresh?.cancel()
         mutableInteraction.update { it.copy(conversationId = id, conversationTitle = title, loadingMessages = true, feedback = null) }
         runCatching { repository.loadMessages(id) }
             .onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages, loadingMessages = false) } }
             .onFailure { error -> mutableInteraction.update { it.copy(loadingMessages = false, feedback = error.message) } }
+        conversationRefresh = viewModelScope.launch {
+            while (isActive && mutableInteraction.value.conversationId == id) {
+                delay(5_000)
+                runCatching { repository.loadMessages(id) }.onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages) } }
+            }
+        }
     }
 
-    fun closeConversation() = mutableInteraction.update { InteractionUiState() }
+    fun closeConversation() { conversationRefresh?.cancel(); conversationRefresh = null; mutableInteraction.update { InteractionUiState() } }
 
     fun sendMessage(text: String) {
         val id = mutableInteraction.value.conversationId ?: return
@@ -56,6 +67,16 @@ class HomeViewModel @Inject constructor(
                     val messages = repository.loadMessages(id)
                     mutableInteraction.update { it.copy(messages = messages, sendingMessage = false) }
                 }
+                .onFailure { error -> mutableInteraction.update { it.copy(sendingMessage = false, feedback = error.message) } }
+        }
+    }
+
+    fun sendMedia(uri: android.net.Uri) {
+        val id = mutableInteraction.value.conversationId ?: return
+        viewModelScope.launch {
+            mutableInteraction.update { it.copy(sendingMessage = true, feedback = null) }
+            runCatching { repository.sendMediaMessage(id, uri); repository.loadMessages(id) }
+                .onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages, sendingMessage = false) } }
                 .onFailure { error -> mutableInteraction.update { it.copy(sendingMessage = false, feedback = error.message) } }
         }
     }

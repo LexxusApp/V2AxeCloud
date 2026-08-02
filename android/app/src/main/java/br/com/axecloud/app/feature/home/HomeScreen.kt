@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,6 +45,9 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
@@ -134,6 +138,7 @@ fun HomeRoute(
         onOpenConversation = viewModel::openConversation,
         onCloseConversation = viewModel::closeConversation,
         onSendMessage = viewModel::sendMessage,
+        onSendMedia = viewModel::sendMedia,
         onSettleMonthly = viewModel::settleMonthlyPayment,
         onCreateEvent = viewModel::createEvent,
         onPrayerStatus = viewModel::updatePrayerStatus,
@@ -157,6 +162,7 @@ private fun HomeScreen(
     onOpenConversation: (String, String) -> Unit,
     onCloseConversation: () -> Unit,
     onSendMessage: (String) -> Unit,
+    onSendMedia: (Uri) -> Unit,
     onSettleMonthly: (HomeFeedItem) -> Unit,
     onCreateEvent: (String, String, String, String, String) -> Unit,
     onPrayerStatus: (HomeFeedItem, String) -> Unit,
@@ -229,7 +235,7 @@ private fun HomeScreen(
                 when {
                     state.loading && !hasLoadedContent -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AxeCloudThemeTokens.Forest)
                     state.error != null -> ErrorState(state.error, onRetry, Modifier.align(Alignment.Center))
-                    interaction.conversationId != null -> ChatScreen(interaction, onCloseConversation, onSendMessage)
+                    interaction.conversationId != null -> ChatScreen(interaction, onCloseConversation, onSendMessage, onSendMedia)
                     else -> AnimatedContent(
                         targetState = selectedTab,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -856,9 +862,11 @@ private fun ChatScreen(
     state: InteractionUiState,
     onBack: () -> Unit,
     onSend: (String) -> Unit,
+    onSendMedia: (Uri) -> Unit,
 ) {
     BackHandler(onBack = onBack)
     var draft by rememberSaveable(state.conversationId) { mutableStateOf("") }
+    val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) onSendMedia(uri) }
     Column(Modifier.fillMaxSize().background(AxeCloudThemeTokens.Canvas)) {
         Row(
             Modifier.fillMaxWidth().background(AxeCloudThemeTokens.Forest).padding(horizontal = 8.dp, vertical = 10.dp),
@@ -891,7 +899,12 @@ private fun ChatScreen(
                         ) {
                             Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                                 if (!message.isOwn) Text(message.senderName, color = AxeCloudThemeTokens.Gold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text(message.body, color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontSize = 14.sp)
+                                if (message.mediaType == "image" && message.mediaUrl.isNotBlank()) {
+                                    AsyncImage(message.mediaUrl, "Imagem enviada", Modifier.fillMaxWidth().heightIn(max = 260.dp).clip(RoundedCornerShape(13.dp)), contentScale = ContentScale.Crop)
+                                    if (message.body.isNotBlank() && message.body != "Imagem") Text(message.body, color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+                                } else if (message.mediaType != "text") {
+                                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(if(message.mediaType=="audio") Icons.Outlined.Mic else Icons.Outlined.PlayCircle, null, tint = if(message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Gold); Spacer(Modifier.width(7.dp));Text(if(message.mediaType=="audio")"Mensagem de áudio" else "Vídeo da conversa", color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontWeight = FontWeight.Bold) }
+                                } else Text(message.body, color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontSize = 14.sp)
                                 Text(message.createdAt.take(16).replace('T', ' '), color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep.copy(alpha = .6f) else AxeCloudThemeTokens.Ivory.copy(alpha = .5f), fontSize = 9.sp, modifier = Modifier.align(Alignment.End))
                             }
                         }
@@ -901,6 +914,7 @@ private fun ChatScreen(
         }
         state.feedback?.let { Text(it, Modifier.padding(horizontal = 16.dp), color = AxeCloudThemeTokens.Error, fontSize = 11.sp) }
         Row(Modifier.fillMaxWidth().background(AxeCloudThemeTokens.Surface).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { mediaPicker.launch(arrayOf("image/*", "video/*", "audio/*")) }, enabled = !state.sendingMessage) { Icon(Icons.Outlined.AttachFile, "Enviar mídia", tint = AxeCloudThemeTokens.Forest) }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it.take(2000) },
