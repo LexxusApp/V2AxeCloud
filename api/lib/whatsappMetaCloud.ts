@@ -167,7 +167,8 @@ export function isContaAtivaTemplate(tipo: string): boolean {
   return resolveMetaTemplateName(tipo) === CONTA_ATIVA_TEMPLATE;
 }
 
-/** Template Meta aprovado + credenciais em texto livre na janela de 24h. */
+/** Enviar acesso: uma mensagem (registro + senha). Mantém o nome histórico
+ * "two-step" só para o gate do tipo dados_acesso. */
 export function usesCredentialsTwoStepFlow(tipo: string): boolean {
   return isCredentialsAccessTemplate(tipo) && isContaAtivaTemplate(tipo);
 }

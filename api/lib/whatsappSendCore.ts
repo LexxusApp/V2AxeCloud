@@ -36,7 +36,6 @@ import {
   isAvisoGiraTemplate,
   isConviteEventoTemplate,
   isCredentialsAccessTemplate,
-  resolveCredentialsFollowUpDelayMs,
   resolveCredenciaisTemplateName,
   resolveMetaTemplateLanguage,
   resolveMetaTemplateName,
@@ -557,7 +556,12 @@ async function sendCredentialsFollowUpReliable(
   });
 }
 
-/** Template conta_ativa_axecloud + credenciais (2ª msg via template Meta). */
+/**
+ * Enviar acesso / dados_acesso: UMA mensagem com registro + senha.
+ * Antes eram 2 (conta_ativa + credenciais); a de boas-vindas era redundante no
+ * "Enviar acesso" e confundia o membro. Senha vai empacotada no aviso_geral
+ * (template dedicado de credenciais a Meta rejeita como Utility).
+ */
 async function sendCredentialsAccessPair(
   phone: string,
   tipo: string,
@@ -571,19 +575,20 @@ async function sendCredentialsAccessPair(
     fallbackText?: string;
   }
 ): Promise<{ messageId?: string; templateMessageId?: string; followUpMessageId?: string }> {
+  void nomeTerreiro;
   const followUpText = buildCredentialsFollowUpText(variables);
   if (!followUpText.trim()) {
     throw httpError("Registro/senha do filho não encontrados para envio de credenciais.", 400);
   }
 
-  let templateOut: { messageId?: string } | null = null;
   try {
-    templateOut = await sendMetaTemplateMessage(phone, tipo, nomeMembro, nomeTerreiro, variables, opts);
+    const out = await sendCredentialsFollowUpReliable(phone, tipo, nomeMembro, variables, opts);
+    return { messageId: out.messageId, followUpMessageId: out.messageId };
   } catch (err) {
     const fallback = String(opts?.fallbackText || "").trim();
     if (!fallback) throw err;
     console.error(
-      `[WHATSAPP] template conta_ativa falhou (${tipo}), fallback texto único:`,
+      `[WHATSAPP] credenciais template falhou (${tipo}), fallback texto único:`,
       err instanceof Error ? err.message : err
     );
     const out = await sendWhatsAppTextMessage(phone, fallback, {
@@ -594,25 +599,6 @@ async function sendCredentialsAccessPair(
       sb: opts?.sb,
     });
     return { messageId: out.messageId };
-  }
-
-  // Aguarda a Meta processar o 1º template antes do 2º.
-  await sleepMs(Math.max(resolveCredentialsFollowUpDelayMs(), 5000));
-
-  try {
-    const followUpOut = await sendCredentialsFollowUpReliable(phone, tipo, nomeMembro, variables, opts);
-    return {
-      messageId: followUpOut.messageId || templateOut.messageId,
-      templateMessageId: templateOut.messageId,
-      followUpMessageId: followUpOut.messageId,
-    };
-  } catch (err) {
-    console.error(
-      `[WHATSAPP] 2ª mensagem (credenciais) falhou após conta_ativa:`,
-      err instanceof Error ? err.message : err
-    );
-    // Conta_ativa já foi enviada — não mascara o erro com fallback de texto (Meta bloquearia).
-    throw err;
   }
 }
 
@@ -751,8 +737,10 @@ export async function logAndSendWhatsApp(
       ? buildTransmissaoFollowUpText(input.nomeTerreiro, variables, zelador)
       : "";
   const followUpLabel = useCredentialsTwoStep ? "credenciais" : "comunicado";
-  const quotaText =
-    useCredentialsTwoStep || useTransmissaoTwoStep
+  // dados_acesso: 1 mensagem (registro+senha). Transmissão two-step: 2 (se ligado).
+  const quotaText = useCredentialsTwoStep
+    ? followUpPreview || auditBase
+    : useTransmissaoTwoStep
       ? `${auditBase}\n\n--- ${followUpLabel} (texto livre) ---\n${followUpPreview}`
       : textToSend;
 
@@ -760,7 +748,7 @@ export async function logAndSendWhatsApp(
     tenantId,
     tipo,
     messageText: quotaText,
-    plannedSends: useCredentialsTwoStep || useTransmissaoTwoStep ? 2 : 1,
+    plannedSends: useTransmissaoTwoStep ? 2 : 1,
   });
 
   let sent: { messageId?: string };
@@ -809,8 +797,9 @@ export async function logAndSendWhatsApp(
   }
 
   const messageId = sent.messageId;
-  let auditMessage =
-    useCredentialsTwoStep || useTransmissaoTwoStep
+  let auditMessage = useCredentialsTwoStep
+    ? followUpPreview || auditBase
+    : useTransmissaoTwoStep
       ? `${auditBase}\n\n--- ${followUpLabel} ---\n${followUpPreview}`
       : auditBase;
   if (fingerprint) {
