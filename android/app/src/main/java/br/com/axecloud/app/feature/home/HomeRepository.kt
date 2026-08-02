@@ -97,10 +97,10 @@ class HomeRepository @Inject constructor(
 
     suspend fun sendMediaMessage(conversationId: String, uri: Uri) {
         val session = authenticatedSession()
-        val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+        val mime = context.contentResolver.getType(uri) ?: when { uri.path?.endsWith(".m4a", true) == true -> "audio/mp4"; uri.path?.endsWith(".jpg", true) == true -> "image/jpeg"; else -> "application/octet-stream" }
         check(mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/")) { "Escolha uma imagem, vídeo ou áudio." }
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Não foi possível ler o arquivo.")
-        val fileName = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment ?: "midia"
+        val bytes = if (uri.scheme == "file") java.io.File(uri.path!!).readBytes() else context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Não foi possível ler o arquivo.")
+        val fileName = if (uri.scheme == "file") java.io.File(uri.path!!).name else context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment ?: "midia"
         val prep = http.post(api("/api/v1/chat/upload-url"), buildJsonObject {
             put("tenantId", session.tenantId); put("conversationId", conversationId); put("fileName", fileName); put("contentType", mime); put("sizeBytes", bytes.size)
         }, session.accessToken).asObject()

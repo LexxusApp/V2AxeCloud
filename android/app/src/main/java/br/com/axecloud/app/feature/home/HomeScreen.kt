@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
@@ -75,6 +76,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -118,6 +121,10 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import coil.compose.AsyncImage
 import android.net.Uri
+import android.Manifest
+import android.content.pm.PackageManager
+import android.media.MediaRecorder
+import androidx.core.content.ContextCompat
 import br.com.axecloud.app.R
 import kotlinx.coroutines.launch
 
@@ -866,7 +873,20 @@ private fun ChatScreen(
 ) {
     BackHandler(onBack = onBack)
     var draft by rememberSaveable(state.conversationId) { mutableStateOf("") }
+    val chatContext = LocalContext.current
+    var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var recordingFile by remember { mutableStateOf<java.io.File?>(null) }
+    var isRecording by remember { mutableStateOf(false) }
     val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) onSendMedia(uri) }
+    val startRecording = {
+        runCatching {
+            val file = java.io.File.createTempFile("axecloud-voz-", ".m4a", chatContext.cacheDir)
+            val mediaRecorder = MediaRecorder().apply { setAudioSource(MediaRecorder.AudioSource.MIC); setOutputFormat(MediaRecorder.OutputFormat.MPEG_4); setAudioEncoder(MediaRecorder.AudioEncoder.AAC); setAudioEncodingBitRate(96_000); setAudioSamplingRate(44_100); setOutputFile(file.absolutePath); prepare(); start() }
+            recordingFile = file; recorder = mediaRecorder; isRecording = true
+        }
+    }
+    val audioPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) startRecording() }
+    DisposableEffect(Unit) { onDispose { runCatching { recorder?.release() }; recorder = null } }
     Column(Modifier.fillMaxSize().background(AxeCloudThemeTokens.Canvas)) {
         Row(
             Modifier.fillMaxWidth().background(AxeCloudThemeTokens.Forest).padding(horizontal = 8.dp, vertical = 10.dp),
@@ -930,6 +950,10 @@ private fun ChatScreen(
                 if (state.sendingMessage) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                 else Icon(Icons.Outlined.Send, "Enviar", tint = AxeCloudThemeTokens.Forest)
             }
+            IconButton(onClick = {
+                if (isRecording) { runCatching { recorder?.stop() }; recorder?.release(); recorder = null; isRecording = false; recordingFile?.let { onSendMedia(Uri.fromFile(it)) } }
+                else if (ContextCompat.checkSelfPermission(chatContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startRecording() else audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }, enabled = !state.sendingMessage) { Icon(if(isRecording) Icons.Outlined.StopCircle else Icons.Outlined.Mic, if(isRecording)"Parar e enviar" else "Gravar áudio", tint=if(isRecording)AxeCloudThemeTokens.Error else AxeCloudThemeTokens.Forest) }
         }
     }
 }
