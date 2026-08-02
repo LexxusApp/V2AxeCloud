@@ -45,6 +45,8 @@ import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Button
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -82,6 +84,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -95,6 +98,8 @@ import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import br.com.axecloud.app.feature.giras.GirasRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
+import br.com.axecloud.app.feature.notifications.NotificationInbox
+import br.com.axecloud.app.feature.notifications.nativeUnreadCount
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -153,6 +158,8 @@ private fun HomeScreen(
     onValidatePaymentReceipt: (Uri) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
+    var notificationsOpen by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val hasLoadedContent = state.snapshot.houseName.isNotBlank() || state.snapshot.greetingName.isNotBlank()
@@ -181,7 +188,8 @@ private fun HomeScreen(
                         data = state.snapshot,
                         selectedTab = selectedTab,
                         onAvatarClick = { scope.launch { drawerState.open() } },
-                        onNotifications = { selectedTab = HomeTab.AVISOS },
+                        notificationCount = nativeUnreadCount(context, state.snapshot),
+                        onNotifications = { notificationsOpen = true },
                         onRefresh = onRetry,
                     )
                 }
@@ -254,6 +262,22 @@ private fun HomeScreen(
             }
         }
     }
+    if (notificationsOpen) {
+        NotificationInbox(
+            data = state.snapshot,
+            onDismiss = { notificationsOpen = false },
+            onNavigate = { target ->
+                selectedTab = when (target) {
+                    "finance" -> HomeTab.FINANCEIRO
+                    "management" -> HomeTab.GESTAO
+                    "routine" -> HomeTab.ROTINA
+                    "agenda" -> HomeTab.AGENDA
+                    "notices" -> HomeTab.AVISOS
+                    else -> HomeTab.INICIO
+                }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -261,6 +285,7 @@ private fun HomeScreen(
 private fun NativeTopBar(
     data: HomeSnapshot,
     selectedTab: HomeTab,
+    notificationCount: Int,
     onAvatarClick: () -> Unit,
     onNotifications: () -> Unit,
     onRefresh: () -> Unit,
@@ -282,7 +307,15 @@ private fun NativeTopBar(
                 Icon(Icons.Outlined.Refresh, "Atualizar", tint = AxeCloudThemeTokens.Forest)
             }
             IconButton(onClick = onNotifications) {
-                Icon(Icons.Outlined.Notifications, "Notificações", tint = AxeCloudThemeTokens.Forest)
+                BadgedBox(
+                    badge = {
+                        if (notificationCount > 0) {
+                            Badge(containerColor = AxeCloudThemeTokens.Gold, contentColor = AxeCloudThemeTokens.ForestDeep) {
+                                Text(notificationCount.coerceAtMost(99).toString(), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    },
+                ) { Icon(Icons.Outlined.Notifications, "Notificações", tint = AxeCloudThemeTokens.Forest) }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = AxeCloudThemeTokens.Canvas),

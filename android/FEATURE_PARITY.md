@@ -36,7 +36,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Loja | vitrine, detalhes e pedidos | PARCIAL |
 | Comunicados | mural, categorias, anexos e leitura | PARCIAL |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL |
-| Notificações | pendências reais, push, deep links, preferências e histórico | AUSENTE |
+| Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
 
 ## Qualidade obrigatória
 
