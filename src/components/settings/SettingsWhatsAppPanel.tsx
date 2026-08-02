@@ -44,8 +44,8 @@ const DEFAULT_PREFS: WaPreferences = {
   notifAniversarios: true,
 };
 
-const MAX_VISIBLE_LOGS = 8;
-const LOG_FETCH_LIMIT = 12;
+const MAX_VISIBLE_LOGS = 40;
+const LOG_FETCH_LIMIT = 40;
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
@@ -562,8 +562,8 @@ export function SettingsWhatsAppPanel() {
         </div>
 
         {waView === 'historico' ? (
-        <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col justify-between overflow-hidden rounded-[1.5rem] border border-[#1E242B] bg-[#0E1318] p-5 lg:col-span-12">
-          <div className="space-y-5">
+        <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[#1E242B] bg-[#0E1318] p-5 lg:col-span-12">
+          <div className="flex min-h-0 flex-1 flex-col space-y-4">
             <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">
                 <WaLiveDot active className="h-1.5 w-1.5" />
@@ -575,11 +575,11 @@ export function SettingsWhatsAppPanel() {
             </div>
 
             <p className="text-[11px] font-light text-gray-400">
-              Abaixo ficam apenas as transmissões mais recentes. Registros antigos saem desta lista automaticamente para
-              manter a página leve no celular.
+              Role a lista para ver os envios mais antigos. Mantemos os registros recentes nesta tela para ficar leve no
+              celular.
             </p>
 
-            <div className="wa-settings-panel__logs-list max-h-[min(26rem,48dvh)] space-y-3 overflow-y-auto pr-1">
+            <div className="wa-settings-panel__logs-list max-h-[min(32rem,58dvh)] min-h-[12rem] space-y-0 overflow-y-auto overscroll-contain pr-1">
               {visibleLogs.length === 0 ? (
                 <p className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-center text-[10px] text-gray-500">
                   Nenhuma transmissão registrada ainda. Conecte o WhatsApp e envie a primeira mensagem.
@@ -622,7 +622,7 @@ export function SettingsWhatsAppPanel() {
             </div>
             {hiddenLogsCount > 0 ? (
               <p className="rounded-lg border border-[#1E242B] bg-[#12161A]/70 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-[#64748B]">
-                {hiddenLogsCount} registro(s) antigo(s) ocultos nesta tela.
+                +{hiddenLogsCount} registro(s) além do limite desta tela.
               </p>
             ) : null}
           </div>

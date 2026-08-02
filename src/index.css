@@ -3241,12 +3241,12 @@ html:has(.app-v3) {
   }
 
   .app-v3 .wa-settings-panel .wa-settings-panel__logs {
-    max-height: min(34rem, 62dvh);
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .app-v3 .wa-settings-panel .wa-settings-panel__logs-list {
-    max-height: min(26rem, 48dvh);
+    max-height: min(32rem, 58dvh);
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -4752,7 +4752,11 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v4-experiment .wa-history-console .wa-settings-panel__logs-list {
-  overflow: hidden;
+  max-height: min(32rem, 58dvh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #25303a;
   border-radius: 1rem;
   background: #10161b;
