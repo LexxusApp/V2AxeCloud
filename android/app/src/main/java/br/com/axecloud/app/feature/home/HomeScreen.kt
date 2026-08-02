@@ -102,6 +102,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
+import br.com.axecloud.app.core.ui.NativeAudioPlayer
+import br.com.axecloud.app.core.ui.NativeVideoPlayer
 import br.com.axecloud.app.feature.children.ChildrenRoute
 import br.com.axecloud.app.feature.frequency.FrequencyRoute
 import br.com.axecloud.app.feature.finance.FinanceRoute
@@ -923,8 +925,12 @@ private fun ChatScreen(
                                 if (message.mediaType == "image" && message.mediaUrl.isNotBlank()) {
                                     AsyncImage(message.mediaUrl, "Imagem enviada", Modifier.fillMaxWidth().heightIn(max = 260.dp).clip(RoundedCornerShape(13.dp)), contentScale = ContentScale.Crop)
                                     if (message.body.isNotBlank() && message.body != "Imagem") Text(message.body, color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+                                } else if (message.mediaType == "audio" && message.mediaUrl.isNotBlank()) {
+                                    NativeAudioPlayer(message.mediaUrl, ownMessage = message.isOwn)
+                                } else if (message.mediaType == "video" && message.mediaUrl.isNotBlank()) {
+                                    NativeVideoPlayer(message.mediaUrl, Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(13.dp)))
                                 } else if (message.mediaType != "text") {
-                                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(if(message.mediaType=="audio") Icons.Outlined.Mic else Icons.Outlined.PlayCircle, null, tint = if(message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Gold); Spacer(Modifier.width(7.dp));Text(if(message.mediaType=="audio")"Mensagem de áudio" else "Vídeo da conversa", color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontWeight = FontWeight.Bold) }
+                                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(if(message.mediaType=="audio") Icons.Outlined.Mic else Icons.Outlined.PlayCircle, null, tint = if(message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Gold); Spacer(Modifier.width(7.dp));Text(if(message.mediaType=="audio")"Áudio indisponível" else "Vídeo indisponível", color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontWeight = FontWeight.Bold) }
                                 } else Text(message.body, color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep else AxeCloudThemeTokens.Ivory, fontSize = 14.sp)
                                 Text(message.createdAt.take(16).replace('T', ' '), color = if (message.isOwn) AxeCloudThemeTokens.ForestDeep.copy(alpha = .6f) else AxeCloudThemeTokens.Ivory.copy(alpha = .5f), fontSize = 9.sp, modifier = Modifier.align(Alignment.End))
                             }

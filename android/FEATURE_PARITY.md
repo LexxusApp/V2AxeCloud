@@ -11,11 +11,11 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
 | Frequência | relatório, histórico e indicadores por filho/gira; operação de presença por evento | PARCIAL — relatório e histórico detalhado nativos; operação por gira fica no Centro de Gira; validação real pendente |
 | Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
-| Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL — texto, imagem, vídeo, seleção e gravação nativa de áudio, leitura e atualização contínua a cada 5s compilados; player e realtime Supabase pendentes |
+| Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL — texto, imagem, vídeo, seleção e gravação nativa de áudio, players Media3, leitura e atualização contínua a cada 5s compilados; realtime Supabase pendente |
 | Financeiro | resumo, lançamentos, filtros, criar/editar/excluir, relatório e caixinha | PARCIAL |
 | Mensalidades | pendentes/pagas, cobrar, liquidar, estornar, comprovantes e histórico | PARCIAL |
 | Configuração Pix | cobrança ativa, valor, vencimento, chave, beneficiário e validação | PARCIAL — formulário e persistência nativos; validação em aparelho pendente |
-| Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL — fluxo nativo completo compilado; upload real e reprodução de vídeo em aparelho pendentes |
+| Galeria | álbuns, filtros, criar/editar/excluir, upload, visualização e remoção de mídia | PARCIAL — fluxo e reprodução Media3 nativos compilados; upload e vídeo em aparelho real pendentes |
 | Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
 | Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL — PDFs e Acervo de Fundamentos nativos; banhos/ervas/rituais, tradição, cargo, acesso individual, rascunho/publicação/arquivo compilados; validação real pendente |
 | Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL — central nativa de pedidos, busca, acolhimento, oração, notas, WhatsApp e conclusão compilados; agenda/cadastro/histórico dependem de API Web equivalente |
@@ -35,7 +35,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL — PDFs e fundamentos filtrados no servidor por tradição, cargo e autorização individual; validação em aparelho pendente |
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva e cobrança na mensalidade nativos; validação real em aparelho pendente |
 | Comunicados | mural, categorias, anexos e leitura | PARCIAL |
-| Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação nativa de voz e atualização contínua compilados; player e realtime Supabase pendentes |
+| Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação de voz, players Media3 e atualização contínua compilados; realtime Supabase pendente |
 | Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
 
 ## Qualidade obrigatória

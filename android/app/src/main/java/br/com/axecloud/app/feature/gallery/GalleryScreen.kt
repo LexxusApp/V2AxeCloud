@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
+import br.com.axecloud.app.core.ui.NativeVideoPlayer
 import coil.compose.AsyncImage
 
 private val GalleryNight = Color(0xFF181A28)
@@ -143,7 +144,7 @@ private val GalleryDraftSaver = androidx.compose.runtime.saveable.Saver<GalleryD
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun MediaViewer(m: GalleryMedia, isFilho: Boolean, busy: Boolean, dismiss: () -> Unit, axe: () -> Unit, delete: () -> Unit) = ModalBottomSheet(onDismissRequest = dismiss, containerColor = Color(0xFF0B0D12), dragHandle = null) {
     Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 330.dp, max = 520.dp).background(Color.Black)) { if (m.type == "image") AsyncImage(m.url, m.title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) else Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Outlined.PlayCircle, null, Modifier.size(70.dp), tint = GalleryViolet); Text("Vídeo da corrente", color = Color.White.copy(.7f)) }; IconButton(dismiss, Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(.55f), RoundedCornerShape(50))) { Icon(Icons.Outlined.Close, "Fechar", tint = Color.White) } }
+        Box(Modifier.fillMaxWidth().heightIn(min = 330.dp, max = 520.dp).background(Color.Black)) { if (m.type == "image") AsyncImage(m.url, m.title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) else NativeVideoPlayer(m.url, Modifier.fillMaxSize(), autoPlay = true); IconButton(dismiss, Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(.55f), RoundedCornerShape(50))) { Icon(Icons.Outlined.Close, "Fechar", tint = Color.White) } }
         Column(Modifier.padding(18.dp)) { Text(m.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp); if (m.caption.isNotBlank()) Text(m.caption, color = Color.White.copy(.65f), fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp)); Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(axe, enabled = !busy, colors = ButtonDefaults.buttonColors(containerColor = GalleryViolet)) { Icon(Icons.Outlined.AutoAwesome, null); Spacer(Modifier.width(6.dp)); Text("Enviar Axé · ${m.likes}") }; if (!isFilho) OutlinedButton(delete) { Icon(Icons.Outlined.DeleteOutline, null); Text("Remover") } } }
     }
 }
