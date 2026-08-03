@@ -3835,7 +3835,7 @@ async function startServer() {
         await sendWebPushToFilhosDoTerreiro(pushTenant, {
           title: `📢 ${titulo}`,
           body: (conteudo || '').substring(0, 120),
-          url: '/mural',
+          url: '/dashboard?tab=mural',
         });
       } catch (pushErr: any) {
         console.error('[SERVER] Push após mural:', pushErr?.message || pushErr);

@@ -1041,9 +1041,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }, [userRole, activeTab]);
 
   useEffect(() => {
-    if (userRole !== 'filho' || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
     const tab = new URLSearchParams(window.location.search).get('tab');
-    if (tab && FILHO_ALLOWED_TABS.has(tab)) {
+    if (!tab) return;
+    if (userRole === 'filho') {
+      if (FILHO_ALLOWED_TABS.has(tab)) setActiveTab(tab);
+      return;
+    }
+    // Zelador / admin: deep links de push (ex.: /dashboard?tab=mural)
+    if (['dashboard', 'mural', 'calendar', 'library', 'store', 'chat', 'children', 'financial', 'settings', 'gallery', 'inventory'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [userRole]);

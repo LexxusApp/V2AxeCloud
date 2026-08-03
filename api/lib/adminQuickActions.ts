@@ -93,7 +93,7 @@ export async function publishGlobalNotice(
       pushSent += await sendPushToTenant(supabaseAdmin, tid, {
         title: `Aviso: ${titulo}`,
         body: conteudo.slice(0, 120) + (conteudo.length > 120 ? "…" : ""),
-        url: "/mural",
+        url: "/dashboard?tab=mural",
       });
     }
   }

@@ -96,6 +96,16 @@ const categoryConfig = {
   }
 };
 
+/** Aceita YYYY-MM-DD ou ISO completo sem quebrar o dialog do mural. */
+function formatNoticeExpiry(value: string): string | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(raw);
+  const date = dateOnly ? new Date(`${dateOnly[1]}T12:00:00`) : new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return format(date, 'dd/MM/yyyy');
+}
+
 export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isAdmin?: boolean, tenantData?: any, setActiveTab: (tab: string) => void }) {
   const tenantId = tenantData?.tenant_id;
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -517,7 +527,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
             <motion.button type="button" aria-label="Fechar comunicado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedNotice(null)} className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl" role="dialog" aria-modal="true">
               <div className="flex items-center justify-between border-b border-[#DED8CB] p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">{selectedNotice.categoria}</p><h2 className="mt-1 font-display text-lg font-black text-[#171A16]">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-full border border-[#DCD6CA] bg-white/70 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button></div>
-              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{format(new Date(selectedNotice.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo}</ReactMarkdown></div>{selectedNotice.expiracao ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {format(new Date(`${selectedNotice.expiracao}T12:00:00`), 'dd/MM/yyyy')}</div> : null}</div>
+              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{(() => { const d = new Date(selectedNotice.data_publicacao); return Number.isNaN(d.getTime()) ? 'Data indisponível' : format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }); })()}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo || ''}</ReactMarkdown></div>{(() => { const expiryLabel = selectedNotice.expiracao ? formatNoticeExpiry(selectedNotice.expiracao) : null; return expiryLabel ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {expiryLabel}</div> : null; })()}</div>
               {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-[#DED8CB] p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white text-sm font-bold text-[#4A463E] hover:bg-[#F5F0E5]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B04A32] text-sm font-bold text-white hover:bg-[#9C3F2A]"><Trash2 className="h-4 w-4" />Excluir</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17251D] text-sm font-black text-[#FFFAF0] hover:bg-[#20342A]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
             </motion.aside>
           </>

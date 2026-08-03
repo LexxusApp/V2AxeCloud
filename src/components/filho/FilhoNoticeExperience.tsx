@@ -41,8 +41,26 @@ const categoryIdentity = {
   Geral: { icon: Info, label: 'Recado da casa', tone: 'general' },
 } as const;
 
+type CategoryKey = keyof typeof categoryIdentity;
+
+function resolveCategory(categoria: string | null | undefined) {
+  const key = String(categoria || '').trim() as CategoryKey;
+  return categoryIdentity[key] || categoryIdentity.Geral;
+}
+
+/** Aceita YYYY-MM-DD ou ISO completo sem quebrar o dialog. */
+function formatNoticeExpiry(value: string): string | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(raw);
+  const date = dateOnly ? new Date(`${dateOnly[1]}T12:00:00`) : new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return format(date, 'dd/MM/yyyy');
+}
+
 function dateLabel(value: string) {
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Data indisponível';
   if (isToday(date)) return `Hoje, ${format(date, 'HH:mm')}`;
   if (isYesterday(date)) return `Ontem, ${format(date, 'HH:mm')}`;
   return format(date, "dd 'de' MMMM", { locale: ptBR });
@@ -122,15 +140,15 @@ export default function FilhoNoticeExperience({
       {featured ? (
         <button
           type="button"
-          className={`filho-notice-featured is-${categoryIdentity[featured.categoria].tone}`}
+          className={`filho-notice-featured is-${resolveCategory(featured.categoria).tone}`}
           onClick={() => openNotice(featured)}
         >
           <div className="filho-notice-featured__identity">
             {(() => {
-              const Icon = categoryIdentity[featured.categoria].icon;
+              const Icon = resolveCategory(featured.categoria).icon;
               return <Icon />;
             })()}
-            <span>{categoryIdentity[featured.categoria].label}</span>
+            <span>{resolveCategory(featured.categoria).label}</span>
           </div>
           <div className="filho-notice-featured__copy">
             <span>{dateLabel(featured.data_publicacao)}</span>
@@ -156,9 +174,12 @@ export default function FilhoNoticeExperience({
           </header>
           <div className="filho-notice-list">
             {remaining.map((notice, index) => {
-              const identity = categoryIdentity[notice.categoria];
+              const identity = resolveCategory(notice.categoria);
               const Icon = identity.icon;
               const wasRead = readIds.has(notice.id);
+              const publishedAt = new Date(notice.data_publicacao);
+              const dayLabel = Number.isNaN(publishedAt.getTime()) ? '--' : format(publishedAt, 'dd');
+              const monthLabel = Number.isNaN(publishedAt.getTime()) ? '' : format(publishedAt, 'MMM', { locale: ptBR });
               return (
                 <motion.button
                   type="button"
@@ -170,8 +191,8 @@ export default function FilhoNoticeExperience({
                   transition={{ delay: Math.min(index * .035, .22) }}
                 >
                   <span className="filho-notice-list__date">
-                    <strong>{format(new Date(notice.data_publicacao), 'dd')}</strong>
-                    <small>{format(new Date(notice.data_publicacao), 'MMM', { locale: ptBR })}</small>
+                    <strong>{dayLabel}</strong>
+                    <small>{monthLabel}</small>
                   </span>
                   <span className="filho-notice-list__icon"><Icon /></span>
                   <span className="filho-notice-list__copy">
@@ -219,7 +240,7 @@ export default function FilhoNoticeExperience({
               onClick={() => onSelectNotice(null)}
             />
             <motion.aside
-              className={`filho-notice-dialog is-${categoryIdentity[selectedNotice.categoria].tone}`}
+              className={`filho-notice-dialog is-${resolveCategory(selectedNotice.categoria).tone}`}
               role="dialog"
               aria-modal="true"
               initial={{ opacity: 0, x: 36, scale: .98 }}
@@ -228,27 +249,30 @@ export default function FilhoNoticeExperience({
             >
               <header>
                 <div>
-                  <span>{categoryIdentity[selectedNotice.categoria].label}</span>
-                  <small>{format(new Date(selectedNotice.data_publicacao), "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}</small>
+                  <span>{resolveCategory(selectedNotice.categoria).label}</span>
+                  <small>{dateLabel(selectedNotice.data_publicacao)}</small>
                 </div>
                 <button type="button" onClick={() => onSelectNotice(null)}><X /></button>
               </header>
               <div className="filho-notice-dialog__body">
                 <div className="filho-notice-dialog__icon">
                   {(() => {
-                    const Icon = categoryIdentity[selectedNotice.categoria].icon;
+                    const Icon = resolveCategory(selectedNotice.categoria).icon;
                     return <Icon />;
                   })()}
                 </div>
                 <h2>{selectedNotice.titulo}</h2>
                 <div className="filho-notice-dialog__content">
-                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo}</ReactMarkdown>
+                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo || ''}</ReactMarkdown>
                 </div>
-                {selectedNotice.expiracao ? (
-                  <p className="filho-notice-dialog__expiry">
-                    <CalendarDays /> Orientação válida até {format(new Date(`${selectedNotice.expiracao}T12:00:00`), 'dd/MM/yyyy')}
-                  </p>
-                ) : null}
+                {(() => {
+                  const expiryLabel = selectedNotice.expiracao ? formatNoticeExpiry(selectedNotice.expiracao) : null;
+                  return expiryLabel ? (
+                    <p className="filho-notice-dialog__expiry">
+                      <CalendarDays /> Orientação válida até {expiryLabel}
+                    </p>
+                  ) : null;
+                })()}
               </div>
               <footer>
                 <span><Check /> Comunicado lido</span>

@@ -390,7 +390,7 @@ function NotifyDialog({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void onSubmit(channel, { title, body, url: "/mural" });
+          void onSubmit(channel, { title, body, url: "/dashboard?tab=mural" });
         }}
         className="space-y-3"
       >

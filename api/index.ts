@@ -1665,7 +1665,7 @@ async function startServer() {
       const pushResult = await sendPushNotification(pushTargetTenant, {
         title: `Novo Aviso: ${titulo}`,
         body: conteudo.substring(0, 100) + (conteudo.length > 100 ? '...' : ''),
-        url: '/mural'
+        url: '/dashboard?tab=mural'
       });
 
       const { data: leaderProfile } = await supabaseAdmin
