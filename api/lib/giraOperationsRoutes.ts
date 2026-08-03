@@ -20,11 +20,10 @@ import {
   logAndSendWhatsApp,
   resolveTerreiroWhatsAppContext,
 } from "./whatsappSendCore.js";
+import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
 
 function normalizeBrPhone(raw: string): string {
-  let digits = String(raw).replace(/\D/g, "");
-  if (!digits.startsWith("55")) digits = `55${digits}`;
-  return digits;
+  return normalizeBrWhatsAppMsisdn(raw);
 }
 
 type Deps = {

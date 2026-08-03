@@ -91,7 +91,8 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
       };
     case 'no_recipients':
       return {
-        message: 'Gira criada. Nenhum filho ativo com WhatsApp cadastrado.',
+        message:
+          'Gira criada, mas nenhum aviso saiu: cadastre filhos de santo ativos com WhatsApp antes de disparar para a corrente. Você ainda pode convidar pessoas avulsas pelo evento.',
         type: 'info',
       };
     case 'channel_offline':
@@ -134,7 +135,8 @@ function formatAvisoWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
       };
     case 'no_recipients':
       return {
-        message: 'Nenhum filho ativo com WhatsApp cadastrado.',
+        message:
+          'Nenhum aviso enviado: não há filhos ativos com WhatsApp na corrente. Cadastre a corrente ou use convite avulso no evento.',
         type: 'info',
       };
     case 'channel_offline':

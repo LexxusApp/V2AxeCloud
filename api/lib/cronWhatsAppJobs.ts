@@ -13,6 +13,7 @@ import {
   assertFanoutCooldown,
   capAndShuffleRecipients,
 } from "./whatsappSendGuards.js";
+import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
 
 function envInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -452,8 +453,16 @@ export async function dispatchGiraWhatsApp(
       try {
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
 
-        let digits = String(child.whatsapp_phone).replace(/\D/g, "");
-        if (!digits.startsWith("55")) digits = `55${digits}`;
+        let digits: string;
+        try {
+          digits = normalizeBrWhatsAppMsisdn(String(child.whatsapp_phone || ""));
+        } catch (phoneErr) {
+          throw new Error(
+            phoneErr instanceof Error
+              ? phoneErr.message
+              : "Telefone WhatsApp inválido no cadastro do filho"
+          );
+        }
 
         const nomeMembro = String(child.nome || "Filho");
         await logAndSendWhatsApp(sb, {

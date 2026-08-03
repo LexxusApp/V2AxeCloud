@@ -255,8 +255,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function handleSendCredentials(childId: string, childName: string) {
     if (!user?.id) return;
+    if (sendingCredentialsId) return;
     const ok = confirm(
-      `Enviar dados de acesso (login, senha e link) via WhatsApp para ${childName}?\n\nA senha enviada são os 6 primeiros dígitos do CPF cadastrado.`,
+      `Enviar dados de acesso (login, senha e link) via WhatsApp para ${childName}?\n\nA senha enviada são os 6 primeiros dígitos do CPF cadastrado.\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
     );
     if (!ok) return;
 
@@ -914,8 +915,11 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                       maxLength={11}
                       value={formData.cpf}
                       onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                      placeholder="Somente números"
+                      placeholder="11 dígitos válidos"
                     />
+                    <p className="mt-1 text-[10px] text-[#8A8070]">
+                      A senha de acesso do portal são os 6 primeiros dígitos deste CPF.
+                    </p>
                   </div>
                   <div>
                     <label className={paperLabelClass}>Nome</label>

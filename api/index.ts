@@ -3955,7 +3955,15 @@ async function startServer() {
     const userId = user.id;
     const tenantIdFromQuery = normalizeQueryTenantId(req.query.tenantId);
     const userRoleQ = String(req.query.userRole || "");
-    const updateData = normalizeChildPayload((req.body || {}) as Record<string, unknown>);
+    let updateData: Record<string, unknown>;
+    try {
+      updateData = normalizeChildPayload((req.body || {}) as Record<string, unknown>);
+    } catch (payloadErr: any) {
+      const status = Number(payloadErr?.statusCode) || 400;
+      return res.status(status).json({
+        error: safeErrorMessage(payloadErr, "Dados do filho inválidos."),
+      });
+    }
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "Nenhum campo válido para atualizar" });
     }
@@ -4121,7 +4129,15 @@ async function startServer() {
       const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
       if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
-      const allowed = normalizeChildPayload((childData || {}) as Record<string, unknown>);
+      let allowed: Record<string, unknown>;
+      try {
+        allowed = normalizeChildPayload((childData || {}) as Record<string, unknown>);
+      } catch (payloadErr: any) {
+        const status = Number(payloadErr?.statusCode) || 400;
+        return res.status(status).json({
+          error: safeErrorMessage(payloadErr, "Dados do filho inválidos."),
+        });
+      }
       const dataToInsert: Record<string, unknown> = {
         ...allowed,
         lider_id: userId,
@@ -4156,7 +4172,12 @@ async function startServer() {
             nome_filho: String(data.nome || ""),
             nome_sistema: "AxéCloud",
           },
-        }).catch((err) => console.error("[DADOS-ACESSO WA] após cadastrar filho:", err));
+        }).catch((err) =>
+          console.error(
+            "[DADOS-ACESSO WA] após cadastrar filho:",
+            err instanceof Error ? err.message : err
+          )
+        );
       }
 
       res.json({ success: true, data });

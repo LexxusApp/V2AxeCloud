@@ -8,6 +8,7 @@ import { sendEvolutionTemplateQueued, sendEvolutionTextQueued } from "./evolutio
 import {
   assertBroadcastCooldown,
   assertBroadcastRecipientLimit,
+  assertDadosAcessoCooldown,
   assertTenantWhatsAppDailyQuota,
   assertWhatsAppOutboundAllowed,
   capAndShuffleRecipients,
@@ -43,6 +44,8 @@ import {
   resolveLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
+import { filhoSenhaFromCpf, isValidCpf, isWeakFilhoSenha } from "../../lib/brCpf.js";
+import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
 
 export type WhatsAppSendInput = {
   tenantId: string;
@@ -66,9 +69,11 @@ export type MemberWhatsAppTarget = TerreiroWhatsAppContext & {
 };
 
 function normalizeBrPhone(raw: string): string {
-  let digits = String(raw).replace(/\D/g, "");
-  if (!digits.startsWith("55")) digits = `55${digits}`;
-  return digits;
+  try {
+    return normalizeBrWhatsAppMsisdn(raw);
+  } catch (err) {
+    throw httpError(err instanceof Error ? err.message : "Telefone WhatsApp inválido.", 400);
+  }
 }
 
 function httpError(message: string, statusCode: number): Error & { statusCode: number } {
@@ -288,10 +293,19 @@ async function enrichBoasVindasVariables(
   await assertFilhoBelongsToTerreiro(sb, leaderId, filho);
 
   const cpfDigits = String(filho.cpf || "").replace(/\D/g, "");
-  const senhaAcesso =
-    cpfDigits.length >= 6
-      ? cpfDigits.slice(0, 6)
-      : "os 6 primeiros dígitos do seu CPF (cadastre o CPF no perfil se ainda não informou)";
+  if (!isValidCpf(cpfDigits)) {
+    throw httpError(
+      "CPF do filho inválido. Corrija o CPF no cadastro antes de enviar o acesso (a senha são os 6 primeiros dígitos).",
+      400
+    );
+  }
+  const senhaAcesso = filhoSenhaFromCpf(cpfDigits) || "";
+  if (!senhaAcesso || isWeakFilhoSenha(senhaAcesso)) {
+    throw httpError(
+      "Não foi possível gerar uma senha segura a partir do CPF. Verifique se o CPF está correto.",
+      400
+    );
+  }
 
   return {
     ...base,
@@ -755,6 +769,10 @@ export async function sendWhatsAppForTenant(
     throw httpError("Telefone não encontrado", 400);
   }
 
+  if (isCredentialsAccessTemplate(input.tipo) && filhoId) {
+    await assertDadosAcessoCooldown(sb, input.tenantId, filhoId);
+  }
+
   const { data: config } = await sb
     .from("whatsapp_config")
     .select("templates")
@@ -944,7 +962,7 @@ export async function resendDadosAcessoWhatsAppForTenant(
     }
 
     const cpfDigits = String(f.cpf || "").replace(/\D/g, "");
-    if (cpfDigits.length < 6) {
+    if (!isValidCpf(cpfDigits) || isWeakFilhoSenha(cpfDigits.slice(0, 6))) {
       skippedNoCpf += 1;
       continue;
     }

@@ -15,6 +15,8 @@ const BROADCAST_MAX_RECIPIENTS = envInt("WA_BROADCAST_MAX_RECIPIENTS", 25);
 const FANOUT_MAX_RECIPIENTS = envInt("WA_FANOUT_MAX_RECIPIENTS", 30);
 const BROADCAST_COOLDOWN_MS = envInt("WA_BROADCAST_COOLDOWN_MS", 600_000);
 const FANOUT_COOLDOWN_MS = envInt("WA_FANOUT_COOLDOWN_MS", 300_000);
+/** Cooldown por filho para "Enviar acesso" / dados_acesso (default 5 min). */
+const DADOS_ACESSO_COOLDOWN_MS = envInt("WA_DADOS_ACESSO_COOLDOWN_MS", 300_000);
 
 function httpError(message: string, statusCode: number, code?: string): Error & { statusCode: number; code?: string } {
   const err = new Error(message) as Error & { statusCode: number; code?: string };
@@ -144,6 +146,44 @@ export async function assertFanoutCooldown(sb: SupabaseClient, tenantId: string,
       `Aguarde cerca de ${waitMin} min antes de outro envio em massa (${tipo}).`,
       429,
       "WA_FANOUT_COOLDOWN"
+    );
+  }
+}
+
+/**
+ * Impede reenvio repetido de dados_acesso para o mesmo filho (cliques nervosos).
+ * O 1º envio (cadastro) passa; reenvios nos próximos WA_DADOS_ACESSO_COOLDOWN_MS são bloqueados.
+ */
+export async function assertDadosAcessoCooldown(
+  sb: SupabaseClient,
+  tenantId: string,
+  filhoId: string
+): Promise<void> {
+  if (DADOS_ACESSO_COOLDOWN_MS <= 0) return;
+  const fid = String(filhoId || "").trim();
+  if (!fid) return;
+
+  const { data: last } = await sb
+    .from("whatsapp_logs")
+    .select("created_at")
+    .eq("tenant_id", tenantId)
+    .eq("filho_id", fid)
+    .eq("tipo", "dados_acesso")
+    .eq("status", "sent")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!last?.created_at) return;
+  const elapsed = Date.now() - new Date(String(last.created_at)).getTime();
+  if (elapsed < DADOS_ACESSO_COOLDOWN_MS) {
+    const waitSec = Math.ceil((DADOS_ACESSO_COOLDOWN_MS - elapsed) / 1000);
+    const waitLabel =
+      waitSec >= 60 ? `${Math.ceil(waitSec / 60)} min` : `${waitSec}s`;
+    throw httpError(
+      `Acesso já enviado há pouco para este membro. Aguarde ${waitLabel} antes de reenviar (evita spam no WhatsApp).`,
+      429,
+      "WA_DADOS_ACESSO_COOLDOWN"
     );
   }
 }

@@ -1,32 +1,61 @@
 /**
- * Normaliza telefone brasileiro para pareamento WhatsApp (Evolution/Baileys).
- * O número precisa ser EXATAMENTE o da conta no celular (com o 9 do móvel).
+ * Normaliza telefone brasileiro para WhatsApp Cloud / Evolution (MSISDN E.164 sem +).
+ * Corrige o caso comum de "9 a mais" (ex.: 55549996528561 → 5554996528561).
+ */
+
+export function digitsOnly(value: string): string {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function ensureMobileNine(ddd: string, line: string): string {
+  if (line.length === 8 && /^[6-9]/.test(line)) return `${ddd}9${line}`;
+  if (line.length === 9 && line.startsWith("9")) return `${ddd}${line}`;
+  throw new Error(
+    `Número inválido para celular (${ddd} ${line}). Use 11 dígitos com o 9, ex.: ${ddd}912345678.`
+  );
+}
+
+/** Se veio com 9 duplicado após o DDD, remove um. */
+function stripDuplicateMobileNine(national11or12: string): string {
+  // DDD (2) + 99 + 8 dígitos = 12 → vira DDD + 9 + 8
+  if (national11or12.length === 12 && national11or12[2] === "9" && national11or12[3] === "9") {
+    return `${national11or12.slice(0, 2)}9${national11or12.slice(4)}`;
+  }
+  return national11or12;
+}
+
+/**
+ * Retorna MSISDN 55 + DDD + 9 + 8 dígitos (13 dígitos).
+ * Lança Error com mensagem clara se inválido.
  */
 export function normalizeBrWhatsAppMsisdn(phone: string): string {
-  let digits = String(phone || "").replace(/\D/g, "");
+  let digits = digitsOnly(phone);
   if (!digits) throw new Error("Número de telefone inválido");
   if (digits.length < 10) {
-    throw new Error("Número incompleto: digite DDD + linha (10 ou 11 dígitos).");
+    throw new Error("Número incompleto: digite DDD + celular (10 ou 11 dígitos).");
   }
 
-  const ensureMobileNine = (ddd: string, line: string): string => {
-    if (line.length === 8 && /^[6-9]/.test(line)) return `${ddd}9${line}`;
-    if (line.length === 9 && line.startsWith("9")) return `${ddd}${line}`;
-    throw new Error(
-      `Número inválido para celular (${ddd} ${line}). Use 11 dígitos com o 9, ex.: ${ddd}912345678.`,
-    );
-  };
-
+  // Já com país
   if (digits.startsWith("55")) {
-    const local = digits.slice(2);
-    if (local.length === 11) return digits;
+    let local = digits.slice(2);
+    local = stripDuplicateMobileNine(local);
+    if (local.length === 11 && local[2] === "9") return `55${local}`;
     if (local.length === 10) {
       const ddd = local.slice(0, 2);
       const line = local.slice(2);
       return `55${ensureMobileNine(ddd, line)}`;
     }
-    throw new Error("Número brasileiro inválido. Use DDD + 9 + oito dígitos (11 números após o 55).");
+    if (local.length === 12 && local[2] === "9" && local[3] === "9") {
+      // stripDuplicate deveria ter resolvido; reforço
+      const fixed = `${local.slice(0, 2)}9${local.slice(4)}`;
+      if (fixed.length === 11) return `55${fixed}`;
+    }
+    throw new Error(
+      "Número brasileiro inválido. Confira se não há um 9 a mais. Ex.: 54996528561 (11 dígitos)."
+    );
   }
+
+  digits = stripDuplicateMobileNine(digits);
 
   if (digits.length === 10) {
     const ddd = digits.slice(0, 2);
@@ -43,14 +72,20 @@ export function normalizeBrWhatsAppMsisdn(phone: string): string {
 
   if (digits.length === 12) {
     throw new Error(
-      "Número com 12 dígitos — confira se não digitou um 9 a mais. Ex.: 11912276156 (11 dígitos), não 119912276156.",
+      "Número com 12 dígitos — confira se não digitou um 9 a mais. Ex.: 54996528561, não 549996528561."
     );
   }
 
   throw new Error("Formato de telefone não reconhecido. Digite DDD + celular com 9 (11 dígitos).");
 }
 
-/** Preview amigável do MSISDN que será enviado à Evolution. */
+/** Forma nacional sem 55 (11 dígitos) para gravar em filhos_de_santo.whatsapp_phone. */
+export function normalizeBrWhatsAppNational(phone: string): string {
+  const msisdn = normalizeBrWhatsAppMsisdn(phone);
+  return msisdn.startsWith("55") ? msisdn.slice(2) : msisdn;
+}
+
+/** Preview amigável do MSISDN; null se inválido. */
 export function previewBrWhatsAppMsisdn(phone: string): string | null {
   try {
     const raw = digitsOnly(phone);
@@ -59,10 +94,6 @@ export function previewBrWhatsAppMsisdn(phone: string): string | null {
   } catch {
     return null;
   }
-}
-
-export function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "");
 }
 
 /** Lê WhatsApp do filho (coluna canônica `whatsapp_phone`, fallback legado `contato`). */

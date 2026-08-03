@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { resolveFilhoRowIdForFinance } from "./resolveFilhoRowIdForFinance.js";
+import { digitsOnlyCpf, isValidCpf } from "../../lib/brCpf.js";
+import { normalizeBrWhatsAppNational } from "../../src/lib/whatsappPhone.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -367,7 +369,34 @@ export function normalizeChildPayload(body: Record<string, unknown>): Record<str
 
     if (key === "whatsapp_phone" && typeof value === "string") {
       const digits = value.replace(/\D/g, "");
-      out[key] = digits.length > 0 ? digits : null;
+      if (!digits) {
+        out[key] = null;
+        continue;
+      }
+      try {
+        out[key] = normalizeBrWhatsAppNational(digits);
+      } catch (err) {
+        throw Object.assign(
+          new Error(err instanceof Error ? err.message : "WhatsApp inválido."),
+          { statusCode: 400 }
+        );
+      }
+      continue;
+    }
+
+    if (key === "cpf" && value != null) {
+      const cpf = digitsOnlyCpf(String(value));
+      if (!cpf) {
+        out[key] = null;
+        continue;
+      }
+      if (!isValidCpf(cpf)) {
+        throw Object.assign(
+          new Error("CPF inválido. Confira os dígitos — a senha de acesso do filho usa os 6 primeiros números do CPF."),
+          { statusCode: 400 }
+        );
+      }
+      out[key] = cpf;
       continue;
     }
 
