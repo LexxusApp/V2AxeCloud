@@ -34,6 +34,7 @@ const Subscription = lazy(() => import('./views/Subscription'));
 const Atendimentos = lazy(() => import('./views/Atendimentos'));
 const Frequencia = lazy(() => import('./views/Frequencia'));
 const ChatInbox = lazy(() => import('./views/ChatInbox'));
+const Support = lazy(() => import('./views/Support'));
 import { useWebPush } from './hooks/useWebPush';
 import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
@@ -1049,7 +1050,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       return;
     }
     // Zelador / admin: deep links de push (ex.: /dashboard?tab=mural)
-    if (['dashboard', 'mural', 'calendar', 'library', 'store', 'chat', 'children', 'financial', 'settings', 'gallery', 'inventory'].includes(tab)) {
+    if (['dashboard', 'mural', 'calendar', 'library', 'store', 'chat', 'children', 'financial', 'settings', 'suporte', 'gallery', 'inventory'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [userRole]);
@@ -1294,6 +1295,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       mural: true,
       chat: true,
       settings: true,
+      suporte: true,
       profile: true,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
       atendimentos: hasPlanAccess(tenantData?.plan, 'atendimentos', isAdminGlobal),
@@ -1361,6 +1363,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         );
       case 'settings': 
         return <Settings user={session.user} session={session} onRefresh={refreshAllData} tenantData={tenantData} setActiveTab={navigateToTab} />;
+      case 'suporte':
+        return <Support user={session.user} tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'library':
         return <Library user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'store':

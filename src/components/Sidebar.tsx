@@ -15,6 +15,7 @@ import {
   Lock,
   Wallet,
   HandHeart,
+  LifeBuoy,
 } from 'lucide-react';
 import { showAtendimentosModule } from '../lib/tradicaoModules';
 import { cn } from '../lib/utils';
@@ -122,6 +123,7 @@ export default function Sidebar({ activeTab, setActiveTab, isMobileOpen, setIsMo
         { id: 'library', label: 'Biblioteca de Estudo', icon: BookOpen },
         { id: 'store', label: 'Loja do Axé', icon: ShoppingBag },
         { id: 'settings', label: 'Configurações', icon: SettingsIcon },
+        { id: 'suporte', label: 'Suporte', icon: LifeBuoy },
       ];
   
   const getPlanBadge = (plan: string) => {

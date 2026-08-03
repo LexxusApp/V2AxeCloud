@@ -76,6 +76,7 @@ import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
 import { registerForgotPasswordWhatsappRoutes } from "./lib/forgotPasswordWhatsappRoutes.js";
+import { registerSupportRoutes } from "./lib/supportRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 import {
   getSupabaseServerAnonKey,
@@ -3808,6 +3809,7 @@ async function startServer() {
 
   registerAuthAuditRoutes(app, { supabaseAdmin, verifyUser });
   registerAccountCredentialsRoutes(app, { supabaseAdmin });
+  registerSupportRoutes(app, { supabaseAdmin });
   registerForgotPasswordWhatsappRoutes(app, { supabaseAdmin });
 
   app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {

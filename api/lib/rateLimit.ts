@@ -46,7 +46,7 @@ export function consumeRateLimit(
   };
 }
 
-function createRateLimit(opts: {
+export function createRateLimit(opts: {
   windowMs: number;
   max: number;
   keyPrefix: string;

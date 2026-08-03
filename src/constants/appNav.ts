@@ -17,6 +17,7 @@ import {
   Settings as SettingsIcon,
   ShoppingBag,
   Smartphone,
+  LifeBuoy,
   User,
   UserCircle,
   Wallet,
@@ -79,6 +80,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon },
+  { id: 'suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
 export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {

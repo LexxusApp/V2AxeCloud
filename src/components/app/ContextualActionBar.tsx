@@ -133,6 +133,14 @@ const ADMIN_ACTIONS: Record<string, ContextAction> = {
     target: 'dashboard',
     icon: Settings2,
   },
+  suporte: {
+    eyebrow: 'Precisa de ajuda?',
+    title: 'Nossa equipe responde pelo WhatsApp',
+    detail: 'Descreva o problema e retornamos no número informado.',
+    action: 'Ver início',
+    target: 'dashboard',
+    icon: Settings2,
+  },
 };
 
 const FILHO_ACTIONS: Record<string, ContextAction> = {
