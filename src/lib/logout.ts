@@ -5,6 +5,10 @@ import {
   collectLegalAcceptanceFromStorage,
   restoreLegalAcceptanceToStorage,
 } from './legalTerms';
+import {
+  collectRememberedLoginEmailFromStorage,
+  restoreRememberedLoginEmailToStorage,
+} from './loginRemember';
 
 /**
  * Remove todos os caches do Cache Storage (PWA / Workbox).
@@ -47,6 +51,7 @@ export async function performFastLogout(): Promise<void> {
   }
 
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
+  const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
 
   try {
     await deleteAllCacheStorage();
@@ -56,6 +61,7 @@ export async function performFastLogout(): Promise<void> {
     try {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
+      restoreRememberedLoginEmailToStorage(preservedRememberEmail);
     } catch {
       /* ignorar */
     }
@@ -101,6 +107,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
     /* ignorar */
   }
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
+  const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
 
   try {
     await deleteAllCacheStorage();
@@ -109,6 +116,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
     try {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
+      restoreRememberedLoginEmailToStorage(preservedRememberEmail);
     } catch {
       /* ignorar */
     }

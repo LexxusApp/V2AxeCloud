@@ -20,7 +20,12 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { ROUTES } from '../lib/routes';
 import { navigateToMarketingDocument } from '../lib/purgeServiceWorker';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
-import { isValidFilhoLoginId } from '../../lib/filhoMatricula';
+import { isValidFilhoLoginId, normalizeFilhoLoginIdInput } from '../../lib/filhoMatricula';
+import {
+  clearRememberedLoginEmail,
+  readRememberedLoginEmail,
+  writeRememberedLoginEmail,
+} from '../lib/loginRemember';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
@@ -111,9 +116,20 @@ function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
   }
 }
 
+function isFilhoLoginModeParam(raw: string | null): boolean {
+  const v = String(raw || '')
+    .trim()
+    .toLowerCase();
+  return v === 'filho' || v === 'filho-de-santo' || v === 'filhos' || v === '1' || v === 'true';
+}
+
 export default function Login() {
-  const [filhoSurface, setFilhoSurface] = useState(false);
-  const [email, setEmail] = useState('');
+  const [filhoSurface, setFilhoSurface] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return isFilhoLoginModeParam(params.get('modo') || params.get('mode'));
+  });
+  const [email, setEmail] = useState(() => readRememberedLoginEmail() || '');
   const [password, setPassword] = useState('');
   const [childId, setChildId] = useState('');
   const [cpfPrefix, setCpfPrefix] = useState('');
@@ -130,9 +146,19 @@ export default function Login() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('updated') !== 'true') return;
+    const updated = params.get('updated') === 'true';
+    const modoFilho = isFilhoLoginModeParam(params.get('modo') || params.get('mode'));
 
+    if (modoFilho) {
+      setFilhoSurface(true);
+    }
+
+    if (!updated && !modoFilho) return;
+
+    // Mantém /entrar limpo na barra, sem perder o modo já aplicado no state.
     window.history.replaceState({}, document.title, ROUTES.login);
+
+    if (!updated) return;
 
     alertHideTimerRef.current = window.setTimeout(() => {
       setShowAlert(false);
@@ -177,9 +203,14 @@ export default function Login() {
           password,
         });
         if (signErr) throw signErr;
+        if (rememberMe) {
+          writeRememberedLoginEmail(loginEmail);
+        } else {
+          clearRememberedLoginEmail();
+        }
       } else {
         if (!isValidFilhoLoginId(childId)) {
-          throw new Error('Informe o registro completo (ex.: AXC-2021-B2CA).');
+          throw new Error('Informe o registro (ex.: AXC-2021-B2CA). Pode digitar com ou sem hífen.');
         }
         if (cpfPrefix.length < 6) {
           throw new Error('Digite os 6 primeiros dígitos do CPF.');
@@ -188,7 +219,7 @@ export default function Login() {
         const response = await fetch('/api/auth/filho-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ childId, cpfPrefix }),
+          body: JSON.stringify({ childId: normalizeFilhoLoginIdInput(childId) || childId, cpfPrefix }),
         });
 
         const data = await response.json();
@@ -409,7 +440,7 @@ export default function Login() {
           <div className="space-y-0.5 text-[13px] leading-snug">
             <p className="max-w-[19rem] text-[#1b1813]/55">
               {filhoSurface
-                ? 'Use o registro entregue pela sua casa e os seis primeiros dígitos do CPF.'
+                ? 'Use o registro (com ou sem hífen) e os seis primeiros dígitos do CPF.'
                 : 'Entre com o e-mail e a senha usados na gestão do terreiro.'}
             </p>
           </div>
@@ -495,7 +526,11 @@ export default function Login() {
                       <input
                         type="checkbox"
                         checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setRememberMe(checked);
+                          if (!checked) clearRememberedLoginEmail();
+                        }}
                         className="sr-only"
                       />
                       {rememberMe && (
@@ -510,7 +545,7 @@ export default function Login() {
                         </svg>
                       )}
                     </span>
-                    <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar de mim</span>
+                    <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar meu e-mail</span>
                   </label>
                 </motion.div>
               ) : (
@@ -539,14 +574,19 @@ export default function Login() {
                         type="text"
                         required
                         maxLength={14}
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
                         value={childId}
-                        onChange={(e) =>
-                          setChildId(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))
-                        }
+                        onChange={(e) => setChildId(normalizeFilhoLoginIdInput(e.target.value))}
+                        onBlur={() => setChildId((v) => normalizeFilhoLoginIdInput(v))}
                         placeholder="Ex.: AXC-2021-B2CA"
                         className={fieldShell}
                       />
                     </div>
+                    <p className="text-[11px] leading-snug text-[#1b1813]/45">
+                      Pode digitar sem hífen e em minúsculo — o sistema formata sozinho.
+                    </p>
                   </div>
                   <div className="space-y-[5px]">
                     <label className={labelClass}>6 primeiros dígitos do CPF</label>
