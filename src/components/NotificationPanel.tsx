@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -41,6 +42,8 @@ interface NotificationPanelProps {
   userRole?: string | null;
   userId?: string | null;
   onNavigate?: (tab: string) => void;
+  /** `inline` = preso no header mobile; `fixed` = flutuante (desktop). */
+  placement?: 'fixed' | 'inline';
 }
 
 const TYPE_META: Record<
@@ -450,6 +453,7 @@ export default function NotificationPanel({
   userRole,
   userId,
   onNavigate,
+  placement = 'fixed',
 }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -457,12 +461,16 @@ export default function NotificationPanel({
   const [readIds, setReadIds] = useState<Set<string>>(() => loadStoredSet(READ_KEY));
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => loadStoredSet(DISMISS_KEY));
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLElement | null>(null);
   const isFilho = userRole === 'filho';
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
@@ -563,8 +571,179 @@ export default function NotificationPanel({
     };
   }, [open]);
 
+  const popover = open ? (
+    <motion.section
+      ref={popoverRef}
+      role="dialog"
+      aria-label="Central de notificações"
+      initial={{ opacity: 0, y: -10, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      className="axecloud-notification-popover"
+    >
+      <div className="axecloud-notification-header">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="axecloud-notification-heading-icon">
+              <Sparkles className="h-4 w-4" aria-hidden />
+            </span>
+            <h2 className="font-display text-base font-extrabold text-white">
+              {isFilho ? 'Avisos da casa' : 'Notificações'}
+            </h2>
+          </div>
+          <p className="mt-1 text-[11px] text-[#8B96A8]">
+            {unread
+              ? `${unread} ${unread === 1 ? 'novidade precisa' : 'novidades precisam'} da sua atenção`
+              : 'Você está em dia com tudo'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="axecloud-notification-close"
+          aria-label="Fechar notificações"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
+
+      <div className="axecloud-notification-toolbar">
+        <div className="axecloud-notification-filter" role="tablist" aria-label="Filtrar notificações">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'all'}
+            onClick={() => setFilter('all')}
+            className={cn(filter === 'all' && 'is-active')}
+          >
+            Todas
+            <span>{allNotifications.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'unread'}
+            onClick={() => setFilter('unread')}
+            className={cn(filter === 'unread' && 'is-active')}
+          >
+            Não lidas
+            <span>{unread}</span>
+          </button>
+        </div>
+        {unread > 0 ? (
+          <button type="button" onClick={markAllRead} className="axecloud-notification-read-all">
+            <CheckCheck className="h-3.5 w-3.5" aria-hidden />
+            Ler todas
+          </button>
+        ) : null}
+      </div>
+
+      <div className="axecloud-notification-list">
+        <AnimatePresence initial={false} mode="popLayout">
+          {visibleNotifications.length ? (
+            visibleNotifications.map((notification) => {
+              const meta = TYPE_META[notification.type];
+              return (
+                <motion.article
+                  layout
+                  key={notification.id}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12, height: 0 }}
+                  className={cn(
+                    'axecloud-notification-item',
+                    !notification.read && 'is-unread',
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => openNotification(notification)}
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border',
+                        meta.surfaceClass,
+                        meta.iconClass,
+                      )}
+                    >
+                      {meta.icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#748094]">
+                          {meta.label}
+                        </span>
+                        {!notification.read ? (
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,199,0,.8)]" />
+                        ) : null}
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-[13px] font-bold leading-snug',
+                          notification.read ? 'text-[#B5BECC]' : 'text-white',
+                        )}
+                      >
+                        {notification.title}
+                      </span>
+                      <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-[#7E899A]">
+                        {notification.body}
+                      </span>
+                      <span className="mt-2 block text-[10px] font-semibold text-[#596578]">
+                        {timeAgo(notification.created_at)}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismiss(notification.id)}
+                    className="axecloud-notification-dismiss"
+                    aria-label={`Remover ${notification.title}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </motion.article>
+              );
+            })
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="axecloud-notification-empty"
+            >
+              <span className="axecloud-notification-empty-icon">
+                <Check className="h-5 w-5" aria-hidden />
+              </span>
+              <p className="font-display text-sm font-bold text-white">
+                {filter === 'unread' ? 'Tudo foi lido' : 'Tudo em ordem'}
+              </p>
+              <p className="mt-1 max-w-[220px] text-center text-[11px] leading-relaxed text-[#738095]">
+                {isFilho
+                  ? 'Os novos avisos da sua caminhada aparecerão aqui.'
+                  : 'As novidades importantes da gestão aparecerão aqui.'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="axecloud-notification-footer">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        Atualizações em tempo real
+      </div>
+    </motion.section>
+  ) : null;
+
   return (
-    <div ref={rootRef} className="axecloud-notification-root">
+    <div
+      ref={rootRef}
+      className={cn(
+        'axecloud-notification-root',
+        placement === 'inline' ? 'is-inline' : 'is-fixed',
+      )}
+    >
       <motion.button
         type="button"
         whileTap={{ scale: 0.9 }}
@@ -575,6 +754,7 @@ export default function NotificationPanel({
         aria-haspopup="dialog"
         onClick={() => setOpen((current) => !current)}
         className={cn('axecloud-notification-trigger', open && 'is-open')}
+        data-filho-tour="header-notificacoes"
       >
         <Bell className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
         {unread > 0 ? (
@@ -589,171 +769,11 @@ export default function NotificationPanel({
         ) : null}
       </motion.button>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.section
-            role="dialog"
-            aria-label="Central de notificações"
-            initial={{ opacity: 0, y: -10, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            className="axecloud-notification-popover"
-          >
-            <div className="axecloud-notification-header">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="axecloud-notification-heading-icon">
-                    <Sparkles className="h-4 w-4" aria-hidden />
-                  </span>
-                  <h2 className="font-display text-base font-extrabold text-white">
-                    {isFilho ? 'Avisos da casa' : 'Notificações'}
-                  </h2>
-                </div>
-                <p className="mt-1 text-[11px] text-[#8B96A8]">
-                  {unread
-                    ? `${unread} ${unread === 1 ? 'novidade precisa' : 'novidades precisam'} da sua atenção`
-                    : 'Você está em dia com tudo'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="axecloud-notification-close"
-                aria-label="Fechar notificações"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-
-            <div className="axecloud-notification-toolbar">
-              <div className="axecloud-notification-filter" role="tablist" aria-label="Filtrar notificações">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === 'all'}
-                  onClick={() => setFilter('all')}
-                  className={cn(filter === 'all' && 'is-active')}
-                >
-                  Todas
-                  <span>{allNotifications.length}</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === 'unread'}
-                  onClick={() => setFilter('unread')}
-                  className={cn(filter === 'unread' && 'is-active')}
-                >
-                  Não lidas
-                  <span>{unread}</span>
-                </button>
-              </div>
-              {unread > 0 ? (
-                <button type="button" onClick={markAllRead} className="axecloud-notification-read-all">
-                  <CheckCheck className="h-3.5 w-3.5" aria-hidden />
-                  Ler todas
-                </button>
-              ) : null}
-            </div>
-
-            <div className="axecloud-notification-list">
-              <AnimatePresence initial={false} mode="popLayout">
-                {visibleNotifications.length ? (
-                  visibleNotifications.map((notification) => {
-                    const meta = TYPE_META[notification.type];
-                    return (
-                      <motion.article
-                        layout
-                        key={notification.id}
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12, height: 0 }}
-                        className={cn(
-                          'axecloud-notification-item',
-                          !notification.read && 'is-unread',
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => openNotification(notification)}
-                          className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                        >
-                          <span
-                            className={cn(
-                              'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border',
-                              meta.surfaceClass,
-                              meta.iconClass,
-                            )}
-                          >
-                            {meta.icon}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-2">
-                              <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#748094]">
-                                {meta.label}
-                              </span>
-                              {!notification.read ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,199,0,.8)]" />
-                              ) : null}
-                            </span>
-                            <span
-                              className={cn(
-                                'mt-1 block text-[13px] font-bold leading-snug',
-                                notification.read ? 'text-[#B5BECC]' : 'text-white',
-                              )}
-                            >
-                              {notification.title}
-                            </span>
-                            <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-[#7E899A]">
-                              {notification.body}
-                            </span>
-                            <span className="mt-2 block text-[10px] font-semibold text-[#596578]">
-                              {timeAgo(notification.created_at)}
-                            </span>
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => dismiss(notification.id)}
-                          className="axecloud-notification-dismiss"
-                          aria-label={`Remover ${notification.title}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        </button>
-                      </motion.article>
-                    );
-                  })
-                ) : (
-                  <motion.div
-                    key="empty"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="axecloud-notification-empty"
-                  >
-                    <span className="axecloud-notification-empty-icon">
-                      <Check className="h-5 w-5" aria-hidden />
-                    </span>
-                    <p className="font-display text-sm font-bold text-white">
-                      {filter === 'unread' ? 'Tudo foi lido' : 'Tudo em ordem'}
-                    </p>
-                    <p className="mt-1 max-w-[220px] text-center text-[11px] leading-relaxed text-[#738095]">
-                      {isFilho
-                        ? 'Os novos avisos da sua caminhada aparecerão aqui.'
-                        : 'As novidades importantes da gestão aparecerão aqui.'}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="axecloud-notification-footer">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Atualizações em tempo real
-            </div>
-          </motion.section>
-        ) : null}
-      </AnimatePresence>
+      {placement === 'inline' && typeof document !== 'undefined'
+        ? createPortal(<AnimatePresence>{popover}</AnimatePresence>, document.body)
+        : (
+          <AnimatePresence>{popover}</AnimatePresence>
+        )}
     </div>
   );
 }

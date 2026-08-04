@@ -27,7 +27,7 @@ import {
   type AppNavItem,
   type ZeladorNavEntry,
 } from '../../constants/appNav';
-import { openFilhoGuide } from '../../constants/filhoGuide';
+import { openFilhoTour } from '../../constants/filhoGuide';
 import { performFastLogout } from '../../lib/logout';
 import Avatar from '../Avatar';
 import { AxeCloudEmblem, AxeCloudLogoMark } from '../AxeCloudLogoMark';
@@ -503,12 +503,15 @@ export default function AppTopNav({
 
   return (
     <>
-      <NotificationPanel
-        tenantData={tenantData}
-        userRole={userRole}
-        userId={userId}
-        onNavigate={setActiveTab}
-      />
+      {isLgDesktop ? (
+        <NotificationPanel
+          tenantData={tenantData}
+          userRole={userRole}
+          userId={userId}
+          onNavigate={setActiveTab}
+          placement="fixed"
+        />
+      ) : null}
 
       <aside
         onMouseEnter={() => setDesktopHovered(true)}
@@ -630,7 +633,7 @@ export default function AppTopNav({
             <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-white/[0.06] bg-white/[0.025] p-2')}>
               <button
                 type="button"
-                onClick={() => openFilhoGuide()}
+                onClick={() => openFilhoTour()}
                 title="Como usar o app"
                 className={cn(
                   'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#242A32] bg-[#12161A] text-xs font-black text-[#E8EDF5] transition-colors hover:border-primary/35 hover:text-primary',
@@ -737,7 +740,7 @@ export default function AppTopNav({
               type="button"
               onClick={() => {
                 setMobileOpen(false);
-                openFilhoGuide();
+                openFilhoTour();
               }}
               className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#2A313C] bg-[#12161A] px-4 text-sm font-bold text-[#E8EDF5] touch-manipulation hover:border-primary/40 hover:text-primary"
             >
@@ -768,7 +771,7 @@ export default function AppTopNav({
 
       <header
         ref={headerRef}
-        className="app-v5-mobile-header relative z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#242A32] bg-[#101319] pt-[env(safe-area-inset-top,0px)] min-[880px]:hidden"
+        className="app-v5-mobile-header sticky top-0 z-50 w-full max-w-full min-w-0 shrink-0 overflow-hidden border-b border-[#242A32] bg-[#101319] pt-[env(safe-area-inset-top,0px)] min-[880px]:hidden"
       >
         <div className="flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-2">
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:max-w-[min(100%,15rem)] xl:max-w-xs">
@@ -821,7 +824,14 @@ export default function AppTopNav({
               ) : null}
             </div>
           </div>
-          <div className="flex shrink-0 items-center lg:hidden">
+          <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
+            <NotificationPanel
+              tenantData={tenantData}
+              userRole={userRole}
+              userId={userId}
+              onNavigate={setActiveTab}
+              placement="inline"
+            />
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
@@ -841,6 +851,14 @@ export default function AppTopNav({
         {mobileDockItems.map((item) => {
           const Icon = item.icon;
           const active = activeTab === item.id;
+          const tourTarget =
+            item.id === 'financial'
+              ? 'nav-mensalidade'
+              : item.id === 'calendar'
+                ? 'nav-giras'
+                : item.id === 'chat'
+                  ? 'nav-conversas'
+                  : undefined;
           return (
             <button
               key={item.id}
@@ -848,6 +866,7 @@ export default function AppTopNav({
               onClick={() => handleSelect(item)}
               aria-current={active ? 'page' : undefined}
               className={cn('app-v5-bottom-nav__item', active && 'is-active')}
+              data-filho-tour={tourTarget}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} aria-hidden />
               <span>{item.label === 'Filhos de Santo' ? 'Corrente' : item.label}</span>

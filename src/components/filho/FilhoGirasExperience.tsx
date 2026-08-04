@@ -82,7 +82,12 @@ export default function FilhoGirasExperience({
     }
     return (
       <div className={`filho-giras-response ${compact ? 'is-compact' : ''}`}>
-        <button type="button" disabled={busyEventId === event.id} onClick={() => onRespond(event.id, 'confirmar')}>
+        <button
+          type="button"
+          disabled={busyEventId === event.id}
+          onClick={() => onRespond(event.id, 'confirmar')}
+          data-filho-tour="gira-confirmar"
+        >
           {busyEventId === event.id ? <Loader2 className="animate-spin" /> : <Check />} Vou participar
         </button>
         <button type="button" disabled={busyEventId === event.id} onClick={() => onRespond(event.id, 'declinar')}>

@@ -1,87 +1,97 @@
-import type { LucideIcon } from 'lucide-react';
-import {
-  BookOpen,
-  CalendarDays,
-  Flame,
-  Megaphone,
-  MessageCircle,
-  ShoppingBag,
-  UserCircle,
-  Wallet,
-} from 'lucide-react';
+/** Tour de legendas (coachmarks) do portal do filho — 1º acesso. */
 
-export const FILHO_WELCOME_SEEN_KEY = 'axecloud:filho-welcome-seen';
-export const FILHO_OPEN_GUIDE_EVENT = 'axecloud:open-filho-guide';
+export const FILHO_TOUR_DONE_KEY = 'axecloud:filho-tour-done';
+export const FILHO_OPEN_TOUR_EVENT = 'axecloud:open-filho-tour';
 
-export type FilhoGuideFeature = {
+export type FilhoTourStep = {
+  id: string;
+  /** Aba onde o alvo mora. */
   tab: string;
-  label: string;
-  detail: string;
-  icon: LucideIcon;
-  tone: 'cyan' | 'violet' | 'green' | 'rose' | 'gold' | 'slate' | 'amber' | 'teal';
+  /** Valor de `data-filho-tour` no elemento alvo. */
+  target: string;
+  title: string;
+  body: string;
+  /** Preferência de lado da legenda (o motor ajusta se não couber). */
+  prefer?: 'top' | 'bottom' | 'left' | 'right';
 };
 
-/** Oito funções do portal do filho — copy direta para descoberta. */
-export const FILHO_GUIDE_FEATURES: FilhoGuideFeature[] = [
+/**
+ * Passos curtos, apontando para UI real — não é um segundo menu.
+ * Alvos ausentes (ex.: sem mensalidade pendente) são pulados automaticamente.
+ */
+export const FILHO_TOUR_STEPS: FilhoTourStep[] = [
   {
+    id: 'home-attention',
     tab: 'profile',
-    label: 'Início',
-    detail: 'Resumo da casa e o que pede sua atenção agora',
-    icon: UserCircle,
-    tone: 'slate',
+    target: 'home-attention',
+    title: 'O que pede sua atenção',
+    body: 'Quando a casa precisar de algo seu — mensalidade, gira ou orientação — o aviso principal aparece aqui.',
+    prefer: 'bottom',
   },
   {
-    tab: 'obrigacoes',
-    label: 'Obrigações',
-    detail: 'Orientações e preceitos da sua caminhada',
-    icon: Flame,
-    tone: 'violet',
+    id: 'nav-mensalidade',
+    tab: 'profile',
+    target: 'nav-mensalidade',
+    title: 'Mensalidade',
+    body: 'Por aqui você vê se está em dia, paga com Pix e envia o comprovante.',
+    prefer: 'top',
   },
   {
+    id: 'mensalidade-pix',
     tab: 'financial',
-    label: 'Mensalidade',
-    detail: 'Ver pendência e pagar com Pix',
-    icon: Wallet,
-    tone: 'green',
+    target: 'mensalidade-pix',
+    title: 'Pagar com Pix',
+    body: 'Toque aqui para gerar o QR Code e pagar a contribuição da casa.',
+    prefer: 'top',
   },
   {
+    id: 'mensalidade-comprovante',
+    tab: 'financial',
+    target: 'mensalidade-comprovante',
+    title: 'Enviar comprovante',
+    body: 'Já pagou a mensalidade? Envie o comprovante para o sistema atualizar seu pagamento.',
+    prefer: 'top',
+  },
+  {
+    id: 'nav-giras',
+    tab: 'financial',
+    target: 'nav-giras',
+    title: 'Giras',
+    body: 'Na agenda você vê os encontros da casa e confirma se vai participar.',
+    prefer: 'top',
+  },
+  {
+    id: 'gira-confirmar',
     tab: 'calendar',
-    label: 'Giras',
-    detail: 'Agenda da casa e confirmar presença',
-    icon: CalendarDays,
-    tone: 'cyan',
+    target: 'gira-confirmar',
+    title: 'Confirmar presença',
+    body: 'A casa precisa saber quem estará na corrente. Confirme ou avise que não poderá ir.',
+    prefer: 'top',
   },
   {
-    tab: 'library',
-    label: 'Biblioteca',
-    detail: 'Materiais e estudos liberados pela casa',
-    icon: BookOpen,
-    tone: 'gold',
+    id: 'nav-conversas',
+    tab: 'calendar',
+    target: 'nav-conversas',
+    title: 'Conversas',
+    body: 'Dúvida ou recado? Fale direto com a casa por aqui.',
+    prefer: 'top',
   },
   {
-    tab: 'store',
-    label: 'Loja',
-    detail: 'Ver produtos e reservar itens da casa',
-    icon: ShoppingBag,
-    tone: 'amber',
-  },
-  {
-    tab: 'mural',
-    label: 'Comunicados',
-    detail: 'Recados e avisos publicados pela casa',
-    icon: Megaphone,
-    tone: 'rose',
-  },
-  {
-    tab: 'chat',
-    label: 'Conversas',
-    detail: 'Falar diretamente com a casa',
-    icon: MessageCircle,
-    tone: 'teal',
+    id: 'header-notificacoes',
+    tab: 'profile',
+    target: 'header-notificacoes',
+    title: 'Avisos',
+    body: 'O sino guarda os avisos importantes. Quando algo novo chegar, o alerta aparece nele.',
+    prefer: 'bottom',
   },
 ];
 
-export function openFilhoGuide(): void {
+export function openFilhoTour(): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(FILHO_OPEN_GUIDE_EVENT));
+  window.dispatchEvent(new CustomEvent(FILHO_OPEN_TOUR_EVENT));
+}
+
+/** @deprecated use openFilhoTour */
+export function openFilhoGuide(): void {
+  openFilhoTour();
 }

@@ -128,7 +128,7 @@ export default function FilhoMonthlyExperience({
             {isPending ? (
               <>
                 <div className="filho-wallet-current__actions">
-                  <button type="button" onClick={onOpenPix} disabled={pixUnavailable}>
+                  <button type="button" onClick={onOpenPix} disabled={pixUnavailable} data-filho-tour="mensalidade-pix">
                     <QrCode /> Pagar com PIX
                   </button>
                   <input
@@ -142,9 +142,14 @@ export default function FilhoMonthlyExperience({
                       if (file) onSelectReceipt(file);
                     }}
                   />
-                  <button type="button" disabled={uploading} onClick={() => receiptInputRef.current?.click()}>
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => receiptInputRef.current?.click()}
+                    data-filho-tour="mensalidade-comprovante"
+                  >
                     {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                    {uploading ? 'Analisando...' : 'Já paguei'}
+                    {uploading ? 'Analisando...' : 'Enviar comprovante'}
                   </button>
                 </div>
                 {pixUnavailable ? <p className="filho-wallet-current__warning">A casa ainda não cadastrou uma chave PIX.</p> : null}

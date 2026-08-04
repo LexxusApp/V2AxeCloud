@@ -7,8 +7,8 @@ import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { FilhoCoachTour } from './components/filho/FilhoCoachTour';
 import { FilhoPushPrompt } from './components/filho/FilhoPushPrompt';
-import { FilhoWelcomeGuide } from './components/filho/FilhoWelcomeGuide';
 import { cn } from './lib/utils';
 import { ROUTES } from './lib/routes';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
@@ -1498,7 +1498,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       <LegalTermsModal open onAccept={handleAcceptLegalTerms} accepting={legalTermsAccepting} />
     ) : null}
     {userRole === 'filho' && session && !showLegalTermsModal ? (
-      <FilhoWelcomeGuide onNavigate={navigateToTab} />
+      <FilhoCoachTour activeTab={activeTab} onNavigate={navigateToTab} />
     ) : null}
     {session && effectiveTenantId && !blockingSpinnerActive ? (
       <ChatFloatingWidget tenantData={tenantData} userId={session.user.id} userRole={userRole} />

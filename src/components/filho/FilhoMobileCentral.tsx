@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FILHO_GUIDE_FEATURES, openFilhoGuide } from '../../constants/filhoGuide';
+import { openFilhoTour } from '../../constants/filhoGuide';
 
 type EventItem = {
   id: string;
@@ -105,16 +105,12 @@ export default function FilhoMobileCentral({
         : { kicker: 'Sua caminhada está em dia', title: 'Tudo certo por aqui', body: 'Acompanhe os próximos movimentos e recados da casa.', tab: 'calendar', icon: Check };
   const PrimaryIcon = primaryAction.icon;
 
-  const featureDetails: Record<string, string> = {
-    profile: 'Resumo e atenção',
-    obrigacoes: obligationsUnread ? `${obligationsUnread} nova${obligationsUnread === 1 ? '' : 's'}` : 'Em dia',
-    financial: debtLoading ? 'Conferindo' : hasDebt ? 'Pendente' : 'Em dia',
-    calendar: nextEvent ? `${eventDate?.day} ${eventDate?.month}` : 'Sem agenda',
-    library: 'Estudos da casa',
-    store: 'Produtos e reservas',
-    mural: urgentNotice ? 'Novo recado' : 'Avisos da casa',
-    chat: 'Falar com a casa',
-  };
+  const quickActions = [
+    { label: 'Giras', detail: nextEvent ? `${eventDate?.day} ${eventDate?.month}` : 'Sem agenda', tab: 'calendar', icon: CalendarDays, tone: 'cyan' },
+    { label: 'Obrigações', detail: obligationsUnread ? `${obligationsUnread} nova${obligationsUnread === 1 ? '' : 's'}` : 'Em dia', tab: 'obrigacoes', icon: Flame, tone: 'violet' },
+    { label: 'Mensalidade', detail: debtLoading ? 'Conferindo' : hasDebt ? 'Pendente' : 'Em dia', tab: 'financial', icon: Wallet, tone: hasDebt ? 'rose' : 'green' },
+    { label: 'Biblioteca', detail: 'Estudos da casa', tab: 'library', icon: BookOpen, tone: 'gold' },
+  ];
 
   return (
     <div className="filho-mobile-central filho-home-experience">
@@ -125,10 +121,10 @@ export default function FilhoMobileCentral({
         <div className="filho-mobile-hero__footer">
           <span>{houseName}</span>
           <div className="filho-mobile-hero__actions">
-            <button type="button" onClick={() => onNavigate('chat')}>
+            <button type="button" onClick={() => onNavigate('chat')} data-filho-tour="home-chat">
               <MessageCircle /> Falar com a casa
             </button>
-            <button type="button" className="is-help" onClick={() => openFilhoGuide()}>
+            <button type="button" className="is-help" onClick={() => openFilhoTour()}>
               <CircleHelp /> Como usar
             </button>
           </div>
@@ -140,40 +136,34 @@ export default function FilhoMobileCentral({
           <div><p>Agora</p><h2>O que pede sua atenção</h2></div>
           <span>{attentionCount || '0'}</span>
         </header>
-        <button type="button" onClick={() => onNavigate(primaryAction.tab)} className="filho-mobile-attention__card">
+        <button
+          type="button"
+          onClick={() => onNavigate(primaryAction.tab)}
+          className="filho-mobile-attention__card"
+          data-filho-tour="home-attention"
+        >
           <i><PrimaryIcon /></i>
           <span><small>{primaryAction.kicker}</small><strong>{primaryAction.title}</strong><em>{primaryAction.body}</em></span>
           <ChevronRight />
         </button>
       </section>
 
-      <section className="filho-mobile-quick" aria-label="O que você pode fazer">
-        <header className="filho-mobile-quick__header">
-          <div>
-            <p>Portal</p>
-            <h2>O que você pode fazer</h2>
-          </div>
-          <button type="button" onClick={() => openFilhoGuide()}>
-            Como usar o app <ArrowRight />
-          </button>
-        </header>
-        <div className="filho-mobile-quick__grid">
-          {FILHO_GUIDE_FEATURES.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <button
-                key={feature.tab}
-                type="button"
-                onClick={() => onNavigate(feature.tab)}
-                className={`is-${feature.tone}`}
-              >
-                <span><Icon /></span>
-                <strong>{feature.label}</strong>
-                <small>{featureDetails[feature.tab] || feature.detail}</small>
-              </button>
-            );
-          })}
-        </div>
+      <section className="filho-mobile-quick" aria-label="Acessos rápidos">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.tab}
+              type="button"
+              onClick={() => onNavigate(action.tab)}
+              className={`is-${action.tone}`}
+            >
+              <span><Icon /></span>
+              <strong>{action.label}</strong>
+              <small>{action.detail}</small>
+            </button>
+          );
+        })}
       </section>
 
       <section className="filho-mobile-gira">
@@ -195,7 +185,14 @@ export default function FilhoMobileCentral({
                 <>
                   <p>A casa precisa da sua resposta</p>
                   <div>
-                    <button type="button" disabled={participationBusy} onClick={() => onRespond('confirmar')}>Vou participar</button>
+                    <button
+                      type="button"
+                      disabled={participationBusy}
+                      onClick={() => onRespond('confirmar')}
+                      data-filho-tour="gira-confirmar"
+                    >
+                      Vou participar
+                    </button>
                     <button type="button" disabled={participationBusy} onClick={() => onRespond('declinar')}>Não poderei</button>
                   </div>
                 </>
