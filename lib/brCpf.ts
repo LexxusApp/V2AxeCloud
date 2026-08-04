@@ -25,7 +25,18 @@ export function isValidCpf(value: string): boolean {
   return d2 === Number(cpf[10]);
 }
 
-/** Senha de acesso do filho = 6 primeiros dígitos do CPF. */
+/**
+ * Cadastro do filho: aceita 6 dígitos (senha de acesso) ou CPF completo válido (11).
+ * Valores fracos (000000, 123456…) são rejeitados em `isWeakFilhoSenha`.
+ */
+export function isValidFilhoCpfCadastro(value: string): boolean {
+  const cpf = digitsOnlyCpf(value);
+  if (cpf.length === 6) return /^\d{6}$/.test(cpf) && !isWeakFilhoSenha(cpf);
+  if (cpf.length === 11) return isValidCpf(cpf) && !isWeakFilhoSenha(cpf.slice(0, 6));
+  return false;
+}
+
+/** Senha de acesso do filho = 6 primeiros dígitos do CPF (ou os 6 dígitos cadastrados). */
 export function filhoSenhaFromCpf(value: string): string | null {
   const cpf = digitsOnlyCpf(value);
   if (cpf.length < 6) return null;

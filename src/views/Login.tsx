@@ -9,8 +9,9 @@ import {
   X,
   Eye,
   EyeOff,
-  UserCircle,
   ArrowLeft,
+  Sparkles,
+  Users,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -29,6 +30,9 @@ import {
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
+
+type LoginRole = 'zelador' | 'membro';
+type LoginStep = 'choose' | 'form';
 
 async function postAuthAuditLog(
   payload: {
@@ -52,8 +56,7 @@ async function postAuthAuditLog(
   }
 }
 
-const fontLogin =
-  "[font-family:'Outfit',system-ui,sans-serif]";
+const fontLogin = "[font-family:'Outfit',system-ui,sans-serif]";
 
 const AUTH_MODAL_CARD = cn(
   'relative w-full overflow-hidden rounded-[1.5rem] border border-[#1b1813]/10 bg-[#fffdf8]',
@@ -120,15 +123,28 @@ function isFilhoLoginModeParam(raw: string | null): boolean {
   const v = String(raw || '')
     .trim()
     .toLowerCase();
-  return v === 'filho' || v === 'filho-de-santo' || v === 'filhos' || v === '1' || v === 'true';
+  return v === 'filho' || v === 'filho-de-santo' || v === 'filhos' || v === 'membro' || v === '1' || v === 'true';
+}
+
+function isZeladorLoginModeParam(raw: string | null): boolean {
+  const v = String(raw || '')
+    .trim()
+    .toLowerCase();
+  return v === 'zelador' || v === 'lider' || v === 'admin' || v === 'pai' || v === 'mae';
 }
 
 export default function Login() {
-  const [filhoSurface, setFilhoSurface] = useState(() => {
-    if (typeof window === 'undefined') return false;
+  const bootMode = (() => {
+    if (typeof window === 'undefined') return null as LoginRole | null;
     const params = new URLSearchParams(window.location.search);
-    return isFilhoLoginModeParam(params.get('modo') || params.get('mode'));
-  });
+    const modo = params.get('modo') || params.get('mode');
+    if (isFilhoLoginModeParam(modo)) return 'membro';
+    if (isZeladorLoginModeParam(modo)) return 'zelador';
+    return null;
+  })();
+
+  const [step, setStep] = useState<LoginStep>(() => (bootMode ? 'form' : 'choose'));
+  const [role, setRole] = useState<LoginRole | null>(() => bootMode);
   const [email, setEmail] = useState(() => readRememberedLoginEmail() || '');
   const [password, setPassword] = useState('');
   const [childId, setChildId] = useState('');
@@ -144,18 +160,25 @@ export default function Login() {
   });
   const alertHideTimerRef = useRef<number | null>(null);
 
+  const isMembro = role === 'membro';
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const updated = params.get('updated') === 'true';
-    const modoFilho = isFilhoLoginModeParam(params.get('modo') || params.get('mode'));
+    const modo = params.get('modo') || params.get('mode');
+    const modoFilho = isFilhoLoginModeParam(modo);
+    const modoZelador = isZeladorLoginModeParam(modo);
 
     if (modoFilho) {
-      setFilhoSurface(true);
+      setRole('membro');
+      setStep('form');
+    } else if (modoZelador) {
+      setRole('zelador');
+      setStep('form');
     }
 
-    if (!updated && !modoFilho) return;
+    if (!updated && !modoFilho && !modoZelador) return;
 
-    // Mantém /entrar limpo na barra, sem perder o modo já aplicado no state.
     window.history.replaceState({}, document.title, ROUTES.login);
 
     if (!updated) return;
@@ -185,8 +208,28 @@ export default function Login() {
     ? `${ROUTES.forgotPassword}?email=${encodeURIComponent(email.trim())}`
     : ROUTES.forgotPassword;
 
+  const pickRole = (next: LoginRole) => {
+    if (loading) return;
+    setRole(next);
+    setStep('form');
+    setError(null);
+    setInfo(null);
+  };
+
+  const backToChoose = () => {
+    if (loading) return;
+    setStep('choose');
+    setRole(null);
+    setError(null);
+    setInfo(null);
+    setPassword('');
+    setCpfPrefix('');
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role) return;
+    const filhoSurface = role === 'membro';
     setLoading(true);
     setError(null);
     setInfo(null);
@@ -219,7 +262,10 @@ export default function Login() {
         const response = await fetch('/api/auth/filho-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ childId: normalizeFilhoLoginIdInput(childId) || childId, cpfPrefix }),
+          body: JSON.stringify({
+            childId: normalizeFilhoLoginIdInput(childId) || childId,
+            cpfPrefix,
+          }),
         });
 
         const data = await response.json();
@@ -339,8 +385,8 @@ export default function Login() {
         terreiroId: null,
         details: {
           surface: 'app',
-          mode: filhoSurface ? 'filho' : 'zelador',
-          ...(filhoSurface ? { childId } : { email: email.trim().toLowerCase() }),
+          mode: role === 'membro' ? 'filho' : 'zelador',
+          ...(role === 'membro' ? { childId } : { email: email.trim().toLowerCase() }),
           message: msg.slice(0, 300),
         },
       });
@@ -348,13 +394,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const switchSurface = (nextIsFilho: boolean) => {
-    if (loading || nextIsFilho === filhoSurface) return;
-    setFilhoSurface(nextIsFilho);
-    setError(null);
-    setInfo(null);
   };
 
   return (
@@ -386,352 +425,382 @@ export default function Login() {
       <motion.div
         initial={false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:py-0 md:max-w-[54rem]"
+        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:py-0 md:max-w-[40rem]"
       >
-        <div
-          data-login-mode={filhoSurface ? 'filho' : 'zelador'}
-          className={cn(
-            AUTH_MODAL_CARD,
-            '[perspective:1600px] md:min-h-[36rem] md:rounded-[1.8rem]'
-          )}
-        >
-        <div
-          className={cn(
-            'relative z-10 w-full space-y-4 p-6 transition-[left] duration-700 ease-[cubic-bezier(.77,0,.18,1)] motion-reduce:transition-none sm:p-8',
-            'md:absolute md:inset-y-0 md:flex md:w-1/2 md:flex-col md:justify-center md:overflow-y-auto md:px-10 md:py-8',
-            filhoSurface ? 'md:left-1/2' : 'md:left-0'
-          )}
-        >
-        {showAlert && (
-          <div
-            className={cn(
-              'flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]'
-            )}
-          >
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2} />
-            <p className="text-[0.8125rem] font-bold leading-snug flex-1 pr-1">
-              Sistema atualizado. Faça o login novamente.
-            </p>
-            <button
-              type="button"
-              onClick={closeUpdateAlert}
-              aria-label="Fechar aviso de atualização"
-              className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-primary/85 transition-colors hover:bg-primary/12 hover:text-primary"
-            >
-              <X className="h-4 w-4" strokeWidth={2} />
-            </button>
-          </div>
-        )}
-
-        <header className="space-y-3 text-left">
-          <div className="mb-7 flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c48a00]/55 text-lg text-[#b47d00]">✦</span>
-            <span className="text-xl tracking-[-0.04em] [font-family:'Fraunces',Georgia,serif]">
-              Axé<span className="text-[#b47d00]">Cloud</span>
-            </span>
-          </div>
-          <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
-          <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
-            {filhoSurface ? 'Portal do filho de santo' : 'Gestão da casa de axé'}
-          </p>
-          <h2 className="text-[2.15rem] font-medium leading-[1.02] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
-            {filhoSurface ? 'Entre na corrente.' : 'Bem-vindo de volta.'}
-          </h2>
-          <div className="space-y-0.5 text-[13px] leading-snug">
-            <p className="max-w-[19rem] text-[#1b1813]/55">
-              {filhoSurface
-                ? 'Use o registro (com ou sem hífen) e os seis primeiros dígitos do CPF.'
-                : 'Entre com o e-mail e a senha usados na gestão do terreiro.'}
-            </p>
-          </div>
-        </header>
-
-        <div className="space-y-3">
-          <form onSubmit={handleAuth} className="space-y-[8px]">
-            <AnimatePresence mode="wait">
-              {!filhoSurface ? (
-                <motion.div
-                  key="zelador"
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  className="space-y-[8px]"
+        <div className={cn(AUTH_MODAL_CARD, 'md:rounded-[1.8rem]')}>
+          <div className="relative z-10 w-full space-y-5 p-6 sm:p-8 md:px-10 md:py-9">
+            {showAlert && (
+              <div className="flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={2} />
+                <p className="flex-1 pr-1 text-[0.8125rem] font-bold leading-snug">
+                  Sistema atualizado. Faça o login novamente.
+                </p>
+                <button
+                  type="button"
+                  onClick={closeUpdateAlert}
+                  aria-label="Fechar aviso de atualização"
+                  className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-primary/85 transition-colors hover:bg-primary/12 hover:text-primary"
                 >
-                  <div className="space-y-[5px]">
-                    <label className={labelClass}>E-mail</label>
-                    <div className="relative">
-                      <User
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                        strokeWidth={1.5}
-                      />
-                      <input
-                        type="text"
-                        inputMode="email"
-                        autoComplete="username"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Digite seu e-mail"
-                        className={fieldShell}
-                      />
-                    </div>
+                  <X className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+            )}
+
+            <header className="space-y-3 text-left">
+              <div className="mb-2 flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c48a00]/55 text-lg text-[#b47d00]">
+                  ✦
+                </span>
+                <span className="text-xl tracking-[-0.04em] [font-family:'Fraunces',Georgia,serif]">
+                  Axé<span className="text-[#b47d00]">Cloud</span>
+                </span>
+              </div>
+              <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
+            </header>
+
+            <AnimatePresence mode="wait">
+              {step === 'choose' ? (
+                <motion.div
+                  key="choose"
+                  initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                  className="space-y-5"
+                >
+                  <div className="space-y-1.5">
+                    <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
+                      Quem está entrando?
+                    </p>
+                    <h2 className="text-[2rem] font-medium leading-[1.05] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif] sm:text-[2.25rem]">
+                      Escolha o seu acesso
+                    </h2>
+                    <p className="max-w-[28rem] text-[13px] leading-snug text-[#1b1813]/55">
+                      Zelador e membro usam caminhos diferentes. Selecione o seu perfil para ver os
+                      campos certos.
+                    </p>
                   </div>
 
-                  <div className="space-y-[5px]">
-                    <div className="flex items-end justify-between gap-4">
-                      <label className={labelClass}>Senha</label>
-                      <a
-                        href={forgotPasswordHref}
-                        className="pb-[1px] text-[11px] font-semibold text-[#a87500] transition-colors hover:text-[#7b5700]"
-                      >
-                        Esqueceu sua senha?
-                      </a>
-                    </div>
-                    <div className="relative">
-                      <Lock
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                        strokeWidth={1.5}
-                      />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Digite sua senha"
-                        autoComplete="current-password"
-                        className={cn(fieldShell, 'pr-12')}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-5 w-5" strokeWidth={1.65} />
-                        ) : (
-                          <Eye className="h-5 w-5" strokeWidth={1.65} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
-                    <span
+                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                    <motion.button
+                      type="button"
+                      whileHover={{ y: -3, scale: 1.01 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() => pickRole('zelador')}
                       className={cn(
-                        'flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
-                        rememberMe ? 'border-primary bg-primary/10' : 'border-primary bg-transparent'
+                        'group relative overflow-hidden rounded-[1.15rem] border border-[#1b1813]/10 bg-[#1b1813] p-5 text-left text-[#faf8f4]',
+                        'transition-shadow hover:shadow-[0_18px_40px_rgba(27,24,19,0.22)]'
                       )}
                     >
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setRememberMe(checked);
-                          if (!checked) clearRememberedLoginEmail();
-                        }}
-                        className="sr-only"
-                      />
-                      {rememberMe && (
-                        <svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 12 10" fill="none" aria-hidden>
-                          <path
-                            d="M1 5l3.5 3.5L11 1"
-                            stroke="currentColor"
-                            strokeWidth="1.85"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                      <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#e5ad1a]/15 blur-2xl transition-opacity group-hover:opacity-100" />
+                      <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e5ad1a]/35 bg-[#e5ad1a]/10 text-[#e5ad1a]">
+                        <Sparkles className="h-5 w-5" strokeWidth={1.6} aria-hidden />
+                      </span>
+                      <p className="text-[1.55rem] font-medium leading-none tracking-[-0.03em] [font-family:'Fraunces',Georgia,serif]">
+                        Zelador
+                      </p>
+                      <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#d6a526]">
+                        Pai de santo · Mãe de santo
+                      </p>
+                      <p className="mt-3 text-[12.5px] leading-relaxed text-white/55">
+                        Gestão da casa: filhos, giras, financeiro e WhatsApp.
+                      </p>
+                    </motion.button>
+
+                    <motion.button
+                      type="button"
+                      whileHover={{ y: -3, scale: 1.01 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() => pickRole('membro')}
+                      className={cn(
+                        'group relative overflow-hidden rounded-[1.15rem] border border-[#c48a00]/30 bg-[#f8f4eb] p-5 text-left',
+                        'transition-shadow hover:border-[#c48a00]/55 hover:shadow-[0_18px_40px_rgba(196,138,0,0.14)]'
                       )}
-                    </span>
-                    <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar meu e-mail</span>
-                  </label>
+                    >
+                      <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#f0b400]/20 blur-2xl" />
+                      <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c48a00]/35 bg-white text-[#b47d00]">
+                        <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
+                      </span>
+                      <p className="text-[1.55rem] font-medium leading-none tracking-[-0.03em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
+                        Membro
+                      </p>
+                      <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#a87500]">
+                        Filho de santo · Filha de santo
+                      </p>
+                      <p className="mt-3 text-[12.5px] leading-relaxed text-[#1b1813]/55">
+                        Registro da casa + 6 dígitos do CPF como senha.
+                      </p>
+                    </motion.button>
+                  </div>
+
+                  <p className="text-center text-[11px] text-[#1b1813]/40">
+                    Dúvida?{' '}
+                    <a href={ROUTES.instrucoesMembro} className="font-semibold text-[#a87500] hover:underline">
+                      Como o membro entra
+                    </a>
+                    {' · '}
+                    <a href={ROUTES.instrucoes} className="font-semibold text-[#a87500] hover:underline">
+                      Guia do zelador
+                    </a>
+                  </p>
                 </motion.div>
               ) : (
                 <motion.div
-                  key="filho"
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  className="space-y-[8px]"
+                  key={`form-${role}`}
+                  initial={{ opacity: 0, x: isMembro ? 24 : -24, filter: 'blur(5px)' }}
+                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: isMembro ? -18 : 18, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+                  className="space-y-4"
                 >
                   <button
                     type="button"
-                    onClick={() => switchSurface(false)}
-                    className="-mt-1 mb-0 text-[11px] font-semibold text-[#1b1813]/50 transition-colors hover:text-[#a87500] md:hidden"
+                    onClick={backToChoose}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#1b1813]/50 transition-colors hover:text-[#a87500]"
                   >
-                    ← Voltar ao login do zelador
+                    <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                    Trocar perfil
                   </button>
-                  <div className="space-y-[5px]">
-                    <label className={labelClass}>Registro</label>
-                    <div className="relative">
-                      <User
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                        strokeWidth={1.5}
-                      />
-                      <input
-                        type="text"
-                        required
-                        maxLength={14}
-                        autoCapitalize="characters"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        value={childId}
-                        onChange={(e) => setChildId(normalizeFilhoLoginIdInput(e.target.value))}
-                        onBlur={() => setChildId((v) => normalizeFilhoLoginIdInput(v))}
-                        placeholder="Ex.: AXC-2021-B2CA"
-                        className={fieldShell}
-                      />
-                    </div>
-                    <p className="text-[11px] leading-snug text-[#1b1813]/45">
-                      Pode digitar sem hífen e em minúsculo — o sistema formata sozinho.
+
+                  <div className="space-y-1">
+                    <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
+                      {isMembro ? 'Portal do membro' : 'Gestão da casa de axé'}
+                    </p>
+                    <h2 className="text-[2rem] font-medium leading-[1.02] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
+                      {isMembro ? 'Entre na corrente.' : 'Bem-vindo de volta.'}
+                    </h2>
+                    <p className="max-w-[22rem] text-[13px] leading-snug text-[#1b1813]/55">
+                      {isMembro
+                        ? 'Registro + 6 primeiros dígitos do CPF. Não use senha de e-mail ou WhatsApp.'
+                        : 'E-mail e senha da gestão do terreiro.'}
                     </p>
                   </div>
-                  <div className="space-y-[5px]">
-                    <label className={labelClass}>6 primeiros dígitos do CPF</label>
-                    <div className="relative">
-                      <KeyRound
-                        className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                        strokeWidth={1.5}
-                      />
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        inputMode="numeric"
-                        value={cpfPrefix}
-                        onChange={(e) => setCpfPrefix(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Ex.: 123456"
-                        className={fieldShell}
-                      />
-                    </div>
-                  </div>
+
+                  <form onSubmit={handleAuth} className="space-y-[8px]">
+                    {!isMembro ? (
+                      <div className="space-y-[8px]">
+                        <div className="space-y-[5px]">
+                          <label className={labelClass}>E-mail</label>
+                          <div className="relative">
+                            <User
+                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                              strokeWidth={1.5}
+                            />
+                            <input
+                              type="text"
+                              inputMode="email"
+                              autoComplete="username"
+                              required
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Digite seu e-mail"
+                              className={fieldShell}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-[5px]">
+                          <div className="flex items-end justify-between gap-4">
+                            <label className={labelClass}>Senha</label>
+                            <a
+                              href={forgotPasswordHref}
+                              className="pb-[1px] text-[11px] font-semibold text-[#a87500] transition-colors hover:text-[#7b5700]"
+                            >
+                              Esqueceu sua senha?
+                            </a>
+                          </div>
+                          <div className="relative">
+                            <Lock
+                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                              strokeWidth={1.5}
+                            />
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              required
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Digite sua senha"
+                              autoComplete="current-password"
+                              className={cn(fieldShell, 'pr-12')}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword((v) => !v)}
+                              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5" strokeWidth={1.65} />
+                              ) : (
+                                <Eye className="h-5 w-5" strokeWidth={1.65} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
+                          <span
+                            className={cn(
+                              'flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
+                              rememberMe ? 'border-primary bg-primary/10' : 'border-primary bg-transparent'
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rememberMe}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setRememberMe(checked);
+                                if (!checked) clearRememberedLoginEmail();
+                              }}
+                              className="sr-only"
+                            />
+                            {rememberMe && (
+                              <svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 12 10" fill="none" aria-hidden>
+                                <path
+                                  d="M1 5l3.5 3.5L11 1"
+                                  stroke="currentColor"
+                                  strokeWidth="1.85"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </span>
+                          <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar meu e-mail</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="space-y-[8px]">
+                        <div className="space-y-[5px]">
+                          <label className={labelClass}>Registro</label>
+                          <div className="relative">
+                            <User
+                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                              strokeWidth={1.5}
+                            />
+                            <input
+                              type="text"
+                              required
+                              maxLength={14}
+                              autoCapitalize="characters"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              value={childId}
+                              onChange={(e) => setChildId(normalizeFilhoLoginIdInput(e.target.value))}
+                              onBlur={() => setChildId((v) => normalizeFilhoLoginIdInput(v))}
+                              placeholder="Ex.: AXC-2021-B2CA"
+                              className={fieldShell}
+                            />
+                          </div>
+                          <p className="text-[11px] leading-snug text-[#1b1813]/45">
+                            Vem no WhatsApp da casa. Pode digitar sem hífen — o sistema formata.
+                          </p>
+                        </div>
+
+                        <div className="space-y-[8px] rounded-[0.9rem] border border-[#c48a00]/35 bg-[#f5e5b5]/35 p-3">
+                          <div className="space-y-[5px]">
+                            <div className="flex flex-wrap items-end justify-between gap-2">
+                              <label htmlFor="filho-cpf-prefix" className={cn(labelClass, 'text-[#7b5700]')}>
+                                Senha = 6 primeiros dígitos do CPF
+                              </label>
+                              <span
+                                className={cn(
+                                  'tabular-nums text-[11px] font-bold',
+                                  cpfPrefix.length === 6 ? 'text-emerald-700' : 'text-[#a87500]'
+                                )}
+                                aria-live="polite"
+                              >
+                                {cpfPrefix.length}/6
+                              </span>
+                            </div>
+                            <div className="relative">
+                              <KeyRound
+                                className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#b47d00]"
+                                strokeWidth={1.5}
+                              />
+                              <input
+                                id="filho-cpf-prefix"
+                                type="text"
+                                required
+                                maxLength={6}
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                value={cpfPrefix}
+                                onChange={(e) => setCpfPrefix(e.target.value.replace(/\D/g, ''))}
+                                placeholder="123456"
+                                aria-describedby="filho-cpf-hint"
+                                className={cn(
+                                  fieldShell,
+                                  'border-[#c48a00]/40 bg-white tracking-[0.35em] placeholder:tracking-[0.2em] placeholder:text-[#1b1813]/28'
+                                )}
+                              />
+                            </div>
+                            <div className="flex justify-between gap-1 px-0.5" aria-hidden>
+                              {Array.from({ length: 6 }).map((_, i) => (
+                                <span
+                                  key={i}
+                                  className={cn(
+                                    'h-1 flex-1 rounded-full transition-colors',
+                                    i < cpfPrefix.length ? 'bg-[#b47d00]' : 'bg-[#1b1813]/12'
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p id="filho-cpf-hint" className="text-[12px] font-semibold leading-snug text-[#5c4310]">
+                            Não é a senha do WhatsApp nem do e-mail.
+                            <span className="mt-1 block font-medium text-[#5c4310]/85">
+                              Ex.: CPF <span className="font-mono">123.456.789-00</span> → digite{' '}
+                              <span className="font-mono font-bold text-[#7b5700]">123456</span>
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {error && (
+                      <p className="rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700">
+                        {error}
+                      </p>
+                    )}
+                    {info && (
+                      <p className="rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/35 px-3 py-2 text-center text-[11px] font-semibold text-[#775400]">
+                        {info}
+                      </p>
+                    )}
+
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
+                        'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
+                      )}
+                    >
+                      {loading ? (
+                        <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
+                      ) : isMembro ? (
+                        'Entrar como membro'
+                      ) : (
+                        'Entrar como zelador'
+                      )}
+                    </motion.button>
+                  </form>
+
+                  <p className="text-center text-[11px] text-[#1b1813]/40">
+                    <a
+                      href={isMembro ? ROUTES.instrucoesMembro : ROUTES.instrucoes}
+                      className="font-semibold text-[#a87500] hover:underline"
+                    >
+                      {isMembro ? 'Instruções de acesso do membro' : 'Instruções de uso do painel'}
+                    </a>
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {error && (
-              <p
-                className={cn(
-                  'rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700'
-                )}
-              >
-                {error}
-              </p>
-            )}
-            {info && (
-              <p
-                className={cn(
-                  'rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/35 px-3 py-2 text-center text-[11px] font-semibold text-[#775400]'
-                )}
-              >
-                {info}
-              </p>
-            )}
-
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileTap={{ scale: 0.98 }}
-              className={cn(
-                'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
-                'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
-              )}
-            >
-              {loading ? (
-                <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
-              ) : filhoSurface ? (
-                'Entrar como filho'
-              ) : (
-                'Entrar como zelador'
-              )}
-            </motion.button>
-          </form>
-
-          {!filhoSurface && (
-            <div className="space-y-3 md:hidden">
-              <div className="flex items-center gap-2 px-0.5">
-                <div className="h-px flex-1 bg-[#1b1813]/10" />
-                <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-[#1b1813]/40">
-                  Acesso do filho
-                </span>
-                <div className="h-px flex-1 bg-[#1b1813]/10" />
-              </div>
-              <button
-                type="button"
-                onClick={() => switchSurface(true)}
-                className={cn(
-                  'relative flex h-11 w-full items-center justify-center text-sm font-semibold text-[#1b1813]',
-                  AUTH_MODAL_RADIUS,
-                  'border border-[#1b1813]/12 bg-[#f8f4eb] transition-colors hover:border-[#c48a00]/40 hover:bg-white'
-                )}
-              >
-                <UserCircle
-                  className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-                <span className="w-full text-center">Login filho</span>
-              </button>
-            </div>
-          )}
-        </div>
-        </div>
-
-        <motion.aside
-          aria-label="Alternar tipo de acesso"
-          animate={{ rotateY: filhoSurface ? [0, -5, 0] : [0, 5, 0] }}
-          transition={{ duration: 0.72, ease: [0.77, 0, 0.18, 1] }}
-          className={cn(
-            'absolute inset-y-0 hidden w-1/2 overflow-hidden bg-[#1b1813] text-[#faf8f4] md:flex',
-            'items-center justify-center p-9 text-center transition-[left] duration-700 ease-[cubic-bezier(.77,0,.18,1)] motion-reduce:transition-none [backface-visibility:hidden] [transform-style:preserve-3d]',
-            filhoSurface ? 'left-0 rounded-l-[1.75rem]' : 'left-1/2 rounded-r-[1.75rem]'
-          )}
-        >
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-[#e5ad1a]/20" />
-          <div className="pointer-events-none absolute -bottom-32 -left-28 h-80 w-80 rounded-full border border-[#e5ad1a]/10" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(224,171,32,.16),transparent_42%)]" />
-          <div className="pointer-events-none absolute inset-0 opacity-[0.11] [background-image:radial-gradient(rgba(255,215,111,.8)_0.5px,transparent_0.5px)] [background-size:18px_18px]" />
-
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={filhoSurface ? 'convite-zelador' : 'convite-filho'}
-              initial={{ opacity: 0, x: filhoSurface ? -28 : 28, filter: 'blur(5px)' }}
-              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, x: filhoSurface ? 28 : -28, filter: 'blur(5px)' }}
-              transition={{ duration: 0.35, delay: 0.2 }}
-              className="relative z-10 flex max-w-[18rem] flex-col items-center"
-            >
-              <div className="mb-7 flex h-14 w-14 items-center justify-center rounded-full border border-[#e5ad1a]/35 bg-[#e5ad1a]/[0.06] text-[#e5ad1a]">
-                {filhoSurface ? (
-                  <Lock className="h-8 w-8" strokeWidth={1.45} aria-hidden />
-                ) : (
-                  <UserCircle className="h-9 w-9" strokeWidth={1.35} aria-hidden />
-                )}
-              </div>
-              <p className="mb-3 text-[0.61rem] font-bold uppercase tracking-[0.3em] text-[#d6a526]">
-                Dois caminhos, uma casa
-              </p>
-              <h2 className="text-[2.55rem] font-medium leading-[0.98] tracking-[-0.045em] [font-family:'Fraunces',Georgia,serif]">
-                {filhoSurface ? 'Você cuida da casa?' : 'Você faz parte da corrente?'}
-              </h2>
-              <p className="mt-5 text-sm font-normal leading-relaxed text-white/58">
-                {filhoSurface
-                  ? 'Use o e-mail e a senha da gestão para acessar o painel do terreiro.'
-                  : 'Entre com o registro entregue pela casa e acompanhe sua vida no axé.'}
-              </p>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => switchSurface(!filhoSurface)}
-                className="mt-8 inline-flex h-12 min-w-52 items-center justify-center rounded-full border border-[#e5ad1a]/55 bg-transparent px-6 text-xs font-bold tracking-[0.04em] text-[#f0bd36] transition-all hover:-translate-y-0.5 hover:bg-[#e5ad1a] hover:text-[#17130c] disabled:opacity-60"
-              >
-                {filhoSurface ? 'Entrar como zelador' : 'Entrar como filho'}
-              </button>
-            </motion.div>
-          </AnimatePresence>
-        </motion.aside>
+          </div>
         </div>
       </motion.div>
     </div>

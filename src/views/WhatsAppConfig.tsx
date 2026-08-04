@@ -79,7 +79,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
   const templateMeta: Record<WhatsAppTemplateType, { title: string; hint: string }> = {
     dados_acesso: {
       title: 'Dados de acesso',
-      hint: 'Enviado ao cadastrar filho, reenvio em massa ou botão na ficha. Template Meta conta_ativa_axecloud + senha em texto livre.',
+      hint: 'Ao cadastrar ou reenviar acesso: registro + guia + resumo das funções (giras, mensalidade, obrigações, recados e chat). Template Meta acesso_membro_guia_axecloud.',
     },
     cobranca_mensalidade: {
       title: 'Cobrança de Mensalidade',

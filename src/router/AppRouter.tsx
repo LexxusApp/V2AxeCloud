@@ -19,6 +19,7 @@ const Register = lazy(() => import('../views/Register'));
 const Checkout = lazy(() => import('../views/Checkout'));
 const SubscriptionRenewCheckout = lazy(() => import('../views/SubscriptionRenewCheckout'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
+const InstrucoesUsoPage = lazy(() => import('../views/InstrucoesUsoPage'));
 const ConsulentePortalPage = lazy(() => import('../views/ConsulentePortalPage'));
 const EventRsvpPage = lazy(() => import('../views/EventRsvpPage'));
 const GiraCheckInPage = lazy(() => import('../views/GiraCheckInPage'));
@@ -117,6 +118,10 @@ function RoutedPage({ path }: { path: string }) {
     case ROUTES.login:
     case ROUTES.loginLegacy:
       return <LoginPage />;
+    case ROUTES.instrucoes:
+      return <InstrucoesUsoPage audience="zelador" />;
+    case ROUTES.instrucoesMembro:
+      return <InstrucoesUsoPage audience="membro" />;
     case ROUTES.resetPassword:
       return <ResetPasswordPage />;
     case ROUTES.forgotPassword:

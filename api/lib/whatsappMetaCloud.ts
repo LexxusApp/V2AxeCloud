@@ -26,8 +26,17 @@ const AVISO_PORTAL_TEMPLATE = "aviso_portal_axecloud";
 const COMUNICADO_TERREIRO_TEMPLATE = "comunicado_terreiro_axecloud";
 /** Legado — corpo só {{1}} (rejeitado pela Meta: variável no início/fim) */
 const MENSAGEM_LIVRE_TERREIRO_TEMPLATE = "mensagem_livre_terreiro_axecloud";
-/** Conta criada / reenvio de registro — credenciais sensíveis vão em texto livre na sequência */
+/** Conta criada — legado: registro + botão portal `/entrar?modo=filho` */
 const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
+/**
+ * Acesso do membro (preferido): registro + botão guia `/instrucoes/membro`.
+ * APPROVED Utility — melhor que conta_ativa (portal) e que guia_membro_portal (sem registro).
+ */
+const ACESSO_MEMBRO_GUIA_TEMPLATE = "acesso_membro_guia_axecloud";
+/** Boas-vindas zelador (cadastro de terreiro) — botão estático /instrucoes */
+const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_axecloud";
+/** Alias histórico `guia_membro` → mesmo template de acesso com registro + guia */
+const GUIA_MEMBRO_TEMPLATE = ACESSO_MEMBRO_GUIA_TEMPLATE;
 /** Acesso de visitante (portaria / presença) — evitar "senha" no nome (Meta rejeita como auth). */
 const SENHA_EVENTO_VISITANTE_TEMPLATE = "acesso_evento_visitante_axecloud";
 const DEFAULT_EVENT_BANNER_URL = "https://axecloud.com.br/og-image.png";
@@ -75,7 +84,19 @@ export function resolveMetaTemplateName(tipo: string): string {
   }
   if (normalized === "dados_acesso") {
     return (
-      String(process.env.WA_META_TEMPLATE_DADOS_ACESSO || "").trim() || CONTA_ATIVA_TEMPLATE
+      String(process.env.WA_META_TEMPLATE_DADOS_ACESSO || "").trim() ||
+      ACESSO_MEMBRO_GUIA_TEMPLATE
+    );
+  }
+  if (normalized === "boas_vindas_zelador") {
+    return (
+      String(process.env.WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR || "").trim() ||
+      BOAS_VINDAS_ZELADOR_TEMPLATE
+    );
+  }
+  if (normalized === "guia_membro") {
+    return (
+      String(process.env.WA_META_TEMPLATE_GUIA_MEMBRO || "").trim() || GUIA_MEMBRO_TEMPLATE
     );
   }
   if (normalized === "financeiro") {
@@ -164,13 +185,17 @@ export function isCredentialsAccessTemplate(tipo: string): boolean {
 }
 
 export function isContaAtivaTemplate(tipo: string): boolean {
-  return resolveMetaTemplateName(tipo) === CONTA_ATIVA_TEMPLATE;
+  const name = resolveMetaTemplateName(tipo);
+  return name === CONTA_ATIVA_TEMPLATE || name === ACESSO_MEMBRO_GUIA_TEMPLATE;
 }
 
-/** Enviar acesso: uma mensagem (conta_ativa + link do portal). Mantém o nome
- * histórico "two-step" só para o gate do tipo dados_acesso. */
+/**
+ * Cadastro / Enviar acesso: uma única mensagem Meta
+ * (`acesso_membro_guia_axecloud` — registro + botão do guia). Sem follow-up de senha.
+ */
 export function usesCredentialsTwoStepFlow(tipo: string): boolean {
-  return isCredentialsAccessTemplate(tipo) && isContaAtivaTemplate(tipo);
+  void tipo;
+  return false;
 }
 
 const META_BROADCAST_TEMPLATE_TIPOS = new Set([
@@ -212,6 +237,9 @@ const META_UTILITY_TEMPLATE_TIPOS = new Set([
   "recuperar_senha",
   "otp",
   "codigo_verificacao",
+  "boas_vindas_zelador",
+  "guia_membro",
+  "dados_acesso",
 ]);
 
 /** Tipos enviados como template Meta único (sem texto livre complementar). */
@@ -247,6 +275,11 @@ export function resolveLoginPublicUrl(): string {
     .trim()
     .replace(/\/$/, "");
   return base.startsWith("http") ? `${base}/entrar` : "https://axecloud.com.br/entrar";
+}
+
+/** Login já aberto no modo filho (Registro + 6 dígitos do CPF). */
+export function resolveFilhoLoginPublicUrl(): string {
+  return `${resolveLoginPublicUrl()}?modo=filho`;
 }
 
 function resolveSistemaName(variables?: Record<string, string | number>): string {
@@ -381,7 +414,7 @@ export function buildAvisoGiraComponents(
 
 /**
  * conta_ativa_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} registro (login)
- * Senha e link vão em mensagem de texto livre enviada logo em seguida.
+ * Botão estático no template Meta: https://axecloud.com.br/entrar?modo=filho
  */
 export function buildContaAtivaComponents(
   nomeMembro: string,
@@ -400,6 +433,40 @@ export function buildContaAtivaComponents(
       ],
     },
   ];
+}
+
+/**
+ * boas_vindas_zelador_axecloud — {{1}} zelador, {{2}} terreiro, {{3}} e-mail
+ * Botão estático: https://axecloud.com.br/instrucoes
+ */
+export function buildBoasVindasZeladorComponents(
+  nomeZelador: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_zelador || nomeZelador || "Zelador")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(String(v.email || v.login_email || "—")),
+      ],
+    },
+  ];
+}
+
+/**
+ * acesso_membro_guia_axecloud / conta_ativa_axecloud —
+ * {{1}} membro, {{2}} terreiro, {{3}} registro
+ */
+export function buildGuiaMembroComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  return buildContaAtivaComponents(nomeMembro, nomeTerreiro, variables);
 }
 
 /**
@@ -891,8 +958,14 @@ export function buildMetaTemplateComponentsForTipo(
   if (isAvisoGiraTemplate(tipo)) {
     return buildAvisoGiraComponents(variables);
   }
-  if (isContaAtivaTemplate(tipo)) {
+  if (isContaAtivaTemplate(tipo) || isDadosAcessoTemplate(tipo)) {
     return buildContaAtivaComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "boas_vindas_zelador") {
+    return buildBoasVindasZeladorComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "guia_membro") {
+    return buildGuiaMembroComponents(nomeMembro, nomeTerreiro, variables);
   }
   if (isMuralAvisoTemplate(tipo)) {
     return buildMuralAvisoComponents(nomeMembro, nomeTerreiro, variables);
@@ -994,10 +1067,20 @@ export function buildWhatsAppAuditMessage(
     const nome = String(v.nome_filho || nomeMembro);
     const loginId = String(v.filho_login_id || "");
     const senha = String(v.senha_acesso || "");
-    const loginUrl = String(v.login_url || resolveLoginPublicUrl());
+    const loginUrl = String(v.login_url || resolveFilhoLoginPublicUrl());
     const idPart = loginId ? ` · Registro: ${loginId}` : "";
-    const senhaPart = senha ? ` · Senha: ${senha}` : "";
-    return `Dados de acesso: ${nome}${idPart}${senhaPart} · ${loginUrl}`;
+    const senhaPart = senha ? ` · Código CPF: ${senha}` : "";
+    return `Dados de acesso: ${nome}${idPart}${senhaPart} · ${loginUrl} · No app: giras, mensalidade, obrigações, recados e chat · Guia: https://axecloud.com.br/instrucoes/membro`;
+  }
+
+  if (normalized === "boas_vindas_zelador") {
+    return `Boas-vindas zelador: ${v.nome_zelador || nomeMembro} · ${v.nome_terreiro || nomeTerreiro} · ${v.email || ""}`;
+  }
+
+  if (normalized === "guia_membro") {
+    const loginId = String(v.filho_login_id || "").trim();
+    const idPart = loginId ? ` · Registro: ${loginId}` : "";
+    return `Acesso membro: ${v.nome_filho || nomeMembro} · ${v.nome_terreiro || nomeTerreiro}${idPart}`;
   }
 
   if (normalized === "transmissao_aviso" || normalized === "mural_aviso") {

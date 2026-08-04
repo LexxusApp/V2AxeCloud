@@ -42,9 +42,10 @@ import {
   usesMetaUtilityTemplateFlow,
   usesTransmissaoTwoStepFlow,
   resolveLoginPublicUrl,
+  resolveFilhoLoginPublicUrl,
 } from "./whatsappMetaCloud.js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
-import { filhoSenhaFromCpf, isValidCpf, isWeakFilhoSenha } from "../../lib/brCpf.js";
+import { filhoSenhaFromCpf, isValidFilhoCpfCadastro, isWeakFilhoSenha } from "../../lib/brCpf.js";
 import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
 
 export type WhatsAppSendInput = {
@@ -183,9 +184,13 @@ function messageIncludesCredentials(
 function buildCredentialsAccessBlock(variables: Record<string, string | number>): string {
   const loginId = String(variables.filho_login_id || "").trim();
   const senha = String(variables.senha_acesso || "").trim();
-  const loginUrl = String(variables.login_url || resolveLoginPublicUrl()).trim();
+  const loginUrl = String(variables.login_url || resolveFilhoLoginPublicUrl()).trim();
   if (!loginId) return "";
-  return `\n\n🔐 *Seu acesso:*\nRegistro: ${loginId}\nSenha: ${senha}\nEntrar: ${loginUrl}`;
+  return (
+    `\n\n🔐 *Seu acesso:*\nRegistro: ${loginId}\nCódigo (6 dígitos do CPF): ${senha}\nEntrar: ${loginUrl}` +
+    `\n\nNo app: giras, mensalidade, obrigações, recados e chat com a casa.` +
+    `\nGuia: https://axecloud.com.br/instrucoes/membro`
+  );
 }
 
 /** @deprecated Use resolveMemberWhatsAppTarget — mantido para compatibilidade interna. */
@@ -274,7 +279,7 @@ async function enrichBoasVindasVariables(
   filhoId: string | null,
   variables: Record<string, string | number>
 ): Promise<Record<string, string | number>> {
-  const loginUrl = resolveLoginPublicUrl();
+  const loginUrl = resolveFilhoLoginPublicUrl();
   const base = {
     ...variables,
     nome_sistema: variables.nome_sistema || "AxéCloud",
@@ -293,16 +298,16 @@ async function enrichBoasVindasVariables(
   await assertFilhoBelongsToTerreiro(sb, leaderId, filho);
 
   const cpfDigits = String(filho.cpf || "").replace(/\D/g, "");
-  if (!isValidCpf(cpfDigits)) {
+  if (!isValidFilhoCpfCadastro(cpfDigits)) {
     throw httpError(
-      "CPF do filho inválido. Corrija o CPF no cadastro antes de enviar o acesso (a senha são os 6 primeiros dígitos).",
+      "Senha/CPF do filho inválido. No cadastro informe os 6 dígitos usados como senha de acesso (evite 000000, 123456…).",
       400
     );
   }
   const senhaAcesso = filhoSenhaFromCpf(cpfDigits) || "";
   if (!senhaAcesso || isWeakFilhoSenha(senhaAcesso)) {
     throw httpError(
-      "Não foi possível gerar uma senha segura a partir do CPF. Verifique se o CPF está correto.",
+      "Não foi possível gerar uma senha segura. Confira os 6 dígitos cadastrados no filho.",
       400
     );
   }
@@ -497,8 +502,8 @@ async function sendCredentialsFollowUpMessage(
 }
 
 /**
- * Enviar acesso / dados_acesso: UMA mensagem — conta_ativa_axecloud
- * (registro + botão "Acessar o portal"). Sem a 2ª mensagem de senha.
+ * Enviar acesso / dados_acesso: UMA mensagem — acesso_membro_guia_axecloud
+ * (registro + botão do guia). Sem follow-up de senha.
  */
 async function sendCredentialsAccessPair(
   phone: string,
@@ -669,7 +674,7 @@ export async function logAndSendWhatsApp(
       ? buildTransmissaoFollowUpText(input.nomeTerreiro, variables, zelador)
       : "";
   const followUpLabel = "comunicado";
-  // dados_acesso: 1 mensagem (conta_ativa + link portal). Transmissão two-step: 2 (se ligado).
+  // dados_acesso: 1 mensagem Meta (acesso_membro_guia_axecloud). Sem 2ª mensagem.
   const quotaText = useTransmissaoTwoStep
     ? `${auditBase}\n\n--- ${followUpLabel} (texto livre) ---\n${followUpPreview}`
     : textToSend;
@@ -701,6 +706,7 @@ export async function logAndSendWhatsApp(
       { tenantId, filhoId, sb, fallbackText: textToSend, zelador }
     );
   } else if (useMetaUtility || useMetaBroadcast) {
+    const credentialsOnly = isCredentialsAccessTemplate(tipo);
     sent = await sendMetaTemplateMessage(
       phone,
       tipo,
@@ -711,8 +717,9 @@ export async function logAndSendWhatsApp(
         tenantId,
         filhoId,
         sb,
-        // Mural/transmissão deve enviar somente o template aprovado da Meta.
-        fallbackText: templateOnlyPortal ? undefined : textToSend,
+        // Acesso do membro: só o template aprovado (sem texto livre com senha).
+        // Mural/transmissão: idem. Demais tipos: fallback texto se o template falhar.
+        fallbackText: templateOnlyPortal || credentialsOnly ? undefined : textToSend,
         zelador,
       }
     );
@@ -962,7 +969,7 @@ export async function resendDadosAcessoWhatsAppForTenant(
     }
 
     const cpfDigits = String(f.cpf || "").replace(/\D/g, "");
-    if (!isValidCpf(cpfDigits) || isWeakFilhoSenha(cpfDigits.slice(0, 6))) {
+    if (!isValidFilhoCpfCadastro(cpfDigits) || isWeakFilhoSenha(cpfDigits.slice(0, 6))) {
       skippedNoCpf += 1;
       continue;
     }

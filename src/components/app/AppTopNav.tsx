@@ -1,6 +1,7 @@
 ﻿import {
   Camera,
   ChevronDown,
+  CircleHelp,
   Download,
   Loader2,
   Lock,
@@ -26,6 +27,7 @@ import {
   type AppNavItem,
   type ZeladorNavEntry,
 } from '../../constants/appNav';
+import { openFilhoGuide } from '../../constants/filhoGuide';
 import { performFastLogout } from '../../lib/logout';
 import Avatar from '../Avatar';
 import { AxeCloudEmblem, AxeCloudLogoMark } from '../AxeCloudLogoMark';
@@ -624,6 +626,22 @@ export default function AppTopNav({
         </nav>
 
         <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-2 p-3' : 'p-4')}>
+          {userRole === 'filho' ? (
+            <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-white/[0.06] bg-white/[0.025] p-2')}>
+              <button
+                type="button"
+                onClick={() => openFilhoGuide()}
+                title="Como usar o app"
+                className={cn(
+                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#242A32] bg-[#12161A] text-xs font-black text-[#E8EDF5] transition-colors hover:border-primary/35 hover:text-primary',
+                  desktopCompact ? 'w-12 px-0' : 'w-full px-3',
+                )}
+              >
+                <CircleHelp className="h-4 w-4" aria-hidden />
+                {!desktopCompact ? 'Como usar' : <span className="sr-only">Como usar</span>}
+              </button>
+            </div>
+          ) : null}
           {showInstallButton ? (
             <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-primary/15 bg-primary/[0.06] p-2')}>
               <button
@@ -714,6 +732,19 @@ export default function AppTopNav({
         </nav>
 
         <div className="shrink-0 space-y-2 border-t border-[#1E242B] px-3 py-4">
+          {userRole === 'filho' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                openFilhoGuide();
+              }}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#2A313C] bg-[#12161A] px-4 text-sm font-bold text-[#E8EDF5] touch-manipulation hover:border-primary/40 hover:text-primary"
+            >
+              <CircleHelp className="h-5 w-5 shrink-0" aria-hidden />
+              Como usar o app
+            </button>
+          ) : null}
           {showInstallButton ? (
             <button
               type="button"

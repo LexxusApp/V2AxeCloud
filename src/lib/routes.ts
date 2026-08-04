@@ -44,6 +44,10 @@ export const ROUTES = {
   whyVsPlanilhas: '/por-que-axecloud/vs-planilhas',
   /** Hub de páginas de funcionalidade. */
   recursos: '/recursos',
+  /** Guia público: instruções de uso e acesso (zelador). */
+  instrucoes: '/instrucoes',
+  /** Guia público: como o membro / filho de santo entra. */
+  instrucoesMembro: '/instrucoes/membro',
 } as const;
 
 /** Checkout EFI no cadastro (passo 2) — exige `?tenant=` do registro. */

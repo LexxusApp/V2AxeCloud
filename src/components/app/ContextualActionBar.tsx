@@ -5,6 +5,7 @@ import {
   Camera,
   HandHeart,
   Megaphone,
+  MessageCircle,
   PackageCheck,
   Settings2,
   Users,
@@ -183,6 +184,30 @@ const FILHO_ACTIONS: Record<string, ContextAction> = {
     action: 'Abrir agenda',
     target: 'calendar',
     icon: CalendarDays,
+  },
+  obrigacoes: {
+    eyebrow: 'Orientações conferidas',
+    title: 'Confirme a próxima gira',
+    detail: 'A casa precisa saber se você estará na corrente.',
+    action: 'Abrir agenda',
+    target: 'calendar',
+    icon: CalendarDays,
+  },
+  store: {
+    eyebrow: 'Depois da loja',
+    title: 'Fale com a casa se precisar',
+    detail: 'Use as conversas para tirar dúvidas sobre pedidos e reservas.',
+    action: 'Abrir conversas',
+    target: 'chat',
+    icon: MessageCircle,
+  },
+  chat: {
+    eyebrow: 'Conversa em andamento',
+    title: 'Veja o que a casa publicou',
+    detail: 'Recados e avisos ficam no mural dos comunicados.',
+    action: 'Abrir mural',
+    target: 'mural',
+    icon: Megaphone,
   },
 };
 

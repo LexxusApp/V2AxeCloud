@@ -25,7 +25,7 @@ export function ChatContactRow({
     if (!canChat) {
       const registro = contact.matricula ? ` Registro: ${contact.matricula}.` : '';
       alert(
-        `${contact.nome} ainda não entrou no app.${registro} Peça para acessar em axecloud.com.br/entrar → Entrar como filho de santo (registro + 3 primeiros dígitos do CPF).`,
+        `${contact.nome} ainda não entrou no app.${registro} Peça para acessar axecloud.com.br/entrar → Membro → Registro + 6 dígitos do CPF. No app: giras, mensalidade, obrigações, recados e chat. Guia: axecloud.com.br/instrucoes/membro`,
       );
       return;
     }
