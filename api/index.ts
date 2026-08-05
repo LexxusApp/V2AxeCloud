@@ -23,13 +23,12 @@ import {
   startOfDay,
 } from "date-fns";
 import {
-  CONSOLE_ADMIN_INSTANCE_NAME,
   getOfficialWhatsAppStatus,
   sendEvolutionTextMessage,
   WHATSAPP_INITIALIZING_MESSAGE_PT,
 } from "../src/services/evolution.service.js";
-import { sendEvolutionTextQueued } from "./lib/evolutionSendQueue.js";
 import {
+  dispatchZeladorWelcomeWhatsApp,
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
   renderWelcomeMessage,
@@ -3230,9 +3229,24 @@ async function startServer() {
               assinatura: cfg.signature,
             });
             welcomeStatus = "queued";
-            void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text)
-              .then((r) => console.log(`[ADMIN] Welcome WhatsApp enviado para ${msisdn}`, r?.messageId || ""))
-              .catch((err) => console.error(`[ADMIN] Welcome WhatsApp falhou (${msisdn}):`, err?.message || err));
+            void dispatchZeladorWelcomeWhatsApp({
+              msisdn,
+              freeText: text,
+              nome_zelador,
+              nome_terreiro,
+              email,
+              senha: password,
+              site: cfg.loginUrl,
+            })
+              .then((r) =>
+                console.log(
+                  `[ADMIN] Welcome WhatsApp (${r.channel}) → ${msisdn}`,
+                  r?.messageId || ""
+                )
+              )
+              .catch((err) =>
+                console.error(`[ADMIN] Welcome WhatsApp falhou (${msisdn}):`, err?.message || err)
+              );
           }
         }
       } catch (welErr: any) {

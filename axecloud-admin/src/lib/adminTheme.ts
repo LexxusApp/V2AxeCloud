@@ -35,6 +35,8 @@ export function eventTypeBadgeClass(type: string): string {
   if (t.includes("unauthorized") || t.includes("failed") || t.includes("fail") || t.includes("error")) {
     return "admin-badge-muted";
   }
+  if (t.startsWith("wa.") || t.includes("whatsapp")) return "admin-badge-strong";
+  if (t.includes("insight")) return "admin-badge-strong";
   if (t.includes("login") || t.includes("auth")) return "admin-badge";
   return "admin-badge-strong";
 }

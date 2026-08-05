@@ -228,6 +228,9 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.85rem;
+  padding-top: max(0.65rem, env(safe-area-inset-top));
+  padding-left: max(0.85rem, env(safe-area-inset-left));
+  padding-right: max(0.85rem, env(safe-area-inset-right));
   background: var(--ac-paper-surface);
   border-bottom: 1px solid var(--ac-paper-border);
 }
@@ -1170,6 +1173,104 @@ a.admin-metric-hero:hover {
   }
 }
 
+/* ─── Eventos (logs) mobile ─── */
+.admin-logs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  border-radius: var(--ac-radius-sm);
+  border: 1px solid var(--ac-paper-border);
+  background: var(--ac-paper-surface);
+  padding: 0.75rem 0.85rem;
+}
+
+.admin-logs-filter-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-logs-count {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .admin-logs-filter-select {
+    width: auto;
+    min-width: 12rem;
+    flex: 1 1 12rem;
+  }
+
+  .admin-logs-count {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+.admin-logs-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.admin-log-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: var(--ac-radius-sm);
+  border: 1px solid var(--ac-paper-border);
+  background: var(--ac-paper-elevated);
+}
+
+.admin-log-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-log-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem 0.5rem;
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--ac-paper-border);
+  font-size: 0.7rem;
+}
+
+.admin-log-card-meta dt {
+  color: var(--ac-text-faint);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-log-card-meta dd {
+  margin: 0.1rem 0 0;
+  color: var(--ac-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-logs-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .admin-logs-cards {
+    display: none;
+  }
+
+  .admin-logs-desktop {
+    display: block;
+  }
+}
+
 /* ─── Login ─── */
 .admin-login-shell {
   min-height: 100%;
@@ -1801,4 +1902,4 @@ body,.admin-app{background:var(--ac-paper)}
 
 @media(max-width:1023px){.admin-mobile-drawer .admin-brand-inner{padding:.2rem}.admin-mobile-drawer .admin-sidebar-brand{border:0;padding:.4rem}}
 @media(max-width:899px){.admin-login-page{display:block;background:linear-gradient(150deg,#0b1425,#152542);min-height:100%;padding:1rem}.admin-login-showcase{display:none}.admin-login-form-side{min-height:calc(100vh - 2rem);padding:1rem}.admin-login-card{max-width:28rem;padding:1.7rem;background:#fff;border-radius:18px;box-shadow:0 22px 55px rgba(1,7,18,.28)}.admin-login-mobile-logo{display:flex;align-items:center;gap:.7rem;margin-bottom:2rem}.admin-login-mobile-logo .admin-login-logo-icon{width:2.45rem;height:2.45rem;border-radius:10px;background:linear-gradient(145deg,#4f8cff,#7459ec)}.admin-login-mobile-logo strong{color:#172033;font-size:.85rem}}
-@media(max-width:639px){.admin-main{padding:1rem .75rem 2.5rem}.admin-dashboard-hero{padding:1.1rem;border-radius:14px}.admin-dashboard-greeting{font-size:1.3rem}.admin-panel>div:first-child{margin-left:-1.25rem;margin-right:-1.25rem;margin-top:-1.25rem;padding:1rem 1.25rem}}
+@media(max-width:639px){.admin-main{padding:1rem .75rem 2.5rem;padding-bottom:max(2.5rem,env(safe-area-inset-bottom))}.admin-dashboard-hero{padding:1.1rem;border-radius:14px}.admin-dashboard-greeting{font-size:1.3rem}.admin-panel>div:first-child{margin-left:-1rem;margin-right:-1rem;margin-top:-1rem;padding:1rem}.admin-metric-hero-grid{grid-template-columns:1fr 1fr!important}.admin-console-actions{flex-wrap:wrap}.admin-page-title{font-size:1.35rem;line-height:1.2}.admin-drawer{max-width:100%;padding-bottom:env(safe-area-inset-bottom)}}

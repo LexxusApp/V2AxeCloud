@@ -1,9 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  CONSOLE_ADMIN_INSTANCE_NAME,
-} from "../../src/services/evolution.service.js";
-import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
-import {
+  dispatchZeladorWelcomeWhatsApp,
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
   renderWelcomeMessage,
@@ -105,6 +102,7 @@ export async function runCreateTenant(
       cargo: nome_zelador,
       role: "admin",
       tenant_id: targetUser.id,
+      whatsapp_publico: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }
@@ -130,7 +128,15 @@ export async function runCreateTenant(
           assinatura: cfg.signature,
         });
         welcomeStatus = "queued";
-        void sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text).catch((err) =>
+        void dispatchZeladorWelcomeWhatsApp({
+          msisdn,
+          freeText: text,
+          nome_zelador,
+          nome_terreiro,
+          email,
+          senha: password,
+          site: cfg.loginUrl,
+        }).catch((err) =>
           console.error("[adminCreateTenant] welcome WA:", err?.message || err)
         );
       }

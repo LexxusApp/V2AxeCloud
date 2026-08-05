@@ -126,7 +126,7 @@ type UnifiedAuditRow = {
   user_agent: string | null;
   user_id: string | null;
   user_email: string | null;
-  source: "audit_logs" | "access_logs";
+  source: "audit_logs" | "access_logs" | "whatsapp_logs";
 };
 
 function mapAccessLogRow(r: Record<string, unknown>): UnifiedAuditRow {
@@ -153,6 +153,18 @@ function mapAccessLogRow(r: Record<string, unknown>): UnifiedAuditRow {
   };
 }
 
+/** Ruído de sessão que engole o feed quando "Ocultar heartbeats" está ligado. */
+function isSessionNoiseAction(action: string): boolean {
+  const a = String(action || "").toLowerCase();
+  return (
+    a === "access.session.activity" ||
+    a === "access.session.start" ||
+    a === "access.session" ||
+    a === "session.activity" ||
+    a === "session.start"
+  );
+}
+
 export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchParams) {
   const limit = Math.min(500, Math.max(1, Number(query.get("limit") || 100)));
   const offset = Math.max(0, Number(query.get("offset") || 0));
@@ -160,107 +172,248 @@ export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchP
   const filterStatus = String(query.get("status") || "").trim();
   const filterTerreiro = String(query.get("terreiroId") || "").trim();
   const filterUser = String(query.get("userId") || "").trim();
-  const fetchCap = Math.min(500, offset + limit + 100);
+  const hideHeartbeats = String(query.get("hideHeartbeats") || "1") !== "0";
+
+  // Sem filtro: busca justa por fonte (evita session/login engolir WA e outras ações).
+  const fairMode = !filterAction;
+  const perSourceCap = fairMode
+    ? Math.min(300, Math.max(80, Math.ceil(limit * 0.7) + 40))
+    : Math.min(500, offset + limit + 150);
+
+  const wantAudit =
+    !filterAction ||
+    (!filterAction.startsWith("access.") && !filterAction.startsWith("wa."));
+  const wantAccess = !filterAction || filterAction.startsWith("access.");
+  const wantWa = !filterAction || filterAction.startsWith("wa.");
 
   let auditRows: UnifiedAuditRow[] = [];
   let auditTableMissing = false;
+  let waNotice: string | undefined;
 
-  try {
-    let q = sb
-      .from("audit_logs")
-      .select("id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email");
-    if (filterAction && !filterAction.startsWith("access.")) q = q.eq("action", filterAction);
-    if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
-    if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
-    const { data: rows, error } = await q
-      .order("created_at", { ascending: false })
-      .range(0, fetchCap - 1);
+  if (wantAudit) {
+    try {
+      let q = sb
+        .from("audit_logs")
+        .select("id, created_at, action, status, terreiro_id, details, ip, user_agent, user_id, user_email");
+      if (filterAction && !filterAction.startsWith("access.") && !filterAction.startsWith("wa.")) {
+        q = q.eq("action", filterAction);
+      }
+      if (filterStatus === "success" || filterStatus === "failed") q = q.eq("status", filterStatus);
+      if (filterTerreiro) q = q.eq("terreiro_id", filterTerreiro);
+      const { data: rows, error } = await q
+        .order("created_at", { ascending: false })
+        .range(0, perSourceCap - 1);
 
-    if (error && isMissingOrUnknownTable(error, "audit_logs")) {
+      if (error && isMissingOrUnknownTable(error, "audit_logs")) {
+        auditTableMissing = true;
+      } else if (error) {
+        throw error;
+      } else {
+        auditRows = (rows || []).map((r) => ({
+          ...(r as UnifiedAuditRow),
+          source: "audit_logs" as const,
+        }));
+      }
+    } catch (e: unknown) {
+      if (!isMissingOrUnknownTable(e as { message?: string }, "audit_logs")) throw e;
       auditTableMissing = true;
-    } else if (error) {
-      throw error;
-    } else {
-      auditRows = (rows || []).map((r) => ({
-        ...(r as UnifiedAuditRow),
-        source: "audit_logs" as const,
-      }));
     }
-  } catch (e: unknown) {
-    if (!isMissingOrUnknownTable(e as { message?: string }, "audit_logs")) throw e;
-    auditTableMissing = true;
   }
 
   let accessRows: UnifiedAuditRow[] = [];
   let accessTableMissing = false;
-  const accessAction = filterAction.startsWith("access.")
-    ? filterAction.slice("access.".length)
-    : filterAction;
 
-  try {
-    const cols =
-      "id, created_at, event_type, user_id, user_email, target_type, target_id, description, ip, user_agent, metadata, tenant_id";
-    let q = sb.from("access_logs").select(cols);
-    if (accessAction) q = q.eq("event_type", accessAction);
-    if (filterTerreiro) q = q.eq("tenant_id", filterTerreiro);
-    if (filterUser) q = q.eq("user_id", filterUser);
-    const { data, error } = await q.order("created_at", { ascending: false }).range(0, fetchCap - 1);
-    if (error && isMissingOrUnknownTable(error, "access_logs")) {
-      accessTableMissing = true;
-    } else if (error) {
-      const msg = String(error.message || "").toLowerCase();
-      if (/column .* does not exist|could not find the .* column/.test(msg)) {
+  if (wantAccess) {
+    try {
+      const cols =
+        "id, created_at, event_type, user_id, user_email, target_type, target_id, description, ip, user_agent, metadata, tenant_id";
+      // Busca um pouco a mais quando vamos descartar sessões no cliente
+      const accessFetch = hideHeartbeats && fairMode ? Math.min(500, perSourceCap * 3) : perSourceCap;
+      let q = sb.from("access_logs").select(cols);
+      if (filterAction.startsWith("access.")) {
+        q = q.eq("event_type", filterAction.slice("access.".length));
+      }
+      if (filterTerreiro) q = q.eq("tenant_id", filterTerreiro);
+      if (filterUser) q = q.eq("user_id", filterUser);
+      // Filtra sessões no banco para não engolir insight/WA/auth na página
+      if (hideHeartbeats) {
+        q = q.not("event_type", "in", "(session.activity,session.start,session)");
+      }
+      const { data, error } = await q.order("created_at", { ascending: false }).range(0, accessFetch - 1);
+      if (error && isMissingOrUnknownTable(error, "access_logs")) {
+        accessTableMissing = true;
+      } else if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (/column .* does not exist|could not find the .* column/.test(msg)) {
+          accessTableMissing = true;
+        } else {
+          throw error;
+        }
+      } else {
+        accessRows = (data || [])
+          .map((r) => mapAccessLogRow(r as Record<string, unknown>))
+          .filter((r) => !(hideHeartbeats && fairMode && isSessionNoiseAction(r.action)))
+          .slice(0, perSourceCap);
+      }
+    } catch (e: unknown) {
+      if (isMissingOrUnknownTable(e as { message?: string }, "access_logs")) {
         accessTableMissing = true;
       } else {
-        throw error;
+        const msg = String((e as { message?: string })?.message || "").toLowerCase();
+        if (!/column .* does not exist|could not find the .* column/.test(msg)) throw e;
+        accessTableMissing = true;
       }
-    } else {
-      accessRows = (data || []).map((r) => mapAccessLogRow(r as Record<string, unknown>));
-    }
-  } catch (e: unknown) {
-    if (isMissingOrUnknownTable(e as { message?: string }, "access_logs")) {
-      accessTableMissing = true;
-    } else {
-      const msg = String((e as { message?: string })?.message || "").toLowerCase();
-      if (!/column .* does not exist|could not find the .* column/.test(msg)) throw e;
-      accessTableMissing = true;
     }
   }
 
-  let merged = [...auditRows, ...accessRows];
-  if (filterAction.startsWith("access.")) {
+  let waRows: UnifiedAuditRow[] = [];
+  let waTableMissing = false;
+
+  if (wantWa) {
+    try {
+      let q = sb
+        .from("whatsapp_logs")
+        .select("id, created_at, tenant_id, tipo, telefone, mensagem, status");
+      if (filterAction.startsWith("wa.")) {
+        q = q.eq("tipo", filterAction.slice("wa.".length));
+      }
+      if (filterTerreiro) q = q.eq("tenant_id", filterTerreiro);
+      const { data, error } = await q.order("created_at", { ascending: false }).range(0, perSourceCap - 1);
+      if (error && isMissingOrUnknownTable(error, "whatsapp_logs")) {
+        waTableMissing = true;
+      } else if (error) {
+        console.warn("[admin-audit-logs] whatsapp_logs:", error.message);
+        waNotice = `WhatsApp logs indisponíveis: ${error.message}`;
+      } else {
+        waRows = (data || []).map((r) => {
+          const tipo = String((r as { tipo?: string }).tipo || "mensagem");
+          const tel = String((r as { telefone?: string }).telefone || "");
+          const msg = String((r as { mensagem?: string }).mensagem || "").slice(0, 120);
+          const st = String((r as { status?: string }).status || "success").toLowerCase();
+          return {
+            id: `wa:${String((r as { id?: string }).id || "")}`,
+            created_at: String((r as { created_at?: string }).created_at || ""),
+            action: `wa.${tipo}`,
+            status: st === "failed" || st === "error" ? "failed" : "success",
+            terreiro_id: (r as { tenant_id?: string }).tenant_id
+              ? String((r as { tenant_id?: string }).tenant_id)
+              : null,
+            details: {
+              description: msg || `WhatsApp ${tipo}`,
+              telefone: tel || null,
+              tipo,
+            },
+            ip: null,
+            user_agent: null,
+            user_id: null,
+            user_email: tel ? `wa:${tel}` : null,
+            source: "whatsapp_logs" as UnifiedAuditRow["source"],
+          };
+        });
+      }
+    } catch (e: unknown) {
+      if (isMissingOrUnknownTable(e as { message?: string }, "whatsapp_logs")) {
+        waTableMissing = true;
+      } else {
+        console.warn("[admin-audit-logs] whatsapp_logs exception:", e);
+        waNotice = "Falha ao ler whatsapp_logs.";
+      }
+    }
+  }
+
+  const isNoise = (r: UnifiedAuditRow) => hideHeartbeats && isSessionNoiseAction(r.action);
+
+  let merged: UnifiedAuditRow[];
+  if (fairMode) {
+    const a = auditRows.filter((r) => !isNoise(r));
+    const x = accessRows.filter((r) => !isNoise(r));
+    const w = waRows.filter((r) => !isNoise(r));
+    // Intercala por horário mantendo presença de cada fonte no topo da página
+    merged = [...a, ...x, ...w];
+  } else {
+    merged = [...auditRows, ...accessRows, ...waRows].filter((r) => !isNoise(r));
+  }
+
+  if (filterAction.startsWith("access.") || filterAction.startsWith("wa.")) {
     merged = merged.filter((r) => r.action === filterAction);
   }
   if (filterStatus === "success" || filterStatus === "failed") {
     merged = merged.filter((r) => r.status === filterStatus);
   }
   merged.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  const page = merged.slice(offset, offset + limit);
 
-  const actionSet = new Set<string>();
+  // Em modo "Todas", garante quota mínima de cada fonte na página (depois do sort temporal)
+  let page: UnifiedAuditRow[];
+  if (fairMode && offset === 0) {
+    const bySource = {
+      audit_logs: merged.filter((r) => r.source === "audit_logs"),
+      access_logs: merged.filter((r) => r.source === "access_logs"),
+      whatsapp_logs: merged.filter((r) => r.source === "whatsapp_logs"),
+    };
+    const quota = Math.max(25, Math.floor(limit / 3));
+    const picked = new Set<string>();
+    const fair: UnifiedAuditRow[] = [];
+    for (const key of ["whatsapp_logs", "audit_logs", "access_logs"] as const) {
+      for (const row of bySource[key].slice(0, quota)) {
+        if (picked.has(row.id)) continue;
+        picked.add(row.id);
+        fair.push(row);
+      }
+    }
+    for (const row of merged) {
+      if (fair.length >= limit) break;
+      if (picked.has(row.id)) continue;
+      picked.add(row.id);
+      fair.push(row);
+    }
+    fair.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    page = fair.slice(0, limit);
+  } else {
+    page = merged.slice(offset, offset + limit);
+  }
+
+  const actionSet = new Set<string>([
+    "auth.login_success",
+    "auth.login_failed",
+    "wa.dados_acesso",
+    "wa.convite_evento",
+    "wa.aviso_gira",
+    "wa.cobranca_mensalidade",
+    "wa.transmissao_aviso",
+    "access.session.activity",
+    "access.insight.dismissed",
+  ]);
   for (const r of merged) actionSet.add(r.action);
   const actions = [...actionSet].filter(Boolean).sort();
 
   const auditLogState = getAuditLogsDisabled();
   let notice: string | undefined;
-  if (auditTableMissing && accessTableMissing) {
-    notice =
-      "Tabelas audit_logs e access_logs ausentes. Aplique as migrations em supabase/migrations/.";
+  if (auditTableMissing && accessTableMissing && waTableMissing) {
+    notice = "Tabelas de log ausentes. Aplique as migrations em supabase/migrations/.";
   } else if (auditTableMissing) {
-    notice = "audit_logs ausente — a mostrar apenas access_logs.";
+    notice = "audit_logs ausente — a mostrar access_logs e WhatsApp.";
   } else if (auditLogState.disabled) {
-    notice = `Gravação em audit_logs pausada: ${auditLogState.reason || "erro anterior"}. Eventos antigos e access_logs continuam visíveis.`;
+    notice = `Gravação em audit_logs pausada: ${auditLogState.reason || "erro anterior"}. Eventos antigos, access e WA continuam visíveis.`;
   }
+  if (waNotice) notice = notice ? `${notice} ${waNotice}` : waNotice;
 
   return {
     rows: page,
-    auditLogsAvailable: !auditTableMissing || !accessTableMissing,
+    auditLogsAvailable: !auditTableMissing || !accessTableMissing || !waTableMissing,
     notice,
     actions,
     sources: {
       audit_logs: !auditTableMissing,
       access_logs: !accessTableMissing,
+      whatsapp_logs: !waTableMissing && !waNotice,
     },
+    counts: {
+      audit: auditRows.length,
+      access: accessRows.length,
+      whatsapp: waRows.length,
+      page: page.length,
+    },
+    hideHeartbeats,
   };
 }
 

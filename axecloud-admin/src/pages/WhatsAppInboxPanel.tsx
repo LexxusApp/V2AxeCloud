@@ -206,7 +206,7 @@ export function WhatsAppInboxPanel() {
         ) : null}
       </div>
 
-      <div className="grid min-h-[28rem] gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid min-h-[min(70vh,32rem)] gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
         <div className="admin-panel admin-panel--flush flex max-h-[70vh] flex-col overflow-hidden !p-0">
           <div className="shrink-0 border-b border-[var(--admin-border)] px-3 py-2.5 text-[10px] font-bold uppercase leading-normal tracking-wide text-[var(--admin-muted)]">
             Conversas ({conversations.length})

@@ -9,6 +9,7 @@ import {
 } from "../src/services/evolution.service.js";
 import { sendEvolutionTextQueued } from "./lib/evolutionSendQueue.js";
 import {
+  dispatchZeladorWelcomeWhatsApp,
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
   renderWelcomeMessage,
@@ -827,7 +828,15 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         site: cfg.loginUrl,
         assinatura: cfg.signature,
       });
-      const out = await sendEvolutionTextQueued(CONSOLE_ADMIN_INSTANCE_NAME, msisdn, text);
+      const out = await dispatchZeladorWelcomeWhatsApp({
+        msisdn,
+        freeText: text,
+        nome_zelador: String(body.nome_zelador || "Zelador Exemplo"),
+        nome_terreiro: String(body.nome_terreiro || "Terreiro Exemplo"),
+        email: String(body.email || "exemplo@email.com"),
+        senha: String(body.senha || "Senha-Demonstracao-123"),
+        site: cfg.loginUrl,
+      });
       res.json({ success: true, msisdn, ...out });
     } catch (e: any) {
       console.error("[admin-console/welcome-message/test]", e);

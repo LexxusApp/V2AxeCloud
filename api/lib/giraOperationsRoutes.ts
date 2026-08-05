@@ -452,6 +452,15 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         .order("responded_at", { ascending: true });
       if (error) throw error;
 
+      const { data: guests, error: guestsErr } = await sb
+        .from("convidados_eventos")
+        .select("id, event_id, nome, status")
+        .in("event_id", eventIds)
+        .in("status", ["Confirmado", "confirmado", "Check-in", "check-in", "Checkin"]);
+      if (guestsErr) {
+        console.warn("[confirmados-resumo] convidados:", guestsErr.message);
+      }
+
       const grouped: Record<
         string,
         Array<{ filho_id: string; nome: string; foto_url: string | null }>
@@ -469,6 +478,17 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
           filho_id: String(r.filho_id),
           nome: String(r.filhos_de_santo?.nome || "Filho"),
           foto_url: r.filhos_de_santo?.foto_url ?? null,
+        });
+      }
+
+      for (const row of guests || []) {
+        const r = row as { id: string; event_id: string; nome?: string | null };
+        const eventId = String(r.event_id);
+        if (!grouped[eventId]) grouped[eventId] = [];
+        grouped[eventId].push({
+          filho_id: `guest:${r.id}`,
+          nome: String(r.nome || "Convidado"),
+          foto_url: null,
         });
       }
 

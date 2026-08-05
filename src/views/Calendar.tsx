@@ -375,7 +375,7 @@ function AdminEventDrawer({
 
           <div className="mt-3 rounded-xl border border-[#3F7258]/25 bg-[#3F7258]/[0.06] p-3">
             <div className="flex items-center justify-between gap-3">
-              <div><p className="text-sm font-black">{confirmed.length} confirmado{confirmed.length === 1 ? '' : 's'}</p><p className="text-xs font-semibold text-[#6F675C]">Respostas recebidas para esta gira</p></div>
+              <div><p className="text-sm font-black">{confirmed.length} confirmado{confirmed.length === 1 ? '' : 's'}</p><p className="text-xs font-semibold text-[#6F675C]">Filhos e convidados externos</p></div>
               <Users className="h-4 w-4 text-[#3F7258]" />
             </div>
             {confirmed.length ? <div className="mt-2"><EventConfirmedAvatars members={confirmed} /></div> : null}

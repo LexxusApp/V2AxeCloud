@@ -10,6 +10,26 @@ type Deps = {
 
 export type RsvpAction = "confirmar" | "declinar";
 
+/**
+ * Meta às vezes grava o botão URL como `/convite/%7B%7B1%7D%7D{{1}}`
+ * (literal `{{1}}` + variável). O link chega com prefixo `{{1}}` no token.
+ */
+export function sanitizeRsvpTokenFromUrl(raw: string): string {
+  let t = String(raw || "").trim();
+  for (let i = 0; i < 4; i++) {
+    let next = t;
+    try {
+      next = decodeURIComponent(next);
+    } catch {
+      /* keep */
+    }
+    next = next.replace(/^(%7b%7b1%7d%7d)+/i, "").replace(/^(\{\{\s*1\s*\}\})+/i, "");
+    if (next === t) break;
+    t = next;
+  }
+  return t.trim().toLowerCase();
+}
+
 export function buildEventRsvpPublicUrl(token: string, action: RsvpAction): string {
   const base = resolvePublicAppUrl().replace(/\/$/, "");
   return `${base}/convite/${encodeURIComponent(token)}/${action}`;
@@ -47,7 +67,7 @@ export async function processEventGuestRsvp(
     }
   | { ok: false; code: "NOT_FOUND" | "EXPIRED" | "INVALID"; message: string }
 > {
-  const cleanToken = String(token || "").trim().toLowerCase();
+  const cleanToken = sanitizeRsvpTokenFromUrl(token);
   if (!cleanToken || cleanToken.length < 16) {
     return { ok: false, code: "INVALID", message: "Link de convite inválido." };
   }

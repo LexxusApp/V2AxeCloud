@@ -51,7 +51,6 @@ const MAIN_NAV: NavItem[] = [
 const EXTRA_NAV: NavItem[] = [
   { id: "storage", label: "Armazenamento", icon: HardDrive, tone: "sky" },
   { id: "metrics", label: "Infra Supabase", icon: Gauge, tone: "orange" },
-  { id: "monitor", label: "Monitor", icon: Activity, tone: "rose" },
   { id: "demo", label: "Conta demo", icon: FlaskConical, tone: "amber" },
 ];
 

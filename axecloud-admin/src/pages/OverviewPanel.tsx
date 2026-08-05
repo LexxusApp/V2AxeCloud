@@ -577,8 +577,8 @@ export function OverviewPanel({
           </AdminPanel>
 
           <AdminPanel
-            kicker="Conversão comercial"
-            title="Funil dos últimos 30 dias"
+            kicker="Cadastro"
+            title="Funil de cadastro (30 dias)"
             action={
               <span className="text-xs text-[var(--ac-text-faint)]">
                 {activity?.publicConversionFunnel?.available
@@ -592,58 +592,54 @@ export function OverviewPanel({
                 <div className="grid gap-2 sm:grid-cols-4">
                   {[
                     ["Visitas", activity.publicConversionFunnel.visitors, "100%"],
-                    ["Cliques nos CTAs", activity.publicConversionFunnel.ctaClicks, `${activity.publicConversionFunnel.visitToClickPct}%`],
-                    ["Cadastro iniciado", activity.publicConversionFunnel.registerStarted, `${activity.publicConversionFunnel.clickToStartPct}%`],
-                    ["Cadastro concluído", activity.publicConversionFunnel.registerCompleted, `${activity.publicConversionFunnel.startToCompletePct}%`],
+                    [
+                      "Cliques nos CTAs",
+                      activity.publicConversionFunnel.ctaClicks,
+                      `${activity.publicConversionFunnel.visitToClickPct}%`,
+                    ],
+                    [
+                      "Cadastro iniciado",
+                      activity.publicConversionFunnel.registerStarted,
+                      `${activity.publicConversionFunnel.clickToStartPct}%`,
+                    ],
+                    [
+                      "Cadastro concluído",
+                      activity.publicConversionFunnel.registerCompleted,
+                      `${activity.publicConversionFunnel.startToCompletePct}%`,
+                    ],
                   ].map(([label, value, rate], index) => (
-                    <div key={String(label)} className="relative rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{label}</p>
+                    <div
+                      key={String(label)}
+                      className="relative rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">
+                        {label}
+                      </p>
                       <div className="mt-2 flex items-end justify-between gap-2">
                         <strong className="admin-mono text-2xl text-[var(--ac-text)]">{value}</strong>
                         <span className="text-xs font-semibold text-[var(--ac-accent)]">{rate}</span>
                       </div>
-                      {index < 3 ? <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)] sm:block" /> : null}
+                      {index < 3 ? (
+                        <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)] sm:block" />
+                      ) : null}
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-xs text-[var(--ac-text-faint)]">
-                  A conclusão é confirmada pelo servidor somente depois que a conta é criada.
-                </p>
-                {activity.publicConversionFunnel.sectionReach?.some((item) => item.visitors > 0) ? (
-                  <div className="mt-5 border-t border-[var(--ac-paper-border)] pt-4">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold text-[var(--ac-text)]">Onde visitantes abandonam a landing</p>
-                        <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">Alcance único por seção, contado quando ao menos 30% entra na tela.</p>
-                      </div>
-                      {activity.publicConversionFunnel.registerFailures > 0 ? (
-                        <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-500">
-                          {activity.publicConversionFunnel.registerFailures} falha(s) no cadastro
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                      {(activity.publicConversionFunnel.sectionReach || []).map((item) => (
-                        <div key={item.sectionId} className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
-                          <div className="flex items-center justify-between gap-2 text-[10px]">
-                            <span className="truncate font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{item.label}</span>
-                            <span className="admin-mono text-[var(--ac-accent)]">{item.reachPct}%</span>
-                          </div>
-                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ac-paper-border)]">
-                            <div className="h-full rounded-full bg-[var(--ac-accent)]" style={{ width: `${Math.min(100, item.reachPct)}%` }} />
-                          </div>
-                          <p className="mt-2 text-[10px] text-[var(--ac-text-faint)]">
-                            {item.visitors} visitante(s){item.dropOffPct > 0 ? ` · queda ${item.dropOffPct}%` : ''}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-[var(--ac-text-faint)]">
+                    Conclusão confirmada pelo servidor só depois que a conta é criada.
+                  </p>
+                  {activity.publicConversionFunnel.registerFailures > 0 ? (
+                    <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-500">
+                      {activity.publicConversionFunnel.registerFailures} falha(s) no cadastro
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="rounded-[var(--ac-radius-sm)] border border-dashed border-[var(--ac-paper-border)] p-6 text-center text-sm text-[var(--ac-text-muted)]">
-                A coleta começa com a publicação desta versão. Os percentuais aparecerão após os primeiros acessos.
+                A coleta começa com a publicação desta versão. Os percentuais aparecerão após os primeiros
+                acessos ao cadastro.
               </div>
             )}
           </AdminPanel>

@@ -3,7 +3,6 @@ import {
   Building2,
   Calendar,
   Copy,
-  Database,
   Eye,
   EyeOff,
   HardDrive,
@@ -34,6 +33,8 @@ type TenantDetail = {
     deleted_at: string | null;
     foto_url: string | null;
     updated_at: string | null;
+    whatsapp_publico?: string | null;
+    zelador?: string | null;
   } | null;
   auth: {
     id: string;
@@ -42,6 +43,19 @@ type TenantDetail = {
     created_at: string | null;
     last_sign_in_at: string | null;
     user_metadata: Record<string, unknown>;
+  } | null;
+  contact?: {
+    whatsapp: string | null;
+    phone: string | null;
+    nome_zelador?: string | null;
+    source?: string | null;
+  } | null;
+  activity?: {
+    last_sign_in_at: string | null;
+    last_activity_at: string | null;
+    last_activity_type: string | null;
+    last_whatsapp_at: string | null;
+    last_whatsapp_tipo: string | null;
   } | null;
   subscription: {
     plan: string | null;
@@ -67,12 +81,41 @@ function bytesToHuman(bytes: number | undefined): string {
   if (!bytes || bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
   let i = 0;
-  let v = bytes;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
+  let n = bytes;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i += 1;
   }
-  return `${v.toFixed(v >= 100 || i === 0 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
+  return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
+}
+
+function formatWhatsappDisplay(raw: string | null | undefined): string {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  let local = digits;
+  if (local.startsWith("55") && local.length >= 12) local = local.slice(2);
+  if (local.length === 11) {
+    return `+55 (${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
+  }
+  if (local.length === 10) {
+    return `+55 (${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`;
+  }
+  return digits.startsWith("55") ? `+${digits}` : digits;
+}
+
+function resolveZeladorWhatsapp(data: TenantDetail): string {
+  const meta = data.auth?.user_metadata || {};
+  const fromMeta = String(
+    meta.whatsapp || meta.telefone || meta.phone || meta.celular || ""
+  ).trim();
+  return (
+    data.contact?.whatsapp ||
+    data.profile?.whatsapp_publico ||
+    fromMeta ||
+    data.auth?.phone ||
+    data.contact?.phone ||
+    ""
+  );
 }
 
 export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
@@ -213,21 +256,30 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
           {data && (
             <>
               <Section title="Identificação" icon={Building2}>
-                <Row label="ID" value={data.profile?.id || "—"} copyable mono onCopy={copyValue} copied={copied} tag="id" />
+                <Row label="Cargo" value={data.profile?.cargo || "—"} />
+                <RoleRow role={data.profile?.role || null} busy={roleBusy} onSet={setRole} />
                 <Row
-                  label="Tenant ID"
-                  value={data.profile?.tenant_id || "—"}
+                  label="ID"
+                  value={data.profile?.id || "—"}
                   copyable
                   mono
                   onCopy={copyValue}
                   copied={copied}
-                  tag="tenant"
+                  tag="id"
                 />
-                <Row label="Cargo" value={data.profile?.cargo || "—"} />
-                <RoleRow role={data.profile?.role || null} busy={roleBusy} onSet={setRole} />
               </Section>
 
               <Section title="Acesso" icon={Mail}>
+                <Row
+                  label="Zelador"
+                  value={
+                    data.contact?.nome_zelador ||
+                    data.profile?.zelador ||
+                    data.profile?.cargo ||
+                    String(data.auth?.user_metadata?.nome_zelador || "") ||
+                    "—"
+                  }
+                />
                 <Row
                   label="E-mail"
                   value={data.profile?.email || data.auth?.email || "—"}
@@ -237,13 +289,55 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                   copied={copied}
                   tag="email"
                 />
-                <Row label="Telefone" value={data.auth?.phone || "—"} />
                 <Row
-                  label="Último login"
+                  label="WhatsApp do zelador"
+                  value={(() => {
+                    const wa = resolveZeladorWhatsapp(data);
+                    return wa ? formatWhatsappDisplay(wa) : "—";
+                  })()}
+                  copyable={Boolean(resolveZeladorWhatsapp(data))}
+                  mono
+                  onCopy={(v, tag) =>
+                    void copyValue(resolveZeladorWhatsapp(data).replace(/\D/g, "") || v, tag)
+                  }
+                  copied={copied}
+                  tag="wa"
+                />
+                <Row
+                  label="Último acesso real"
                   value={
-                    data.auth?.last_sign_in_at
-                      ? format(new Date(data.auth.last_sign_in_at), "dd/MM/yyyy HH:mm")
+                    data.activity?.last_activity_at
+                      ? `${format(new Date(data.activity.last_activity_at), "dd/MM/yyyy HH:mm")}${
+                          data.activity.last_activity_type
+                            ? ` · ${data.activity.last_activity_type}`
+                            : ""
+                        }`
+                      : "sem registo"
+                  }
+                />
+                <Row
+                  label="Último login Auth"
+                  value={
+                    data.activity?.last_sign_in_at || data.auth?.last_sign_in_at
+                      ? format(
+                          new Date(
+                            String(data.activity?.last_sign_in_at || data.auth?.last_sign_in_at)
+                          ),
+                          "dd/MM/yyyy HH:mm"
+                        )
                       : "nunca"
+                  }
+                />
+                <Row
+                  label="Último WhatsApp"
+                  value={
+                    data.activity?.last_whatsapp_at
+                      ? `${format(new Date(data.activity.last_whatsapp_at), "dd/MM/yyyy HH:mm")}${
+                          data.activity.last_whatsapp_tipo
+                            ? ` · ${data.activity.last_whatsapp_tipo}`
+                            : ""
+                        }`
+                      : "—"
                   }
                 />
                 <Row
@@ -283,8 +377,7 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                     </div>
                   ) : (
                     <p className="text-xs text-neutral-400">
-                      A senha original do Supabase Auth é armazenada como hash e não pode ser recuperada. Gere uma
-                      nova senha numérica de 8 dígitos para reenviar ao zelador.
+                      Gere uma nova senha numérica de 8 dígitos para reenviar ao zelador.
                     </p>
                   )}
                   <button
@@ -367,14 +460,6 @@ export function TenantDrawer({ tenantId, onClose }: TenantDrawerProps) {
                   </>
                 )}
               </Section>
-
-              {data.auth?.user_metadata && Object.keys(data.auth.user_metadata).length > 0 && (
-                <Section title="Metadados Auth" icon={Database}>
-                  <pre className="max-h-48 overflow-auto rounded-md border border-neutral-800 bg-black/30 p-2 admin-mono text-[10px] text-neutral-300">
-{JSON.stringify(data.auth.user_metadata, null, 2)}
-                  </pre>
-                </Section>
-              )}
 
               {data.profile?.foto_url && (
                 <Section title="Foto" icon={UserIcon}>

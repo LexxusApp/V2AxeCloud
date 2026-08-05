@@ -72,6 +72,67 @@ function userInitials(session: Session): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+function formatAuditLogView(r: {
+  action?: string | null;
+  status?: string | null;
+  details?: Record<string, unknown> | null;
+  user_email?: string | null;
+  user_id?: string | null;
+  terreiro_id?: string | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  created_at?: string | null;
+}) {
+  const action = String(r.action || "");
+  const status = String(r.status || "");
+  const detailsObj = r.details && typeof r.details === "object" ? r.details : null;
+  const detailsText = detailsObj
+    ? [
+        detailsObj.email && `email: ${detailsObj.email}`,
+        detailsObj.telefone && `tel: ${detailsObj.telefone}`,
+        detailsObj.tipo && `tipo: ${detailsObj.tipo}`,
+        detailsObj.mode && `modo: ${detailsObj.mode}`,
+        detailsObj.surface && `origem: ${detailsObj.surface}`,
+        detailsObj.reason && `motivo: ${detailsObj.reason}`,
+        detailsObj.path && `rota: ${detailsObj.path}`,
+        detailsObj.description && String(detailsObj.description).slice(0, 100),
+        detailsObj.message && String(detailsObj.message).slice(0, 80),
+        detailsObj.targetType && `alvo: ${detailsObj.targetType}`,
+        detailsObj.targetId && `id: ${String(detailsObj.targetId).slice(0, 8)}`,
+      ]
+        .filter(Boolean)
+        .join(" · ") || JSON.stringify(detailsObj).slice(0, 100)
+    : "—";
+  const detailsDisplay = detailsText.length > 72 ? `${detailsText.slice(0, 69)}…` : detailsText;
+  const userFull = r.user_email || (r.user_id ? String(r.user_id) : "");
+  const userLabel = userFull
+    ? userFull.includes("@")
+      ? userFull.replace(/@.+$/, "")
+      : userFull.slice(0, 8)
+    : "—";
+  const terreiroLabel = r.terreiro_id ? String(r.terreiro_id).slice(0, 8) : "—";
+  const actionShort =
+    action.startsWith("wa.") || action.startsWith("auth.") || action.startsWith("access.insight")
+      ? action.length > 28
+        ? `${action.slice(0, 26)}…`
+        : action
+      : action.length > 22
+        ? `…${action.slice(-21)}`
+        : action;
+  return {
+    action,
+    actionShort,
+    status,
+    detailsText,
+    detailsDisplay,
+    userFull,
+    userLabel,
+    terreiroLabel,
+    ip: r.ip || "—",
+    when: r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—",
+  };
+}
+
 export function CommandShell({ session }: { session: Session }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -80,8 +141,14 @@ export function CommandShell({ session }: { session: Session }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [logEventTypes, setLogEventTypes] = useState<string[]>([]);
   const [logFilterType, setLogFilterType] = useState<string>("");
+  const [hideHeartbeats, setHideHeartbeats] = useState(true);
   const [logsAvailable, setLogsAvailable] = useState<boolean>(true);
   const [logsNotice, setLogsNotice] = useState<string>("");
+  const [logSources, setLogSources] = useState<{
+    audit_logs?: boolean;
+    access_logs?: boolean;
+    whatsapp_logs?: boolean;
+  }>({});
   const [activity, setActivity] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -105,19 +172,22 @@ export function CommandShell({ session }: { session: Session }) {
   }, []);
 
   const refreshLogs = useCallback(async () => {
-    const qs = new URLSearchParams({ limit: "200" });
+    const qs = new URLSearchParams({ limit: "250" });
     if (logFilterType) qs.set("action", logFilterType);
+    qs.set("hideHeartbeats", hideHeartbeats ? "1" : "0");
     const j = await apiJson<{
       rows: any[];
       auditLogsAvailable?: boolean;
       notice?: string;
       actions?: string[];
+      sources?: { audit_logs?: boolean; access_logs?: boolean; whatsapp_logs?: boolean };
     }>(`/api/admin-console/audit-logs?${qs.toString()}`);
     setLogs(j.rows || []);
     setLogsAvailable(j.auditLogsAvailable !== false);
     setLogsNotice(j.notice || "");
+    setLogSources(j.sources || {});
     if (Array.isArray(j.actions) && j.actions.length) setLogEventTypes(j.actions);
-  }, [logFilterType]);
+  }, [logFilterType, hideHeartbeats]);
 
   const refreshActivity = useCallback(async () => {
     const j = await apiJson("/api/admin-console/activity");
@@ -314,27 +384,42 @@ export function CommandShell({ session }: { session: Session }) {
 
         {tab === "logs" && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-surface)] px-4 py-3">
+            <div className="admin-logs-toolbar">
               <span className="text-xs uppercase tracking-widest text-[var(--ac-text-muted)]">Ação</span>
               <select
                 value={logFilterType}
                 onChange={(e) => setLogFilterType(e.target.value)}
-                className="admin-input !w-auto min-w-[12rem]"
+                className="admin-input admin-logs-filter-select"
               >
-                <option value="">Todas as ações</option>
+                <option value="">Todas (auth + acesso + WhatsApp)</option>
                 {logEventTypes.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
                 ))}
               </select>
+              <label className="inline-flex items-center gap-1.5 text-xs text-[var(--ac-text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={hideHeartbeats}
+                  onChange={(e) => setHideHeartbeats(e.target.checked)}
+                  className="rounded border-[var(--ac-paper-border)]"
+                />
+                Ocultar sessões
+              </label>
               <button type="button" onClick={() => void refreshLogs()} className="admin-btn-secondary">
                 Actualizar
               </button>
-              <span className="ml-auto text-xs text-[var(--ac-text-muted)]">
+              <span className="admin-logs-count text-xs text-[var(--ac-text-muted)]">
                 {logs.length} {logs.length === 1 ? "linha" : "linhas"}
+                {logSources.whatsapp_logs ? " · WA" : ""}
+                {logSources.access_logs ? " · acesso" : ""}
+                {logSources.audit_logs ? " · auth" : ""}
               </span>
             </div>
+            {logsNotice ? (
+              <p className="text-xs text-[var(--ac-text-muted)] px-1">{logsNotice}</p>
+            ) : null}
             <div className={admin.tableWrap}>
               {!logsAvailable ? (
                 <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
@@ -351,122 +436,143 @@ export function CommandShell({ session }: { session: Session }) {
                   Sem eventos de auditoria registados ainda.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className={cn(admin.table, "table-fixed")}>
-                    <colgroup>
-                      <col className="w-[5.75rem]" />
-                      <col className="w-[6.5rem]" />
-                      <col className="w-[4.25rem]" />
-                      <col />
-                      <col className="w-[5.5rem]" />
-                      <col className="w-[4.25rem]" />
-                      <col className="w-[5.75rem]" />
-                    </colgroup>
-                    <thead>
-                      <tr className={admin.thead}>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Quando</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Ação</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Estado</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Detalhes</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Utilizador</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>Terreiro</th>
-                        <th className={cn(admin.th, "!px-2 !py-2")}>IP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.map((r) => {
-                        const action = String(r.action || "");
-                        const status = String(r.status || "");
-                        const detailsObj = r.details && typeof r.details === "object" ? r.details : null;
-                        const detailsText = detailsObj
-                          ? [
-                              detailsObj.email && `email: ${detailsObj.email}`,
-                              detailsObj.mode && `modo: ${detailsObj.mode}`,
-                              detailsObj.surface && `origem: ${detailsObj.surface}`,
-                              detailsObj.reason && `motivo: ${detailsObj.reason}`,
-                              detailsObj.path && `rota: ${detailsObj.path}`,
-                              detailsObj.description && String(detailsObj.description).slice(0, 80),
-                              detailsObj.message && String(detailsObj.message).slice(0, 80),
-                              detailsObj.targetType && `alvo: ${detailsObj.targetType}`,
-                              detailsObj.targetId && `id: ${String(detailsObj.targetId).slice(0, 8)}`,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ") || JSON.stringify(detailsObj).slice(0, 100)
-                          : "—";
-                        const detailsDisplay =
-                          detailsText.length > 72 ? `${detailsText.slice(0, 69)}…` : detailsText;
-                        const userFull =
-                          r.user_email ||
-                          (r.user_id ? String(r.user_id) : "");
-                        const userLabel = userFull
-                          ? userFull.includes("@")
-                            ? userFull.replace(/@.+$/, "")
-                            : userFull.slice(0, 8)
-                          : "—";
-                        const terreiroLabel = r.terreiro_id ? String(r.terreiro_id).slice(0, 8) : "—";
-                        const actionShort =
-                          action.length > 22 ? `…${action.slice(-21)}` : action;
-                        return (
-                          <tr key={r.id} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)]")}>
-                            <td className="px-2 py-2 whitespace-nowrap text-[var(--ac-text-muted)] text-[11px]">
-                              {r.created_at ? format(new Date(r.created_at), "dd/MM HH:mm") : "—"}
-                            </td>
-                            <td className="px-2 py-2 max-w-0">
-                              {action ? (
-                                <span
-                                  className={cn(
-                                    "block truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                                    eventTypeBadgeClass(action)
-                                  )}
-                                  title={action}
-                                >
-                                  {actionShort}
-                                </span>
-                              ) : (
-                                "—"
+                <>
+                  <div className="admin-logs-cards">
+                    {logs.map((r) => {
+                      const view = formatAuditLogView(r);
+                      return (
+                        <article key={`m-${r.id}`} className="admin-log-card">
+                          <div className="admin-log-card-top">
+                            <time className="text-[11px] text-[var(--ac-text-muted)]">
+                              {view.when}
+                            </time>
+                            {view.status ? (
+                              <span
+                                className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${auditStatusBadgeClass(view.status)}`}
+                              >
+                                {view.status === "success" ? "OK" : view.status.slice(0, 6)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {view.action ? (
+                            <span
+                              className={cn(
+                                "inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[10px] font-medium",
+                                eventTypeBadgeClass(view.action)
                               )}
-                            </td>
-                            <td className="px-2 py-2">
-                              {status ? (
-                                <span
-                                  className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${auditStatusBadgeClass(status)}`}
-                                >
-                                  {status === "success" ? "OK" : status.slice(0, 6)}
-                                </span>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td
-                              className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text)]"
-                              title={detailsText}
+                              title={view.action}
                             >
-                              {detailsDisplay}
-                            </td>
-                            <td
-                              className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text-muted)]"
-                              title={userFull || undefined}
-                            >
-                              {userLabel}
-                            </td>
-                            <td
-                              className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
-                              title={r.terreiro_id || ""}
-                            >
-                              {terreiroLabel}
-                            </td>
-                            <td
-                              className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
-                              title={r.user_agent ? `${r.ip || ""} · ${r.user_agent}` : r.ip || ""}
-                            >
-                              {r.ip || "—"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              {view.actionShort}
+                            </span>
+                          ) : null}
+                          <p className="text-[12px] leading-snug text-[var(--ac-text)] break-words">
+                            {view.detailsText}
+                          </p>
+                          <dl className="admin-log-card-meta">
+                            <div>
+                              <dt>Utilizador</dt>
+                              <dd title={view.userFull || undefined}>{view.userLabel}</dd>
+                            </div>
+                            <div>
+                              <dt>Terreiro</dt>
+                              <dd className="admin-mono">{view.terreiroLabel}</dd>
+                            </div>
+                            <div>
+                              <dt>IP</dt>
+                              <dd className="admin-mono">{view.ip}</dd>
+                            </div>
+                          </dl>
+                        </article>
+                      );
+                    })}
+                  </div>
+                  <div className="admin-logs-desktop overflow-x-auto">
+                    <table className={cn(admin.table, "table-fixed")}>
+                      <colgroup>
+                        <col className="w-[5.75rem]" />
+                        <col className="w-[6.5rem]" />
+                        <col className="w-[4.25rem]" />
+                        <col />
+                        <col className="w-[5.5rem]" />
+                        <col className="w-[4.25rem]" />
+                        <col className="w-[5.75rem]" />
+                      </colgroup>
+                      <thead>
+                        <tr className={admin.thead}>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Quando</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Ação</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Estado</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Detalhes</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Utilizador</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>Terreiro</th>
+                          <th className={cn(admin.th, "!px-2 !py-2")}>IP</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {logs.map((r) => {
+                          const view = formatAuditLogView(r);
+                          return (
+                            <tr key={r.id} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)]")}>
+                              <td className="px-2 py-2 whitespace-nowrap text-[var(--ac-text-muted)] text-[11px]">
+                                {view.when}
+                              </td>
+                              <td className="px-2 py-2 max-w-0">
+                                {view.action ? (
+                                  <span
+                                    className={cn(
+                                      "block truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                      eventTypeBadgeClass(view.action)
+                                    )}
+                                    title={view.action}
+                                  >
+                                    {view.actionShort}
+                                  </span>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                              <td className="px-2 py-2">
+                                {view.status ? (
+                                  <span
+                                    className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${auditStatusBadgeClass(view.status)}`}
+                                  >
+                                    {view.status === "success" ? "OK" : view.status.slice(0, 6)}
+                                  </span>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                              <td
+                                className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text)]"
+                                title={view.detailsText}
+                              >
+                                {view.detailsDisplay}
+                              </td>
+                              <td
+                                className="px-2 py-2 max-w-0 truncate text-[11px] text-[var(--ac-text-muted)]"
+                                title={view.userFull || undefined}
+                              >
+                                {view.userLabel}
+                              </td>
+                              <td
+                                className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
+                                title={r.terreiro_id || ""}
+                              >
+                                {view.terreiroLabel}
+                              </td>
+                              <td
+                                className="px-2 py-2 max-w-0 truncate admin-mono text-[11px] text-[var(--ac-text-faint)]"
+                                title={r.user_agent ? `${r.ip || ""} · ${r.user_agent}` : r.ip || ""}
+                              >
+                                {view.ip}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -151,6 +151,59 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
     }
   });
 
+  /** Zelador clicou "Entendi" num insight do dashboard — aparece em Eventos (access.insight.dismissed). */
+  app.post("/api/metrics/insight-ack", async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const insightKey = String(body.insightKey || body.key || "").trim().slice(0, 120);
+      const insightTitle = String(body.insightTitle || body.title || "").trim().slice(0, 200);
+      const tenantId = String(body.tenantId || "").trim().slice(0, 80) || null;
+      if (!insightKey) {
+        return res.status(400).json({ error: "insightKey obrigatório" });
+      }
+
+      const ip = resolveClientIp(req);
+      let geoData: geoip.Lookup | null = null;
+      if (ip && ip !== "::1" && ip !== "127.0.0.1") {
+        geoData = geoip.lookup(ip) || null;
+      }
+
+      const { error } = await supabaseAdmin.from("access_logs").insert({
+        event_type: "insight.dismissed",
+        user_id: user.id,
+        user_email: user.email ? String(user.email).toLowerCase() : null,
+        tenant_id: tenantId,
+        target_type: "insight",
+        target_id: insightKey,
+        description: insightTitle
+          ? `Insight fechado: ${insightTitle}`
+          : `Insight fechado (${insightKey})`,
+        ip: ip || null,
+        city: geoData?.city || null,
+        region: geoData?.region || null,
+        country: geoData?.country || null,
+        user_agent: req.headers["user-agent"] || null,
+        metadata: {
+          insight_key: insightKey,
+          insight_title: insightTitle || null,
+          source: "dashboard_system_insight",
+        },
+      });
+      if (error) {
+        console.warn("[METRICS] insight-ack insert:", error.message || error);
+        return res.status(500).json({ error: "Falha ao registrar" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[METRICS] Error tracking insight ack:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   app.get("/api/admin/system-stats", async (req, res) => {
     try {
       const user = await requireApiGlobalAdmin(supabaseAdmin, req, res, {

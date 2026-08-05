@@ -13,11 +13,28 @@ type RsvpPayload = {
   terreiroName: string;
 };
 
+/** Remove literal `{{1}}` que a Meta às vezes embute na URL do botão. */
+function sanitizeRsvpToken(raw: string): string {
+  let t = String(raw || '').trim();
+  for (let i = 0; i < 4; i++) {
+    let next = t;
+    try {
+      next = decodeURIComponent(next);
+    } catch {
+      /* keep */
+    }
+    next = next.replace(/^(%7b%7b1%7d%7d)+/i, '').replace(/^(\{\{\s*1\s*\}\})+/i, '');
+    if (next === t) break;
+    t = next;
+  }
+  return t.trim();
+}
+
 function parseConvitePath(): { token: string; action: 'confirmar' | 'declinar' } | null {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
   const idx = parts.indexOf('convite');
   if (idx < 0) return null;
-  const token = decodeURIComponent(parts[idx + 1] || '').trim();
+  const token = sanitizeRsvpToken(parts[idx + 1] || '');
   const rawAction = decodeURIComponent(parts[idx + 2] || '').trim().toLowerCase();
   if (!token) return null;
   if (rawAction !== 'confirmar' && rawAction !== 'declinar') return null;
