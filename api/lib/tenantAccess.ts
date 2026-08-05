@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { resolveFilhoRowIdForFinance } from "./resolveFilhoRowIdForFinance.js";
-import { digitsOnlyCpf, isValidCpf } from "../../lib/brCpf.js";
+import { digitsOnlyCpf, isValidFilhoCpfCadastro } from "../../lib/brCpf.js";
 import { normalizeBrWhatsAppNational } from "../../src/lib/whatsappPhone.js";
 
 const UUID_RE =
@@ -390,9 +390,14 @@ export function normalizeChildPayload(body: Record<string, unknown>): Record<str
         out[key] = null;
         continue;
       }
-      if (!isValidCpf(cpf)) {
+      // Aceita 6 dígitos (senha de acesso) ou CPF completo (11) — legado.
+      if (!isValidFilhoCpfCadastro(cpf)) {
         throw Object.assign(
-          new Error("CPF inválido. Confira os dígitos — a senha de acesso do filho usa os 6 primeiros números do CPF."),
+          new Error(
+            cpf.length === 6
+              ? "Informe 6 dígitos válidos para a senha de acesso (evite 000000, 123456…)."
+              : "CPF inválido. No cadastro basta informar os 6 primeiros dígitos — usados como senha de acesso."
+          ),
           { statusCode: 400 }
         );
       }

@@ -257,7 +257,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     if (!user?.id) return;
     if (sendingCredentialsId) return;
     const ok = confirm(
-      `Enviar dados de acesso (login, senha e link) via WhatsApp para ${childName}?\n\nA senha enviada são os 6 primeiros dígitos do CPF cadastrado.\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
+      `Enviar dados de acesso (registro + senha de 6 dígitos) via WhatsApp para ${childName}?\n\nA senha são os 6 dígitos cadastrados no filho (início do CPF).\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
     );
     if (!ok) return;
 
@@ -907,18 +907,21 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
                   <div>
-                    <label className={paperLabelClass}>CPF</label>
+                    <label className={paperLabelClass}>CPF 6 primeiros dígitos</label>
                     <input
                       required
                       className={paperInputClass}
                       inputMode="numeric"
-                      maxLength={11}
+                      maxLength={6}
+                      minLength={6}
+                      pattern="\d{6}"
+                      title="Informe os 6 primeiros dígitos do CPF"
                       value={formData.cpf}
-                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                      placeholder="11 dígitos válidos"
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                      placeholder="Ex.: 123456"
                     />
                     <p className="mt-1 text-[10px] text-[#8A8070]">
-                      A senha de acesso do portal são os 6 primeiros dígitos deste CPF.
+                      Só os 6 primeiros do CPF — viram a senha de acesso do membro. Não precisa do CPF completo.
                     </p>
                   </div>
                   <div>

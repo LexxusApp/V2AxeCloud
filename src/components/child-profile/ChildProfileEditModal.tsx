@@ -123,14 +123,22 @@ export function ChildProfileEditModal({
                 />
               </div>
               <div>
-                <label className={fieldLabel}>CPF</label>
+                <label className={fieldLabel}>CPF 6 primeiros dígitos</label>
                 <input
                   type="text"
-                  value={String(editData.cpf || '')}
-                  onChange={(e) => onChange('cpf', e.target.value)}
-                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                  maxLength={6}
+                  minLength={6}
+                  pattern="\d{6}"
+                  title="Informe os 6 primeiros dígitos do CPF"
+                  value={String(editData.cpf || '').replace(/\D/g, '').slice(0, 6)}
+                  onChange={(e) => onChange('cpf', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Ex.: 123456"
                   className={fieldInput}
                 />
+                <p className="mt-1 text-[10px] text-[#8A8070]">
+                  Só os 6 primeiros do CPF — senha de acesso do membro. Não precisa do CPF completo.
+                </p>
               </div>
               <div className="col-span-2">
                 <label className={fieldLabel}>WhatsApp</label>
