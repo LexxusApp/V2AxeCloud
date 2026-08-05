@@ -25,6 +25,14 @@ import { fetchMinhasParticipacoes } from '../lib/giraOperations';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
+import {
+  NOTIF_DISMISS_KEY,
+  NOTIF_READ_KEY,
+  loadNotifIdSetForUser,
+  notifDismissStorageKey,
+  notifReadStorageKey,
+  saveNotifIdSet,
+} from '../lib/notificationPrefs';
 
 export interface AppNotification {
   id: string;
@@ -106,9 +114,6 @@ const TYPE_META: Record<
   },
 };
 
-const READ_KEY = 'axecloud_notif_read_v2';
-const DISMISS_KEY = 'axecloud_notif_dismissed_v2';
-const SET_CAP = 400;
 const LIST_CAP = 30;
 
 function timeAgo(dateStr: string): string {
@@ -121,22 +126,6 @@ function timeAgo(dateStr: string): string {
   if (hours < 24) return `Há ${hours}h`;
   const days = Math.floor(hours / 24);
   return days === 1 ? 'Ontem' : `Há ${days} dias`;
-}
-
-function loadStoredSet(key: string): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(key) || '[]') as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveStoredSet(key: string, values: Set<string>) {
-  try {
-    localStorage.setItem(key, JSON.stringify([...values].slice(-SET_CAP)));
-  } catch {
-    /* armazenamento indisponível */
-  }
 }
 
 function formatBRL(value: unknown): string {
@@ -458,12 +447,23 @@ export default function NotificationPanel({
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [rawItems, setRawItems] = useState<RawNotification[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(() => loadStoredSet(READ_KEY));
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => loadStoredSet(DISMISS_KEY));
+  const [readIds, setReadIds] = useState<Set<string>>(
+    () => loadNotifIdSetForUser(NOTIF_READ_KEY, userId),
+  );
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(
+    () => loadNotifIdSetForUser(NOTIF_DISMISS_KEY, userId),
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLElement | null>(null);
   const isFilho = userRole === 'filho';
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
+  const readKey = notifReadStorageKey(userId);
+  const dismissKey = notifDismissStorageKey(userId);
+
+  useEffect(() => {
+    setReadIds(loadNotifIdSetForUser(NOTIF_READ_KEY, userId));
+    setDismissedIds(loadNotifIdSetForUser(NOTIF_DISMISS_KEY, userId));
+  }, [userId]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -527,8 +527,12 @@ export default function NotificationPanel({
 
   const markAllRead = () => {
     setReadIds((current) => {
-      const updated = new Set([...current, ...allNotifications.map(({ id }) => id)]);
-      saveStoredSet(READ_KEY, updated);
+      const updated = new Set([
+        ...current,
+        ...rawItems.map(({ id }) => id),
+        ...allNotifications.map(({ id }) => id),
+      ]);
+      saveNotifIdSet(readKey, updated);
       return updated;
     });
   };
@@ -536,7 +540,7 @@ export default function NotificationPanel({
   const markRead = (id: string) => {
     setReadIds((current) => {
       const updated = new Set([...current, id]);
-      saveStoredSet(READ_KEY, updated);
+      saveNotifIdSet(readKey, updated);
       return updated;
     });
   };
@@ -545,7 +549,7 @@ export default function NotificationPanel({
     markRead(id);
     setDismissedIds((current) => {
       const updated = new Set([...current, id]);
-      saveStoredSet(DISMISS_KEY, updated);
+      saveNotifIdSet(dismissKey, updated);
       return updated;
     });
   };
@@ -569,7 +573,7 @@ export default function NotificationPanel({
       window.clearTimeout(timer);
       markAllReadRef.current();
     };
-  }, [open]);
+  }, [open, rawItems]);
 
   const popover = open ? (
     <motion.section

@@ -9,6 +9,10 @@ import {
   collectRememberedLoginEmailFromStorage,
   restoreRememberedLoginEmailToStorage,
 } from './loginRemember';
+import {
+  collectClientUiPrefsFromStorage,
+  restoreClientUiPrefsToStorage,
+} from './notificationPrefs';
 
 /**
  * Remove todos os caches do Cache Storage (PWA / Workbox).
@@ -52,6 +56,7 @@ export async function performFastLogout(): Promise<void> {
 
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
   const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
+  const preservedUiPrefs = collectClientUiPrefsFromStorage();
 
   try {
     await deleteAllCacheStorage();
@@ -62,6 +67,7 @@ export async function performFastLogout(): Promise<void> {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
       restoreRememberedLoginEmailToStorage(preservedRememberEmail);
+      restoreClientUiPrefsToStorage(preservedUiPrefs);
     } catch {
       /* ignorar */
     }
@@ -108,6 +114,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
   }
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
   const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
+  const preservedUiPrefs = collectClientUiPrefsFromStorage();
 
   try {
     await deleteAllCacheStorage();
@@ -117,6 +124,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
       restoreRememberedLoginEmailToStorage(preservedRememberEmail);
+      restoreClientUiPrefsToStorage(preservedUiPrefs);
     } catch {
       /* ignorar */
     }

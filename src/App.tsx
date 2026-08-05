@@ -354,9 +354,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   useEffect(() => {
     const handleSessionExpired = async () => {
       try {
+        const { collectClientUiPrefsFromStorage, restoreClientUiPrefsToStorage } = await import(
+          './lib/notificationPrefs'
+        );
+        const preservedUiPrefs = collectClientUiPrefsFromStorage();
         localStorage.clear();
         sessionStorage.clear();
         localStorage.setItem('axecloud_version', SYSTEM_VERSION);
+        restoreClientUiPrefsToStorage(preservedUiPrefs);
       } catch {
         // no-op
       }
