@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
+import { DashboardSystemInsightCard } from '../components/dashboard/DashboardSystemInsightCard';
 import PreceitoCommandCenter from '../components/preceito/PreceitoCommandCenter';
 import {
   HouseTimeline,
@@ -69,6 +70,7 @@ import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { authFetch, ensureFreshAccessToken } from '../lib/authenticatedFetch';
 import { ROUTES } from '../lib/routes';
 import { notifySessionExpired } from '../lib/supabase';
+import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
 
 const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
 const DASHBOARD_FETCH_ERR = 'DASHBOARD_FETCH_FAILED';
@@ -119,6 +121,8 @@ type DashboardBundle = {
   allChildren: any[];
   historyData: any[];
   nextEvent: DashboardNextEvent | null;
+  /** True if the house has ever scheduled a gira/event (past or future), excluding obrigações. */
+  hasAnyGira: boolean;
   pedidosData: DashboardPedidoReza[];
   noticesData: DashboardNotice[];
   birthdayData: DashboardBirthday[];
@@ -128,6 +132,13 @@ type DashboardBundle = {
     valor_mensalidade?: number | null;
     mensalidade_ativa?: boolean | null;
   } | null;
+};
+
+type SetupStepV5 = {
+  id: string;
+  label: string;
+  done: boolean;
+  tab: string;
 };
 
 function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
@@ -225,7 +236,9 @@ async function fetchDashboardFinanceBundle(
             parseApiJson<{ data?: any[] }>(r, { data: [] })
           )
         : Promise.resolve({ data: [] }),
-      authFetch(`/api/events?tenantId=${tidEnc}&start=${today}&scope=calendar`).then((r) =>
+      // Sem `start=today`: precisamos de giras passadas para a jornada de estrutura
+      // (já agendou = etapa ok), e ainda derivamos a próxima gira no cliente.
+      authFetch(`/api/events?tenantId=${tidEnc}&scope=calendar`).then((r) =>
         parseApiJson<{ data?: any[] }>(r, { data: [] })
       ),
       userRole !== 'filho'
@@ -309,7 +322,11 @@ async function fetchDashboardFinanceBundle(
       )
       .slice(0, 8);
 
-    const upcomingEvents = [...((eventsRes.data || []) as DashboardNextEvent[])]
+    const calendarEvents = excludeObrigacaoEvents(
+      (eventsRes.data || []) as DashboardNextEvent[],
+    );
+    const upcomingEvents = [...calendarEvents]
+      .filter((e) => String(e.data || '') >= today)
       .sort((a, b) => {
         const first = new Date(`${a.data}T${a.hora || '00:00'}`).getTime();
         const second = new Date(`${b.data}T${b.hora || '00:00'}`).getTime();
@@ -322,7 +339,8 @@ async function fetchDashboardFinanceBundle(
       childrenData: children.slice(0, 4),
       allChildren: children,
       historyData: merged.slice(0, 8),
-      nextEvent: pickNextUpcomingEvent((eventsRes.data || []) as DashboardNextEvent[]),
+      nextEvent: pickNextUpcomingEvent(calendarEvents),
+      hasAnyGira: calendarEvents.length > 0,
       pedidosData,
       noticesData,
       birthdayData: birthdaysThisMonth(children),
@@ -339,6 +357,7 @@ async function fetchDashboardFinanceBundle(
       allChildren: [],
       historyData: [],
       nextEvent: null,
+      hasAnyGira: false,
       pedidosData: [],
       noticesData: [],
       birthdayData: [],
@@ -424,6 +443,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const transactions = resolvedBundle?.transactions ?? [];
   const childrenData = resolvedBundle?.childrenData ?? [];
   const nextEvent = resolvedBundle?.nextEvent ?? null;
+  const hasAnyGira = resolvedBundle?.hasAnyGira ?? false;
   const noticesData = resolvedBundle?.noticesData ?? [];
   const allChildren = resolvedBundle?.allChildren ?? [];
   const pedidosData = resolvedBundle?.pedidosData ?? [];
@@ -800,17 +820,42 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
-  const setupStepsV5 = [
-    Boolean(allChildren.length),
-    Boolean(String(pixConfig?.chave_pix || '').trim()),
-    Boolean(pixConfig?.mensalidade_ativa && Number(pixConfig?.valor_mensalidade) > 0),
-    Boolean(nextEvent),
-    Boolean(noticesData.length),
-    directorsInvited,
+  // Jornada de estrutura: etapas reais de uso da casa (não “Configurações”).
+  // Removido “Convidar diretoria” (só existia em localStorage + checklist legado oculto).
+  const mensalidadeConfigurada =
+    pixConfig?.mensalidade_ativa !== false && Number(pixConfig?.valor_mensalidade) > 0;
+  const setupStepsV5: SetupStepV5[] = [
+    { id: 'children', label: 'Cadastrar um filho', done: allChildren.length > 0, tab: 'children' },
+    {
+      id: 'pix',
+      label: 'Configurar chave Pix',
+      done: Boolean(String(pixConfig?.chave_pix || '').trim()),
+      tab: 'financial-configs',
+    },
+    {
+      id: 'mensalidade',
+      label: 'Definir valor da mensalidade',
+      done: mensalidadeConfigurada,
+      tab: 'financial-configs',
+    },
+    {
+      id: 'gira',
+      label: 'Agendar uma gira',
+      done: hasAnyGira,
+      tab: 'calendar',
+    },
+    {
+      id: 'aviso',
+      label: 'Publicar um aviso no mural',
+      done: noticesData.length > 0,
+      tab: 'mural',
+    },
   ];
-  const setupProgressV5 = Math.round(
-    (setupStepsV5.filter(Boolean).length / setupStepsV5.length) * 100,
-  );
+  const setupDoneCount = setupStepsV5.filter((step) => step.done).length;
+  const setupProgressV5 = Math.round((setupDoneCount / setupStepsV5.length) * 100);
+  const setupPendingSteps = setupStepsV5.filter((step) => !step.done);
+  const nextSetupStep = setupPendingSteps[0] ?? null;
+  const setupComplete = setupPendingSteps.length === 0;
 
   return (
     <AppPageShell>
@@ -899,6 +944,17 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       </section>
 
       <PreceitoCommandCenter tenantId={tenantId} />
+
+      <DashboardSystemInsightCard
+        tenantId={tenantId}
+        userEmail={user?.email}
+        userRole={userRole}
+        zeladorFirstName={
+          String(tenantData?.cargo || user?.user_metadata?.nome_zelador || "Alex")
+            .trim()
+            .split(/\s+/)[0] || "Alex"
+        }
+      />
 
       <div className="dashboard-v5-home grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.55fr)]">
         <div className="space-y-5">
@@ -1026,13 +1082,51 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 <span>{setupProgressV5}%</span>
               </div>
               <div>
-                <strong>{setupStepsV5.filter(Boolean).length} de {setupStepsV5.length} etapas</strong>
-                <p>Complete a estrutura básica para aproveitar toda a gestão da casa.</p>
+                <strong>
+                  {setupComplete
+                    ? 'Estrutura completa'
+                    : `${setupDoneCount} de ${setupStepsV5.length} etapas`}
+                </strong>
+                <p>
+                  {setupComplete
+                    ? 'A casa já usa o básico da gestão no AxéCloud.'
+                    : 'Complete a estrutura básica para aproveitar toda a gestão da casa.'}
+                </p>
               </div>
             </div>
-            <button type="button" onClick={() => setActiveTab('settings')} className="dashboard-v5-progress__action">
-              Continuar configuração <ArrowRight className="h-4 w-4" />
-            </button>
+            {!setupComplete ? (
+              <>
+                <ul className="dashboard-v5-progress__steps" aria-label="Etapas pendentes">
+                  {setupStepsV5.map((step) => (
+                    <li key={step.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(step.tab)}
+                        className={cn(
+                          'dashboard-v5-progress__step',
+                          step.done && 'is-done',
+                        )}
+                      >
+                        {step.done ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        )}
+                        <span>{step.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => nextSetupStep && setActiveTab(nextSetupStep.tab)}
+                  className="dashboard-v5-progress__action"
+                >
+                  Continuar: {nextSetupStep?.label ?? 'configuração'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </>
+            ) : null}
           </section>
 
           <section className="dashboard-v5-message">
@@ -1243,8 +1337,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             {[
               { label: 'Cadastrar um filho', done: allChildren.length > 0, tab: 'children' },
               { label: 'Configurar chave Pix', done: Boolean(String(pixConfig?.chave_pix || '').trim()), tab: 'financial-configs' },
-              { label: 'Ativar mensalidade', done: Boolean(pixConfig?.mensalidade_ativa && Number(pixConfig?.valor_mensalidade) > 0), tab: 'financial-configs' },
-              { label: 'Agendar primeira gira', done: Boolean(nextEvent), tab: 'calendar' },
+              { label: 'Ativar mensalidade', done: mensalidadeConfigurada, tab: 'financial-configs' },
+              { label: 'Agendar primeira gira', done: hasAnyGira, tab: 'calendar' },
               { label: 'Publicar primeiro aviso', done: noticesData.length > 0, tab: 'mural' },
               { label: 'Convidar diretoria', done: directorsInvited, tab: 'settings', manual: true },
             ].map((step) => (
