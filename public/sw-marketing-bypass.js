@@ -1,17 +1,24 @@
 /**
- * Rotas servidas pelo container marketing — o SW do app não deve aplicar precache/NetworkFirst nelas.
+ * Rotas do container marketing — o SW do app não deve quebrar navegação nelas.
  * Carregado via importScripts antes das rotas Workbox.
+ *
+ * Se o fetch do SW falhar (rede/CF/race de unregister), devolve Response.error
+ * evita rejeitar a promise do FetchEvent (ruído "Failed to fetch" no Workbox).
  */
 (function () {
   var MARKETING_PREFIXES = [
+    '/register',
     '/termos',
     '/privacidade',
     '/espaco-do-fiel',
     '/terreiros',
     '/terreiro',
     '/eventos',
+    '/evento',
+    '/senhas',
     '/conteudo',
     '/por-que-axecloud',
+    '/recursos',
   ];
 
   function isMarketingNavigate(url) {
@@ -32,6 +39,12 @@
     var url = new URL(event.request.url);
     if (!isMarketingNavigate(url)) return;
 
-    event.respondWith(fetch(event.request, { cache: 'no-store', credentials: 'same-origin' }));
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store', credentials: 'same-origin' }).catch(function () {
+        return fetch(event.request.url, { cache: 'reload', credentials: 'same-origin' }).catch(function () {
+          return Response.error();
+        });
+      }),
+    );
   });
 })();
