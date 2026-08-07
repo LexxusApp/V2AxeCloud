@@ -73,6 +73,9 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   const [mensalidadeAtiva, setMensalidadeAtiva] = useState(true);
   const [comprovanteUploading, setComprovanteUploading] = useState(false);
   const comprovanteInputRef = useRef<HTMLInputElement>(null);
+  const [cpfDraft, setCpfDraft] = useState('');
+  const [cpfSaving, setCpfSaving] = useState(false);
+  const [cpfError, setCpfError] = useState<string | null>(null);
 
   const tenantId = tenantData?.tenant_id;
   const userId = user?.id;
@@ -113,14 +116,14 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       // 1. Buscar Perfil do Filho
       let { data: childData, error: childError } = await supabase
         .from('filhos_de_santo')
-        .select('id, nome, tenant_id')
+        .select('id, nome, tenant_id, cpf')
         .eq('user_id', userId)
         .maybeSingle();
 
       if (!childData && user?.email) {
         const byEmail = await supabase
           .from('filhos_de_santo')
-          .select('id, nome, tenant_id')
+          .select('id, nome, tenant_id, cpf')
           .eq('email', user.email)
           .maybeSingle();
         childData = byEmail.data;
@@ -130,6 +133,9 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       if (childError) throw childError;
       
       setFilho(childData);
+      const existingCpf = String(childData?.cpf || '').replace(/\D/g, '');
+      setCpfDraft(existingCpf.length === 11 ? existingCpf : existingCpf.slice(0, 6));
+      setCpfError(null);
 
       // Buscar Configurações de Pix e Valor do Zelador via API (bypass RLS)
       try {
@@ -288,8 +294,43 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     await ensurePixConfig();
   };
 
+  async function handleSaveFullCpf() {
+    const digits = cpfDraft.replace(/\D/g, '');
+    if (digits.length !== 11) {
+      setCpfError('Informe o CPF completo com 11 dígitos.');
+      return;
+    }
+    setCpfSaving(true);
+    setCpfError(null);
+    try {
+      const res = await authFetch('/api/v1/filho/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cpf: digits }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(String(body.error || 'Não foi possível salvar o CPF.'));
+      }
+      setFilho((prev: any) => ({ ...(prev || {}), cpf: digits, ...(body.data || {}) }));
+      setCpfDraft(digits);
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast('CPF completo salvo · agora pode enviar o comprovante');
+    } catch (error: unknown) {
+      setCpfError(error instanceof Error ? error.message : 'Erro ao salvar CPF.');
+    } finally {
+      setCpfSaving(false);
+    }
+  }
+
   async function handleEnviarComprovante(file: File) {
     if (!tenantId) return;
+    const cpfDigits = String(filho?.cpf || '').replace(/\D/g, '');
+    if (cpfDigits.length !== 11) {
+      setCpfError('Complete o CPF (11 dígitos) antes de enviar o comprovante.');
+      alert('Complete o CPF (11 dígitos) antes de enviar o comprovante.');
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       alert('Envie uma imagem do comprovante (JPEG, PNG ou WebP).');
       return;
@@ -339,6 +380,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   }
 
   const pixNotConfigured = pixFetched && !loadingPix && !pixConfig?.chave_pix;
+  const needsFullCpf = String(filho?.cpf || '').replace(/\D/g, '').length !== 11;
 
   const monthlyExperience = true;
   if (monthlyExperience) {
@@ -352,11 +394,20 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           pixConfig={pixConfig}
           pixUnavailable={pixNotConfigured}
           uploading={comprovanteUploading}
+          needsFullCpf={needsFullCpf}
+          cpfDraft={cpfDraft}
+          cpfSaving={cpfSaving}
+          cpfError={cpfError}
           history={mensalidades}
           receiptInputRef={comprovanteInputRef}
           onOpenPix={() => void openPixModal()}
           onSelectReceipt={(file) => void handleEnviarComprovante(file)}
           onTalkToHouse={() => setActiveTab('chat')}
+          onCpfDraftChange={(value) => {
+            setCpfDraft(value);
+            setCpfError(null);
+          }}
+          onSaveCpf={() => void handleSaveFullCpf()}
         />
         <PixPaymentModal
           open={pixModalOpen}

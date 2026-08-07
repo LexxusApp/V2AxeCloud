@@ -123,21 +123,21 @@ export function ChildProfileEditModal({
                 />
               </div>
               <div>
-                <label className={fieldLabel}>CPF 6 primeiros dígitos</label>
+                <label className={fieldLabel}>CPF completo</label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  maxLength={6}
+                  maxLength={11}
                   minLength={6}
-                  pattern="\d{6}"
-                  title="Informe os 6 primeiros dígitos do CPF"
-                  value={String(editData.cpf || '').replace(/\D/g, '').slice(0, 6)}
-                  onChange={(e) => onChange('cpf', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="Ex.: 123456"
+                  pattern="\d{6}|\d{11}"
+                  title="Informe o CPF completo (11 dígitos) ou, no mínimo, os 6 primeiros"
+                  value={String(editData.cpf || '').replace(/\D/g, '').slice(0, 11)}
+                  onChange={(e) => onChange('cpf', e.target.value.replace(/\D/g, '').slice(0, 11))}
+                  placeholder="Ex.: 12345678900"
                   className={fieldInput}
                 />
                 <p className="mt-1 text-[10px] text-[#8A8070]">
-                  Só os 6 primeiros do CPF — senha de acesso do membro. Não precisa do CPF completo.
+                  11 dígitos liberam o comprovante automático. Os 6 primeiros continuam sendo a senha de acesso.
                 </p>
               </div>
               <div className="col-span-2">

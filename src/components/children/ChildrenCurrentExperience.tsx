@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Avatar from '../Avatar';
-import type { Child } from '../../views/Children';
+import { childHasAppAccess, type Child } from '../../views/Children';
 
 type SortMode = 'nome' | 'entrada' | 'aniversario';
 
@@ -31,6 +31,7 @@ type Props = {
   filteredChildren: Child[];
   pendingChildIds: Set<string>;
   incompleteChildren: number;
+  withoutAccessCount: number;
   birthdaysThisMonth: number;
   searchTerm: string;
   filterStatus: string;
@@ -53,7 +54,7 @@ type Props = {
   onDelete: (id: string, name: string) => void;
 };
 
-const STATUS_OPTIONS = ['Todos', 'Ativo', 'Pendente', 'Inativo'];
+const STATUS_OPTIONS = ['Todos', 'Ativo', 'Pendente', 'Inativo', 'Sem acesso'];
 
 function formatDate(value?: string | null) {
   if (!value) return 'Não informada';
@@ -73,6 +74,7 @@ function isBirthdayThisMonth(child: Child) {
 
 function attentionScore(child: Child, pendingChildIds: Set<string>) {
   return (
+    (!childHasAppAccess(child) ? 5 : 0) +
     (pendingChildIds.has(child.id) ? 4 : 0) +
     (childNeedsData(child) ? 2 : 0) +
     (isBirthdayThisMonth(child) ? 1 : 0)
@@ -84,6 +86,7 @@ export default function ChildrenCurrentExperience({
   filteredChildren,
   pendingChildIds,
   incompleteChildren,
+  withoutAccessCount,
   birthdaysThisMonth,
   searchTerm,
   filterStatus,
@@ -131,20 +134,27 @@ export default function ChildrenCurrentExperience({
               Pessoas, vínculos e cuidado em uma só visão.
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#9AA6B7]">
-              Veja quem forma a casa, identifique sinais importantes e entre em cada história sem perder o
+              Veja quem forma a casa, quem ainda não entrou no app e entre em cada história sem perder o
               contexto da corrente.
             </p>
           </div>
           <div className="current-map__hero-actions">
-            <button
-              type="button"
-              onClick={onResendAll}
-              disabled={resendingWelcome || childrenData.length === 0}
-              className="current-map__secondary-action"
-            >
-              {resendingWelcome ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-              Enviar acessos
-            </button>
+            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+              <button
+                type="button"
+                onClick={onResendAll}
+                disabled={resendingWelcome || childrenData.length === 0}
+                className="current-map__secondary-action"
+              >
+                {resendingWelcome ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                Enviar acessos
+              </button>
+              <p className="max-w-[16rem] text-[11px] font-semibold leading-snug text-[#8E9AAA] sm:text-right">
+                {withoutAccessCount > 0
+                  ? `${withoutAccessCount} ainda não entrou · Registro + 6 dígitos do CPF`
+                  : 'Entram com Registro + 6 dígitos do CPF'}
+              </p>
+            </div>
             <button
               type="button"
               onClick={onAdd}
@@ -159,8 +169,8 @@ export default function ChildrenCurrentExperience({
 
         <div className="current-map__pulse">
           <div><strong>{activeCount}</strong><span>ativos na corrente</span></div>
+          <div><strong>{withoutAccessCount}</strong><span>ainda sem app</span></div>
           <div><strong>{peopleNeedingAttention.length}</strong><span>pedem atenção</span></div>
-          <div><strong>{birthdaysThisMonth}</strong><span>aniversários no mês</span></div>
           <div className="current-map__capacity">
             <span>Plano {planName} · {childrenData.length} de {childLimit}</span>
             <span className="current-map__capacity-track"><span style={{ width: `${usage}%` }} /></span>
@@ -214,6 +224,7 @@ export default function ChildrenCurrentExperience({
             </div>
             <div className="current-map__legend">
               <span><i className="bg-emerald-400" /> Em dia</span>
+              <span><i className="bg-amber-400" /> Sem app</span>
               <span><i className="bg-rose-400" /> Atenção</span>
             </div>
           </div>
@@ -225,6 +236,7 @@ export default function ChildrenCurrentExperience({
                   const pending = pendingChildIds.has(child.id);
                   const incomplete = childNeedsData(child);
                   const birthday = isBirthdayThisMonth(child);
+                  const noAccess = !childHasAppAccess(child);
                   const score = attentionScore(child, pendingChildIds);
                   const isBusy = deletingId === child.id || sendingCredentialsId === child.id;
                   const isMenuOpen = openActionsId === child.id;
@@ -255,6 +267,11 @@ export default function ChildrenCurrentExperience({
                       </button>
 
                       <div className="current-person__signals">
+                        {noAccess ? (
+                          <span className="is-access"><Send className="h-3 w-3" /> Ainda não entrou</span>
+                        ) : (
+                          <span className="is-ok"><UserRoundCheck className="h-3 w-3" /> Já entrou</span>
+                        )}
                         {pending ? (
                           <span className="is-critical"><AlertCircle className="h-3 w-3" /> Mensalidade</span>
                         ) : (
@@ -292,6 +309,9 @@ export default function ChildrenCurrentExperience({
                                 <button type="button" onClick={() => onSendCredentials(child.id, child.nome)} role="menuitem">
                                   <Send className="h-3.5 w-3.5" /> Enviar acesso
                                 </button>
+                                <p className="current-person__menu-hint" role="note">
+                                  Registro + 6 dígitos do CPF
+                                </p>
                                 <button type="button" onClick={() => onDelete(child.id, child.nome)} role="menuitem" className="is-danger">
                                   <Trash2 className="h-3.5 w-3.5" /> Excluir cadastro
                                 </button>
@@ -323,18 +343,25 @@ export default function ChildrenCurrentExperience({
             <div><p>Radar da casa</p><h2 id="current-radar-title">Sinais que importam agora</h2></div>
           </div>
           <div className="current-radar__summary">
+            <div><strong>{withoutAccessCount}</strong><span>sem app</span></div>
             <div><strong>{pendingChildIds.size}</strong><span>financeiro</span></div>
             <div><strong>{incompleteChildren}</strong><span>cadastro</span></div>
-            <div><strong>{birthdaysThisMonth}</strong><span>datas</span></div>
           </div>
           <div className="current-radar__stream">
             {peopleNeedingAttention.slice(0, 6).map((child) => {
               const pending = pendingChildIds.has(child.id);
               const incomplete = childNeedsData(child);
-              const signal = pending ? 'Mensalidade pendente' : incomplete ? 'Cadastro incompleto' : 'Aniversário neste mês';
+              const noAccess = !childHasAppAccess(child);
+              const signal = noAccess
+                ? 'Ainda não entrou no app'
+                : pending
+                  ? 'Mensalidade pendente'
+                  : incomplete
+                    ? 'Cadastro incompleto'
+                    : 'Aniversário neste mês';
               return (
                 <button type="button" key={child.id} onClick={() => onPreview(child.id)}>
-                  <span className={cn('current-radar__node', pending && 'is-critical')}>
+                  <span className={cn('current-radar__node', (pending || noAccess) && 'is-critical')}>
                     <Avatar src={child.foto_url} name={child.nome} shape="circle" textSize="text-[9px]" className="h-full w-full" />
                   </span>
                   <span className="min-w-0 flex-1"><strong>{child.nome}</strong><small>{signal}</small></span>
@@ -352,7 +379,10 @@ export default function ChildrenCurrentExperience({
           </div>
           <div className="current-radar__note">
             <Fingerprint className="h-4 w-4" />
-            <p>O radar combina cadastro, financeiro e datas para mostrar quem precisa de cuidado primeiro.</p>
+            <p>
+              O radar prioriza quem ainda não entrou no app, depois financeiro, cadastro e datas.
+              Login do membro: Registro + 6 dígitos do CPF.
+            </p>
           </div>
         </aside>
       </div>

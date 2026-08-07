@@ -17,6 +17,18 @@ export async function escapeAppBundleOnMarketingUrl(): Promise<boolean> {
   const attempts = parseInt(sessionStorage.getItem(MARKETING_REDIRECT_ATTEMPTS_KEY) || '0', 10);
   if (attempts >= 3) return false;
 
+  // Só recarrega se houver SW antigo — sem isso, location.replace na mesma URL vira loop.
+  let hasSw = false;
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      hasSw = regs.length > 0 || !!navigator.serviceWorker.controller;
+    }
+  } catch {
+    hasSw = false;
+  }
+  if (!hasSw) return false;
+
   sessionStorage.setItem(MARKETING_REDIRECT_ATTEMPTS_KEY, String(attempts + 1));
 
   await purgeLegacyAppServiceWorker();

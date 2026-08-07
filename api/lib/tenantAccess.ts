@@ -390,13 +390,15 @@ export function normalizeChildPayload(body: Record<string, unknown>): Record<str
         out[key] = null;
         continue;
       }
-      // Aceita 6 dígitos (senha de acesso) ou CPF completo (11) — legado.
+      // Aceita 6 dígitos (senha de acesso) ou CPF completo (11) — comprovante automático exige 11.
       if (!isValidFilhoCpfCadastro(cpf)) {
         throw Object.assign(
           new Error(
             cpf.length === 6
               ? "Informe 6 dígitos válidos para a senha de acesso (evite 000000, 123456…)."
-              : "CPF inválido. No cadastro basta informar os 6 primeiros dígitos — usados como senha de acesso."
+              : cpf.length === 11
+                ? "CPF inválido. Confira os 11 dígitos."
+                : "Informe os 6 primeiros dígitos (senha) ou o CPF completo (11 dígitos, para comprovante)."
           ),
           { statusCode: 400 }
         );

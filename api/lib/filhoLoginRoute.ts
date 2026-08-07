@@ -15,6 +15,7 @@ import {
   parseFilhoLoginId,
 } from "../../lib/filhoMatricula.js";
 import { safeErrorMessage } from "./safeError.js";
+import { createAuditLog } from "./createAuditLog.js";
 
 dotenv.config();
 
@@ -57,6 +58,34 @@ function sendJson(res: any, status: number, body: Record<string, unknown>) {
 
 function generateFilhoPassword(): string {
   return `Axe-${randomBytes(12).toString("base64url")}`;
+}
+
+async function auditFilhoLoginSuccess(
+  req: any,
+  child: { id: string; nome?: string | null; user_id?: string | null }
+): Promise<void> {
+  if (!supabaseAdmin) return;
+  try {
+    const { data } = await supabaseAdmin
+      .from("filhos_de_santo")
+      .select("tenant_id, lider_id")
+      .eq("id", child.id)
+      .maybeSingle();
+    const terreiroId =
+      String((data as { tenant_id?: string } | null)?.tenant_id || "").trim() ||
+      String((data as { lider_id?: string } | null)?.lider_id || "").trim() ||
+      null;
+    void createAuditLog(supabaseAdmin, req, "auth.login_success", "success", terreiroId, {
+      surface: "app",
+      mode: "filho",
+      filhoId: child.id,
+      nome: child.nome || null,
+      userId: child.user_id || null,
+      source: "filho-login-api",
+    });
+  } catch (e) {
+    console.warn("[AUTH] audit filho login:", e instanceof Error ? e.message : e);
+  }
 }
 
 function matriculaEntryYear(dataEntrada: string | null | undefined): number | null {
@@ -250,7 +279,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
 
     if (!isValidFilhoLoginId(childIdStr)) {
       return sendJson(res, 400, {
-        error: "Informe o registro completo (ex.: AXC-2021-B2CA).",
+        error: "Informe o registro (ex.: AXC-2021-B2CA). Pode digitar com ou sem hífen.",
       });
     }
 
@@ -307,6 +336,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       await cleanupShadowFilhoPerfilLider(supabaseAdmin, authUser.id);
 
       const session = await issueFilhoSession(fakeEmail, generatedPassword);
+      await auditFilhoLoginSuccess(req, { ...child, user_id: authUser.id });
       return sendJson(res, 200, session);
     }
 
@@ -332,6 +362,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
           await supabaseAdmin.from("filhos_de_santo").update({ user_id: recovered.id }).eq("id", child.id);
           await cleanupShadowFilhoPerfilLider(supabaseAdmin, recovered.id);
           const session = await issueFilhoSession(fakeEmail, generatedPassword);
+          await auditFilhoLoginSuccess(req, { ...child, user_id: recovered.id });
           return sendJson(res, 200, session);
         }
       }
@@ -343,6 +374,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     await cleanupShadowFilhoPerfilLider(supabaseAdmin, newUser.user.id);
 
     const session = await issueFilhoSession(fakeEmail, generatedPassword);
+    await auditFilhoLoginSuccess(req, { ...child, user_id: newUser.user.id });
     return sendJson(res, 200, session);
   } catch (error: any) {
     console.error("[AUTH] Erro no Login do Filho:", error);

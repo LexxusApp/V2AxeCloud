@@ -137,7 +137,15 @@ type DashboardBundle = {
 type SetupStepV5 = {
   id: string;
   label: string;
+  detail: string;
   done: boolean;
+  tab: string;
+};
+
+type HouseMission = {
+  title: string;
+  detail: string;
+  cta: string;
   tab: string;
 };
 
@@ -609,6 +617,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const incompleteProfiles = allChildren.filter(
     (child) => !String(child?.telefone || child?.celular || '').trim() || !String(child?.data_nascimento || '').trim(),
   ).length;
+  const withoutAppAccess = allChildren.filter(
+    (child) => !String(child?.user_id || '').trim(),
+  ).length;
   const houseTimelineEvents = useMemo<HouseTimelineEvent[]>(() => {
     const events: HouseTimelineEvent[] = [];
 
@@ -820,35 +831,31 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
-  // Jornada de estrutura: etapas reais de uso da casa (não “Configurações”).
-  // Removido “Convidar diretoria” (só existia em localStorage + checklist legado oculto).
+  // Casa viva em 3 passos (linguagem da casa, não do software).
+  const pixOk = Boolean(String(pixConfig?.chave_pix || '').trim());
   const mensalidadeConfigurada =
     pixConfig?.mensalidade_ativa !== false && Number(pixConfig?.valor_mensalidade) > 0;
   const setupStepsV5: SetupStepV5[] = [
-    { id: 'children', label: 'Cadastrar um filho', done: allChildren.length > 0, tab: 'children' },
     {
-      id: 'pix',
-      label: 'Configurar chave Pix',
-      done: Boolean(String(pixConfig?.chave_pix || '').trim()),
+      id: 'corrente',
+      label: 'Corrente',
+      detail: 'Cadastre ao menos uma pessoa da casa',
+      done: allChildren.length > 0,
+      tab: 'children',
+    },
+    {
+      id: 'dinheiro',
+      label: 'Mensalidade',
+      detail: 'Chave Pix e valor para receber a contribuição',
+      done: pixOk && mensalidadeConfigurada,
       tab: 'financial-configs',
     },
     {
-      id: 'mensalidade',
-      label: 'Definir valor da mensalidade',
-      done: mensalidadeConfigurada,
-      tab: 'financial-configs',
-    },
-    {
-      id: 'gira',
-      label: 'Agendar uma gira',
+      id: 'agenda',
+      label: 'Agenda',
+      detail: 'Marque uma gira para a corrente acompanhar',
       done: hasAnyGira,
       tab: 'calendar',
-    },
-    {
-      id: 'aviso',
-      label: 'Publicar um aviso no mural',
-      done: noticesData.length > 0,
-      tab: 'mural',
     },
   ];
   const setupDoneCount = setupStepsV5.filter((step) => step.done).length;
@@ -856,6 +863,64 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const setupPendingSteps = setupStepsV5.filter((step) => !step.done);
   const nextSetupStep = setupPendingSteps[0] ?? null;
   const setupComplete = setupPendingSteps.length === 0;
+
+  // Uma missão por sessão: o que a casa precisa agora.
+  const houseMission: HouseMission = (() => {
+    if (!setupComplete && nextSetupStep) {
+      return {
+        title: nextSetupStep.label,
+        detail: nextSetupStep.detail,
+        cta:
+          nextSetupStep.id === 'corrente'
+            ? 'Cadastrar pessoa'
+            : nextSetupStep.id === 'dinheiro'
+              ? 'Configurar mensalidade'
+              : 'Marcar gira',
+        tab: nextSetupStep.tab,
+      };
+    }
+    if (withoutAppAccess > 0) {
+      return {
+        title: 'Ativar acesso da corrente',
+        detail:
+          withoutAppAccess === 1
+            ? '1 pessoa ainda não entrou no app · Registro + 6 dígitos do CPF'
+            : `${withoutAppAccess} pessoas ainda não entraram no app · Registro + 6 dígitos do CPF`,
+        cta: 'Enviar acesso',
+        tab: 'children',
+      };
+    }
+    if (pendingMensalidades > 0) {
+      return {
+        title: 'Cobrar mensalidades',
+        detail: `${pendingMensalidades} pessoa${pendingMensalidades === 1 ? '' : 's'} ainda sem confirmação neste mês`,
+        cta: 'Ver cobranças',
+        tab: 'financial-mensalidades',
+      };
+    }
+    if (pendingRezas > 0) {
+      return {
+        title: 'Acolher pedidos de reza',
+        detail: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} esperando resposta da casa`,
+        cta: 'Ver pedidos',
+        tab: 'atendimentos',
+      };
+    }
+    if (!nextEvent) {
+      return {
+        title: 'Marcar a próxima gira',
+        detail: 'A corrente fica alinhada quando a agenda está clara',
+        cta: 'Abrir agenda',
+        tab: 'calendar',
+      };
+    }
+    return {
+      title: nextEvent.titulo,
+      detail: `Próxima gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}${nextEvent.hora ? ` · ${nextEvent.hora.slice(0, 5)}` : ''}`,
+      cta: 'Ver gira',
+      tab: 'calendar',
+    };
+  })();
 
   return (
     <AppPageShell>
@@ -894,18 +959,26 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <div className="min-w-0">
             <p className="dashboard-v5-eyebrow">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              AxéCloud · casa em movimento
+              {setupComplete ? 'Sua casa hoje' : 'Primeiros passos da casa'}
             </p>
             <h1 id="dashboard-v5-title" className="mt-3 font-display text-3xl font-black tracking-[-0.035em] text-[#FFFDF7] sm:text-4xl">
               {timeGreeting}, {firstName}.
             </h1>
             <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-[#D8E0D7]">
-              {formattedDate}. Sua casa, sua corrente e sua rotina reunidas com clareza.
+              {formattedDate}. Agora: <span className="text-[#FFFDF7]">{houseMission.title.toLowerCase()}</span>.
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => setActiveTab('calendar')} className="dashboard-v5-hero__primary">
-                <CalendarDays className="h-4 w-4" aria-hidden />
-                {nextEvent ? 'Ver próxima gira' : 'Agendar primeira gira'}
+              <button type="button" onClick={() => setActiveTab(houseMission.tab)} className="dashboard-v5-hero__primary">
+                {houseMission.tab === 'children' ? (
+                  <Users className="h-4 w-4" aria-hidden />
+                ) : houseMission.tab.startsWith('financial') ? (
+                  <Wallet className="h-4 w-4" aria-hidden />
+                ) : houseMission.tab === 'atendimentos' ? (
+                  <HandHeart className="h-4 w-4" aria-hidden />
+                ) : (
+                  <CalendarDays className="h-4 w-4" aria-hidden />
+                )}
+                {houseMission.cta}
               </button>
               <button type="button" onClick={() => setActiveTab('children')} className="dashboard-v5-hero__secondary">
                 Ver corrente
@@ -916,25 +989,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
           <div className="dashboard-v5-hero__moment">
             <div className="flex items-center justify-between gap-3">
-              <span className="dashboard-v5-hero__moment-label">Próximo movimento</span>
+              <span className="dashboard-v5-hero__moment-label">Missão de agora</span>
               <Landmark className="h-4 w-4 text-[#E8C767]" aria-hidden />
             </div>
-            {nextEvent ? (
-              <>
-                <p className="mt-5 text-2xl font-black leading-tight text-white">{nextEvent.titulo}</p>
-                <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-[#D8E0D7]">
-                  {format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}
-                  {nextEvent.hora ? ` · ${nextEvent.hora.slice(0, 5)}` : ''}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="mt-5 text-xl font-black leading-tight text-white">A agenda está livre</p>
-                <p className="mt-2 text-xs font-semibold leading-relaxed text-[#B8C5BB]">
-                  Organize a próxima gira para manter toda a corrente informada.
-                </p>
-              </>
-            )}
+            <p className="mt-5 text-2xl font-black leading-tight text-white">{houseMission.title}</p>
+            <p className="mt-2 text-xs font-semibold leading-relaxed text-[#B8C5BB]">
+              {houseMission.detail}
+            </p>
             <div className="mt-5 h-px bg-white/10" />
             <p className="mt-4 text-xs font-semibold leading-relaxed text-[#AEBBAF]">
               “Organização também é uma forma de cuidado.”
@@ -961,21 +1022,21 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <section className="dashboard-v5-module-launcher" aria-labelledby="quick-access-v5">
             <div className="dashboard-v5-section-heading">
               <div>
-                <p className="dashboard-v5-section-kicker">Sua rotina</p>
-                <h2 id="quick-access-v5">Acesso rápido</h2>
+                <p className="dashboard-v5-section-kicker">Da casa</p>
+                <h2 id="quick-access-v5">Onde cuidar</h2>
               </div>
-              <p>Entre direto no que precisa fazer.</p>
+              <p>Escolha só o que precisa agora.</p>
             </div>
             <div className="dashboard-v5-module-grid">
               {[
                 { label: 'Corrente', detail: `${allChildren.length} pessoas`, icon: Users, tab: 'children', tone: 'blue' },
-                { label: 'Giras', detail: nextEvent ? 'agenda ativa' : 'sem agenda', icon: CalendarDays, tab: 'calendar', tone: 'gold' },
-                { label: 'Financeiro', detail: `${pendingMensalidades} pendências`, icon: Wallet, tab: 'financial', tone: 'green' },
-                { label: 'Comunicados', detail: `${noticesData.length} publicados`, icon: Megaphone, tab: 'mural', tone: 'terra' },
-                { label: 'Galeria', detail: 'memórias da casa', icon: Images, tab: 'gallery', tone: 'violet' },
-                { label: 'Almoxarifado', detail: 'itens e estoque', icon: Package, tab: 'inventory', tone: 'blue' },
+                { label: 'Giras', detail: nextEvent ? 'próxima marcada' : 'marcar gira', icon: CalendarDays, tab: 'calendar', tone: 'gold' },
+                { label: 'Mensalidades', detail: pendingMensalidades > 0 ? `${pendingMensalidades} pendentes` : 'em dia', icon: Wallet, tab: 'financial', tone: 'green' },
+                { label: 'Avisos', detail: noticesData.length > 0 ? `${noticesData.length} no mural` : 'avisar a casa', icon: Megaphone, tab: 'mural', tone: 'terra' },
+                { label: 'Galeria', detail: 'fotos da casa', icon: Images, tab: 'gallery', tone: 'violet' },
+                { label: 'Almoxarifado', detail: 'itens da casa', icon: Package, tab: 'inventory', tone: 'blue' },
                 { label: 'Biblioteca', detail: 'estudo e tradição', icon: BookOpen, tab: 'library', tone: 'gold' },
-                { label: 'Atendimentos', detail: `${pendingRezas} aguardando`, icon: HandHeart, tab: 'atendimentos', tone: 'terra' },
+                { label: 'Rezas', detail: pendingRezas > 0 ? `${pendingRezas} aguardando` : 'nenhum pedido', icon: HandHeart, tab: 'atendimentos', tone: 'terra' },
               ].map((module) => {
                 const Icon = module.icon;
                 return (
@@ -1001,66 +1062,82 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <section className="dashboard-v5-routine" aria-labelledby="routine-v5">
             <div className="dashboard-v5-section-heading">
               <div>
-                <p className="dashboard-v5-section-kicker">Agora</p>
-                <h2 id="routine-v5">O que movimenta a casa</h2>
+                <p className="dashboard-v5-section-kicker">Hoje</p>
+                <h2 id="routine-v5">O que pede atenção</h2>
               </div>
-              <p>Uma leitura simples do que merece atenção hoje.</p>
+              <p>Só o que a casa precisa olhar agora.</p>
             </div>
             <div className="dashboard-v5-routine-list">
               {[
+                withoutAppAccess > 0
+                  ? {
+                      label:
+                        withoutAppAccess === 1
+                          ? '1 pessoa ainda não entrou no app'
+                          : `${withoutAppAccess} pessoas ainda não entraram no app`,
+                      detail: 'Enviar acesso · entram com Registro + 6 dígitos do CPF',
+                      tab: 'children',
+                      status: 'Ativar',
+                      tone: 'gold',
+                    }
+                  : null,
                 pendingMensalidades > 0
                   ? {
-                      label: 'Mensalidades aguardando revisão',
-                      detail: `${pendingMensalidades} cobrança${pendingMensalidades === 1 ? '' : 's'} · ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue)}`,
+                      label: 'Há mensalidades para confirmar',
+                      detail: `${pendingMensalidades} pessoa${pendingMensalidades === 1 ? '' : 's'} · ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue)}`,
                       tab: 'financial-mensalidades',
-                      status: 'Mensalidades',
+                      status: 'Cobrar',
                       tone: 'gold',
                     }
                   : {
-                      label: 'Mensalidades em ordem',
-                      detail: 'Nenhuma cobrança pendente neste momento',
+                      label: 'Mensalidades em dia',
+                      detail: 'Ninguém aguardando confirmação agora',
                       tab: 'financial-mensalidades',
-                      status: 'Tudo certo',
+                      status: 'Em dia',
                       tone: 'green',
                     },
                 nextEvent
                   ? {
                       label: nextEvent.titulo,
-                      detail: `Próxima gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}`,
+                      detail: `Gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}`,
                       tab: 'calendar',
                       status: 'Agenda',
                       tone: 'blue',
                     }
                   : {
-                      label: 'A próxima gira ainda não foi marcada',
-                      detail: 'Organize a agenda e avise toda a corrente',
+                      label: 'Ainda sem próxima gira',
+                      detail: 'Marque a data e avise a corrente',
                       tab: 'calendar',
-                      status: 'Agendar',
+                      status: 'Marcar',
                       tone: 'blue',
                     },
-                pendingRezas > 0
-                  ? {
-                      label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`,
-                      detail: 'Pessoas aguardando acolhimento da casa',
-                      tab: 'atendimentos',
-                      status: 'Acolher',
-                      tone: 'terra',
-                    }
-                  : {
-                      label: 'Pedidos de reza acompanhados',
-                      detail: 'Nenhum pedido aguardando acolhimento',
-                      tab: 'atendimentos',
-                      status: 'Em dia',
-                      tone: 'green',
-                    },
-              ].map((item, index) => (
-                <button key={`${item.label}-${index}`} type="button" onClick={() => setActiveTab(item.tab)} className="dashboard-v5-routine-item" data-tone={item.tone}>
+                withoutAppAccess > 0
+                  ? null
+                  : pendingRezas > 0
+                    ? {
+                        label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`,
+                        detail: 'Pessoas aguardando acolhimento da casa',
+                        tab: 'atendimentos',
+                        status: 'Acolher',
+                        tone: 'terra',
+                      }
+                    : {
+                        label: 'Pedidos de reza em dia',
+                        detail: 'Nenhum pedido aguardando agora',
+                        tab: 'atendimentos',
+                        status: 'Em dia',
+                        tone: 'green',
+                      },
+              ]
+                .filter(Boolean)
+                .map((item, index) => (
+                <button key={`${item!.label}-${index}`} type="button" onClick={() => setActiveTab(item!.tab)} className="dashboard-v5-routine-item" data-tone={item!.tone}>
                   <span className="dashboard-v5-routine-index">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
-                    <strong>{item.label}</strong>
-                    <small>{item.detail}</small>
+                    <strong>{item!.label}</strong>
+                    <small>{item!.detail}</small>
                   </span>
-                  <span className="dashboard-v5-routine-status">{item.status}</span>
+                  <span className="dashboard-v5-routine-status">{item!.status}</span>
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               ))}
@@ -1072,8 +1149,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="dashboard-v5-section-kicker">Jornada da casa</p>
-                <h2 id="progress-v5">Estrutura no AxéCloud</h2>
+                <p className="dashboard-v5-section-kicker">Casa viva</p>
+                <h2 id="progress-v5">Sua casa em 3 passos</h2>
               </div>
               <TrendingUp className="h-5 w-5 text-[#D8AD37]" aria-hidden />
             </div>
@@ -1084,49 +1161,61 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               <div>
                 <strong>
                   {setupComplete
-                    ? 'Estrutura completa'
-                    : `${setupDoneCount} de ${setupStepsV5.length} etapas`}
+                    ? 'Base da casa pronta'
+                    : `${setupDoneCount} de ${setupStepsV5.length} passos`}
                 </strong>
                 <p>
                   {setupComplete
-                    ? 'A casa já usa o básico da gestão no AxéCloud.'
-                    : 'Complete a estrutura básica para aproveitar toda a gestão da casa.'}
+                    ? 'Corrente, mensalidade e agenda já estão no ar.'
+                    : 'Só o essencial: corrente, mensalidade e uma gira.'}
                 </p>
               </div>
             </div>
-            {!setupComplete ? (
-              <>
-                <ul className="dashboard-v5-progress__steps" aria-label="Etapas pendentes">
-                  {setupStepsV5.map((step) => (
-                    <li key={step.id}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab(step.tab)}
-                        className={cn(
-                          'dashboard-v5-progress__step',
-                          step.done && 'is-done',
-                        )}
-                      >
-                        {step.done ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        )}
-                        <span>{step.label}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => nextSetupStep && setActiveTab(nextSetupStep.tab)}
-                  className="dashboard-v5-progress__action"
-                >
-                  Continuar: {nextSetupStep?.label ?? 'configuração'}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </>
-            ) : null}
+            <ul className="dashboard-v5-progress__steps" aria-label="Passos da casa">
+              {setupStepsV5.map((step) => (
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(step.tab)}
+                    className={cn(
+                      'dashboard-v5-progress__step',
+                      step.done && 'is-done',
+                    )}
+                  >
+                    {step.done ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    <span className="min-w-0">
+                      <span className="dashboard-v5-progress__step-label block">{step.label}</span>
+                      {!step.done ? (
+                        <small className="dashboard-v5-progress__step-detail">{step.detail}</small>
+                      ) : null}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {!setupComplete && nextSetupStep ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(nextSetupStep.tab)}
+                className="dashboard-v5-progress__action"
+              >
+                Fazer agora: {nextSetupStep.label}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setActiveTab(houseMission.tab)}
+                className="dashboard-v5-progress__action"
+              >
+                {houseMission.cta}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
           </section>
 
           <section className="dashboard-v5-message">
@@ -1141,7 +1230,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <section className="dashboard-v5-current">
             <div>
               <p className="dashboard-v5-section-kicker">Sua corrente</p>
-              <h2>Presenças que constroem a casa</h2>
+              <h2>Quem faz a casa</h2>
             </div>
             <div className="mt-5 flex items-center">
               {childrenData.slice(0, 5).map((filho, index) => (

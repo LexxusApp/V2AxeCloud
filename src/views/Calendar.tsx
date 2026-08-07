@@ -76,42 +76,42 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
   type: 'success' | 'info' | 'error';
 } {
   if (!whatsapp) {
-    return { message: 'Gira criada com sucesso!', type: 'success' };
+    return { message: 'Gira marcada na agenda', type: 'success' };
   }
   switch (whatsapp.status) {
     case 'sent':
       return {
-        message: `Gira criada! WhatsApp enviado para ${whatsapp.sent} filho${whatsapp.sent === 1 ? '' : 's'}.`,
+        message: `Gira marcada. Aviso enviado para ${whatsapp.sent} pessoa${whatsapp.sent === 1 ? '' : 's'} da corrente`,
         type: 'success',
       };
     case 'partial':
       return {
-        message: `Gira criada. WhatsApp: ${whatsapp.sent} enviado(s), ${whatsapp.errors} falha(s).`,
+        message: `Gira marcada. Aviso parcial: ${whatsapp.sent} ok, ${whatsapp.errors} falha(s)`,
         type: 'info',
       };
     case 'no_recipients':
       return {
         message:
-          'Gira criada, mas nenhum aviso saiu: cadastre filhos de santo ativos com WhatsApp antes de disparar para a corrente. Você ainda pode convidar pessoas avulsas pelo evento.',
+          'Gira marcada. Para avisar a corrente, cadastre WhatsApp nos filhos ativos — ou convide avulsos no evento.',
         type: 'info',
       };
     case 'channel_offline':
       return {
-        message: 'Gira criada. Canal WhatsApp offline — avisos não enviados.',
+        message: 'Gira marcada. WhatsApp offline — o aviso não saiu agora.',
         type: 'info',
       };
     case 'disabled':
       return {
-        message: 'Gira criada. Avisos de gira desativados nas configurações do WhatsApp.',
+        message: 'Gira marcada. Avisos de gira estão desligados no WhatsApp.',
         type: 'info',
       };
     case 'failed':
       return {
-        message: `Gira criada, mas falhou o envio no WhatsApp (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'}).`,
+        message: `Gira marcada, mas o WhatsApp falhou (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'})`,
         type: 'error',
       };
     default:
-      return { message: 'Gira criada com sucesso!', type: 'success' };
+      return { message: 'Gira marcada na agenda', type: 'success' };
   }
 }
 
@@ -1090,10 +1090,12 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
       const result = await response.json();
       if (editingEvent) {
-        setToast({ message: 'Evento atualizado com sucesso!', type: 'success' });
+        const { showHouseToast } = await import('../lib/houseToast');
+        showHouseToast('Gira atualizada na agenda');
       } else {
         const feedback = formatGiraWhatsAppFeedback(result.whatsapp as EventWhatsAppFeedback | undefined);
-        setToast(feedback);
+        const { showHouseToast } = await import('../lib/houseToast');
+        showHouseToast(feedback.message, feedback.type);
       }
 
       closeEventFormModal();

@@ -342,6 +342,22 @@ export default function Login() {
             if (tenantId && tenantId !== postSession.user.id) {
               writeCachedTenantIdForUser(postSession.user.id, tenantId);
             }
+            // Mesmo se a resolução do tenant falhar, registra o login do membro.
+            void postAuthAuditLog(
+              {
+                action: 'auth.login_success',
+                status: 'success',
+                terreiroId: tenantId || null,
+                details: {
+                  surface: 'app',
+                  mode: 'filho',
+                  email: postSession.user.email,
+                  userId: postSession.user.id,
+                  tenantResolve: 'fallback',
+                },
+              },
+              postSession.access_token
+            );
           }
         } else {
           let tenantId = postSession.user.id;

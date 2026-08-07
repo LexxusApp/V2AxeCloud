@@ -54,6 +54,12 @@ function AppNotFound({ path }: { path: string }) {
 
       await purgeLegacyAppServiceWorker();
       cleanBrowserUrl();
+      // Evita location.replace na mesma URL (reload infinito).
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (current === target || window.location.pathname === target) {
+        setStuck(true);
+        return;
+      }
       window.location.replace(target);
     })();
   }, [path]);
@@ -109,6 +115,11 @@ function RoutedPage({ path }: { path: string }) {
   }
 
   switch (path) {
+    case ROUTES.home:
+      // Em dev o app (:3000) serve `/`; marketing vive em outra porta.
+      // Entrar no login evita AppNotFound → redirect :5174 (e loops se a landing não estiver no ar).
+      if (import.meta.env.DEV) return <LoginPage />;
+      return <AppNotFound path={path} />;
     case ROUTES.register:
       return <Register />;
     case ROUTES.checkout:

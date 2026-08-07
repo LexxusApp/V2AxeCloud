@@ -2,6 +2,7 @@
 
 import AppTopNav from './components/app/AppTopNav';
 import { ContextualActionBar } from './components/app/ContextualActionBar';
+import { HouseToastHost } from './components/app/HouseToastHost';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
@@ -1453,6 +1454,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   return (
     <>
+    <HouseToastHost />
     <div className="app-v3 app-v4-experiment app-v5-identity flex h-[100dvh] w-full flex-col overflow-hidden bg-[#F7F3EA] text-[#211D17] font-sans selection:bg-primary selection:text-[#080A0D]">
       <AppTopNav
         activeTab={activeTab}

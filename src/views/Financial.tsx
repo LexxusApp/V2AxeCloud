@@ -516,13 +516,20 @@ export default function Financial({
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
-      alert('✅ Configurações financeiras salvas com sucesso!');
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast('Pix e mensalidade salvos');
       if (activeView === 'mensalidades') {
         void refreshMensalidades();
       }
     } catch (error: any) {
       console.error('Error saving pix config:', error);
-      alert('Erro ao salvar configurações Pix: ' + (error.message || ''));
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(
+        error?.message
+          ? `Não deu para salvar: ${error.message}`
+          : 'Não deu para salvar o Pix. Tente de novo.',
+        'error',
+      );
     } finally {
       setIsSavingPix(false);
     }

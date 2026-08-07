@@ -264,7 +264,8 @@ export function registerFinanceiroValidarComprovanteRoutes(app: Express, deps: D
         if (filhoCpf.length !== 11) {
           return res.status(422).json({
             success: false,
-            error: "Seu CPF precisa estar completo no cadastro antes da validação automática.",
+            error:
+              "Seu CPF precisa estar completo (11 dígitos) no cadastro antes da validação automática. Complete na mensalidade ou peça ao zelador.",
           });
         }
         // Comprovante Pix normalmente mascara o CPF (só os 6 dígitos do meio: ***.456.789-**),

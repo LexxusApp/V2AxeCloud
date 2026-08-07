@@ -4,6 +4,7 @@ import { requireAuthOrRespond } from "./requireAuth.js";
 import { assertUserCanAccessTenant, normalizeQueryTenantId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 import { assertSafeImageBuffer, SAFE_IMAGE_MIME_TYPES } from "./imageUpload.js";
+import { digitsOnlyCpf, isValidCpf } from "../../lib/brCpf.js";
 
 const ALLOWED_PHOTO_TYPES = new Set([
   "image/jpeg",
@@ -22,6 +23,7 @@ type FilhoRecord = {
   user_id?: string | null;
   email?: string | null;
   lider_id?: string | null;
+  cpf?: string | null;
 };
 
 function extFromContentType(contentType: string): string {
@@ -37,7 +39,7 @@ async function loadFilhoRecordForUser(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
 ): Promise<FilhoRecord | null> {
-  const selectCols = "id, nome, foto_url, tenant_id, user_id, email, lider_id";
+  const selectCols = "id, nome, foto_url, tenant_id, user_id, email, lider_id, cpf";
 
   let { data: child } = await supabaseAdmin
     .from("filhos_de_santo")
@@ -114,6 +116,37 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
       for (const key of ["telefone", "whatsapp", "endereco"] as const) {
         if (body[key] !== undefined) update[key] = String(body[key] || "").trim().slice(0, key === "endereco" ? 500 : 30) || null;
       }
+
+      if (body.cpf !== undefined) {
+        const next = digitsOnlyCpf(String(body.cpf || ""));
+        if (!isValidCpf(next)) {
+          return res.status(400).json({ error: "Informe um CPF completo válido (11 dígitos)." });
+        }
+        const { data: currentRow, error: currentErr } = await supabaseAdmin
+          .from("filhos_de_santo")
+          .select("cpf")
+          .eq("id", ref.id)
+          .maybeSingle();
+        if (currentErr) throw currentErr;
+        const current = digitsOnlyCpf(String(currentRow?.cpf || ""));
+        if (current.length === 11 && current !== next) {
+          return res.status(400).json({
+            error: "Seu CPF já está completo. Peça ao zelador se precisar corrigir.",
+          });
+        }
+        if (current.length === 6 && !next.startsWith(current)) {
+          return res.status(400).json({
+            error: "Os 6 primeiros dígitos precisam ser os mesmos da sua senha de acesso.",
+          });
+        }
+        if (current.length > 0 && current.length !== 6 && current.length !== 11 && !next.startsWith(current.slice(0, Math.min(6, current.length)))) {
+          return res.status(400).json({
+            error: "CPF não confere com o cadastro. Fale com o zelador da casa.",
+          });
+        }
+        update.cpf = next;
+      }
+
       if (!Object.keys(update).length) return res.status(400).json({ error: "Nada para atualizar." });
       const { data, error } = await supabaseAdmin.from("filhos_de_santo").update(update).eq("id", ref.id).select("*").single();
       if (error) throw error;

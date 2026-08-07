@@ -37,11 +37,18 @@ type Props = {
   pixConfig: PixConfig | null;
   pixUnavailable: boolean;
   uploading: boolean;
+  /** CPF com menos de 11 dígitos — comprovante automático exige completo. */
+  needsFullCpf: boolean;
+  cpfDraft: string;
+  cpfSaving: boolean;
+  cpfError: string | null;
   history: MonthlyItem[];
   receiptInputRef: RefObject<HTMLInputElement | null>;
   onOpenPix: () => void;
   onSelectReceipt: (file: File) => void;
   onTalkToHouse: () => void;
+  onCpfDraftChange: (value: string) => void;
+  onSaveCpf: () => void;
 };
 
 function money(value: number | string | undefined) {
@@ -63,14 +70,21 @@ export default function FilhoMonthlyExperience({
   pixConfig,
   pixUnavailable,
   uploading,
+  needsFullCpf,
+  cpfDraft,
+  cpfSaving,
+  cpfError,
   history,
   receiptInputRef,
   onOpenPix,
   onSelectReceipt,
   onTalkToHouse,
+  onCpfDraftChange,
+  onSaveCpf,
 }: Props) {
   const isPending = active && Boolean(pending);
   const currentValue = pending?.valor || configuredValue;
+  const receiptBlocked = needsFullCpf;
 
   return (
     <div className="filho-wallet-page">
@@ -127,6 +141,30 @@ export default function FilhoMonthlyExperience({
 
             {isPending ? (
               <>
+                {needsFullCpf ? (
+                  <div className="filho-wallet-cpf-gate">
+                    <p>
+                      Para validar o comprovante automático, complete seu CPF (11 dígitos). A senha de
+                      login continua sendo só os 6 primeiros.
+                    </p>
+                    <div className="filho-wallet-cpf-gate__row">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={11}
+                        value={cpfDraft}
+                        onChange={(event) => onCpfDraftChange(event.target.value.replace(/\D/g, '').slice(0, 11))}
+                        placeholder="CPF completo"
+                        aria-label="CPF completo"
+                      />
+                      <button type="button" disabled={cpfSaving || cpfDraft.length !== 11} onClick={onSaveCpf}>
+                        {cpfSaving ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+                        {cpfSaving ? 'Salvando…' : 'Salvar CPF'}
+                      </button>
+                    </div>
+                    {cpfError ? <small className="filho-wallet-cpf-gate__error">{cpfError}</small> : null}
+                  </div>
+                ) : null}
                 <div className="filho-wallet-current__actions">
                   <button type="button" onClick={onOpenPix} disabled={pixUnavailable} data-filho-tour="mensalidade-pix">
                     <QrCode /> Pagar com PIX
@@ -136,7 +174,7 @@ export default function FilhoMonthlyExperience({
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/*"
                     hidden
-                    disabled={uploading}
+                    disabled={uploading || receiptBlocked}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       if (file) onSelectReceipt(file);
@@ -144,12 +182,12 @@ export default function FilhoMonthlyExperience({
                   />
                   <button
                     type="button"
-                    disabled={uploading}
+                    disabled={uploading || receiptBlocked}
                     onClick={() => receiptInputRef.current?.click()}
                     data-filho-tour="mensalidade-comprovante"
                   >
                     {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                    {uploading ? 'Analisando...' : 'Enviar comprovante'}
+                    {uploading ? 'Analisando...' : receiptBlocked ? 'Complete o CPF primeiro' : 'Enviar comprovante'}
                   </button>
                 </div>
                 {pixUnavailable ? <p className="filho-wallet-current__warning">A casa ainda não cadastrou uma chave PIX.</p> : null}

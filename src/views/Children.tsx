@@ -37,7 +37,14 @@ export interface Child {
   whatsapp_phone?: string | null;
   telefone?: string | null;
   cpf?: string | null;
+  /** Preenchido no primeiro login do membro — sem isso, ainda não entrou no app. */
+  user_id?: string | null;
   created_at?: string | null;
+}
+
+/** Membro já autenticou ao menos uma vez (tem conta vinculada). */
+export function childHasAppAccess(child: { user_id?: string | null }): boolean {
+  return Boolean(String(child?.user_id || '').trim());
 }
 
 interface ChildrenProps {
@@ -205,6 +212,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       });
       setAddModalOpen(false);
       fetchChildren();
+      const nome = String(formData.nome || '').trim() || 'A pessoa';
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(`${nome} entrou na corrente`);
     } catch (error: any) {
       console.error('[Children] Error adding child:', error);
       setSubmitError(error.message || 'Erro ao cadastrar filho de santo.');
@@ -216,7 +226,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   async function handleResendDadosAcessoWhatsApp() {
     if (!user?.id) return;
     const ok = confirm(
-      'Enviar dados de acesso (registro, senha e link de login) para todos os filhos com WhatsApp e CPF cadastrados?\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
+      'Enviar acesso via WhatsApp para toda a corrente com telefone e CPF?\n\nCada pessoa entra com o Registro da casa + 6 dígitos do CPF.\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
     );
     if (!ok) return;
 
@@ -244,10 +254,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         result.skippedNoCpf ? `${result.skippedNoCpf} sem CPF` : null,
       ].filter(Boolean);
 
-      alert(`Dados de acesso enfileirados.\n\n${parts.join(' · ')}`);
+      alert(`Acessos enfileirados.\n\n${parts.join(' · ')}\n\nCada pessoa entra com Registro + 6 dígitos do CPF.`);
     } catch (error) {
       console.error('[Children] resend dados acesso WA:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao enviar dados de acesso via WhatsApp.');
+      alert(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.');
     } finally {
       setResendingWelcome(false);
     }
@@ -257,7 +267,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     if (!user?.id) return;
     if (sendingCredentialsId) return;
     const ok = confirm(
-      `Enviar dados de acesso (registro + senha de 6 dígitos) via WhatsApp para ${childName}?\n\nA senha são os 6 dígitos cadastrados no filho (início do CPF).\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
+      `Enviar acesso via WhatsApp para ${childName}?\n\nEntra com o Registro da casa + 6 dígitos do CPF.\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
     );
     if (!ok) return;
 
@@ -283,12 +293,13 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result.error || 'Não foi possível enviar os dados de acesso.');
+        throw new Error(result.error || 'Não foi possível enviar o acesso.');
       }
-      alert('Dados de acesso enviados via WhatsApp.');
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(`Acesso enviado · ${childName} entra com Registro + 6 dígitos do CPF`);
     } catch (error) {
       console.error('[Children] send credentials WA:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao enviar dados via WhatsApp.');
+      alert(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.');
     } finally {
       setSendingCredentialsId(null);
     }
@@ -329,7 +340,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     return children.filter(child => {
       const matchesSearch = [child.nome, child.cargo, child.whatsapp_phone, child.telefone]
         .some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
-      const matchesStatus = filterStatus === 'Todos' || child.status === filterStatus;
+      const matchesStatus =
+        filterStatus === 'Todos'
+          ? true
+          : filterStatus === 'Sem acesso'
+            ? !childHasAppAccess(child)
+            : child.status === filterStatus;
       return matchesSearch && matchesStatus;
     }).sort((a, b) => {
       if (sortBy === 'entrada') {
@@ -344,6 +360,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   const incompleteChildren = useMemo(
     () => children.filter((child) => !String(child.whatsapp_phone || child.telefone || '').trim() || !String(child.data_nascimento || '').trim()).length,
+    [children],
+  );
+  const withoutAccessCount = useMemo(
+    () => children.filter((child) => !childHasAppAccess(child)).length,
     [children],
   );
   const birthdaysThisMonth = useMemo(() => {
@@ -400,6 +420,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         filteredChildren={filteredChildren}
         pendingChildIds={pendingChildIds}
         incompleteChildren={incompleteChildren}
+        withoutAccessCount={withoutAccessCount}
         birthdaysThisMonth={birthdaysThisMonth}
         searchTerm={searchTerm}
         filterStatus={filterStatus}
@@ -506,7 +527,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           </label>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-        {['Todos', 'Ativo', 'Pendente', 'Inativo'].map((status) => (
+        {['Todos', 'Ativo', 'Pendente', 'Inativo', 'Sem acesso'].map((status) => (
           <button
             key={status}
             type="button"
@@ -537,9 +558,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           ) : (
             <MessageCircle className="h-3.5 w-3.5" aria-hidden />
           )}
-          Enviar acesso via WhatsApp
+          Enviar acesso
         </button>
         </div>
+        <p className="mt-2 text-[11px] font-semibold leading-snug text-[#8E9AAA]">
+          Cada pessoa entra com Registro da casa + 6 dígitos do CPF.
+        </p>
       </section>
 
       <div className="space-y-3">
@@ -674,7 +698,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                               className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-emerald-400 transition-colors hover:bg-white/5"
                             >
                               <Send className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                              Enviar dados
+                              Enviar acesso
                             </button>
                             <button
                               type="button"
@@ -729,9 +753,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3.5 text-[11px] text-[#94A3B8]">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
             <span>
-              Cada terreiro tem ambiente isolado (RLS). Clique na linha para abrir o perfil completo do filho.
-              No celular, use os três pontos para enviar dados de acesso ou excluir. O botão verde reenvia acesso
-              em massa para quem tem WhatsApp e CPF cadastrados.
+              Cada pessoa entra com o <strong className="font-bold text-[#CBD5E1]">Registro da casa + 6 dígitos do CPF</strong>.
+              Use Enviar acesso no card ou no menu. O botão verde reenvia em massa para quem tem WhatsApp e CPF.
             </span>
           </div>
         </div>
@@ -777,7 +800,18 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-black">{previewChild.nome}</h3>
                     <p className="mt-0.5 text-xs font-bold text-primary">{previewChild.cargo || 'Função não informada'}</p>
-                    <div className="mt-1.5"><span className={childStatusClass(previewChild.status)}>{previewChild.status}</span></div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className={childStatusClass(previewChild.status)}>{previewChild.status}</span>
+                      {!childHasAppAccess(previewChild) ? (
+                        <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+                          Ainda não entrou no app
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                          Já entrou no app
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -835,10 +869,15 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                   type="button"
                   onClick={() => void handleSendCredentials(previewChild.id, previewChild.nome)}
                   disabled={sendingCredentialsId === previewChild.id}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] px-4 text-sm font-bold text-emerald-300 hover:bg-emerald-400/[0.12]"
+                  className="inline-flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] px-4 py-2.5 text-emerald-300 hover:bg-emerald-400/[0.12]"
                 >
-                  {sendingCredentialsId === previewChild.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                  Enviar acesso pelo WhatsApp
+                  <span className="inline-flex items-center gap-2 text-sm font-bold">
+                    {sendingCredentialsId === previewChild.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                    Enviar acesso
+                  </span>
+                  <span className="text-[10px] font-semibold leading-snug text-emerald-300/75">
+                    Entra com Registro + 6 dígitos do CPF
+                  </span>
                 </button>
               </div>
             </motion.aside>
@@ -907,21 +946,21 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">
                   <div>
-                    <label className={paperLabelClass}>CPF 6 primeiros dígitos</label>
+                    <label className={paperLabelClass}>CPF completo</label>
                     <input
                       required
                       className={paperInputClass}
                       inputMode="numeric"
-                      maxLength={6}
+                      maxLength={11}
                       minLength={6}
-                      pattern="\d{6}"
-                      title="Informe os 6 primeiros dígitos do CPF"
+                      pattern="\d{6}|\d{11}"
+                      title="Informe o CPF completo (11 dígitos) ou, no mínimo, os 6 primeiros"
                       value={formData.cpf}
-                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                      placeholder="Ex.: 123456"
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                      placeholder="Ex.: 12345678900"
                     />
                     <p className="mt-1 text-[10px] text-[#8A8070]">
-                      Só os 6 primeiros do CPF — viram a senha de acesso do membro. Não precisa do CPF completo.
+                      Preferível os 11 dígitos (libera comprovante automático). Os 6 primeiros são a senha de login do membro.
                     </p>
                   </div>
                   <div>
