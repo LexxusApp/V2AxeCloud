@@ -41,6 +41,7 @@ import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
+import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
 import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendDadosAcessoWhatsAppForTenant } from "./lib/whatsappSendCore.js";
@@ -3836,6 +3837,7 @@ async function startServer() {
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
   });
+  registerGrowthProspectingRoutes(app, { supabaseAdmin, verifyUser });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
   registerConsulentePortalRoutes(app, {

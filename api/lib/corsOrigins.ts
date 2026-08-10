@@ -14,6 +14,8 @@ export const STATIC_ALLOWED_ORIGINS: readonly string[] = [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
+  "http://localhost:5188",
+  "http://127.0.0.1:5188",
 ];
 
 export const STATIC_ALLOWED_ORIGIN_SET = new Set<string>(STATIC_ALLOWED_ORIGINS);

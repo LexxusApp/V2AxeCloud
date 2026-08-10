@@ -80,9 +80,15 @@ export default async function handler(req: any, res: any) {
     const sb = getDiscreteSupabaseAdmin();
     if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
     try {
-      const { runWhatsAppCronJobs } = await import("./lib/cronWhatsAppJobs.js");
-      const result = await runWhatsAppCronJobs(sb);
-      return sendJson(res, 200, { ok: true, ...result });
+      const [{ runWhatsAppCronJobs }, { runGrowthProspectingTick }] = await Promise.all([
+        import("./lib/cronWhatsAppJobs.js"),
+        import("./lib/growthProspecting.js"),
+      ]);
+      const [result, growth] = await Promise.all([
+        runWhatsAppCronJobs(sb),
+        runGrowthProspectingTick(sb),
+      ]);
+      return sendJson(res, 200, { ok: true, ...result, growth });
     } catch (error) {
       console.error("[CRON] whatsapp-jobs:", error);
       return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar jobs WhatsApp") });

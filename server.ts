@@ -39,6 +39,7 @@ import {
 import { permanentDeleteZeladorAccount } from "./api/permanentAccountDelete.js";
 import { isConsoleGlobalAdmin } from "./api/lib/consoleAdmin.js";
 import { registerAdminConsoleRoutes } from "./api/admin-console-routes.js";
+import { registerGrowthProspectingRoutes } from "./api/lib/growthProspecting.js";
 import { handleAuditTick } from "./api/lib/audit/cronTick.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./api/lib/plansCatalog.js";
 import { resolvePerfilLiderEmail } from "./api/lib/perfilLiderEmail.js";
@@ -3169,6 +3170,7 @@ async function startServer() {
     r2Client,
     r2Bucket: R2_BUCKET_NAME,
   });
+  registerGrowthProspectingRoutes(app, { supabaseAdmin, verifyUser });
 
   registerOnboardingRoutes(app, { supabaseAdmin });
   registerConsulentePortalRoutes(app, {
