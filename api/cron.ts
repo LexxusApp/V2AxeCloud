@@ -80,20 +80,32 @@ export default async function handler(req: any, res: any) {
     const sb = getDiscreteSupabaseAdmin();
     if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
     try {
-      const [{ runWhatsAppCronJobs }, { runGrowthProspectingTick }] = await Promise.all([
-        import("./lib/cronWhatsAppJobs.js"),
-        import("./lib/growthProspecting.js"),
-      ]);
-      const [result, growth] = await Promise.all([
-        runWhatsAppCronJobs(sb),
-        runGrowthProspectingTick(sb),
-      ]);
-      return sendJson(res, 200, { ok: true, ...result, growth });
+      const { runWhatsAppCronJobs } = await import("./lib/cronWhatsAppJobs.js");
+      const result = await runWhatsAppCronJobs(sb);
+      return sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
       console.error("[CRON] whatsapp-jobs:", error);
       return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar jobs WhatsApp") });
     }
   }
 
-  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|audit-tick" });
+  if (job === "growth-prospecting" && method === "GET") {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
+      return sendJson(res, 401, { error: "Não autorizado" });
+    }
+    const sb = getDiscreteSupabaseAdmin();
+    if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
+    try {
+      const { runGrowthProspectingTick } = await import("./lib/growthProspecting.js");
+      const growth = await runGrowthProspectingTick(sb);
+      return sendJson(res, 200, { ok: true, growth });
+    } catch (error) {
+      console.error("[CRON] growth-prospecting:", error);
+      return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar prospecção") });
+    }
+  }
+
+  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|growth-prospecting|audit-tick" });
 }
