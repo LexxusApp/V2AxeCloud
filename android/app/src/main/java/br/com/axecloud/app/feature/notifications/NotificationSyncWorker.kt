@@ -51,12 +51,10 @@ class NotificationSyncWorker @AssistedInject constructor(
     }
 
     private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = applicationContext.getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Pendências da casa", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Giras, mensalidades, avisos e movimentos que pedem atenção"
-            })
-        }
+        val manager = applicationContext.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Pendências da casa", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = "Giras, mensalidades, avisos e movimentos que pedem atenção"
+        })
     }
 
     private fun notify(item: BackgroundNotification) {
