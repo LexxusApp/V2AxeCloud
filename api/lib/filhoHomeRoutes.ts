@@ -184,6 +184,7 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
         description: String(row.descricao || "").split("\n\n=== METADADOS ===")[0].trim(),
         status: String(row.status_confirmacao || ""),
         hasDocument: Boolean(row.pdf_storage_path),
+        documentPath: String(row.pdf_storage_path || ""),
       }));
       res.json({ data: obligations });
     } catch (error) {

@@ -31,6 +31,21 @@ class AxeCloudHttpClient @Inject constructor(
                 .build()
         )
 
+    suspend fun getBytes(url: String, accessToken: String? = null, maxBytes: Long = 25L * 1024 * 1024): ByteArray =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder().url(url)
+                .apply { if (!accessToken.isNullOrBlank()) header("Authorization", "Bearer $accessToken") }
+                .get().build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw ApiException(response.code, "Não foi possível abrir o documento.")
+                val body = response.body ?: throw IOException("Documento vazio.")
+                if (body.contentLength() > maxBytes) throw IOException("O documento ultrapassa o limite de 25 MB.")
+                val bytes = body.bytes()
+                if (bytes.size > maxBytes) throw IOException("O documento ultrapassa o limite de 25 MB.")
+                bytes
+            }
+        }
+
     suspend fun post(
         url: String,
         body: JsonElement,
