@@ -17,7 +17,7 @@ export function growthMailConfigured(): boolean {
 }
 
 export function buildGrowthIntro(input: { terreiroNome: string; cidade: string }) {
-  const whatsapp = env("GROWTH_WHATSAPP_NUMBER", "5511912276156").replace(/\D/g, "");
+  const whatsapp = env("GROWTH_WHATSAPP_NUMBER", "551152950746").replace(/\D/g, "");
   const site = env("APP_PUBLIC_URL", "https://axecloud.com.br").replace(/\/$/, "");
   const waText = encodeURIComponent(`Olá! Sou responsável pelo ${input.terreiroNome} e quero conhecer o AxéCloud.`);
   const whatsappUrl = `https://wa.me/${whatsapp}?text=${waText}`;
