@@ -13,6 +13,7 @@ data class SettingsPayload(
     val identity: IdentitySettings,
     val portal: PortalSettings,
     val subscription: SubscriptionSettings,
+    val whatsapp: WhatsAppSettings,
 )
 
 class SettingsRepository @Inject constructor(
@@ -30,6 +31,7 @@ class SettingsRepository @Inject constructor(
             ).jsonObject
         }
         val plansCall = async { runCatching { http.get(api("/api/plans")).jsonObject }.getOrNull() }
+        val whatsappCall = async { loadWhatsApp(session.accessToken) }
         val portal = portalCall.await()
         val tenant = tenantCall.await()
         val premium = plansCall.await()?.objectAt("plans")?.objectAt("premium")
@@ -65,7 +67,48 @@ class SettingsRepository @Inject constructor(
                 annualPrice = premium?.d("annual_price") ?: 0.0,
                 tenantId = tenant.t("tenant_id").ifBlank { session.tenantId },
             ),
+            whatsapp = whatsappCall.await(),
         )
+    }
+
+    private suspend fun loadWhatsApp(token: String): WhatsAppSettings = coroutineScope {
+        val configCall = async { runCatching { http.get(api("/api/whatsapp/config"), token).jsonObject }.getOrNull() }
+        val statusCall = async { runCatching { http.get(api("/api/whatsapp/status"), token).jsonObject }.getOrNull() }
+        val logsCall = async { runCatching { http.get(api("/api/whatsapp/logs?limit=20"), token).jsonObject }.getOrNull() }
+        val config = configCall.await()
+        val status = statusCall.await()
+        val preferences = config?.objectAt("preferences")
+        val logs = logsCall.await()?.arrayAt("logs").orEmpty().mapNotNull { element ->
+            val row = element as? JsonObject ?: return@mapNotNull null
+            WhatsAppLog(row.t("id"), row.t("telefone"), row.t("mensagem"), row.t("tipo"), row.t("status"), row.t("created_at"))
+        }
+        WhatsAppSettings(
+            connected = status?.t("status").equals("CONNECTED", true),
+            channelMessage = status?.t("message").orEmpty(),
+            preferences = WhatsAppPreferences(
+                giras = preferences?.b("notifGiras") ?: true,
+                financeiro = preferences?.b("notifFinanceiro") ?: true,
+                reza = preferences?.b("notifReza") ?: true,
+                aniversarios = preferences?.b("notifAniversarios") ?: true,
+            ),
+            logs = logs,
+        )
+    }
+
+    suspend fun saveWhatsAppPreferences(value: WhatsAppPreferences) {
+        val session = session()
+        http.post(api("/api/whatsapp/config"), buildJsonObject {
+            put("tenant_id", session.userId)
+            put("preferences", buildJsonObject {
+                put("notifGiras", value.giras); put("notifFinanceiro", value.financeiro)
+                put("notifReza", value.reza); put("notifAniversarios", value.aniversarios)
+            })
+        }, session.accessToken)
+    }
+
+    suspend fun testWhatsApp(phone: String) {
+        val session = session()
+        http.post(api("/api/whatsapp/test-message"), buildJsonObject { put("tenant_id", session.userId); put("phone", phone.filter(Char::isDigit)) }, session.accessToken)
     }
 
     suspend fun saveIdentity(value: IdentitySettings) {
@@ -117,3 +160,4 @@ private fun JsonObject.b(key: String): Boolean = runCatching { this[key]?.jsonPr
 private fun JsonObject.i(key: String): Int = runCatching { this[key]?.jsonPrimitive?.int }.getOrNull() ?: 0
 private fun JsonObject.d(key: String): Double = runCatching { this[key]?.jsonPrimitive?.double }.getOrNull() ?: 0.0
 private fun JsonObject.objectAt(key: String): JsonObject? = runCatching { this[key]?.jsonObject }.getOrNull()
+private fun JsonObject.arrayAt(key: String): JsonArray? = runCatching { this[key]?.jsonArray }.getOrNull()
