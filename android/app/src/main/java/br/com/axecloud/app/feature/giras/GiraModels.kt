@@ -27,6 +27,13 @@ data class GiraParticipant(
     val justification: String,
 )
 
+data class GiraTicket(val id: String, val number: Int, val name: String, val phone: String, val status: String)
+
+data class GiraCandle(
+    val id: String?, val childId: String, val name: String, val role: String, val photoUrl: String,
+    val color: String?, val quantity: Int = 1, val delivered: Boolean = false, val note: String = "",
+)
+
 data class GiraOperations(
     val participants: List<GiraParticipant> = emptyList(),
     val total: Int = 0,
@@ -35,6 +42,8 @@ data class GiraOperations(
     val remaining: Int? = null,
     val checkinUrl: String = "",
     val publicUrl: String = "",
+    val tickets: List<GiraTicket> = emptyList(),
+    val candles: List<GiraCandle> = emptyList(),
 )
 
 data class GiraForm(

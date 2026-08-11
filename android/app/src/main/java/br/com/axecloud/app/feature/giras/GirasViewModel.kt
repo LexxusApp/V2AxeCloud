@@ -35,6 +35,16 @@ class GirasViewModel @Inject constructor(private val repository: GirasRepository
             .onSuccess { data -> mutableState.update { it.copy(actionId = null, operations = data, message = "Participação aprovada.") } }
             .onFailure { e -> mutableState.update { it.copy(actionId = null, error = e.message) } }
     }
+    fun issueTicket(name: String, phone: String) = operationAction("ticket", "Senha emitida.") { event -> require(name.isNotBlank()) { "Informe o nome do visitante." }; repository.issueTicket(event.id, name, phone) }
+    fun updateTicket(ticket: GiraTicket, status: String) = operationAction(ticket.id, "Senha atualizada.") { event -> repository.updateTicket(event.id, ticket.id, status) }
+    fun saveCandles(candles: List<GiraCandle>) = operationAction("candles", "Mapa de velas salvo.") { event -> repository.saveCandles(event.id, candles) }
+    private fun operationAction(id: String, success: String, block: suspend (GiraEvent) -> Unit) = viewModelScope.launch {
+        val event = state.value.operationsEvent ?: return@launch
+        mutableState.update { it.copy(actionId = id, error = null) }
+        runCatching { block(event); repository.loadOperations(event.id) }
+            .onSuccess { data -> mutableState.update { it.copy(actionId = null, operations = data, message = success) } }
+            .onFailure { e -> mutableState.update { it.copy(actionId = null, error = e.message) } }
+    }
     fun create() = mutableState.update { it.copy(creating = true, editing = null) }
     fun edit(value: GiraEvent) = mutableState.update { it.copy(editing = value, creating = false, selected = null) }
     fun closeEditor() = mutableState.update { it.copy(creating = false, editing = null) }

@@ -86,11 +86,15 @@ class GirasRepository @Inject constructor(private val http: AxeCloudHttpClient, 
         }, session.accessToken)
     }
 
-    suspend fun loadOperations(eventId: String): GiraOperations {
+    suspend fun loadOperations(eventId: String): GiraOperations = coroutineScope {
         val session = session(); check(!session.isFilho) { "Acesso negado." }
-        val root = http.get(api("/api/v1/events/${encode(eventId)}/participantes?tenantId=${encode(session.tenantId)}"), session.accessToken).asObject()
+        val tenant = encode(session.tenantId)
+        val participantsCall = async { http.get(api("/api/v1/events/${encode(eventId)}/participantes?tenantId=$tenant"), session.accessToken).asObject() }
+        val ticketsCall = async { runCatching { http.get(api("/api/v1/events/${encode(eventId)}/senhas?tenantId=$tenant"), session.accessToken).asObject() }.getOrDefault(JsonObject(emptyMap())) }
+        val candlesCall = async { runCatching { http.get(api("/api/v1/events/${encode(eventId)}/mapa-velas?tenantId=$tenant"), session.accessToken).asObject() }.getOrDefault(JsonObject(emptyMap())) }
+        val root = participantsCall.await()
         val stats = root.obj("stats")
-        return GiraOperations(
+        GiraOperations(
             participants = root.array("data").map { element ->
                 val row = element.asObject(); val child = row.obj("filhos_de_santo")
                 GiraParticipant(
@@ -102,7 +106,26 @@ class GirasRepository @Inject constructor(private val http: AxeCloudHttpClient, 
             },
             total = stats.int("total"), confirmed = stats.int("confirmados"), present = stats.int("presentes"),
             remaining = stats.intOrNull("vagas_restantes"), checkinUrl = root.text("checkinUrl"), publicUrl = root.text("eventoPublicUrl"),
+            tickets = ticketsCall.await().array("data").map { element -> val row = element.asObject(); GiraTicket(row.text("id"), row.int("numero"), row.text("nome"), row.text("telefone"), row.text("status").ifBlank { "aguardando" }) },
+            candles = candlesCall.await().array("data").map { element -> val row = element.asObject(); GiraCandle(row.text("id").ifBlank { null }, row.text("filho_id"), row.text("nome"), row.text("cargo"), row.text("foto_url"), row.text("vela").ifBlank { null }, row.int("quantidade").coerceAtLeast(1), row.bool("entregue"), row.text("observacao")) },
         )
+    }
+
+    suspend fun issueTicket(eventId: String, name: String, phone: String) {
+        val session = session(); check(!session.isFilho) { "Acesso negado." }
+        http.post(api("/api/v1/events/${encode(eventId)}/senhas"), buildJsonObject { put("tenantId", session.tenantId); put("nome", name.trim()); if (phone.isNotBlank()) put("telefone", phone.filter(Char::isDigit)) }, session.accessToken)
+    }
+
+    suspend fun updateTicket(eventId: String, ticketId: String, status: String) {
+        val session = session(); check(!session.isFilho) { "Acesso negado." }
+        http.patch(api("/api/v1/events/${encode(eventId)}/senhas/${encode(ticketId)}"), buildJsonObject { put("tenantId", session.tenantId); put("status", status) }, session.accessToken)
+    }
+
+    suspend fun saveCandles(eventId: String, candles: List<GiraCandle>) {
+        val session = session(); check(!session.isFilho) { "Acesso negado." }
+        http.put(api("/api/v1/events/${encode(eventId)}/mapa-velas"), buildJsonObject {
+            put("tenantId", session.tenantId); put("items", kotlinx.serialization.json.buildJsonArray { candles.filter { !it.color.isNullOrBlank() }.forEach { candle -> add(buildJsonObject { put("filho_id", candle.childId); put("vela", candle.color!!); put("quantidade", candle.quantity.coerceAtLeast(1)); put("observacao", candle.note); put("entregue", candle.delivered) }) } })
+        }, session.accessToken)
     }
 
     suspend fun approve(eventId: String, participantId: String) {

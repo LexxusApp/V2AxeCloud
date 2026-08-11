@@ -123,6 +123,7 @@ private fun GirasScreen(state: GirasUiState, snackbar: SnackbarHostState, viewMo
         event = event, operations = state.operations, loading = state.loadingOperations,
         actionId = state.actionId, error = state.error, onDismiss = viewModel::closeOperations,
         onApprove = viewModel::approve,
+        onIssueTicket = viewModel::issueTicket, onUpdateTicket = viewModel::updateTicket, onSaveCandles = viewModel::saveCandles,
     ) }
     if (state.creating || state.editing != null) GiraEditorSheet(state.editing, state.actionId == "save", state.error, viewModel::closeEditor, viewModel::save)
     deleteCandidate?.let { event -> AlertDialog(
