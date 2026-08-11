@@ -12,7 +12,7 @@ class SettingsViewModel @Inject constructor(private val repo:SettingsRepository)
     private val m=MutableStateFlow(SettingsUiState())
     val state=m.asStateFlow()
     init{load()}
-    fun load()=viewModelScope.launch{m.update{it.copy(loading=true,error=null)};runCatching{repo.load()}.onSuccess{p->m.value=SettingsUiState(false,identity=p.identity,portal=p.portal,plan=p.plan)}.onFailure{e->m.update{it.copy(loading=false,error=e.message)}}}
+    fun load()=viewModelScope.launch{m.update{it.copy(loading=true,error=null)};runCatching{repo.load()}.onSuccess{p->m.value=SettingsUiState(false,identity=p.identity,portal=p.portal,subscription=p.subscription,plan=p.subscription.plan)}.onFailure{e->m.update{it.copy(loading=false,error=e.message)}}}
     fun section(v:String)=m.update{it.copy(section=v,error=null)}
     fun identity(v:IdentitySettings)=m.update{it.copy(identity=v)}
     fun portal(v:PortalSettings)=m.update{it.copy(portal=v)}
