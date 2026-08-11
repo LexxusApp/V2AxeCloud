@@ -56,6 +56,8 @@ class SettingsRepository @Inject constructor(
                 description = portal.t("descricaoPublica"),
                 views = portal.i("visualizacoes"),
                 publicUrl = portal.t("terreiroUrl", "portalUrl"),
+                prayerListUrl = portal.t("listagemPedidosUrl"),
+                verified = portal.b("casaVerificada"),
             ),
             subscription = SubscriptionSettings(
                 plan = tenant.t("plan").ifBlank { session.plan },
@@ -122,14 +124,20 @@ class SettingsRepository @Inject constructor(
         }, session.accessToken)
     }
 
-    suspend fun savePortal(value: PortalSettings) {
+    suspend fun savePortal(value: PortalSettings): PortalSettings {
         val session = session()
-        http.post(api("/api/v1/settings/portal-consulente"), buildJsonObject {
+        val response = http.post(api("/api/v1/settings/portal-consulente"), buildJsonObject {
             put("tradicao", value.tradition); put("publicSlug", value.slug); put("portalAtivo", value.prayerActive)
             put("mensagem", value.prayerMessage); put("portalPublicoAtivo", value.publicActive); put("cidadePublica", value.city)
             put("estadoPublico", value.state); put("bairroPublico", value.neighborhood); put("whatsappPublico", value.whatsapp)
             put("descricaoPublica", value.description)
-        }, session.accessToken)
+        }, session.accessToken).jsonObject
+        return value.copy(
+            slug = response.t("publicSlug").ifBlank { value.slug },
+            publicActive = response.bn("portalPublicoAtivo") ?: value.publicActive,
+            publicUrl = response.t("terreiroUrl", "portalUrl").ifBlank { value.publicUrl },
+            prayerListUrl = response.t("listagemPedidosUrl").ifBlank { value.prayerListUrl },
+        )
     }
 
     suspend fun changeEmail(email: String, password: String) {
@@ -157,6 +165,7 @@ class SettingsRepository @Inject constructor(
 
 private fun JsonObject.t(vararg keys: String) = keys.firstNotNullOfOrNull { key -> runCatching { this[key]?.jsonPrimitive?.content }.getOrNull()?.takeIf(String::isNotBlank) }.orEmpty()
 private fun JsonObject.b(key: String): Boolean = runCatching { this[key]?.jsonPrimitive?.boolean }.getOrNull() ?: false
+private fun JsonObject.bn(key: String): Boolean? = runCatching { this[key]?.jsonPrimitive?.boolean }.getOrNull()
 private fun JsonObject.i(key: String): Int = runCatching { this[key]?.jsonPrimitive?.int }.getOrNull() ?: 0
 private fun JsonObject.d(key: String): Double = runCatching { this[key]?.jsonPrimitive?.double }.getOrNull() ?: 0.0
 private fun JsonObject.objectAt(key: String): JsonObject? = runCatching { this[key]?.jsonObject }.getOrNull()

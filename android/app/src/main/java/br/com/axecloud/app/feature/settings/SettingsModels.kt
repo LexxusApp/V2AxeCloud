@@ -1,6 +1,6 @@
 package br.com.axecloud.app.feature.settings
 
-data class PortalSettings(val tradition:String="mista",val slug:String="",val prayerActive:Boolean=false,val prayerMessage:String="",val publicActive:Boolean=false,val city:String="",val state:String="",val neighborhood:String="",val whatsapp:String="",val description:String="",val views:Int=0,val publicUrl:String="")
+data class PortalSettings(val tradition:String="mista",val slug:String="",val prayerActive:Boolean=false,val prayerMessage:String="",val publicActive:Boolean=false,val city:String="",val state:String="",val neighborhood:String="",val whatsapp:String="",val description:String="",val views:Int=0,val publicUrl:String="",val prayerListUrl:String="",val verified:Boolean=false)
 data class IdentitySettings(val houseName:String="",val leaderName:String="",val role:String="Zelador",val email:String="",val photo:String="")
 data class SecuritySettings(val newEmail:String="",val emailPassword:String="",val currentPassword:String="",val newPassword:String="",val confirmPassword:String="",val deleteEmail:String="",val deletePassword:String="")
 data class SubscriptionSettings(val plan:String="",val status:String="",val expiresAt:String="",val billingCycle:String="monthly",val trial:Boolean=false,val monthlyPrice:Double=0.0,val annualPrice:Double=0.0,val tenantId:String="") { val lifetime get()=plan.lowercase() in setOf("vita","cortesia","vitalicio","vitalício") }
@@ -8,3 +8,6 @@ data class WhatsAppPreferences(val giras:Boolean=true,val financeiro:Boolean=tru
 data class WhatsAppLog(val id:String,val phone:String,val message:String,val type:String,val status:String,val createdAt:String)
 data class WhatsAppSettings(val connected:Boolean=false,val channelMessage:String="",val preferences:WhatsAppPreferences=WhatsAppPreferences(),val logs:List<WhatsAppLog> = emptyList(),val testPhone:String="")
 data class SettingsUiState(val loading:Boolean=true,val saving:Boolean=false,val identity:IdentitySettings=IdentitySettings(),val portal:PortalSettings=PortalSettings(),val security:SecuritySettings=SecuritySettings(),val subscription:SubscriptionSettings=SubscriptionSettings(),val whatsapp:WhatsAppSettings=WhatsAppSettings(),val whatsappView:String="automacoes",val plan:String="",val section:String="identidade",val error:String?=null,val message:String?=null,val deleteDialog:Boolean=false)
+
+internal fun normalizePublicSlug(value:String):String=java.text.Normalizer.normalize(value.lowercase(),java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"),"").replace(Regex("[^a-z0-9-]"),"-").replace(Regex("-+"),"-").trim('-')
+internal fun resolvePublicPortalUrl(path:String,slug:String):String { val candidate=path.ifBlank{slug.takeIf(String::isNotBlank)?.let{"/terreiros/$it"}.orEmpty()};return when{candidate.isBlank()->"";candidate.startsWith("http")->candidate;else->"https://axecloud.com.br${if(candidate.startsWith('/'))candidate else "/$candidate"}"} }
