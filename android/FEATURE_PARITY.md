@@ -41,7 +41,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 
 ## Qualidade obrigatória
 
-- Acesso nativo: login de zeladoria e filho de santo, restauração segura da sessão, visualização controlada da senha e solicitação de recuperação por e-mail compilados; conclusão do link ocorre no fluxo seguro de redefinição do AxéCloud.
+- Acesso nativo: login de zeladoria e filho de santo, criação de terreiro com teste grátis e ciclo mensal/anual, restauração segura da sessão, visualização controlada da senha e solicitação de recuperação por e-mail compilados; conclusão do link ocorre no fluxo seguro de redefinição do AxéCloud.
 - Navegação nativa e destinos independentes, sem WebView.
 - Material 3 com identidade visual AxéCloud, componentes reutilizáveis e modo responsivo.
 - Animações funcionais, continuidade entre lista/detalhe, estados vazios demonstrativos e feedback háptico onde fizer sentido.

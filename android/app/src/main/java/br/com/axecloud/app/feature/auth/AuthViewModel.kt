@@ -24,6 +24,10 @@ data class AuthUiState(
     val recoveryEmail: String = "",
     val recoveryLoading: Boolean = false,
     val recoveryMessage: String? = null,
+    val registrationOpen: Boolean = false,
+    val registrationForm: RegistrationForm = RegistrationForm(),
+    val registrationLoading: Boolean = false,
+    val registrationError: String? = null,
 )
 
 @HiltViewModel
@@ -89,6 +93,36 @@ class AuthViewModel @Inject constructor(
                         recoveryMessage = "Enviamos o acesso de recuperação para seu e-mail.",
                     )
                     is AuthResult.Error -> it.copy(recoveryLoading = false, recoveryMessage = result.message)
+                }
+            }
+        }
+    }
+
+    fun openRegistration() = mutableUiState.update {
+        it.copy(registrationOpen = true, registrationError = null)
+    }
+
+    fun closeRegistration() = mutableUiState.update {
+        if (it.registrationLoading) it else it.copy(registrationOpen = false, registrationError = null)
+    }
+
+    fun setRegistrationForm(value: RegistrationForm) = mutableUiState.update {
+        it.copy(registrationForm = value, registrationError = null)
+    }
+
+    fun registerAccount() {
+        val form = mutableUiState.value.registrationForm
+        registrationValidation(form)?.let { message ->
+            mutableUiState.update { it.copy(registrationError = message) }
+            return
+        }
+        viewModelScope.launch {
+            mutableUiState.update { it.copy(registrationLoading = true, registrationError = null) }
+            val result = repository.registerAccount(form)
+            mutableUiState.update {
+                when (result) {
+                    AuthResult.Success -> it.copy(registrationLoading = false, registrationOpen = false)
+                    is AuthResult.Error -> it.copy(registrationLoading = false, registrationError = result.message)
                 }
             }
         }

@@ -64,6 +64,30 @@ class AuthRepository @Inject constructor(
         )
     }
 
+    suspend fun registerAccount(form: RegistrationForm): AuthResult {
+        val registration = authenticate {
+            http.post(
+                url = "${BuildConfig.API_BASE_URL.trimEnd('/')}/api/v1/auth/register",
+                body = buildJsonObject {
+                    put("nome_terreiro", form.houseName.trim())
+                    put("nome_zelador", form.leaderName.trim())
+                    put("whatsapp", form.whatsapp.filter(Char::isDigit).take(15))
+                    put("email", form.email.trim().lowercase())
+                    put("password", form.password)
+                    put("billingCycle", form.billingCycle)
+                    put("conversion", buildJsonObject {
+                        put("source", "android-native")
+                        put("campaign", "play-store")
+                    })
+                },
+            )
+        }
+        if (registration is AuthResult.Error && !registration.message.contains("Cadastro criado", ignoreCase = true)) {
+            return registration
+        }
+        return loginZelador(form.email, form.password)
+    }
+
     suspend fun restore(): AuthResult {
         val current = sessionStore.current()
         if (!current.isAuthenticated) return AuthResult.Error("")

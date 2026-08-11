@@ -60,6 +60,10 @@ fun AuthScreen(
     onCloseRecovery: () -> Unit,
     onRecoveryEmailChange: (String) -> Unit,
     onRecoverPassword: () -> Unit,
+    onOpenRegistration: () -> Unit,
+    onCloseRegistration: () -> Unit,
+    onRegistrationChange: (RegistrationForm) -> Unit,
+    onRegister: () -> Unit,
 ) {
     var showSecret by rememberSaveable { mutableStateOf(false) }
     Box(
@@ -202,6 +206,11 @@ fun AuthScreen(
                             enabled = !state.loading,
                             modifier = Modifier.align(Alignment.End),
                         ) { Text("Esqueci minha senha", fontWeight = FontWeight.Bold) }
+                        TextButton(
+                            onClick = onOpenRegistration,
+                            enabled = !state.loading,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Ainda não tenho uma casa · criar conta", fontWeight = FontWeight.ExtraBold) }
                     }
                 }
             }
@@ -251,6 +260,16 @@ fun AuthScreen(
                 }
             },
             dismissButton = { TextButton(onCloseRecovery) { Text(if (state.recoveryMessage.orEmpty().startsWith("Enviamos")) "Concluir" else "Cancelar") } },
+        )
+    }
+    if (state.registrationOpen) {
+        RegistrationSheet(
+            form = state.registrationForm,
+            loading = state.registrationLoading,
+            error = state.registrationError,
+            onChange = onRegistrationChange,
+            onDismiss = onCloseRegistration,
+            onSubmit = onRegister,
         )
     }
 }
