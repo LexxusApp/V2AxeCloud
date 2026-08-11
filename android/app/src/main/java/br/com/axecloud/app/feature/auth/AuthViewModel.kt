@@ -20,6 +20,10 @@ data class AuthUiState(
     val loading: Boolean = false,
     val booting: Boolean = true,
     val error: String? = null,
+    val recoveryOpen: Boolean = false,
+    val recoveryEmail: String = "",
+    val recoveryLoading: Boolean = false,
+    val recoveryMessage: String? = null,
 )
 
 @HiltViewModel
@@ -50,6 +54,44 @@ class AuthViewModel @Inject constructor(
     fun setSecret(value: String) = mutableUiState.update {
         val normalized = if (it.profile == AccessProfile.FILHO) value.filter(Char::isDigit).take(6) else value
         it.copy(secret = normalized, error = null)
+    }
+
+    fun openRecovery() = mutableUiState.update {
+        it.copy(
+            recoveryOpen = true,
+            recoveryEmail = it.primary.takeIf { value -> value.contains('@') }.orEmpty(),
+            recoveryMessage = null,
+            error = null,
+        )
+    }
+
+    fun closeRecovery() = mutableUiState.update {
+        if (it.recoveryLoading) it else it.copy(recoveryOpen = false, recoveryMessage = null)
+    }
+
+    fun setRecoveryEmail(value: String) = mutableUiState.update {
+        it.copy(recoveryEmail = value, recoveryMessage = null)
+    }
+
+    fun recoverPassword() {
+        val email = mutableUiState.value.recoveryEmail.trim()
+        if (!isRecoveryEmailValid(email)) {
+            mutableUiState.update { it.copy(recoveryMessage = "Informe o e-mail cadastrado.") }
+            return
+        }
+        viewModelScope.launch {
+            mutableUiState.update { it.copy(recoveryLoading = true, recoveryMessage = null) }
+            val result = repository.recoverPassword(email)
+            mutableUiState.update {
+                when (result) {
+                    AuthResult.Success -> it.copy(
+                        recoveryLoading = false,
+                        recoveryMessage = "Enviamos o acesso de recuperação para seu e-mail.",
+                    )
+                    is AuthResult.Error -> it.copy(recoveryLoading = false, recoveryMessage = result.message)
+                }
+            }
+        }
     }
 
     fun submit() {

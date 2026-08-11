@@ -55,6 +55,15 @@ class AuthRepository @Inject constructor(
         )
     }
 
+    suspend fun recoverPassword(email: String): AuthResult = authenticate {
+        requireConfiguration()
+        http.post(
+            url = "${BuildConfig.SUPABASE_URL}/auth/v1/recover?redirect_to=${encode("https://axecloud.com.br/redefinir-senha")}",
+            body = buildJsonObject { put("email", email.trim()) },
+            headers = supabaseHeaders(),
+        )
+    }
+
     suspend fun restore(): AuthResult {
         val current = sessionStore.current()
         if (!current.isAuthenticated) return AuthResult.Error("")

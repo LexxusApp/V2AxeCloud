@@ -14,5 +14,9 @@ fun AuthRoute(viewModel: AuthViewModel = hiltViewModel()) {
         onPrimaryChange = viewModel::setPrimary,
         onSecretChange = viewModel::setSecret,
         onSubmit = viewModel::submit,
+        onOpenRecovery = viewModel::openRecovery,
+        onCloseRecovery = viewModel::closeRecovery,
+        onRecoveryEmailChange = viewModel::setRecoveryEmail,
+        onRecoverPassword = viewModel::recoverPassword,
     )
 }

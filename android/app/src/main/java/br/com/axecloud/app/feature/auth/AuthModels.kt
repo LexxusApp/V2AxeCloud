@@ -34,3 +34,9 @@ sealed interface AuthResult {
     data object Success : AuthResult
     data class Error(val message: String) : AuthResult
 }
+
+internal fun isRecoveryEmailValid(value: String): Boolean {
+    val normalized = value.trim()
+    val at = normalized.indexOf('@')
+    return at > 0 && at < normalized.lastIndex && normalized.substring(at + 1).contains('.')
+}
