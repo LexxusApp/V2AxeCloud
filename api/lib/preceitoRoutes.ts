@@ -385,16 +385,42 @@ export function registerPreceitoRoutes(app: Express, deps: Deps) {
     const ctx = await managerContext(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
     if (!ctx) return;
     const status = text(req.body?.status, 30).toLowerCase();
-    if (!["encerrado", "cancelado"].includes(status)) {
+    if (!["ativo", "encerrado", "cancelado"].includes(status)) {
       return res.status(400).json({ error: "Status inválido." });
     }
     try {
-      const { data, error } = await supabaseAdmin
+      const { data: current, error: currentError } = await supabaseAdmin
         .from("preceito_ciclos")
-        .update({ status, encerrado_em: new Date().toISOString() })
+        .select("id, publico_alvo, status")
         .eq("id", req.params.id)
         .eq("tenant_id", ctx.tenantId)
-        .select("id, status, encerrado_em")
+        .maybeSingle();
+      if (currentError) throw currentError;
+      if (!current) return res.status(404).json({ error: "Ciclo não encontrado." });
+      if (status === "ativo" && current.status !== "rascunho") {
+        return res.status(409).json({ error: "Somente rascunhos podem ser ativados." });
+      }
+      if (status === "ativo" && current.publico_alvo === "corrente") {
+        const { data: active } = await supabaseAdmin
+          .from("preceito_ciclos")
+          .select("id")
+          .eq("tenant_id", ctx.tenantId)
+          .eq("status", "ativo")
+          .eq("publico_alvo", "corrente")
+          .neq("id", req.params.id)
+          .limit(1);
+        if (active?.length) return res.status(409).json({ error: "Já existe um preceito coletivo ativo para a corrente." });
+      }
+      const timestamp = new Date().toISOString();
+      const update = status === "ativo"
+        ? { status, ativado_em: timestamp, encerrado_em: null }
+        : { status, encerrado_em: timestamp };
+      const { data, error } = await supabaseAdmin
+        .from("preceito_ciclos")
+        .update(update)
+        .eq("id", req.params.id)
+        .eq("tenant_id", ctx.tenantId)
+        .select("id, status, ativado_em, encerrado_em")
         .single();
       if (error) throw error;
       return res.json({ data });

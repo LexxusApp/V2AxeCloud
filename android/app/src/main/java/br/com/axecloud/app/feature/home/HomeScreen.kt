@@ -121,6 +121,7 @@ import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
 import br.com.axecloud.app.feature.notifications.NotificationInbox
 import br.com.axecloud.app.feature.notifications.nativeUnreadCount
+import br.com.axecloud.app.feature.precepts.PreceptRoute
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -228,8 +229,8 @@ private fun HomeScreen(
                             NavigationBarItem(
                                 selected = selectedTab == tab,
                                 onClick = { selectedTab = tab },
-                                icon = { Icon(tab.icon, tab.label) },
-                                label = { Text(tab.label, fontSize = 10.sp) },
+                                icon = { Icon(tab.icon, drawerLabel(tab, state.snapshot.isFilho)) },
+                                label = { Text(drawerLabel(tab, state.snapshot.isFilho), fontSize = 10.sp, maxLines = 1) },
                                 colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
                                     selectedIconColor = AxeCloudThemeTokens.ForestDeep,
                                     selectedTextColor = AxeCloudThemeTokens.Gold,
@@ -255,13 +256,13 @@ private fun HomeScreen(
                     ) { tab ->
                         when (tab) {
                             HomeTab.INICIO -> HomeContent(state.snapshot) { selectedTab = it }
-                            HomeTab.ROTINA -> NativeJourneyScreen(
+                            HomeTab.ROTINA -> if (state.snapshot.isFilho) NativeJourneyScreen(
                                 data = state.snapshot,
                                 interaction = interaction,
                                 onAcknowledge = onAcknowledge,
                                 onGuidance = onGuidance,
                                 onOpenConversation = onOpenConversation,
-                            )
+                            ) else PreceptRoute()
                             HomeTab.AGENDA -> GirasRoute()
                             HomeTab.AVISOS -> NoticesRoute()
                             HomeTab.FINANCEIRO -> if (state.snapshot.isFilho) NativeFinanceScreen(state.snapshot, interaction, onSettleMonthly, onValidatePaymentReceipt) else FinanceRoute()
@@ -332,7 +333,7 @@ private fun NativeTopBar(
         },
         title = {
             Column {
-                Text(selectedTab.label, color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                Text(drawerLabel(selectedTab, data.isFilho), color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
                 Text(data.houseName.ifBlank { "AxéCloud" }, color = AxeCloudThemeTokens.Muted, fontSize = 11.sp, maxLines = 1)
             }
         },
@@ -445,7 +446,7 @@ private fun HouseAvatar(photoUrl: String, size: androidx.compose.ui.unit.Dp) {
 
 private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.INICIO -> "Início"
-    HomeTab.ROTINA -> if (isFilho) "Minha caminhada" else "Rotina da casa"
+    HomeTab.ROTINA -> if (isFilho) "Obrigações" else "Preceitos"
     HomeTab.AGENDA -> "Agenda e giras"
     HomeTab.AVISOS -> "Avisos"
     HomeTab.PERFIL -> "Perfil e conta"
