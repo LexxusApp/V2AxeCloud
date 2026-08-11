@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.VolunteerActivism
+import androidx.compose.material.icons.outlined.HeadsetMic
 import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -112,6 +113,7 @@ import br.com.axecloud.app.feature.gallery.GalleryRoute
 import br.com.axecloud.app.feature.care.CareRoute
 import br.com.axecloud.app.feature.store.StoreRoute
 import br.com.axecloud.app.feature.settings.SettingsRoute
+import br.com.axecloud.app.feature.support.SupportRoute
 import br.com.axecloud.app.feature.foundations.FoundationRoute
 import br.com.axecloud.app.feature.childprofile.ChildProfileRoute
 import br.com.axecloud.app.feature.inventory.InventoryRoute
@@ -279,6 +281,7 @@ private fun HomeScreen(
                                 onAddInventory = onAddInventory,
                                 onAddProduct = onAddProduct,
                             )
+                            HomeTab.SUPORTE -> SupportRoute()
                             HomeTab.PERFIL -> if (state.snapshot.isFilho) ChildProfileRoute() else NativeProfileScreen(state.snapshot, interaction, onUploadProfilePhoto, onLogout)
                         }
                     }
@@ -456,6 +459,7 @@ private fun drawerLabel(tab: HomeTab, isFilho: Boolean): String = when (tab) {
     HomeTab.LOJA -> "Loja do Axé"
     HomeTab.FUNDAMENTOS -> "Fundamentos"
     HomeTab.GESTAO -> if (isFilho) "Espaços da casa" else "Configurações"
+    HomeTab.SUPORTE -> "Suporte AxéCloud"
 }
 
 @Composable
@@ -1269,6 +1273,7 @@ private enum class HomeTab(
     LOJA("Loja", Icons.Outlined.Storefront, false),
     FUNDAMENTOS("Fundamentos", Icons.Outlined.MenuBook, false),
     GESTAO("Gestão", Icons.Outlined.Settings, false),
+    SUPORTE("Suporte", Icons.Outlined.HeadsetMic, false, true),
 
     ;
 
