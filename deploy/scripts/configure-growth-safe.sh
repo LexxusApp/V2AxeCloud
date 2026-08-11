@@ -34,6 +34,11 @@ upsert GROWTH_SAFE_OUTREACH_ENABLED true
 upsert GROWTH_SAFE_OUTREACH_TEST_MODE true
 upsert GROWTH_AI_SALES_ENABLED false
 
+CRON_SCRIPT="$(cd "$(dirname "$0")/.." && pwd)/cron-growth-prospecting.sh"
+if [[ -f "$CRON_SCRIPT" ]]; then
+  chmod 750 "$CRON_SCRIPT"
+fi
+
 echo "GROWTH_SAFE_OUTREACH_ENABLED=true"
 echo "GROWTH_SAFE_OUTREACH_TEST_MODE=true"
 echo "GROWTH_AI_SALES_ENABLED=false"

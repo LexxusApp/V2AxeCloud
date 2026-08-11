@@ -139,8 +139,22 @@ export async function runSafeGrowthOutreachTick(sb: SupabaseClient) {
   const enabled = String(process.env.GROWTH_SAFE_OUTREACH_ENABLED || "false").toLowerCase() === "true";
   const testMode = String(process.env.GROWTH_SAFE_OUTREACH_TEST_MODE || "true").toLowerCase() !== "false";
   const schedule = await dueSlots(sb);
-  if (!enabled || !schedule.slots.length) {
+  const localHour = saoPauloNow().hour;
+  if (!enabled || localHour < 9 || (!testMode && !schedule.slots.length)) {
     return { enabled, testMode, date: schedule.date, dueSlots: schedule.slots, sent: 0, researched: 0 };
+  }
+
+  let candidateTarget = schedule.slots.length;
+  if (testMode) {
+    const { count: selectedToday, error: selectedError } = await sb
+      .from("growth_prospects")
+      .select("id", { count: "exact", head: true })
+      .eq("selected_date", schedule.date);
+    if (selectedError) throw selectedError;
+    candidateTarget = Math.max(0, 2 - Number(selectedToday || 0));
+    if (!candidateTarget) {
+      return { enabled, testMode, date: schedule.date, dueSlots: schedule.slots, sent: 0, researched: 0, readyForEmail: 0 };
+    }
   }
   if (!testMode && !growthMailConfigured()) throw new Error("SMTP não configurado para o funil seguro.");
 
@@ -166,11 +180,11 @@ export async function runSafeGrowthOutreachTick(sb: SupabaseClient) {
 
   let sent = 0;
   let researched = 0;
-  const candidates = [...(pendingEmail || [])];
+  const candidates = [...(pendingEmail || [])].slice(0, candidateTarget);
   const seen = new Set(candidates.map((row: any) => String(row.id)));
 
   for (const row of directoryRows || []) {
-    if (candidates.length >= schedule.slots.length || researched >= (testMode ? 2 : 8)) break;
+    if (candidates.length >= candidateTarget || researched >= (testMode ? 12 : 8)) break;
     try {
       const prospect = await ensureProspect(sb, row);
       if (!prospect || seen.has(String(prospect.id)) || prospect.selected_date) continue;
@@ -211,6 +225,18 @@ export async function runSafeGrowthOutreachTick(sb: SupabaseClient) {
   }
 
   if (testMode) {
+    let selected = 0;
+    for (const slot of schedule.slots) {
+      const prospect = candidates.shift();
+      if (!prospect) break;
+      const { data, error } = await sb.from("growth_prospects").update({
+        selected_date: schedule.date,
+        selected_slot: slot,
+        updated_at: new Date().toISOString(),
+      }).eq("id", prospect.id).is("selected_date", null).select("id").maybeSingle();
+      if (error) throw error;
+      if (data?.id) selected += 1;
+    }
     return {
       enabled,
       testMode,
@@ -218,6 +244,7 @@ export async function runSafeGrowthOutreachTick(sb: SupabaseClient) {
       dueSlots: schedule.slots,
       sent: 0,
       researched,
+      selected,
       readyForEmail: candidates.length,
     };
   }
