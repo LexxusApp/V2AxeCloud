@@ -76,6 +76,18 @@ private data class InboxNotification(
     val serverRead: Boolean = false,
 )
 
+internal data class BackgroundNotification(
+    val id: String,
+    val title: String,
+    val body: String,
+    val target: String,
+)
+
+internal fun backgroundNotifications(data: HomeSnapshot): List<BackgroundNotification> =
+    buildInbox(data)
+        .filter { !it.serverRead && it.priority >= 2 }
+        .map { BackgroundNotification(it.id, it.title, it.body, it.target) }
+
 internal fun nativeUnreadCount(context: Context, data: HomeSnapshot): Int {
     val inbox = buildInbox(data)
     val read = readIds(context, data) + inbox.filter { it.serverRead }.map { it.id }

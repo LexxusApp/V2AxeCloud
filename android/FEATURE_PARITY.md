@@ -37,7 +37,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva, Pix e cobrança na mensalidade compilados; validação real em aparelho pendente |
 | Comunicados | mural, categorias, busca, detalhes, compartilhamento e leitura | PARCIAL — experiência nativa compilada com os dados reais do mural; validação no aparelho pendente |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação de voz, players Media3 e Realtime autenticado compilados; validação real pendente |
-| Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox derivada das pendências reais, leitura sincronizada entre aparelhos e deep links nativos compilados; transporte push em segundo plano pendente |
+| Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox derivada das pendências reais, leitura sincronizada entre aparelhos, sincronização periódica Android em segundo plano e deep links para o módulo correto compilados; push instantâneo com entrega do servidor pendente |
 
 ## Qualidade obrigatória
 

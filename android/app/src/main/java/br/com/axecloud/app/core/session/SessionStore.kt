@@ -7,10 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import br.com.axecloud.app.feature.notifications.NotificationSyncScheduler
 
 @Singleton
 class SessionStore @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val cipher: TokenCipher,
 ) {
     private val preferences = context.getSharedPreferences("axecloud_secure_session", Context.MODE_PRIVATE)
@@ -33,6 +34,7 @@ class SessionStore @Inject constructor(
             .putLong(KEY_EXPIRES, snapshot.expiresAtEpochSeconds)
             .apply()
         mutableSession.value = snapshot
+        NotificationSyncScheduler.kick(context)
     }
 
     fun clear() {

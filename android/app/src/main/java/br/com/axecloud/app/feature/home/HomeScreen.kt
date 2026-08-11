@@ -78,6 +78,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -124,6 +125,7 @@ import br.com.axecloud.app.feature.library.LibraryRoute
 import br.com.axecloud.app.feature.notices.NoticesRoute
 import br.com.axecloud.app.feature.notifications.NotificationInbox
 import br.com.axecloud.app.feature.notifications.nativeUnreadCount
+import br.com.axecloud.app.feature.notifications.NotificationSyncScheduler
 import br.com.axecloud.app.feature.precepts.PreceptRoute
 import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
@@ -131,6 +133,7 @@ import com.google.zxing.MultiFormatWriter
 import coil.compose.AsyncImage
 import android.net.Uri
 import android.Manifest
+import android.os.Build
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import androidx.core.content.ContextCompat
@@ -140,10 +143,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeRoute(
     onLogout: () -> Unit,
+    notificationTarget: String? = null,
+    onNotificationConsumed: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val interaction by viewModel.interaction.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) NotificationSyncScheduler.kick(context)
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME){viewModel.refreshIfStale()}
     HomeScreen(
         state = state,
@@ -165,6 +174,15 @@ fun HomeRoute(
         onUploadProfilePhoto = viewModel::uploadProfilePhoto,
         onValidatePaymentReceipt = viewModel::validatePaymentReceipt,
         onMarkNotificationRead = viewModel::markNotificationRead,
+        notificationTarget = notificationTarget,
+        onNotificationConsumed = onNotificationConsumed,
+        onRequestNotificationPermission = {
+            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                NotificationSyncScheduler.kick(context)
+            }
+        },
     )
 }
 
@@ -190,6 +208,9 @@ private fun HomeScreen(
     onUploadProfilePhoto: (Uri) -> Unit,
     onValidatePaymentReceipt: (Uri) -> Unit,
     onMarkNotificationRead: (String?) -> Unit,
+    notificationTarget: String?,
+    onNotificationConsumed: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
     var notificationsOpen by rememberSaveable { mutableStateOf(false) }
@@ -198,6 +219,12 @@ private fun HomeScreen(
     val scope = rememberCoroutineScope()
     val hasLoadedContent = state.snapshot.houseName.isNotBlank() || state.snapshot.greetingName.isNotBlank()
     val chromeVisible = state.error == null && interaction.conversationId == null && (!state.loading || hasLoadedContent)
+    LaunchedEffect(notificationTarget, hasLoadedContent) {
+        if (notificationTarget != null && hasLoadedContent) {
+            selectedTab = tabForNotification(notificationTarget)
+            onNotificationConsumed()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -223,7 +250,7 @@ private fun HomeScreen(
                         selectedTab = selectedTab,
                         onAvatarClick = { scope.launch { drawerState.open() } },
                         notificationCount = nativeUnreadCount(context, state.snapshot),
-                        onNotifications = { notificationsOpen = true },
+                        onNotifications = { onRequestNotificationPermission(); notificationsOpen = true },
                         onRefresh = onRetry,
                     )
                 }
@@ -323,6 +350,15 @@ private fun HomeScreen(
             },
         )
     }
+}
+
+private fun tabForNotification(target: String): HomeTab = when (target) {
+    "finance" -> HomeTab.FINANCEIRO
+    "management" -> HomeTab.GESTAO
+    "routine" -> HomeTab.ROTINA
+    "agenda" -> HomeTab.AGENDA
+    "notices" -> HomeTab.AVISOS
+    else -> HomeTab.INICIO
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

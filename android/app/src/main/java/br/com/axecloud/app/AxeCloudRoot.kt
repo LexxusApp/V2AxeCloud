@@ -16,7 +16,10 @@ import br.com.axecloud.app.feature.auth.AuthViewModel
 import br.com.axecloud.app.feature.home.HomeRoute
 
 @Composable
-fun AxeCloudRoot() {
+fun AxeCloudRoot(
+    notificationTarget: String? = null,
+    onNotificationConsumed: () -> Unit = {},
+) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val session by authViewModel.session.collectAsStateWithLifecycle()
@@ -25,7 +28,11 @@ fun AxeCloudRoot() {
             authState.booting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = AxeCloudThemeTokens.Forest)
             }
-            session.isAuthenticated -> HomeRoute(onLogout = authViewModel::logout)
+            session.isAuthenticated -> HomeRoute(
+                onLogout = authViewModel::logout,
+                notificationTarget = notificationTarget,
+                onNotificationConsumed = onNotificationConsumed,
+            )
             else -> AuthRoute(authViewModel)
         }
     }
