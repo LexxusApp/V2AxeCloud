@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  Target,
   PlusCircle,
   Radio,
   ScrollText,
@@ -33,6 +34,7 @@ export type AdminNavTab =
   | "plans"
   | "whatsapp"
   | "wa-inbox"
+  | "growth"
   | "monitor";
 
 type IconTone = "blue" | "violet" | "emerald" | "amber" | "rose" | "teal" | "sky" | "orange";
@@ -46,6 +48,7 @@ const MAIN_NAV: NavItem[] = [
   { id: "logs", label: "Eventos", icon: ScrollText, tone: "amber" },
   { id: "whatsapp", label: "Notificações", icon: MessageCircle, tone: "teal" },
   { id: "wa-inbox", label: "Caixa WA", icon: Inbox, tone: "sky" },
+  { id: "growth", label: "Prospecção", icon: Target, tone: "emerald" },
 ];
 
 const EXTRA_NAV: NavItem[] = [
@@ -65,6 +68,7 @@ const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   logs: "Registo de eventos e auditoria",
   whatsapp: "Comunicados e notificações",
   "wa-inbox": "Mensagens recebidas no WhatsApp oficial",
+  growth: "Dois novos candidatos por dia e atendimento comercial por IA",
   storage: "Uso de armazenamento e ficheiros",
   metrics: "Métricas de infraestrutura Supabase",
   monitor: "Monitorização em tempo real",

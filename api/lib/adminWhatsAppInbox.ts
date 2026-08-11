@@ -187,6 +187,19 @@ export async function storeMetaInboundMessages(sb: SupabaseClient, body: unknown
       continue;
     }
     stored += 1;
+    setImmediate(() => {
+      void import("./growthSalesAgent.js")
+        .then(({ handleGrowthInboundAutoReply }) =>
+          handleGrowthInboundAutoReply(sb, {
+            phone: event.from,
+            inboundBody: event.body,
+            inboundAt: nowIso,
+          }),
+        )
+        .catch((error) => {
+          console.warn("[GROWTH AI] resposta automática falhou:", error instanceof Error ? error.message : error);
+        });
+    });
   }
 
   return stored;

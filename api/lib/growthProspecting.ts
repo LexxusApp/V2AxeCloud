@@ -4,6 +4,7 @@ import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { getBearerToken } from "./requireAuth.js";
 import { safeErrorMessage } from "./safeError.js";
 import { sendMetaCloudTemplate } from "./metaCloudSend.js";
+import { runSafeGrowthOutreachTick } from "./growthSafeOutreach.js";
 
 type GrowthDeps = {
   supabaseAdmin: SupabaseClient;
@@ -94,7 +95,30 @@ export function registerGrowthProspectingRoutes(app: Express, deps: GrowthDeps) 
         followup1: process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_1 || FOLLOWUP_1_TEMPLATE,
         followup2: process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_2 || FOLLOWUP_2_TEMPLATE,
       },
+      safeOutreach: {
+        enabled: String(process.env.GROWTH_SAFE_OUTREACH_ENABLED || "false").toLowerCase() === "true",
+        testMode: String(process.env.GROWTH_SAFE_OUTREACH_TEST_MODE || "true").toLowerCase() !== "false",
+        dailyLimit: 2,
+        city: "Suzano",
+        channels: ["email", "contact_form"],
+        aiSalesEnabled: String(process.env.GROWTH_AI_SALES_ENABLED || "false").toLowerCase() === "true",
+      },
     });
+  });
+
+  app.get("/api/admin-console/growth/prospects", async (req, res) => {
+    if (!(await requireGrowthAdmin(deps, req, res))) return;
+    try {
+      const { data, error } = await deps.supabaseAdmin
+        .from("growth_prospects")
+        .select("id,terreiro_nome,phone_e164,cidade,bairro,source_url,public_email,website_url,contact_form_url,instagram_url,facebook_url,research_status,outreach_channel,outreach_status,outreach_subject,outreach_message,outreach_sent_at,selected_date,selected_slot,consent_at,opt_out_at,status,ai_sales_enabled,ai_sales_stage,ai_last_reply_at,created_at,updated_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      res.json({ prospects: data || [] });
+    } catch (error) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar prospecção") });
+    }
   });
 
   app.get("/api/admin-console/growth/queue", async (req, res) => {
@@ -258,11 +282,18 @@ async function reconcileReplies(supabase: SupabaseClient): Promise<number> {
 }
 
 export async function runGrowthProspectingTick(supabase: SupabaseClient) {
+  let safeOutreach: Record<string, unknown>;
+  try {
+    safeOutreach = await runSafeGrowthOutreachTick(supabase);
+  } catch (error) {
+    safeOutreach = { error: safeErrorMessage(error, "Falha no funil seguro") };
+    console.error("[GROWTH SAFE]", safeOutreach.error);
+  }
   const enabled = String(process.env.GROWTH_PROSPECTING_ENABLED || "false").toLowerCase() === "true";
   const testMode = String(process.env.GROWTH_PROSPECTING_TEST_MODE || "true").toLowerCase() !== "false";
   const limit = Math.min(30, Math.max(1, Number(process.env.GROWTH_PROSPECTING_DAILY_LIMIT || 10)));
   const replies = await reconcileReplies(supabase);
-  if (!enabled || testMode) return { enabled, testMode, sent: 0, replies };
+  if (!enabled || testMode) return { enabled, testMode, sent: 0, replies, safeOutreach };
 
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -272,7 +303,7 @@ export async function runGrowthProspectingTick(supabase: SupabaseClient) {
     .in("event_type", ["sent", "followup"])
     .gte("created_at", start.toISOString());
   let remaining = Math.max(0, limit - Number(count || 0));
-  if (!remaining) return { enabled, testMode, sent: 0, replies, dailyLimitReached: true };
+  if (!remaining) return { enabled, testMode, sent: 0, replies, dailyLimitReached: true, safeOutreach };
 
   const { data: due, error } = await supabase
     .from("growth_outreach_queue")
@@ -359,5 +390,5 @@ export async function runGrowthProspectingTick(supabase: SupabaseClient) {
       }
     }
   }
-  return { enabled, testMode, sent, replies };
+  return { enabled, testMode, sent, replies, safeOutreach };
 }

@@ -25,6 +25,7 @@ import { CreateTenantPage } from "./CreateTenantPage";
 import { DemoAccountPanel } from "./DemoAccountPanel";
 import { SupabaseMetricsPanel } from "./SupabaseMetricsPanel";
 import { StoragePanel } from "./StoragePanel";
+import { GrowthProspectingPanel } from "./GrowthProspectingPanel";
 
 type Tab = AdminNavTab;
 
@@ -594,6 +595,7 @@ export function CommandShell({ session }: { session: Session }) {
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}
         {tab === "wa-inbox" && <WhatsAppInboxPanel />}
+        {tab === "growth" && <GrowthProspectingPanel />}
         {tab === "monitor" && <AuditMonitor />}
         </div>
       </AdminDashboardLayout>
