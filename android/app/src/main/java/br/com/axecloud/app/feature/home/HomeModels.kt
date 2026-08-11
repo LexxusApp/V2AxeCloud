@@ -1,5 +1,8 @@
 package br.com.axecloud.app.feature.home
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class HomeSnapshot(
     val greetingName: String = "",
     val houseName: String = "",
@@ -32,6 +35,7 @@ data class HomeSnapshot(
     val profilePhotoUrl: String = "",
 )
 
+@Serializable
 data class HomeFeedItem(
     val id: String = "",
     val title: String,

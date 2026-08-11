@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Base64
 import android.provider.OpenableColumns
 import br.com.axecloud.app.BuildConfig
+import br.com.axecloud.app.core.cache.HomeCache
 import br.com.axecloud.app.core.network.AxeCloudHttpClient
 import br.com.axecloud.app.core.session.SessionSnapshot
 import br.com.axecloud.app.core.session.SessionStore
@@ -28,6 +29,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 class HomeRepository @Inject constructor(
     private val http: AxeCloudHttpClient,
     private val sessions: SessionStore,
+    private val homeCache: HomeCache,
     @ApplicationContext private val context: Context,
 ) {
     fun session(): SessionSnapshot = sessions.current()
@@ -250,7 +252,14 @@ class HomeRepository @Inject constructor(
     suspend fun load(): HomeSnapshot {
         val session = sessions.current()
         check(session.isAuthenticated) { "Entre novamente para continuar." }
-        return if (session.isFilho) loadFilho(session) else loadZelador(session)
+        val cacheKey = "${session.tenantId}:${session.userId}:${session.role}"
+        return try {
+            val fresh = if (session.isFilho) loadFilho(session) else loadZelador(session)
+            homeCache.save(cacheKey, fresh)
+            fresh
+        } catch (error: Throwable) {
+            homeCache.read(cacheKey) ?: throw error
+        }
     }
 
     suspend fun markNotificationRead(id: String?) {
