@@ -62,6 +62,21 @@ android {
         )
     }
 
+    val releaseKeystorePath = configValue("AXECLOUD_KEYSTORE_PATH")
+    val releaseKeystorePassword = configValue("AXECLOUD_KEYSTORE_PASSWORD")
+    val releaseKeyAlias = configValue("AXECLOUD_KEY_ALIAS")
+    val releaseKeyPassword = configValue("AXECLOUD_KEY_PASSWORD")
+    val releaseSigningReady = listOf(releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword).all(String::isNotBlank)
+
+    signingConfigs {
+        if (releaseSigningReady) create("release") {
+            storeFile = file(releaseKeystorePath)
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -70,6 +85,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            if (releaseSigningReady) signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

@@ -47,4 +47,4 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 - Acessibilidade, teclado, contraste, tamanhos de toque e suporte ao aumento de fonte.
 - Rede e estados offline: detecção nativa, preservação da tela, aviso não bloqueante, recarga ao reconectar/retornar e cache estruturado Room criptografado pelo Android Keystore compilados; validação de restauração em aparelho pendente.
 - Testes: suíte unitária cobre corrente, financeiro e preceitos; suíte instrumentada inicial valida identidade e alternância do login nativo e seu APK de testes compila; execução instrumentada, ampliação de cobertura, auditoria de segurança e validação no aparelho real ainda pendentes.
-- APK e AAB assináveis, ícone adaptativo, splash, política de privacidade e checklist da Play Store.
+- APK de desenvolvimento e AAB release otimizado gerados; configuração segura de assinatura, ícone adaptativo, splash e política de privacidade presentes. Chave privada, assinatura final e checklist da Play Store pendentes.
