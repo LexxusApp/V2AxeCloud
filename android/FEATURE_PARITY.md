@@ -19,7 +19,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Almoxarifado | estoque, busca/filtros, cadastro, edição, movimentação, alertas e exclusão | PARCIAL |
 | Biblioteca | materiais, categorias, acesso controlado, upload, edição, leitura/download e exclusão | PARCIAL — PDFs e Acervo de Fundamentos nativos; banhos/ervas/rituais, tradição, cargo, acesso individual, rascunho/publicação/arquivo compilados; validação real pendente |
 | Atendimentos | agenda, pedidos de reza, status, detalhes, cadastro e histórico | PARCIAL — central nativa de pedidos, busca, acolhimento, oração, notas, WhatsApp e conclusão compilados; agenda/cadastro/histórico dependem de API Web equivalente |
-| Loja | produtos, categorias, cadastro/edição, estoque, pedidos e status | PARCIAL — vitrine, busca, sacola, checkout, catálogo, edição, exclusão e pedidos recentes nativos; gestão de status dos pedidos pendente |
+| Loja | produtos, categorias, cadastro/edição, estoque e pedidos | PARCIAL — vitrine, busca, cadastro/edição/exclusão, sugestão automática de imagem, estoque, sacola, reserva, Pix, mensalidade e pedidos recentes compilados; validação transacional no aparelho pendente |
 | Preceitos | criar, ativar para corrente/grupos/indivíduos, rascunho, instruções, ciência, orientação, dispensa e encerramento | PARCIAL — central nativa completa compilada; API agora permite reabrir o rascunho e ativá-lo com proteção contra ciclos coletivos duplicados; validação real pendente |
 | Configurações | identidade, conta, casa, foto, segurança, plano, WhatsApp, portal público e exclusão | PARCIAL — identidade, portal, pedidos de reza, notificações, e-mail, senha e exclusão protegida compilados; assinatura consulta plano/ciclo/validade/preços reais e renova em Custom Tab segura; Central WhatsApp nativa consulta canal, edita automações, testa envio e exibe histórico; validação real pendente |
 | Suporte | dados da conta, WhatsApp, descrição, validação, envio e confirmação | PARCIAL — fluxo nativo autenticado compilado; envio real e validação em aparelho pendentes |
@@ -34,7 +34,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Mensalidade | situação, Pix/QR, copiar, comprovante e histórico | PARCIAL |
 | Giras | agenda, detalhes e confirmação de presença | PARCIAL |
 | Biblioteca | busca, categorias, permissões, leitura e download | PARCIAL — PDFs e fundamentos filtrados no servidor por tradição, cargo e autorização individual; validação em aparelho pendente |
-| Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva e cobrança na mensalidade nativos; validação real em aparelho pendente |
+| Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva, Pix e cobrança na mensalidade compilados; validação real em aparelho pendente |
 | Comunicados | mural, categorias, anexos e leitura | PARCIAL |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação de voz, players Media3 e atualização contínua compilados; realtime Supabase pendente |
 | Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
