@@ -4857,6 +4857,31 @@ async function startServer() {
     }
   });
 
+  app.patch("/api/notifications/read-all", async (req, res) => {
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
+    if (!access) return;
+    try {
+      const { error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("tenant_id", access.tenantId).eq("lida", false);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao marcar notificações.") });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
+    if (!access) return;
+    try {
+      const { data, error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("id", req.params.id).eq("tenant_id", access.tenantId).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Notificação não encontrada." });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao marcar notificação.") });
+    }
+  });
+
   async function userCanAccessCalendarEvent(
     user: { id: string; email?: string | null },
     eventId: string

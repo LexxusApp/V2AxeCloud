@@ -6,7 +6,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 
 | Módulo | Funções do Web que precisam existir no Android | Estado |
 |---|---|---|
-| Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL |
+| Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL — painel nativo usa dados reais da casa e a Central de Notificações agora sincroniza leitura individual e coletiva com o servidor; validação real pendente |
 | Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | PARCIAL — lista, busca, filtros inclusive sem acesso, três ordenações, cadastro, edição, exclusão, foto de perfil, mensalidade, envio individual e coletivo de acesso compilados; validação real pendente |
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, senhas, mapa de velas, QR Code e presença | PARCIAL — agenda e operação nativas compiladas com confirmação da corrente, aprovação, senhas de visitantes, fila de atendimento, mapa de velas, portaria e QR; validação real pendente |
 | Frequência | relatório, histórico e indicadores por filho/gira; operação de presença por evento | PARCIAL — relatório e histórico detalhado nativos; operação por gira fica no Centro de Gira; validação real pendente |
@@ -28,7 +28,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 
 | Módulo | Funções do Web que precisam existir no Android | Estado |
 |---|---|---|
-| Central | resumo pessoal, pendências, agenda, avisos e atalhos | PARCIAL |
+| Central | resumo pessoal, pendências, agenda, avisos e atalhos | PARCIAL — central nativa ligada a dados pessoais reais e leitura de notificações sincronizada; validação real pendente |
 | Perfil | cadastro civil, trajetória, coroa, quizilas, sacramentos, foto e contato | PARCIAL — identidade nativa, coroa, adjunto, cadastro civil, contato editável, quizilas, linha do tempo real e abertura autenticada de documentos compilados; validação no aparelho pendente |
 | Obrigações | preceitos ativos, instruções, ciência e pedido de orientação | PARCIAL — leitura reservada, ciência e orientação integradas à mesma operação da zeladoria; validação real pendente |
 | Mensalidade | situação, Pix/QR, copiar, comprovante e histórico | PARCIAL |
@@ -37,7 +37,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva, Pix e cobrança na mensalidade compilados; validação real em aparelho pendente |
 | Comunicados | mural, categorias, busca, detalhes, compartilhamento e leitura | PARCIAL — experiência nativa compilada com os dados reais do mural; validação no aparelho pendente |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação de voz, players Media3 e atualização contínua compilados; realtime Supabase pendente |
-| Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
+| Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox derivada das pendências reais, leitura sincronizada entre aparelhos e deep links nativos compilados; transporte push em segundo plano pendente |
 
 ## Qualidade obrigatória
 

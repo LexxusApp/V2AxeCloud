@@ -72,11 +72,14 @@ private data class InboxNotification(
     val body: String,
     val target: String,
     val priority: Int = 0,
+    val sourceId: String? = null,
+    val serverRead: Boolean = false,
 )
 
 internal fun nativeUnreadCount(context: Context, data: HomeSnapshot): Int {
-    val read = readIds(context, data)
-    return buildInbox(data).count { it.id !in read }
+    val inbox = buildInbox(data)
+    val read = readIds(context, data) + inbox.filter { it.serverRead }.map { it.id }
+    return inbox.count { it.id !in read }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,17 +87,19 @@ internal fun nativeUnreadCount(context: Context, data: HomeSnapshot): Int {
 internal fun NotificationInbox(
     data: HomeSnapshot,
     onDismiss: () -> Unit,
+    onMarkRead: (String?) -> Unit,
     onNavigate: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val allItems = remember(data) { buildInbox(data) }
-    var readIds by remember(data.houseName, data.isFilho) { mutableStateOf(readIds(context, data)) }
+    var readIds by remember(data) { mutableStateOf(readIds(context, data) + allItems.filter { it.serverRead }.map { it.id }) }
     var unreadOnly by remember { mutableStateOf(false) }
     val visible = if (unreadOnly) allItems.filter { it.id !in readIds } else allItems
 
     fun markRead(id: String) {
         readIds = (readIds + id).toList().takeLast(300).toSet()
         saveIds(context, data, readIds)
+        allItems.find { it.id == id }?.sourceId?.let(onMarkRead)
     }
 
     ModalBottomSheet(
@@ -117,7 +122,7 @@ internal fun NotificationInbox(
                 }
                 if (readIds.size < allItems.size) {
                     Button(
-                        onClick = { readIds = allItems.mapTo(mutableSetOf()) { it.id }; saveIds(context, data, readIds) },
+                        onClick = { readIds = allItems.mapTo(mutableSetOf()) { it.id }; saveIds(context, data, readIds); onMarkRead(null) },
                         colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest),
                     ) { Text("Ler tudo", fontSize = 11.sp) }
                 }
@@ -220,6 +225,8 @@ private fun HomeFeedItem.toInbox(prefix: String, kind: NotificationKind, fallbac
     body = detail,
     target = target,
     priority = priority,
+    sourceId = id.takeIf { prefix == "notice" && status.startsWith("server:") },
+    serverRead = prefix == "notice" && status == "server:read",
 )
 
 private fun preferenceKey(data: HomeSnapshot) = "${data.houseName}:${if (data.isFilho) "filho" else "lider"}"

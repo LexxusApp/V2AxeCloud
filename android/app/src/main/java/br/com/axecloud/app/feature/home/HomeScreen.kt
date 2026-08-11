@@ -164,6 +164,7 @@ fun HomeRoute(
         onAddProduct = viewModel::addStoreProduct,
         onUploadProfilePhoto = viewModel::uploadProfilePhoto,
         onValidatePaymentReceipt = viewModel::validatePaymentReceipt,
+        onMarkNotificationRead = viewModel::markNotificationRead,
     )
 }
 
@@ -188,6 +189,7 @@ private fun HomeScreen(
     onAddProduct: (String, String, String, String) -> Unit,
     onUploadProfilePhoto: (Uri) -> Unit,
     onValidatePaymentReceipt: (Uri) -> Unit,
+    onMarkNotificationRead: (String?) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.INICIO) }
     var notificationsOpen by rememberSaveable { mutableStateOf(false) }
@@ -308,6 +310,7 @@ private fun HomeScreen(
         NotificationInbox(
             data = state.snapshot,
             onDismiss = { notificationsOpen = false },
+            onMarkRead = onMarkNotificationRead,
             onNavigate = { target ->
                 selectedTab = when (target) {
                     "finance" -> HomeTab.FINANCEIRO

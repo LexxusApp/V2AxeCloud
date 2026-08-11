@@ -253,6 +253,12 @@ class HomeRepository @Inject constructor(
         return if (session.isFilho) loadFilho(session) else loadZelador(session)
     }
 
+    suspend fun markNotificationRead(id: String?) {
+        val session = authenticatedSession()
+        val path = if (id == null) "/api/notifications/read-all" else "/api/notifications/${encode(id)}/read"
+        http.patch(api(path), buildJsonObject { put("tenantId", session.tenantId) }, session.accessToken)
+    }
+
     private suspend fun loadFilho(session: SessionSnapshot): HomeSnapshot = coroutineScope {
         val tenant = encode(session.tenantId)
         val homeCall = async { http.get(api("/api/v1/filho/home"), session.accessToken) }
@@ -420,6 +426,7 @@ private fun JsonObject.toNoticeItem() = HomeFeedItem(
     id = text("id"),
     title = text("titulo", "title", "assunto", "subject", "tipo").ifBlank { "Aviso da casa" },
     detail = text("conteudo", "content", "mensagem", "message", "descricao").take(100),
+    status = if (containsKey("lida")) if (bool("lida") == true) "server:read" else "server:unread" else "",
 )
 private fun JsonObject.toPreceptItem() = HomeFeedItem(
     id = text("id"),

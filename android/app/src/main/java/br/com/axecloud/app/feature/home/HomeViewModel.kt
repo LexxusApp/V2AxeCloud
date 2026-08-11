@@ -89,6 +89,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun clearFeedback() = mutableInteraction.update { it.copy(feedback = null) }
+    fun markNotificationRead(id: String?) = viewModelScope.launch {
+        runCatching { repository.markNotificationRead(id) }.onSuccess {
+            mutableState.update { state -> state.copy(snapshot = state.snapshot.copy(noticeItems = state.snapshot.noticeItems.map { item -> if (id == null || item.id == id) item.copy(status = if (item.status.startsWith("server:")) "server:read" else item.status) else item })) }
+        }
+    }
 
     fun settleMonthlyPayment(item: HomeFeedItem) = runAction(item.id, "Mensalidade marcada como paga.") {
         repository.settleMonthlyPayment(item.id, item.amount)
