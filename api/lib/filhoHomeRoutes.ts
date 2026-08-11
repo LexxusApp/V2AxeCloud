@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
-import { assertUserCanAccessTenant, normalizeQueryTenantId } from "./tenantAccess.js";
+import { assertUserCanAccessTenant, assertZeladorTenantAccess, normalizeQueryTenantId, resolveLeaderId } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 import { assertSafeImageBuffer, SAFE_IMAGE_MIME_TYPES } from "./imageUpload.js";
 import { digitsOnlyCpf, isValidCpf } from "../../lib/brCpf.js";
@@ -88,6 +88,74 @@ type Deps = {
 
 export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
   const { supabaseAdmin } = deps;
+
+  async function libraryMaterialScope(materialId: string, tenantId: string) {
+    const resolved = await resolveLeaderId(supabaseAdmin, tenantId);
+    const { data } = await supabaseAdmin.from("biblioteca").select("id,tenant_id").eq("id", materialId).in("tenant_id", [tenantId, resolved]).maybeSingle();
+    return data ? { materialId: String(data.id), tenantId: String(data.tenant_id) } : null;
+  }
+
+  app.get("/api/v1/library/material/:id/comments", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res); if (!user) return;
+    const tenantId = normalizeQueryTenantId(req.query.tenantId);
+    if (!tenantId || !(await assertUserCanAccessTenant(supabaseAdmin, user, tenantId))) return res.status(403).json({ error: "Acesso negado" });
+    try {
+      const scope = await libraryMaterialScope(String(req.params.id), tenantId);
+      if (!scope) return res.status(404).json({ error: "Material não encontrado." });
+      const commentTenantIds = [...new Set([tenantId, scope.tenantId])];
+      const { data, error } = await supabaseAdmin.from("biblioteca_comentarios").select("id,arquivo_id,user_id,tenant_id,texto,parent_id,created_at").eq("arquivo_id", scope.materialId).in("tenant_id", commentTenantIds).order("created_at");
+      if (error) throw error;
+      const userIds = [...new Set((data || []).map((row) => String(row.user_id || "")).filter(Boolean))];
+      const [{ data: profiles }, { data: children }, { data: leaders }] = await Promise.all([
+        userIds.length ? supabaseAdmin.from("profiles").select("id,full_name,avatar_url,role").in("id", userIds) : Promise.resolve({ data: [] }),
+        userIds.length ? supabaseAdmin.from("filhos_de_santo").select("user_id,nome,foto_url").in("user_id", userIds) : Promise.resolve({ data: [] }),
+        userIds.length ? supabaseAdmin.from("perfil_lider").select("id,nome,foto_url").in("id", userIds) : Promise.resolve({ data: [] }),
+      ]);
+      const items = (data || []).map((row) => {
+        const profile = (profiles || []).find((p) => p.id === row.user_id);
+        const child = (children || []).find((p) => p.user_id === row.user_id);
+        const leader = (leaders || []).find((p) => p.id === row.user_id);
+        return { ...row, authorName: profile?.full_name || child?.nome || leader?.nome || "Membro da casa", authorPhoto: profile?.avatar_url || child?.foto_url || leader?.foto_url || "", leadership: ["admin","zelador","lider"].includes(String(profile?.role || "").toLowerCase()) || Boolean(leader) };
+      });
+      res.json({ items, currentUserId: user.id, manager: await assertZeladorTenantAccess(supabaseAdmin, user.id, tenantId) });
+    } catch (error) { res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar comentários.") }); }
+  });
+
+  app.post("/api/v1/library/material/:id/comments", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res); if (!user) return;
+    const tenantId = normalizeQueryTenantId(req.body?.tenantId);
+    const text = String(req.body?.text || "").trim().slice(0, 2000);
+    const parentId = String(req.body?.parentId || "").trim() || null;
+    if (!tenantId || !text || !(await assertUserCanAccessTenant(supabaseAdmin, user, tenantId))) return res.status(400).json({ error: "Dados inválidos." });
+    try {
+      const scope = await libraryMaterialScope(String(req.params.id), tenantId);
+      if (!scope) return res.status(404).json({ error: "Material não encontrado." });
+      if (parentId) {
+        const { data: parent } = await supabaseAdmin.from("biblioteca_comentarios").select("id").eq("id", parentId).eq("arquivo_id", scope.materialId).maybeSingle();
+        if (!parent) return res.status(400).json({ error: "Comentário original não encontrado." });
+      }
+      const { data, error } = await supabaseAdmin.from("biblioteca_comentarios").insert({ arquivo_id: scope.materialId, user_id: user.id, tenant_id: tenantId, texto: text, parent_id: parentId }).select("id").single();
+      if (error) throw error;
+      if (!parentId && String(user.user_metadata?.role || "").toLowerCase() === "filho") await supabaseAdmin.from("notificacoes").insert({ tenant_id: tenantId, tipo: "biblioteca_duvida", mensagem: `Nova dúvida na Biblioteca: ${text.slice(0, 80)}`, link: "library", lida: false });
+      res.status(201).json({ id: data.id });
+    } catch (error) { res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar comentário.") }); }
+  });
+
+  app.delete("/api/v1/library/comments/:id", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res); if (!user) return;
+    const tenantId = normalizeQueryTenantId(req.query.tenantId);
+    if (!tenantId || !(await assertUserCanAccessTenant(supabaseAdmin, user, tenantId))) return res.status(403).json({ error: "Acesso negado" });
+    try {
+      const { data: row } = await supabaseAdmin.from("biblioteca_comentarios").select("id,user_id,tenant_id").eq("id", req.params.id).maybeSingle();
+      if (!row) return res.status(404).json({ error: "Comentário não encontrado." });
+      const resolvedTenantId = await resolveLeaderId(supabaseAdmin, tenantId);
+      if (![tenantId, resolvedTenantId].includes(String(row.tenant_id))) return res.status(404).json({ error: "Comentário não encontrado." });
+      const manager = await assertZeladorTenantAccess(supabaseAdmin, user.id, tenantId);
+      if (row.user_id !== user.id && !manager) return res.status(403).json({ error: "Acesso negado" });
+      const { error } = await supabaseAdmin.from("biblioteca_comentarios").delete().eq("id", row.id); if (error) throw error;
+      res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir comentário.") }); }
+  });
 
   app.get("/api/v1/filho/profile", async (req: Request, res: Response) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
