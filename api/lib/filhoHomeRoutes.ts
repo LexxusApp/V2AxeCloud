@@ -157,6 +157,40 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
     }
   });
 
+  app.get("/api/v1/filho/obligations", async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
+    if (!user) return;
+    try {
+      const child = await loadFilhoRecordForUser(supabaseAdmin, user);
+      if (!child?.id || !child.tenant_id) {
+        return res.status(404).json({ error: "Perfil de filho de santo não encontrado." });
+      }
+
+      const marker = `FILHO_ID:${child.id}`;
+      const { data, error } = await supabaseAdmin
+        .from("calendario_axe")
+        .select("id,titulo,data,hora,descricao,status_confirmacao,pdf_storage_path")
+        .eq("tenant_id", child.tenant_id)
+        .eq("tipo", "Obrigação")
+        .like("descricao", `%${marker}%`)
+        .order("data", { ascending: false });
+      if (error) throw error;
+
+      const obligations = (data || []).map((row: Record<string, unknown>) => ({
+        id: String(row.id || ""),
+        title: String(row.titulo || "Obrigação"),
+        date: String(row.data || ""),
+        time: String(row.hora || ""),
+        description: String(row.descricao || "").split("\n\n=== METADADOS ===")[0].trim(),
+        status: String(row.status_confirmacao || ""),
+        hasDocument: Boolean(row.pdf_storage_path),
+      }));
+      res.json({ data: obligations });
+    } catch (error) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar obrigações.") });
+    }
+  });
+
   app.get("/api/v1/filho/home", async (req: Request, res: Response) => {
     const user = await requireAuthOrRespond(supabaseAdmin, req, res);
     if (!user) return;
