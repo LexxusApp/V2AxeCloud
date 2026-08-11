@@ -37,7 +37,8 @@ class NotificationSyncWorker @AssistedInject constructor(
         if (restored is AuthResult.Error) return Result.retry()
         return runCatching {
             val snapshot = home.load()
-            val candidates = backgroundNotifications(snapshot)
+            val preferences = NotificationPreferencesStore.read(applicationContext)
+            val candidates = backgroundNotifications(snapshot).filter { preferences.allows(it.category) }
             val prefs = applicationContext.getSharedPreferences(PREFS_BACKGROUND, Context.MODE_PRIVATE)
             val scope = "${snapshot.houseName}:${session.userId}"
             val previous = prefs.getStringSet(scope, emptySet()).orEmpty()

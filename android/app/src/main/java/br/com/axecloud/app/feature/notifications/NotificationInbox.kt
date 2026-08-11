@@ -81,12 +81,13 @@ internal data class BackgroundNotification(
     val title: String,
     val body: String,
     val target: String,
+    val category: String,
 )
 
 internal fun backgroundNotifications(data: HomeSnapshot): List<BackgroundNotification> =
     buildInbox(data)
         .filter { !it.serverRead && it.priority >= 2 }
-        .map { BackgroundNotification(it.id, it.title, it.body, it.target) }
+        .map { BackgroundNotification(it.id, it.title, it.body, it.target, it.kind.name.lowercase()) }
 
 internal fun nativeUnreadCount(context: Context, data: HomeSnapshot): Int {
     val inbox = buildInbox(data)

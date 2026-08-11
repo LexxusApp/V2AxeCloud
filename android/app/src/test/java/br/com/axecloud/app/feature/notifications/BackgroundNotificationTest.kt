@@ -30,4 +30,10 @@ class BackgroundNotificationTest {
 
         assertTrue(backgroundNotifications(snapshot).isEmpty())
     }
+
+    @Test fun `respects category preferences`() {
+        val preferences = NativeNotificationPreferences(finance = false, agenda = true)
+        assertTrue(!preferences.allows("payment"))
+        assertTrue(preferences.allows("event"))
+    }
 }
