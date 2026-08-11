@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import br.com.axecloud.app.core.ui.NativeVideoPlayer
 import coil.compose.AsyncImage
+import java.util.Locale
 
 private val GalleryNight = Color(0xFF181A28)
 private val GalleryViolet = Color(0xFF9A7CF2)
@@ -153,4 +154,4 @@ private val GalleryDraftSaver = androidx.compose.runtime.saveable.Saver<GalleryD
 @Composable private fun ErrorGallery(message: String, retry: () -> Unit) = Column(Modifier.fillMaxWidth().padding(25.dp), horizontalAlignment = Alignment.CenterHorizontally) { Text(message, color = MaterialTheme.colorScheme.error); TextButton(retry) { Text("Tentar novamente") } }
 @Composable private fun ConfirmDelete(title: String, text: String, dismiss: () -> Unit, confirm: () -> Unit) = AlertDialog(onDismissRequest = dismiss, title = { Text(title) }, text = { Text(text) }, confirmButton = { Button(confirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Excluir") } }, dismissButton = { TextButton(dismiss) { Text("Cancelar") } })
 private fun categoryLabel(category: String) = when (category) { "gira" -> "Gira"; "evento" -> "Festa / ritual"; else -> "Memória da casa" }
-private fun formatBytes(bytes: Long): String = when { bytes >= 1024L * 1024 * 1024 -> String.format("%.1f GB", bytes / (1024f * 1024 * 1024)); bytes >= 1024L * 1024 -> String.format("%.1f MB", bytes / (1024f * 1024)); else -> "${bytes / 1024} KB" }
+private fun formatBytes(bytes: Long): String = when { bytes >= 1024L * 1024 * 1024 -> String.format(Locale.ROOT, "%.1f GB", bytes / (1024f * 1024 * 1024)); bytes >= 1024L * 1024 -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024f * 1024)); else -> "${bytes / 1024} KB" }

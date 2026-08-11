@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
@@ -38,6 +39,7 @@ private fun rememberAxePlayer(url: String): ExoPlayer {
 }
 
 @Composable
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 fun NativeVideoPlayer(url: String, modifier: Modifier = Modifier, autoPlay: Boolean = false) {
     val player = rememberAxePlayer(url)
     LaunchedEffect(player, autoPlay) { player.playWhenReady = autoPlay }
