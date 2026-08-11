@@ -17,6 +17,7 @@ import javax.inject.Inject
  fun delete(t:FinanceTransaction)=act(t.id,"Lançamento excluído."){repo.deleteTransaction(t.id)}
  fun settle(c:MonthlyCharge)=act(c.id,"Mensalidade liquidada."){repo.settle(c)}
  fun reverse(c:MonthlyCharge)=act(c.id,"Pagamento estornado."){repo.reverse(c)}
+ fun charge(c:MonthlyCharge)=viewModelScope.launch{mutable.update{it.copy(actionId=c.id,error=null)};runCatching{repo.sendCharge(c)}.onSuccess{mutable.update{it.copy(actionId=null,message="Cobrança enviada pelo canal oficial.")}}.onFailure{e->mutable.update{it.copy(actionId=null,error=e.message)}}}
  fun savePix(p:PixConfig)=act("pix","Configuração Pix salva."){require(p.key.isNotBlank()){"Informe a chave Pix."};repo.savePix(p)}
  fun saveGoal(title:String,target:String)=act("goal","Meta criada."){require(title.isNotBlank()){"Informe o nome da meta."};repo.createGoal(title,target.toDoubleOrNull()?:0.0)}
  fun donation(d:CashDonation,ok:Boolean)=act(d.id,if(ok)"Doação confirmada." else "Doação rejeitada."){repo.validateDonation(d,ok)}

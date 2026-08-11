@@ -1,7 +1,7 @@
 package br.com.axecloud.app.feature.finance
 
 data class FinanceTransaction(val id: String, val description: String, val category: String, val date: String, val flow: String, val amount: Double, val status: String)
-data class MonthlyCharge(val id: String, val name: String, val detail: String, val amount: Double, val status: String)
+data class MonthlyCharge(val id: String, val childId: String, val name: String, val dueDate: String, val detail: String, val amount: Double, val status: String)
 data class PixConfig(val key: String = "", val keyType: String = "CPF", val beneficiary: String = "", val monthlyValue: String = "", val dueDay: String = "10", val active: Boolean = true)
 data class CashGoal(val id: String, val title: String, val current: Double, val target: Double)
 data class CashDonation(val id: String, val goalId: String, val goalTitle: String, val donor: String, val amount: Double)
