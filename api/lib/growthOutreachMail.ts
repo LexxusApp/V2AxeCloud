@@ -21,17 +21,21 @@ export function buildGrowthIntro(input: { terreiroNome: string; cidade: string }
   const site = env("APP_PUBLIC_URL", "https://axecloud.com.br").replace(/\/$/, "");
   const waText = encodeURIComponent(`Olá! Sou responsável pelo ${input.terreiroNome} e quero conhecer o AxéCloud.`);
   const whatsappUrl = `https://wa.me/${whatsapp}?text=${waText}`;
-  const subject = `${input.terreiroNome}: organização da casa em um só lugar`;
+  const subject = `Uma ideia para facilitar a organização do ${input.terreiroNome}`;
   const message = `Olá, equipe do ${input.terreiroNome}!
 
-Encontramos o contato público da casa durante um levantamento de terreiros de ${input.cidade}. O AxéCloud é um sistema criado para facilitar cadastro de membros, giras, mensalidades, financeiro, obrigações e comunicação da casa.
+Meu nome é Lucas, sou de Suzano e criei o AxéCloud pensando na rotina dos terreiros: membros cadastrados em vários lugares, agenda, mensalidades, financeiro e comunicados difíceis de acompanhar.
 
-Vocês podem conhecer e testar gratuitamente por 30 dias, sem cartão: ${site}/cadastro
+O AxéCloud reúne essa organização em um só sistema, com respeito à forma de trabalho de cada casa.
 
-Se preferirem conversar, iniciem o atendimento pelo WhatsApp: ${whatsappUrl}
+Posso liberar um teste gratuito de 30 dias, sem cartão, e mostrar rapidamente como funciona: ${site}/cadastro
 
-Se não quiserem receber outro contato do AxéCloud, basta responder “não tenho interesse”.
+Se quiser conhecer, é só iniciar a conversa comigo pelo WhatsApp: ${whatsappUrl}
 
+Caso este assunto não seja do interesse da casa, basta responder “não tenho interesse” e não faremos outro contato.
+
+Axé,
+Lucas
 AxéCloud — tecnologia com respeito ao sagrado.`;
   return { subject, message, whatsappUrl };
 }
@@ -54,11 +58,12 @@ export async function sendGrowthIntroEmail(input: {
   const { subject, message, whatsappUrl } = buildGrowthIntro(input);
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#25231f;max-width:620px">
     <p>Olá, equipe do <strong>${escapeHtml(input.terreiroNome)}</strong>!</p>
-    <p>Encontramos o contato público da casa durante um levantamento de terreiros de ${escapeHtml(input.cidade)}. O AxéCloud facilita cadastro de membros, giras, mensalidades, financeiro, obrigações e comunicação da casa.</p>
-    <p><a href="${escapeHtml(env("APP_PUBLIC_URL", "https://axecloud.com.br").replace(/\/$/, ""))}/cadastro">Conhecer e testar gratuitamente por 30 dias</a>, sem cartão.</p>
-    <p><a href="${escapeHtml(whatsappUrl)}">Iniciar uma conversa no WhatsApp</a></p>
-    <p style="color:#6b665d;font-size:13px">Se não quiserem receber outro contato do AxéCloud, basta responder “não tenho interesse”.</p>
-    <p>AxéCloud — tecnologia com respeito ao sagrado.</p>
+    <p>Meu nome é Lucas, sou de Suzano e criei o AxéCloud pensando na rotina dos terreiros: membros cadastrados em vários lugares, agenda, mensalidades, financeiro e comunicados difíceis de acompanhar.</p>
+    <p>O AxéCloud reúne essa organização em um só sistema, com respeito à forma de trabalho de cada casa.</p>
+    <p>Posso liberar um <a href="${escapeHtml(env("APP_PUBLIC_URL", "https://axecloud.com.br").replace(/\/$/, ""))}/cadastro">teste gratuito de 30 dias</a>, sem cartão, e mostrar rapidamente como funciona.</p>
+    <p><a href="${escapeHtml(whatsappUrl)}">Iniciar uma conversa comigo pelo WhatsApp</a></p>
+    <p style="color:#6b665d;font-size:13px">Caso este assunto não seja do interesse da casa, basta responder “não tenho interesse” e não faremos outro contato.</p>
+    <p>Axé,<br>Lucas<br>AxéCloud — tecnologia com respeito ao sagrado.</p>
   </div>`;
   const info = await transport.sendMail({
     from: `"${env("GROWTH_FROM_NAME", "AxéCloud")}" <${user}>`,
