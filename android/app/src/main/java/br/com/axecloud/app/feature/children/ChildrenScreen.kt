@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +42,8 @@ import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -89,12 +93,15 @@ fun ChildrenRoute(viewModel: ChildrenViewModel = hiltViewModel()) {
         state = state,
         onQuery = viewModel::setQuery,
         onFilter = viewModel::setFilter,
+        onSort = viewModel::setSort,
         onSelect = viewModel::select,
         onCreate = viewModel::create,
         onEdit = viewModel::edit,
         onCloseEditor = viewModel::closeEditor,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
+        onSendAccess = viewModel::sendAccess,
+        onResendAll = viewModel::resendAllAccess,
         onRetry = viewModel::load,
         onMessageConsumed = viewModel::consumeMessage,
     )
@@ -106,12 +113,15 @@ private fun ChildrenScreen(
     state: ChildrenUiState,
     onQuery: (String) -> Unit,
     onFilter: (ChildStatusFilter) -> Unit,
+    onSort: (ChildSort) -> Unit,
     onSelect: (ChildOfSaint?) -> Unit,
     onCreate: () -> Unit,
     onEdit: (ChildOfSaint) -> Unit,
     onCloseEditor: () -> Unit,
     onSave: (ChildForm) -> Unit,
     onDelete: (ChildOfSaint) -> Unit,
+    onSendAccess: (ChildOfSaint) -> Unit,
+    onResendAll: () -> Unit,
     onRetry: () -> Unit,
     onMessageConsumed: () -> Unit,
 ) {
@@ -137,7 +147,7 @@ private fun ChildrenScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { ChildrenHeader(state.activeCount, state.children.size, state.incompleteCount) }
+            item { ChildrenHeader(state.activeCount, state.children.size, state.pendingMonthlyCount) }
             item {
                 OutlinedTextField(
                     value = state.query,
@@ -151,7 +161,7 @@ private fun ChildrenScreen(
                 )
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChildStatusFilter.entries.forEach { filter ->
                         FilterChip(
                             selected = state.filter == filter,
@@ -159,6 +169,12 @@ private fun ChildrenScreen(
                             label = { Text(filter.label) },
                         )
                     }
+                }
+            }
+            item {
+                Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)){Text("Ordenar:",color=AxeCloudThemeTokens.Muted,fontSize=11.sp,modifier=Modifier.align(Alignment.CenterVertically));ChildSort.entries.forEach{sort->FilterChip(state.sort==sort,{onSort(sort)},label={Text(sort.label)})}}
+                    OutlinedButton(onResendAll,Modifier.fillMaxWidth(),enabled=!state.saving&&state.children.isNotEmpty()){if(state.saving)CircularProgressIndicator(Modifier.size(17.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Send,null);Spacer(Modifier.width(7.dp));Text("Enviar acesso para a corrente")}
                 }
             }
             when {
@@ -178,6 +194,8 @@ private fun ChildrenScreen(
             onDismiss = { onSelect(null) },
             onEdit = { onEdit(child) },
             onDelete = { deleteCandidate = child },
+            onSendAccess = { onSendAccess(child) },
+            busy = state.deletingId == child.id,
         )
     }
     if (state.creating || state.editing != null) {
@@ -207,7 +225,7 @@ private fun ChildrenScreen(
 }
 
 @Composable
-private fun ChildrenHeader(active: Int, total: Int, incomplete: Int) {
+private fun ChildrenHeader(active: Int, total: Int, pending: Int) {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = RoundedCornerShape(15.dp), color = AxeCloudThemeTokens.Forest) {
@@ -223,7 +241,7 @@ private fun ChildrenHeader(active: Int, total: Int, incomplete: Int) {
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             CurrentMetric(active.toString(), "ativos", Color(0xFF2E7D5A), Modifier.weight(1f))
             CurrentMetric(total.toString(), "na corrente", AxeCloudThemeTokens.Forest, Modifier.weight(1f))
-            CurrentMetric(incomplete.toString(), "a completar", Color(0xFFB26A28), Modifier.weight(1f))
+            CurrentMetric(pending.toString(), "mensais", Color(0xFFB26A28), Modifier.weight(1f))
         }
     }
 }
@@ -287,7 +305,7 @@ private fun StatusPill(status: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChildDetailSheet(child: ChildOfSaint, onDismiss: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ChildDetailSheet(child: ChildOfSaint, onDismiss: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit,onSendAccess:()->Unit,busy:Boolean) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = AxeCloudThemeTokens.Canvas) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -305,6 +323,9 @@ private fun ChildDetailSheet(child: ChildOfSaint, onDismiss: () -> Unit, onEdit:
             DetailLine(Icons.Outlined.CalendarMonth, "Entrada na casa", child.entryDate.asDate())
             DetailLine(Icons.Outlined.CalendarMonth, "Nascimento", child.birthDate.asDate())
             DetailLine(Icons.Outlined.Phone, "Contato", child.whatsapp.ifBlank { child.phone }.ifBlank { "Não informado" })
+            DetailLine(Icons.Outlined.AccountBalanceWallet,"Mensalidade",if(child.monthlyPending)"Pagamento pendente" else "Em dia")
+            DetailLine(Icons.Outlined.CheckCircle,"Acesso ao aplicativo",if(child.accessReady)"Conta vinculada" else "Ainda não entrou")
+            Button(onSendAccess,Modifier.fillMaxWidth().padding(top=8.dp),enabled=!busy,colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF1E6B4D))){if(busy)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Color.White)else Icon(Icons.Outlined.Send,null);Spacer(Modifier.width(7.dp));Text("Enviar dados de acesso")}
             HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Color(0xFFE1DACD))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = onDelete, modifier = Modifier.weight(1f)) { Icon(Icons.Outlined.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Excluir") }

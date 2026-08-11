@@ -7,7 +7,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Módulo | Funções do Web que precisam existir no Android | Estado |
 |---|---|---|
 | Início | resumo da casa, pendências, próxima ação, atalhos, notificações | PARCIAL |
-| Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | EM IMPLEMENTAÇÃO |
+| Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | PARCIAL — lista, busca, filtros inclusive sem acesso, três ordenações, cadastro, edição, exclusão, foto de perfil, mensalidade, envio individual e coletivo de acesso compilados; validação real pendente |
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
 | Frequência | relatório, histórico e indicadores por filho/gira; operação de presença por evento | PARCIAL — relatório e histórico detalhado nativos; operação por gira fica no Centro de Gira; validação real pendente |
 | Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |

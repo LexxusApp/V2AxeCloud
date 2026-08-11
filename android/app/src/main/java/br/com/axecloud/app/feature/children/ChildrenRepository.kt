@@ -10,6 +10,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,14 +21,14 @@ class ChildrenRepository @Inject constructor(
     private val http: AxeCloudHttpClient,
     private val sessions: SessionStore,
 ) {
-    suspend fun list(): List<ChildOfSaint> {
+    suspend fun list(): List<ChildOfSaint> = coroutineScope {
         val session = session()
         check(!session.isFilho) { "Este módulo pertence à zeladoria." }
-        val result = http.get(
-            api("/api/children?tenantId=${encode(session.tenantId)}&userId=${encode(session.userId)}&userRole=admin"),
-            session.accessToken,
-        ).asObject()
-        return result.array("data", "children", "items").map { item ->
+        val tenant=encode(session.tenantId)
+        val childrenCall=async{http.get(api("/api/children?tenantId=$tenant&userId=${encode(session.userId)}&userRole=admin"),session.accessToken).asObject()}
+        val monthlyCall=async{runCatching{http.get(api("/api/v1/financial/mensalidades?tenantId=$tenant&view=pendentes"),session.accessToken).asObject()}.getOrDefault(JsonObject(emptyMap()))}
+        val pendingIds=monthlyCall.await().array("data","items").mapNotNull{row->(row as? JsonObject)?.text("filho_id")?.takeIf(String::isNotBlank)}.toSet()
+        childrenCall.await().array("data", "children", "items").map { item ->
             val child = item as? JsonObject ?: JsonObject(emptyMap())
             ChildOfSaint(
                 id = child.text("id"),
@@ -40,6 +42,8 @@ class ChildrenRepository @Inject constructor(
                 status = child.text("status").ifBlank { "Ativo" },
                 whatsapp = child.text("whatsapp_phone"),
                 phone = child.text("telefone"),
+                userId = child.text("user_id"),
+                monthlyPending = child.text("id") in pendingIds,
                 restrictions = (child["quizilas"] as? JsonArray).orEmpty().mapNotNull {
                     runCatching { it.jsonPrimitive.content }.getOrNull()
                 },
@@ -76,6 +80,9 @@ class ChildrenRepository @Inject constructor(
             session.accessToken,
         )
     }
+
+    suspend fun sendAccess(child:ChildOfSaint){val session=session();check(child.whatsapp.isNotBlank()||child.phone.isNotBlank()){ "Cadastre o WhatsApp antes de enviar o acesso." };check(child.cpf.filter(Char::isDigit).length>=6){ "Cadastre ao menos os seis dígitos do CPF usados no acesso." };http.post(api("/api/whatsapp/send"),buildJsonObject{put("tipo","dados_acesso");put("filhoId",child.id);put("variables",buildJsonObject{put("nome_filho",child.name);put("nome_terreiro",session.houseName);put("nome_sistema","AxéCloud")})},session.accessToken)}
+    suspend fun resendAllAccess(){val session=session();http.post(api("/api/whatsapp/resend-dados-acesso"),buildJsonObject{},session.accessToken)}
 
     private fun ChildForm.toPayload() = buildJsonObject {
         put("nome", name.trim())

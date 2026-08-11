@@ -28,6 +28,7 @@ class ChildrenViewModel @Inject constructor(
 
     fun setQuery(query: String) = mutableState.update { it.copy(query = query) }
     fun setFilter(filter: ChildStatusFilter) = mutableState.update { it.copy(filter = filter) }
+    fun setSort(sort:ChildSort)=mutableState.update{it.copy(sort=sort)}
     fun select(child: ChildOfSaint?) = mutableState.update { it.copy(selected = child) }
     fun create() = mutableState.update { it.copy(creating = true, editing = null) }
     fun edit(child: ChildOfSaint) = mutableState.update { it.copy(editing = child, creating = false, selected = null) }
@@ -71,4 +72,7 @@ class ChildrenViewModel @Inject constructor(
             }
             .onFailure { error -> mutableState.update { it.copy(deletingId = null, error = error.message) } }
     }
+
+    fun sendAccess(child:ChildOfSaint)=viewModelScope.launch{mutableState.update{it.copy(deletingId=child.id,error=null)};runCatching{repository.sendAccess(child)}.onSuccess{mutableState.update{it.copy(deletingId=null,message="Acesso enviado para ${child.name}.")}}.onFailure{e->mutableState.update{it.copy(deletingId=null,error=e.message)}}}
+    fun resendAllAccess()=viewModelScope.launch{mutableState.update{it.copy(saving=true,error=null)};runCatching{repository.resendAllAccess()}.onSuccess{mutableState.update{it.copy(saving=false,message="Acessos da corrente enfileirados com segurança.")}}.onFailure{e->mutableState.update{it.copy(saving=false,error=e.message)}}}
 }
