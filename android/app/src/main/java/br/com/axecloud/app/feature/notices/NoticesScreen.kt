@@ -23,6 +23,9 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Send
@@ -81,23 +84,29 @@ private fun NoticesScreen(state: NoticesUiState, snackbar: SnackbarHostState, vi
     Scaffold(
         containerColor = AxeCloudThemeTokens.Canvas,
         snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = { if (!state.isFilho) FloatingActionButton(viewModel::compose, containerColor = AxeCloudThemeTokens.Gold, contentColor = AxeCloudThemeTokens.ForestDeep, shape = RoundedCornerShape(18.dp)) { Icon(Icons.Outlined.Add, "Novo comunicado") } },
+        floatingActionButton = { if (!state.isFilho && state.section == "Mural") FloatingActionButton({ viewModel.compose() }, containerColor = AxeCloudThemeTokens.Gold, contentColor = AxeCloudThemeTokens.ForestDeep, shape = RoundedCornerShape(18.dp)) { Icon(Icons.Outlined.Add, "Novo comunicado") } },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { NoticesHeader(state) }
-            item { OutlinedTextField(state.query, viewModel::query, Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text("Buscar comunicados") }, shape = RoundedCornerShape(18.dp)) }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) { listOf("Todos", "Geral", "Urgente", "Festas", "Doutrina").forEach { FilterChip(state.category == it, { viewModel.category(it) }, label = { Text(it) }) } } }
-            when {
-                state.loading -> item { Box(Modifier.fillMaxWidth().padding(50.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = AxeCloudThemeTokens.Forest) } }
-                state.error != null && state.notices.isEmpty() -> item { ErrorNotice(state.error, viewModel::load) }
-                state.visible.isEmpty() -> item { EmptyNotices(state.isFilho, viewModel::compose) }
-                else -> items(state.visible, key = { it.id }) { NoticeCard(it, state.actionId == it.id) { viewModel.select(it) } }
+            if (!state.isFilho) item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Mural", "Histórico").forEach { section -> FilterChip(state.section == section, { viewModel.section(section) }, label = { Text(section) }, leadingIcon = { Icon(if (section == "Mural") Icons.Outlined.Campaign else Icons.Outlined.History, null, Modifier.size(17.dp)) }) } } }
+            if (state.section == "Mural" || state.isFilho) {
+                item { OutlinedTextField(state.query, viewModel::query, Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text("Buscar comunicados") }, shape = RoundedCornerShape(18.dp)) }
+                item { Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) { listOf("Todos", "Geral", "Urgente", "Festas", "Doutrina").forEach { FilterChip(state.category == it, { viewModel.category(it) }, label = { Text(it) }) } } }
+                when {
+                    state.loading -> item { Box(Modifier.fillMaxWidth().padding(50.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = AxeCloudThemeTokens.Forest) } }
+                    state.error != null && state.notices.isEmpty() -> item { ErrorNotice(state.error, viewModel::load) }
+                    state.visible.isEmpty() -> item { EmptyNotices(state.isFilho) { viewModel.compose() } }
+                    else -> items(state.visible, key = { it.id }) { NoticeCard(it, state.actionId == it.id) { viewModel.select(it) } }
+                }
+            } else {
+                item { HistorySummary(state.logs) }
+                if (state.logs.isEmpty()) item { EmptyHistory() } else items(state.logs, key = { it.id }) { BroadcastHistoryCard(it) }
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
-    state.selected?.let { notice -> NoticeDetailSheet(notice, state.isFilho, { viewModel.select(null) }, { deleteCandidate = notice }) }
-    if (state.composing) ComposerSheet(state.publishing, state.error, viewModel::closeComposer, viewModel::publish)
+    state.selected?.let { notice -> NoticeDetailSheet(notice, state.isFilho, { viewModel.select(null) }, { deleteCandidate = notice }, { viewModel.compose(NoticeForm(notice.title, notice.content, notice.category)) }) }
+    if (state.composing) ComposerSheet(state.draft, state.publishing, state.error, viewModel::closeComposer, viewModel::publish)
     deleteCandidate?.let { notice -> AlertDialog(
         onDismissRequest = { deleteCandidate = null }, icon = { Icon(Icons.Outlined.WarningAmber, null, tint = MaterialTheme.colorScheme.error) }, title = { Text("Excluir este comunicado?") }, text = { Text(notice.title) },
         confirmButton = { Button(onClick = { deleteCandidate = null; viewModel.delete(notice) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Excluir") } },
@@ -140,9 +149,45 @@ private fun NoticeCard(notice: HouseNotice, busy: Boolean, click: () -> Unit) {
     }
 }
 
+@Composable
+private fun HistorySummary(logs: List<BroadcastLog>) {
+    val delivered = logs.count { !it.failed }
+    val failed = logs.size - delivered
+    Surface(shape = RoundedCornerShape(21.dp), color = AxeCloudThemeTokens.Forest) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            HeaderNumber(delivered.toString(), "entregas", Modifier.weight(1f))
+            HeaderNumber(failed.toString(), "falhas", Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun BroadcastHistoryCard(log: BroadcastLog) {
+    val accent = if (log.failed) Color(0xFFB5443F) else Color(0xFF28765A)
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(19.dp), color = Color.White, border = BorderStroke(1.dp, accent.copy(alpha = .22f))) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+            Surface(shape = RoundedCornerShape(13.dp), color = accent.copy(alpha = .1f)) { Icon(if (log.failed) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircleOutline, null, Modifier.padding(9.dp).size(20.dp), tint = accent) }
+            Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
+                Text(if (log.failed) "FALHA NO ENVIO" else "MENSAGEM ENTREGUE", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .7.sp)
+                Text(log.message, color = AxeCloudThemeTokens.Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text((if (log.recipient == "corrente_geral") "Corrente geral" else log.recipient.ifBlank { "Destinatário" }) + " · " + log.createdAt.dateLabel(), color = AxeCloudThemeTokens.Muted, fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHistory() = Surface(shape = RoundedCornerShape(22.dp), color = Color.White, border = BorderStroke(1.dp, AxeCloudThemeTokens.Outline)) {
+    Column(Modifier.fillMaxWidth().padding(30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Outlined.History, null, Modifier.size(35.dp), tint = AxeCloudThemeTokens.Forest)
+        Spacer(Modifier.height(8.dp)); Text("Nenhuma transmissão registrada", color = AxeCloudThemeTokens.Ink, fontWeight = FontWeight.Black)
+        Text("As próximas entregas e falhas aparecerão aqui.", color = AxeCloudThemeTokens.Muted, fontSize = 11.sp)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NoticeDetailSheet(notice: HouseNotice, isFilho: Boolean, dismiss: () -> Unit, delete: () -> Unit) {
+private fun NoticeDetailSheet(notice: HouseNotice, isFilho: Boolean, dismiss: () -> Unit, delete: () -> Unit, resend: () -> Unit) {
     val context = LocalContext.current
     val share = {
         val text = "📢 ${notice.title}\n\n${notice.content}\n\nAxéCloud"
@@ -159,14 +204,15 @@ private fun NoticeDetailSheet(notice: HouseNotice, isFilho: Boolean, dismiss: ()
                 if (!isFilho) OutlinedButton(delete, Modifier.weight(1f)) { Icon(Icons.Outlined.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Excluir") }
                 Button(onClick = share, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = AxeCloudThemeTokens.Forest)) { Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(6.dp)); Text("Compartilhar") }
             }
+            if (!isFilho) { Spacer(Modifier.height(9.dp)); OutlinedButton(resend, Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Send, null); Spacer(Modifier.width(6.dp)); Text("Reenviar como novo comunicado") } }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ComposerSheet(publishing: Boolean, error: String?, dismiss: () -> Unit, publish: (NoticeForm) -> Unit) {
-    var form by rememberSaveable { mutableStateOf(NoticeForm()) }
+private fun ComposerSheet(initial: NoticeForm, publishing: Boolean, error: String?, dismiss: () -> Unit, publish: (NoticeForm) -> Unit) {
+    var form by rememberSaveable(initial.title, initial.content, initial.category) { mutableStateOf(initial) }
     ModalBottomSheet(onDismissRequest = dismiss, containerColor = AxeCloudThemeTokens.Canvas) {
         LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 22.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text("Novo comunicado", color = AxeCloudThemeTokens.Ink, fontSize = 24.sp, fontWeight = FontWeight.Black); Text("Escreva com clareza. O app avisa a corrente.", color = AxeCloudThemeTokens.Muted, fontSize = 12.sp) }

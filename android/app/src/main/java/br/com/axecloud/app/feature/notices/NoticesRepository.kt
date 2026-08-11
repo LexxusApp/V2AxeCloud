@@ -13,10 +13,10 @@ import java.net.URLEncoder
 import javax.inject.Inject
 
 class NoticesRepository @Inject constructor(private val http: AxeCloudHttpClient, private val sessions: SessionStore) {
-    suspend fun load(): Pair<Boolean, List<HouseNotice>> {
+    suspend fun load(): NoticesPayload {
         val session = session()
         val root = http.get(api("/api/notices?tenantId=${encode(session.tenantId)}"), session.accessToken).asObject()
-        return session.isFilho to root.array("data", "items", "notices").map { element ->
+        val notices = root.array("data", "items", "notices").map { element ->
             val item = element.asObject()
             HouseNotice(
                 id = item.text("id"), title = item.text("titulo", "title"), content = item.text("conteudo", "content", "body"),
@@ -24,6 +24,16 @@ class NoticesRepository @Inject constructor(private val http: AxeCloudHttpClient
                 expiresAt = item.text("expiracao", "expires_at"),
             )
         }
+        val logs = if (session.isFilho) emptyList() else runCatching { http.get(api("/api/whatsapp/logs?limit=20"), session.accessToken).asObject() }.getOrDefault(JsonObject(emptyMap()))
+            .array("logs", "items", "data").mapNotNull { element ->
+                val item = element.asObject()
+                val type = item.text("tipo", "type").lowercase()
+                if (type !in setOf("transmissao_aviso", "mural_aviso", "broadcast")) null else BroadcastLog(
+                    id = item.text("id"), message = item.text("mensagem", "message").ifBlank { "Comunicado enviado" },
+                    recipient = item.text("telefone", "recipient"), status = item.text("status"), createdAt = item.text("created_at", "createdAt"),
+                )
+            }
+        return NoticesPayload(session.isFilho, notices, logs)
     }
     suspend fun publish(form: NoticeForm) {
         val session = session(); check(!session.isFilho) { "Somente a zeladoria pode publicar avisos." }

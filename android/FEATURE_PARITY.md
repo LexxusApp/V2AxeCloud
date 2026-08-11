@@ -10,7 +10,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Filhos de Santo | listar, pesquisar, filtrar, ordenar, cadastrar, visualizar, editar, excluir, foto, acesso e situação financeira | PARCIAL — lista, busca, filtros inclusive sem acesso, três ordenações, cadastro, edição, exclusão, foto de perfil, mensalidade, envio individual e coletivo de acesso compilados; validação real pendente |
 | Giras | agenda, calendário, criar/editar/excluir, detalhes, confirmações, QR Code e presença | PARCIAL |
 | Frequência | relatório, histórico e indicadores por filho/gira; operação de presença por evento | PARCIAL — relatório e histórico detalhado nativos; operação por gira fica no Centro de Gira; validação real pendente |
-| Comunicados | lista, categorias, criar/editar/excluir, anexos, publicação e histórico | PARCIAL |
+| Comunicados | lista, categorias, criar/excluir, publicação, reenvio e histórico de transmissões | PARCIAL — mural, busca, categorias, publicação, compartilhamento, reenvio, exclusão e histórico real de entregas/falhas compilados; validação no aparelho pendente |
 | Conversas | lista, mensagens, envio de texto, imagem e áudio, leitura e tempo real | PARCIAL — texto, imagem, vídeo, seleção e gravação nativa de áudio, players Media3, leitura e atualização contínua a cada 5s compilados; realtime Supabase pendente |
 | Financeiro | resumo, lançamentos, filtros, criar/excluir, relatório e caixinha | PARCIAL — caixa, lançamentos, exclusão, relatório CSV pelo compartilhamento nativo, Pix, metas e validação de doações compilados; edição não existe na API web atual e validação real está pendente |
 | Mensalidades | pendentes/pagas, cobrar, liquidar, estornar, comprovantes e histórico | PARCIAL — zeladoria consulta, cobra pelo canal oficial, liquida e estorna; filho consulta Pix/QR/histórico e envia comprovante para validação automática; validação real pendente |
@@ -35,7 +35,7 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 | Giras | agenda, detalhes e confirmação de presença | PARCIAL |
 | Biblioteca | busca, categorias, permissões, leitura/download e discussões | PARCIAL — PDFs e fundamentos filtrados no servidor por tradição, cargo e autorização individual; dúvidas, respostas e exclusão autorizada compiladas; validação em aparelho pendente |
 | Loja | vitrine, detalhes e pedidos | PARCIAL — vitrine, filtros, sacola, reserva, Pix e cobrança na mensalidade compilados; validação real em aparelho pendente |
-| Comunicados | mural, categorias, anexos e leitura | PARCIAL |
+| Comunicados | mural, categorias, busca, detalhes, compartilhamento e leitura | PARCIAL — experiência nativa compilada com os dados reais do mural; validação no aparelho pendente |
 | Conversas | lista, texto, imagem, áudio, leitura e tempo real | PARCIAL — envio de mídia, gravação de voz, players Media3 e atualização contínua compilados; realtime Supabase pendente |
 | Notificações | pendências reais, push, deep links, preferências e histórico | PARCIAL — inbox, leitura e deep links nativos validados; transporte push em segundo plano pendente |
 
