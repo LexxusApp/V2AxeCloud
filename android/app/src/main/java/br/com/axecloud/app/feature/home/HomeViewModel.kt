@@ -8,30 +8,37 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
+import br.com.axecloud.app.core.network.ConnectivityObserver
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
+    connectivity: ConnectivityObserver,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = mutableState.asStateFlow()
     private val mutableInteraction = MutableStateFlow(InteractionUiState())
     val interaction: StateFlow<InteractionUiState> = mutableInteraction.asStateFlow()
     private var conversationRefresh: Job? = null
+    private var lastLoadAt:Long=0
+    private var wasOffline=false
 
-    init { load() }
+    init { load();viewModelScope.launch{connectivity.connected.collect{online->val reconnect=wasOffline&&online;wasOffline=!online;mutableState.update{it.copy(offline=!online)};if(reconnect)load()}} }
 
     fun load() = viewModelScope.launch {
         mutableState.update { it.copy(loading = true, error = null) }
         runCatching { repository.load() }
-            .onSuccess { value -> mutableState.value = HomeUiState(loading = false, snapshot = value) }
-            .onFailure { error -> mutableState.update { it.copy(loading = false, error = error.message ?: "Não foi possível carregar a casa.") } }
+            .onSuccess { value -> lastLoadAt=System.currentTimeMillis();mutableState.update{it.copy(loading=false,snapshot=value,error=null)} }
+            .onFailure { error -> mutableState.update { it.copy(loading = false, error = if(it.snapshot.houseName.isBlank()) error.message ?: "Não foi possível carregar a casa." else null) } }
     }
+
+    fun refreshIfStale(){if(System.currentTimeMillis()-lastLoadAt>15_000)load()}
 
     fun acknowledgePrecept(id: String) = runAction(id, "Ciência registrada.") {
         repository.acknowledgePrecept(id)

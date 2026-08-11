@@ -66,4 +66,5 @@ data class HomeUiState(
     val loading: Boolean = true,
     val snapshot: HomeSnapshot = HomeSnapshot(),
     val error: String? = null,
+    val offline: Boolean = false,
 )

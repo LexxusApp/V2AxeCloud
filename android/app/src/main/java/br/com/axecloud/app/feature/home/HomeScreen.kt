@@ -51,6 +51,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.HeadsetMic
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -102,6 +103,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import br.com.axecloud.app.designsystem.theme.AxeCloudThemeTokens
 import br.com.axecloud.app.core.ui.NativeAudioPlayer
 import br.com.axecloud.app.core.ui.NativeVideoPlayer
@@ -141,6 +144,7 @@ fun HomeRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val interaction by viewModel.interaction.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME){viewModel.refreshIfStale()}
     HomeScreen(
         state = state,
         interaction = interaction,
@@ -293,6 +297,9 @@ private fun HomeScreen(
                         color = AxeCloudThemeTokens.Forest,
                         trackColor = AxeCloudThemeTokens.Gold.copy(alpha = .2f),
                     )
+                }
+                AnimatedVisibility(state.offline,modifier=Modifier.align(Alignment.TopCenter),enter=fadeIn(),exit=fadeOut()){
+                    Surface(shape=RoundedCornerShape(bottomStart=18.dp,bottomEnd=18.dp),color=Color(0xFF7A3E2E),shadowElevation=6.dp){Row(Modifier.padding(horizontal=16.dp,vertical=9.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Outlined.WarningAmber,null,tint=Color.White,modifier=Modifier.size(18.dp));Spacer(Modifier.width(7.dp));Text("Sem internet · mostrando o que já estava na tela",color=Color.White,fontSize=11.sp,fontWeight=FontWeight.Bold)}}
                 }
             }
         }

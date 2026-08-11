@@ -45,6 +45,6 @@ Esta matriz é o contrato de conclusão do aplicativo. Um item só muda para `CO
 - Material 3 com identidade visual AxéCloud, componentes reutilizáveis e modo responsivo.
 - Animações funcionais, continuidade entre lista/detalhe, estados vazios demonstrativos e feedback háptico onde fizer sentido.
 - Acessibilidade, teclado, contraste, tamanhos de toque e suporte ao aumento de fonte.
-- Cache e estados offline, carregamento incremental e recuperação de falhas.
+- Rede e estados offline: detecção nativa, preservação da tela, aviso não bloqueante, recarga ao reconectar e ao retornar ao app compilados; cache local estruturado ainda pendente.
 - Testes unitários, instrumentados, auditoria de segurança e validação em aparelho real.
 - APK e AAB assináveis, ícone adaptativo, splash, política de privacidade e checklist da Play Store.
