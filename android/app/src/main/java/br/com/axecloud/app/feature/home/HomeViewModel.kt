@@ -14,11 +14,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
+import br.com.axecloud.app.core.realtime.ChatRealtimeClient
 import br.com.axecloud.app.core.network.ConnectivityObserver
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
+    private val realtime: ChatRealtimeClient,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(HomeUiState())
@@ -26,6 +28,7 @@ class HomeViewModel @Inject constructor(
     private val mutableInteraction = MutableStateFlow(InteractionUiState())
     val interaction: StateFlow<InteractionUiState> = mutableInteraction.asStateFlow()
     private var conversationRefresh: Job? = null
+    private var conversationRealtime: Job? = null
     private var lastLoadAt:Long=0
     private var wasOffline=false
 
@@ -50,19 +53,26 @@ class HomeViewModel @Inject constructor(
 
     fun openConversation(id: String, title: String) = viewModelScope.launch {
         conversationRefresh?.cancel()
+        conversationRealtime?.cancel()
         mutableInteraction.update { it.copy(conversationId = id, conversationTitle = title, loadingMessages = true, feedback = null) }
         runCatching { repository.loadMessages(id) }
             .onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages, loadingMessages = false) } }
             .onFailure { error -> mutableInteraction.update { it.copy(loadingMessages = false, feedback = error.message) } }
+        conversationRealtime = viewModelScope.launch {
+            realtime.changes(id, repository.session().accessToken).collect {
+                delay(180)
+                runCatching { repository.loadMessages(id) }.onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages) } }
+            }
+        }
         conversationRefresh = viewModelScope.launch {
             while (isActive && mutableInteraction.value.conversationId == id) {
-                delay(5_000)
+                delay(30_000)
                 runCatching { repository.loadMessages(id) }.onSuccess { messages -> mutableInteraction.update { it.copy(messages = messages) } }
             }
         }
     }
 
-    fun closeConversation() { conversationRefresh?.cancel(); conversationRefresh = null; mutableInteraction.update { InteractionUiState() } }
+    fun closeConversation() { conversationRefresh?.cancel(); conversationRefresh = null; conversationRealtime?.cancel(); conversationRealtime = null; mutableInteraction.update { InteractionUiState() } }
 
     fun sendMessage(text: String) {
         val id = mutableInteraction.value.conversationId ?: return
