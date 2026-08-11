@@ -9,6 +9,9 @@
 - Exclusão permanente da conta disponível dentro do aplicativo.
 - Cache offline criptografado com chave protegida pelo Android Keystore.
 - Permissões limitadas a internet, rede, notificações e microfone.
+- Sincronização periódica de pendências em segundo plano com preferências por categoria e abertura do módulo correto.
+
+Último AAB release validado localmente: `7.460.841 bytes`, SHA-256 `09500402963A100F43EA88EBC8CF9975E0447619AA713DF108459A79B187ED0B`. O arquivo ainda está sem assinatura porque a chave privada de upload não deve ser criada nem armazenada no repositório.
 
 ## Segurança dos dados — declaração inicial
 
