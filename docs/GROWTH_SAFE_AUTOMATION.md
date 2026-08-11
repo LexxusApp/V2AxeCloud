@@ -29,7 +29,8 @@ O sistema não tenta preencher formulários arbitrários automaticamente. Formul
 Ativação recomendada:
 
 1. Aplicar a migration `20260811003000_growth_safe_outreach.sql`.
-2. Definir `GROWTH_SAFE_OUTREACH_ENABLED=true`, manter `GROWTH_SAFE_OUTREACH_TEST_MODE=true` e executar o cron uma vez para validar até duas pesquisas sem envio.
-3. Confirmar SMTP e número comercial.
-4. Alterar `GROWTH_SAFE_OUTREACH_ENABLED=true` e `GROWTH_SAFE_OUTREACH_TEST_MODE=false`.
-5. Ativar `GROWTH_AI_SALES_ENABLED=true` após um teste inbound no WhatsApp oficial.
+2. Na VPS, executar `deploy/scripts/configure-growth-safe.sh`; ele cria um backup do `.env`, liga a pesquisa e mantém envios/IA desligados.
+3. Executar o cron uma vez para validar até duas pesquisas sem envio.
+4. Confirmar SMTP e número comercial.
+5. Alterar `GROWTH_SAFE_OUTREACH_TEST_MODE=false`.
+6. Ativar `GROWTH_AI_SALES_ENABLED=true` após um teste inbound no WhatsApp oficial.
