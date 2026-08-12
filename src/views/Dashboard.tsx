@@ -1146,6 +1146,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
 
         <aside className="space-y-5">
+          {!setupComplete ? (
           <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1160,14 +1161,10 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               </div>
               <div>
                 <strong>
-                  {setupComplete
-                    ? 'Base da casa pronta'
-                    : `${setupDoneCount} de ${setupStepsV5.length} passos`}
+                  {`${setupDoneCount} de ${setupStepsV5.length} passos`}
                 </strong>
                 <p>
-                  {setupComplete
-                    ? 'Corrente, mensalidade e agenda já estão no ar.'
-                    : 'Só o essencial: corrente, mensalidade e uma gira.'}
+                  Só o essencial: corrente, mensalidade e uma gira.
                 </p>
               </div>
             </div>
@@ -1197,7 +1194,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 </li>
               ))}
             </ul>
-            {!setupComplete && nextSetupStep ? (
+            {nextSetupStep ? (
               <button
                 type="button"
                 onClick={() => setActiveTab(nextSetupStep.tab)}
@@ -1206,17 +1203,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 Fazer agora: {nextSetupStep.label}
                 <ArrowRight className="h-4 w-4" />
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setActiveTab(houseMission.tab)}
-                className="dashboard-v5-progress__action"
-              >
-                {houseMission.cta}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            )}
+            ) : null}
           </section>
+          ) : null}
 
           <section className="dashboard-v5-message">
             <p className="dashboard-v5-section-kicker">Mensagem da casa</p>
