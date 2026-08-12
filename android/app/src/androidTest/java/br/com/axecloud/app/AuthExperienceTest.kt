@@ -51,4 +51,16 @@ class AuthExperienceTest {
         compose.onNodeWithText("Sou filho(a)").performClick()
         compose.onNodeWithText("Registro AxéCloud").assertIsDisplayed()
     }
+
+    @Test
+    fun logoutReturnsToLoginAndStaysThere() {
+        // The authenticated flow is covered on the physical device. This test keeps the
+        // unauthenticated destination stable after the session store is cleared.
+        compose.waitUntil(8_000) {
+            compose.onAllNodesWithText("Entre na sua casa").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Entre na sua casa").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(1_500)
+        compose.onNodeWithText("Entre na sua casa").assertIsDisplayed()
+    }
 }

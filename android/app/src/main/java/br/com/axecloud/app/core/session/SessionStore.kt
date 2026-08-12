@@ -40,6 +40,7 @@ class SessionStore @Inject constructor(
     fun clear() {
         preferences.edit().clear().apply()
         mutableSession.value = SessionSnapshot()
+        NotificationSyncScheduler.cancelPending(context)
     }
 
     private fun read(): SessionSnapshot = SessionSnapshot(

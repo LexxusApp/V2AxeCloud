@@ -105,4 +105,8 @@ object NotificationSyncScheduler {
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(ONCE_NAME, ExistingWorkPolicy.REPLACE, request)
     }
+
+    fun cancelPending(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(ONCE_NAME)
+    }
 }

@@ -92,13 +92,17 @@ class AuthRepository @Inject constructor(
     suspend fun restore(): AuthResult {
         val current = sessionStore.current()
         if (!current.isAuthenticated) return AuthResult.Error("")
+        val sessionStillActive = {
+            val latest = sessionStore.current()
+            latest.isAuthenticated && latest.accessToken == current.accessToken
+        }
         return try {
             val now = Instant.now().epochSecond
             val valid = current.expiresAtEpochSeconds > now + 90
             if (valid) {
-                bootstrap(current)
+                bootstrap(current, sessionStillActive)
             } else {
-                refresh(current)
+                refresh(current, sessionStillActive)
             }
             AuthResult.Success
         } catch (error: Exception) {
@@ -109,7 +113,7 @@ class AuthRepository @Inject constructor(
 
     fun logout() = sessionStore.clear()
 
-    private suspend fun refresh(current: SessionSnapshot) {
+    private suspend fun refresh(current: SessionSnapshot, shouldPersist: () -> Boolean = { true }) {
         requireConfiguration()
         if (current.refreshToken.isBlank()) error("Sua sessão expirou. Entre novamente.")
         val response = http.post(
@@ -121,6 +125,7 @@ class AuthRepository @Inject constructor(
             token = http.json.decodeFromString(response.toString()),
             emailHint = current.email,
             roleHint = current.role,
+            shouldPersist = shouldPersist,
         )
     }
 
@@ -128,6 +133,7 @@ class AuthRepository @Inject constructor(
         token: AuthTokenResponse,
         emailHint: String,
         roleHint: String,
+        shouldPersist: () -> Boolean = { true },
     ) {
         if (token.accessToken.isBlank() || token.refreshToken.isBlank()) {
             error("O servidor não devolveu uma sessão válida.")
@@ -149,15 +155,16 @@ class AuthRepository @Inject constructor(
             tenantId = userId,
             expiresAtEpochSeconds = Instant.now().epochSecond + token.expiresIn,
         )
-        bootstrap(provisional)
+        bootstrap(provisional, shouldPersist)
     }
 
-    private suspend fun bootstrap(session: SessionSnapshot) {
+    private suspend fun bootstrap(session: SessionSnapshot, shouldPersist: () -> Boolean = { true }) {
         val url = "${BuildConfig.API_BASE_URL.trimEnd('/')}/api/tenant-info" +
             "?userId=${encode(session.userId)}&email=${encode(session.email)}"
         val response = http.get(url, session.accessToken)
         val tenant = http.json.decodeFromString<TenantInfoResponse>(response.toString())
         val resolvedRole = tenant.role?.takeIf(String::isNotBlank) ?: session.role.ifBlank { "admin" }
+        if (!shouldPersist()) return
         sessionStore.save(
             session.copy(
                 role = resolvedRole,
