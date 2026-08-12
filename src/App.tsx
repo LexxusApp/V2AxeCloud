@@ -1469,7 +1469,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         onFilhoFotoUpdated={setFilhoFotoUrl}
       />
 
-      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] transition-[padding] duration-200 min-[880px]:pl-[var(--app-sidebar-width,18rem)]">
+      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] transition-[padding] duration-200 min-[880px]:pl-[var(--app-sidebar-width,15rem)]">
           <main
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}

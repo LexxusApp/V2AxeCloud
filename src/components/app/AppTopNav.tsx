@@ -30,7 +30,7 @@ import {
 import { openFilhoTour } from '../../constants/filhoGuide';
 import { performFastLogout } from '../../lib/logout';
 import Avatar from '../Avatar';
-import { AxeCloudEmblem, AxeCloudLogoMark } from '../AxeCloudLogoMark';
+import { AxeCloudEmblem } from '../AxeCloudLogoMark';
 import NotificationPanel from '../NotificationPanel';
 
 type AppTopNavProps = {
@@ -98,9 +98,9 @@ function NavTab({
         'relative inline-flex shrink-0 items-center transition-colors touch-manipulation',
         layout === 'drawer-sub' ? 'font-semibold' : 'font-bold',
         layout === 'drawer'
-          ? 'w-full min-h-[48px] gap-3 rounded-xl px-4 py-3 text-left text-sm'
+          ? 'w-full min-h-[36px] gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px]'
           : layout === 'drawer-sub'
-            ? 'w-full min-h-[42px] gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px]'
+            ? 'w-full min-h-[34px] gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px]'
             : layout === 'grid'
               ? 'w-full min-h-[44px] gap-1.5 rounded-xl border px-3 py-3 text-xs'
               : layout === 'dropdown'
@@ -131,9 +131,9 @@ function NavTab({
           className={cn(
             'shrink-0',
             layout === 'drawer'
-              ? 'h-5 w-5'
+              ? 'h-4 w-4'
               : layout === 'drawer-sub'
-                ? 'h-4 w-4'
+                ? 'h-3.5 w-3.5'
                 : layout === 'grid' || layout === 'dropdown'
                   ? 'h-4 w-4'
                   : 'h-3.5 w-3.5',
@@ -217,17 +217,17 @@ function NavGroupMobileSection({
           onClick={() => setExpanded((o) => !o)}
           aria-expanded={expanded}
           className={cn(
-            'flex w-full min-h-[48px] items-center gap-3 px-4 py-3 text-left text-sm font-bold transition-colors touch-manipulation',
-            expanded ? 'rounded-t-xl' : 'rounded-xl',
+            'flex w-full min-h-[36px] items-center gap-2.5 px-3 py-1.5 text-left text-[13px] font-bold transition-colors touch-manipulation',
+            expanded ? 'rounded-t-lg' : 'rounded-lg',
             isGroupActive || expanded
               ? 'bg-primary/15 text-primary'
               : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
           )}
         >
-          <GroupIcon className="h-5 w-5 shrink-0" aria-hidden />
+          <GroupIcon className="h-4 w-4 shrink-0" aria-hidden />
           <span className="flex-1">{label}</span>
           <ChevronDown
-            className={cn('h-5 w-5 shrink-0 transition-transform', expanded && 'rotate-180')}
+            className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
             aria-hidden
           />
         </button>
@@ -235,7 +235,7 @@ function NavGroupMobileSection({
           <div
             role="group"
             aria-label={menuLabel ?? label}
-            className="ml-3 mt-1 space-y-0.5 rounded-b-xl border border-[#1E242B] border-l-2 border-l-primary/30 bg-[#12161A]/70 py-1.5 pl-2 pr-1"
+            className="ml-2 mt-0.5 space-y-0.5 rounded-b-lg border border-[#1E242B] border-l-2 border-l-primary/30 bg-[#12161A]/70 py-1 pl-1.5 pr-1"
           >
             {items.map((item) => (
               <NavTab
@@ -336,7 +336,7 @@ export default function AppTopNav({
     localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
     document.documentElement.style.setProperty(
       '--app-sidebar-width',
-      desktopExpanded ? '18rem' : '5.5rem',
+      desktopExpanded ? '15rem' : '4.75rem',
     );
     return () => {
       document.documentElement.style.removeProperty('--app-sidebar-width');
@@ -525,7 +525,7 @@ export default function AppTopNav({
         data-expanded={desktopExpanded ? 'true' : 'false'}
         className={cn(
           'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] transition-[width,box-shadow] duration-300 ease-out min-[880px]:flex',
-          desktopCompact ? 'w-[5.5rem]' : 'w-72',
+          desktopCompact ? 'w-[4.75rem]' : 'w-60',
         )}
       >
         <button
@@ -539,48 +539,71 @@ export default function AppTopNav({
           {desktopPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
 
-        <div className={cn('app-v5-brand border-b border-[#242A32] py-4', desktopCompact ? 'px-3' : 'px-4')}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('dashboard')}
-            className={cn(
-              'group flex w-full items-center rounded-2xl text-left transition-colors hover:bg-white/[0.04]',
-              desktopCompact ? 'justify-center p-1.5' : 'px-2 py-1',
-            )}
-            aria-label="Ir para o início"
-          >
-            {desktopCompact ? (
-              <AxeCloudEmblem className="h-11 w-11" />
-            ) : (
-              <AxeCloudLogoMark size="compact" className="h-11 max-w-full" />
-            )}
-          </button>
-          {!desktopCompact ? (
+        <div className={cn('app-v5-brand border-b border-[#242A32] py-2', desktopCompact ? 'px-2' : 'px-2.5')}>
+          {desktopCompact ? (
             <button
               type="button"
-              onClick={() => setActiveTab(userRole === 'filho' ? 'profile' : 'settings')}
-              className="app-v5-sidebar-copy mt-3 flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-2.5 text-left transition-colors hover:bg-white/[0.05]"
-              aria-label={userRole === 'filho' ? 'Abrir meu perfil' : 'Abrir configurações da casa'}
+              onClick={() => setActiveTab('dashboard')}
+              className="group flex w-full items-center justify-center rounded-xl p-0.5 text-left transition-colors hover:bg-white/[0.04]"
+              aria-label="Ir para o início"
             >
-              {profileAvatar}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-display text-[13px] font-extrabold leading-tight text-[#F8FAFC]">{terreiroNome}</span>
-                <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-[0.12em] text-primary">{subtitle}</span>
-              </span>
+              <AxeCloudEmblem className="h-8 w-8" />
             </button>
-          ) : null}
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                className="group shrink-0 rounded-lg p-0.5 text-left transition-colors hover:bg-white/[0.04]"
+                aria-label="Ir para o início"
+              >
+                <AxeCloudEmblem className="h-8 w-8" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab(userRole === 'filho' ? 'profile' : 'settings')}
+                className="app-v5-sidebar-copy flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.025] px-1.5 py-1 text-left transition-colors hover:bg-white/[0.05]"
+                aria-label={userRole === 'filho' ? 'Abrir meu perfil' : 'Abrir configurações da casa'}
+              >
+                <div
+                  className={cn(
+                    'overflow-hidden rounded-full border bg-gradient-to-br from-primary to-amber-500 shadow-sm shadow-primary/10',
+                    isFilhoProfile
+                      ? 'h-7 w-7 border border-primary/50'
+                      : 'h-6 w-6 border-primary/40',
+                  )}
+                >
+                  <Avatar
+                    src={profileFoto}
+                    name={isFilhoProfile ? userDisplayName || 'Filho de Santo' : terreiroNome}
+                    alt=""
+                    className="h-full w-full"
+                    textSize="text-[9px]"
+                  />
+                </div>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-display text-[11px] font-extrabold leading-tight text-[#F8FAFC]">
+                    {terreiroNome}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-[0.08em] text-primary">
+                    {subtitle}
+                  </span>
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className={cn('pb-2 pt-4', desktopCompact ? 'px-2 text-center' : 'px-5')}>
-          <p className={cn('font-black uppercase tracking-[0.18em] text-[#738095]', desktopCompact ? 'text-[9px]' : 'px-3 text-xs')}>
+        <div className={cn('pb-1 pt-2', desktopCompact ? 'px-1.5 text-center' : 'px-3')}>
+          <p className={cn('font-black uppercase tracking-[0.16em] text-[#738095]', desktopCompact ? 'text-[8px]' : 'px-1.5 text-[9px]')}>
             {desktopCompact ? 'Axé' : 'Gestão da casa'}
           </p>
         </div>
 
         <nav
           className={cn(
-            'app-v5-primary-nav flex flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pb-5 no-scrollbar',
-            desktopCompact ? 'items-center px-2' : 'px-4',
+            'app-v5-primary-nav flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain pb-2 no-scrollbar',
+            desktopCompact ? 'items-center px-1.5' : 'px-2.5',
           )}
           role="tablist"
           aria-label="Módulos do AxéCloud"
@@ -598,13 +621,13 @@ export default function AppTopNav({
                     aria-current={active ? 'page' : undefined}
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      'relative grid h-12 w-12 shrink-0 place-items-center rounded-xl border transition-colors',
+                      'relative grid h-10 w-10 shrink-0 place-items-center rounded-lg border transition-colors',
                       active
                         ? 'border-primary bg-primary text-[#080A0D]'
                         : 'border-transparent text-[#9AA6B7] hover:border-white/10 hover:bg-white/5 hover:text-white',
                     )}
                   >
-                    <Icon className="h-5 w-5" aria-hidden />
+                    <Icon className="h-4 w-4" aria-hidden />
                   </button>
                 );
               })
@@ -628,35 +651,35 @@ export default function AppTopNav({
               )}
         </nav>
 
-        <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-2 p-3' : 'p-4')}>
+        <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-1.5 p-2' : 'space-y-1.5 p-2.5')}>
           {userRole === 'filho' ? (
-            <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-white/[0.06] bg-white/[0.025] p-2')}>
+            <div className={cn(!desktopCompact && 'rounded-lg border border-white/[0.06] bg-white/[0.025] p-1.5')}>
               <button
                 type="button"
                 onClick={() => openFilhoTour()}
                 title="Como usar o app"
                 className={cn(
-                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#242A32] bg-[#12161A] text-xs font-black text-[#E8EDF5] transition-colors hover:border-primary/35 hover:text-primary',
-                  desktopCompact ? 'w-12 px-0' : 'w-full px-3',
+                  'inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#242A32] bg-[#12161A] text-[11px] font-black text-[#E8EDF5] transition-colors hover:border-primary/35 hover:text-primary',
+                  desktopCompact ? 'w-10 px-0' : 'w-full px-2.5',
                 )}
               >
-                <CircleHelp className="h-4 w-4" aria-hidden />
+                <CircleHelp className="h-3.5 w-3.5" aria-hidden />
                 {!desktopCompact ? 'Como usar' : <span className="sr-only">Como usar</span>}
               </button>
             </div>
           ) : null}
           {showInstallButton ? (
-            <div className={cn('mb-2', !desktopCompact && 'rounded-xl border border-primary/15 bg-primary/[0.06] p-2')}>
+            <div className={cn(!desktopCompact && 'rounded-lg border border-primary/15 bg-primary/[0.06] p-1.5')}>
               <button
                 type="button"
                 onClick={() => void handleInstallApp()}
                 title="Instalar aplicativo"
                 className={cn(
-                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black text-[#080A0D] transition-colors hover:bg-[#FFD34E]',
-                  desktopCompact ? 'w-12 px-0' : 'w-full px-3',
+                  'inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-primary text-[11px] font-black text-[#080A0D] transition-colors hover:bg-[#FFD34E]',
+                  desktopCompact ? 'w-10 px-0' : 'w-full px-2.5',
                 )}
               >
-                <Download className="h-4 w-4" aria-hidden />
+                <Download className="h-3.5 w-3.5" aria-hidden />
                 {!desktopCompact ? 'Instalar aplicativo' : <span className="sr-only">Instalar aplicativo</span>}
               </button>
             </div>
@@ -666,11 +689,11 @@ export default function AppTopNav({
             onClick={() => void performFastLogout()}
             title="Sair"
             className={cn(
-              'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#242A32] bg-[#12161A] text-sm font-bold text-[#94A3B8] transition-colors hover:border-red-500/30 hover:bg-red-500/[0.06] hover:text-red-300',
-              desktopCompact ? 'w-12 px-0' : 'w-full px-4',
+              'inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#242A32] bg-[#12161A] text-[12px] font-bold text-[#94A3B8] transition-colors hover:border-red-500/30 hover:bg-red-500/[0.06] hover:text-red-300',
+              desktopCompact ? 'w-10 px-0' : 'w-full px-3',
             )}
           >
-            <LogOut className="h-4 w-4" aria-hidden />
+            <LogOut className="h-3.5 w-3.5" aria-hidden />
             {!desktopCompact ? 'Sair' : <span className="sr-only">Sair</span>}
           </button>
         </div>
