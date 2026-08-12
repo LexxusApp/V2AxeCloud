@@ -3,6 +3,7 @@ package br.com.axecloud.app.feature.auth
 import android.util.Base64
 import br.com.axecloud.app.BuildConfig
 import br.com.axecloud.app.core.network.AxeCloudHttpClient
+import br.com.axecloud.app.core.network.ApiException
 import br.com.axecloud.app.core.session.SessionSnapshot
 import br.com.axecloud.app.core.session.SessionStore
 import kotlinx.serialization.decodeFromString
@@ -91,7 +92,7 @@ class AuthRepository @Inject constructor(
     suspend fun restore(): AuthResult {
         val current = sessionStore.current()
         if (!current.isAuthenticated) return AuthResult.Error("")
-        return authenticate {
+        return try {
             val now = Instant.now().epochSecond
             val valid = current.expiresAtEpochSeconds > now + 90
             if (valid) {
@@ -99,6 +100,10 @@ class AuthRepository @Inject constructor(
             } else {
                 refresh(current)
             }
+            AuthResult.Success
+        } catch (error: Exception) {
+            if (error.requiresNewLogin) sessionStore.clear()
+            AuthResult.Error(error.message ?: "Não foi possível restaurar sua sessão.")
         }
     }
 
@@ -170,6 +175,13 @@ class AuthRepository @Inject constructor(
     } catch (error: Exception) {
         AuthResult.Error(error.message ?: "Não foi possível entrar no AxéCloud.")
     }
+
+    private val Throwable.requiresNewLogin: Boolean
+        get() = (this is ApiException && status in setOf(400, 401)) ||
+            message.orEmpty().contains("sessão", ignoreCase = true) ||
+            message.orEmpty().contains("session", ignoreCase = true) ||
+            message.orEmpty().contains("jwt", ignoreCase = true) ||
+            message.orEmpty().contains("refresh token", ignoreCase = true)
 
     private fun requireConfiguration() {
         if (BuildConfig.SUPABASE_URL.isBlank() || BuildConfig.SUPABASE_ANON_KEY.isBlank()) {
