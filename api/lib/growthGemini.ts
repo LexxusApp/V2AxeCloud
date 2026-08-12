@@ -94,6 +94,14 @@ function cleanSalesReply(text: string): string {
     .slice(0, 1000);
 }
 
+export function salesGreetingInstruction(history: Array<{ direction: string; body: string }>): string {
+  const alreadyReplied = history.some((message) => message.direction !== "inbound");
+  if (alreadyReplied) {
+    return "A conversa já começou: não repita 'Axé', olá, bom dia ou outra saudação. Continue diretamente do assunto.";
+  }
+  return "Esta é a primeira resposta: uma única saudação curta com 'Axé' é opcional, sem usar o nome automático do perfil.";
+}
+
 export async function researchPublicContact(input: {
   nome: string;
   cidade: string;
@@ -148,13 +156,15 @@ Dados corretos do produto:
 Regras:
 - Responda somente à última mensagem, em no máximo 500 caracteres.
 - Faça no máximo uma pergunta por mensagem.
+- ${salesGreetingInstruction(input.history)}
+- Nunca use o nome recebido automaticamente do perfil do WhatsApp. Só use um nome se a própria pessoa se apresentar no texto da conversa.
 - Se pedirem para parar, não responda com venda.
 - Se houver dúvida religiosa, jurídica, negociação especial, reclamação séria ou algo que não saiba, diga que vai chamar o Lucas.
 - Se houver interesse em testar, envie o link de cadastro.
 - Não use markdown complexo e não diga que é humano.
 
 Terreiro: ${input.terreiroNome}
-Contato: ${input.contactName || "zelador(a)"}
+A pessoa ainda não informou como prefere ser chamada.
 Conversa:
 ${history}
 
