@@ -70,6 +70,30 @@ function responseText(payload: any): string {
   return Array.isArray(parts) ? parts.map((part) => String(part?.text || "")).join("\n").trim() : "";
 }
 
+export function isCompleteSalesReply(text: string): boolean {
+  const value = String(text || "").trim();
+  if (value.length < 20) return false;
+  if (/[.!?…][\])'\"]?$/.test(value)) return true;
+  return /https?:\/\/\S+$/.test(value);
+}
+
+export function completeSalesReplyPrefix(text: string): string | null {
+  const value = String(text || "").trim();
+  const matches = [...value.matchAll(/[.!?…](?=\s|$)/g)];
+  const last = matches.at(-1);
+  if (!last || last.index === undefined) return null;
+  const prefix = value.slice(0, last.index + last[0].length).trim();
+  return prefix.length >= 40 ? prefix : null;
+}
+
+function cleanSalesReply(text: string): string {
+  return String(text || "")
+    .replace(/^```[a-z]*\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim()
+    .slice(0, 1000);
+}
+
 export async function researchPublicContact(input: {
   nome: string;
   cidade: string;
@@ -136,7 +160,15 @@ ${history}
 
 Escreva apenas a próxima mensagem do AxéCloud.`;
   const payload = await generateContent(prompt, false);
-  const text = responseText(payload).replace(/^```[a-z]*\s*/i, "").replace(/\s*```$/i, "").trim();
+  const firstText = cleanSalesReply(responseText(payload));
+  if (isCompleteSalesReply(firstText)) return firstText;
+
+  const retryPrompt = `${prompt}\n\nA resposta anterior foi interrompida: ${JSON.stringify(firstText)}\nEscreva novamente do zero. Termine a mensagem com uma frase ou pergunta completa.`;
+  const retryPayload = await generateContent(retryPrompt, false);
+  const retryText = cleanSalesReply(responseText(retryPayload));
+  if (isCompleteSalesReply(retryText)) return retryText;
+
+  const text = completeSalesReplyPrefix(retryText) || completeSalesReplyPrefix(firstText) || "";
   if (!text) throw new Error("A IA não gerou resposta comercial.");
   return text.slice(0, 1000);
 }

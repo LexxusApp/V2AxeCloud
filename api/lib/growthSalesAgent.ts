@@ -8,11 +8,30 @@ function optedOut(text: string): boolean {
   return /\b(sair|pare|parar|remover|nao quero|nao envie|sem interesse|cancelar mensagens)\b/.test(value);
 }
 
-function nextStage(text: string): string {
+export function nextStage(text: string): string {
   const value = String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   if (/cadastro|testar|teste|quero conhecer|demonstracao|demonstração/.test(value)) return "interessado";
   if (/preco|preço|valor|plano|mensalidade/.test(value)) return "avaliando";
   return "conversa";
+}
+
+const STAGE_RANK: Record<string, number> = {
+  novo: 0,
+  conversa: 1,
+  interessado: 2,
+  avaliando: 3,
+};
+
+export function mergeSalesStage(current: string | null | undefined, inferred: string): string {
+  const currentStage = String(current || "novo");
+  return (STAGE_RANK[currentStage] ?? 0) >= (STAGE_RANK[inferred] ?? 0) ? currentStage : inferred;
+}
+
+export function statusForSalesStage(currentStatus: string | null | undefined, stage: string): string {
+  if (currentStatus === "qualificado" || (STAGE_RANK[stage] ?? 0) >= STAGE_RANK.interessado) {
+    return "qualificado";
+  }
+  return "respondeu";
 }
 
 export async function handleGrowthInboundAutoReply(
@@ -77,19 +96,20 @@ export async function handleGrowthInboundAutoReply(
   });
   await replyAdminInboxMessage(sb, conversation.id, reply);
   const now = new Date().toISOString();
+  const stage = mergeSalesStage(prospect.ai_sales_stage, nextStage(input.inboundBody));
   await sb.from("growth_prospects").update({
     consent_at: prospect.consent_at || input.inboundAt,
     consent_source: prospect.consent_source || "mensagem iniciada pelo contato",
     outreach_status: "replied",
-    status: nextStage(input.inboundBody) === "interessado" ? "qualificado" : "respondeu",
-    ai_sales_stage: nextStage(input.inboundBody),
+    status: statusForSalesStage(prospect.status, stage),
+    ai_sales_stage: stage,
     ai_last_reply_at: now,
     updated_at: now,
   }).eq("id", prospect.id);
   await sb.from("growth_outreach_events").insert({
     prospect_id: prospect.id,
     event_type: "ai_sales_reply",
-    payload: { conversationId: conversation.id, stage: nextStage(input.inboundBody) },
+    payload: { conversationId: conversation.id, stage },
   });
   return { handled: true, replied: true };
 }
