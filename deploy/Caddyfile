@@ -26,6 +26,12 @@
 	}
 }
 
+# Denylist operacional (IPs de abuso / concorrente). Atualizar + reload caddy.
+(ip_denylist) {
+	@denied_ip client_ip 189.28.151.13
+	respond @denied_ip "Acesso negado" 403
+}
+
 axecloud.com.br, www.axecloud.com.br {
 	@www host www.axecloud.com.br
 	redir @www https://axecloud.com.br{uri} permanent
@@ -50,6 +56,8 @@ axecloud.com.br, www.axecloud.com.br {
 	}
 
 	route {
+		import ip_denylist
+
 		# Typo comum no GSC: sitemap.xm → sitemap.xml (antes de crowdsec/appsec)
 		handle /sitemap.xm {
 			redir * /sitemap.xml permanent
@@ -90,6 +98,13 @@ axecloud.com.br, www.axecloud.com.br {
 		@legacyCalendar path /calendario-liturgico /calendario-liturgico/
 		handle @legacyCalendar {
 			redir * /conteudo/calendario-liturgico permanent
+		}
+
+		# Programa Fundador encerrado — 1 hop para /register (antes do strip de barra).
+		@legacyFounder path /programa-fundador /programa-fundador/
+		handle @legacyFounder {
+			header X-Robots-Tag "noindex, follow"
+			redir * /register permanent
 		}
 
 		@trailingSlash path_regexp trailing ^(.+)/$
@@ -207,14 +222,6 @@ axecloud.com.br, www.axecloud.com.br {
 			file_server
 		}
 
-		@legacy_founder {
-			path /programa-fundador
-			path /programa-fundador/*
-		}
-		handle @legacy_founder {
-			redir * /register permanent
-		}
-
 		@marketing {
 			path /
 			path /register
@@ -269,6 +276,8 @@ admin.axecloud.com.br {
 	}
 
 	route {
+		import ip_denylist
+
 		crowdsec
 		appsec
 

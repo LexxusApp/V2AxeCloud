@@ -170,7 +170,7 @@
         // Só faz purge+reload quando há SW antigo controlando URL de marketing.
         // BUGFIX: o `.finally(location.replace)` antigo recarregava mesmo sem SW → loop infinito em localhost.
         var MARKETING =
-          /^\/(?:termos|privacidade|programa-fundador|espaco-do-fiel|conteudo(?:\/|$))?\/?$/;
+          /^\/(?:termos|privacidade|espaco-do-fiel|conteudo(?:\/|$))?\/?$/;
         var p = (location.pathname || '/').replace(/\/+$/, '') || '/';
         var onMarketing = p === '/' || MARKETING.test(p);
         if (onMarketing && 'serviceWorker' in navigator) {
