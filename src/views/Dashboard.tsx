@@ -56,6 +56,7 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '../lib/utils';
+import { getHouseDailyMessage } from '../lib/houseDailyMessage';
 import LuxuryLoading from '../components/LuxuryLoading';
 import { AppPageShell } from '../components/app/AppTopNav';
 import Avatar from '../components/Avatar';
@@ -831,6 +832,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
+  const houseDailyMessage = getHouseDailyMessage(now);
   // Casa viva em 3 passos (linguagem da casa, não do software).
   const pixOk = Boolean(String(pixConfig?.chave_pix || '').trim());
   const mensalidadeConfigurada =
@@ -1209,7 +1211,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
           <section className="dashboard-v5-message">
             <p className="dashboard-v5-section-kicker">Mensagem da casa</p>
-            <blockquote>“Organizar é abrir espaço para cuidar melhor de cada pessoa da corrente.”</blockquote>
+            <blockquote>“{houseDailyMessage}”</blockquote>
             <div className="mt-5 flex items-center justify-between gap-3">
               <span>AxéCloud</span>
               <Sparkles className="h-4 w-4 text-[#E8C767]" aria-hidden />
