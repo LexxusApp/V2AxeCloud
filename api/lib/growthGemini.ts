@@ -102,6 +102,25 @@ export function salesGreetingInstruction(history: Array<{ direction: string; bod
   return "Esta é a primeira resposta: uma única saudação curta com 'Axé' é opcional, sem usar o nome automático do perfil.";
 }
 
+export function fallbackSalesReply(input: {
+  history: Array<{ direction: string; body: string }>;
+  monthlyPriceLabel: string;
+  registrationUrl: string;
+}): string {
+  const latestInbound = [...input.history].reverse().find((message) => message.direction === "inbound")?.body || "";
+  const value = latestInbound.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/teste|testar|cadastro|como faco|comecar|iniciar/.test(value)) {
+    return `Você pode iniciar agora o teste gratuito de 30 dias, sem cartão: ${input.registrationUrl}. Se tiver alguma dificuldade no cadastro, me avise por aqui.`;
+  }
+  if (/preco|valor|plano|mensalidade/.test(value)) {
+    return `O teste é gratuito por 30 dias, sem cartão. Depois, o plano Premium custa ${input.monthlyPriceLabel} por mês. Quer que eu envie o link para começar o teste?`;
+  }
+  if (/financeiro|pix|mensalidade|recebimento/.test(value)) {
+    return "O AxéCloud centraliza mensalidades e recebimentos via Pix para facilitar o acompanhamento do que foi pago e do que está pendente. Quer conhecer o teste gratuito?";
+  }
+  return "O AxéCloud organiza membros, giras, financeiro, mensalidades, comunicados e outras rotinas da casa em um só lugar. Qual parte você gostaria de conhecer primeiro?";
+}
+
 export async function researchPublicContact(input: {
   nome: string;
   cidade: string;
@@ -169,16 +188,21 @@ Conversa:
 ${history}
 
 Escreva apenas a próxima mensagem do AxéCloud.`;
-  const payload = await generateContent(prompt, false);
-  const firstText = cleanSalesReply(responseText(payload));
-  if (isCompleteSalesReply(firstText)) return firstText;
+  let firstText = "";
+  try {
+    const payload = await generateContent(prompt, false);
+    firstText = cleanSalesReply(responseText(payload));
+    if (isCompleteSalesReply(firstText)) return firstText;
 
-  const retryPrompt = `${prompt}\n\nA resposta anterior foi interrompida: ${JSON.stringify(firstText)}\nEscreva novamente do zero. Termine a mensagem com uma frase ou pergunta completa.`;
-  const retryPayload = await generateContent(retryPrompt, false);
-  const retryText = cleanSalesReply(responseText(retryPayload));
-  if (isCompleteSalesReply(retryText)) return retryText;
+    const retryPrompt = `${prompt}\n\nA resposta anterior foi interrompida: ${JSON.stringify(firstText)}\nEscreva novamente do zero. Termine a mensagem com uma frase ou pergunta completa.`;
+    const retryPayload = await generateContent(retryPrompt, false);
+    const retryText = cleanSalesReply(responseText(retryPayload));
+    if (isCompleteSalesReply(retryText)) return retryText;
 
-  const text = completeSalesReplyPrefix(retryText) || completeSalesReplyPrefix(firstText) || "";
-  if (!text) throw new Error("A IA não gerou resposta comercial.");
-  return text.slice(0, 1000);
+    const completeText = completeSalesReplyPrefix(retryText) || completeSalesReplyPrefix(firstText);
+    if (completeText) return completeText;
+  } catch (error) {
+    console.warn("[GROWTH AI] usando resposta comercial de contingência:", error instanceof Error ? error.message : error);
+  }
+  return fallbackSalesReply(input);
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   completeSalesReplyPrefix,
+  fallbackSalesReply,
   isCompleteSalesReply,
   salesGreetingInstruction,
 } from "../api/lib/growthGemini.js";
@@ -36,4 +37,20 @@ test("saudação é permitida somente na primeira resposta e não usa nome autom
   ]);
   assert.match(continuation, /não repita 'Axé'/i);
   assert.match(continuation, /diretamente do assunto/i);
+});
+
+test("contingência nunca deixa pedido de teste sem resposta", () => {
+  const reply = fallbackSalesReply({
+    history: [
+      { direction: "outbound", body: "Como posso ajudar?" },
+      { direction: "inbound", body: "Quero fazer o teste gratuito, como faço?" },
+    ],
+    monthlyPriceLabel: "R$ 49,90",
+    registrationUrl: "https://axecloud.com.br/cadastro",
+  });
+  assert.match(reply, /30 dias/i);
+  assert.match(reply, /sem cartão/i);
+  assert.match(reply, /https:\/\/axecloud\.com\.br\/cadastro/);
+  assert.doesNotMatch(reply, /^Axé/i);
+  assert.doesNotMatch(reply, /Lucas/i);
 });
