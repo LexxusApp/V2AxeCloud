@@ -90,6 +90,33 @@ curl -sS "${BASE}/" | grep -Eqi 'gest.{1,2}o de terreiros' || {
 }
 echo "OK   / — contém \"gestão de terreiros\""
 
+# Markdown for Agents — content negotiation
+md_headers="$(mktemp)"
+md_body="$(mktemp)"
+curl -sS -D "$md_headers" -o "$md_body" -H "Accept: text/markdown" "${BASE}/"
+grep -qiE '^content-type:[[:space:]]*text/markdown' "$md_headers" || {
+  echo "FAIL / Accept: text/markdown — Content-Type não é text/markdown"
+  rm -f "$md_headers" "$md_body"
+  exit 1
+}
+grep -qiE '^vary:.*accept' "$md_headers" || {
+  echo "FAIL / Accept: text/markdown — falta Vary: Accept"
+  rm -f "$md_headers" "$md_body"
+  exit 1
+}
+grep -qi 'AxéCloud\|AxeCloud' "$md_body" || {
+  echo "FAIL / Accept: text/markdown — corpo sem conteúdo da marca"
+  rm -f "$md_headers" "$md_body"
+  exit 1
+}
+if grep -qiE '<html|<script' "$md_body"; then
+  echo "FAIL / Accept: text/markdown — corpo ainda é HTML"
+  rm -f "$md_headers" "$md_body"
+  exit 1
+fi
+rm -f "$md_headers" "$md_body"
+echo "OK   / Accept: text/markdown — Markdown para agentes"
+
 # Página de cidade do diretório — Googlebot deve receber HTML SEO (não a home)
 city_tmp="$(mktemp)"
 curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \

@@ -23,7 +23,7 @@
     "dev:landing": "vite --config vite.landing.config.ts --port 5174",
     "dev:site": "concurrently -k -n app,landing -c cyan,yellow \"npm run dev\" \"npm run dev:landing\"",
     "dev:site:clean": "npx --yes kill-port 3000 5174 24678 && npm run dev:site",
-    "build:landing": "vite build --config vite.landing.config.ts && tsx scripts/prerender-diretorio.ts && node scripts/install-cinematic-marketing.mjs && node scripts/validate-marketing-build.mjs",
+    "build:landing": "vite build --config vite.landing.config.ts && tsx scripts/prerender-diretorio.ts && node scripts/install-cinematic-marketing.mjs && node scripts/generate-agent-markdown.mjs && node scripts/validate-marketing-build.mjs",
     "prerender:diretorio": "tsx scripts/prerender-diretorio.ts",
     "build:all": "npm run build && npm run build:landing",
     "preview": "vite preview",

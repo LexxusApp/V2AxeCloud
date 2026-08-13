@@ -62,6 +62,11 @@ for (const relative of REACT) {
   if (!html.includes('/m-assets/')) fail(`bundle React ausente: ${relative}`);
 }
 
+const homeMarkdown = read('index.md');
+if (!homeMarkdown.includes('AxéCloud') || homeMarkdown.includes('<script')) {
+  fail('index.md para agentes ausente ou ainda contém HTML');
+}
+
 if (fs.existsSync(path.join(OUT, 'entrar', 'index.html'))) {
   fail('/entrar não pode pertencer ao container de marketing');
 }
