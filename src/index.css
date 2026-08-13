@@ -10377,14 +10377,42 @@ html:has(.landing-mockup-nav) {
 .ritual-timeline__empty { padding:3rem;text-align:center;color:#8b8277;font-size:.7rem }
 
 .ritual-calendar header { display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;border-bottom:1px solid #e4ded5 }.ritual-calendar header>div:last-child { display:flex;gap:.35rem }.ritual-calendar header button { display:grid;min-width:2.3rem;height:2.3rem;place-items:center;padding:0 .55rem;border:1px solid #ddd6cc;border-radius:.6rem;font-size:.6rem;font-weight:900 }
-.ritual-calendar__scroll { overflow-x:auto }.ritual-calendar__grid { display:grid;min-width:680px;grid-template-columns:repeat(7,1fr);padding:1rem }
-.ritual-calendar__weekday { padding:.5rem;text-align:center;color:#91887d;font-size:.55rem;font-weight:900;text-transform:uppercase }
-.ritual-calendar__day { min-height:6.8rem;padding:.45rem;border-top:1px solid #e4ded5;border-left:1px solid #e4ded5;background:#fff }.ritual-calendar__day:nth-child(7n+1) { border-left:0 }.ritual-calendar__day.is-outside { opacity:.38 }.ritual-calendar__day.is-today { background:#fff9e7 }
-.ritual-calendar__day>span { display:grid;width:1.6rem;height:1.6rem;place-items:center;border-radius:50%;font-size:.6rem;font-weight:900 }.ritual-calendar__day.is-today>span { background:#171b21;color:#ffc700 }
-.ritual-calendar__day>div { margin-top:.25rem }.ritual-calendar__day button { display:block;width:100%;overflow:hidden;margin-top:.2rem;padding:.24rem .3rem;border-radius:.35rem;background:#f0ece5;color:#5f574c;font-size:.48rem;font-weight:800;text-align:left;text-overflow:ellipsis;white-space:nowrap }.ritual-calendar__day button i { display:inline-block;width:.3rem;height:.3rem;margin-right:.25rem;border-radius:50%;background:#38bdf8 }.ritual-calendar__day button.is-ritual i { background:#e3ae00 }.ritual-calendar__day button.is-celebration i { background:#a855f7 }
+.ritual-calendar__scroll { width:100%;overflow-x:hidden;-webkit-overflow-scrolling:touch }
+.ritual-calendar__grid { display:grid;width:100%;min-width:0;box-sizing:border-box;grid-template-columns:repeat(7,minmax(0,1fr));padding:.65rem .5rem 1rem;gap:0 }
+.ritual-calendar__weekday { padding:.35rem .1rem;text-align:center;color:#91887d;font-size:.5rem;font-weight:900;text-transform:uppercase;letter-spacing:.02em }
+.ritual-calendar__day { min-height:5.4rem;padding:.3rem .2rem;border-top:1px solid #e4ded5;border-left:1px solid #e4ded5;background:#fff;min-width:0 }.ritual-calendar__day:nth-child(7n+1) { border-left:0 }.ritual-calendar__day.is-outside { opacity:.38 }.ritual-calendar__day.is-today { background:#fff9e7 }
+.ritual-calendar__day>span { display:grid;width:1.45rem;height:1.45rem;place-items:center;border-radius:50%;font-size:.55rem;font-weight:900 }.ritual-calendar__day.is-today>span { background:#171b21;color:#ffc700 }
+.ritual-calendar__day>div { margin-top:.2rem;min-width:0 }.ritual-calendar__day button { display:block;width:100%;max-width:100%;overflow:hidden;margin-top:.15rem;padding:.18rem .22rem;border-radius:.3rem;background:#f0ece5;color:#5f574c;font-size:.42rem;font-weight:800;text-align:left;text-overflow:ellipsis;white-space:nowrap }.ritual-calendar__day button i { display:inline-block;width:.28rem;height:.28rem;margin-right:.18rem;border-radius:50%;background:#38bdf8 }.ritual-calendar__day button.is-ritual i { background:#e3ae00 }.ritual-calendar__day button.is-celebration i { background:#a855f7 }
+
+@media(min-width:880px){
+  .ritual-calendar__grid { padding:1rem }
+  .ritual-calendar__weekday { padding:.5rem;font-size:.55rem }
+  .ritual-calendar__day { min-height:6.8rem;padding:.45rem }
+  .ritual-calendar__day>span { width:1.6rem;height:1.6rem;font-size:.6rem }
+  .ritual-calendar__day button { font-size:.48rem;padding:.24rem .3rem }
+}
 
 @media(max-width:1000px){.ritual-command__top{align-items:start;flex-direction:column}.ritual-mission{grid-template-columns:1fr}.ritual-mission__visual{min-height:17rem}.ritual-mission__visual::after{background:linear-gradient(0deg,#10151c,transparent 55%)}.ritual-runway{grid-template-columns:1fr}.ritual-runway__label{border-right:0;border-bottom:1px solid #e3ddd3}.ritual-runway__track{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:700px){.ritual-command__top h1{font-size:2.25rem}.ritual-command__top-actions{width:100%}.ritual-command__top-actions .is-primary{flex:1}.ritual-mission__participation{grid-template-columns:1fr 1fr}.ritual-mission__response-bar{grid-column:1/-1}.ritual-runway__track{grid-template-columns:1fr}.ritual-event{grid-template-columns:3.5rem minmax(0,1fr)}.ritual-event__confirmed{display:none}.ritual-event__actions{grid-column:2}.ritual-command__mode{align-items:start;flex-direction:column}.ritual-mission__empty{align-items:flex-start;flex-direction:column}.ritual-mission__empty button{margin-left:0}}
+@media(max-width:700px){
+  .ritual-command__top h1{font-size:2.25rem}
+  .ritual-command__top-actions{width:100%}
+  .ritual-command__top-actions .is-primary{flex:1}
+  .ritual-mission__participation{grid-template-columns:1fr 1fr}
+  .ritual-mission__response-bar{grid-column:1/-1}
+  .ritual-runway__track{grid-template-columns:1fr}
+  .ritual-event{grid-template-columns:3.5rem minmax(0,1fr)}
+  .ritual-event__confirmed{display:none}
+  .ritual-event__actions{grid-column:2}
+  .ritual-command__mode{align-items:start;flex-direction:column}
+  .ritual-mission__empty{align-items:flex-start;flex-direction:column}
+  .ritual-mission__empty button{margin-left:0}
+  .ritual-calendar header{padding:.85rem .75rem;gap:.5rem}
+  .ritual-calendar__grid{padding:.45rem .25rem .75rem}
+  .ritual-calendar__weekday{padding:.25rem 0;font-size:.42rem;letter-spacing:0}
+  .ritual-calendar__day{min-height:4.4rem;padding:.22rem .12rem}
+  .ritual-calendar__day>span{width:1.25rem;height:1.25rem;font-size:.5rem}
+  .ritual-calendar__day button{font-size:.38rem;padding:.12rem .14rem}
+}
 
 /* Comunicados — feed oficial + central de envio */
 .comms-page-header {
