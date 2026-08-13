@@ -147,6 +147,35 @@ function dateStrPlusDays(days: number): string {
   return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+function isNotifRead(id: string, readIds: Set<string>): boolean {
+  if (readIds.has(id)) return true;
+  // Novo formato gira_<uuid>: também cobre IDs legados gira_<uuid>_<data>
+  if (id.startsWith('gira_') && !id.slice(5).includes('_')) {
+    for (const old of readIds) {
+      if (old.startsWith(`${id}_`)) return true;
+    }
+  }
+  // Legado gira_<uuid>_<data>: cobre se o estável gira_<uuid> já foi lido
+  const legacy = id.match(/^gira_([0-9a-f-]{36})_/i);
+  if (legacy && readIds.has(`gira_${legacy[1]}`)) return true;
+  return false;
+}
+
+function stableDateKey(raw: unknown): string {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : s.slice(0, 10);
+}
+
+function eventTimestamp(event: { data?: unknown; hora?: unknown; created_at?: unknown }): string {
+  const created = String(event.created_at || '').trim();
+  if (created) return created;
+  const day = stableDateKey(event.data);
+  const time = String(event.hora || '12:00:00').trim().slice(0, 8);
+  return day ? `${day}T${time.length === 5 ? `${time}:00` : time}` : new Date().toISOString();
+}
+
 function notificationTarget(type: AppNotification['type'], isFilho: boolean): string {
   switch (type) {
     case 'payment':
@@ -279,25 +308,30 @@ async function loadZeladorNotifications(
       .filter((event) => String(event.tipo || '').toLowerCase() !== 'obrigação')
       .slice(0, 4)
       .forEach((event) => {
+        const eventId = String(event.id || '').trim();
+        if (!eventId) return;
         const hora = event.hora ? ` às ${String(event.hora).slice(0, 5)}` : '';
         items.push({
-          id: `gira_${String(event.id)}_${String(event.data)}`,
+          // ID estável só pelo evento — não incluir data (formato varia e “deslê” o sino).
+          id: `gira_${eventId}`,
           type: 'event',
           title: `Lembrete de gira: ${String(event.titulo || 'gira marcada')}`,
           body: `Marcada para ${formatDay(String(event.data))}${hora}.`,
-          created_at: nowIso,
+          created_at: eventTimestamp(event),
         });
       });
   }
 
   if (obrigacoes.status === 'fulfilled') {
     (obrigacoes.value.data || []).forEach((row) => {
+      const rowId = String(row.id || '').trim();
+      if (!rowId) return;
       items.push({
-        id: `obg_${String(row.id)}`,
+        id: `obg_${rowId}`,
         type: 'obligation',
         title: `Lembrete de obrigação: ${String(row.titulo || 'obrigação agendada')}`,
         body: `Agendada para ${formatDay(String(row.data))}.`,
-        created_at: nowIso,
+        created_at: eventTimestamp(row),
       });
     });
   }
@@ -389,7 +423,7 @@ async function loadFilhoNotifications(tenantId: string): Promise<RawNotification
       type: 'event',
       title: `Nova gira no calendário: ${String(nextEvent.titulo || 'próxima gira')}`,
       body: `A casa aguarda sua confirmação para ${formatDay(String(nextEvent.data))}.`,
-      created_at: nowIso,
+      created_at: eventTimestamp(nextEvent),
     });
   }
 
@@ -459,6 +493,12 @@ export default function NotificationPanel({
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
   const readKey = notifReadStorageKey(userId);
   const dismissKey = notifDismissStorageKey(userId);
+  const rawItemsRef = useRef(rawItems);
+  rawItemsRef.current = rawItems;
+  const readKeyRef = useRef(readKey);
+  readKeyRef.current = readKey;
+  const dismissKeyRef = useRef(dismissKey);
+  dismissKeyRef.current = dismissKey;
 
   useEffect(() => {
     setReadIds(loadNotifIdSetForUser(NOTIF_READ_KEY, userId));
@@ -511,7 +551,7 @@ export default function NotificationPanel({
     () =>
       rawItems
         .filter((item) => !dismissedIds.has(item.id))
-        .map((item) => ({ ...item, read: readIds.has(item.id) }))
+        .map((item) => ({ ...item, read: isNotifRead(item.id, readIds) }))
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, LIST_CAP),
     [rawItems, readIds, dismissedIds],
@@ -525,14 +565,27 @@ export default function NotificationPanel({
     [allNotifications, filter],
   );
 
+  const persistReadIds = (updated: Set<string>) => {
+    const scoped = readKeyRef.current;
+    saveNotifIdSet(scoped, updated);
+    // Espelho na chave legada — evita “desler” se o userId hidratar depois.
+    if (scoped !== NOTIF_READ_KEY) saveNotifIdSet(NOTIF_READ_KEY, updated);
+  };
+
   const markAllRead = () => {
     setReadIds((current) => {
-      const updated = new Set([
-        ...current,
-        ...rawItems.map(({ id }) => id),
-        ...allNotifications.map(({ id }) => id),
-      ]);
-      saveNotifIdSet(readKey, updated);
+      const updated = new Set(current);
+      for (const item of rawItemsRef.current) updated.add(item.id);
+      // Compat: IDs antigos `gira_<uuid>_<data>` → marca também `gira_<uuid>`.
+      for (const item of rawItemsRef.current) {
+        if (item.id.startsWith('gira_')) {
+          const legacyPrefix = `${item.id}_`;
+          for (const oldId of current) {
+            if (oldId.startsWith(legacyPrefix) || oldId === item.id) updated.add(oldId);
+          }
+        }
+      }
+      persistReadIds(updated);
       return updated;
     });
   };
@@ -540,7 +593,16 @@ export default function NotificationPanel({
   const markRead = (id: string) => {
     setReadIds((current) => {
       const updated = new Set([...current, id]);
-      saveNotifIdSet(readKey, updated);
+      if (id.startsWith('gira_') && id.includes('_', 5)) {
+        // legado gira_uuid_data → também marca gira_uuid
+        const parts = id.split('_');
+        if (parts.length >= 2) updated.add(`gira_${parts[1]}`);
+      } else if (id.startsWith('gira_')) {
+        for (const oldId of current) {
+          if (oldId.startsWith(`${id}_`)) updated.add(oldId);
+        }
+      }
+      persistReadIds(updated);
       return updated;
     });
   };
@@ -549,7 +611,9 @@ export default function NotificationPanel({
     markRead(id);
     setDismissedIds((current) => {
       const updated = new Set([...current, id]);
-      saveNotifIdSet(dismissKey, updated);
+      const scoped = dismissKeyRef.current;
+      saveNotifIdSet(scoped, updated);
+      if (scoped !== NOTIF_DISMISS_KEY) saveNotifIdSet(NOTIF_DISMISS_KEY, updated);
       return updated;
     });
   };
@@ -560,15 +624,13 @@ export default function NotificationPanel({
     onNavigate?.(notificationTarget(notification.type, isFilho));
   };
 
-  // Ver é ler: abrir o painel marca tudo como lido (persistido), para as
-  // notificações não voltarem como "não lidas" após recarregar a página.
-  // O pequeno atraso deixa o usuário perceber o que era novidade; fechar o
-  // painel antes do atraso também marca (cleanup).
+  // Ver é ler: ao abrir (e quando a lista carrega com o painel aberto), persiste lidas.
   const markAllReadRef = useRef(markAllRead);
   markAllReadRef.current = markAllRead;
   useEffect(() => {
     if (!open) return;
-    const timer = window.setTimeout(() => markAllReadRef.current(), 1200);
+    if (!rawItems.length) return;
+    const timer = window.setTimeout(() => markAllReadRef.current(), 900);
     return () => {
       window.clearTimeout(timer);
       markAllReadRef.current();
