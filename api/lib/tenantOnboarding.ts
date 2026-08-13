@@ -7,6 +7,7 @@ import {
 } from "../../src/services/evolution.service.js";
 import { sendEvolutionTextQueued } from "./evolutionSendQueue.js";
 import {
+  dispatchZeladorWelcomeWhatsApp,
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
   renderWelcomeMessage,
@@ -139,6 +140,7 @@ export async function registerNewTenant(
       cargo: nome_zelador || null,
       role: "admin",
       tenant_id: tenantId,
+      whatsapp_publico: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
       updated_at: now,
     },
     { onConflict: "id" }
@@ -172,6 +174,75 @@ export async function registerNewTenant(
       { status: 503 }
     );
   }
+
+  // Boas-vindas WhatsApp no cadastro público (Meta template boas_vindas_zelador).
+  // Sem senha no follow-up: o zelador criou a própria senha no formulário.
+  try {
+    const cfg = await loadWelcomeMessageConfig(supabaseAdmin);
+    if (cfg.enabled) {
+      const msisdn = normalizeBrazilMsisdn(whatsapp || "");
+      if (msisdn) {
+        const freeText = renderWelcomeMessage(
+          "Axé, {{nome_zelador}}! 🌿\n" +
+            "Seu terreiro *{{nome_terreiro}}* foi cadastrado no AxéCloud com sucesso.\n\n" +
+            "Entre no painel com o e-mail {{email}} e a senha que você criou.\n" +
+            "Site: {{site}}\n\n" +
+            "📘 Instruções de uso: https://axecloud.com.br/instrucoes\n\n" +
+            "— {{assinatura}}",
+          {
+            nome_terreiro,
+            nome_zelador,
+            email,
+            site: cfg.loginUrl || resolvePublicAppUrl(),
+            assinatura: cfg.signature,
+          }
+        );
+        void dispatchZeladorWelcomeWhatsApp({
+          msisdn,
+          freeText,
+          nome_zelador,
+          nome_terreiro,
+          email,
+          site: cfg.loginUrl || resolvePublicAppUrl(),
+          // sem senha → só o template Meta (ou freeText), sem follow-up de credenciais
+        })
+          .then((r) =>
+            console.log(
+              `[onboarding] Welcome WhatsApp cadastro público (${r.channel}) → ${msisdn}`,
+              r?.messageId || ""
+            )
+          )
+          .catch((err) =>
+            console.error(
+              `[onboarding] Welcome WhatsApp cadastro público falhou (${msisdn}):`,
+              err?.message || err
+            )
+          );
+      } else {
+        console.log("[onboarding] Welcome WhatsApp: número ausente/inválido — pulado.");
+      }
+    }
+  } catch (welErr: unknown) {
+    console.error(
+      "[onboarding] Welcome WhatsApp setup:",
+      welErr instanceof Error ? welErr.message : welErr
+    );
+  }
+
+  void import("./opsAlertWhatsApp.js")
+    .then(({ notifyOpsNewTerreiro }) =>
+      notifyOpsNewTerreiro({
+        nome_terreiro,
+        nome_zelador,
+        email,
+        whatsapp,
+        source: "public-register",
+        tenantId,
+      })
+    )
+    .catch((err) =>
+      console.error("[onboarding] ops alert:", err instanceof Error ? err.message : err)
+    );
 
   return {
     userId: tenantId,

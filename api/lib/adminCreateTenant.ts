@@ -145,6 +145,21 @@ export async function runCreateTenant(
     console.error("[adminCreateTenant] welcome setup:", welErr);
   }
 
+  void import("./opsAlertWhatsApp.js")
+    .then(({ notifyOpsNewTerreiro }) =>
+      notifyOpsNewTerreiro({
+        nome_terreiro,
+        nome_zelador,
+        email,
+        whatsapp,
+        source: "admin-create",
+        tenantId: targetUser.id,
+      })
+    )
+    .catch((err) =>
+      console.error("[adminCreateTenant] ops alert:", err instanceof Error ? err.message : err)
+    );
+
   void logEvent(supabaseAdmin, {
     eventType: "tenant.created",
     userId: user.id,
