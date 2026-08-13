@@ -4281,7 +4281,7 @@ async function startServer() {
       }
 
       const eventData = {
-        titulo: req.body?.titulo,
+        titulo: String(req.body?.titulo || "").trim(),
         data: req.body?.data,
         hora: req.body?.hora,
         tipo: req.body?.tipo,
@@ -4310,6 +4310,39 @@ async function startServer() {
         lider_id: user.id,
         tenant_id,
       };
+
+      // Retry após timeout: se já existe a mesma gira (título+data+hora) nos últimos minutos, reusa.
+      const tituloNorm = String(eventData.titulo || "").trim();
+      const dataNorm = String(eventData.data || "").trim();
+      const horaNorm = String(eventData.hora || "").trim();
+      if (tituloNorm && dataNorm && horaNorm) {
+        const sinceIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: recentSameSlot } = await supabaseAdmin
+          .from("calendario_axe")
+          .select("*")
+          .eq("tenant_id", tenant_id)
+          .eq("data", dataNorm)
+          .eq("hora", horaNorm)
+          .gte("created_at", sinceIso)
+          .order("created_at", { ascending: false })
+          .limit(8);
+        const existingSame = (recentSameSlot || []).find(
+          (row: { titulo?: string | null }) =>
+            String(row.titulo || "").trim().toLowerCase() === tituloNorm.toLowerCase()
+        );
+        if (existingSame?.id) {
+          console.warn(
+            `[SERVER] create event dedupe → reuse ${existingSame.id} (${tituloNorm} ${dataNorm} ${horaNorm})`
+          );
+          res.json({
+            success: true,
+            data: existingSame,
+            whatsapp: { sent: 0, errors: 0, eligible: 0, status: "queued" },
+            deduped: true,
+          });
+          return;
+        }
+      }
 
       const { data, error } = await supabaseAdmin
         .from('calendario_axe')

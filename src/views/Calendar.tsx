@@ -785,6 +785,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [notifyChannelEvent, setNotifyChannelEvent] = useState<Event | null>(null);
   const [notifyChannel, setNotifyChannel] = useState<'push' | 'whatsapp' | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
@@ -1121,6 +1122,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current || isSubmitting) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       let banner_url: string | undefined;
@@ -1202,6 +1205,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       console.error('Error saving event:', error);
       alert(error.message || (editingEvent ? 'Erro ao atualizar evento.' : 'Erro ao criar evento.'));
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }
