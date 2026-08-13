@@ -369,12 +369,13 @@ async function loadZeladorNotifications(
   }
 
   // Aviso de nova função (zelador): clique abre modal explicativo.
+  // created_at = agora só para ordenação; o rótulo na UI é “Novidade”.
   items.push({
     id: GIRA_REMINDER_FEATURE_NOTIF_ID,
     type: 'system',
     title: 'Nova função: lembrete automático de gira',
     body: 'Configure o intervalo no WhatsApp (1–7 dias) e o aviso no dia da gira.',
-    created_at: '2026-08-12T18:00:00.000Z',
+    created_at: nowIso,
   });
 
   return items;
@@ -570,7 +571,13 @@ export default function NotificationPanel({
       rawItems
         .filter((item) => !dismissedIds.has(item.id))
         .map((item) => ({ ...item, read: isNotifRead(item.id, readIds) }))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a, b) => {
+          // Atualizações de função não lidas ficam no topo (acima de lembretes rotineiros).
+          const aPin = FEATURE_ANNOUNCEMENT_IDS.has(a.id) && !a.read ? 1 : 0;
+          const bPin = FEATURE_ANNOUNCEMENT_IDS.has(b.id) && !b.read ? 1 : 0;
+          if (aPin !== bPin) return bPin - aPin;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        })
         .slice(0, LIST_CAP),
     [rawItems, readIds, dismissedIds],
   );
@@ -788,7 +795,9 @@ export default function NotificationPanel({
                         {notification.body}
                       </span>
                       <span className="mt-2 block text-[10px] font-semibold text-[#596578]">
-                        {timeAgo(notification.created_at)}
+                        {FEATURE_ANNOUNCEMENT_IDS.has(notification.id)
+                          ? 'Novidade'
+                          : timeAgo(notification.created_at)}
                       </span>
                     </span>
                   </button>
