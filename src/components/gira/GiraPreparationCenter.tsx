@@ -131,16 +131,23 @@ export default function GiraPreparationCenter({
       const inventory = inventoryResult.status === 'fulfilled' && Array.isArray(inventoryResult.value?.data)
         ? inventoryResult.value.data
         : [];
-      const lowStock = inventory.filter((item: any) => Number(item.quantidade_atual) <= Number(item.quantidade_minima));
+      // fetchMapaVelas devolve 1 linha por filho (placeholder). Só conta quem tem vela definida.
+      const assignedCandles = (Array.isArray(candles) ? candles : []).filter(
+        (item: { vela?: string | null }) => Boolean(String(item?.vela || '').trim()),
+      );
+      const lowStock = inventory.filter(
+        (item: { quantidade_atual?: number; quantidade_minima?: number }) =>
+          Number(item.quantidade_atual) <= Number(item.quantidade_minima),
+      );
       current.estoque = {
-        done: candles.length > 0 || (inventory.length > 0 && lowStock.length === 0),
-        detail: candles.length > 0
-          ? `${candles.length} item${candles.length === 1 ? '' : 's'} no mapa ritual`
+        done: assignedCandles.length > 0,
+        detail: assignedCandles.length > 0
+          ? `${assignedCandles.length} vela${assignedCandles.length === 1 ? '' : 's'} definida${assignedCandles.length === 1 ? '' : 's'} no mapa ritual`
           : inventory.length === 0
-            ? 'Nenhum material cadastrado no almoxarifado'
+            ? 'Nenhum material separado ainda — defina velas no mapa ritual'
             : lowStock.length > 0
-              ? `${lowStock.length} item${lowStock.length === 1 ? '' : 's'} com estoque baixo`
-              : `${inventory.length} itens disponíveis · estoque em dia`,
+              ? `${lowStock.length} item${lowStock.length === 1 ? '' : 's'} com estoque baixo no almoxarifado`
+              : `${inventory.length} itens no almoxarifado — defina o mapa ritual desta gira`,
         source: 'automático',
         warning: lowStock.length > 0,
       };
