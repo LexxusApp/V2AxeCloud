@@ -117,6 +117,28 @@ fi
 rm -f "$md_headers" "$md_body"
 echo "OK   / Accept: text/markdown — Markdown para agentes"
 
+# RFC 9727 — catálogo de APIs públicas (não HTML da SPA)
+catalog_headers="$(mktemp)"
+catalog_body="$(mktemp)"
+curl -sS -D "$catalog_headers" -o "$catalog_body" "${BASE}/.well-known/api-catalog"
+grep -qiE '^content-type:[[:space:]]*application/linkset\+json' "$catalog_headers" || {
+  echo "FAIL /.well-known/api-catalog — Content-Type não é application/linkset+json"
+  rm -f "$catalog_headers" "$catalog_body"
+  exit 1
+}
+grep -q '"linkset"' "$catalog_body" || {
+  echo "FAIL /.well-known/api-catalog — JSON sem linkset"
+  rm -f "$catalog_headers" "$catalog_body"
+  exit 1
+}
+if grep -qiE '<html|<script' "$catalog_body"; then
+  echo "FAIL /.well-known/api-catalog — ainda devolve HTML"
+  rm -f "$catalog_headers" "$catalog_body"
+  exit 1
+fi
+rm -f "$catalog_headers" "$catalog_body"
+echo "OK   /.well-known/api-catalog — Linkset RFC 9727"
+
 # Página de cidade do diretório — Googlebot deve receber HTML SEO (não a home)
 city_tmp="$(mktemp)"
 curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \

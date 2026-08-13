@@ -38,8 +38,9 @@ import {
   resolveWhatsAppTemplate,
 } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
+import { createIpBlockMiddleware } from "./lib/ipBlocklist.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
-import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
+import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
@@ -59,6 +60,7 @@ import { registerConsulentePortalRoutes } from "./lib/consulentePortalRoutes.js"
 import { registerFounderProgramRoutes } from "./lib/founderProgramRoutes.js";
 import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerDiretorioPublicRoutes } from "./lib/diretorioPublicRoutes.js";
+import { registerAgentDiscoveryRoutes } from "./lib/agentDiscovery.js";
 import { registerDiretorioSeoRoutes } from "./lib/diretorioSeo.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
@@ -1366,6 +1368,9 @@ async function startServer() {
     })
   );
   app.use(express.json({ limit: '10mb', verify: captureWebhookRawBody }));
+
+  // Denylist de IPs (global_settings.blocked_ips) — bloqueia API e páginas cedo.
+  app.use(createIpBlockMiddleware(supabaseAdmin as any));
 
   // Fase 3 — Cache-Control HTTP: padrão seguro; rotas de leitura estável sobrescrevem antes do res.json.
   const pathOnlyForCache = (req: express.Request) =>
@@ -3847,6 +3852,7 @@ async function startServer() {
   registerFounderProgramRoutes(app, { supabaseAdmin });
   registerPublicPortalRoutes(app, { supabaseAdmin });
   registerDiretorioPublicRoutes(app, { supabaseAdmin });
+  registerAgentDiscoveryRoutes(app);
   registerDiretorioSeoRoutes(app, { supabaseAdmin });
   registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
@@ -4278,6 +4284,10 @@ async function startServer() {
         });
       }
 
+      const wa_reminder_interval_days = parseWaReminderIntervalDays(
+        req.body?.wa_reminder_interval_days
+      );
+
       const eventData = {
         titulo: req.body?.titulo,
         data: req.body?.data,
@@ -4296,6 +4306,7 @@ async function startServer() {
           req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ""
             ? Math.max(1, Number(req.body.senhas_maximas) || 0)
             : null,
+        wa_reminder_interval_days,
         checkin_qr_token: newPublicToken(),
         ...(Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas)
           ? { evento_public_token: newPublicToken(), evento_publico: Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas) }
@@ -4416,6 +4427,7 @@ async function startServer() {
           req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ''
             ? Math.max(1, Number(req.body.senhas_maximas) || 0)
             : null,
+        wa_reminder_interval_days: parseWaReminderIntervalDays(req.body?.wa_reminder_interval_days),
       };
 
       if (!patch.titulo || !patch.data || !patch.hora || !patch.tipo) {
@@ -5371,7 +5383,7 @@ async function startServer() {
     }
     app.get("*", (req, res) => {
       const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
-      if (pathOnly.startsWith("/api")) {
+      if (pathOnly.startsWith("/api") || pathOnly.startsWith("/.well-known") || pathOnly === "/openapi.json") {
         return res.status(404).json({
           error: "Rota API não encontrada",
           path: req.originalUrl || req.url,
