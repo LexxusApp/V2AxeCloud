@@ -63,7 +63,7 @@ import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit, webhookRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
 import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./api/lib/runtimePublicConfig.js";
-import { userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
+import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./api/lib/calendarAccess.js";
 import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./api/lib/secureRoutes.js";
 import { requireApiUser } from "./api/lib/routeAuthHelpers.js";
 import {
@@ -3620,6 +3620,7 @@ async function startServer() {
             : null,
         confirmacao_automatica: req.body?.confirmacao_automatica !== false,
         senhas_ativas: Boolean(req.body?.senhas_ativas),
+        wa_reminder_interval_days: parseWaReminderIntervalDays(req.body?.wa_reminder_interval_days),
         checkin_qr_token: newPublicToken(),
         ...(Boolean(req.body?.senhas_ativas)
           ? { senhas_public_token: newPublicToken() }
@@ -3647,16 +3648,24 @@ async function startServer() {
         console.error('[SERVER] Push após criar evento:', pushErr?.message || pushErr);
       }
 
-      const { dispatchGiraWhatsApp } = await import("./api/lib/cronWhatsAppJobs.js");
-      const whatsapp = await dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
-        id: String(data?.id || ""),
-        titulo: String(data?.titulo || req.body.titulo || ""),
-        data: String(data?.data || req.body.data || ""),
-        hora: String(data?.hora || req.body.hora || ""),
-        banner_url: data?.banner_url || null,
-      });
+      // Aviso WA em background — não bloquear a publicação da gira.
+      void import("./api/lib/cronWhatsAppJobs.js")
+        .then(({ dispatchGiraWhatsApp }) =>
+          dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
+            id: String(data?.id || ""),
+            titulo: String(data?.titulo || req.body.titulo || ""),
+            data: String(data?.data || req.body.data || ""),
+            hora: String(data?.hora || req.body.hora || ""),
+            banner_url: data?.banner_url || null,
+          })
+        )
+        .catch((e) => console.error("[GIRA WA] após criar evento:", e));
 
-      res.json({ success: true, data, whatsapp });
+      res.json({
+        success: true,
+        data,
+        whatsapp: { sent: 0, errors: 0, eligible: 0, status: "queued" },
+      });
     } catch (error: any) {
       console.error("[SERVER] Error creating event:", error.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });

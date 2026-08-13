@@ -78,7 +78,7 @@ type EventWhatsAppFeedback = {
   sent: number;
   errors: number;
   eligible: number;
-  status: 'sent' | 'partial' | 'no_recipients' | 'channel_offline' | 'disabled' | 'failed';
+  status: 'sent' | 'partial' | 'no_recipients' | 'channel_offline' | 'disabled' | 'failed' | 'queued';
 };
 
 function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
@@ -89,6 +89,11 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
     return { message: 'Gira marcada na agenda', type: 'success' };
   }
   switch (whatsapp.status) {
+    case 'queued':
+      return {
+        message: 'Gira marcada. Avisos WhatsApp estão sendo enviados à corrente.',
+        type: 'success',
+      };
     case 'sent':
       return {
         message: `Gira marcada. Aviso enviado para ${whatsapp.sent} pessoa${whatsapp.sent === 1 ? '' : 's'} da corrente`,
@@ -1167,8 +1172,18 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || (editingEvent ? 'Failed to update event' : 'Failed to create event'));
+        const raw = await response.text();
+        let errMsg = editingEvent ? 'Failed to update event' : 'Failed to create event';
+        try {
+          const errData = JSON.parse(raw) as { error?: string };
+          if (errData?.error) errMsg = errData.error;
+        } catch {
+          if (response.status === 502 || response.status === 503 || raw.trimStart().startsWith('<!')) {
+            errMsg =
+              'Servidor ocupado ou reiniciando. Tente de novo em alguns segundos — a gira pode já ter sido salva.';
+          }
+        }
+        throw new Error(errMsg);
       }
 
       const result = await response.json();

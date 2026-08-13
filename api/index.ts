@@ -4319,22 +4319,26 @@ async function startServer() {
 
       if (error) throw error;
 
-      // Push apenas para filhos de santo inscritos
+      // Push + aviso WA em background: a gira já está salva; não segurar a resposta HTTP.
       void sendPushNotification(profile?.tenant_id || user.id, {
         title: `Novo evento: ${req.body.titulo}`,
         body: `${req.body.data} às ${req.body.hora}`,
         url: '/calendar'
       }).catch((e) => console.error('[PUSH] após criar evento:', e));
 
-      const whatsapp = await dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
+      void dispatchGiraWhatsApp(supabaseAdmin, tenant_id, {
         id: String(data?.id || ""),
         titulo: String(data?.titulo || req.body.titulo || ""),
         data: String(data?.data || req.body.data || ""),
         hora: String(data?.hora || req.body.hora || ""),
         banner_url: data?.banner_url || null,
-      });
+      }).catch((e) => console.error('[GIRA WA] após criar evento:', e));
 
-      res.json({ success: true, data, whatsapp });
+      res.json({
+        success: true,
+        data,
+        whatsapp: { sent: 0, errors: 0, eligible: 0, status: "queued" },
+      });
     } catch (error: any) {
       console.error("[SERVER] Error creating event:", error.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
