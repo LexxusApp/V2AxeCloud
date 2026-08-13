@@ -14,7 +14,6 @@ import {
   Sparkles,
   Trash2,
   X,
-  Zap,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -33,6 +32,11 @@ import {
   notifReadStorageKey,
   saveNotifIdSet,
 } from '../lib/notificationPrefs';
+import {
+  GIRA_REMINDER_FEATURE_NOTIF_ID,
+  GiraReminderFeatureModal,
+  requestOpenGiraReminderConfig,
+} from './gira/GiraReminderFeatureModal';
 
 export interface AppNotification {
   id: string;
@@ -101,10 +105,10 @@ const TYPE_META: Record<
     surfaceClass: 'border-sky-400/20 bg-sky-400/10',
   },
   system: {
-    icon: <Zap className="h-4 w-4" />,
-    label: 'Sistema',
-    iconClass: 'text-sky-300',
-    surfaceClass: 'border-sky-400/20 bg-sky-400/10',
+    icon: <Sparkles className="h-4 w-4" />,
+    label: 'Atualização',
+    iconClass: 'text-amber-300',
+    surfaceClass: 'border-amber-400/20 bg-amber-400/10',
   },
   info: {
     icon: <Info className="h-4 w-4" />,
@@ -115,6 +119,8 @@ const TYPE_META: Record<
 };
 
 const LIST_CAP = 30;
+/** Avisos de nova função: não somem só de “ver o painel” — pedem clique ou “Ler todas”. */
+const FEATURE_ANNOUNCEMENT_IDS = new Set([GIRA_REMINDER_FEATURE_NOTIF_ID]);
 
 function timeAgo(dateStr: string): string {
   const timestamp = new Date(dateStr).getTime();
@@ -192,6 +198,8 @@ function notificationTarget(type: AppNotification['type'], isFilho: boolean): st
       return 'settings';
     case 'library':
       return 'library';
+    case 'system':
+      return 'calendar';
     default:
       return isFilho ? 'profile' : 'dashboard';
   }
@@ -360,6 +368,15 @@ async function loadZeladorNotifications(
     });
   }
 
+  // Aviso de nova função (zelador): clique abre modal explicativo.
+  items.push({
+    id: GIRA_REMINDER_FEATURE_NOTIF_ID,
+    type: 'system',
+    title: 'Nova função: lembrete automático de gira',
+    body: 'Configure o intervalo no WhatsApp (1–7 dias) e o aviso no dia da gira.',
+    created_at: '2026-08-12T18:00:00.000Z',
+  });
+
   return items;
 }
 
@@ -480,6 +497,7 @@ export default function NotificationPanel({
 }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [featureModalOpen, setFeatureModalOpen] = useState(false);
   const [rawItems, setRawItems] = useState<RawNotification[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(
     () => loadNotifIdSetForUser(NOTIF_READ_KEY, userId),
@@ -572,10 +590,14 @@ export default function NotificationPanel({
     if (scoped !== NOTIF_READ_KEY) saveNotifIdSet(NOTIF_READ_KEY, updated);
   };
 
-  const markAllRead = () => {
+  const markAllRead = (opts?: { includeFeatureAnnouncements?: boolean }) => {
+    const includeFeatures = opts?.includeFeatureAnnouncements !== false;
     setReadIds((current) => {
       const updated = new Set(current);
-      for (const item of rawItemsRef.current) updated.add(item.id);
+      for (const item of rawItemsRef.current) {
+        if (!includeFeatures && FEATURE_ANNOUNCEMENT_IDS.has(item.id)) continue;
+        updated.add(item.id);
+      }
       // Compat: IDs antigos `gira_<uuid>_<data>` → marca também `gira_<uuid>`.
       for (const item of rawItemsRef.current) {
         if (item.id.startsWith('gira_')) {
@@ -621,19 +643,24 @@ export default function NotificationPanel({
   const openNotification = (notification: AppNotification) => {
     markRead(notification.id);
     setOpen(false);
+    if (notification.id === GIRA_REMINDER_FEATURE_NOTIF_ID) {
+      setFeatureModalOpen(true);
+      return;
+    }
     onNavigate?.(notificationTarget(notification.type, isFilho));
   };
 
   // Ver é ler: ao abrir (e quando a lista carrega com o painel aberto), persiste lidas.
-  const markAllReadRef = useRef(markAllRead);
-  markAllReadRef.current = markAllRead;
+  // Avisos de nova função ficam até clique ou “Ler todas”.
+  const markPanelSeenRef = useRef(() => markAllRead({ includeFeatureAnnouncements: false }));
+  markPanelSeenRef.current = () => markAllRead({ includeFeatureAnnouncements: false });
   useEffect(() => {
     if (!open) return;
     if (!rawItems.length) return;
-    const timer = window.setTimeout(() => markAllReadRef.current(), 900);
+    const timer = window.setTimeout(() => markPanelSeenRef.current(), 900);
     return () => {
       window.clearTimeout(timer);
-      markAllReadRef.current();
+      markPanelSeenRef.current();
     };
   }, [open, rawItems]);
 
@@ -698,7 +725,11 @@ export default function NotificationPanel({
           </button>
         </div>
         {unread > 0 ? (
-          <button type="button" onClick={markAllRead} className="axecloud-notification-read-all">
+          <button
+            type="button"
+            onClick={() => markAllRead({ includeFeatureAnnouncements: true })}
+            className="axecloud-notification-read-all"
+          >
             <CheckCheck className="h-3.5 w-3.5" aria-hidden />
             Ler todas
           </button>
@@ -840,6 +871,16 @@ export default function NotificationPanel({
         : (
           <AnimatePresence>{popover}</AnimatePresence>
         )}
+
+      <GiraReminderFeatureModal
+        open={featureModalOpen}
+        onClose={() => setFeatureModalOpen(false)}
+        onConfigure={() => {
+          setFeatureModalOpen(false);
+          requestOpenGiraReminderConfig();
+          onNavigate?.('calendar');
+        }}
+      />
     </div>
   );
 }

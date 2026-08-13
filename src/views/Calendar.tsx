@@ -14,6 +14,7 @@ import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
 import { consumeCalendarFocusEventId } from '../lib/calendarFocus';
 import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
+import { OPEN_GIRA_REMINDER_CONFIG_EVENT } from '../components/gira/GiraReminderFeatureModal';
 import { hasPlanAccess } from '../constants/plans';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { EventGiraOperationsPanel } from '../components/gira/EventGiraOperationsPanel';
@@ -450,6 +451,7 @@ type AddEventModalPanelProps = {
   onBannerFile: (file: File) => void;
   onRemoveBanner?: () => void;
   hasExistingBanner?: boolean;
+  highlightReminder?: boolean;
 };
 
 function AddEventModalPanel({
@@ -464,7 +466,18 @@ function AddEventModalPanel({
   onBannerFile,
   onRemoveBanner,
   hasExistingBanner,
+  highlightReminder = false,
 }: AddEventModalPanelProps) {
+  const reminderBlockRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!highlightReminder) return;
+    const timer = window.setTimeout(() => {
+      reminderBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 280);
+    return () => window.clearTimeout(timer);
+  }, [highlightReminder]);
+
   return (
     <BodyPortal>
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-y-contain p-4">
@@ -641,7 +654,16 @@ function AddEventModalPanel({
                 />
               </div>
             ) : null}
-            <div className="rounded-xl border border-[#E3DCCE] bg-[#F1ECE0] p-3 sm:col-span-2">
+            <div
+              ref={reminderBlockRef}
+              id="gira-wa-reminder-block"
+              className={cn(
+                'rounded-xl border bg-[#F1ECE0] p-3 sm:col-span-2 transition-shadow duration-500',
+                highlightReminder
+                  ? 'border-[#C9A227] shadow-[0_0_0_3px_rgba(201,162,39,0.35)]'
+                  : 'border-[#E3DCCE]',
+              )}
+            >
               <label className="flex cursor-pointer items-start gap-2">
                 <input
                   type="checkbox"
@@ -791,6 +813,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   const [eventDetailModal, setEventDetailModal] = useState<Event | null>(null);
   const [addEventModalOpen, setAddEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [highlightReminderBlock, setHighlightReminderBlock] = useState(false);
+  const [pendingReminderConfig, setPendingReminderConfig] = useState(false);
   const [removeBannerOnSave, setRemoveBannerOnSave] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [adminView, setAdminView] = useState<'agenda' | 'calendar'>(() =>
@@ -954,8 +978,53 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   const closeEventFormModal = () => {
     setAddEventModalOpen(false);
+    setHighlightReminderBlock(false);
     resetEventForm();
   };
+
+  useEffect(() => {
+    if (isFilho) return;
+    const consumeFlag = () => {
+      try {
+        if (sessionStorage.getItem('axecloud_open_gira_reminder') === '1') {
+          sessionStorage.removeItem('axecloud_open_gira_reminder');
+          setPendingReminderConfig(true);
+        }
+      } catch {
+        /* storage bloqueado */
+      }
+    };
+    const onOpenReminderConfig = () => {
+      try {
+        sessionStorage.removeItem('axecloud_open_gira_reminder');
+      } catch {
+        /* ignore */
+      }
+      setPendingReminderConfig(true);
+    };
+    consumeFlag();
+    window.addEventListener(OPEN_GIRA_REMINDER_CONFIG_EVENT, onOpenReminderConfig);
+    return () => window.removeEventListener(OPEN_GIRA_REMINDER_CONFIG_EVENT, onOpenReminderConfig);
+  }, [isFilho]);
+
+  useEffect(() => {
+    if (!pendingReminderConfig || isFilho || loading) return;
+    setPendingReminderConfig(false);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const upcoming = events
+      .filter((event) => {
+        if (String(event.tipo || '').toLowerCase() === 'obrigação') return false;
+        return String(event.data || '') >= today;
+      })
+      .sort((a, b) => {
+        const byDate = String(a.data).localeCompare(String(b.data));
+        if (byDate !== 0) return byDate;
+        return String(a.hora || '').localeCompare(String(b.hora || ''));
+      });
+    if (upcoming[0]) openEditEventModal(upcoming[0]);
+    else openCreateEventModal();
+    setHighlightReminderBlock(true);
+  }, [pendingReminderConfig, isFilho, loading, events]);
 
   useEffect(() => {
     if (!effectiveTenantId) {
@@ -1965,6 +2034,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             bannerInputRef={bannerInputRef}
             bannerPreview={bannerPreview}
             hasExistingBanner={Boolean(editingEvent?.banner_url?.trim())}
+            highlightReminder={highlightReminderBlock}
             onRemoveBanner={() => {
               setRemoveBannerOnSave(true);
               setBannerFile(null);
