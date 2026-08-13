@@ -109,6 +109,17 @@ export function buildSitemapXml(siteUrl, routes) {
 export function buildRobotsTxt(siteUrl) {
   const origin = siteUrl.replace(/\/+$/, '');
   return [
+    '# Content Signals Policy',
+    '# (a) content-signal = yes  → pode usar o conteúdo para aquele fim',
+    '# (b) content-signal = no   → não pode usar o conteúdo para aquele fim',
+    '# (c) sinal ausente         → nem concede nem restringe via content signal',
+    '#',
+    '# search:   indexar e mostrar trechos/links em busca tradicional',
+    '#           (não inclui resumos gerados por IA)',
+    '# ai-input: usar o conteúdo em tempo real em respostas de IA (RAG, grounding)',
+    '# ai-train: treinar ou fazer fine-tuning de modelos',
+    '# Reservas de direitos: Diretiva UE 2019/790, art. 4.',
+    '',
     'User-agent: *',
     'Allow: /',
     'Disallow: /api/',
@@ -116,6 +127,7 @@ export function buildRobotsTxt(siteUrl) {
     'Disallow: /checkout',
     'Disallow: /register',
     'Disallow: /consulente',
+    'Content-Signal: search=yes, ai-input=yes, ai-train=no',
     '',
     `# llms.txt — resumo do site para ferramentas de IA: ${origin}/llms.txt`,
     `Sitemap: ${origin}/sitemap.xml`,
