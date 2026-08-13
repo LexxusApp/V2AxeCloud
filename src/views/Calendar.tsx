@@ -1010,19 +1010,18 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   useEffect(() => {
     if (!pendingReminderConfig || isFilho || loading) return;
     setPendingReminderConfig(false);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const upcoming = events
-      .filter((event) => {
-        if (String(event.tipo || '').toLowerCase() === 'obrigação') return false;
-        return String(event.data || '') >= today;
-      })
-      .sort((a, b) => {
-        const byDate = String(a.data).localeCompare(String(b.data));
-        if (byDate !== 0) return byDate;
-        return String(a.hora || '').localeCompare(String(b.hora || ''));
-      });
-    if (upcoming[0]) openEditEventModal(upcoming[0]);
-    else openCreateEventModal();
+    const giras = events.filter(
+      (event) => String(event.tipo || '').toLowerCase() !== 'obrigação',
+    );
+    // Mais de uma gira: só fica na agenda pra o zelador escolher qual editar.
+    if (giras.length > 1) return;
+    if (giras.length === 1) {
+      openEditEventModal(giras[0]);
+      setHighlightReminderBlock(true);
+      return;
+    }
+    // Nenhuma gira: abre criação com o bloco de lembrete em destaque.
+    openCreateEventModal();
     setHighlightReminderBlock(true);
   }, [pendingReminderConfig, isFilho, loading, events]);
 
