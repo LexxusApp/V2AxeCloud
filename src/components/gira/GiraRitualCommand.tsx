@@ -97,6 +97,7 @@ export default function GiraRitualCommand(props: Props) {
                 {isNotifying === nextEvent.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />} Avisar
               </button>
               <button type="button" onClick={() => onOperations(nextEvent)} disabled={!hasAccess}><Ticket className="h-4 w-4" /> Operação</button>
+              <button type="button" onClick={() => onEdit(nextEvent)}><Edit3 className="h-4 w-4" /> Editar gira</button>
             </div>
           </div>
         </> : <div className="ritual-mission__empty"><span><Flame className="h-8 w-8" /></span><div><p>Nenhuma gira no horizonte</p><small>Crie a próxima missão ritual da casa.</small></div><button type="button" onClick={onCreate}><Plus className="h-4 w-4" /> Criar primeira gira</button></div>}
