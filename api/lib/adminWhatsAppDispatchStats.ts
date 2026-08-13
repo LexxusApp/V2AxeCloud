@@ -1,8 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { startOfDay, startOfMonth } from "date-fns";
 import { isMissingOrUnknownTable } from "./adminConsoleAuth.js";
 
 const SHADOW_FILHO_EMAIL = /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i;
+
+/** Statuses que contam como disparo bem-sucedido (Meta sobrescreve `sent` → delivered/read). */
+const COUNTED_DISPATCH_STATUSES = ["sent", "partial", "delivered", "read"] as const;
+
+const BR_TZ = "America/Sao_Paulo";
 
 export type WhatsAppDispatchPeriod = "daily" | "monthly";
 
@@ -26,9 +30,20 @@ function isShadowFilhoEmail(email?: string | null): boolean {
   return typeof email === "string" && SHADOW_FILHO_EMAIL.test(email);
 }
 
+/** Início do dia/mês no fuso de SP (sem depender do TZ do container). */
 function resolvePeriodSince(period: WhatsAppDispatchPeriod): Date {
-  const now = new Date();
-  return period === "daily" ? startOfDay(now) : startOfMonth(now);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value || "1970";
+  const m = parts.find((p) => p.type === "month")?.value || "01";
+  const d = parts.find((p) => p.type === "day")?.value || "01";
+  const localDate = period === "daily" ? `${y}-${m}-${d}` : `${y}-${m}-01`;
+  // Brasil sem horário de verão: America/Sao_Paulo = UTC−3 o ano todo.
+  return new Date(`${localDate}T00:00:00-03:00`);
 }
 
 async function fetchSentLogTenantIds(sb: SupabaseClient, sinceIso: string): Promise<string[]> {
@@ -40,7 +55,7 @@ async function fetchSentLogTenantIds(sb: SupabaseClient, sinceIso: string): Prom
     const { data, error } = await sb
       .from("whatsapp_logs")
       .select("tenant_id")
-      .in("status", ["sent", "partial"])
+      .in("status", [...COUNTED_DISPATCH_STATUSES])
       .gte("created_at", sinceIso)
       .order("created_at", { ascending: true })
       .range(offset, offset + pageSize - 1);
