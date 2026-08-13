@@ -139,6 +139,44 @@ fi
 rm -f "$catalog_headers" "$catalog_body"
 echo "OK   /.well-known/api-catalog — Linkset RFC 9727"
 
+# Link Headers RFC 8288 na home
+home_headers="$(mktemp)"
+curl -sS -D "$home_headers" -o /dev/null "${BASE}/"
+grep -qiE '^link:.*rel="?api-catalog"?' "$home_headers" || {
+  echo "FAIL / — falta Link rel=api-catalog"
+  rm -f "$home_headers"
+  exit 1
+}
+grep -qiE '^link:.*rel="?sitemap"?' "$home_headers" || {
+  echo "FAIL / — falta Link rel=sitemap"
+  rm -f "$home_headers"
+  exit 1
+}
+rm -f "$home_headers"
+echo "OK   / — Link Headers para agentes"
+
+# Auth.md — instruções de login para agentes (não HTML da SPA)
+auth_headers="$(mktemp)"
+auth_body="$(mktemp)"
+curl -sS -D "$auth_headers" -o "$auth_body" "${BASE}/auth.md"
+grep -qiE '^content-type:[[:space:]]*text/markdown' "$auth_headers" || {
+  echo "FAIL /auth.md — Content-Type não é text/markdown"
+  rm -f "$auth_headers" "$auth_body"
+  exit 1
+}
+grep -qi 'AxéCloud\|AxeCloud' "$auth_body" || {
+  echo "FAIL /auth.md — corpo sem conteúdo da marca"
+  rm -f "$auth_headers" "$auth_body"
+  exit 1
+}
+if grep -qiE '<html|<script' "$auth_body"; then
+  echo "FAIL /auth.md — ainda devolve HTML"
+  rm -f "$auth_headers" "$auth_body"
+  exit 1
+fi
+rm -f "$auth_headers" "$auth_body"
+echo "OK   /auth.md — instruções para agentes"
+
 # Página de cidade do diretório — Googlebot deve receber HTML SEO (não a home)
 city_tmp="$(mktemp)"
 curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \

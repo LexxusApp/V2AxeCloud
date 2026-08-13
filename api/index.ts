@@ -5373,7 +5373,7 @@ async function startServer() {
     }
     app.get("*", (req, res) => {
       const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
-      if (pathOnly.startsWith("/api") || pathOnly.startsWith("/.well-known") || pathOnly === "/openapi.json") {
+      if (pathOnly.startsWith("/api") || pathOnly.startsWith("/.well-known") || pathOnly === "/openapi.json" || pathOnly === "/auth.md") {
         return res.status(404).json({
           error: "Rota API não encontrada",
           path: req.originalUrl || req.url,

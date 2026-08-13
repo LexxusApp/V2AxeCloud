@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   API_CATALOG_PROFILE,
   API_CATALOG_TYPE,
+  AUTH_MD,
+  AGENT_DISCOVERY_LINK_HEADER,
   buildPublicApiCatalog,
   buildPublicOpenApiSpec,
 } from "../api/lib/agentDiscovery.ts";
@@ -25,4 +27,14 @@ test("OpenAPI pública descreve diretório e eventos sem rotas autenticadas", ()
   assert.ok(spec.paths["/api/v1/public/eventos"]);
   assert.equal(spec.paths["/api/v1/auth/login"], undefined);
   assert.equal(spec.paths["/dashboard"], undefined);
+});
+
+test("auth.md descreve APIs públicas e proíbe login automatizado", () => {
+  assert.match(AUTH_MD, /# Autenticação no AxéCloud/);
+  assert.match(AUTH_MD, /\/api\/v1\/public\//);
+  assert.match(AUTH_MD, /Não há OAuth/);
+  assert.match(AGENT_DISCOVERY_LINK_HEADER, /rel="api-catalog"/);
+  assert.match(AGENT_DISCOVERY_LINK_HEADER, /rel="sitemap"/);
+  assert.match(AGENT_DISCOVERY_LINK_HEADER, /rel="service-desc"/);
+  assert.match(AGENT_DISCOVERY_LINK_HEADER, /\/auth\.md/);
 });

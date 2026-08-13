@@ -147,11 +147,51 @@ export function buildPublicOpenApiSpec() {
 
 const CATALOG_LINK = `</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"`;
 
+export const AGENT_DISCOVERY_LINK_HEADER = [
+  CATALOG_LINK,
+  `</sitemap.xml>; rel="sitemap"; type="application/xml"`,
+  `</openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json;version=3.1"`,
+  `</llms.txt>; rel="describedby"; type="text/plain"`,
+  `</auth.md>; rel="help"; type="text/markdown"`,
+].join(", ");
+
+export const AUTH_MD = `# Autenticação no AxéCloud
+
+> Instruções para agentes de IA. Humanos entram em ${SITE_ORIGIN}/entrar
+
+## Conteúdo público (sem login)
+
+Agentes **não devem** tentar login, preencher formulários nem reutilizar sessões humanas.
+
+Use só as APIs públicas:
+
+- Catálogo: ${SITE_ORIGIN}/.well-known/api-catalog
+- OpenAPI: ${SITE_ORIGIN}/openapi.json
+- Resumo do site: ${SITE_ORIGIN}/llms.txt
+
+Leitura pública:
+
+- \`GET /api/v1/public/diretorio/cidades\`
+- \`GET /api/v1/public/diretorio/{estado}/{cidade}\`
+- \`GET /api/v1/public/terreiros\`
+- \`GET /api/v1/public/eventos\`
+
+## Conta humana
+
+Painel do zelador, portal do filho de santo, checkout e rotas \`/api\` autenticadas exigem usuário humano em ${SITE_ORIGIN}/entrar.
+
+Não há OAuth, API key pública nem registro de agentes. Não implemente login automatizado.
+
+## 401 / 403
+
+Trate como conteúdo privado. Não tente de novo com credenciais adivinhadas. Volte às rotas \`/api/v1/public/*\`.
+`;
+
 function sendJsonDocument(req: Request, res: Response, body: unknown, contentType: string) {
   const json = JSON.stringify(body);
   res.setHeader("Content-Type", contentType);
   res.setHeader("Cache-Control", "public, max-age=3600");
-  res.setHeader("Link", CATALOG_LINK);
+  res.setHeader("Link", AGENT_DISCOVERY_LINK_HEADER);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Length", Buffer.byteLength(json).toString());
   if (req.method === "HEAD") {
@@ -159,6 +199,19 @@ function sendJsonDocument(req: Request, res: Response, body: unknown, contentTyp
     return;
   }
   res.status(200).send(json);
+}
+
+function sendAuthMd(req: Request, res: Response) {
+  res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.setHeader("Link", AGENT_DISCOVERY_LINK_HEADER);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Content-Length", Buffer.byteLength(AUTH_MD).toString());
+  if (req.method === "HEAD") {
+    res.status(200).end();
+    return;
+  }
+  res.status(200).send(AUTH_MD);
 }
 
 export function registerAgentDiscoveryRoutes(app: Express) {
@@ -173,4 +226,8 @@ export function registerAgentDiscoveryRoutes(app: Express) {
   app.head("/.well-known/api-catalog", sendCatalog);
   app.get("/openapi.json", sendOpenApi);
   app.head("/openapi.json", sendOpenApi);
+  app.get("/auth.md", sendAuthMd);
+  app.head("/auth.md", sendAuthMd);
+  app.get("/.well-known/auth.md", sendAuthMd);
+  app.head("/.well-known/auth.md", sendAuthMd);
 }
