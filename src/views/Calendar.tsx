@@ -49,6 +49,16 @@ export interface CalendarEvent {
   vagas_maximas?: number | null;
   senhas_ativas?: boolean;
   senhas_maximas?: number | null;
+  /** 1–7 = lembrete WhatsApp a cada N dias (+ dia da gira). null/undefined = off */
+  wa_reminder_interval_days?: number | null;
+}
+
+const WA_REMINDER_INTERVAL_OPTIONS = [1, 2, 3, 5, 7] as const;
+
+function formatWaReminderBadge(interval: number | null | undefined): string | null {
+  const n = Math.floor(Number(interval));
+  if (!Number.isFinite(n) || n < 1) return null;
+  return n === 1 ? 'Lembrete diário' : `Lembrete a cada ${n} dias`;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -223,6 +233,12 @@ function EventDetailModalPanel({
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#171A16]">{descricao}</p>
         </div>
       ) : null}
+      {formatWaReminderBadge(event.wa_reminder_interval_days) ? (
+        <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#3F7258]/30 bg-[#3F7258]/10 px-2.5 py-1 text-[10px] font-bold text-[#3F7258]">
+          <Bell className="h-3 w-3" aria-hidden />
+          {formatWaReminderBadge(event.wa_reminder_interval_days)}
+        </p>
+      ) : null}
     </div>
   );
 
@@ -367,6 +383,12 @@ function AdminEventDrawer({
         <div className="min-h-0 overflow-y-auto p-4">
           <p className="text-[9px] font-black uppercase tracking-[.22em] text-[#8F7724]">{event.tipo || 'Evento da casa'}</p>
           <h2 id="admin-event-title" className="mt-1 font-display text-xl font-black text-[#171A16]">{event.titulo}</h2>
+          {formatWaReminderBadge(event.wa_reminder_interval_days) ? (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#3F7258]/30 bg-[#3F7258]/10 px-2.5 py-1 text-[10px] font-bold text-[#3F7258]">
+              <Bell className="h-3 w-3" aria-hidden />
+              {formatWaReminderBadge(event.wa_reminder_interval_days)}
+            </p>
+          ) : null}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
             <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Horário</p><p className="mt-0.5 text-sm font-black">{formatHoraEvento(event.hora) || 'Não informado'}</p></div>
@@ -407,6 +429,8 @@ type EventFormData = {
   vagas_maximas: string;
   senhas_ativas: boolean;
   senhas_maximas: string;
+  wa_reminder_enabled: boolean;
+  wa_reminder_interval_days: string;
 };
 
 type AddEventModalPanelProps = {
@@ -612,6 +636,49 @@ function AddEventModalPanel({
                 />
               </div>
             ) : null}
+            <div className="rounded-xl border border-[#E3DCCE] bg-[#F1ECE0] p-3 sm:col-span-2">
+              <label className="flex cursor-pointer items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.wa_reminder_enabled}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      wa_reminder_enabled: e.target.checked,
+                      wa_reminder_interval_days: e.target.checked
+                        ? formData.wa_reminder_interval_days || '2'
+                        : formData.wa_reminder_interval_days,
+                    })
+                  }
+                  className="mt-0.5 h-4 w-4 accent-[#8F7724]"
+                />
+                <span>
+                  <span className="block text-xs font-bold text-[#171A16]">Lembrete WhatsApp automático</span>
+                  <span className="mt-0.5 block text-[11px] font-semibold leading-relaxed text-[#6F675C]">
+                    Envia aviso à corrente a cada X dias e também no dia da gira. O aviso na criação continua
+                    imediato.
+                  </span>
+                </span>
+              </label>
+              {formData.wa_reminder_enabled ? (
+                <div className="mt-3">
+                  <label className={paperLabelClass}>Intervalo</label>
+                  <select
+                    className={paperInputClass}
+                    value={formData.wa_reminder_interval_days}
+                    onChange={(e) =>
+                      setFormData({ ...formData, wa_reminder_interval_days: e.target.value })
+                    }
+                  >
+                    {WA_REMINDER_INTERVAL_OPTIONS.map((n) => (
+                      <option key={n} value={String(n)}>
+                        {n === 1 ? 'Todo dia' : `A cada ${n} dias`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
             <div className="rounded-xl border border-[#E3DCCE] bg-[#F1ECE0] p-3 sm:col-span-2">
               <label className={paperLabelClass}>Banner (opcional)</label>
               <input
@@ -819,6 +886,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     vagas_maximas: '',
     senhas_ativas: false,
     senhas_maximas: '',
+    wa_reminder_enabled: false,
+    wa_reminder_interval_days: '2',
   });
 
   const resetEventForm = () => {
@@ -833,6 +902,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       vagas_maximas: '',
       senhas_ativas: false,
       senhas_maximas: '',
+      wa_reminder_enabled: false,
+      wa_reminder_interval_days: '2',
     });
     setBannerFile(null);
     setRemoveBannerOnSave(false);
@@ -850,6 +921,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   const openEditEventModal = (event: Event) => {
     setEditingEvent(event);
+    const reminderInterval = Math.floor(Number(event.wa_reminder_interval_days));
+    const reminderOn = Number.isFinite(reminderInterval) && reminderInterval >= 1;
     setFormData({
       titulo: event.titulo,
       data: event.data,
@@ -863,6 +936,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       senhas_ativas: Boolean(event.senhas_ativas),
       senhas_maximas:
         event.senhas_maximas != null && event.senhas_maximas > 0 ? String(event.senhas_maximas) : '',
+      wa_reminder_enabled: reminderOn,
+      wa_reminder_interval_days: reminderOn ? String(reminderInterval) : '2',
     });
     setBannerFile(null);
     setRemoveBannerOnSave(false);
@@ -1063,8 +1138,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         if (uploadJson.publicUrl) banner_url = uploadJson.publicUrl;
       }
 
+      const {
+        wa_reminder_enabled,
+        wa_reminder_interval_days: reminderIntervalRaw,
+        ...formFields
+      } = formData;
       const payload = {
-        ...formData,
+        ...formFields,
+        wa_reminder_interval_days: wa_reminder_enabled
+          ? Number(reminderIntervalRaw) || 2
+          : null,
         ...(banner_url ? { banner_url } : {}),
         ...(editingEvent && removeBannerOnSave && !banner_url ? { remove_banner: true } : {}),
         lider_id: user?.id,
@@ -1664,6 +1747,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                             Encerrado
                           </span>
                         ) : null}
+                        {formatWaReminderBadge(event.wa_reminder_interval_days) && !passed ? (
+                          <span className="rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-50 backdrop-blur-sm">
+                            {formatWaReminderBadge(event.wa_reminder_interval_days)}
+                          </span>
+                        ) : null}
                     </div>
                       </div>
                     <div className="p-4 sm:self-center">
@@ -1754,9 +1842,9 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               <div>
                 <p className="text-xs font-bold text-[#F1F5F9]">Convites e lembretes no WhatsApp</p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-[#94A3B8]">
-                  Ao criar uma gira, filhos com WhatsApp cadastrado recebem o aviso automaticamente.
-                  Convidados com telefone também recebem convite ao serem adicionados — e lembretes
-                  automáticos antes da gira.
+                  Ao criar uma gira, filhos com WhatsApp recebem o aviso na hora. No formulário você pode
+                  ligar lembrete automático (a cada X dias e no dia da gira). Convidados com telefone
+                  recebem convite ao serem adicionados.
                 </p>
                   </div>
                 </div>

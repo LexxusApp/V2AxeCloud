@@ -1,6 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
 
+/**
+ * Intervalo de lembrete WhatsApp por gira (1–7 dias).
+ * null / vazio / 0 / false = desligado.
+ */
+export function parseWaReminderIntervalDays(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === "" || raw === false) return null;
+  if (raw === true) return 2;
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n > 7) return 7;
+  return n;
+}
+
 /** Valida posse do evento (tenant/lider) antes de mutações destrutivas. */
 export async function userCanModifyCalendarEvent(
   supabaseAdmin: SupabaseClient,

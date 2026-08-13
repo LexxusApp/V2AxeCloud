@@ -39,7 +39,7 @@ import {
 } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
-import { userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
+import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
@@ -4298,6 +4298,7 @@ async function startServer() {
           req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ""
             ? Math.max(1, Number(req.body.senhas_maximas) || 0)
             : null,
+        wa_reminder_interval_days: parseWaReminderIntervalDays(req.body?.wa_reminder_interval_days),
         checkin_qr_token: newPublicToken(),
         ...(Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas)
           ? { evento_public_token: newPublicToken(), evento_publico: Boolean(req.body?.evento_publico) || Boolean(req.body?.senhas_ativas) }
@@ -4418,6 +4419,7 @@ async function startServer() {
           req.body?.senhas_maximas != null && req.body?.senhas_maximas !== ''
             ? Math.max(1, Number(req.body.senhas_maximas) || 0)
             : null,
+        wa_reminder_interval_days: parseWaReminderIntervalDays(req.body?.wa_reminder_interval_days),
       };
 
       if (!patch.titulo || !patch.data || !patch.hora || !patch.tipo) {

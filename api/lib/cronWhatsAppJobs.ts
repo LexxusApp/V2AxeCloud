@@ -377,6 +377,13 @@ export type GiraWhatsAppDispatchResult = {
   status: "sent" | "partial" | "no_recipients" | "channel_offline" | "disabled" | "failed";
 };
 
+export type DispatchGiraWhatsAppOptions = {
+  /** Incluído na mensagem para dedupe diário via whatsapp_logs (cron de lembretes). */
+  messageSuffix?: string;
+  /** Cron de lembretes: vários eventos no mesmo tenant no mesmo dia. */
+  bypassFanoutCooldown?: boolean;
+};
+
 export async function dispatchGiraWhatsApp(
   sb: SupabaseClient,
   tenantId: string,
@@ -386,7 +393,8 @@ export async function dispatchGiraWhatsApp(
     data: string;
     hora: string;
     banner_url?: string | null;
-  }
+  },
+  options?: DispatchGiraWhatsAppOptions
 ): Promise<GiraWhatsAppDispatchResult> {
   let sent = 0;
   let errors = 0;
@@ -397,7 +405,9 @@ export async function dispatchGiraWhatsApp(
       return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
     }
 
-    await assertFanoutCooldown(sb, tenantId, "aviso_gira");
+    if (!options?.bypassFanoutCooldown) {
+      await assertFanoutCooldown(sb, tenantId, "aviso_gira");
+    }
 
     const { data: cfg } = await sb
       .from("whatsapp_config")
@@ -465,12 +475,14 @@ export async function dispatchGiraWhatsApp(
         }
 
         const nomeMembro = String(child.nome || "Filho");
+        const suffix = String(options?.messageSuffix || "").trim();
+        const baseMsg = `Gira: ${event.titulo} — ${dataEvento} ${horaEvento}`;
         await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: String(child.id),
           tipo: "aviso_gira",
           phone: digits,
-          message: `Gira: ${event.titulo} — ${dataEvento} ${horaEvento}`,
+          message: suffix ? `${baseMsg} [${suffix}]` : baseMsg,
           nomeMembro,
           nomeTerreiro: ctx.nomeTerreiro,
           idTerreiro: ctx.idTerreiro,
@@ -511,8 +523,130 @@ export async function dispatchGiraWhatsApp(
   return { sent, errors, eligible, status };
 }
 
+async function runGiraReminders(
+  sb: SupabaseClient
+): Promise<{ sent: number; skipped: number; errors: number; events: number }> {
+  let sent = 0;
+  let skipped = 0;
+  let errors = 0;
+  let eventsProcessed = 0;
+
+  if (!(await isOfficialChannelReady())) {
+    return { sent: 0, skipped: 0, errors: 0, events: 0 };
+  }
+
+  const today = startOfDay(new Date());
+  const todayStr = format(today, "yyyy-MM-dd");
+
+  const { data: rows, error } = await sb
+    .from("calendario_axe")
+    .select(
+      "id, titulo, data, hora, banner_url, tenant_id, lider_id, wa_reminder_interval_days, created_at"
+    )
+    .gte("data", todayStr)
+    .not("wa_reminder_interval_days", "is", null)
+    .order("data", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    console.error("[GIRA REMINDER] query:", error.message);
+    return { sent: 0, skipped: 0, errors: 1, events: 0 };
+  }
+
+  for (const row of rows || []) {
+    const interval = Math.floor(Number(row.wa_reminder_interval_days));
+    if (!Number.isFinite(interval) || interval < 1 || interval > 7) {
+      skipped++;
+      continue;
+    }
+
+    const dataRaw = String(row.data || "").trim();
+    if (!dataRaw) {
+      skipped++;
+      continue;
+    }
+
+    let eventDay: Date;
+    try {
+      eventDay = startOfDay(parseISO(dataRaw.length > 10 ? dataRaw : `${dataRaw}T12:00:00`));
+    } catch {
+      skipped++;
+      continue;
+    }
+
+    const daysUntil = differenceInCalendarDays(eventDay, today);
+    if (daysUntil < 0) {
+      skipped++;
+      continue;
+    }
+    if (daysUntil !== 0 && daysUntil % interval !== 0) {
+      skipped++;
+      continue;
+    }
+
+    const createdRaw = String(row.created_at || "").trim();
+    if (createdRaw) {
+      try {
+        const createdDay = format(
+          parseISO(createdRaw.length > 10 ? createdRaw : `${createdRaw}T12:00:00`),
+          "yyyy-MM-dd"
+        );
+        if (createdDay === todayStr) {
+          skipped++;
+          continue;
+        }
+      } catch {
+        /* ignore parse — still allow reminder */
+      }
+    }
+
+    const tenantId = String(row.tenant_id || row.lider_id || "").trim();
+    const eventId = String(row.id || "").trim();
+    if (!tenantId || !eventId) {
+      skipped++;
+      continue;
+    }
+
+    const dedupeKey = `gira-lembrete-${eventId}-${todayStr}`;
+    if (await whatsappLogExistsToday(sb, tenantId, "aviso_gira", dedupeKey)) {
+      skipped++;
+      continue;
+    }
+
+    eventsProcessed++;
+    try {
+      const result = await dispatchGiraWhatsApp(
+        sb,
+        tenantId,
+        {
+          id: eventId,
+          titulo: String(row.titulo || "Gira"),
+          data: dataRaw.slice(0, 10),
+          hora: String(row.hora || ""),
+          banner_url: row.banner_url ?? null,
+        },
+        { messageSuffix: dedupeKey, bypassFanoutCooldown: true }
+      );
+      sent += result.sent;
+      errors += result.errors;
+      if (result.sent === 0 && result.status !== "disabled") {
+        skipped++;
+      }
+    } catch (err) {
+      errors++;
+      console.error(`[GIRA REMINDER] event=${eventId}:`, err);
+    }
+  }
+
+  console.log(
+    `[GIRA REMINDER] events=${eventsProcessed} sent=${sent} skipped=${skipped} errors=${errors}`
+  );
+  return { sent, skipped, errors, events: eventsProcessed };
+}
+
 export async function runWhatsAppCronJobs(sb: SupabaseClient) {
   const mensalidade = await runMensalidadeReminders(sb);
   const estoque = await runEstoqueAlerts(sb);
-  return { mensalidade, estoque };
+  const gira = await runGiraReminders(sb);
+  return { mensalidade, estoque, gira };
 }
