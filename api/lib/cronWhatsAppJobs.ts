@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getOfficialWhatsAppStatus } from "../../src/services/evolution.service.js";
 import {
@@ -23,7 +23,6 @@ function envInt(name: string, fallback: number): number {
 
 const FANOUT_MAX_RECIPIENTS = envInt("WA_FANOUT_MAX_RECIPIENTS", 30);
 const BR_TZ = "America/Sao_Paulo";
-const REMINDER_DAYS_BEFORE = 3;
 
 async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
   const leaderId = await resolveLeaderId(sb, tenantId);
@@ -54,18 +53,64 @@ function formatBrl(value: number): string {
   return value.toFixed(2).replace(".", ",");
 }
 
-type MensalidadeCronKind = "disponivel" | "pendente";
+function addDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return date.toISOString().slice(0, 10);
+}
 
-function resolveMensalidadeCronKind(
-  dayOfMonth: number,
-  daysUntilDue: number
-): MensalidadeCronKind | null {
-  const isFirst = dayOfMonth === 1;
-  const isReminder = daysUntilDue === REMINDER_DAYS_BEFORE || daysUntilDue === 0;
-  if (isFirst && !isReminder) return "disponivel";
-  if (isFirst && daysUntilDue === REMINDER_DAYS_BEFORE) return "disponivel";
-  if (isReminder) return "pendente";
-  return null;
+/** Segunda-feira da semana civil (ISO), sem depender do fuso do servidor. */
+function mondayOfWeek(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const dow = date.getUTCDay();
+  const offset = dow === 0 ? -6 : 1 - dow;
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function hash32(seed: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+/** Dias estáveis por semente — o cron diário não escolhe outro dia a cada execução. */
+function pickStableDays(days: string[], count: number, seed: string): string[] {
+  if (count <= 0 || days.length === 0) return [];
+  const scored = days.map((d) => ({ d, s: hash32(`${seed}:${d}`) }));
+  scored.sort((a, b) => a.s - b.s || a.d.localeCompare(b.d));
+  return scored.slice(0, Math.min(count, scored.length)).map((row) => row.d);
+}
+
+function daysOfWeekInMonth(weekMonday: string, monthStart: string, monthEnd: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const ymd = addDaysYmd(weekMonday, i);
+    if (ymd >= monthStart && ymd <= monthEnd) out.push(ymd);
+  }
+  return out;
+}
+
+type MensalidadeCronKind = "disponivel" | "pendente" | "vence_hoje";
+
+function resolveMensalidadeCronKind(opts: {
+  todayYmd: string;
+  monthStart: string;
+  monthEnd: string;
+  dueYmd: string;
+  tenantId: string;
+}): MensalidadeCronKind | null {
+  const { todayYmd, monthStart, monthEnd, dueYmd, tenantId } = opts;
+  if (todayYmd === dueYmd) return "vence_hoje";
+  if (todayYmd === monthStart) return "disponivel";
+
+  const weekMonday = mondayOfWeek(todayYmd);
+  const inDueWeek = weekMonday === mondayOfWeek(dueYmd);
+  const exclude = new Set([dueYmd, monthStart]);
+  const eligible = daysOfWeekInMonth(weekMonday, monthStart, monthEnd).filter((d) => !exclude.has(d));
+  const picked = pickStableDays(eligible, inDueWeek ? 2 : 1, `${tenantId}:${weekMonday}`);
+  return picked.includes(todayYmd) ? "pendente" : null;
 }
 
 async function whatsappLogExistsToday(
@@ -101,9 +146,9 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
     return { sent: 0, skipped: 0, errors: 0 };
   }
 
-  const { y, m0, day, ymd: todayYmd } = brazilTodayParts();
-  const mesAno = format(parseISO(`${todayYmd}T12:00:00`), "MM/yyyy");
-  const mesExtenso = format(parseISO(`${todayYmd}T12:00:00`), "MMMM 'de' yyyy", { locale: ptBR });
+  const { y, m0, ymd: todayYmd } = brazilTodayParts();
+  const mesAno = `${String(m0 + 1).padStart(2, "0")}/${y}`;
+  const mesExtenso = format(new Date(y, m0, 15), "MMMM 'de' yyyy", { locale: ptBR });
 
   const { data: configs } = await sb.from("whatsapp_config").select("tenant_id, templates");
   for (const cfg of configs || []) {
@@ -127,21 +172,31 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
 
       const dueDay = clampDayNumber(y, m0, dia);
       const dueYmd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
-      const daysUntilDue = differenceInCalendarDays(parseISO(dueYmd), parseISO(todayYmd));
-      const kind = resolveMensalidadeCronKind(day, daysUntilDue);
+      const monthStart = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(y, m0 + 1, 0).getDate();
+      const monthEnd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      const kind = resolveMensalidadeCronKind({
+        todayYmd,
+        monthStart,
+        monthEnd,
+        dueYmd,
+        tenantId,
+      });
       if (!kind) {
         skipped++;
         continue;
       }
 
-      const monthStart = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
-      const lastDay = new Date(y, m0 + 1, 0).getDate();
-      const monthEnd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       const vencStr = format(parseISO(dueYmd), "dd/MM/yyyy");
       const valorFmt = formatBrl(valor);
-      const tipo = kind === "disponivel" ? "mensalidade_disponivel" : "mensalidade_pendente";
+      const tipo =
+        kind === "disponivel"
+          ? "mensalidade_disponivel"
+          : kind === "vence_hoje"
+            ? "mensalidade_vence_hoje"
+            : "mensalidade_pendente";
       const mesAnoParam =
-        kind === "pendente" ? `${mesAno} (venc. ${vencStr})` : mesExtenso;
+        kind === "disponivel" || kind === "vence_hoje" ? mesExtenso : `${mesAno} (venc. ${vencStr})`;
 
       const { data: children } = await sb
         .from("filhos_de_santo")
@@ -174,7 +229,10 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
         });
         if (!hasPending) continue;
 
-        const dedupeKey = `${kind}-${fid}-${format(parseISO(dueYmd), "yyyy-MM")}`;
+        const dedupeKey =
+          kind === "pendente"
+            ? `${kind}-${fid}-${todayYmd}`
+            : `${kind}-${fid}-${format(parseISO(dueYmd), "yyyy-MM")}`;
         if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, todayYmd)) {
           skipped++;
           continue;

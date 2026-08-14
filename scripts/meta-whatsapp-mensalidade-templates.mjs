@@ -1,5 +1,5 @@
 /**
- * Cria os templates de mensalidade (disponível + pendente) na Meta Cloud API.
+ * Cria os templates de mensalidade (disponível + pendente + vence hoje) na Meta Cloud API.
  *
  *   node --env-file=.env scripts/meta-whatsapp-mensalidade-templates.mjs
  */
@@ -42,6 +42,18 @@ const templates = [
         type: "BODY",
         text: "Olá, {{1}}! Lembramos que sua mensalidade de {{2}} no valor de R$ {{3}} ainda está pendente no {{4}}.\n\nQuando puder, regularize pelo portal da casa. Axé!",
         example: { body_text: [["Maria Silva", "08/2026 (venc. 15/08/2026)", "150,00", "Terreiro de Oxum"]] },
+      },
+    ],
+  },
+  {
+    name: "mensalidade_vence_hoje_axecloud",
+    language: "pt_BR",
+    category: "UTILITY",
+    components: [
+      {
+        type: "BODY",
+        text: "Olá, {{1}}! Sua mensalidade de {{2}} no valor de R$ {{3}} vence hoje no {{4}}.\n\nQuando puder, regularize pelo portal da casa. Axé!",
+        example: { body_text: [["Maria Silva", "agosto de 2026", "150,00", "Terreiro de Oxum"]] },
       },
     ],
   },

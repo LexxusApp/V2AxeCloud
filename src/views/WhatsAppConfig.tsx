@@ -95,7 +95,11 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
     },
     mensalidade_pendente: {
       title: 'Lembrete de mensalidade pendente',
-      hint: 'Automático 3 dias antes e no vencimento, só se ainda estiver em aberto. Também no botão Lembrete do Financeiro.',
+      hint: 'Uma vez por semana; na semana do vencimento, dois dias aleatórios. Não dispara no dia do vencimento.',
+    },
+    mensalidade_vence_hoje: {
+      title: 'Mensalidade vence hoje',
+      hint: 'Automático no dia do vencimento: lembra que a mensalidade vence naquele dia.',
     },
     mensalidade_confirmada: {
       title: 'Mensalidade Confirmada',

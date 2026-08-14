@@ -36,7 +36,7 @@ Sua contribuição fortalece a casa. Axé!
 
 ## 1b. `lembrete_mensalidade_pendente_axecloud`
 
-**Uso:** cron **3 dias antes** e **no vencimento**, só se a mensalidade ainda estiver em aberto. Também no botão Lembrete do Financeiro.
+**Uso:** cron **uma vez por semana** (dia estável por terreiro). Na **semana do vencimento**, dois dias aleatórios (nunca o dia do vencimento). Só se a mensalidade ainda estiver em aberto. Também no botão Lembrete do Financeiro.
 
 **Corpo:**
 
@@ -59,7 +59,32 @@ Até a aprovação na Meta, o lembrete cai no legado `financeiro_axecloud`.
 
 ---
 
-## 1c. `financeiro_axecloud` (legado)
+## 1c. `mensalidade_vence_hoje_axecloud`
+
+**Uso:** cron no **dia do vencimento** (horário de Brasília). Lembra que a mensalidade vence naquele dia.
+
+**Corpo:**
+
+```
+Olá, {{1}}! Sua mensalidade de {{2}} no valor de R$ {{3}} vence hoje no {{4}}.
+
+Quando puder, regularize pelo portal da casa. Axé!
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria Silva |
+| {{2}} | agosto de 2026 |
+| {{3}} | 150,00 |
+| {{4}} | Terreiro de Oxum |
+
+**Env:** `WA_META_TEMPLATE_MENSALIDADE_VENCE_HOJE=mensalidade_vence_hoje_axecloud`
+
+A Meta recategorizou este modelo para **Marketing**. Continua ativo e usável; Utility ficam `mensalidade_disponivel_axecloud` e `lembrete_mensalidade_pendente_axecloud`.
+
+---
+
+## 1d. `financeiro_axecloud` (legado)
 
 **Uso:** fallback do lembrete pendente enquanto `lembrete_mensalidade_pendente_axecloud` não estiver APPROVED.
 
@@ -596,6 +621,7 @@ WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
 ```env
 WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL=mensalidade_disponivel_axecloud
 WA_META_TEMPLATE_MENSALIDADE_PENDENTE=lembrete_mensalidade_pendente_axecloud
+WA_META_TEMPLATE_MENSALIDADE_VENCE_HOJE=mensalidade_vence_hoje_axecloud
 WA_META_TEMPLATE_FINANCEIRO=financeiro_axecloud
 WA_META_TEMPLATE_COBRANCA_MENSALIDADE=cobranca_mensalidade_axecloud
 WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud

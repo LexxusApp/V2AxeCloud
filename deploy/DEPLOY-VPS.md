@@ -57,7 +57,7 @@ sed -i 's/\r$//' /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 
 O script usa a rede Docker (`http://app:3000/...`) para não seguir redirect HTTPS do Caddy para a Vercel enquanto o DNS ainda aponta para `76.76.21.21`.
 
-`cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00: mensalidade disponível (dia 1), lembrete se pendente (D−3 e vencimento), lembretes de gira e alertas de estoque crítico.
+`cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00: mensalidade disponível (dia 1), lembrete pendente (1× por semana; 2× na semana do vencimento), aviso no dia do vencimento, lembretes de gira e alertas de estoque crítico.
 
 ## 5. Webhooks
 

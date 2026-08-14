@@ -12,10 +12,12 @@ const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
 const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
-/** Lembrete automático/manual de mensalidade pendente (cron D−3 e vencimento) */
+/** Lembrete automático/manual de mensalidade pendente (cron semanal; fallback Meta) */
 const FINANCEIRO_TEMPLATE = "financeiro_axecloud";
 /** Aviso no dia 1: mensalidade do mês já disponível para pagamento */
 const MENSALIDADE_DISPONIVEL_TEMPLATE = "mensalidade_disponivel_axecloud";
+/** Aviso no dia do vencimento — só usado se WA_META_TEMPLATE_MENSALIDADE_VENCE_HOJE estiver no .env */
+const MENSALIDADE_VENCE_HOJE_TEMPLATE = "mensalidade_vence_hoje_axecloud";
 /** Cobrança manual no painel financeiro */
 const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
 /** Confirmação após pagamento registrado */
@@ -112,6 +114,13 @@ export function resolveMetaTemplateName(tipo: string): string {
     return (
       String(process.env.WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL || "").trim() ||
       MENSALIDADE_DISPONIVEL_TEMPLATE
+    );
+  }
+  if (normalized === "mensalidade_vence_hoje") {
+    return (
+      String(process.env.WA_META_TEMPLATE_MENSALIDADE_VENCE_HOJE || "").trim() ||
+      String(process.env.WA_META_TEMPLATE_FINANCEIRO || "").trim() ||
+      FINANCEIRO_TEMPLATE
     );
   }
   if (normalized === "cobranca_mensalidade") {
@@ -241,6 +250,7 @@ const META_UTILITY_TEMPLATE_TIPOS = new Set([
   "financeiro",
   "mensalidade_pendente",
   "mensalidade_disponivel",
+  "mensalidade_vence_hoje",
   "estoque_critico",
   "aviso_gira",
   "convite_evento",
@@ -682,7 +692,7 @@ export function buildFinanceiroComponents(
 }
 
 /**
- * mensalidade_disponivel_axecloud / lembrete_mensalidade_pendente_axecloud
+ * mensalidade_disponivel_axecloud / lembrete_mensalidade_pendente_axecloud / mensalidade_vence_hoje_axecloud
  * corpo: {{1}} filho, {{2}} mês/ano, {{3}} valor, {{4}} terreiro
  */
 export function buildMensalidadeCompetenciaComponents(
@@ -1014,10 +1024,13 @@ export function buildMetaTemplateComponentsForTipo(
     }
     return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
   }
-  if (t === "mensalidade_pendente" || t === "mensalidade_disponivel") {
+  if (t === "mensalidade_pendente" || t === "mensalidade_disponivel" || t === "mensalidade_vence_hoje") {
     const name = resolveMetaTemplateName(tipo);
     if (name === FINANCEIRO_TEMPLATE || name.startsWith("financeiro_")) {
       return buildFinanceiroComponents(nomeMembro, nomeTerreiro, variables);
+    }
+    if (name === MENSALIDADE_VENCE_HOJE_TEMPLATE || name === MENSALIDADE_DISPONIVEL_TEMPLATE) {
+      return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
     }
     return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
   }
@@ -1152,6 +1165,10 @@ export function buildWhatsAppAuditMessage(
 
   if (normalized === "mensalidade_pendente") {
     return `Mensalidade pendente: ${v.nome_filho || nomeMembro} · ${v.mes_ano || "—"} · R$ ${v.valor_mensalidade || v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "mensalidade_vence_hoje") {
+    return `Mensalidade vence hoje: ${v.nome_filho || nomeMembro} · ${v.mes_ano || "—"} · R$ ${v.valor_mensalidade || v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
   }
 
   if (normalized === "cobranca_mensalidade") {

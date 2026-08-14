@@ -4,6 +4,7 @@
   | 'mensalidade_disponivel'
   | 'financeiro'
   | 'mensalidade_pendente'
+  | 'mensalidade_vence_hoje'
   | 'mensalidade_confirmada'
   | 'transmissao_aviso'
   | 'mural_aviso'
@@ -27,6 +28,8 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
   mensalidade_pendente:
     'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
+  mensalidade_vence_hoje:
+    'Olá, {{nome_filho}}! Sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} vence hoje no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
   mensalidade_confirmada:
     'Olá, {{nome_filho}}! Recebemos sua mensalidade de {{competencia}} (R$ {{valor}}) no {{nome_terreiro}}. Gratidão pela contribuição. Axé!',
   transmissao_aviso:
@@ -56,6 +59,7 @@ export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'mensalidade_disponivel',
   'financeiro',
   'mensalidade_pendente',
+  'mensalidade_vence_hoje',
   'mensalidade_confirmada',
   'transmissao_aviso',
   'mural_aviso',

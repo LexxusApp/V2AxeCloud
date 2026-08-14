@@ -318,7 +318,7 @@ export function SettingsWhatsAppPanel() {
     {
       key: 'notifFinanceiro',
       title: 'Comprovantes Financeiros',
-      desc: 'Lembrete no dia 1 (mensalidade disponível) e aviso se ainda estiver pendente no vencimento, além do comprovante quando o pagamento é confirmado.',
+      desc: 'No dia 1 avisa que a mensalidade está disponível; lembrete semanal se pendente; no vencimento avisa que vence naquele dia. Também envia comprovante quando o pagamento é confirmado.',
       toastLabel: 'Financeiro',
     },
     {

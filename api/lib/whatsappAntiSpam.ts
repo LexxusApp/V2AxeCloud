@@ -61,6 +61,7 @@ const TRANSACTIONAL_TIPOS = new Set([
   "mensalidade_confirmada",
   "mensalidade_pendente",
   "mensalidade_disponivel",
+  "mensalidade_vence_hoje",
   "convite_evento",
 ]);
 

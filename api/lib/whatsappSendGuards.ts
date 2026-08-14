@@ -76,7 +76,7 @@ export function assertBroadcastRecipientLimit(recipientCount: number): void {
 
 /** Limita fan-out automático (mural, gira, mensalidade em massa). */
 export function assertFanoutRecipientLimit(recipientCount: number, tipo: string): void {
-  if (!isCampaignTipo(tipo) && tipo !== "financeiro" && tipo !== "mensalidade_pendente" && tipo !== "mensalidade_disponivel") return;
+  if (!isCampaignTipo(tipo) && tipo !== "financeiro" && tipo !== "mensalidade_pendente" && tipo !== "mensalidade_disponivel" && tipo !== "mensalidade_vence_hoje") return;
   if (FANOUT_MAX_RECIPIENTS <= 0) return;
   if (recipientCount > FANOUT_MAX_RECIPIENTS) {
     throw httpError(
@@ -207,7 +207,7 @@ export async function assertWhatsAppOutboundAllowed(
   await assertTenantWhatsAppDailyQuota(sb, opts.tenantId, opts.plannedSends ?? 1);
 
   let fingerprint: string | undefined;
-  if (isCampaignTipo(opts.tipo) || opts.tipo === "financeiro" || opts.tipo === "mensalidade_pendente" || opts.tipo === "mensalidade_disponivel") {
+  if (isCampaignTipo(opts.tipo) || opts.tipo === "financeiro" || opts.tipo === "mensalidade_pendente" || opts.tipo === "mensalidade_disponivel" || opts.tipo === "mensalidade_vence_hoje") {
     fingerprint = await assertCampaignFingerprintQuota(
       sb,
       opts.tenantId,
