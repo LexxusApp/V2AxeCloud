@@ -438,6 +438,21 @@ export default function Login() {
       </aside>
 
       <section className="axe-login-panel">
+        <div className="axe-login-mobile-top">
+          <a href={ROUTES.home} className="axe-login-mobile-brand">
+            <img src="/axecloud-trident.png" alt="" width="34" height="42" />
+            <strong>Axé<span>Cloud</span></strong>
+          </a>
+          <a
+            href={ROUTES.home}
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateToMarketingDocument(ROUTES.home);
+            }}
+          >
+            Conhecer o site <ArrowRight aria-hidden />
+          </a>
+        </div>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -left-36 -top-36 h-[34rem] w-[34rem] rounded-full bg-[#f0b400]/[0.09] blur-3xl" />
         <div className="absolute -bottom-48 -right-32 h-[38rem] w-[38rem] rounded-full bg-[#e2bc5a]/[0.12] blur-3xl" />
@@ -451,7 +466,7 @@ export default function Login() {
           event.preventDefault();
           void navigateToMarketingDocument(ROUTES.home);
         }}
-        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.25rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 text-xs font-semibold text-[#1b1813]/60 transition-colors hover:text-[#a87500]"
+        className="axe-login-back absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.25rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 text-xs font-semibold text-[#1b1813]/60 transition-colors hover:text-[#a87500]"
       >
         <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Conhecer o AxéCloud
@@ -462,7 +477,7 @@ export default function Login() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="relative z-10 my-auto w-full max-w-[42rem] py-2 sm:py-0"
       >
-        <div className={cn(AUTH_MODAL_CARD, step === 'form' && 'axe-login-form-surface')}>
+        <div className={cn(AUTH_MODAL_CARD, 'axe-login-auth-shell', step === 'form' && 'axe-login-form-surface')}>
           <div className="relative z-10 w-full space-y-5">
             {showAlert && (
               <div className="flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]">
@@ -494,9 +509,9 @@ export default function Login() {
                   className="axe-login-choice"
                 >
                   <div className="axe-login-choice-heading">
-                    <p>PORTAL AXÉCLOUD <span>•</span> ACESSO SEGURO</p>
-                    <h2>Como você participa<br />da casa?</h2>
-                    <p>Escolha o seu caminho. Cada pessoa acessa somente o que faz parte da sua jornada.</p>
+                    <p>PORTAL AXÉCLOUD <span>•</span> ACESSO À CASA</p>
+                    <h2>Escolha como<br /><span>entrar.</span></h2>
+                    <p>Dois acessos, cada um com as informações certas para o seu papel na casa.</p>
                   </div>
 
                   <div className="axe-login-paths">
