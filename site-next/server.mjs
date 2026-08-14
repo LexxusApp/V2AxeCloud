@@ -1,10 +1,12 @@
 import { createReadStream } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import http from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { startProdServer } from 'vinext/server/prod-server';
 
-const root = join(import.meta.dirname, 'dist', 'standalone');
+const nestedStandalone = join(import.meta.dirname, 'dist', 'standalone');
+const root = existsSync(nestedStandalone) ? nestedStandalone : import.meta.dirname;
 const clientRoot = join(root, 'dist', 'client');
 const publicPrefix = '/site-home-assets/';
 const publicPort = Number.parseInt(process.env.PORT ?? '3000', 10);
