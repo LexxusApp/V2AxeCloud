@@ -82,3 +82,9 @@
 .cx-header-login{padding:10px 2px;color:#d7d5ce!important;font-size:12px;font-weight:800}.cx-header-login:hover{color:var(--gold)!important}
 @media(max-width:720px){.cx-header-login{margin-left:auto}.cx-header-cta{display:none}}
 @media(max-width:650px){.cx-header-login{display:none}}
+
+/* Ações comerciais sempre claras, com versão completa dentro do menu móvel. */
+.cx-header{width:min(1320px,calc(100% - 32px))}
+.cx-header-contact{height:36px;padding:0 11px;display:flex;align-items:center;justify-content:center;white-space:nowrap;border:1px solid rgba(255,255,255,.18);border-radius:6px;color:#e8e5db!important;font-size:11px;font-weight:800;transition:border-color .2s,color .2s,background .2s}.cx-header-contact:hover{border-color:rgba(226,169,18,.55);color:var(--gold)!important;background:rgba(226,169,18,.06)}
+.cx-menu-actions{margin-top:10px;padding-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:8px}.cx-menu .cx-menu-actions a{min-height:46px;padding:0 12px;justify-content:center;border:1px solid rgba(255,255,255,.14);border-radius:6px;font-size:12px;font-weight:850}.cx-menu .cx-menu-login{grid-column:1/-1;color:#f3efe4;background:#24261f}.cx-menu .cx-menu-contact{color:#f3efe4;background:transparent}.cx-menu .cx-menu-trial{gap:8px;color:#17150e!important;border-color:var(--gold);background:var(--gold)}.cx-menu .cx-menu-trial svg{width:15px}
+@media(max-width:900px){.cx-header-contact{display:none}}
