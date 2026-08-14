@@ -10,7 +10,7 @@
 #>
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("app", "marketing", "caddy", "admin")]
+  [ValidateSet("app", "marketing", "site-home", "caddy", "admin")]
   [string[]]$Services,
 
   [string]$HostAlias = $(if ($env:AXECLOUD_VPS_HOST) { $env:AXECLOUD_VPS_HOST } else { "axecloud-vps" })
