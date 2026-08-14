@@ -225,6 +225,16 @@ axecloud.com.br, www.axecloud.com.br {
 			reverse_proxy site-home:3000
 		}
 
+		# Os guias de acesso fazem parte da identidade editorial do novo site.
+		# Mantemos /entrar no app, mas servimos as instrucoes pelo site-home.
+		@site_home_guides {
+			path /instrucoes
+			path /instrucoes/membro
+		}
+		handle @site_home_guides {
+			reverse_proxy site-home:3000
+		}
+
 		handle / {
 			reverse_proxy site-home:3000 {
 				header_down Link `</sitemap.xml>; rel="sitemap", </llms.txt>; rel="describedby"`
