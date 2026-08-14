@@ -23,6 +23,21 @@ function envInt(name: string, fallback: number): number {
 
 const FANOUT_MAX_RECIPIENTS = envInt("WA_FANOUT_MAX_RECIPIENTS", 30);
 const BR_TZ = "America/Sao_Paulo";
+const MENSALIDADE_SKIP_TENANT_IDS = new Set(
+  String(process.env.WA_MENSALIDADE_SKIP_TENANT_IDS || "")
+    .split(/[,\s]+/)
+    .map((id) => id.trim())
+    .filter(Boolean)
+);
+
+function isMensalidadeNotifEnabled(metadata: unknown): boolean {
+  const meta = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
+  const prefs =
+    meta.preferences && typeof meta.preferences === "object"
+      ? (meta.preferences as Record<string, unknown>)
+      : {};
+  return prefs.notifFinanceiro !== false;
+}
 
 async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
   const leaderId = await resolveLeaderId(sb, tenantId);
@@ -150,10 +165,14 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
   const mesAno = `${String(m0 + 1).padStart(2, "0")}/${y}`;
   const mesExtenso = format(new Date(y, m0, 15), "MMMM 'de' yyyy", { locale: ptBR });
 
-  const { data: configs } = await sb.from("whatsapp_config").select("tenant_id, templates");
+  const { data: configs } = await sb.from("whatsapp_config").select("tenant_id, templates, metadata");
   for (const cfg of configs || []) {
     const tenantId = String(cfg.tenant_id || "");
     if (!tenantId) continue;
+    if (MENSALIDADE_SKIP_TENANT_IDS.has(tenantId) || !isMensalidadeNotifEnabled(cfg.metadata)) {
+      skipped++;
+      continue;
+    }
 
     try {
       const ctx = await resolveCronTerreiroContext(sb, tenantId);
