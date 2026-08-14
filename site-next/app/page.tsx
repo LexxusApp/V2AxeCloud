@@ -11,7 +11,7 @@ import {
   ShieldCheck, UsersRound, X,
 } from "lucide-react";
 
-const CONTACT_URL = "https://wa.me/5511912276156?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud.";
+const CONTACT_URL = "https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud.";
 
 const rooms = [
   { n: "01", title: "Financeiro", note: "Mensalidades, Pix e prestação de contas", icon: CircleDollarSign, area: "finance" },
