@@ -31,6 +31,8 @@ const assets = new Map([
   ['/favicon.svg', path.join(SOURCE, 'favicon.svg')],
   ['/production-bridge.js', path.join(SOURCE, 'production-bridge.js')],
   ['/assets/hero-fundo.webp', path.join(SOURCE, 'assets', 'hero-fundo.webp')],
+  ['/assets/axecloud-trident.png', path.join(SOURCE, 'assets', 'axecloud-trident.png')],
+  ['/fonts/manrope-variable.woff2', path.join(ROOT, 'node_modules', '@fontsource-variable', 'manrope', 'files', 'manrope-latin-wght-normal.woff2')],
   ['/vendor/gsap.min.js', path.join(ROOT, 'node_modules', 'gsap', 'dist', 'gsap.min.js')],
   ['/vendor/ScrollTrigger.min.js', path.join(ROOT, 'node_modules', 'gsap', 'dist', 'ScrollTrigger.min.js')],
   ['/vendor/leaflet/leaflet.js', path.join(ROOT, 'node_modules', 'leaflet', 'dist', 'leaflet.js')],
@@ -72,17 +74,42 @@ const urls = new Map();
 for (const [publicPath, source] of assets) {
   assertFile(source);
   const name = outputName(source);
-  const destination = path.join(ASSET_OUT, name);
-  fs.copyFileSync(source, destination);
   urls.set(publicPath, `/m-assets/cinematic/${name}`);
 }
 
+function rewriteAssetReferences(content) {
+  let rewritten = content;
+  for (const [from, to] of [...urls.entries()].sort((a, b) => b[0].length - a[0].length)) {
+    rewritten = rewritten.replaceAll(from, to);
+  }
+  return rewritten;
+}
+
+// CSS e JS também recebem hash do conteúdo já reescrito. Isso evita que o
+// navegador mantenha em cache uma versão antiga com caminhos não versionados.
+for (const [publicPath, source] of assets) {
+  if (!/\.(?:css|js)$/i.test(source)) continue;
+  const ext = path.extname(source);
+  const base = path.basename(source, ext).replace(/\.min$/i, '');
+  const rewritten = rewriteAssetReferences(fs.readFileSync(source, 'utf8'));
+  urls.set(publicPath, `/m-assets/cinematic/${base}-${digestContent(rewritten)}${ext}`);
+}
+
+for (const [publicPath, source] of assets) {
+  const destination = path.join(ASSET_OUT, path.basename(urls.get(publicPath)));
+  if (/\.(?:css|js)$/i.test(source)) {
+    fs.writeFileSync(destination, rewriteAssetReferences(fs.readFileSync(source, 'utf8')), 'utf8');
+  } else {
+    fs.copyFileSync(source, destination);
+  }
+}
+
 const homeStylesContent = Buffer.concat([
-  fs.readFileSync(assets.get('/styles.css')),
+  Buffer.from(rewriteAssetReferences(fs.readFileSync(assets.get('/styles.css'), 'utf8'))),
   Buffer.from('\n'),
-  fs.readFileSync(assets.get('/styles-claro.css')),
+  Buffer.from(rewriteAssetReferences(fs.readFileSync(assets.get('/styles-claro.css'), 'utf8'))),
   Buffer.from('\n'),
-  fs.readFileSync(assets.get('/shared-footer.css')),
+  Buffer.from(rewriteAssetReferences(fs.readFileSync(assets.get('/shared-footer.css'), 'utf8'))),
 ]);
 const homeStylesName = `home-${digestContent(homeStylesContent)}.css`;
 fs.writeFileSync(path.join(ASSET_OUT, homeStylesName), homeStylesContent);

@@ -1,4 +1,12 @@
 services:
+  site-home:
+    build:
+      context: ../site-next
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - web
+
   marketing:
     build:
       context: ..
@@ -204,6 +212,8 @@ services:
         condition: service_healthy
       marketing:
         condition: service_started
+      site-home:
+        condition: service_healthy
       admin:
         condition: service_started
     networks:

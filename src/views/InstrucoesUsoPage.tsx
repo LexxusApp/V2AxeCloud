@@ -14,6 +14,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { MarketingMockupFooter } from '../components/marketing/MarketingMockupFooter';
+import { MatrizTopNav } from '../components/marketing/MatrizTopNav';
 import { ROUTES } from '../lib/routes';
 import { cn } from '../lib/utils';
 
@@ -95,7 +97,9 @@ export default function InstrucoesUsoPage({ audience = 'zelador' }: { audience?:
   const loginHref = isMembro ? `${ROUTES.login}?modo=filho` : `${ROUTES.login}?modo=zelador`;
 
   return (
-    <div className={cn('guide-page', isMembro ? 'is-membro' : 'is-zelador')}>
+    <>
+      <MatrizTopNav />
+      <div className={cn('guide-page pt-[98px]', isMembro ? 'is-membro' : 'is-zelador')}>
       <div className="guide-page__atmosphere" aria-hidden />
 
       <header className="guide-page__top">
@@ -184,14 +188,16 @@ export default function InstrucoesUsoPage({ audience = 'zelador' }: { audience?:
         {isMembro ? <MembroGuide loginHref={loginHref} /> : <ZeladorGuide />}
       </main>
 
-      <footer className="guide-page__foot">
+      <div className="guide-page__foot">
         <a href={loginHref} className="guide-page__btn-primary">
           Entrar agora
           <ArrowRight aria-hidden />
         </a>
         <p>axecloud.com.br</p>
-      </footer>
-    </div>
+      </div>
+      </div>
+      <MarketingMockupFooter />
+    </>
   );
 }
 

@@ -1,0 +1,12 @@
+# Política de descoberta do AxéCloud
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /register
+Disallow: /consulente
+Disallow: /instrucoes
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+
+Sitemap: https://axecloud.com.br/sitemap.xml

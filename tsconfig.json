@@ -25,5 +25,5 @@
     "noEmit": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "axecloud-admin"]
+  "exclude": ["node_modules", "dist", "axecloud-admin", "site-next"]
 }

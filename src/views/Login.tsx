@@ -56,7 +56,7 @@ async function postAuthAuditLog(
   }
 }
 
-const fontLogin = "[font-family:'Outfit',system-ui,sans-serif]";
+const fontLogin = "[font-family:'Manrope','Segoe_UI',Arial,sans-serif]";
 
 const AUTH_MODAL_CARD = cn(
   'relative w-full overflow-hidden rounded-[1.5rem] border border-[#1b1813]/10 bg-[#fffdf8]',
@@ -415,11 +415,30 @@ export default function Login() {
   return (
     <div
       className={cn(
-        'relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-[#faf8f4] px-4 py-4 antialiased text-[#1b1813] sm:h-[100dvh] sm:max-h-[100dvh] sm:overflow-hidden sm:px-6 sm:py-5',
+        'axe-login-page relative isolate min-h-[100dvh] overflow-x-hidden bg-[#faf8f4] antialiased text-[#1b1813]',
         fontLogin
       )}
     >
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+      <aside className="axe-login-story" aria-label="Identidade AxéCloud">
+        <a href={ROUTES.home} className="axe-login-story-brand">
+          <img src="/axecloud-trident.png" alt="" width="44" height="54" />
+          <strong>Axé<span>Cloud</span></strong>
+        </a>
+        <div className="axe-login-story-copy">
+          <p>ACESSO À SUA CASA</p>
+          <h2>Entre.<br /><span>A casa continua.</span></h2>
+          <p>Um acesso para quem cuida da gestão. Outro para quem faz parte da corrente. Cada pessoa vê somente o que precisa.</p>
+          <div className="axe-login-signals">
+            <span><Lock aria-hidden /><strong>Ambiente protegido</strong><small>Dados isolados por casa.</small></span>
+            <span><Users aria-hidden /><strong>Dois acessos</strong><small>Zeladoria e membros.</small></span>
+            <span><Sparkles aria-hidden /><strong>Privacidade</strong><small>Permissões bem definidas.</small></span>
+          </div>
+        </div>
+        <small>AxéCloud · Gestão profissional para casas de axé</small>
+      </aside>
+
+      <section className="axe-login-panel">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -left-36 -top-36 h-[34rem] w-[34rem] rounded-full bg-[#f0b400]/[0.09] blur-3xl" />
         <div className="absolute -bottom-48 -right-32 h-[38rem] w-[38rem] rounded-full bg-[#e2bc5a]/[0.12] blur-3xl" />
         <div className="absolute inset-0 opacity-[0.18] [background-image:radial-gradient(rgba(120,82,0,.45)_0.55px,transparent_0.55px)] [background-size:22px_22px]" />
@@ -467,7 +486,7 @@ export default function Login() {
                 <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c48a00]/55 text-lg text-[#b47d00]">
                   ✦
                 </span>
-                <span className="text-xl tracking-[-0.04em] [font-family:'Fraunces',Georgia,serif]">
+                <span className="text-xl font-extrabold tracking-[-0.04em]">
                   Axé<span className="text-[#b47d00]">Cloud</span>
                 </span>
               </div>
@@ -488,7 +507,7 @@ export default function Login() {
                     <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
                       Quem está entrando?
                     </p>
-                    <h2 className="text-[2rem] font-medium leading-[1.05] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif] sm:text-[2.25rem]">
+                    <h2 className="text-[2rem] font-bold leading-[1.05] tracking-[-0.045em] text-[#1b1813] sm:text-[2.25rem]">
                       Escolha o seu acesso
                     </h2>
                     <p className="max-w-[28rem] text-[13px] leading-snug text-[#1b1813]/55">
@@ -512,7 +531,7 @@ export default function Login() {
                       <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e5ad1a]/35 bg-[#e5ad1a]/10 text-[#e5ad1a]">
                         <Sparkles className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                       </span>
-                      <p className="text-[1.55rem] font-medium leading-none tracking-[-0.03em] [font-family:'Fraunces',Georgia,serif]">
+                      <p className="text-[1.55rem] font-bold leading-none tracking-[-0.03em]">
                         Zelador
                       </p>
                       <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#d6a526]">
@@ -537,7 +556,7 @@ export default function Login() {
                       <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c48a00]/35 bg-white text-[#b47d00]">
                         <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                       </span>
-                      <p className="text-[1.55rem] font-medium leading-none tracking-[-0.03em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
+                      <p className="text-[1.55rem] font-bold leading-none tracking-[-0.03em] text-[#1b1813]">
                         Membro
                       </p>
                       <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#a87500]">
@@ -582,7 +601,7 @@ export default function Login() {
                     <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
                       {isMembro ? 'Portal do membro' : 'Gestão da casa de axé'}
                     </p>
-                    <h2 className="text-[2rem] font-medium leading-[1.02] tracking-[-0.045em] text-[#1b1813] [font-family:'Fraunces',Georgia,serif]">
+                    <h2 className="text-[2rem] font-bold leading-[1.02] tracking-[-0.045em] text-[#1b1813]">
                       {isMembro ? 'Entre na corrente.' : 'Bem-vindo de volta.'}
                     </h2>
                     <p className="max-w-[22rem] text-[13px] leading-snug text-[#1b1813]/55">
@@ -819,6 +838,7 @@ export default function Login() {
           </div>
         </div>
       </motion.div>
+      </section>
     </div>
   );
 }

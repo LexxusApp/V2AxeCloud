@@ -204,6 +204,33 @@ axecloud.com.br, www.axecloud.com.br {
 			reverse_proxy marketing:80
 		}
 
+		# Nova home cinematográfica. Apenas a raiz e seus assets pertencem a este
+		# serviço; login, cadastro, APIs e páginas públicas continuam preservados.
+		handle /site-home-assets/* {
+			reverse_proxy site-home:3000
+		}
+
+		@site_home_assets {
+			path /_vinext/image
+			path /axecloud-trident.png
+			path /og.jpg
+			path /icon-32.png
+			path /icon-48.png
+			path /icon-192.png
+			path /icon-512.png
+			path /site.webmanifest
+			path /favicon.svg
+		}
+		handle @site_home_assets {
+			reverse_proxy site-home:3000
+		}
+
+		handle / {
+			reverse_proxy site-home:3000 {
+				header_down Link `</sitemap.xml>; rel="sitemap", </llms.txt>; rel="describedby"`
+			}
+		}
+
 		@public_static {
 			path /robots.txt
 			path /og-image.png
@@ -237,7 +264,6 @@ axecloud.com.br, www.axecloud.com.br {
 		}
 
 		@marketing {
-			path /
 			path /register
 			path /register/*
 			path /termos

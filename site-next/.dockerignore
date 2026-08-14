@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.git
+.codex
+.openai
+.wrangler
+assets-source
+npm-debug.log*
+*.local

@@ -18,6 +18,8 @@ import {
   probeServiceWorkerUpdate,
   reconcileStaleAppliedBuild,
 } from './lib/pwaUpdate';
+
+import '@fontsource-variable/manrope';
 import { initPwaInstallController } from './lib/pwaInstallController';
 import AppRouter from './router/AppRouter.tsx';
 import './index.css';

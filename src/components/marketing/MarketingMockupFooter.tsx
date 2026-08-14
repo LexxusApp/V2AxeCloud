@@ -1,164 +1,39 @@
-﻿import { Instagram } from 'lucide-react';
-import { TikTokIcon } from '../icons/TikTokIcon';
-import { landingMockupShellClass } from '../landing/landingMockupUi';
-import { SOCIAL_LINKS } from '../../constants/socialLinks';
 import { ROUTES } from '../../lib/routes';
-import { LoginLink } from './LoginLink';
-import { RegisterTrialLink } from './RegisterTrialLink';
-import { LandingMockupLogo } from './MarketingTopNav';
 
 const CNPJ = '66.335.964/0001-07';
 
+const footerLinks = [
+  { href: '/#casa', label: 'Recursos' },
+  { href: ROUTES.terreiros, label: 'Terreiros' },
+  { href: ROUTES.eventosPublicos, label: 'Eventos' },
+  { href: ROUTES.contentHub, label: 'Conteúdo' },
+  { href: ROUTES.privacy, label: 'Privacidade' },
+  { href: ROUTES.terms, label: 'Termos' },
+] as const;
+
 export function MarketingMockupFooter() {
   return (
-    <footer className="relative z-[1] border-t border-white/10 bg-black py-16 text-white/60" role="contentinfo">
-      <div className={`grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 ${landingMockupShellClass}`}>
-        <div className="space-y-4">
-          <LandingMockupLogo variant="footer" />
-          <p className="text-xs leading-relaxed">
-            Portal e software para terreiros de Umbanda, Candomblé e Jurema — casas, eventos públicos, pedidos de reza e
-            gestão da casa.
-          </p>
-          <ul className="flex items-center gap-2" aria-label="Redes sociais oficiais">
-            {SOCIAL_LINKS.map(({ id, href, label, rel }) => (
-              <li key={id}>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel={rel}
-                  className="grid h-9 w-9 place-items-center rounded-xl border border-white/15 text-white/70 transition hover:border-[#FFC107]/40 hover:text-[#FFC107]"
-                  aria-label={`${label} @axecloudoficial`}
-                >
-                  {id === 'instagram' ? <Instagram className="h-4 w-4" /> : <TikTokIcon className="h-4 w-4" />}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Portal</h6>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <a href={ROUTES.terreiros} className="text-white/60 transition hover:text-[#FFC107]">
-                Terreiros
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.eventosPublicos} className="text-white/60 transition hover:text-[#FFC107]">
-                Eventos públicos
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.espacoDoFiel} className="text-white/60 transition hover:text-[#FFC107]">
-                Pedir reza
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.liturgicalCalendar} className="text-white/60 transition hover:text-[#FFC107]">
-                Calendário litúrgico
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Plataforma</h6>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <a href={ROUTES.recursos} className="text-white/60 transition hover:text-[#FFC107]">
-                Recursos
-              </a>
-            </li>
-            <li>
-              <a href={`${ROUTES.home}#recursos`} className="text-white/60 transition hover:text-[#FFC107]">
-                Módulos na landing
-              </a>
-            </li>
-            <li>
-              <a href={`${ROUTES.home}#demonstracao`} className="text-white/60 transition hover:text-[#FFC107]">
-                Demo interativa
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.whyAxeCloud} className="text-white/60 transition hover:text-[#FFC107]">
-                Por que AxéCloud
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.whyVsPlanilhas} className="text-white/60 transition hover:text-[#FFC107]">
-                Vs planilhas
-              </a>
-            </li>
-            <li>
-              <a href={`${ROUTES.home}#apps`} className="text-white/60 transition hover:text-[#FFC107]">
-                App PWA instalável
-              </a>
-            </li>
-            <li>
-              <RegisterTrialLink className="text-white/60 transition hover:text-[#FFC107]">
-                Teste grátis 30 dias
-              </RegisterTrialLink>
-            </li>
-            <li>
-              <a href={`${ROUTES.home}#mensalidade`} className="text-white/60 transition hover:text-[#FFC107]">
-                Planos
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Conta</h6>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <LoginLink className="text-white/60 transition hover:text-[#FFC107]">Entrar</LoginLink>
-            </li>
-            <li>
-              <RegisterTrialLink className="text-white/60 transition hover:text-[#FFC107]">
-                Cadastrar terreiro
-              </RegisterTrialLink>
-            </li>
-            <li>
-              <a href={ROUTES.contentHub} className="text-white/60 transition hover:text-[#FFC107]">
-                Conteúdo
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.glossary} className="text-white/60 transition hover:text-[#FFC107]">
-                Glossário do axé
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h6 className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Legal</h6>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <a href={`${ROUTES.home}#seguranca`} className="text-white/60 transition hover:text-[#FFC107]">
-                Segurança e LGPD
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.terms} className="text-white/60 transition hover:text-[#FFC107]">
-                Termos de Uso
-              </a>
-            </li>
-            <li>
-              <a href={ROUTES.privacy} className="text-white/60 transition hover:text-[#FFC107]">
-                Política de Privacidade
-              </a>
-            </li>
-          </ul>
-        </div>
+    <footer className="relative z-20 border-t border-white/10 bg-[#090b08] px-[max(5vw,24px)] pb-6 pt-11 font-sans text-[#8e9188]" role="contentinfo">
+      <div className="mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-7 md:grid-cols-[auto_minmax(240px,1fr)] lg:grid-cols-[auto_minmax(240px,1fr)_auto]">
+        <a href="/" className="flex items-center gap-2 text-[#f2eee3]" aria-label="AxéCloud — página inicial">
+          <img src="/axecloud-trident.png" alt="" className="h-[49px] w-[38px] object-contain" width="38" height="49" />
+          <strong className="text-[15px] font-extrabold tracking-[-.04em]">
+            Axé<span className="text-[#e5ae12]">Cloud</span>
+          </strong>
+        </a>
+        <p className="max-w-md text-xs leading-relaxed">Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p>
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-3 lg:justify-end" aria-label="Links do rodapé">
+          {footerLinks.map((link) => (
+            <a key={link.href} href={link.href} className="text-[11px] font-bold transition hover:text-[#f2eee3]">
+              {link.label}
+            </a>
+          ))}
+        </nav>
       </div>
-
-      <div
-        className={`mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 text-center text-xs sm:flex-row ${landingMockupShellClass}`}
-      >
-        <p>© {new Date().getFullYear()} AxéCloud — CNPJ: {CNPJ}</p>
-        <p className="italic">Axé — com respeito às tradições de matriz africana.</p>
+      <div className="mx-auto mt-7 flex w-full max-w-[1180px] flex-col gap-3 border-t border-white/[.08] pt-5 text-[10px] text-[#5f625a] sm:flex-row sm:flex-wrap sm:justify-between">
+        <span>© {new Date().getFullYear()} AxéCloud · CNPJ {CNPJ}</span>
+        <span>Com respeito às tradições de matriz africana.</span>
+        <a href="/" className="text-[#8e9188] transition hover:text-white">Voltar ao início ↑</a>
       </div>
     </footer>
   );

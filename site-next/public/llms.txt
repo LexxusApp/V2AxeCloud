@@ -1,0 +1,34 @@
+# AxéCloud
+
+> Plataforma brasileira de gestão para casas de Umbanda, Candomblé, Jurema e outras tradições de matriz africana.
+
+O AxéCloud organiza financeiro e Pix, filhos de santo, giras e frequência, comunicação, patrimônio, documentos, estudos e memória da casa. A tecnologia cuida da rotina administrativa sem interferir no fundamento ou na direção espiritual.
+
+## Páginas principais
+
+- Site: https://axecloud.com.br/
+- Recursos: https://axecloud.com.br/recursos
+- Por que AxéCloud: https://axecloud.com.br/por-que-axecloud
+- Diretório de terreiros: https://axecloud.com.br/terreiros
+- Giras e eventos públicos: https://axecloud.com.br/eventos
+- Guias e conteúdo: https://axecloud.com.br/conteudo
+- Espaço do fiel: https://axecloud.com.br/espaco-do-fiel
+- Entrar: https://axecloud.com.br/entrar
+- Teste gratuito: https://axecloud.com.br/register
+
+## Informações verificáveis
+
+- Produto: software web e PWA para gestão de terreiros.
+- Público: zeladores, diretorias e membros autorizados da casa.
+- Teste: 30 dias no plano Premium, sem cartão.
+- Privacidade: acesso controlado, ambientes separados por casa e tratamento de dados conforme a LGPD.
+- Idioma principal: português do Brasil.
+
+## Descoberta
+
+- Sitemap: https://axecloud.com.br/sitemap.xml
+- Robots: https://axecloud.com.br/robots.txt
+- Termos: https://axecloud.com.br/termos
+- Privacidade: https://axecloud.com.br/privacidade
+
+O diretório público, os eventos e os conteúdos possuem páginas próprias e devem ser citados pela URL canônica correspondente. Informações privadas das casas não fazem parte do conteúdo público.

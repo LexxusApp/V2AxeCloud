@@ -1,0 +1,180 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Lenis from "lenis";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  ArrowRight, BookOpen, CalendarDays, Check, CircleDollarSign, FileText,
+  Images, LockKeyhole, MapPin, Menu, MessageCircleMore, PackageCheck, Search,
+  ShieldCheck, UsersRound, X,
+} from "lucide-react";
+
+const rooms = [
+  { n: "01", title: "Financeiro", note: "Mensalidades, Pix e prestação de contas", icon: CircleDollarSign, area: "finance" },
+  { n: "02", title: "Agenda", note: "Giras, eventos e obrigações", icon: CalendarDays, area: "agenda" },
+  { n: "03", title: "Comunidade", note: "Filhos, visitantes e vínculos", icon: UsersRound, area: "people" },
+  { n: "04", title: "Comunicação", note: "Avisos pelo WhatsApp oficial", icon: MessageCircleMore, area: "talk" },
+  { n: "05", title: "Patrimônio", note: "Estoque, materiais e loja", icon: PackageCheck, area: "stock" },
+  { n: "06", title: "Memória", note: "Documentos, imagens e estudos", icon: Images, area: "memory" },
+];
+
+const scattered = [
+  ["Recibo 028", "R$ 120,00", "paper receipt"], ["Gira de sábado", "20h — confirmar equipe", "paper event"],
+  ["3 mensagens", "Quem ficará na cozinha?", "message msg-a"], ["Mensalidade", "Faltam 7 confirmações", "paper bill"],
+  ["Lista de compras", "vela · pemba · café", "paper shopping"], ["Documento", "Onde foi guardado?", "paper doc"],
+  ["1 áudio · 02:41", "Grupo da diretoria", "message msg-b"], ["Estoque", "Conferir materiais", "paper inventory"],
+];
+
+const archive = [
+  { image: "/screenshots/current/giras-calendario.webp", tag: "GIRAS E AGENDA", title: "Cada movimento da casa planejado com clareza." },
+  { image: "/screenshots/current/galeria.webp", tag: "MEMÓRIA", title: "Fotos e vídeos organizados em álbuns da casa." },
+  { image: "/screenshots/current/biblioteca.webp", tag: "CONHECIMENTO", title: "Estudos, cantigas e documentos em seu lugar." },
+  { image: "/screenshots/current/almoxarifado.webp", tag: "PATRIMÔNIO", title: "Materiais e insumos acompanhados de verdade." },
+];
+
+const ecosystem = [
+  { href: "https://axecloud.com.br/recursos", icon: PackageCheck, eyebrow: "CONHEÇA A PLATAFORMA", title: "Todos os recursos", text: "Financeiro, calendário, portal, WhatsApp, PWA e os demais módulos." },
+  { href: "https://axecloud.com.br/por-que-axecloud", icon: ShieldCheck, eyebrow: "DECIDA COM CLAREZA", title: "Por que AxéCloud", text: "Compare formas de organizar a casa e entenda a proposta da plataforma." },
+  { href: "https://axecloud.com.br/terreiros", icon: MapPin, eyebrow: "SERVIÇO PÚBLICO", title: "Diretório de terreiros", text: "Encontre casas de Umbanda e Candomblé por cidade e região." },
+  { href: "https://axecloud.com.br/eventos", icon: CalendarDays, eyebrow: "AGENDA ABERTA", title: "Giras e eventos", text: "Consulte festas, giras e atividades abertas ao público." },
+  { href: "https://axecloud.com.br/conteudo", icon: BookOpen, eyebrow: "CONHECIMENTO", title: "Guias e glossário", text: "Conteúdo sobre gestão, tradições afro-brasileiras e rotina da casa." },
+  { href: "https://axecloud.com.br/espaco-do-fiel", icon: MessageCircleMore, eyebrow: "ESPAÇO DO FIEL", title: "Pedido de reza", text: "Envie uma intenção diretamente para uma casa participante." },
+];
+
+const faqItems = [
+  { q: "O que é o AxéCloud?", a: "O AxéCloud é uma plataforma brasileira de gestão para casas de Umbanda, Candomblé, Jurema e outras tradições. Reúne financeiro, agenda, comunidade, comunicação, patrimônio e memória em um só lugar." },
+  { q: "O sistema respeita a tradição de cada casa?", a: "Sim. A tecnologia cuida da organização administrativa sem interferir no fundamento ou na direção espiritual. Termos, cargos e rotinas podem acompanhar a realidade de cada terreiro." },
+  { q: "Filhos de santo têm acesso próprio?", a: "Sim. Cada membro acessa um espaço separado do painel da administração, com avisos, calendário, mensalidades, biblioteca e outros conteúdos liberados pela casa." },
+  { q: "Como funciona o financeiro e o Pix?", a: "A casa acompanha mensalidades, entradas, despesas e prestações de contas. Os pagamentos podem ser feitos por Pix e ficam registrados no histórico, sem depender de planilhas espalhadas." },
+  { q: "Meus dados e os dados da comunidade ficam protegidos?", a: "Sim. Cada casa possui ambiente isolado, acesso controlado por perfil, conexão segura e rotinas de backup. A plataforma foi planejada para preservar a privacidade da comunidade e atender à LGPD." },
+  { q: "Preciso instalar alguma coisa?", a: "Não. O AxéCloud funciona diretamente no navegador do computador ou celular e também pode ser adicionado à tela inicial como aplicativo PWA." },
+  { q: "Posso testar antes de assinar?", a: "Sim. A casa pode testar o plano Premium completo por 30 dias, sem cartão de crédito e sem compromisso." },
+];
+
+function Brand() {
+  return <a className="cx-brand" href="#inicio" aria-label="AxéCloud — início"><span className="cx-brand-trident" aria-hidden="true" /><strong><span>Axé</span><em>Cloud</em></strong></a>;
+}
+
+function Rack() {
+  return <div className="cx-rack-wrap" aria-label="Infraestrutura protegida do AxéCloud">
+    <div className="cx-rack-shadow" /><div className="cx-rack">
+      <div className="cx-rack-top"><span><i /> AXÉCLOUD PRIVATE CLOUD</span><b>ONLINE</b></div>
+      {["IDENTIDADE", "DADOS", "BACKUP", "REDE"].map((name, row) => <div className="cx-unit" key={name}>
+        <span className="cx-handle" /><div className="cx-unit-name"><small>NODE 0{row + 1}</small><strong>{name}</strong></div>
+        <div className="cx-vents">{Array.from({ length: 30 }, (_, i) => <i key={i} />)}</div>
+        <div className="cx-meter"><i style={{ width: `${28 + row * 13}%` }} /></div>
+        <div className="cx-leds"><i /><i /><i className={row === 2 ? "amber" : ""} /></div><span className="cx-handle right" />
+      </div>)}
+      <div className="cx-rack-bottom"><span>BACKUP CONTÍNUO</span><span>AMBIENTE ISOLADO</span></div>
+    </div>
+  </div>;
+}
+
+export default function Home() {
+  const root = useRef<HTMLElement>(null);
+  const [menu, setMenu] = useState(false);
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick); gsap.ticker.lagSmoothing(0); lenis.on("scroll", ScrollTrigger.update);
+
+    const ctx = gsap.context(() => {
+      gsap.timeline({ scrollTrigger: { trigger: ".cx-opening", start: "top top", end: "bottom bottom", scrub: 1 } })
+        .to(".cx-door-left", { rotateY: -104, xPercent: -28, ease: "power2.inOut" }, 0)
+        .to(".cx-door-right", { rotateY: 104, xPercent: 28, ease: "power2.inOut" }, 0)
+        .to(".cx-door-seam", { opacity: 0, scaleY: 1.8 }, 0)
+        .to(".cx-opening-light", { scale: 2.4, opacity: 1 }, 0)
+        .fromTo(".cx-opening-copy > *", { y: 55, opacity: 0 }, { y: 0, opacity: 1, stagger: .08 }, .18)
+        .to(".cx-opening-copy", { y: -70, opacity: .15 }, .72)
+        .fromTo(".cx-threshold-copy", { y: 80, opacity: 0 }, { y: 0, opacity: 1 }, .72);
+
+      gsap.timeline({ scrollTrigger: { trigger: ".cx-house", start: "top top", end: "bottom bottom", scrub: 1 } })
+        .from(".cx-house-title > *", { y: 45, opacity: 0, stagger: .08 })
+        .from(".cx-plan-wall", { scaleX: 0, scaleY: 0, stagger: .04, transformOrigin: "left top" }, .08)
+        .from(".cx-room", { opacity: 0, scale: .82, stagger: .1 }, .15)
+        .to(".cx-flow-line", { scaleX: 1, scaleY: 1, stagger: .06 }, .2)
+        .to(".cx-room", { backgroundColor: "rgba(255,253,246,.94)", stagger: .06 }, .42)
+        .from(".cx-house-result", { y: 30, opacity: 0 }, .7);
+
+      gsap.timeline({ scrollTrigger: { trigger: ".cx-clutter", start: "top top", end: "bottom bottom", scrub: 1 } })
+        .from(".cx-clutter-copy > p, .cx-clutter-copy > .before, .cx-clutter-copy > span", { y: 40, opacity: 0, stagger: .08 })
+        .to(".cx-scattered", { x: (i) => (i % 2 ? 80 : -80), y: (i) => (i - 3) * 18, rotate: 0, scale: .72, opacity: 0, stagger: .03 }, .25)
+        .fromTo(".cx-organized", { clipPath: "inset(50% 50% 50% 50%)", opacity: 0 }, { clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }, .38)
+        .from(".cx-organized-row", { x: 45, opacity: 0, stagger: .07 }, .48)
+        .to(".cx-clutter-copy .before", { autoAlpha: 0, y: -20, duration: .1 }, .46)
+        .fromTo(".cx-clutter-copy .after", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: .16 }, .58);
+
+      gsap.timeline({ scrollTrigger: { trigger: ".cx-security", start: "top top", end: "bottom bottom", scrub: 1 } })
+        .to(".cx-corridor-left", { xPercent: -42 }, 0)
+        .to(".cx-corridor-right", { xPercent: 42 }, 0)
+        .to(".cx-corridor-ceiling", { yPercent: -70 }, 0)
+        .from(".cx-rack", { z: -700, scale: .42, opacity: .15 }, .05)
+        .from(".cx-security-copy > *", { y: 45, opacity: 0, stagger: .08 }, .35)
+        .from(".cx-security-proof span", { y: 25, opacity: 0, stagger: .05 }, .52);
+
+      const track = document.querySelector<HTMLElement>(".cx-archive-track");
+      if (track) gsap.to(track, { x: () => -(track.scrollWidth - window.innerWidth), ease: "none", scrollTrigger: { trigger: ".cx-archive", start: "top top", end: () => `+=${track.scrollWidth}`, pin: true, scrub: 1, invalidateOnRefresh: true } });
+
+      gsap.utils.toArray<HTMLElement>(".cx-reveal").forEach(el => gsap.from(el, { y: 55, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 82%" } }));
+    }, root);
+    return () => { ctx.revert(); lenis.destroy(); gsap.ticker.remove(tick); };
+  }, []);
+
+  const organizationJsonLd = { "@context": "https://schema.org", "@type": "Organization", "@id": "https://axecloud.com.br/#organization", name: "AxéCloud", url: "https://axecloud.com.br/", logo: "https://axecloud.com.br/icon-512.png" };
+  const softwareJsonLd = { "@context": "https://schema.org", "@type": "SoftwareApplication", "@id": "https://axecloud.com.br/#software", name: "AxéCloud", applicationCategory: "BusinessApplication", operatingSystem: "Web, Android, iOS", url: "https://axecloud.com.br/", publisher: { "@id": "https://axecloud.com.br/#organization" }, description: "Sistema de gestão para terreiros de Umbanda, Candomblé e Jurema.", offers: [{ "@type": "Offer", name: "Premium mensal", price: "69.90", priceCurrency: "BRL", url: "https://axecloud.com.br/register" }, { "@type": "Offer", name: "Premium anual", price: "699.00", priceCurrency: "BRL", url: "https://axecloud.com.br/register" }] };
+  const faqJsonLd = { "@context": "https://schema.org", "@type": "FAQPage", "@id": "https://axecloud.com.br/#faq", mainEntity: faqItems.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
+
+  return <main className="cinema-house" ref={root} id="inicio">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+    <header className="cx-header"><Brand /><nav aria-label="Navegação principal"><a href="#casa">A casa</a><a href="#organizacao">O que resolve</a><a href="#seguranca">Segurança</a><a href="#memoria">Memória</a><a href="#descobrir">Explorar</a><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/por-que-axecloud">Por quê?</a><a href="#faq">FAQ</a><a href="#plano">Planos</a></nav><a className="cx-header-login" href="/entrar">Entrar</a><a className="cx-header-cta" href="https://axecloud.com.br/register">Testar grátis <ArrowRight /></a><button type="button" aria-label={menu ? "Fechar menu" : "Abrir menu"} aria-expanded={menu} aria-controls="menu-principal" onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button>{menu && <div className="cx-menu" id="menu-principal" role="navigation" aria-label="Navegação móvel" onClick={() => setMenu(false)}><a href="#casa">A casa</a><a href="#organizacao">O que resolve</a><a href="#seguranca">Segurança</a><a href="#memoria">Memória</a><a href="#descobrir">Explorar</a><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/por-que-axecloud">Por quê?</a><a href="#faq">FAQ</a><a href="#plano">Planos</a><a href="/entrar">Entrar</a></div>}</header>
+
+    <section className="cx-opening">
+      <div className="cx-opening-sticky"><div className="cx-opening-light" /><div className="cx-opening-copy"><p>GESTÃO PARA CASAS DE UMBANDA E CANDOMBLÉ</p><h1>Toda casa carrega<br />uma história.</h1><span>O AxéCloud ajuda a cuidar dela.</span></div><div className="cx-threshold-copy"><small>ANTES DE SER SISTEMA, É UMA CASA VIVA.</small><strong>Entre.</strong><i /></div><div className="cx-doors" aria-hidden="true"><div className="cx-door cx-door-left"><i /><i /><span /></div><div className="cx-door-seam" /><div className="cx-door cx-door-right"><i /><i /><span /></div></div><div className="cx-scroll-cue"><span>ROLE PARA ABRIR</span><i /></div></div>
+    </section>
+
+    <section className="cx-house" id="casa"><div className="cx-house-sticky"><div className="cx-house-title"><p>01 — A CASA GANHA VIDA</p><h2>Muitos ritmos.<br /><span>Uma única direção.</span></h2></div><div className="cx-floorplan"><i className="cx-plan-wall wall-a" /><i className="cx-plan-wall wall-b" /><i className="cx-plan-wall wall-c" /><i className="cx-plan-wall wall-d" /><i className="cx-flow-line flow-a" /><i className="cx-flow-line flow-b" />{rooms.map(r => <article className={`cx-room room-${r.area}`} key={r.title}><span>{r.n}</span><r.icon /><div><h3>{r.title}</h3><p>{r.note}</p></div></article>)}<div className="cx-house-heart"><Image src="/axecloud-trident.png" alt="" width={54} height={54} /><span>AXÉCLOUD</span></div></div><p className="cx-house-result">Tudo conversa. Nada se perde no caminho.</p></div></section>
+
+    <section className="cx-clutter" id="organizacao"><div className="cx-clutter-sticky"><div className="cx-clutter-copy"><p>02 — O PROBLEMA</p><h2 className="before">Quando tudo chega<br />por caminhos diferentes.</h2><h2 className="after">A rotina volta<br />a caber no dia.</h2><span>O sistema organiza sem interferir no fundamento da casa.</span></div><div className="cx-clutter-stage">{scattered.map(([a,b,c],i) => <div className={`cx-scattered ${c} scatter-${i}`} key={a}><small>{a}</small><strong>{b}</strong></div>)}<div className="cx-organized"><div className="cx-organized-head"><span><i /> ROTINA DE HOJE</span><small>4 AÇÕES ORGANIZADAS</small></div>{[[CircleDollarSign,"Financeiro conciliado","12 mensalidades"],[CalendarDays,"Agenda confirmada","Gira · 20h"],[MessageCircleMore,"Comunidade avisada","96% entregues"],[PackageCheck,"Materiais conferidos","Estoque atualizado"]].map(([Icon,title,note],i) => { const I = Icon as typeof CircleDollarSign; return <div className="cx-organized-row" key={title as string}><span>0{i+1}</span><I /><div><strong>{title as string}</strong><small>{note as string}</small></div><Check /></div>})}</div></div></div></section>
+
+    <section className="cx-security" id="seguranca"><div className="cx-security-sticky"><div className="cx-corridor" aria-hidden="true"><div className="cx-corridor-left" /><div className="cx-corridor-right" /><div className="cx-corridor-ceiling" /></div><Rack /><div className="cx-security-copy"><p>03 — SEGURANÇA</p><h2>O que é sagrado<br />não pode ficar exposto.</h2><span>Dados financeiros, pessoais e registros da casa permanecem privados, protegidos e sob seu controle.</span><div className="cx-security-proof"><span><LockKeyhole /> Acesso controlado</span><span><ShieldCheck /> Privacidade e LGPD</span><span><FileText /> Backup contínuo</span></div></div></div></section>
+
+    <section className="cx-archive" id="memoria"><div className="cx-archive-track"><div className="cx-archive-intro"><p>04 — O AXÉCLOUD REAL</p><h2>O presente passa.<br />O que foi cuidado<br /><span>permanece.</span></h2><small>TELAS ATUAIS · CAPTURADAS NO SISTEMA REAL</small></div>{archive.map((item,i) => <article className="cx-archive-frame" key={item.title}><div className="cx-frame-number">0{i+1}</div><div className="cx-frame-image"><Image src={item.image} alt={`Tela atual do AxéCloud — ${item.tag}`} width={1440} height={900} sizes="(max-width: 650px) 88vw, (max-width: 900px) 78vw, 68vw" /></div><p>{item.tag}</p><h3>{item.title}</h3></article>)}<div className="cx-archive-end"><BookOpen /><p>Organização para o presente.</p><h2>Memória para<br />quem vem depois.</h2></div></div></section>
+
+    <section className="cx-ecosystem" id="descobrir"><div className="cx-ecosystem-head cx-reveal"><p>ALÉM DO SISTEMA</p><h2>Uma plataforma para a casa.<br /><span>Um serviço para a comunidade.</span></h2><div><Search /><p>O AxéCloud também mantém diretório público, agenda de eventos, conteúdo educativo, glossário e espaço para pedidos de reza.</p></div></div><div className="cx-ecosystem-grid">{ecosystem.map((item,i) => <a className="cx-ecosystem-link cx-reveal" href={item.href} key={item.title}><span>0{i+1}</span><item.icon /><small>{item.eyebrow}</small><h3>{item.title}</h3><p>{item.text}</p><ArrowRight /></a>)}</div></section>
+
+    <section className="cx-finale" id="plano"><div className="cx-final-plan" aria-hidden="true">{rooms.map(r => <span key={r.title}>{r.title}</span>)}<i /><i /><i /></div><div className="cx-finale-copy cx-reveal"><p>05 — A CASA ORGANIZADA E VIVA</p><h2>O AxéCloud cuida<br />da organização.<br /><span>Sua casa cuida das pessoas.</span></h2></div>
+      <article className="cx-offer cx-reveal">
+        <div className="cx-offer-head"><div><Image src="/axecloud-trident.png" alt="" width={54} height={54} /><span><small>PLANO PREMIUM</small><strong>Um plano. A casa inteira.</strong></span></div><p><i /> TODOS OS RECURSOS INCLUÍDOS</p></div>
+        <div className="cx-offer-body">
+          <div className="cx-offer-price">
+            <p>ESCOLHA COMO PREFERE CUIDAR</p>
+            <div className="cx-cycle" role="group" aria-label="Periodicidade da assinatura"><button className={billing === "monthly" ? "active" : ""} onClick={() => setBilling("monthly")}><span>Mensal</span><small>Flexibilidade todo mês</small></button><button className={billing === "annual" ? "active" : ""} onClick={() => setBilling("annual")}><span>Anual</span><small>Economize 2 mensalidades</small><b>MAIS VANTAJOSO</b></button></div>
+            <div className="cx-offer-number"><sup>R$</sup><strong>{billing === "monthly" ? "69,90" : "699"}</strong><small>{billing === "monthly" ? "por mês" : "por ano"}</small></div>
+            <div className="cx-offer-economy">{billing === "monthly" ? <><i /><span><strong>30 dias para conhecer tudo</strong><small>Sem cartão e sem compromisso</small></span></> : <><i /><span><strong>R$ 139,80 de economia</strong><small>Equivale a R$ 58,25 por mês</small></span></>}</div>
+            <div className="cx-offer-numbers"><span><strong>14</strong><small>módulos</small></span><span><strong>100 GB</strong><small>de memória</small></span><span><strong>30 dias</strong><small>grátis</small></span></div>
+          </div>
+          <div className="cx-offer-included">
+            <p>Tudo que sua casa recebe:</p><div className="cx-included-grid">{[["Financeiro e Pix","Mensalidades e prestação de contas"],["Corrente da casa","Filhos, documentos e histórico"],["Giras e frequência","Agenda, convites e confirmações"],["Comunicação oficial","Mural, mensagens e WhatsApp"],["Memória e acervo","Galeria, biblioteca e documentos"],["Gestão completa","Estoque, loja e patrimônio"]].map(([title,text]) => <div key={title}><Check /><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>
+            <div className="cx-offer-assurance"><ShieldCheck /><span><strong>Dados privados e suporte humano.</strong><small>Ambiente isolado por casa, atualizações incluídas e ajuda quando precisar.</small></span></div>
+            <a className="cx-offer-cta" href="https://axecloud.com.br/register"><span><small>COMECE AGORA</small><strong>Testar gratuitamente por 30 dias</strong></span><ArrowRight /></a><p className="cx-offer-note">Sem cartão · Cancele quando quiser · Todos os módulos liberados</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section className="cx-faq" id="faq">
+      <div className="cx-faq-intro cx-reveal"><p>06 — PERGUNTAS FREQUENTES</p><h2>Antes de entrar,<br /><span>tudo precisa estar claro.</span></h2><small>Respostas diretas sobre a plataforma, a segurança e o período de teste.</small></div>
+      <div className="cx-faq-list cx-reveal">{faqItems.map((item, i) => <details key={item.q}><summary><span>0{i + 1}</span><strong>{item.q}</strong><i /></summary><p>{item.a}</p></details>)}</div>
+    </section>
+
+    <footer className="cx-footer"><Brand /><p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p><nav><a href="https://axecloud.com.br/recursos">Recursos</a><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/privacidade">Privacidade</a><a href="https://axecloud.com.br/termos">Termos</a></nav><a href="#inicio">Voltar ao início ↑</a></footer>
+  </main>;
+}

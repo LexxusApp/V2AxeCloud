@@ -1,133 +1,85 @@
-/**
- * Rodapé institucional do AxéCloud (reproduz MarketingMockupFooter da produção).
- * Inclua shared-footer.css + este arquivo em qualquer página.
- * Se existir <footer class="rodape"> ou #site-footer, substitui / preenche.
- */
-/* Fonte versionada para o build de produção. */
+/** Cabeçalho e rodapé compartilhados das páginas públicas do AxéCloud. */
 (function () {
   const ANO = new Date().getFullYear();
   const CNPJ = "66.335.964/0001-07";
+  const path = location.pathname.replace(/\/$/, "") || "/";
+  const links = [
+    ["A casa", "/#casa"],
+    ["O que resolve", "/#organizacao"],
+    ["Segurança", "/#seguranca"],
+    ["Memória", "/#memoria"],
+    ["Explorar", "/#descobrir"],
+    ["Terreiros", "/terreiros"],
+    ["Eventos", "/eventos"],
+    ["Conteúdo", "/conteudo"],
+    ["Por quê?", "/por-que-axecloud"],
+    ["FAQ", "/#faq"],
+    ["Planos", "/#plano"],
+  ];
+  const active = (href) => href !== "/" && !href.startsWith("/#") && path.startsWith(href);
+  const menuLinks = links.map(([label, href]) =>
+    `<a href="${href}"${active(href) ? ' class="is-active" aria-current="page"' : ""}>${label}</a>`
+  ).join("");
 
-  const html = `
-<footer class="site-footer" role="contentinfo">
-  <div class="site-footer-grade">
-    <div>
-      <a class="site-footer-marca" href="/">Axé<em>Cloud</em></a>
-      <p class="site-footer-desc">Portal e software para terreiros de Umbanda, Candomblé e Jurema — casas, eventos públicos, pedidos de reza e gestão da casa.</p>
-      <ul class="site-footer-sociais" aria-label="Redes sociais oficiais">
-        <li>
-          <a href="https://www.instagram.com/axecloudoficial/" target="_blank" rel="me noopener noreferrer" aria-label="Instagram @axecloudoficial">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-          </a>
-        </li>
-        <li>
-          <a href="https://www.tiktok.com/@axecloudoficial" target="_blank" rel="me noopener noreferrer" aria-label="TikTok @axecloudoficial">
-            <svg class="tiktok-icon" viewBox="0 0 24 24"><path d="M19.6 7.4a5.4 5.4 0 0 1-3.3-1.2v7.2a5.6 5.6 0 1 1-5.6-5.6c.3 0 .6 0 .9.1v2.8a2.8 2.8 0 1 0 2 2.7V2h2.8a5.4 5.4 0 0 0 3.2 3.2V7.4Z"/></svg>
-          </a>
-        </li>
-      </ul>
-    </div>
+  const header = document.createElement("header");
+  header.className = "axe-site-header";
+  header.innerHTML = `
+    <a class="axe-site-brand" href="/" aria-label="AxéCloud — página inicial">
+      <img src="/assets/axecloud-trident.png" alt="" width="36" height="47" />
+      <strong><span>Axé</span><em>Cloud</em></strong>
+    </a>
+    <nav class="axe-site-nav" id="axe-site-menu" aria-label="Navegação principal">${menuLinks}<a class="axe-site-mobile-login" href="/entrar">Entrar</a></nav>
+    <div class="axe-site-actions">
+      <a class="axe-site-login" href="/entrar">Entrar</a>
+      <a class="axe-site-cta" href="/register">Testar grátis <span aria-hidden="true">→</span></a>
+      <button class="axe-site-menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="axe-site-menu"><i></i><i></i><i></i></button>
+    </div>`;
 
-    <div>
-      <h2>Portal</h2>
-      <ul>
-        <li><a href="/terreiros">Terreiros</a></li>
-        <li><a href="/eventos">Eventos públicos</a></li>
-        <li><a href="/espaco-do-fiel">Pedir reza</a></li>
-        <li><a href="/conteudo/calendario-liturgico">Calendário de referências</a></li>
-      </ul>
-    </div>
+  const oldHeader = document.querySelector("body > nav, body > .navegacao");
+  if (oldHeader) oldHeader.replaceWith(header);
+  else document.body.insertAdjacentElement("afterbegin", header);
+  document.body.classList.add("axe-shell-ready");
 
-    <div>
-      <h2>Plataforma</h2>
-      <ul>
-        <li><a href="/#gira">Recursos</a></li>
-        <li><a href="/por-que-axecloud">Por que AxéCloud</a></li>
-        <li><a href="/register">Teste grátis 30 dias</a></li>
-        <li><a href="/#planos">Planos</a></li>
-      </ul>
-    </div>
+  const button = header.querySelector(".axe-site-menu-button");
+  const menu = header.querySelector(".axe-site-nav");
+  const closeMenu = () => {
+    header.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-label", "Abrir menu");
+  };
+  button.addEventListener("click", () => {
+    const opened = header.classList.toggle("is-open");
+    button.setAttribute("aria-expanded", String(opened));
+    button.setAttribute("aria-label", opened ? "Fechar menu" : "Abrir menu");
+  });
+  menu.addEventListener("click", (event) => { if (event.target.closest("a")) closeMenu(); });
+  document.addEventListener("pointerdown", (event) => { if (!header.contains(event.target)) closeMenu(); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMenu(); });
 
-    <div>
-      <h2>Conta</h2>
-      <ul>
-        <li><a href="/entrar">Entrar</a></li>
-        <li><a href="/register">Cadastrar terreiro</a></li>
-        <li><a href="/conteudo">Conteúdo</a></li>
-        <li><a href="/conteudo/glossario">Glossário do axé</a></li>
-      </ul>
-    </div>
-
-    <div>
-      <h2>Legal</h2>
-      <ul>
-        <li><a href="/#seguranca">Segurança e LGPD</a></li>
-        <li><a href="/termos">Termos de Uso</a></li>
-        <li><a href="/privacidade">Política de Privacidade</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="site-footer-baixo">
-    <p>© ${ANO} AxéCloud — CNPJ: ${CNPJ}</p>
-    <p class="italico">Axé — com respeito às tradições de matriz africana.</p>
-  </div>
-</footer>`;
-
-  const alvo = document.getElementById("site-footer");
-  const antigo = document.querySelector("footer.rodape");
-  if (alvo) {
-    alvo.outerHTML = html;
-  } else if (antigo) {
-    antigo.outerHTML = html;
-  } else {
-    document.body.insertAdjacentHTML("beforeend", html);
-  }
+  const footer = `
+    <footer class="axe-site-footer" role="contentinfo">
+      <div class="axe-site-footer-main">
+        <a class="axe-site-footer-brand" href="/">
+          <img src="/assets/axecloud-trident.png" alt="" width="38" height="49" />
+          <strong><span>Axé</span><em>Cloud</em></strong>
+        </a>
+        <p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p>
+        <nav aria-label="Links do rodapé">
+          <a href="/#casa">Recursos</a><a href="/terreiros">Terreiros</a><a href="/eventos">Eventos</a><a href="/conteudo">Conteúdo</a><a href="/privacidade">Privacidade</a><a href="/termos">Termos</a>
+        </nav>
+      </div>
+      <div class="axe-site-footer-bottom"><span>© ${ANO} AxéCloud · CNPJ ${CNPJ}</span><span>Com respeito às tradições de matriz africana.</span><a href="/">Voltar ao início ↑</a></div>
+    </footer>`;
+  const target = document.getElementById("site-footer");
+  const oldFooter = document.querySelector("footer.rodape, footer.site-footer");
+  if (target) target.outerHTML = footer;
+  else if (oldFooter) oldFooter.outerHTML = footer;
+  else document.body.insertAdjacentHTML("beforeend", footer);
 
   const main = document.querySelector("main");
   if (main && !main.id) main.id = "conteudo-principal";
   if (main && !document.querySelector(".pular-conteudo")) {
     document.body.insertAdjacentHTML("afterbegin", '<a class="pular-conteudo" href="#conteudo-principal">Pular para o conteúdo</a>');
-  }
-
-  const topo = document.querySelector(".navegacao, body > nav");
-  const menu = topo?.querySelector(".nav-links, .menu");
-  if (topo && menu) {
-    topo.classList.add("menu-pronto");
-    if (!menu.querySelector(".menu-cta")) {
-      const cta = document.createElement("a");
-      cta.href = "/register";
-      cta.className = "menu-cta";
-      cta.textContent = "Teste grátis 30 dias";
-      menu.appendChild(cta);
-    }
-    menu.id ||= "menu-principal";
-    const botao = topo.querySelector(".menu-mobile-botao") || document.createElement("button");
-    botao.type = "button";
-    botao.className = "menu-mobile-botao";
-    botao.setAttribute("aria-controls", menu.id);
-    botao.setAttribute("aria-expanded", "false");
-    botao.setAttribute("aria-label", "Abrir menu principal");
-    botao.innerHTML = '<span></span><span></span><span></span>';
-    if (!botao.isConnected) (topo.querySelector(".nav-acoes") || topo).appendChild(botao);
-    const fechar = () => {
-      document.body.classList.remove("menu-aberto");
-      botao.setAttribute("aria-expanded", "false");
-      botao.setAttribute("aria-label", "Abrir menu principal");
-    };
-    botao.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const aberto = document.body.classList.toggle("menu-aberto");
-      botao.setAttribute("aria-expanded", String(aberto));
-      botao.setAttribute("aria-label", aberto ? "Fechar menu principal" : "Abrir menu principal");
-    });
-    menu.addEventListener("click", (event) => { if (event.target.closest("a")) fechar(); });
-    document.addEventListener("pointerdown", (event) => {
-      if (document.body.classList.contains("menu-aberto") && !topo.contains(event.target)) fechar();
-    });
-    document.addEventListener("keydown", (event) => { if (event.key === "Escape") fechar(); });
-    window.addEventListener("resize", () => { if (window.innerWidth > 1120) fechar(); });
   }
 
   window.dataLayer = window.dataLayer || [];
@@ -144,8 +96,8 @@
   });
   try {
     new PerformanceObserver((list) => {
-      const ultimo = list.getEntries().at(-1);
-      if (ultimo) window.axeTrack("web_vital_lcp", { value: Math.round(ultimo.startTime) });
+      const last = list.getEntries().at(-1);
+      if (last) window.axeTrack("web_vital_lcp", { value: Math.round(last.startTime) });
     }).observe({ type: "largest-contentful-paint", buffered: true });
-  } catch { /* API indisponível em navegadores antigos */ }
+  } catch { /* navegadores sem PerformanceObserver */ }
 })();
