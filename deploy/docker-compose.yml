@@ -60,11 +60,16 @@ services:
       TRUST_PROXY_CLIENT_IP: "1"
       EFI_CERTIFICATE_PATH: /run/secrets/efi-certificate.p12
       EVOLUTION_API_BASE_URL: http://evolution:8080
+      # Cache do diretório público (cidades/UF/cidade) — Redis DB 7 (Evolution usa DB 6)
+      DIR_CACHE_REDIS_URI: redis://redis:6379/7
+      DIR_CACHE_TTL_SEC: "600"
     volumes:
       - ../certs/producao-918602-Axecloud.p12:/run/secrets/efi-certificate.p12:ro
     depends_on:
       evolution:
         condition: service_started
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -73,10 +78,11 @@ services:
           "-e",
           "fetch('http://127.0.0.1:3000/api/health-check').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 5s
+      # 5s gerava flood de exec no dockerd; 30s ainda detecta falha em ~few min
+      interval: 30s
       timeout: 5s
-      retries: 12
-      start_period: 20s
+      retries: 5
+      start_period: 40s
     networks:
       - web
       - evolution_internal
@@ -99,9 +105,9 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 30s
       timeout: 3s
-      retries: 10
+      retries: 5
     networks:
       - evolution_internal
 
@@ -120,9 +126,9 @@ services:
       - evolution_pg:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 5
     networks:
       - evolution_internal
 
@@ -181,10 +187,10 @@ services:
       - ./crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
     healthcheck:
       test: ["CMD-SHELL", "cscli lapi status >/dev/null 2>&1 && nc -z 127.0.0.1 7422"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 12
-      start_period: 20s
+      retries: 5
+      start_period: 40s
     networks:
       - web
 
