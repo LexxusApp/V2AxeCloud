@@ -11,9 +11,57 @@ Os nomes abaixo devem ser **idênticos** aos usados no código (`api/lib/whatsap
 
 ---
 
-## 1. `financeiro_axecloud`
+## 1. `mensalidade_disponivel_axecloud`
 
-**Uso:** cron diário (3 dias antes e no vencimento) + botão de lembrete no Financeiro.
+**Uso:** cron diário no **dia 1** do mês (horário de Brasília). Avisa que a mensalidade da competência já está disponível para pagamento.
+
+**Corpo:**
+
+```
+Olá, {{1}}! A mensalidade de {{2}} no valor de R$ {{3}} já está disponível para pagamento no {{4}}.
+
+Sua contribuição fortalece a casa. Axé!
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria Silva |
+| {{2}} | agosto de 2026 |
+| {{3}} | 150,00 |
+| {{4}} | Terreiro de Oxum |
+
+**Env:** `WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL=mensalidade_disponivel_axecloud`
+
+---
+
+## 1b. `lembrete_mensalidade_pendente_axecloud`
+
+**Uso:** cron **3 dias antes** e **no vencimento**, só se a mensalidade ainda estiver em aberto. Também no botão Lembrete do Financeiro.
+
+**Corpo:**
+
+```
+Olá, {{1}}! Lembramos que sua mensalidade de {{2}} no valor de R$ {{3}} ainda está pendente no {{4}}.
+
+Quando puder, regularize pelo portal da casa. Axé!
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria Silva |
+| {{2}} | 08/2026 (venc. 15/08/2026) |
+| {{3}} | 150,00 |
+| {{4}} | Terreiro de Oxum |
+
+**Env:** `WA_META_TEMPLATE_MENSALIDADE_PENDENTE=lembrete_mensalidade_pendente_axecloud`
+
+Até a aprovação na Meta, o lembrete cai no legado `financeiro_axecloud`.
+
+---
+
+## 1c. `financeiro_axecloud` (legado)
+
+**Uso:** fallback do lembrete pendente enquanto `lembrete_mensalidade_pendente_axecloud` não estiver APPROVED.
 
 **Corpo:**
 
@@ -77,6 +125,41 @@ Obrigado pela contribuição. Axé!
 | {{4}} | Terreiro de Ogum |
 
 **Env:** `WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud`
+
+---
+
+## 3b. `conta_ativa_axecloud` (cadastro / Enviar acesso)
+
+**Uso:** cadastro de filho + botão “Enviar acesso”.
+
+**Categoria:** Utilidade
+
+**Corpo (aprovável como Utilidade):**
+
+```
+Olá, {{1}}!
+
+Você foi cadastrado(a) no AxéCloud do terreiro {{2}}.
+
+Seu registro: {{3}}
+
+Axé!
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria Silva |
+| {{2}} | Terreiro de Oxum |
+| {{3}} | AXC-2026-A1B2 |
+
+**Botão URL (estático):** texto `Acessar o portal` → `https://axecloud.com.br/entrar?modo=filho`
+
+O link abre direto o login do filho. A tela explica: **Registro + 6 primeiros dígitos do CPF**.
+
+**Não colocar no template** texto tipo “senha/código/CPF para entrar” — a Meta classifica como Autenticação e rejeita em Utilidade (`INCORRECT_CATEGORY`).
+
+**Env:** `WA_META_TEMPLATE_DADOS_ACESSO=acesso_membro_guia_axecloud` (preferido: registro + guia).  
+Legado portal: `WA_META_TEMPLATE_DADOS_ACESSO=conta_ativa_axecloud`.
 
 ---
 
@@ -163,6 +246,11 @@ Na Meta, ao criar cada botão URL dinâmico, a URL fica:
 `https://axecloud.com.br/convite/{{1}}`
 
 O sufixo `{{1}}` de cada botão é **independente** do corpo — use os exemplos acima na submissão.
+
+**Atenção (bug comum na Meta):** a URL do botão **não** pode ficar
+`https://axecloud.com.br/convite/%7B%7B1%7D%7D{{1}}` (isso vira `/convite/{{1}}` + token e quebra o RSVP).
+Confira no WhatsApp Manager que a URL exibida é exatamente `https://axecloud.com.br/convite/{{1}}`
+sem `{{1}}` duplicado/escaped. Se estiver errado, crie um template novo (a Meta costuma não deixar editar a URL).
 
 **Env:**
 
@@ -449,11 +537,65 @@ O código envia o OTP no formato de autenticação Meta (corpo + botão Copiar c
 
 ---
 
+## Novos (04/08/2026) — onboarding / instruções
+
+### `boas_vindas_zelador_axecloud` (Utilidade) — **APPROVED**
+
+**Uso:** WhatsApp de boas-vindas ao cadastrar terreiro (zelador), com botão para `/instrucoes`.
+
+**Status Meta:** APPROVED (id `1469762495172100`).
+
+**Corpo:**
+
+```
+Axé, {{1}}! O terreiro {{2}} foi cadastrado no AxéCloud com sucesso. Entre no painel com o e-mail {{3}}. No botão abaixo você encontra as instruções de uso e como seus membros acessam o app.
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Alex |
+| {{2}} | YLÊ EXU TIRIRI LONAN |
+| {{3}} | sistemap514@gmail.com |
+
+**Botão URL (fix):** `Instruções de uso` → `https://axecloud.com.br/instrucoes`
+
+**Env:** `WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_axecloud`
+
+---
+
+### Membro / filho — **`acesso_membro_guia_axecloud` (APPROVED)**
+
+Registro de acesso + botão do guia. Substitui o Marketing sem registro.
+
+| Template | Status | O que entrega |
+|----------|--------|----------------|
+| `acesso_membro_guia_axecloud` | **APPROVED** Utility | Nome + terreiro + **registro** + botão `/instrucoes/membro` |
+| `conta_ativa_axecloud` | APPROVED Utility | Nome + terreiro + **registro** + botão portal `/entrar?modo=filho` (legado) |
+| `guia_membro_portal_axecloud` | APPROVED Marketing | ❌ Só guia, **sem registro** — não usar |
+
+**Corpo (`acesso_membro_guia_axecloud`):**
+
+```
+Olá, {{1}}! Sua conta no AxéCloud do terreiro {{2}} está ativa. Seu registro de acesso é {{3}}. Use o botão abaixo para ver o guia de entrada no app.
+```
+
+**Env:**
+
+```env
+WA_META_TEMPLATE_DADOS_ACESSO=acesso_membro_guia_axecloud
+WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
+```
+
+**Tipos no código:** `dados_acesso` e `guia_membro`.
+---
+
 ## Checklist pós-aprovação (VPS)
 
 1. Editar `/opt/axecloud/.env` e adicionar:
 
 ```env
+WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL=mensalidade_disponivel_axecloud
+WA_META_TEMPLATE_MENSALIDADE_PENDENTE=lembrete_mensalidade_pendente_axecloud
 WA_META_TEMPLATE_FINANCEIRO=financeiro_axecloud
 WA_META_TEMPLATE_COBRANCA_MENSALIDADE=cobranca_mensalidade_axecloud
 WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud
@@ -466,6 +608,9 @@ WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_util_axecloud
 WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
 WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
+WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_axecloud
+WA_META_TEMPLATE_DADOS_ACESSO=acesso_membro_guia_axecloud
+WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
 ```
 
 2. `git pull` + rebuild/restart do container app.

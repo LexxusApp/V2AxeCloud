@@ -59,6 +59,8 @@ const TRANSACTIONAL_TIPOS = new Set([
   "pedido_reza_novo_zelador",
   "pedido_reza_aceito_fiel",
   "mensalidade_confirmada",
+  "mensalidade_pendente",
+  "mensalidade_disponivel",
   "convite_evento",
 ]);
 

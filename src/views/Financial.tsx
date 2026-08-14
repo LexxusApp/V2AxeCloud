@@ -922,11 +922,12 @@ export default function Financial({
         method: 'POST',
         headers: whatsappRailwayHeaders(token, uid),
         body: JSON.stringify({
-          tipo: 'financeiro',
+          tipo: 'mensalidade_pendente',
           filhoId,
           variables: {
             nome_filho: t.descricao.split(' ').slice(1).join(' ') || 'Filho',
             valor_mensalidade: t.valor.toString(),
+            mes_ano: new Date(t.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }),
             data_vencimento: new Date(t.data).toLocaleDateString('pt-BR'),
             nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
           },

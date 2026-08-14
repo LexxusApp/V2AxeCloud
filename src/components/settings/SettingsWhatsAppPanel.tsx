@@ -318,7 +318,7 @@ export function SettingsWhatsAppPanel() {
     {
       key: 'notifFinanceiro',
       title: 'Comprovantes Financeiros',
-      desc: 'Envia lembretes e comprovantes assim que mensalidades dos médiuns forem compensadas.',
+      desc: 'Lembrete no dia 1 (mensalidade disponível) e aviso se ainda estiver pendente no vencimento, além do comprovante quando o pagamento é confirmado.',
       toastLabel: 'Financeiro',
     },
     {

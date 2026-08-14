@@ -85,9 +85,17 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
       title: 'Cobrança de Mensalidade',
       hint: 'Template Meta cobranca_mensalidade_axecloud — botão Gerar cobrança no Financeiro.',
     },
+    mensalidade_disponivel: {
+      title: 'Mensalidade disponível',
+      hint: 'Automático no dia 1 do mês: avisa que a mensalidade da competência já está disponível para pagamento.',
+    },
     financeiro: {
-      title: 'Financeiro (Lembrete)',
-      hint: 'Enviado automaticamente 3 dias antes e no dia do vencimento.',
+      title: 'Financeiro (legado)',
+      hint: 'Alias do lembrete de mensalidade pendente. Preferir o template mensalidade_pendente.',
+    },
+    mensalidade_pendente: {
+      title: 'Lembrete de mensalidade pendente',
+      hint: 'Automático 3 dias antes e no vencimento, só se ainda estiver em aberto. Também no botão Lembrete do Financeiro.',
     },
     mensalidade_confirmada: {
       title: 'Mensalidade Confirmada',

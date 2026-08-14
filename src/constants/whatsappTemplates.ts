@@ -1,7 +1,9 @@
 ﻿export type WhatsAppTemplateType =
   | 'dados_acesso'
   | 'cobranca_mensalidade'
+  | 'mensalidade_disponivel'
   | 'financeiro'
+  | 'mensalidade_pendente'
   | 'mensalidade_confirmada'
   | 'transmissao_aviso'
   | 'mural_aviso'
@@ -19,8 +21,12 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Guia: https://axecloud.com.br/instrucoes/membro',
   cobranca_mensalidade:
     'Olá, {{nome_filho}}! Lembrete privado da mensalidade de {{mes_ano}} (R$ {{valor}}) no {{nome_terreiro}}. Sua contribuição fortalece a casa — qualquer dúvida, fale com a diretoria. Axé!',
+  mensalidade_disponivel:
+    'Olá, {{nome_filho}}! A mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} já está disponível para pagamento no {{nome_terreiro}}. Sua contribuição fortalece a casa. Axé!',
   financeiro:
-    'Olá, {{nome_filho}}! Lembrete da mensalidade de R$ {{valor_mensalidade}} (venc. {{data_vencimento}}) no {{nome_terreiro}}. Contribuição com respeito e privacidade. Axé!',
+    'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
+  mensalidade_pendente:
+    'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
   mensalidade_confirmada:
     'Olá, {{nome_filho}}! Recebemos sua mensalidade de {{competencia}} (R$ {{valor}}) no {{nome_terreiro}}. Gratidão pela contribuição. Axé!',
   transmissao_aviso:
@@ -47,7 +53,9 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
 export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [
   'dados_acesso',
   'cobranca_mensalidade',
+  'mensalidade_disponivel',
   'financeiro',
+  'mensalidade_pendente',
   'mensalidade_confirmada',
   'transmissao_aviso',
   'mural_aviso',
@@ -77,6 +85,8 @@ export function resolveWhatsAppTemplate(templates: unknown, tipo: string): strin
   if (normalized === 'transmissao_aviso' || normalized === 'mural_aviso') {
     return merged.transmissao_aviso;
   }
+  if (normalized === 'mensalidade_pendente') return merged.mensalidade_pendente || merged.financeiro;
+  if (normalized === 'financeiro') return merged.financeiro || merged.mensalidade_pendente;
   if (tipo in merged) return merged[tipo as WhatsAppTemplateType];
   return 'Mensagem do AxéCloud';
 }

@@ -12,8 +12,10 @@ const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
 const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
-/** Lembrete automático/manual de mensalidade (cron + financeiro) */
+/** Lembrete automático/manual de mensalidade pendente (cron D−3 e vencimento) */
 const FINANCEIRO_TEMPLATE = "financeiro_axecloud";
+/** Aviso no dia 1: mensalidade do mês já disponível para pagamento */
+const MENSALIDADE_DISPONIVEL_TEMPLATE = "mensalidade_disponivel_axecloud";
 /** Cobrança manual no painel financeiro */
 const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
 /** Confirmação após pagamento registrado */
@@ -99,8 +101,18 @@ export function resolveMetaTemplateName(tipo: string): string {
       String(process.env.WA_META_TEMPLATE_GUIA_MEMBRO || "").trim() || GUIA_MEMBRO_TEMPLATE
     );
   }
-  if (normalized === "financeiro") {
-    return String(process.env.WA_META_TEMPLATE_FINANCEIRO || "").trim() || FINANCEIRO_TEMPLATE;
+  if (normalized === "financeiro" || normalized === "mensalidade_pendente") {
+    return (
+      String(process.env.WA_META_TEMPLATE_MENSALIDADE_PENDENTE || "").trim() ||
+      String(process.env.WA_META_TEMPLATE_FINANCEIRO || "").trim() ||
+      FINANCEIRO_TEMPLATE
+    );
+  }
+  if (normalized === "mensalidade_disponivel") {
+    return (
+      String(process.env.WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL || "").trim() ||
+      MENSALIDADE_DISPONIVEL_TEMPLATE
+    );
   }
   if (normalized === "cobranca_mensalidade") {
     return (
@@ -227,6 +239,8 @@ const META_UTILITY_TEMPLATE_TIPOS = new Set([
   "cobranca_mensalidade",
   "mensalidade_confirmada",
   "financeiro",
+  "mensalidade_pendente",
+  "mensalidade_disponivel",
   "estoque_critico",
   "aviso_gira",
   "convite_evento",
@@ -668,6 +682,29 @@ export function buildFinanceiroComponents(
 }
 
 /**
+ * mensalidade_disponivel_axecloud / lembrete_mensalidade_pendente_axecloud
+ * corpo: {{1}} filho, {{2}} mês/ano, {{3}} valor, {{4}} terreiro
+ */
+export function buildMensalidadeCompetenciaComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.mes_ano || v.competencia || "—")),
+        textParam(String(v.valor_mensalidade || v.valor || "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+      ],
+    },
+  ];
+}
+
+/**
  * cobranca_mensalidade_axecloud — corpo: {{1}} filho, {{2}} mês/ano, {{3}} valor, {{4}} terreiro
  */
 export function buildCobrancaMensalidadeComponents(
@@ -971,7 +1008,18 @@ export function buildMetaTemplateComponentsForTipo(
     return buildMuralAvisoComponents(nomeMembro, nomeTerreiro, variables);
   }
   if (t === "financeiro") {
-    return buildFinanceiroComponents(nomeMembro, nomeTerreiro, variables);
+    const name = resolveMetaTemplateName(tipo);
+    if (name === FINANCEIRO_TEMPLATE || name.startsWith("financeiro_")) {
+      return buildFinanceiroComponents(nomeMembro, nomeTerreiro, variables);
+    }
+    return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "mensalidade_pendente" || t === "mensalidade_disponivel") {
+    const name = resolveMetaTemplateName(tipo);
+    if (name === FINANCEIRO_TEMPLATE || name.startsWith("financeiro_")) {
+      return buildFinanceiroComponents(nomeMembro, nomeTerreiro, variables);
+    }
+    return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
   }
   if (t === "cobranca_mensalidade") {
     return buildCobrancaMensalidadeComponents(nomeMembro, nomeTerreiro, variables);
@@ -1096,6 +1144,14 @@ export function buildWhatsAppAuditMessage(
 
   if (normalized === "financeiro") {
     return `Financeiro: ${v.nome_filho || nomeMembro} · R$ ${v.valor_mensalidade || v.valor || "—"} · venc. ${v.data_vencimento || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "mensalidade_disponivel") {
+    return `Mensalidade disponível: ${v.nome_filho || nomeMembro} · ${v.mes_ano || "—"} · R$ ${v.valor_mensalidade || v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+  }
+
+  if (normalized === "mensalidade_pendente") {
+    return `Mensalidade pendente: ${v.nome_filho || nomeMembro} · ${v.mes_ano || "—"} · R$ ${v.valor_mensalidade || v.valor || "—"} · ${v.nome_terreiro || nomeTerreiro}`;
   }
 
   if (normalized === "cobranca_mensalidade") {
