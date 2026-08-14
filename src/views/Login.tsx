@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  ArrowRight,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -59,8 +60,7 @@ async function postAuthAuditLog(
 const fontLogin = "[font-family:'Manrope','Segoe_UI',Arial,sans-serif]";
 
 const AUTH_MODAL_CARD = cn(
-  'relative w-full overflow-hidden rounded-[1.5rem] border border-[#1b1813]/10 bg-[#fffdf8]',
-  'shadow-[0_28px_90px_rgba(73,52,13,0.16)]'
+  'relative w-full'
 );
 
 const AUTH_MODAL_RADIUS = 'rounded-[0.9rem]';
@@ -460,10 +460,10 @@ export default function Login() {
       <motion.div
         initial={false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:py-0 md:max-w-[40rem]"
+        className="relative z-10 my-auto w-full max-w-[42rem] py-2 sm:py-0"
       >
-        <div className={cn(AUTH_MODAL_CARD, 'md:rounded-[1.8rem]')}>
-          <div className="relative z-10 w-full space-y-5 p-6 sm:p-8 md:px-10 md:py-9">
+        <div className={cn(AUTH_MODAL_CARD, step === 'form' && 'axe-login-form-surface')}>
+          <div className="relative z-10 w-full space-y-5">
             {showAlert && (
               <div className="flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={2} />
@@ -481,17 +481,7 @@ export default function Login() {
               </div>
             )}
 
-            <header className="space-y-3 text-left">
-              <div className="mb-2 flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c48a00]/55 text-lg text-[#b47d00]">
-                  ✦
-                </span>
-                <span className="text-xl font-extrabold tracking-[-0.04em]">
-                  Axé<span className="text-[#b47d00]">Cloud</span>
-                </span>
-              </div>
-              <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
-            </header>
+            <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
 
             <AnimatePresence mode="wait">
               {step === 'choose' ? (
@@ -501,77 +491,58 @@ export default function Login() {
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
                   transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                  className="space-y-5"
+                  className="axe-login-choice"
                 >
-                  <div className="space-y-1.5">
-                    <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
-                      Quem está entrando?
-                    </p>
-                    <h2 className="text-[2rem] font-bold leading-[1.05] tracking-[-0.045em] text-[#1b1813] sm:text-[2.25rem]">
-                      Escolha o seu acesso
-                    </h2>
-                    <p className="max-w-[28rem] text-[13px] leading-snug text-[#1b1813]/55">
-                      Zelador e membro usam caminhos diferentes. Selecione o seu perfil para ver os
-                      campos certos.
-                    </p>
+                  <div className="axe-login-choice-heading">
+                    <p>PORTAL AXÉCLOUD <span>•</span> ACESSO SEGURO</p>
+                    <h2>Como você participa<br />da casa?</h2>
+                    <p>Escolha o seu caminho. Cada pessoa acessa somente o que faz parte da sua jornada.</p>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                  <div className="axe-login-paths">
                     <motion.button
                       type="button"
-                      whileHover={{ y: -3, scale: 1.01 }}
-                      whileTap={{ scale: 0.985 }}
+                      whileHover={{ x: 6 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => pickRole('zelador')}
-                      className={cn(
-                        'group relative overflow-hidden rounded-[1.15rem] border border-[#1b1813]/10 bg-[#1b1813] p-5 text-left text-[#faf8f4]',
-                        'transition-shadow hover:shadow-[0_18px_40px_rgba(27,24,19,0.22)]'
-                      )}
+                      className="axe-login-path axe-login-path-dark"
                     >
-                      <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#e5ad1a]/15 blur-2xl transition-opacity group-hover:opacity-100" />
-                      <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e5ad1a]/35 bg-[#e5ad1a]/10 text-[#e5ad1a]">
+                      <span className="axe-login-path-number">01</span>
+                      <span className="axe-login-path-icon">
                         <Sparkles className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                       </span>
-                      <p className="text-[1.55rem] font-bold leading-none tracking-[-0.03em]">
-                        Zelador
-                      </p>
-                      <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#d6a526]">
-                        Pai de santo · Mãe de santo
-                      </p>
-                      <p className="mt-3 text-[12.5px] leading-relaxed text-white/55">
-                        Gestão da casa: filhos, giras, financeiro e WhatsApp.
-                      </p>
+                      <span className="axe-login-path-copy">
+                        <small>GESTÃO DA CASA</small>
+                        <strong>Sou zelador(a)</strong>
+                        <em>Pai de santo, mãe de santo ou responsável pela administração.</em>
+                      </span>
+                      <ArrowRight className="axe-login-path-arrow" aria-hidden />
                     </motion.button>
 
                     <motion.button
                       type="button"
-                      whileHover={{ y: -3, scale: 1.01 }}
-                      whileTap={{ scale: 0.985 }}
+                      whileHover={{ x: 6 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => pickRole('membro')}
-                      className={cn(
-                        'group relative overflow-hidden rounded-[1.15rem] border border-[#c48a00]/30 bg-[#f8f4eb] p-5 text-left',
-                        'transition-shadow hover:border-[#c48a00]/55 hover:shadow-[0_18px_40px_rgba(196,138,0,0.14)]'
-                      )}
+                      className="axe-login-path axe-login-path-light"
                     >
-                      <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#f0b400]/20 blur-2xl" />
-                      <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c48a00]/35 bg-white text-[#b47d00]">
+                      <span className="axe-login-path-number">02</span>
+                      <span className="axe-login-path-icon">
                         <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                       </span>
-                      <p className="text-[1.55rem] font-bold leading-none tracking-[-0.03em] text-[#1b1813]">
-                        Membro
-                      </p>
-                      <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#a87500]">
-                        Filho de santo · Filha de santo
-                      </p>
-                      <p className="mt-3 text-[12.5px] leading-relaxed text-[#1b1813]/55">
-                        Registro da casa + 6 dígitos do CPF como senha.
-                      </p>
+                      <span className="axe-login-path-copy">
+                        <small>CORRENTE DA CASA</small>
+                        <strong>Sou membro(a)</strong>
+                        <em>Filho de santo ou filha de santo com registro na casa.</em>
+                      </span>
+                      <ArrowRight className="axe-login-path-arrow" aria-hidden />
                     </motion.button>
                   </div>
 
-                  <p className="text-center text-[11px] text-[#1b1813]/40">
-                    Dúvida?{' '}
+                  <p className="axe-login-help">
+                    PRIMEIRO ACESSO?{' '}
                     <a href={ROUTES.instrucoesMembro} className="font-semibold text-[#a87500] hover:underline">
-                      Como o membro entra
+                      Acesso do membro
                     </a>
                     {' · '}
                     <a href={ROUTES.instrucoes} className="font-semibold text-[#a87500] hover:underline">
