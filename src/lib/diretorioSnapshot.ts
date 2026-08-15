@@ -123,15 +123,15 @@ function itemsToBairros(items: DiretorioTerreiro[]): DiretorioBairroGroup[] {
   ];
 }
 
-/** Detalhe da cidade: snapshot JSON ou API pública. */
+/**
+ * Detalhe da cidade: API dedicada primeiro (payload pequeno) e snapshot geral
+ * apenas como contingência. Evita baixar vários MB antes de exibir uma cidade.
+ */
 export async function loadDiretorioCidadeDetail(
   estado: string,
   cidadeSlug: string,
   signal?: AbortSignal,
 ): Promise<DiretorioCidadeSnapshot | null> {
-  const snapshot = await fetchDiretorioCidadeSnapshot(estado, cidadeSlug, signal);
-  if (snapshot) return snapshot;
-
   try {
     const api = await fetchDiretorioCidade(estado, cidadeSlug);
     const bairros =
@@ -147,6 +147,6 @@ export async function loadDiretorioCidadeDetail(
       bairros,
     };
   } catch {
-    return null;
+    return fetchDiretorioCidadeSnapshot(estado, cidadeSlug, signal);
   }
 }
