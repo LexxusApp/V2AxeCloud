@@ -17,6 +17,7 @@
     ["Planos", "/#plano"],
   ];
   const active = (href) => href !== "/" && !href.startsWith("/#") && path.startsWith(href);
+  const contactUrl = "https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud.";
   const menuLinks = links.map(([label, href]) =>
     `<a href="${href}"${active(href) ? ' class="is-active" aria-current="page"' : ""}>${label}</a>`
   ).join("");
@@ -25,13 +26,21 @@
   header.className = "axe-site-header";
   header.innerHTML = `
     <a class="axe-site-brand" href="/" aria-label="AxéCloud — página inicial">
-      <img src="/assets/axecloud-trident.png" alt="" width="36" height="47" />
+      <img src="/axecloud-trident.png" alt="" width="36" height="47" />
       <strong><span>Axé</span><em>Cloud</em></strong>
     </a>
-    <nav class="axe-site-nav" id="axe-site-menu" aria-label="Navegação principal">${menuLinks}<a class="axe-site-mobile-login" href="/entrar">Entrar</a></nav>
+    <nav class="axe-site-nav" id="axe-site-menu" aria-label="Navegação principal">
+      ${menuLinks}
+      <div class="axe-site-mobile-actions">
+        <a class="axe-site-mobile-login" href="/entrar">Entrar</a>
+        <a href="${contactUrl}" target="_blank" rel="noreferrer">Fale conosco</a>
+        <a class="axe-site-mobile-cta" href="/register">Testar 30 dias</a>
+      </div>
+    </nav>
     <div class="axe-site-actions">
+      <a class="axe-site-contact" href="${contactUrl}" target="_blank" rel="noreferrer">Fale conosco</a>
       <a class="axe-site-login" href="/entrar">Entrar</a>
-      <a class="axe-site-cta" href="/register">Testar grátis <span aria-hidden="true">→</span></a>
+      <a class="axe-site-cta" href="/register">Testar 30 dias <span aria-hidden="true">→</span></a>
       <button class="axe-site-menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="axe-site-menu"><i></i><i></i><i></i></button>
     </div>`;
 
@@ -60,7 +69,7 @@
     <footer class="axe-site-footer" role="contentinfo">
       <div class="axe-site-footer-main">
         <a class="axe-site-footer-brand" href="/">
-          <img src="/assets/axecloud-trident.png" alt="" width="38" height="49" />
+          <img src="/axecloud-trident.png" alt="" width="38" height="49" />
           <strong><span>Axé</span><em>Cloud</em></strong>
         </a>
         <p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p>
@@ -91,7 +100,7 @@
     if (!link) return;
     if (link.matches('[href="/register"], [href*="/register"]')) window.axeTrack("cta_trial_click", { label: link.textContent.trim() });
     else if (link.matches('[href="/entrar"], [href*="/entrar"]')) window.axeTrack("login_click", { label: link.textContent.trim() });
-    else if (link.matches('[href*="wa.me/5511912276156"]')) window.axeTrack("commercial_whatsapp_click", { label: link.textContent.trim() });
+    else if (link.matches('[href*="wa.me/5511920033501"]')) window.axeTrack("commercial_whatsapp_click", { label: link.textContent.trim() });
     else if (link.matches('[href^="/terreiros"]')) window.axeTrack("directory_click", { destination: link.getAttribute("href") });
   });
   try {
