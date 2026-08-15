@@ -121,7 +121,7 @@ export default function Home() {
         .from(".cx-security-proof span", { y: 25, opacity: 0, stagger: .05 }, .52);
 
       const track = document.querySelector<HTMLElement>(".cx-archive-track");
-      if (track) gsap.to(track, { x: () => -(track.scrollWidth - window.innerWidth), ease: "none", scrollTrigger: { trigger: ".cx-archive", start: "top top", end: () => `+=${track.scrollWidth}`, pin: true, scrub: 1, invalidateOnRefresh: true } });
+      if (track && window.matchMedia("(min-width: 701px)").matches) gsap.to(track, { x: () => -(track.scrollWidth - window.innerWidth), ease: "none", scrollTrigger: { trigger: ".cx-archive", start: "top top", end: () => `+=${track.scrollWidth}`, pin: true, scrub: 1, invalidateOnRefresh: true } });
 
       gsap.utils.toArray<HTMLElement>(".cx-reveal").forEach(el => gsap.from(el, { y: 55, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 82%" } }));
     }, root);

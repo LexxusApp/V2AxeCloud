@@ -36,6 +36,24 @@
 .cx-header nav a,.cx-header-actions>a,.cx-header-cta{font-size:12px}.cx-brand strong{font-size:15px}.cx-opening-copy p,.cx-threshold-copy small{font-size:11px}.cx-opening-copy span{font-size:17px}.cx-scroll-cue{font-size:10px}.cx-house-title>p,.cx-clutter-copy>p,.cx-security-copy>p,.cx-archive-intro>p,.cx-finale-copy>p{font-size:11px}.cx-room>span{font-size:10px}.cx-room h3{font-size:16px}.cx-room p{font-size:11px}.cx-house-heart span{font-size:11px}.cx-house-result{font-size:14px}.cx-clutter-copy>span,.cx-security-copy>span{font-size:14px}.cx-scattered small{font-size:10px}.cx-scattered strong{font-size:12px}.cx-organized-head{font-size:10px}.cx-organized-row>span{font-size:10px}.cx-organized-row p{font-size:13px}.cx-organized-row small{font-size:10px}.cx-security-proof span{font-size:11px}.cx-archive-intro small{font-size:11px}.cx-archive-frame>p{font-size:10px}.cx-archive-frame h3{font-size:28px}.cx-ecosystem-head>p{font-size:11px}.cx-ecosystem-head>div p{font-size:14px}.cx-ecosystem-link>span{font-size:10px}.cx-ecosystem-link small{font-size:10px}.cx-ecosystem-link h3{font-size:21px}.cx-ecosystem-link p{font-size:13px}.cx-offer-head small{font-size:10px}.cx-offer-head strong{font-size:18px}.cx-offer-head>p{font-size:10px}.cx-offer-price>p,.cx-offer-included>p{font-size:10px}.cx-cycle button span{font-size:14px}.cx-cycle button small{font-size:11px}.cx-cycle button b{font-size:9px}.cx-offer-number sup{font-size:16px}.cx-offer-number small{font-size:12px}.cx-offer-economy strong{font-size:12px}.cx-offer-economy small{font-size:10px}.cx-offer-numbers strong{font-size:16px}.cx-offer-numbers small{font-size:10px}.cx-included-grid strong{font-size:12px}.cx-included-grid small{font-size:10px}.cx-offer-assurance strong{font-size:12px}.cx-offer-assurance small{font-size:10px}.cx-offer-cta small{font-size:9px}.cx-offer-cta strong{font-size:14px}.cx-offer-note{font-size:10px!important}.cx-footer p,.cx-footer nav a,.cx-footer>a:last-child{font-size:11px}
 @media(max-width:650px){.cx-header nav a{font-size:13px}.cx-opening-copy span{font-size:15px}.cx-room p{display:block;max-width:100%;margin-top:4px;font-size:9px;line-height:1.35}.cx-room h3{font-size:12px}.cx-house-title>p,.cx-clutter-copy>p,.cx-security-copy>p,.cx-archive-intro>p,.cx-finale-copy>p{font-size:10px}.cx-clutter-copy>span,.cx-security-copy>span{font-size:12px}.cx-offer-head small{font-size:9px}.cx-offer-head strong{font-size:14px}.cx-offer-number small{font-size:11px}.cx-footer nav a{font-size:12px}}
 
+/* No celular, as telas reais deixam de ser uma faixa horizontal e passam a
+   formar uma sequência vertical. Cada captura preserva a proporção original. */
+@media(max-width:700px){
+  .cx-archive{height:auto;min-height:0;overflow:visible}
+  .cx-archive-track{width:100%;height:auto;padding:100px 16px;display:flex;flex-direction:column;align-items:stretch;gap:68px;transform:none!important}
+  .cx-archive-intro,.cx-archive-frame,.cx-archive-end{width:100%;flex:none}
+  .cx-archive-intro h2{font-size:clamp(46px,14vw,60px)}
+  .cx-archive-intro small{margin-top:30px;line-height:1.6}
+  .cx-frame-number{right:8px;top:-27px;font-size:54px}
+  .cx-frame-image{width:100%;height:auto;padding:6px;aspect-ratio:16/10}
+  .cx-frame-image img{width:100%;height:100%;object-fit:contain;object-position:center top}
+  .cx-archive-frame>p{margin-top:18px}
+  .cx-archive-frame h3{max-width:100%;font-size:22px;line-height:1.18}
+  .cx-archive-end{padding:28px 0 15px}
+  .cx-archive-end p{margin-top:24px}
+  .cx-archive-end h2{font-size:49px}
+}
+
 /* Marca do plano: o mesmo tridente transparente da assinatura principal */
 .cx-offer-head img{width:46px;height:52px;border-radius:0;object-fit:contain;filter:drop-shadow(0 0 12px rgba(226,169,18,.2))}
 @media(max-width:560px){.cx-offer-head img{width:40px;height:46px}}
