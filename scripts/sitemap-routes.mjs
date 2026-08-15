@@ -36,18 +36,15 @@ const FEATURE_PATHS = [
   '/recursos/app-pwa-terreiro',
 ];
 
-export const SITEMAP_ROUTES = [
+const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-14';
+const LEGAL_CONTENT_LASTMOD = '2026-07-28';
+
+const SITEMAP_BASE_ROUTES = [
   {
     path: '/',
     changeFrequency: 'weekly',
     priority: 1,
     comment: 'Página inicial — login e apresentação',
-  },
-  {
-    path: '/entrar',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    comment: 'Entrada para zeladores e filhos de santo',
   },
   {
     path: '/termos',
@@ -122,3 +119,11 @@ export const SITEMAP_ROUTES = [
     comment: 'Calendário litúrgico de referência',
   },
 ];
+
+export const SITEMAP_ROUTES = SITEMAP_BASE_ROUTES.map((route) => ({
+  ...route,
+  lastModified:
+    route.path === '/termos' || route.path === '/privacidade'
+      ? LEGAL_CONTENT_LASTMOD
+      : PUBLIC_SITE_SHELL_LASTMOD,
+}));

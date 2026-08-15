@@ -83,7 +83,7 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
     path: r.path,
     changeFrequency: r.changeFrequency,
     priority: r.priority,
-    lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
+    lastModified: r.lastModified || DIRETORIO_SEO_TEMPLATE_LASTMOD,
   }));
 
   const cityRoutes = new Map<string, string | undefined>();

@@ -241,6 +241,12 @@ axecloud.com.br, www.axecloud.com.br {
 			}
 		}
 
+		# Login é uma área utilitária: acessível aos usuários, fora do índice de busca.
+		handle /entrar {
+			header X-Robots-Tag "noindex, follow"
+			import app_upstream
+		}
+
 		@public_static {
 			path /robots.txt
 			path /og-image.png
@@ -296,6 +302,8 @@ axecloud.com.br, www.axecloud.com.br {
 			path /senhas/*
 			path /conteudo
 			path /conteudo/*
+			path /recursos
+			path /recursos/*
 		}
 		handle @marketing {
 			reverse_proxy marketing:80 {

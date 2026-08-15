@@ -22,6 +22,20 @@ const REACT = [
   'termos/index.html',
   'privacidade/index.html',
   'conteudo/gestao-de-terreiros/index.html',
+  'recursos/index.html',
+  'recursos/financeiro-pix-mensalidades/index.html',
+  'recursos/calendario-giras/index.html',
+  'recursos/portal-filho-de-santo/index.html',
+  'recursos/whatsapp-oficial/index.html',
+  'recursos/app-pwa-terreiro/index.html',
+];
+const RESOURCE_ROUTES = [
+  '/recursos',
+  '/recursos/financeiro-pix-mensalidades',
+  '/recursos/calendario-giras',
+  '/recursos/portal-filho-de-santo',
+  '/recursos/whatsapp-oficial',
+  '/recursos/app-pwa-terreiro',
 ];
 
 function fail(message) {
@@ -60,6 +74,19 @@ for (const relative of REACT) {
   const html = read(relative);
   if (html.includes('cinematic-production')) fail(`rota React sobrescrita: ${relative}`);
   if (!html.includes('/m-assets/')) fail(`bundle React ausente: ${relative}`);
+}
+
+const resourceTitles = new Set();
+for (const route of RESOURCE_ROUTES) {
+  const html = read(`${route.slice(1)}/index.html`);
+  const canonical = route === '/' ? 'https://axecloud.com.br/' : `https://axecloud.com.br${route}`;
+  if (!html.includes(`<link rel="canonical" href="${canonical}" />`)) {
+    fail(`canonical incorreto: ${route}`);
+  }
+  const title = html.match(/<title>([^<]+)<\/title>/)?.[1]?.trim();
+  if (!title) fail(`title ausente: ${route}`);
+  if (resourceTitles.has(title)) fail(`title duplicado em Recursos: ${title}`);
+  resourceTitles.add(title);
 }
 
 const homeMarkdown = read('index.md');

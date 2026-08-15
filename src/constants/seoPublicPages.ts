@@ -54,6 +54,7 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     h1: `Entrar no ${BRAND_NAME}`,
     intro:
       `O ${BRAND_NAME} é o software de gestão de terreiros para Umbanda, Candomblé e Jurema. Nesta página você acessa o painel da sua casa: zeladores e diretoria entram com e-mail e senha; filhos de santo usam o ID da casa e CPF fornecidos pelo zelador. Funciona no navegador e pode ser instalado como app (PWA) na tela inicial do celular.`,
+    robots: 'noindex, follow',
     sections: [
       {
         heading: 'Acesso para zeladores e diretoria',
