@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, MapPin, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
+import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditorialLayout';
 import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
 import type { DiretorioBairroGroup } from '../../lib/diretorioPublic';
 import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
@@ -36,7 +36,7 @@ function BairroTerreirosCarousel({ bairro }: { bairro: DiretorioBairroGroup }) {
   return (
     <motion.section
       key={bairro.slug}
-      className="relative mt-8 overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/58 p-5 shadow-xl shadow-black/5 backdrop-blur-sm"
+      className="relative mt-8 overflow-hidden rounded-[1.5rem] border border-[#d8cdbb]/65 bg-[#fffaf1]/88 p-5 shadow-[0_22px_60px_rgba(63,49,27,.09)] backdrop-blur-sm sm:p-7"
       initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -49,7 +49,8 @@ function BairroTerreirosCarousel({ bairro }: { bairro: DiretorioBairroGroup }) {
       />
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-black text-[#1b1813]">{bairro.nome}</h2>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Casas neste bairro</p>
+          <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.03em] text-[#1b1813]">{bairro.nome}</h2>
           <p className="mt-1 text-sm text-[#1b1813]/58">
             {bairro.total} terreiro{bairro.total === 1 ? '' : 's'} neste bairro
           </p>
@@ -177,59 +178,66 @@ export default function DiretorioCityPage() {
   }, [bairroQuery]);
 
   return (
-    <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
-      <MatrizPageBackground />
+    <MatrizEditorialLayout>
       <main className="relative z-[1] mx-auto w-full max-w-7xl px-5 pb-24 pt-32 md:px-8 md:pt-36">
         <a href={ROUTES.terreiros} className="inline-flex items-center gap-2 text-sm font-black text-[#1b1813]/62 transition hover:text-[#a87400]">
           <ArrowLeft className="h-4 w-4" />
           Voltar para cidades
         </a>
 
-        <header className="mt-6">
-          <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-10 lg:items-start">
-            <div className="lg:col-start-1 lg:row-start-1">
-              <p className="inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1b1813]">
-                Cidade selecionada
+        <header className="relative mt-6 overflow-hidden rounded-[1.75rem] bg-[#0d140f] px-6 py-8 text-[#f7f1e5] shadow-[0_30px_90px_rgba(20,25,18,.2)] sm:px-9 sm:py-10 lg:px-12 lg:py-12">
+          <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(229,174,18,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.14)_1px,transparent_1px)] [background-size:76px_76px]" aria-hidden />
+          <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border border-[#e5ae12]/25" aria-hidden />
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end lg:gap-x-12">
+            <div>
+              <p className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#e5ae12]">
+                <MapPin className="h-3.5 w-3.5" aria-hidden /> Cidade selecionada
+              </p>
+              <h1 className="mt-5 max-w-4xl text-balance text-[clamp(2.6rem,7vw,5.4rem)] font-extrabold leading-[0.92] tracking-[-0.055em]">
+                Terreiros em<br />
+                <span className="text-[#e5ae12]">{cidade?.cidade || cidadeSlug.replace(/-/g, ' ')}</span>
+                {cidade?.estado ? <span className="text-white/42">, {cidade.estado}</span> : null}
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-white/62">
+                Encontre casas de axé por bairro, com endereço, telefone e rota para chegar. Dados públicos organizados pelo AxéCloud.
               </p>
             </div>
-            <h1 className="lg:col-start-1 lg:row-start-2 mt-5 max-w-none text-balance text-3xl font-black tracking-tight text-[#1b1813] sm:text-4xl md:text-6xl">
-              {cidade?.cidade || cidadeSlug.replace(/-/g, ' ')}
-              {cidade?.estado ? `, ${cidade.estado}` : ''}
-            </h1>
-            <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/64">
-              Agora escolha um bairro. Os terreiros só aparecem depois dessa escolha para a página ficar rápida e organizada.
-            </p>
-            <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
-              <div className="rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-5 shadow-xl shadow-black/5 backdrop-blur-sm">
+            <div className="rounded-[1.35rem] border border-white/12 bg-white/[0.055] p-5 backdrop-blur-sm">
               <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="rounded-2xl bg-[#ffc107]/14 p-4">
-                  <p className="text-2xl font-black text-[#a87400]">{bairros.length}</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">Bairros</p>
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-2xl font-extrabold text-[#e5ae12]">{bairros.length}</p>
+                  <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-white/42">Bairros</p>
                 </div>
-                <div className="rounded-2xl bg-[#ffc107]/14 p-4">
-                  <p className="text-2xl font-black text-[#a87400]">{cidade?.totalTerreiros || 0}</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">Terreiros</p>
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-2xl font-extrabold text-[#e5ae12]">{cidade?.totalTerreiros || 0}</p>
+                  <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-white/42">Terreiros</p>
                 </div>
               </div>
               <label className="relative mt-5 block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1b1813]/40" />
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" />
                 <input
                   value={bairroQuery}
                   onChange={(e) => setBairroQuery(e.target.value)}
                   placeholder="Buscar bairro..."
-                  className="w-full rounded-full border border-[#e8dfd0] bg-white py-3 pl-11 pr-4 text-sm font-semibold text-[#1b1813] outline-none transition placeholder:text-[#1b1813]/35 focus:border-[#ffc107]/60 focus:ring-4 focus:ring-[#ffc107]/15"
+                  className="w-full rounded-full border border-white/14 bg-white/[0.08] py-3 pl-11 pr-4 text-sm font-semibold text-white outline-none transition placeholder:text-white/35 focus:border-[#e5ae12]/60 focus:ring-4 focus:ring-[#e5ae12]/10"
                 />
               </label>
-              </div>
             </div>
-          </section>
+          </div>
         </header>
 
         <div className="mt-8">
           <DirectoryManagementCta source="city" />
         </div>
 
-        <section className="mt-12">
+        <section className="mt-12" aria-labelledby="bairros-heading">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Explore a cidade</p>
+              <h2 id="bairros-heading" className="mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[#181a16]">Escolha um bairro</h2>
+            </div>
+            <p className="text-sm font-semibold text-[#181a16]/50">Selecione para ver as casas mapeadas.</p>
+          </div>
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
               <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
@@ -297,6 +305,6 @@ export default function DiretorioCityPage() {
           )}
         </section>
       </main>
-    </div>
+    </MatrizEditorialLayout>
   );
 }

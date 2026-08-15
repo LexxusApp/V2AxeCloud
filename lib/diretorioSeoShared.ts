@@ -6,7 +6,7 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-07-28";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-14";
 export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-14";
 
 export const STATIC_SITEMAP_PATHS: readonly {
