@@ -24,6 +24,7 @@ function popupHtml(point: DiretorioMapPoint) {
   return `
     <div style="min-width:190px;font-family:system-ui,sans-serif;color:#1b1813">
       <strong style="font-size:15px">${escapeHtml(point.nome)}</strong>
+      ${point.verificada ? '<p style="margin:6px 0 0;color:#1d4ed8;font-size:11px;font-weight:800">✓ Terreiro verificado e reivindicado</p>' : ''}
       <p style="margin:6px 0 12px;color:#665f55">${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}</p>
       <a href="${escapeHtml(point.perfilUrl)}" style="display:inline-block;border-radius:999px;background:#1b1813;color:#fff;padding:8px 12px;text-decoration:none;font-weight:700">Ver perfil</a>
     </div>

@@ -56,6 +56,9 @@
     .reivindicar h2 { color:white; }
     .reivindicar p { margin:0; color:rgba(255,255,255,.66); line-height:1.7; }
     .reivindicar a { display:inline-flex; justify-content:center; width:100%; margin-top:24px; padding:15px 20px; border-radius:999px; color:var(--preto); background:#ffc107; text-decoration:none; font-weight:800; }
+    .verificado { color:#fff; border-color:rgba(96,165,250,.3); background:linear-gradient(145deg,#102b58,#0b1d3e); }
+    .verificado h2 { margin-bottom:12px; color:#bfdbfe; }
+    .verificado p { margin:0; color:rgba(255,255,255,.72); line-height:1.7; }
     .convite { margin-top:28px; padding:52px clamp(24px,6vw,72px); display:flex; align-items:center; justify-content:space-between; gap:30px; border-radius:28px; color:white; background:linear-gradient(120deg,#201b13,#0e0c09); }
     .convite small { color:#ffc107; text-transform:uppercase; letter-spacing:.2em; font-weight:800; }
     .convite h2 { max-width:650px; margin:10px 0 0; font:500 clamp(1.8rem,3.8vw,3.4rem)/1.08 "Fraunces",serif; }
@@ -99,6 +102,7 @@
       <div class="grade">
         <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info" id="info-tradicao" hidden><span class="rotulo">Tradição</span><div class="valor" id="tradicao"></div></div><div class="info"><span class="rotulo">Telefone</span><div class="valor" id="telefone"></div></div><div class="info" id="info-desc" hidden><span class="rotulo">Sobre a casa</span><div class="valor" id="descricao"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a><a class="mapa" id="pedir-reza" href="/espaco-do-fiel" hidden style="margin-top:12px;background:#e11d48;color:#fff">Pedir reza</a><a class="mapa" id="ver-eventos" href="/eventos" hidden style="margin-top:12px;background:transparent;border:1px solid rgba(25,21,15,.18)">Eventos públicos</a></section>
         <aside class="cartao reivindicar" id="lado-reivindicar"><h2>Esta é sua casa?</h2><p>Reivindique este perfil sem custo para corrigir os dados e identificar oficialmente a sua casa.</p><a id="reivindicar" target="_blank" rel="noopener noreferrer">Falar com o comercial</a></aside>
+        <aside class="cartao verificado" id="lado-verificado" hidden><h2>✓ Terreiro verificado e reivindicado</h2><p>Este perfil é administrado pelo responsável aprovado da casa no AxéCloud.</p></aside>
         <aside class="cartao reivindicar" id="lado-portal" hidden><h2>Casa no AxéCloud</h2><p id="portal-msg">Perfil público de uma casa que usa o AxéCloud para organizar a corrente.</p><a id="portal-cta" href="/register">Conhecer o AxéCloud</a></aside>
       </div>
       <section class="convite"><div><small>Gestão feita para terreiros</small><h2>Organize a casa sem perder o respeito ao sagrado.</h2></div><a href="/register">Testar grátis por 30 dias</a></section>
@@ -154,12 +158,15 @@
         const local = [casa.bairro, casa.cidade, casa.estado].filter(Boolean).join(" · ");
         $("nome").textContent = texto(casa.nome, "Terreiro");
         $("localidade").textContent = local;
-        document.querySelector(".kicker").textContent = "Diretório AxéCloud · casa mapeada";
+        document.querySelector(".kicker").textContent = casa.verificada
+          ? "Terreiro verificado e reivindicado"
+          : "Diretório AxéCloud · casa mapeada";
         $("endereco").textContent = texto(casa.endereco, "Endereço não informado no Google Maps");
         setTelefone(casa.telefone);
         mostrarFoto(casa.fotoUrl, casa.nome);
         if (casa.linkMaps) $("mapa").href = casa.linkMaps; else $("mapa").hidden = true;
-        $("lado-reivindicar").hidden = false;
+        $("lado-reivindicar").hidden = Boolean(casa.verificada);
+        $("lado-verificado").hidden = !casa.verificada;
         $("lado-portal").hidden = true;
         const uf = String(casa.estado || "").trim().toLowerCase();
         const cidadeSlug = String(casa.cidadeSlug || "").trim();
@@ -180,7 +187,7 @@
         $("nome").textContent = texto(casa.nome, "Terreiro");
         $("localidade").textContent = local;
         document.querySelector(".kicker").textContent = casa.verificada
-          ? "Casa verificada no AxéCloud"
+          ? "Terreiro verificado e reivindicado"
           : "Casa no AxéCloud";
         $("endereco").textContent = local || "Localidade não informada";
         if (casa.tradicao) {
@@ -200,6 +207,7 @@
           $("pedir-reza").href = casa.pedidosUrl;
         }
         $("lado-reivindicar").hidden = true;
+        $("lado-verificado").hidden = !casa.verificada;
         $("lado-portal").hidden = false;
         if (casa.mensagemPedidos) $("portal-msg").textContent = casa.mensagemPedidos;
         $("voltar").href = "/terreiros";

@@ -323,6 +323,7 @@ h1 em { font-style: italic; color: var(--ouro); }
 }
 .ficha-corpo { padding: 20px 22px 22px; flex: 1; display: flex; flex-direction: column; }
 .ficha-nome { font-family: "Fraunces", serif; font-weight: 400; font-size: 1.15rem; line-height: 1.3; }
+.ficha-selo { display:inline-flex; align-items:center; align-self:flex-start; margin-top:10px; padding:6px 10px; border:1px solid rgba(37,99,235,.22); border-radius:999px; color:#1d4ed8; background:rgba(37,99,235,.08); font-size:.62rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
 .ficha-endereco { margin-top: 10px; font-size: 0.82rem; color: var(--tinta-fraca); font-weight: 300; line-height: 1.55; flex: 1; }
 .ficha-bairro {
   display: inline-block;
@@ -746,6 +747,7 @@ function conteudoPopup(point) {
   const perfilUrl = perfilLocal(point) || urlSegura(point.perfilUrl, { interna: true });
   return `
     <div class="popup-nome">${esc(point.nome)}</div>
+    ${point.verificada ? '<div style="margin-top:5px;color:#1d4ed8;font-size:11px;font-weight:800">✓ Terreiro verificado e reivindicado</div>' : ''}
     <div class="popup-endereco">${esc(item.endereco || `${point.cidade}, ${point.estado}`)}</div>
     ${mapsUrl
       ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>`
@@ -993,6 +995,7 @@ async function carregaTodos() {
     cidade: p.cidade,
     estado: p.estado,
     perfilUrl: p.perfilUrl,
+    verificada: p.verificada === true,
   }));
   totalItens = itens.length || totaisMapa.exact || 0;
   listaCompleta = true;
@@ -1131,6 +1134,7 @@ function desenha() {
       <div class="ficha-topo" ${foto ? `style="background-image:url('${esc(foto)}')"` : ""}></div>
       <div class="ficha-corpo">
         <h2 class="ficha-nome">${esc(c.nome)}</h2>
+        ${c.verificada ? '<span class="ficha-selo">✓ Terreiro verificado e reivindicado</span>' : ''}
         <p class="ficha-endereco">${esc(c.endereco || [c.cidade, c.estado].filter(Boolean).join(" · "))}</p>
         ${c.bairro ? `<span class="ficha-bairro">${esc(c.bairro)}</span>` : ""}
         <div class="ficha-acoes">
