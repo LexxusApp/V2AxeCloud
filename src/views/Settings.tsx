@@ -16,6 +16,7 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import Subscription from './Subscription';
 import { SettingsSubscriptionPanel } from '../components/settings/SettingsSubscriptionPanel';
+import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 
 const SECTION_COPY: Record<SettingsSection, { title: string; description: string }> = {
@@ -175,13 +176,15 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   return (
     <AppPageShell>
       <div className="settings-v5-page">
-      <div className="settings-render-shell animate-fadeIn space-y-5">
+      <div className="settings-render-shell animate-fadeIn overflow-hidden rounded-[2rem] border border-[#D8D0C4] bg-[#F8F3E9] shadow-[0_28px_80px_-52px_rgba(45,34,21,.7)]">
         <SettingsTabHeader />
 
-        <SettingsSubNav active={activeSection} onChange={setActiveSection} />
+        <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+          <SettingsSubNav active={activeSection} onChange={setActiveSection} />
+        </div>
 
-        <div className="flex items-start gap-3 border-b border-[#D8D0C4] pb-5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[#D8D0C4] bg-[#FFFDF8] text-[#2563EB] shadow-sm">
+        <div className="mx-4 mt-5 flex items-start gap-3 rounded-2xl border border-[#DED5C7] bg-[#FFFDF8] p-4 shadow-sm sm:mx-6 sm:p-5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[#E5AE12]/30 bg-[#E5AE12]/10 text-[#8A6200]">
             <ActiveSectionIcon className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">
@@ -195,7 +198,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           </div>
         </div>
 
-        <div className="min-w-0 space-y-5">
+        <div className="min-w-0 space-y-5 p-4 sm:p-6">
         {activeSection === 'profile' ? (
           <>
             {error && (
@@ -240,7 +243,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             />
           </div>
         ) : activeSection === 'portal' ? (
-          <PortalConsulenteSettings />
+          <div className="space-y-5">
+            <ClaimedDirectoryProfileSettings />
+            <PortalConsulenteSettings />
+          </div>
         ) : null}
         </div>
       </div>

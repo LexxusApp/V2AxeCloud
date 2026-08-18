@@ -1,10 +1,13 @@
 import { randomBytes } from "crypto";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
+import { apiReadRateLimit, publicFormRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { assertZeladorTenantAccess, normalizeQueryTenantId } from "./tenantAccess.js";
 import { notifyFielPedidoAceito, notifyZeladorNovoPedidoReza } from "./pedidosRezaNotify.js";
+import { isPlausibleDiretorioCoordinate, parseGoogleMapsCoordinates } from "../../lib/diretorioCoordinates.js";
+import { slugifyCidadeOnly } from "./diretorioSlug.js";
+import { slugifyBairro } from "../../lib/diretorioBairro.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -30,6 +33,56 @@ export function slugifyPublicSlug(raw: string): string {
 
 function normalizeWhatsapp(raw: string): string {
   return String(raw || "").replace(/\D/g, "");
+}
+
+function validGoogleMapsUrl(raw: unknown): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    const allowed =
+      url.protocol === "https:" &&
+      (host === "maps.app.goo.gl" ||
+        host === "goo.gl" ||
+        host === "google.com" ||
+        host === "google.com.br" ||
+        host.endsWith(".google.com") ||
+        host.endsWith(".google.com.br"));
+    return allowed ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function geocodeDirectoryAddress(address: string, city: string, state: string) {
+  const cep = address.match(/\b\d{5}-?\d{3}\b/)?.[0] || "";
+  const queries = [
+    `${address}, ${city}, ${state}, Brasil`,
+    cep ? `${cep}, ${city}, ${state}, Brasil` : "",
+    `${city}, ${state}, Brasil`,
+  ].filter(Boolean);
+  for (const query of queries) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "AxeCloudDirectory/1.0 (https://axecloud.com.br)" },
+      });
+      if (!response.ok) continue;
+      const rows = (await response.json()) as Array<{ lat?: string; lon?: string }>;
+      const lat = Number(rows[0]?.lat);
+      const lng = Number(rows[0]?.lon);
+      if (isPlausibleDiretorioCoordinate(lat, lng)) return { lat, lng };
+    } catch {
+      // O zelador ainda pode informar as coordenadas manualmente.
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return null;
 }
 
 function newAcessoToken(): string {
@@ -81,6 +134,142 @@ async function assertPedidoTenantAccess(
 
 export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
   const { supabaseAdmin: sb, resolveLeaderId } = deps;
+
+  app.get("/api/v1/settings/directory-profile", apiReadRateLimit, async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return;
+    try {
+      const { data, error } = await sb
+        .from("terreiros_diretorio")
+        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, cidade, estado, slug, bairro, latitude, longitude, verified_at, updated_at")
+        .eq("claimed_by_tenant_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.json({ claimed: false, profile: null });
+      const { data: identity } = await sb
+        .from("perfil_lider")
+        .select("foto_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      return res.json({
+        claimed: true,
+        identityPhotoUrl: identity?.foto_url || null,
+        profile: {
+          id: data.id,
+          nome: data.nome,
+          endereco: data.endereco,
+          telefone: data.telefone,
+          ownerPhotoUrl: data.owner_photo_url,
+          linkMaps: data.link_maps,
+          cidade: data.cidade,
+          estado: data.estado,
+          slug: data.slug,
+          bairro: data.bairro,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          verificada: Boolean(data.verified_at),
+          updatedAt: data.updated_at,
+          perfilUrl: data.slug ? `/terreiro/${data.slug}` : null,
+        },
+      });
+    } catch (error: unknown) {
+      console.error("[settings/directory-profile/get]", error);
+      res.status(500).json({ error: "Erro ao carregar o perfil reivindicado." });
+    }
+  });
+
+  app.post("/api/v1/settings/directory-profile", sensitiveActionRateLimit, async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return;
+    try {
+      const { data: current, error: currentError } = await sb
+        .from("terreiros_diretorio")
+        .select("id, latitude, longitude")
+        .eq("claimed_by_tenant_id", user.id)
+        .maybeSingle();
+      if (currentError) throw currentError;
+      if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
+
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const nome = String(body.nome || "").trim().slice(0, 180);
+      const endereco = String(body.endereco || "").trim().slice(0, 400);
+      const telefone = normalizeWhatsapp(String(body.telefone || "")).slice(0, 15) || null;
+      const cidade = String(body.cidade || "").trim().slice(0, 120);
+      const estado = String(body.estado || "").trim().toUpperCase().slice(0, 2);
+      const bairro = String(body.bairro || "").trim().slice(0, 120) || null;
+      const linkMaps = validGoogleMapsUrl(body.linkMaps);
+      if (nome.length < 3) return res.status(400).json({ error: "Informe o nome público da casa." });
+      if (endereco.length < 8) return res.status(400).json({ error: "Informe o endereço completo." });
+      if (cidade.length < 2) return res.status(400).json({ error: "Informe a cidade." });
+      if (!/^[A-Z]{2}$/.test(estado)) return res.status(400).json({ error: "Informe uma UF válida." });
+      if (body.linkMaps && !linkMaps) return res.status(400).json({ error: "Informe um link válido do Google Maps." });
+
+      let latitude = Number(body.latitude);
+      let longitude = Number(body.longitude);
+      let coordinateSource = "owner_settings";
+      if (!isPlausibleDiretorioCoordinate(latitude, longitude)) {
+        const parsed = parseGoogleMapsCoordinates(linkMaps);
+        latitude = parsed?.lat ?? Number(current.latitude);
+        longitude = parsed?.lng ?? Number(current.longitude);
+        coordinateSource = parsed ? "owner_google_maps_url" : "owner_settings_address";
+      }
+      if (!isPlausibleDiretorioCoordinate(latitude, longitude)) {
+        const geocoded = await geocodeDirectoryAddress(endereco, cidade, estado);
+        latitude = geocoded?.lat ?? Number.NaN;
+        longitude = geocoded?.lng ?? Number.NaN;
+        coordinateSource = geocoded ? "owner_address_geocoded" : "owner_settings_address";
+      }
+
+      let ownerPhotoUrl: string | null = null;
+      if (body.useIdentityPhoto === true) {
+        const { data: identity, error: identityError } = await sb
+          .from("perfil_lider")
+          .select("foto_url")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (identityError) throw identityError;
+        ownerPhotoUrl = identity?.foto_url ? String(identity.foto_url) : null;
+        if (!ownerPhotoUrl) return res.status(400).json({ error: "Adicione primeiro uma foto em Conta e Casa." });
+      }
+
+      const update: Record<string, unknown> = {
+        nome,
+        endereco,
+        telefone,
+        cidade,
+        estado,
+        cidade_slug: slugifyCidadeOnly(cidade),
+        bairro,
+        bairro_slug: bairro ? slugifyBairro(bairro) : null,
+        link_maps: linkMaps,
+        owner_photo_url: ownerPhotoUrl,
+      };
+      const hasCoordinates = isPlausibleDiretorioCoordinate(latitude, longitude);
+      if (hasCoordinates) {
+        update.latitude = latitude;
+        update.longitude = longitude;
+        update.coordinate_source = coordinateSource;
+      }
+
+      const { data: saved, error: saveError } = await sb
+        .from("terreiros_diretorio")
+        .update(update)
+        .eq("id", current.id)
+        .eq("claimed_by_tenant_id", user.id)
+        .select("slug, updated_at")
+        .single();
+      if (saveError) throw saveError;
+      return res.json({
+        success: true,
+        perfilUrl: saved?.slug ? `/terreiro/${saved.slug}` : null,
+        updatedAt: saved?.updated_at || new Date().toISOString(),
+        warning: hasCoordinates ? null : "Dados salvos, mas a posição no mapa precisa de latitude e longitude.",
+      });
+    } catch (error: unknown) {
+      console.error("[settings/directory-profile/post]", error);
+      res.status(500).json({ error: "Erro ao atualizar o perfil do diretório." });
+    }
+  });
 
   app.get("/api/v1/public/consulente/:slug", apiReadRateLimit, async (req: Request, res: Response) => {
     try {

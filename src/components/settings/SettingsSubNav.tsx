@@ -20,10 +20,10 @@ type NavItem = {
 };
 
 const ITEMS: NavItem[] = [
-  { id: 'profile', label: 'Conta e Casa', description: 'Identidade, foto e acesso', icon: User, iconClass: 'text-[#60A5FA]' },
-  { id: 'whatsapp', label: 'WhatsApp', description: 'Canal e automações', icon: MessageSquare, iconClass: 'text-[#34D399]' },
-  { id: 'subscription', label: 'Plano', description: 'Assinatura e recursos', icon: CreditCard, iconClass: 'text-primary' },
-  { id: 'portal', label: 'Portal Público', description: 'Diretório e pedidos', icon: Globe, iconClass: 'text-sky-300' },
+  { id: 'profile', label: 'Conta e Casa', description: 'Identidade, foto e acesso', icon: User },
+  { id: 'whatsapp', label: 'WhatsApp', description: 'Canal e automações', icon: MessageSquare },
+  { id: 'subscription', label: 'Plano', description: 'Assinatura e recursos', icon: CreditCard },
+  { id: 'portal', label: 'Presença Pública', description: 'Diretório, mapa e pedidos', icon: Globe },
 ];
 
 type SettingsSubNavProps = {
@@ -72,22 +72,22 @@ function NavButton({
       className={cn(
         'group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border p-3 text-left transition',
         isActive
-          ? 'border-primary/55 bg-[#11151A] shadow-[0_16px_34px_-24px_rgba(23,19,13,0.9)]'
-          : 'border-[#252C35] bg-[#13171D] hover:border-[#3B4654] hover:bg-[#171C22]',
+          ? 'border-[#E5AE12]/55 bg-[#142019] shadow-[0_16px_34px_-24px_rgba(23,19,13,0.9)]'
+          : 'border-[#DED5C7] bg-[#FFFDF8] hover:border-[#C6AF78] hover:bg-white',
       )}
     >
       <span
         className={cn(
           'absolute inset-y-0 left-0 w-1 transition-colors',
-          isActive ? 'bg-primary' : 'bg-transparent group-hover:bg-[#3B4654]',
+          isActive ? 'bg-[#E5AE12]' : 'bg-transparent group-hover:bg-[#C6AF78]',
         )}
       />
-      <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/5 bg-[#0F1318]', item.iconClass)}>
+      <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl border', isActive ? 'border-[#E5AE12]/20 bg-[#E5AE12]/10 text-[#F5C842]' : 'border-[#E1D9CD] bg-[#F5F0E6] text-[#735F32]', item.iconClass)}>
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0">
-        <span className={cn('block text-xs font-black', isActive ? 'text-white' : 'text-[#CBD5E1]')}>{item.label}</span>
-        <span className="mt-0.5 block text-[10px] font-semibold text-[#94A3B8]">{item.description}</span>
+        <span className={cn('block text-xs font-black', isActive ? 'text-white' : 'text-[#2B251D]')}>{item.label}</span>
+        <span className={cn('mt-0.5 block text-[10px] font-semibold', isActive ? 'text-white/55' : 'text-[#7A7165]')}>{item.description}</span>
       </span>
     </button>
   );
@@ -108,15 +108,16 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
 
 export function SettingsTabHeader() {
   return (
-    <div className="settings-tab-header flex flex-col gap-4 border-b border-[#D8D0C4] pb-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Painel da casa</p>
-        <h1 className="flex items-center gap-2 font-display text-2xl font-black tracking-tight text-[#17130D] sm:text-3xl">
-          <Settings className="h-6 w-6 text-[#3B82F6]" aria-hidden />
+    <div className="settings-tab-header relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_88%_10%,rgba(229,174,18,.18),transparent_28%),linear-gradient(135deg,#15231A,#0C1410)] px-5 py-7 text-white sm:px-7 sm:py-8">
+      <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full border border-[#E5AE12]/10" />
+      <div className="relative">
+        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F5C842]">Central da casa</p>
+        <h1 className="flex items-center gap-3 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#E5AE12]/20 bg-[#E5AE12]/10"><Settings className="h-5 w-5 text-[#F5C842]" aria-hidden /></span>
           Configurações
         </h1>
-        <p className="mt-1.5 max-w-3xl text-sm font-semibold leading-relaxed text-[#665F55]">
-          Organize a identidade da casa, acessos, comunicações e presença pública.
+        <p className="mt-3 max-w-3xl text-sm font-semibold leading-relaxed text-white/58">
+          Uma central única para identidade, acessos, comunicação, assinatura e presença pública da sua casa.
         </p>
       </div>
     </div>
