@@ -19,6 +19,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+<link rel="preload" href="/diretorio-cidades.json" as="fetch" crossorigin />
+<link rel="preload" href="/api/v1/public/diretorio/mapa" as="fetch" crossorigin />
 <style>
 /* ═══ O AMANHECER NO BARRACÃO — tema claro, porteira de mariwo ═══ */
 :root {
@@ -222,6 +224,10 @@ h1 em { font-style: italic; color: var(--ouro); }
   line-height: 1.65;
   color: rgba(255, 255, 255, 0.65);
 }
+.mapa-legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+.mapa-legenda span { display: inline-flex; align-items: center; gap: 7px; color: rgba(255, 255, 255, 0.74); font-size: 0.7rem; font-weight: 600; }
+.mapa-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; border: 1px solid #5f4300; background: #ffc107; }
+.mapa-legenda .reivindicado i { width: 12px; height: 12px; border-color: #0b3478; background: #2563eb; }
 .btn-perto {
   display: inline-flex;
   align-items: center;
@@ -407,6 +413,10 @@ footer a { color: var(--ouro); text-decoration: none; }
       <div>
         <h2>Terreiros no mapa</h2>
         <p>Explore as casas com localização confirmada. Aproxime a região ou use “perto de mim” para achar a casa mais próxima.</p>
+        <div class="mapa-legenda" aria-label="Legenda do mapa">
+          <span><i aria-hidden="true"></i>Cadastro do diretório</span>
+          <span class="reivindicado"><i aria-hidden="true"></i>Perfil reivindicado</span>
+        </div>
       </div>
       <div>
         <button type="button" class="btn-perto" id="btn-perto">Encontrar perto de mim</button>
@@ -521,12 +531,58 @@ function nomeEstado(uf) {
 const grade = $("#grade");
 const contagem = $("#contagem");
 
-/* ── Mapa (Leaflet) — pontos reais do mapeamento (/terreiros/mapa.json) ── */
+/* ── Mapa (Leaflet) — um canvas só em vez de milhares de CircleMarkers ── */
 let mapa = null;
-let marcadores = null;
+let camadaPontos = null;
 let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
 let totaisMapa = { listed: 0, exact: 0, grouped: 0 };
-let marcadoresAtivos = []; // { point, marker }
+let pontosAtivos = []; // pontos desenhados no canvas
+let itensPorSlug = new Map();
+let popupAtivo = null;
+let tooltipEl = null;
+const MAPA_URL = "/api/v1/public/diretorio/mapa";
+const MAPA_FALLBACK_URL = "/terreiros/mapa.json";
+const MAPA_CACHE = "axe-mapa-v3";
+
+function pontoValido(p) {
+  return (
+    Number.isFinite(p.lat) &&
+    Number.isFinite(p.lng) &&
+    !(Math.abs(p.lat) < 0.2 && Math.abs(p.lng) < 0.2) &&
+    p.lat >= -34.5 &&
+    p.lat <= 5.5 &&
+    p.lng >= -74.5 &&
+    p.lng <= -32.0
+  );
+}
+
+/** Aceita mapa.json legado (points[]) e v2 colunar. */
+function expandMapaPayload(data) {
+  if (data && data.v === 2 && Array.isArray(data.s)) {
+    const cities = data.cities || [];
+    const ufs = data.ufs || [];
+    const out = [];
+    for (let i = 0; i < data.s.length; i++) {
+      const point = {
+        slug: data.s[i],
+        nome: data.n[i],
+        cidade: cities[data.c[i]] || "",
+        estado: ufs[data.e[i]] || "",
+        lat: (data.a[i] || 0) / 1e5,
+        lng: (data.o[i] || 0) / 1e5,
+        verificada: data.r?.[i] === 1,
+        perfilUrl: `/terreiro/${encodeURIComponent(data.s[i])}`,
+      };
+      if (pontoValido(point)) out.push(point);
+    }
+    return out;
+  }
+  return (data?.points || []).filter(pontoValido).map((p) => ({
+    ...p,
+    verificada: p.verificada === true,
+    perfilUrl: p.perfilUrl || `/terreiro/${encodeURIComponent(p.slug)}`,
+  }));
+}
 
 function distanciaKm(a, b) {
   const r = (v) => (v * Math.PI) / 180;
@@ -535,22 +591,129 @@ function distanciaKm(a, b) {
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+/** Camada leve: pinta todos os pins num único canvas (milhares de pontos sem travar). */
+const CamadaPontosCanvas = L.Layer.extend({
+  initialize() {
+    this._points = [];
+  },
+  onAdd(map) {
+    this._map = map;
+    this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-animated");
+    this._canvas.style.pointerEvents = "none";
+    map.getPanes().overlayPane.appendChild(this._canvas);
+    map.on("moveend zoomend resize viewreset zoomanim", this._redraw, this);
+    this._redraw();
+  },
+  onRemove(map) {
+    map.off("moveend zoomend resize viewreset zoomanim", this._redraw, this);
+    L.DomUtil.remove(this._canvas);
+    this._map = null;
+  },
+  setPoints(points) {
+    this._points = points || [];
+    this._redraw();
+  },
+  hitTest(latlng, maxPx = 16) {
+    if (!this._map || !this._points.length) return null;
+    const origin = this._map.latLngToContainerPoint(latlng);
+    let best = null;
+    let bestD = maxPx * maxPx;
+    for (let i = 0; i < this._points.length; i++) {
+      const p = this._points[i];
+      const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
+      const dx = pt.x - origin.x;
+      const dy = pt.y - origin.y;
+      const d = dx * dx + dy * dy;
+      if (d <= bestD) {
+        bestD = d;
+        best = p;
+      }
+    }
+    return best;
+  },
+  _redraw() {
+    const map = this._map;
+    if (!map || !this._canvas) return;
+    const size = map.getSize();
+    const topLeft = map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(this._canvas, topLeft);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this._canvas.width = Math.round(size.x * dpr);
+    this._canvas.height = Math.round(size.y * dpr);
+    this._canvas.style.width = `${size.x}px`;
+    this._canvas.style.height = `${size.y}px`;
+    const ctx = this._canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size.x, size.y);
+    const points = this._points;
+    if (!points.length) return;
+    const bounds = map.getBounds().pad(0.08);
+    const zoom = map.getZoom();
+    const radius = zoom >= 13 ? 6 : zoom >= 10 ? 5 : zoom >= 8 ? 4 : 3;
+    ctx.lineWidth = zoom >= 10 ? 1.4 : 1;
+    const drawPoints = (verified, fill, stroke, radiusScale = 1) => {
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.beginPath();
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        if (p.verificada !== verified || !bounds.contains([p.lat, p.lng])) continue;
+        const pt = map.latLngToContainerPoint([p.lat, p.lng]);
+        const pointRadius = radius * radiusScale;
+        ctx.moveTo(pt.x + pointRadius, pt.y);
+        ctx.arc(pt.x, pt.y, pointRadius, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.stroke();
+    };
+    drawPoints(false, "rgba(255, 193, 7, 0.9)", "#5f4300");
+    drawPoints(true, "rgba(37, 99, 235, 0.96)", "#0b3478", 1.35);
+  },
+});
+
 async function carregaPontosMapa() {
+  const applyPayload = (data) => {
+    todosPontos = expandMapaPayload(data);
+    totaisMapa = data.t || data.totals || totaisMapa;
+  };
+
   try {
-    const r = await fetch("/terreiros/mapa.json");
+    // Cache no browser: 2ª visita abre o mapa sem esperar a rede.
+    if (window.caches) {
+      try {
+        const cache = await caches.open(MAPA_CACHE);
+        const cached = await cache.match(MAPA_URL);
+        if (cached) {
+          applyPayload(await cached.json());
+          // Revalida em segundo plano sem bloquear a UI.
+          void fetch(MAPA_URL)
+            .then(async (r) => {
+              if (!r.ok) return;
+              const clone = r.clone();
+              const fresh = await r.json();
+              applyPayload(fresh);
+              await cache.put(MAPA_URL, clone);
+              if (!estadoAtual && !cidadeAtual && !termo) {
+                aplicaPontosNoMapa(todosPontos, { ajustarVista: false });
+              }
+            })
+            .catch(() => undefined);
+          return;
+        }
+      } catch {
+        /* segue fetch normal */
+      }
+    }
+
+    let r = await fetch(MAPA_URL, { cache: "no-store" });
+    if (!r.ok) r = await fetch(MAPA_FALLBACK_URL);
     if (!r.ok) throw new Error("mapa " + r.status);
+    const clone = window.caches ? r.clone() : null;
     const data = await r.json();
-    todosPontos = (data.points || []).filter(
-      (p) =>
-        Number.isFinite(p.lat) &&
-        Number.isFinite(p.lng) &&
-        !(Math.abs(p.lat) < 0.2 && Math.abs(p.lng) < 0.2) &&
-        p.lat >= -34.5 &&
-        p.lat <= 5.5 &&
-        p.lng >= -74.5 &&
-        p.lng <= -32.0,
-    );
-    totaisMapa = data.totals || totaisMapa;
+    applyPayload(data);
+    if (clone && window.caches) {
+      void caches.open(MAPA_CACHE).then((cache) => cache.put(MAPA_URL, clone)).catch(() => undefined);
+    }
   } catch (e) {
     console.warn("mapa.json indisponível", e);
   }
@@ -565,6 +728,40 @@ function snapMapaPixel() {
   if (el.clientWidth !== w) el.style.width = `${w}px`;
   if (el.clientHeight !== h) el.style.height = `${h}px`;
   mapa.invalidateSize({ animate: false });
+  camadaPontos && camadaPontos._redraw();
+}
+
+function garanteTooltip() {
+  if (tooltipEl) return tooltipEl;
+  tooltipEl = L.DomUtil.create("div", "mapa-pin-tip");
+  tooltipEl.style.cssText =
+    "display:none;position:absolute;z-index:650;pointer-events:none;background:#1b1813;color:#fff;padding:6px 10px;border-radius:999px;font:600 12px/1.2 Outfit,system-ui,sans-serif;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translate(-50%,-140%)";
+  document.getElementById("mapa").appendChild(tooltipEl);
+  return tooltipEl;
+}
+
+function conteudoPopup(point) {
+  const item = itensPorSlug.get(point.slug) || {};
+  const mapsUrl = urlSegura(item.linkMaps);
+  const perfilUrl = perfilLocal(point) || urlSegura(point.perfilUrl, { interna: true });
+  return `
+    <div class="popup-nome">${esc(point.nome)}</div>
+    <div class="popup-endereco">${esc(item.endereco || `${point.cidade}, ${point.estado}`)}</div>
+    ${mapsUrl
+      ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>`
+      : perfilUrl
+        ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil →</a>`
+        : ""}
+  `;
+}
+
+function abrePopupPonto(point) {
+  if (!mapa || !point) return;
+  if (popupAtivo) mapa.closePopup(popupAtivo);
+  popupAtivo = L.popup({ maxWidth: 280, autoPanPadding: [24, 24] })
+    .setLatLng([point.lat, point.lng])
+    .setContent(conteudoPopup(point))
+    .openOn(mapa);
 }
 
 function garanteMapa() {
@@ -575,7 +772,7 @@ function garanteMapa() {
     minZoom: 5,
     zoomSnap: 1,
     zoomAnimation: false,
-  }).setView([-23.55, -46.63], 10);
+  }).setView([-22.5, -44.5], 7);
   // NoGap (L.TileLayer.NoGap.js) costura os tiles num canvas só — some as listras do Chrome.
   L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -584,7 +781,29 @@ function garanteMapa() {
     crossOrigin: true,
     dumpToCanvas: true,
   }).addTo(mapa);
-  marcadores = L.layerGroup().addTo(mapa);
+  camadaPontos = new CamadaPontosCanvas().addTo(mapa);
+  mapa.on("click", (e) => {
+    const hit = camadaPontos && camadaPontos.hitTest(e.latlng);
+    if (hit) abrePopupPonto(hit);
+  });
+  mapa.on("mousemove", (e) => {
+    const tip = garanteTooltip();
+    const hit = camadaPontos && camadaPontos.hitTest(e.latlng, 14);
+    if (!hit) {
+      tip.style.display = "none";
+      mapa.getContainer().style.cursor = "";
+      return;
+    }
+    const pt = mapa.latLngToContainerPoint(e.latlng);
+    tip.textContent = hit.nome;
+    tip.style.display = "block";
+    tip.style.left = `${pt.x}px`;
+    tip.style.top = `${pt.y}px`;
+    mapa.getContainer().style.cursor = "pointer";
+  });
+  mapa.on("mouseout", () => {
+    if (tooltipEl) tooltipEl.style.display = "none";
+  });
   snapMapaPixel();
   window.addEventListener("resize", snapMapaPixel);
 }
@@ -598,72 +817,55 @@ function pontosDoContexto() {
   return pontos;
 }
 
+function aplicaPontosNoMapa(pontos, { ajustarVista = true } = {}) {
+  if (!window.L) return;
+  garanteMapa();
+  pontosAtivos = pontos;
+  camadaPontos.setPoints(pontos);
+
+  const nota = $("#mapa-nota");
+  if (!pontos.length) {
+    if (todosPontos.length) {
+      nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outro estado";
+    } else {
+      nota.textContent = "carregando pontos do mapa…";
+    }
+    return;
+  }
+
+  const semCoord = Math.max(0, (totalItens || 0) - pontos.length);
+  nota.textContent = semCoord > 0 && totalItens
+    ? `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} no mapa · ${semCoord} ainda só na lista (sem pin)`
+    : `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} com localização exata`;
+
+  if (!ajustarVista) return;
+  requestAnimationFrame(() => {
+    if (!mapa || !pontos.length) return;
+    mapa.invalidateSize();
+    mapa.fitBounds(
+      L.latLngBounds(pontos.map((p) => [p.lat, p.lng])),
+      { padding: [34, 34], maxZoom: cidadeAtual ? 13 : estadoAtual ? 10 : 8 },
+    );
+  });
+}
+
 function atualizaMapa(filtrados) {
   if (!window.L) return;
   garanteMapa();
-  marcadores.clearLayers();
-  marcadoresAtivos = [];
+  itensPorSlug = new Map((filtrados || []).map((c) => [c.slug, c]));
 
-  const porSlug = new Map(filtrados.map((c) => [c.slug, c]));
   const cidadeNorm = String(cidadeAtual?.cidade || "").toLowerCase();
   const uf = String(estadoAtual?.estado || cidadeAtual?.estado || "").toUpperCase();
 
   let pontos = !termo
     ? pontosDoContexto()
-    : todosPontos.filter((p) => porSlug.has(p.slug));
+    : todosPontos.filter((p) => itensPorSlug.has(p.slug));
 
   if (pontos.length === 0 && (cidadeNorm || uf)) {
     pontos = pontosDoContexto();
   }
 
-  const coords = [];
-  pontos.forEach((p) => {
-    const item = porSlug.get(p.slug) || {};
-    const mapsUrl = urlSegura(item.linkMaps);
-    const perfilUrl = perfilLocal(p) || urlSegura(p.perfilUrl, { interna: true });
-    coords.push([p.lat, p.lng]);
-    const marker = L.circleMarker([p.lat, p.lng], {
-      radius: 6,
-      color: "#5f4300",
-      weight: 1.5,
-      fillColor: "#ffc107",
-      fillOpacity: 0.88,
-    });
-    marker.bindTooltip(p.nome, { direction: "top" });
-    marker.bindPopup(`
-      <div class="popup-nome">${esc(p.nome)}</div>
-      <div class="popup-endereco">${esc(item.endereco || `${p.cidade}, ${p.estado}`)}</div>
-      ${mapsUrl
-        ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>`
-        : perfilUrl
-          ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil →</a>`
-          : ""}
-    `);
-    marker.addTo(marcadores);
-    marcadoresAtivos.push({ point: p, marker });
-  });
-
-  const nota = $("#mapa-nota");
-  const semCoord = Math.max(0, (filtrados.length || totalItens || 0) - pontos.length);
-  if (coords.length) {
-    nota.textContent = semCoord > 0
-      ? `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} no mapa · ${semCoord} ainda só na lista (sem pin)`
-      : `${pontos.length} terreiro${pontos.length === 1 ? "" : "s"} com localização exata`;
-    // invalidateSize antes do fitBounds: o mapa inicia com tamanho 0 e o fit era ignorado,
-    // deixando a vista padrão em São Paulo mesmo com RJ/outro estado selecionado.
-    requestAnimationFrame(() => {
-      if (!mapa) return;
-      mapa.invalidateSize();
-      mapa.fitBounds(L.latLngBounds(coords), {
-        padding: [34, 34],
-        maxZoom: cidadeAtual ? 13 : estadoAtual ? 10 : 8,
-      });
-    });
-  } else if (todosPontos.length) {
-    nota.textContent = "nenhuma casa desta seleção tem coordenada confirmada — escolha outro estado";
-  } else {
-    nota.textContent = "não foi possível carregar os pontos do mapa";
-  }
+  aplicaPontosNoMapa(pontos, { ajustarVista: true });
 }
 
 $("#btn-perto").addEventListener("click", () => {
@@ -672,7 +874,7 @@ $("#btn-perto").addEventListener("click", () => {
     status.textContent = "Localização não disponível neste navegador.";
     return;
   }
-  if (!marcadoresAtivos.length) {
+  if (!pontosAtivos.length) {
     status.textContent = "O mapa ainda não tem pontos nesta seleção.";
     return;
   }
@@ -680,11 +882,11 @@ $("#btn-perto").addEventListener("click", () => {
   navigator.geolocation.getCurrentPosition(
     ({ coords }) => {
       const origin = { lat: coords.latitude, lng: coords.longitude };
-      const nearest = marcadoresAtivos.reduce((best, cur) =>
-        distanciaKm(origin, cur.point) < distanciaKm(origin, best.point) ? cur : best);
-      mapa.flyTo([nearest.point.lat, nearest.point.lng], 15, { duration: 1.1 });
-      nearest.marker.openPopup();
-      status.textContent = `${nearest.point.nome}, em ${nearest.point.cidade}, é a casa mapeada mais próxima.`;
+      const nearest = pontosAtivos.reduce((best, cur) =>
+        distanciaKm(origin, cur) < distanciaKm(origin, best) ? cur : best);
+      mapa.flyTo([nearest.lat, nearest.lng], 15, { duration: 1.1 });
+      abrePopupPonto(nearest);
+      status.textContent = `${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`;
     },
     () => { status.textContent = "Permita a localização no navegador para usar “perto de mim”."; },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
@@ -714,9 +916,28 @@ function atualizaSeletorCidades(uf, selectedSlug = "") {
 }
 
 async function carregaCidades() {
-  const r = await fetch("/api/v1/public/diretorio/cidades");
-  const data = await r.json();
-  cidades = data.cidades || [];
+  // Preferência: JSON estático do build (nginx/CDN) — sem bater no Supabase.
+  let lista = null;
+  try {
+    const r = await fetch("/diretorio-cidades.json");
+    if (r.ok) {
+      const data = await r.json();
+      lista = (data.cidades || []).map((c) => ({
+        cidade: c.cidade,
+        estado: c.estado,
+        cidadeSlug: c.cidadeSlug,
+        count: Number(c.totalTerreiros || c.count || c.total) || 0,
+      }));
+    }
+  } catch {
+    /* fallback API */
+  }
+  if (!lista || !lista.length) {
+    const r = await fetch("/api/v1/public/diretorio/cidades");
+    const data = await r.json();
+    lista = data.cidades || [];
+  }
+  cidades = lista;
   const total = cidades.reduce((s, c) => s + (c.count || 0), 0);
 
   const porUf = new Map();
@@ -764,33 +985,20 @@ async function carregaTodos() {
   cidadeAtual = null;
   syncUrlEstado("");
   marcaChipEstado("");
-  try {
-    const pacotes = await Promise.all(
-      estados.map(async (e) => {
-        const uf = e.estado.toLowerCase();
-        const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}?limit=120`);
-        if (!r.ok) throw new Error("estado " + uf + " " + r.status);
-        return r.json();
-      }),
-    );
-    itens = pacotes.flatMap((data) => data.items || []);
-    totalItens = pacotes.reduce((sum, data) => sum + (Number(data.total) || 0), 0);
-    listaCompleta = itens.length >= totalItens;
-    visiveis = 24;
-    atualizaSeletorCidades("");
-    desenha();
-  } catch (e) {
-    console.warn(e);
-    // Mesmo sem lista completa, o mapa ainda pode mostrar todos os pins.
-    itens = [];
-    totalItens = todosPontos.length;
-    listaCompleta = true;
-    atualizaSeletorCidades("");
-    desenha();
-    if (!todosPontos.length) {
-      grade.innerHTML = '<p class="estado">Não foi possível carregar o mapeamento agora.</p>';
-    }
-  }
+  // Visão "Todos": monta fichas leves do mapa estático — zero waterfall de API por UF.
+  if (!todosPontos.length) await carregaPontosMapa();
+  itens = todosPontos.map((p) => ({
+    slug: p.slug,
+    nome: p.nome,
+    cidade: p.cidade,
+    estado: p.estado,
+    perfilUrl: p.perfilUrl,
+  }));
+  totalItens = itens.length || totaisMapa.exact || 0;
+  listaCompleta = true;
+  visiveis = 24;
+  atualizaSeletorCidades("");
+  desenha();
 }
 
 async function carregaEstado(uf) {
@@ -868,17 +1076,16 @@ async function garanteListaCompleta() {
     listaCompleta = true;
     return;
   }
-  const pacotes = await Promise.all(
-    estados.map(async (e) => {
-      const uf = e.estado.toLowerCase();
-      const r = await fetch(`/api/v1/public/diretorio/uf/${encodeURIComponent(uf)}`);
-      if (!r.ok) throw new Error("estado completo " + uf + " " + r.status);
-      return r.json();
-    }),
-  );
-  if (estadoAtual || cidadeAtual) return;
-  itens = pacotes.flatMap((data) => data.items || []);
-  totalItens = pacotes.reduce((sum, data) => sum + (Number(data.total) || 0), 0);
+  // Visão Brasil: lista já vem do mapa estático.
+  if (!todosPontos.length) await carregaPontosMapa();
+  itens = todosPontos.map((p) => ({
+    slug: p.slug,
+    nome: p.nome,
+    cidade: p.cidade,
+    estado: p.estado,
+    perfilUrl: p.perfilUrl,
+  }));
+  totalItens = itens.length;
   listaCompleta = true;
 }
 
@@ -1008,10 +1215,43 @@ $("#busca").addEventListener("input", (e) => {
   }, 250);
 });
 
-/* Início: visão geral (todos os estados), salvo se a URL pedir uf/cidade */
+/* Início: mapa aparece na hora; lista carrega em paralelo */
 (async function init() {
   try {
-    await Promise.all([carregaCidades(), carregaPontosMapa()]);
+    // Mapa e tiles já, sem esperar API/JSON — a página para de parecer “travada”.
+    garanteMapa();
+    const nota = $("#mapa-nota");
+    if (nota) nota.textContent = "carregando pontos do mapa…";
+
+    const pontosPromise = carregaPontosMapa().then(() => {
+      // Pins assim que o JSON chega — não espera a grade de fichas.
+      if (!todosPontos.length) {
+        if (nota) nota.textContent = "não foi possível carregar os pontos do mapa";
+        return;
+      }
+      // Se a lista já filtrou (chip/URL), desenha() cuida; senão pinta já pela URL.
+      if (estadoAtual || cidadeAtual || termo) return;
+      const params = new URLSearchParams(location.search);
+      const ufParam = String(params.get("uf") || "").trim().toUpperCase();
+      const cidadeParam = String(params.get("cidade") || "").trim().toLowerCase();
+      let iniciais = todosPontos;
+      if (ufParam) {
+        iniciais = iniciais.filter((p) => String(p.estado || "").toUpperCase() === ufParam);
+      }
+      if (cidadeParam) {
+        const cidadeMatch = cidades.find((c) =>
+          String(c.cidadeSlug || "") === cidadeParam ||
+          String(c.cidade || "").toLowerCase() === cidadeParam,
+        );
+        if (cidadeMatch) {
+          const nome = String(cidadeMatch.cidade || "").toLowerCase();
+          iniciais = iniciais.filter((p) => String(p.cidade || "").toLowerCase() === nome);
+        }
+      }
+      aplicaPontosNoMapa(iniciais, { ajustarVista: true });
+    });
+
+    await carregaCidades();
     if (!estados.length) {
       grade.innerHTML = '<p class="estado">O mapeamento ainda não retornou estados.</p>';
       return;
@@ -1032,23 +1272,27 @@ $("#busca").addEventListener("input", (e) => {
         })
       : null;
 
-    if (cidadeDaUrl) {
-      const uf = (cidadeDaUrl.estado || "br").toLowerCase();
-      marcaChipEstado(uf);
-      await carregaCidade(uf, cidadeDaUrl.cidadeSlug);
-      return;
-    }
-
-    if (ufParam) {
-      const estadoDaUrl = estados.find((e) => e.estado.toLowerCase() === ufParam);
-      if (estadoDaUrl) {
-        marcaChipEstado(estadoDaUrl.estado.toLowerCase());
-        await carregaEstado(estadoDaUrl.estado.toLowerCase());
-        return;
-      }
-    }
-
-    await carregaTodos();
+    // Lista e mapa em paralelo: o canvas já pode estar pintado.
+    await Promise.all([
+      pontosPromise,
+      (async () => {
+        if (cidadeDaUrl) {
+          const uf = (cidadeDaUrl.estado || "br").toLowerCase();
+          marcaChipEstado(uf);
+          await carregaCidade(uf, cidadeDaUrl.cidadeSlug);
+          return;
+        }
+        if (ufParam) {
+          const estadoDaUrl = estados.find((e) => e.estado.toLowerCase() === ufParam);
+          if (estadoDaUrl) {
+            marcaChipEstado(estadoDaUrl.estado.toLowerCase());
+            await carregaEstado(estadoDaUrl.estado.toLowerCase());
+            return;
+          }
+        }
+        await carregaTodos();
+      })(),
+    ]);
   } catch (e) {
     console.warn(e);
     grade.innerHTML = '<p class="estado">Não foi possível consultar o mapeamento agora — verifique o sistema ou a internet.</p>';
