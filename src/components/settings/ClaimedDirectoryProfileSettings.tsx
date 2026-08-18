@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BadgeCheck, ExternalLink, Image, Loader2, MapPinned, Save, Search, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, ExternalLink, Image, Instagram, Loader2, MapPinned, Save, Search, ShieldCheck } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { marketingHref } from '../../lib/appHref';
 
@@ -10,6 +10,7 @@ type DirectoryProfile = {
   telefone: string | null;
   ownerPhotoUrl: string | null;
   linkMaps: string | null;
+  instagramUrl: string | null;
   cidade: string;
   estado: string;
   slug: string;
@@ -67,6 +68,7 @@ export function ClaimedDirectoryProfileSettings() {
           estado: profile.estado,
           bairro: profile.bairro,
           linkMaps: profile.linkMaps,
+          instagramUrl: profile.instagramUrl,
           latitude: profile.latitude,
           longitude: profile.longitude,
           useIdentityPhoto,
@@ -127,6 +129,7 @@ export function ClaimedDirectoryProfileSettings() {
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Cidade<input value={profile.cidade || ''} maxLength={120} onChange={(event) => setProfile({ ...profile, cidade: event.target.value })} className={inputClass} /></label>
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Estado (UF)<input value={profile.estado || ''} maxLength={2} onChange={(event) => setProfile({ ...profile, estado: event.target.value.toUpperCase() })} className={inputClass} /></label>
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 sm:col-span-2">Link do Google Maps<input type="url" value={profile.linkMaps || ''} onChange={(event) => setProfile({ ...profile, linkMaps: event.target.value })} className={inputClass} placeholder="https://www.google.com/maps/place/..." /></label>
+            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 sm:col-span-2"><span className="flex items-center gap-2"><Instagram className="h-4 w-4 text-pink-400" />Instagram oficial</span><input type="url" value={profile.instagramUrl || ''} onChange={(event) => setProfile({ ...profile, instagramUrl: event.target.value })} className={inputClass} placeholder="https://www.instagram.com/sua.casa/" /></label>
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Latitude<input type="number" step="any" value={profile.latitude ?? ''} onChange={(event) => setProfile({ ...profile, latitude: event.target.value ? Number(event.target.value) : null })} className={inputClass} /></label>
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Longitude<input type="number" step="any" value={profile.longitude ?? ''} onChange={(event) => setProfile({ ...profile, longitude: event.target.value ? Number(event.target.value) : null })} className={inputClass} /></label>
           </div>

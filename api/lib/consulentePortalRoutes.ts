@@ -55,6 +55,20 @@ function validGoogleMapsUrl(raw: unknown): string | null {
   }
 }
 
+function validInstagramUrl(raw: unknown): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const handle = url.pathname.split("/").filter(Boolean)[0]?.replace(/^@/, "") || "";
+    if (host !== "instagram.com" || !/^[a-z0-9._]{1,30}$/i.test(handle)) return null;
+    return `https://www.instagram.com/${handle}/`;
+  } catch {
+    return null;
+  }
+}
+
 async function geocodeDirectoryAddress(address: string, city: string, state: string) {
   const cep = address.match(/\b\d{5}-?\d{3}\b/)?.[0] || "";
   const queries = [
@@ -141,7 +155,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data, error } = await sb
         .from("terreiros_diretorio")
-        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, cidade, estado, slug, bairro, latitude, longitude, verified_at, updated_at")
+        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, bairro, latitude, longitude, verified_at, updated_at")
         .eq("claimed_by_tenant_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -161,6 +175,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
           telefone: data.telefone,
           ownerPhotoUrl: data.owner_photo_url,
           linkMaps: data.link_maps,
+          instagramUrl: data.instagram_url,
           cidade: data.cidade,
           estado: data.estado,
           slug: data.slug,
@@ -198,11 +213,13 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const estado = String(body.estado || "").trim().toUpperCase().slice(0, 2);
       const bairro = String(body.bairro || "").trim().slice(0, 120) || null;
       const linkMaps = validGoogleMapsUrl(body.linkMaps);
+      const instagramUrl = validInstagramUrl(body.instagramUrl);
       if (nome.length < 3) return res.status(400).json({ error: "Informe o nome público da casa." });
       if (endereco.length < 8) return res.status(400).json({ error: "Informe o endereço completo." });
       if (cidade.length < 2) return res.status(400).json({ error: "Informe a cidade." });
       if (!/^[A-Z]{2}$/.test(estado)) return res.status(400).json({ error: "Informe uma UF válida." });
       if (body.linkMaps && !linkMaps) return res.status(400).json({ error: "Informe um link válido do Google Maps." });
+      if (body.instagramUrl && !instagramUrl) return res.status(400).json({ error: "Informe um perfil válido do Instagram." });
 
       let latitude = Number(body.latitude);
       let longitude = Number(body.longitude);
@@ -242,6 +259,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         bairro,
         bairro_slug: bairro ? slugifyBairro(bairro) : null,
         link_maps: linkMaps,
+        instagram_url: instagramUrl,
         owner_photo_url: ownerPhotoUrl,
       };
       const hasCoordinates = isPlausibleDiretorioCoordinate(latitude, longitude);

@@ -26,6 +26,7 @@ function popupHtml(point: DiretorioMapPoint) {
       <strong style="font-size:15px">${escapeHtml(point.nome)}</strong>
       ${point.verificada ? '<p style="margin:6px 0 0;color:#1d4ed8;font-size:11px;font-weight:800">✓ Terreiro verificado e reivindicado</p>' : ''}
       <p style="margin:6px 0 12px;color:#665f55">${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}</p>
+      ${point.instagramUrl ? `<a href="${escapeHtml(point.instagramUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:6px;margin:0 0 10px;color:#c026d3;text-decoration:none;font-size:12px;font-weight:800"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>` : ''}
       <a href="${escapeHtml(point.perfilUrl)}" style="display:inline-block;border-radius:999px;background:#1b1813;color:#fff;padding:8px 12px;text-decoration:none;font-weight:700">Ver perfil</a>
     </div>
   `;

@@ -27,7 +27,7 @@ type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, created_at";
+  "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
 const ESTADO_NOMES: Record<string, string> = {
@@ -100,6 +100,7 @@ function mapRow(row: Record<string, unknown>) {
         ? `${diretorioFotoProxyPath(slug)}?v=2`
         : null,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
+    instagramUrl: row.instagram_url ? String(row.instagram_url).trim() : null,
     cidade: cidade || null,
     estado,
     cidadeSlug,
@@ -265,7 +266,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const data = await fetchAllTerreirosRows(
         sb,
         TABLE,
-        "nome, endereco, link_maps, slug, cidade, estado, tipo, latitude, longitude, verified_at",
+        "nome, endereco, link_maps, instagram_url, slug, cidade, estado, tipo, latitude, longitude, verified_at",
       );
       const rows = (data || [])
         .filter((row) => isDiretorioListingPublishable(row))
@@ -286,6 +287,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         a: rows.map((row) => Math.round(Number(row.latitude) * 100000)),
         o: rows.map((row) => Math.round(Number(row.longitude) * 100000)),
         r: rows.map((row) => (row.verificada ? 1 : 0)),
+        i: rows.map((row) => row.instagramUrl || ""),
       });
     } catch (error: unknown) {
       console.error("[public/diretorio/mapa]", error);
