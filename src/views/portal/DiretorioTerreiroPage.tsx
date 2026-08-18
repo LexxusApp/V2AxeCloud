@@ -17,7 +17,6 @@ import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 import { trackConversionEvent } from '../../lib/trackConversion';
-import { TerreiroClaimDialog } from '../../components/portal/TerreiroClaimDialog';
 import { VerifiedBadge } from '../../components/portal/VerifiedBadge';
 
 function slugFromPath(): string {
@@ -131,6 +130,7 @@ export default function DiretorioTerreiroPage() {
 
   const cityHref = terreiro.cidadeUrl || ROUTES.terreiros;
   const localidade = [terreiro.cidade, terreiro.estado].filter(Boolean).join(' · ');
+  const claimHref = `https://wa.me/5511920033501?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${terreiro.nome}${localidade ? `, em ${localidade}` : ''}, e quero reivindicar este perfil no AxéCloud.`)}`;
 
   return (
     <MatrizEditorialLayout>
@@ -239,7 +239,16 @@ export default function DiretorioTerreiroPage() {
             {terreiro.verificada ? (
               <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-6 py-3.5 text-sm font-extrabold text-emerald-200"><BadgeCheck className="h-4 w-4" aria-hidden />Perfil verificado</span>
             ) : (
-              <TerreiroClaimDialog slug={terreiro.slug} terreiroNome={terreiro.nome} onTrack={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-claim', ctaLabel: 'Reivindicar esta casa', metadata: { slug: terreiro.slug } })} />
+              <a
+                href={claimHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-claim', ctaLabel: 'Reivindicar esta casa', metadata: { slug: terreiro.slug } })}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#e5ae12] px-6 py-3.5 text-sm font-extrabold text-[#1b1813] transition hover:bg-[#ffcd38]"
+              >
+                <BadgeCheck className="h-4 w-4" aria-hidden />
+                Reivindicar esta casa
+              </a>
             )}
           </div>
         </section>
