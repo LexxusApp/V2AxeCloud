@@ -4,16 +4,10 @@
   const CNPJ = "66.335.964/0001-07";
   const path = location.pathname.replace(/\/$/, "") || "/";
   const links = [
-    ["A casa", "/#casa"],
-    ["O que resolve", "/#organizacao"],
-    ["Segurança", "/#seguranca"],
-    ["Memória", "/#memoria"],
-    ["Explorar", "/#descobrir"],
     ["Terreiros", "/terreiros"],
     ["Eventos", "/eventos"],
     ["Conteúdo", "/conteudo"],
     ["Por quê?", "/por-que-axecloud"],
-    ["FAQ", "/#faq"],
     ["Planos", "/#plano"],
   ];
   const active = (href) => href !== "/" && !href.startsWith("/#") && path.startsWith(href);

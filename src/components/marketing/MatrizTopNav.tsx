@@ -6,16 +6,10 @@ import { LoginLink } from './LoginLink';
 import { RegisterTrialLink } from './RegisterTrialLink';
 
 const navLinks = [
-  { href: '/#casa', label: 'A casa' },
-  { href: '/#organizacao', label: 'O que resolve' },
-  { href: '/#seguranca', label: 'Segurança' },
-  { href: '/#memoria', label: 'Memória' },
-  { href: '/#descobrir', label: 'Explorar' },
   { href: ROUTES.terreiros, label: 'Terreiros' },
   { href: ROUTES.eventosPublicos, label: 'Eventos' },
   { href: ROUTES.contentHub, label: 'Conteúdo' },
   { href: ROUTES.whyAxeCloud, label: 'Por quê?' },
-  { href: '/#faq', label: 'FAQ' },
   { href: '/#plano', label: 'Planos' },
 ] as const;
 
@@ -45,19 +39,19 @@ export function MatrizTopNav() {
           </strong>
         </a>
 
-        <div className="mx-auto hidden items-center justify-center gap-[17px] xl:flex">
+        <div className="mx-auto hidden items-center justify-center gap-7 lg:flex">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-[10px] font-bold text-[#aaa99f] transition hover:text-white"
+              className="whitespace-nowrap text-[11px] font-bold text-[#aaa99f] transition hover:text-white"
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        <div className="ml-auto hidden shrink-0 items-center gap-4 xl:flex">
+        <div className="ml-auto hidden shrink-0 items-center gap-4 lg:flex">
           <LoginLink className="text-[11px] font-extrabold text-[#dedbd2] transition hover:text-white" />
           <RegisterTrialLink className="inline-flex h-10 items-center gap-2 rounded-md bg-[#e5ae12] px-4 text-[11px] font-extrabold text-[#17150e] transition hover:bg-[#f0bb21]">
             Testar grátis <span aria-hidden>→</span>
@@ -66,7 +60,7 @@ export function MatrizTopNav() {
 
         <button
           type="button"
-          className="ml-auto grid h-10 w-10 place-items-center rounded-md border border-white/15 text-white xl:hidden"
+          className="ml-auto grid h-10 w-10 place-items-center rounded-md border border-white/15 text-white lg:hidden"
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={open}
@@ -76,7 +70,7 @@ export function MatrizTopNav() {
         </button>
 
         {open ? (
-          <div id="menu-publico" className="absolute right-0 top-[69px] flex max-h-[calc(100dvh-105px)] w-[min(370px,calc(100vw-32px))] flex-col overflow-y-auto rounded-lg border border-white/15 bg-[#10130e] p-2 shadow-2xl xl:hidden">
+          <div id="menu-publico" className="absolute right-0 top-[69px] flex max-h-[calc(100dvh-105px)] w-[min(370px,calc(100vw-32px))] flex-col overflow-y-auto rounded-lg border border-white/15 bg-[#10130e] p-2 shadow-2xl lg:hidden">
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} className="border-b border-white/[.07] px-4 py-3 text-sm font-bold text-[#d4d2c9] hover:text-white">
                 {link.label}
