@@ -216,6 +216,14 @@ h1 em { font-style: italic; color: var(--ouro); }
   font-weight: 400;
   font-size: clamp(1.5rem, 3vw, 2rem);
 }
+.mapa-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #E5AE12;
+  margin-bottom: 4px;
+}
 .mapa-cabeca p {
   margin-top: 8px;
   max-width: 560px;
@@ -226,8 +234,8 @@ h1 em { font-style: italic; color: var(--ouro); }
 }
 .mapa-legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
 .mapa-legenda span { display: inline-flex; align-items: center; gap: 7px; color: rgba(255, 255, 255, 0.74); font-size: 0.7rem; font-weight: 600; }
-.mapa-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; border: 1px solid #5f4300; background: #ffc107; }
-.mapa-legenda .reivindicado i { width: 12px; height: 12px; border-color: #0b3478; background: #2563eb; }
+.mapa-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; border: 1px solid #6B4E00; background: #E5AE12; }
+.mapa-legenda .reivindicado i { width: 12px; height: 12px; border-color: #065F46; background: #34D399; }
 .btn-perto {
   display: inline-flex;
   align-items: center;
@@ -414,10 +422,11 @@ footer a { color: var(--ouro); text-decoration: none; }
   <div class="mapa-card">
     <div class="mapa-cabeca">
       <div>
+        <p class="mapa-kicker">Diretório AxéCloud</p>
         <h2>Terreiros no mapa</h2>
-        <p>Explore as casas com localização confirmada. Aproxime a região ou use “perto de mim” para achar a casa mais próxima.</p>
+        <p>Explore as casas com coordenadas confirmadas. Clique em qualquer pin para ver o perfil ou use “perto de mim”.</p>
         <div class="mapa-legenda" aria-label="Legenda do mapa">
-          <span><i aria-hidden="true"></i>Cadastro do diretório</span>
+          <span><i aria-hidden="true"></i>Terreiro no diretório</span>
           <span class="reivindicado"><i aria-hidden="true"></i>Perfil reivindicado</span>
         </div>
       </div>
@@ -671,8 +680,8 @@ const CamadaPontosCanvas = L.Layer.extend({
       ctx.fill();
       ctx.stroke();
     };
-    drawPoints(false, "rgba(255, 193, 7, 0.9)", "#5f4300");
-    drawPoints(true, "rgba(37, 99, 235, 0.96)", "#0b3478", 1.35);
+    drawPoints(false, "rgba(229, 174, 18, 0.92)", "#6B4E00");
+    drawPoints(true, "rgba(52, 211, 153, 0.97)", "#065F46", 1.4);
   },
 });
 
@@ -750,13 +759,23 @@ function conteudoPopup(point) {
   const mapsUrl = urlSegura(item.linkMaps);
   const perfilUrl = perfilLocal(point) || urlSegura(point.perfilUrl, { interna: true });
   const instagramUrl = urlSegura(item.instagramUrl || point.instagramUrl);
+  const verifiedBadge = point.verificada
+    ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:6px">✓ Verificado</span>'
+    : "";
   return `
-    <div class="popup-nome">${esc(point.nome)}</div>
-    ${point.verificada ? '<div style="margin-top:5px;color:#1d4ed8;font-size:11px;font-weight:800">✓ Terreiro verificado e reivindicado</div>' : ''}
-    <div class="popup-endereco">${esc(item.endereco || `${point.cidade}, ${point.estado}`)}</div>
-    ${perfilUrl ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil do terreiro →</a>` : ""}
-    ${mapsUrl ? `<br><a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>` : ""}
-    ${instagramUrl ? `<br><a class="popup-instagram" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir Instagram de ${esc(point.nome)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>` : ""}
+    <div style="min-width:210px;font-family:Outfit,system-ui,sans-serif">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px">
+        <strong style="font-size:15px;line-height:1.3">${esc(point.nome)}</strong>
+        ${verifiedBadge}
+      </div>
+      <p style="margin:8px 0 0;color:#665f55;font-size:12px;font-weight:600">${esc(point.cidade)}, ${esc(point.estado)}</p>
+      ${item.endereco ? `<p style="margin:6px 0 0;color:#665f55;font-size:11px">${esc(item.endereco)}</p>` : ""}
+      ${instagramUrl ? `<a class="popup-instagram" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:#a21caf;text-decoration:none;font-size:12px;font-weight:700"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>` : ""}
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
+        ${perfilUrl ? `<a class="popup-link" href="${esc(perfilUrl)}" style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#172018;color:#fff;padding:8px 14px;text-decoration:none;font-weight:800;font-size:12px">Ver perfil completo →</a>` : ""}
+        ${mapsUrl ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;font-weight:700">Abrir no Google Maps</a>` : ""}
+      </div>
+    </div>
   `;
 }
 
