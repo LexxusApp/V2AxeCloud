@@ -54,11 +54,17 @@ export function LoginPage({ session, consoleGate, onAuthed }: Props) {
     setLoading(true);
     try {
       if (!supabase) throw new Error("Supabase não configurado no .env do admin.");
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const signIn = supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await Promise.race([
+        signIn,
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Login demorou demais. Tente novamente.")), 12_000);
+        }),
+      ]);
       if (error) throw error;
       if (!data.session) throw new Error("Sem sessão após login.");
       setAccessToken(data.session.access_token);
-      await apiJson("/api/admin-console/session");
+      await apiJson("/api/admin-console/session", { signal: AbortSignal.timeout(8_000) });
       void postAuthAuditLog(
         {
           action: "auth.login_success",

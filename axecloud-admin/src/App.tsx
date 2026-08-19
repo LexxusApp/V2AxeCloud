@@ -12,11 +12,19 @@ export default function App() {
   /** API em :3000 inacessível vs. sessão válida mas sem permissão no console */
   const [consoleGate, setConsoleGate] = useState<"network" | "forbidden" | null>(null);
   const consoleOkRef = useRef(false);
+  const verifyingRef = useRef(false);
 
   const verifyConsole = useCallback(async (s: Session) => {
+    if (verifyingRef.current || consoleOkRef.current) {
+      setAccessToken(s.access_token);
+      return;
+    }
+    verifyingRef.current = true;
     setAccessToken(s.access_token);
     try {
-      await apiJson<{ ok: boolean }>("/api/admin-console/session");
+      await apiJson<{ ok: boolean }>("/api/admin-console/session", {
+        signal: AbortSignal.timeout(8_000),
+      });
       consoleOkRef.current = true;
       setConsoleOk(true);
       setConsoleGate(null);
@@ -25,6 +33,8 @@ export default function App() {
       setConsoleOk(false);
       setAccessToken(null);
       setConsoleGate(isApiUnreachable(e) ? "network" : "forbidden");
+    } finally {
+      verifyingRef.current = false;
     }
   }, []);
 
@@ -39,19 +49,18 @@ export default function App() {
       if (s?.access_token) void verifyConsole(s);
       setBooting(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (s?.access_token) {
-        if (consoleOkRef.current) {
-          setAccessToken(s.access_token);
-          return;
-        }
-        void verifyConsole(s);
-      } else {
+      if (!s?.access_token) {
         consoleOkRef.current = false;
         setConsoleOk(false);
         setAccessToken(null);
+        return;
       }
+      setAccessToken(s.access_token);
+      if (consoleOkRef.current || verifyingRef.current) return;
+      if (event === "SIGNED_IN") return;
+      void verifyConsole(s);
     });
     return () => sub.subscription.unsubscribe();
   }, [verifyConsole]);

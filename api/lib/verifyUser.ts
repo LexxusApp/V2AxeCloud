@@ -42,7 +42,14 @@ export async function verifyUser(
   if (cached) return { user: cached, error: null };
 
   try {
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    const auth = supabaseAdmin.auth.getUser(token);
+    const timed = await Promise.race([
+      auth,
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Tempo esgotado a validar a sessão")), 8_000);
+      }),
+    ]);
+    const { data: { user }, error } = timed;
     if (user && !error) {
       writeCachedUser(token, user);
       return { user, error: null };

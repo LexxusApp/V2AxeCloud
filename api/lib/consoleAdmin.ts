@@ -66,12 +66,10 @@ export async function isConsoleGlobalAdmin(
   const allowlist = getConsoleAdminEmailAllowlist();
 
   if (email && allowlist.includes(email)) {
-    try {
-      await promoteConsoleAdminProfile(supabaseAdmin, user);
-    } catch (e) {
-      console.warn("[consoleAdmin] promote:", (e as Error)?.message || e);
-    }
     adminOkCache.set(cacheKey, { exp: Date.now() + ADMIN_OK_TTL_MS });
+    void promoteConsoleAdminProfile(supabaseAdmin, user).catch((e) => {
+      console.warn("[consoleAdmin] promote:", (e as Error)?.message || e);
+    });
     return true;
   }
 
