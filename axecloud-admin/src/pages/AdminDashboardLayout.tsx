@@ -10,6 +10,7 @@ import {
   HardDrive,
   Gauge,
   Inbox,
+  BadgeCheck,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -35,6 +36,7 @@ export type AdminNavTab =
   | "whatsapp"
   | "wa-inbox"
   | "growth"
+  | "claims"
   | "monitor";
 
 type IconTone = "blue" | "violet" | "emerald" | "amber" | "rose" | "teal" | "sky" | "orange";
@@ -49,6 +51,7 @@ const MAIN_NAV: NavItem[] = [
   { id: "whatsapp", label: "Notificações", icon: MessageCircle, tone: "teal" },
   { id: "wa-inbox", label: "Caixa WA", icon: Inbox, tone: "sky" },
   { id: "growth", label: "Prospecção", icon: Target, tone: "emerald" },
+  { id: "claims", label: "Reivindicações", icon: BadgeCheck, tone: "amber" },
 ];
 
 const EXTRA_NAV: NavItem[] = [
@@ -69,6 +72,7 @@ const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   whatsapp: "Comunicados e notificações",
   "wa-inbox": "Mensagens recebidas no WhatsApp oficial",
   growth: "Dois novos candidatos por dia e atendimento comercial por IA",
+  claims: "Verificação dos responsáveis pelos perfis do diretório",
   storage: "Uso de armazenamento e ficheiros",
   metrics: "Métricas de infraestrutura Supabase",
   monitor: "Monitorização em tempo real",
