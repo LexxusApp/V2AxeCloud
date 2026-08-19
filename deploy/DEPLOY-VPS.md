@@ -52,12 +52,12 @@ chmod +x /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 sed -i 's/\r$//' /opt/axecloud/deploy/cron-ping-evolution.sh   # se veio do Windows
 sed -i 's/\r$//' /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 (crontab -l 2>/dev/null | grep -v cron-ping-evolution; echo "*/10 * * * * /opt/axecloud/deploy/cron-ping-evolution.sh") | crontab -
-(crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs; echo "0 9 * * * /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
+(crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs | grep -v '^CRON_TZ=America/Sao_Paulo' ; echo "CRON_TZ=America/Sao_Paulo"; echo "0 9 * * * /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
 ```
 
 O script usa a rede Docker (`http://app:3000/...`) para não seguir redirect HTTPS do Caddy para a Vercel enquanto o DNS ainda aponta para `76.76.21.21`.
 
-`cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00: mensalidade disponível (dia 1), lembrete pendente (1× por semana; 2× na semana do vencimento), aviso no dia do vencimento, lembretes de gira e alertas de estoque crítico.
+`cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00 de Brasília: mensalidade disponível (dia 1), lembrete pendente (1× por semana; 2× na semana do vencimento), aviso no dia do vencimento, lembretes de gira e alertas de estoque crítico. Log em `/var/log/axecloud-whatsapp-cron.log`.
 
 ## 5. Webhooks
 

@@ -39,6 +39,36 @@ function isMensalidadeNotifEnabled(metadata: unknown): boolean {
   return prefs.notifFinanceiro !== false;
 }
 
+type WaCfgRow = { tenant_id?: string; templates?: unknown; metadata?: unknown };
+
+async function loadWhatsAppConfigsByTenant(sb: SupabaseClient): Promise<Map<string, WaCfgRow>> {
+  const map = new Map<string, WaCfgRow>();
+  const { data } = await sb.from("whatsapp_config").select("tenant_id, templates, metadata");
+  for (const row of data || []) {
+    const tid = String((row as WaCfgRow).tenant_id || "");
+    if (tid) map.set(tid, row as WaCfgRow);
+  }
+  return map;
+}
+
+async function listMensalidadeTenantIds(sb: SupabaseClient, cfgMap: Map<string, WaCfgRow>): Promise<string[]> {
+  const ids = new Set<string>(cfgMap.keys());
+  const { data: pixRows } = await sb.from("configuracoes_pix").select("terreiro_id");
+  for (const row of pixRows || []) {
+    const tid = String((row as { terreiro_id?: string }).terreiro_id || "");
+    if (tid) ids.add(tid);
+  }
+  const { data: finRows } = await sb
+    .from("financeiro")
+    .select("tenant_id, lider_id")
+    .eq("categoria", "Mensalidade");
+  for (const row of finRows || []) {
+    const tid = String((row as { tenant_id?: string }).tenant_id || (row as { lider_id?: string }).lider_id || "");
+    if (tid) ids.add(tid);
+  }
+  return [...ids];
+}
+
 async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
   const leaderId = await resolveLeaderId(sb, tenantId);
   return resolveTerreiroWhatsAppContext(sb, leaderId, tenantId);
@@ -165,10 +195,10 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
   const mesAno = `${String(m0 + 1).padStart(2, "0")}/${y}`;
   const mesExtenso = format(new Date(y, m0, 15), "MMMM 'de' yyyy", { locale: ptBR });
 
-  const { data: configs } = await sb.from("whatsapp_config").select("tenant_id, templates, metadata");
-  for (const cfg of configs || []) {
-    const tenantId = String(cfg.tenant_id || "");
-    if (!tenantId) continue;
+  const cfgMap = await loadWhatsAppConfigsByTenant(sb);
+  const tenantIds = await listMensalidadeTenantIds(sb, cfgMap);
+  for (const tenantId of tenantIds) {
+    const cfg = cfgMap.get(tenantId) || {};
     if (MENSALIDADE_SKIP_TENANT_IDS.has(tenantId) || !isMensalidadeNotifEnabled(cfg.metadata)) {
       skipped++;
       continue;
@@ -233,7 +263,7 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
         const fid = String(child.id);
         const { data: pendingRows } = await sb
           .from("financeiro")
-          .select("id, status, descricao, data, data_vencimento, tenant_id, lider_id")
+          .select("id, status, descricao, data, tenant_id, lider_id")
           .eq("categoria", "Mensalidade")
           .or(`tenant_id.eq.${tenantId},lider_id.eq.${ctx.leaderId}`)
           .gte("data", monthStart)
