@@ -5371,9 +5371,7 @@ async function startServer() {
 
       app.use(express.static(distPath));
     } else {
-      console.warn(
       console.warn("[SERVER] dist/index.html ausente neste bundle.");
-      );
     }
     app.get("*", (req, res) => {
       const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
