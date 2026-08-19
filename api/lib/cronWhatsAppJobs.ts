@@ -340,9 +340,12 @@ async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; ski
     .from("almoxarifado")
     .select("id, item, quantidade_atual, quantidade_minima, tenant_id");
 
-  const lowItems = (allItems || []).filter(
-    (row) => Number(row.quantidade_atual) <= Number(row.quantidade_minima)
-  );
+  const lowItems = (allItems || []).filter((row) => {
+    const min = Number(row.quantidade_minima);
+    // ignora itens sem estoque mínimo definido (NULL ou 0)
+    if (!min || min <= 0) return false;
+    return Number(row.quantidade_atual) <= min;
+  });
 
   const byTenant = new Map<string, typeof lowItems>();
   for (const row of lowItems) {
@@ -373,35 +376,41 @@ async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; ski
       let digits = String(alertPhone).replace(/\D/g, "");
       if (!digits.startsWith("55")) digits = `55${digits}`;
 
-      for (const item of items) {
-        const dedupeKey = `estoque-${item.id}`;
-        if (await whatsappLogExistsToday(sb, tenantId, "estoque_critico", dedupeKey)) {
-          skipped++;
-          continue;
-        }
-        const message =
-          buildWhatsAppMessage(waCfg?.templates, "estoque_critico", {
-            item_nome: item.item,
-            quantidade: String(item.quantidade_atual),
-            nome_terreiro: ctx.nomeTerreiro,
-          }) + `\n\n[${dedupeKey}]`;
-
-        await logAndSendWhatsApp(sb, {
-          tenantId,
-          tipo: "estoque_critico",
-          phone: digits,
-          message,
-          nomeMembro: ctx.nomeTerreiro,
-          nomeTerreiro: ctx.nomeTerreiro,
-          idTerreiro: ctx.idTerreiro,
-          variables: {
-            nome_terreiro: ctx.nomeTerreiro,
-            item_nome: String(item.item || ""),
-            quantidade: String(item.quantidade_atual ?? ""),
-          },
-        });
-        sent++;
+      // Dedupe: chave única por terreiro por dia (não por item)
+      const dedupeKey = `estoque-resumo-${tenantId}`;
+      if (await whatsappLogExistsToday(sb, tenantId, "estoque_critico", dedupeKey)) {
+        skipped += items.length;
+        continue;
       }
+
+      // Filtra itens que ainda não foram enviados individualmente hoje
+      // (compatibilidade retroativa: se algum foi enviado individualmente, inclui mesmo assim no resumo)
+      const listaItens = items
+        .map((item) => `• ${item.item}: ${item.quantidade_atual} un.`)
+        .join("\n");
+
+      const message =
+        buildWhatsAppMessage(waCfg?.templates, "estoque_critico", {
+          lista_itens: listaItens,
+          quantidade_itens: String(items.length),
+          nome_terreiro: ctx.nomeTerreiro,
+        }) + `\n\n[${dedupeKey}]`;
+
+      await logAndSendWhatsApp(sb, {
+        tenantId,
+        tipo: "estoque_critico",
+        phone: digits,
+        message,
+        nomeMembro: ctx.nomeTerreiro,
+        nomeTerreiro: ctx.nomeTerreiro,
+        idTerreiro: ctx.idTerreiro,
+        variables: {
+          nome_terreiro: ctx.nomeTerreiro,
+          lista_itens: listaItens,
+          quantidade_itens: String(items.length),
+        },
+      });
+      sent++;
     } catch (err) {
       errors++;
       console.error(`[CRON WA] estoque tenant=${tenantId}:`, err);

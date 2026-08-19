@@ -759,7 +759,7 @@ export function buildMensalidadeConfirmadaComponents(
 }
 
 /**
- * estoque_critico_axecloud — corpo: {{1}} item, {{2}} quantidade, {{3}} terreiro
+ * estoque_critico_axecloud — corpo: {{1}} lista_itens, {{2}} quantidade_itens, {{3}} terreiro
  */
 export function buildEstoqueCriticoComponents(
   nomeTerreiro: string,
@@ -770,8 +770,8 @@ export function buildEstoqueCriticoComponents(
     {
       type: "body",
       parameters: [
-        textParam(String(v.item_nome || v.item || "Item")),
-        textParam(String(v.quantidade ?? "—")),
+        textParam(String(v.lista_itens || v.item_nome || "—")),
+        textParam(String(v.quantidade_itens ?? v.quantidade ?? "1")),
         textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
       ],
     },
