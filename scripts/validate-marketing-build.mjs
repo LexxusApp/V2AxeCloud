@@ -7,7 +7,6 @@ const OUT = path.join(ROOT, 'landing-dist');
 const CINEMATIC = [
   'index.html',
   'terreiros/index.html',
-  'terreiro/index.html',
   'eventos/index.html',
   'evento/index.html',
   'senhas/index.html',

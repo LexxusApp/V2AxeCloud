@@ -128,7 +128,7 @@ export default function DiretorioTerreiroPage() {
     );
   }
 
-  const cityHref = terreiro.cidadeUrl || ROUTES.terreiros;
+  const mapHref = ROUTES.terreiros;
   const localidade = [terreiro.cidade, terreiro.estado].filter(Boolean).join(' · ');
   const claimHref = `https://wa.me/5511920033501?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${terreiro.nome}${localidade ? `, em ${localidade}` : ''}, e quero reivindicar este perfil no AxéCloud.`)}`;
 
@@ -136,9 +136,9 @@ export default function DiretorioTerreiroPage() {
     <MatrizEditorialLayout>
       <main className="relative z-[1] mx-auto w-full max-w-[1260px] px-4 pb-24 pt-28 sm:px-7 sm:pt-32 lg:px-8">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 px-1">
-          <a href={cityHref} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#1b1813]/58 transition hover:text-[#8a6200]">
+          <a href={mapHref} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#1b1813]/58 transition hover:text-[#8a6200]">
             <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-            {terreiro.cidade ? `Terreiros em ${terreiro.cidade}` : 'Voltar ao diretório'}
+            Voltar para o Mapa
           </a>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#1b1813]/38">Informações públicas · confira antes de visitar</p>
         </div>
@@ -206,7 +206,7 @@ export default function DiretorioTerreiroPage() {
                 <p className="mt-4 text-sm leading-relaxed text-white/62">Datas, horários e regras de entrada podem mudar. Entre em contato com a casa antes de se deslocar.</p>
               </div>
             </div>
-            <a href={cityHref} className="flex items-center justify-between gap-4 border-t border-white/12 px-6 py-5 text-sm font-extrabold text-white transition hover:bg-white/[0.05] sm:px-7">Ver outras casas na região<ArrowRight className="h-4 w-4 text-[#e5ae12]" aria-hidden /></a>
+            <a href={mapHref} className="flex items-center justify-between gap-4 border-t border-white/12 px-6 py-5 text-sm font-extrabold text-white transition hover:bg-white/[0.05] sm:px-7">Voltar para o Mapa<ArrowRight className="h-4 w-4 text-[#e5ae12]" aria-hidden /></a>
           </aside>
         </div>
 

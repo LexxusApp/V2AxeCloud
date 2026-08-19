@@ -243,7 +243,7 @@ export function buildTerreiroPrerenderPage(
       : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`,
     sections,
     jsonLd: [buildLocalBusinessJsonLd(terreiro), breadcrumbs],
-    listLinks: [{ href: cidadePath, label: `Ver terreiros em ${terreiro.cidade || "sua cidade"}` }],
+    listLinks: [{ href: "/terreiros", label: "Voltar para o mapa de terreiros" }],
     robots: indexable ? "index, follow" : "noindex, follow",
   };
 }

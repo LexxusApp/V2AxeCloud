@@ -14,8 +14,6 @@ import { trackPublicVisit } from '../lib/trackPublicVisit';
 import { parseContentArticleSlug } from '../content/portalContent';
 import { getFeaturePageBySlug, parseFeaturePageSlug } from '../constants/featurePagesContent';
 import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
-/** Home eager — evita flash branco na rota mais usada. */
-import Landing from '../views/Landing';
 
 const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
 const PortalArticlePage = lazy(() => import('../views/PortalArticlePage'));
@@ -24,8 +22,6 @@ const EspacoDoFielPage = lazy(() => import('../views/EspacoDoFielPage'));
 const TermsPage = lazy(() => import('../pages/TermsPage'));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const TerreirosDirectoryPage = lazy(() => import('../views/portal/TerreirosDirectoryPage'));
-const TerreiroProfilePage = lazy(() => import('../views/portal/TerreiroProfilePage'));
-const TerreirosCityPage = lazy(() => import('../views/portal/TerreirosCityPage'));
 const DiretorioCityPage = lazy(() => import('../views/portal/DiretorioCityPage'));
 const DiretorioTerreiroPage = lazy(() => import('../views/portal/DiretorioTerreiroPage'));
 const EventosPublicPage = lazy(() => import('../views/portal/EventosPublicPage'));
@@ -116,6 +112,15 @@ function ProgramaFundadorRedirect() {
   );
 }
 
+function PublicDocumentRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== to) window.location.replace(to);
+  }, [to]);
+
+  return <div className="min-h-dvh w-full bg-[#f7f0e4]" aria-hidden />;
+}
+
 function RoutedMarketingPage({ path }: { path: string }) {
   const articleSlug = parseContentArticleSlug(path);
   if (articleSlug) {
@@ -143,8 +148,12 @@ function RoutedMarketingPage({ path }: { path: string }) {
 
   const terreiros = parseTerreirosPath(path);
   if (terreiros === 'directory') return <TerreirosDirectoryPage />;
-  if (terreiros && 'city' in terreiros) return <TerreirosCityPage />;
-  if (terreiros && 'profile' in terreiros) return <TerreiroProfilePage />;
+  if (terreiros && 'city' in terreiros) {
+    return <PublicDocumentRedirect to={`${ROUTES.terreiros}?cidade=${encodeURIComponent(terreiros.city)}`} />;
+  }
+  if (terreiros && 'profile' in terreiros) {
+    return <PublicDocumentRedirect to={`${ROUTES.diretorioTerreiro}/${encodeURIComponent(terreiros.profile)}`} />;
+  }
 
   switch (normalizePath(path)) {
     case ROUTES.founderProgram:
@@ -169,9 +178,8 @@ function RoutedMarketingPage({ path }: { path: string }) {
       return <FeatureHubPage />;
     case ROUTES.register:
       return <Register />;
-    case ROUTES.home:
     default:
-      return <Landing />;
+      return <PublicDocumentRedirect to={ROUTES.home} />;
   }
 }
 

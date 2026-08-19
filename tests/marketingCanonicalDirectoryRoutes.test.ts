@@ -17,6 +17,10 @@ test('perfil canônico serve o HTML pré-renderizado do próprio terreiro', () =
   assert.match(nginxConfig, /# Perfis canônicos:[\s\S]*?try_files \$uri\/index\.html \/__react_shell\.html/);
 });
 
+test('rota genérica antiga de perfil volta para o mapa novo', () => {
+  assert.match(nginxConfig, /location = \/terreiro \{[\s\S]*?return 302 \/terreiros;/);
+});
+
 test('cidade consulta o endpoint dedicado antes do snapshot geral', () => {
   const loaderBody = directoryLoader.match(/export async function loadDiretorioCidadeDetail[\s\S]*?\n\}/)?.[0] || '';
   const apiPosition = loaderBody.indexOf('fetchDiretorioCidade(estado, cidadeSlug)');

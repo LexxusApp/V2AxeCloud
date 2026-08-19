@@ -107,7 +107,17 @@ export function shouldHandleMarketingLink(anchor: HTMLAnchorElement, event: Mous
 
   if (url.origin !== window.location.origin) return false;
   if (isAppSpaPath(normalizePath(url.pathname))) return false;
-  return isMarketingSitePath(normalizePath(url.pathname));
+
+  const currentPath = normalizePath(window.location.pathname);
+  const targetPath = normalizePath(url.pathname);
+
+  // O domínio público é composto por frontends diferentes (home, páginas
+  // cinematográficas e diretório). Trocas de página precisam chegar ao
+  // servidor para que ele selecione o frontend correto. Interceptamos apenas
+  // âncoras da própria página, mantendo a rolagem suave sem ressuscitar o SPA
+  // legado em cliques como o logo ou "Voltar para o Mapa".
+  if (targetPath !== currentPath) return false;
+  return Boolean(url.hash) && isMarketingSitePath(targetPath);
 }
 
 export function installMarketingClientNavigation() {
