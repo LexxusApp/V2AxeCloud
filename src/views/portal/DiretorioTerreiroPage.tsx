@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Compass,
   ExternalLink,
+  Instagram,
   Loader2,
   MapPin,
   Phone,
@@ -131,6 +132,7 @@ export default function DiretorioTerreiroPage() {
   const mapHref = ROUTES.terreiros;
   const localidade = [terreiro.cidade, terreiro.estado].filter(Boolean).join(' · ');
   const claimHref = `https://wa.me/5511920033501?text=${encodeURIComponent(`Olá! Sou responsável pela casa ${terreiro.nome}${localidade ? `, em ${localidade}` : ''}, e quero reivindicar este perfil no AxéCloud.`)}`;
+  const instagramUrl = (terreiro as DiretorioTerreiro & { instagramUrl?: string | null }).instagramUrl;
 
   return (
     <MatrizEditorialLayout>
@@ -181,6 +183,20 @@ export default function DiretorioTerreiroPage() {
               <InfoRow icon={Phone} label="Telefone">
                 {terreiro.telefone ? <a href={telefoneHref(terreiro.telefone)} className="underline decoration-[#b98500]/35 underline-offset-4 transition hover:text-[#8a6200]">{formatTelefoneBr(terreiro.telefone)}</a> : <span className="font-medium text-[#1b1813]/45">Telefone não informado</span>}
               </InfoRow>
+              {instagramUrl ? (
+                <InfoRow icon={Instagram} label="Instagram">
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-instagram', ctaLabel: 'Abrir Instagram da casa', metadata: { slug: terreiro.slug } })}
+                    className="inline-flex items-center gap-2 underline decoration-[#b98500]/35 underline-offset-4 transition hover:text-[#8a6200]"
+                  >
+                    Abrir Instagram da casa
+                    <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                  </a>
+                </InfoRow>
+              ) : null}
             </div>
 
             {terreiro.linkMaps ? (
