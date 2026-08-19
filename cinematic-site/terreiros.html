@@ -754,11 +754,8 @@ function conteudoPopup(point) {
     <div class="popup-nome">${esc(point.nome)}</div>
     ${point.verificada ? '<div style="margin-top:5px;color:#1d4ed8;font-size:11px;font-weight:800">✓ Terreiro verificado e reivindicado</div>' : ''}
     <div class="popup-endereco">${esc(item.endereco || `${point.cidade}, ${point.estado}`)}</div>
-    ${mapsUrl
-      ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>`
-      : perfilUrl
-        ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil →</a>`
-        : ""}
+    ${perfilUrl ? `<a class="popup-link" href="${esc(perfilUrl)}">ver perfil do terreiro →</a>` : ""}
+    ${mapsUrl ? `<br><a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">abrir no mapa →</a>` : ""}
     ${instagramUrl ? `<br><a class="popup-instagram" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir Instagram de ${esc(point.nome)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>` : ""}
   `;
 }
