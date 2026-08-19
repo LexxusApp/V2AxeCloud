@@ -438,11 +438,12 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed">
                   Olá, [nome do filho]. Registramos uma atualização administrativa na sua conta de membro do {tenantData?.nome || 'seu terreiro'}. Os detalhes estão disponíveis na sua área do portal do filho de santo.
                 </p>
+                <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-[#66756F]">Mensagem automática. Não responda.</p>
                 <p className="mt-2 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
               </div>
             </div>
             <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">
-              O WhatsApp envia só este aviso padrão (texto fixo aprovado pela Meta). O comunicado completo que você escreveu fica publicado no mural do aplicativo — o filho lê lá no portal.
+              Um clique envia o mesmo aviso para todos os membros com WhatsApp. O nome de cada filho entra sozinho — não publique um aviso por pessoa. O texto no WhatsApp é o modelo Meta <span className="font-mono text-[11px] text-[#94A3B8]">aviso_portal_conta_axecloud</span>; o comunicado completo fica no mural do aplicativo, para o filho ler no portal.
             </p>
           </AppDemoCard>
         </section>

@@ -1,4 +1,12 @@
-﻿export type WhatsAppTemplateType =
+﻿/** Rodapé visível no WhatsApp (também vai no FOOTER dos modelos Meta). */
+export const WHATSAPP_AUTO_FOOTER = 'Mensagem automática. Não responda.';
+
+function withAutoFooter(body: string): string {
+  if (body.includes(WHATSAPP_AUTO_FOOTER)) return body;
+  return `${body.trimEnd()}\n\n_${WHATSAPP_AUTO_FOOTER}_`;
+}
+
+export type WhatsAppTemplateType =
   | 'dados_acesso'
   | 'cobranca_mensalidade'
   | 'mensalidade_disponivel'
@@ -15,42 +23,56 @@
   | 'pedido_reza_aceito_fiel';
 
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
-  dados_acesso:
+  dados_acesso: withAutoFooter(
     'Olá, {{nome_filho}}! Sua conta no AxéCloud de {{nome_terreiro}} está ativa.\n\n' +
-    '🔐 *Acesso:*\nRegistro: {{filho_login_id}}\nSenha: {{senha_acesso}} (6 primeiros dígitos do CPF)\nEntrar: {{login_url}}\n\n' +
-    'No app: giras, mensalidade, obrigações, recados e chat com a casa.\n' +
-    'Guia: https://axecloud.com.br/instrucoes/membro',
-  cobranca_mensalidade:
+      '🔐 *Acesso:*\nRegistro: {{filho_login_id}}\nSenha: {{senha_acesso}} (6 primeiros dígitos do CPF)\nEntrar: {{login_url}}\n\n' +
+      'No app: giras, mensalidade, obrigações, recados e chat com a casa.\n' +
+      'Guia: https://axecloud.com.br/instrucoes/membro',
+  ),
+  cobranca_mensalidade: withAutoFooter(
     'Olá, {{nome_filho}}! Lembrete privado da mensalidade de {{mes_ano}} (R$ {{valor}}) no {{nome_terreiro}}. Sua contribuição fortalece a casa — qualquer dúvida, fale com a diretoria. Axé!',
-  mensalidade_disponivel:
+  ),
+  mensalidade_disponivel: withAutoFooter(
     'Olá, {{nome_filho}}! A mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} já está disponível para pagamento no {{nome_terreiro}}. Sua contribuição fortalece a casa. Axé!',
-  financeiro:
+  ),
+  financeiro: withAutoFooter(
     'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
-  mensalidade_pendente:
+  ),
+  mensalidade_pendente: withAutoFooter(
     'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} ainda está pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
-  mensalidade_vence_hoje:
+  ),
+  mensalidade_vence_hoje: withAutoFooter(
     'Olá, {{nome_filho}}! Sua mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} vence hoje no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
-  mensalidade_confirmada:
+  ),
+  mensalidade_confirmada: withAutoFooter(
     'Olá, {{nome_filho}}! Recebemos sua mensalidade de {{competencia}} (R$ {{valor}}) no {{nome_terreiro}}. Gratidão pela contribuição. Axé!',
-  transmissao_aviso:
+  ),
+  transmissao_aviso: withAutoFooter(
     'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nDetalhes no portal AxéCloud. Axé!',
-  mural_aviso:
+  ),
+  mural_aviso: withAutoFooter(
     'Paz e Luz, {{nome_filho}}!\n\n*{{titulo_aviso}}*\n\n{{conteudo_aviso}}\n\nDetalhes no portal AxéCloud. Axé!',
-  convite_evento:
+  ),
+  convite_evento: withAutoFooter(
     'Convite: {{nome_convidado}} — {{nome_evento}} ({{data_evento}} {{hora_evento}}) · {{nome_terreiro}} · {{local_evento}}',
-  senha_evento_visitante:
+  ),
+  senha_evento_visitante: withAutoFooter(
     'Olá, {{nome_visitante}}!\n\n' +
-    'Sua senha para {{nome_evento}} no {{nome_terreiro}} é: {{numero_senha}}.\n' +
-    '{{data_evento}} às {{hora_evento}}\n\n' +
-    'No dia do evento, na portaria, abra este link — a câmera do celular abre para você apontar no QR Code do tablet e confirmar sua presença:\n' +
-    '{{link_checkin}}\n\n' +
-    'AxéCloud',
-  estoque_critico:
+      'Sua senha para {{nome_evento}} no {{nome_terreiro}} é: {{numero_senha}}.\n' +
+      '{{data_evento}} às {{hora_evento}}\n\n' +
+      'No dia do evento, na portaria, abra este link — a câmera do celular abre para você apontar no QR Code do tablet e confirmar sua presença:\n' +
+      '{{link_checkin}}\n\n' +
+      'AxéCloud',
+  ),
+  estoque_critico: withAutoFooter(
     '⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.',
-  pedido_reza_novo_zelador:
+  ),
+  pedido_reza_novo_zelador: withAutoFooter(
     'Novo pedido de reza no {{nome_terreiro}}: {{nome_fiel}} — {{categoria}}. Acesse Atendimentos no AxéCloud para aceitar o pedido.',
-  pedido_reza_aceito_fiel:
+  ),
+  pedido_reza_aceito_fiel: withAutoFooter(
     'Saravá, {{nome_fiel}}! O zelador de {{nome_terreiro}} aceitou seu pedido. Sua reza será realizada na próxima gira. Axé!',
+  ),
 };
 
 export const WHATSAPP_TEMPLATE_ORDER: WhatsAppTemplateType[] = [

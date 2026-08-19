@@ -107,7 +107,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
     },
     mural_aviso: {
       title: 'Aviso de Mural',
-      hint: 'Disparada automaticamente ao publicar aviso no mural.',
+      hint: 'Na prática o disparo usa o modelo Meta aviso_portal_conta_axecloud. Um envio cobre toda a corrente; o nome de cada filho entra sozinho.',
     },
     convite_evento: {
       title: 'Convite de Evento',
@@ -119,7 +119,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
     },
     transmissao_aviso: {
       title: 'Transmissão de aviso',
-      hint: 'Mensagem enviada em transmissões de avisos para os filhos da casa.',
+      hint: 'Modelo Meta aviso_portal_conta_axecloud. Um clique envia para todos os membros; não crie um aviso por pessoa.',
     },
     senha_evento_visitante: {
       title: 'Senha de evento para visitante',

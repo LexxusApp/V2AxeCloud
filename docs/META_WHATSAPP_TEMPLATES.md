@@ -317,6 +317,8 @@ Por favor, providencie a reposição conforme necessário.
 
 **Uso:** publicar aviso no Mural com WhatsApp + transmissão manual + teste.
 
+**Rodapé Meta (todos os modelos Utility/Marketing):** `Mensagem automática. Não responda.`
+
 **Categoria Meta:** Utility aprovado (ago/2026). O `aviso_portal_axecloud` original e o
 `aviso_portal_util_axecloud` foram recategorizados como Marketing pela Meta (sofrem o
 bloqueio #131049). O texto que passou como Utility é o de "aviso administrativo de conta":
