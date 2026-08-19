@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Globe2, Loader2, MessageCircleMore, UserRound } from 'lucide-react';
-import { PortalConsulenteSettings } from '../components/settings/PortalConsulenteSettings';
+import { CreditCard, Loader2, MapPinned, MessageCircleMore, UserRound } from 'lucide-react';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
 import { SettingsAccountCredentialsPanel } from '../components/settings/SettingsAccountCredentialsPanel';
 import {
@@ -33,8 +32,8 @@ const SECTION_COPY: Record<SettingsSection, { title: string; description: string
     description: 'Veja o plano atual, recursos disponíveis e opções para evoluir a conta.',
   },
   portal: {
-    title: 'Portal público da casa',
-    description: 'Defina como a casa aparece no diretório e recebe pedidos de reza.',
+    title: 'Dados exibidos no mapa',
+    description: 'Atualize as informações públicas da casa apresentadas no mapa e no diretório.',
   },
 };
 
@@ -42,7 +41,7 @@ const SECTION_ICON = {
   profile: UserRound,
   whatsapp: MessageCircleMore,
   subscription: CreditCard,
-  portal: Globe2,
+  portal: MapPinned,
 } satisfies Record<SettingsSection, typeof UserRound>;
 
 interface SettingsProps {
@@ -212,7 +211,6 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
               profile={profile}
               onProfileChange={setProfile}
               onRefresh={onRefresh}
-              onOpenPortal={() => setActiveSection('portal')}
             />
             <SettingsAccountCredentialsPanel
               userEmail={accountEmail}
@@ -243,10 +241,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
             />
           </div>
         ) : activeSection === 'portal' ? (
-          <div className="space-y-5">
-            <ClaimedDirectoryProfileSettings />
-            <PortalConsulenteSettings />
-          </div>
+          <ClaimedDirectoryProfileSettings />
         ) : null}
         </div>
       </div>

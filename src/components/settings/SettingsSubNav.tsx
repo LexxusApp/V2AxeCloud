@@ -1,6 +1,6 @@
 import {
   CreditCard,
-  Globe,
+  MapPinned,
   MessageSquare,
   Settings,
   Trash2,
@@ -23,7 +23,7 @@ const ITEMS: NavItem[] = [
   { id: 'profile', label: 'Conta e Casa', description: 'Identidade, foto e acesso', icon: User },
   { id: 'whatsapp', label: 'WhatsApp', description: 'Canal e automações', icon: MessageSquare },
   { id: 'subscription', label: 'Plano', description: 'Assinatura e recursos', icon: CreditCard },
-  { id: 'portal', label: 'Presença Pública', description: 'Diretório, mapa e pedidos', icon: Globe },
+  { id: 'portal', label: 'Dados do Mapa', description: 'Informações públicas da casa', icon: MapPinned },
 ];
 
 type SettingsSubNavProps = {
@@ -117,7 +117,7 @@ export function SettingsTabHeader() {
           Configurações
         </h1>
         <p className="mt-3 max-w-3xl text-sm font-semibold leading-relaxed text-white/58">
-          Uma central única para identidade, acessos, comunicação, assinatura e presença pública da sua casa.
+          Uma central única para identidade, acessos, comunicação, assinatura e dados exibidos no mapa.
         </p>
       </div>
     </div>

@@ -21,7 +21,6 @@ type SettingsProfilePanelProps = {
   profile: Record<string, unknown> | null;
   onProfileChange: (next: Record<string, unknown>) => void;
   onRefresh?: (data?: { nome_terreiro?: string; foto_url?: string; cargo?: string | null }) => void | Promise<void>;
-  onOpenPortal?: () => void;
 };
 
 export function SettingsProfilePanel({
@@ -30,7 +29,6 @@ export function SettingsProfilePanel({
   profile,
   onProfileChange,
   onRefresh,
-  onOpenPortal,
 }: SettingsProfilePanelProps) {
   const [profileName, setProfileName] = useState('');
   const [profileTerreiro, setProfileTerreiro] = useState('');
@@ -317,21 +315,7 @@ export function SettingsProfilePanel({
               value={tradicao}
                   className="min-h-11 w-full cursor-default rounded-xl border border-[#303946] bg-[#171C23] px-3 text-sm font-semibold text-[#CBD5E1]"
             />
-                <p className="text-[10px] font-semibold text-[#7F8B9C]">
-                  Para alterar, acesse{' '}
-              {onOpenPortal ? (
-                <button
-                  type="button"
-                  onClick={onOpenPortal}
-                      className="font-black text-cyan-300 hover:text-cyan-200"
-                >
-                      Portal Público
-                </button>
-              ) : (
-                    <span className="font-black text-cyan-300">Portal Público</span>
-              )}
-              .
-            </p>
+                <p className="text-[10px] font-semibold text-[#7F8B9C]">A tradição segue a identidade cadastrada para a casa.</p>
               </div>
 
               <div className="space-y-1.5">
