@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isMissingOrUnknownTable } from "./adminConsoleAuth.js";
+import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
+
+const ACCESS_HEARTBEATS = "(access.session.activity,session.activity)";
+const DAILY_SAMPLE_LIMIT = 4000;
+const GEO_SAMPLE_LIMIT = 600;
 
 export type AdminActivityStats = {
   childrenPerTenant: Record<string, number>;
@@ -47,25 +51,71 @@ function bumpDaily(bucket: Record<string, number>, createdAt: string | null | un
   bucket[date] = (bucket[date] || 0) + 1;
 }
 
+function pct(value: number, total: number) {
+  return total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
+}
+
 async function loadAccessLogRows(
   sb: SupabaseClient,
   sinceIso: string
 ): Promise<
-  | { ok: true; rows: { created_at?: string; city?: string | null; metadata?: { ll?: number[] } | null }[] }
+  | {
+      ok: true;
+      rows: { created_at?: string; city?: string | null; metadata?: { ll?: number[] } | null }[];
+      totalCount: number;
+    }
   | { ok: false; missing: boolean; message?: string }
 > {
+  if (isRememberedMissingTable("access_logs")) {
+    return { ok: false, missing: true };
+  }
   try {
-    const q = await sb
-      .from("access_logs")
-      .select("created_at, city, metadata")
-      .gte("created_at", sinceIso);
-    if (q.error) {
-      if (isMissingOrUnknownTable(q.error, "access_logs")) {
-        return { ok: false, missing: true, message: q.error.message };
+    const [countRes, dailyRes, geoRes] = await Promise.all([
+      sb
+        .from("access_logs")
+        .select("id", { count: "estimated", head: true })
+        .gte("created_at", sinceIso)
+        .not("event_type", "in", ACCESS_HEARTBEATS),
+      sb
+        .from("access_logs")
+        .select("created_at")
+        .gte("created_at", sinceIso)
+        .not("event_type", "in", ACCESS_HEARTBEATS)
+        .order("created_at", { ascending: false })
+        .limit(DAILY_SAMPLE_LIMIT),
+      sb
+        .from("access_logs")
+        .select("city, metadata")
+        .gte("created_at", sinceIso)
+        .not("city", "is", null)
+        .limit(GEO_SAMPLE_LIMIT),
+    ]);
+
+    const firstError = countRes.error || dailyRes.error || geoRes.error;
+    if (firstError) {
+      if (isMissingOrUnknownTable(firstError, "access_logs")) {
+        return { ok: false, missing: true, message: firstError.message };
       }
-      throw q.error;
+      throw firstError;
     }
-    return { ok: true, rows: q.data || [] };
+
+    const dailyRows = (dailyRes.data || []) as { created_at?: string }[];
+    const geoRows = (geoRes.data || []) as {
+      city?: string | null;
+      metadata?: { ll?: number[] } | null;
+    }[];
+    const byCreated = new Map<string, { created_at?: string; city?: string | null; metadata?: { ll?: number[] } | null }>();
+    for (const row of dailyRows) {
+      byCreated.set(`d:${row.created_at || ""}:${byCreated.size}`, row);
+    }
+    for (const row of geoRows) {
+      byCreated.set(`g:${byCreated.size}`, row);
+    }
+    return {
+      ok: true,
+      rows: [...byCreated.values()],
+      totalCount: countRes.count ?? dailyRows.length,
+    };
   } catch (err: unknown) {
     if (isMissingOrUnknownTable(err as { message?: string }, "access_logs")) {
       return { ok: false, missing: true, message: (err as { message?: string })?.message };
@@ -78,18 +128,34 @@ async function loadAuditLogRows(
   sb: SupabaseClient,
   sinceIso: string
 ): Promise<
-  | { ok: true; rows: { created_at?: string }[] }
+  | { ok: true; rows: { created_at?: string }[]; totalCount: number }
   | { ok: false; missing: boolean; message?: string }
 > {
+  if (isRememberedMissingTable("audit_logs")) {
+    return { ok: false, missing: true };
+  }
   try {
-    const q = await sb.from("audit_logs").select("created_at").gte("created_at", sinceIso);
-    if (q.error) {
-      if (isMissingOrUnknownTable(q.error, "audit_logs")) {
-        return { ok: false, missing: true, message: q.error.message };
+    const [countRes, dailyRes] = await Promise.all([
+      sb.from("audit_logs").select("id", { count: "estimated", head: true }).gte("created_at", sinceIso),
+      sb
+        .from("audit_logs")
+        .select("created_at")
+        .gte("created_at", sinceIso)
+        .order("created_at", { ascending: false })
+        .limit(DAILY_SAMPLE_LIMIT),
+    ]);
+    const firstError = countRes.error || dailyRes.error;
+    if (firstError) {
+      if (isMissingOrUnknownTable(firstError, "audit_logs")) {
+        return { ok: false, missing: true, message: firstError.message };
       }
-      throw q.error;
+      throw firstError;
     }
-    return { ok: true, rows: q.data || [] };
+    return {
+      ok: true,
+      rows: dailyRes.data || [],
+      totalCount: countRes.count ?? (dailyRes.data || []).length,
+    };
   } catch (err: unknown) {
     if (isMissingOrUnknownTable(err as { message?: string }, "audit_logs")) {
       return { ok: false, missing: true, message: (err as { message?: string })?.message };
@@ -100,21 +166,39 @@ async function loadAuditLogRows(
 
 /** Estatísticas de actividade para o painel admin (tráfego diário + geo). */
 export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<AdminActivityStats> {
-  const { data: childrenStats, error: childrenError } = await sb.from("filhos_de_santo").select("tenant_id");
-  if (childrenError) throw childrenError;
-
-  const childrenPerTenant: Record<string, number> = {};
-  (childrenStats || []).forEach((c: { tenant_id?: string | null }) => {
-    const tid = c.tenant_id;
-    if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
-  });
-
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sinceIso = thirtyDaysAgo.toISOString();
 
-  const accessResult = await loadAccessLogRows(sb, sinceIso);
-  const auditResult = await loadAuditLogRows(sb, sinceIso);
+  const { fetchPublicSiteTrafficStats } = await import("./publicSiteTraffic.js");
+  const { fetchConversionFunnelStats } = await import("./publicConversionTracking.js");
+
+  const [childrenRes, accessResult, auditResult, publicTraffic, publicConversionFunnel] = await Promise.all([
+    sb.from("filhos_de_santo").select("tenant_id"),
+    loadAccessLogRows(sb, sinceIso),
+    loadAuditLogRows(sb, sinceIso),
+    fetchPublicSiteTrafficStats(sb),
+    fetchConversionFunnelStats(sb, 0, { maxRowsPerEvent: 2500 }),
+  ]);
+  if (childrenRes.error) throw childrenRes.error;
+
+  const childrenPerTenant: Record<string, number> = {};
+  (childrenRes.data || []).forEach((c: { tenant_id?: string | null }) => {
+    const tid = c.tenant_id;
+    if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
+  });
+
+  if (publicTraffic.visitorsLast30Days > 0) {
+    publicConversionFunnel.visitors = publicTraffic.visitorsLast30Days;
+    publicConversionFunnel.visitToClickPct = pct(
+      publicConversionFunnel.ctaClicks,
+      publicConversionFunnel.visitors
+    );
+    publicConversionFunnel.visitToCompletePct = pct(
+      publicConversionFunnel.registerCompleted,
+      publicConversionFunnel.visitors
+    );
+  }
 
   const accessLogsAvailable = accessResult.ok;
   const auditLogsAvailable = auditResult.ok;
@@ -124,16 +208,16 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
   let fromAudit = 0;
 
   if (accessResult.ok) {
+    fromAccess = accessResult.totalCount;
     for (const log of accessResult.rows) {
       bumpDaily(dailyAccess, log.created_at);
-      fromAccess++;
     }
   }
 
   if (auditResult.ok) {
+    fromAudit = auditResult.totalCount;
     for (const log of auditResult.rows) {
       bumpDaily(dailyAccess, log.created_at);
-      fromAudit++;
     }
   }
 
@@ -156,11 +240,6 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
   else if (fromAudit > 0) trafficSource = "audit_logs";
 
   const totalEvents30d = fromAccess + fromAudit;
-
-  const { fetchPublicSiteTrafficStats } = await import("./publicSiteTraffic.js");
-  const publicTraffic = await fetchPublicSiteTrafficStats(sb);
-  const { fetchConversionFunnelStats } = await import('./publicConversionTracking.js');
-  const publicConversionFunnel = await fetchConversionFunnelStats(sb, publicTraffic.visitorsLast30Days);
 
   return {
     childrenPerTenant,

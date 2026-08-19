@@ -386,6 +386,8 @@ export function OverviewPanel({
   }, [dispatchStats]);
 
   const statLoading = busy && !overview;
+  const visitorsLoading = !activity;
+  const visitorsUnavailable = activity != null && activity.publicSiteVisitorsAvailable === false;
 
   return (
     <div className="overview-page space-y-6">
@@ -447,13 +449,19 @@ export function OverviewPanel({
         <CompactMetric
           label="Visitantes (7d)"
           value={
-            statLoading
+            visitorsLoading
               ? "…"
-              : activity?.publicSiteVisitorsAvailable === false
+              : visitorsUnavailable
                 ? "N/D"
                 : formatStatNumber(activity?.publicSiteVisitorsLast7Days)
           }
-          sub={activity?.publicSiteVisitorsAvailable ? `hoje: ${formatStatNumber(activity?.publicSiteVisitorsToday)}` : "migration pendente"}
+          sub={
+            visitorsLoading
+              ? "a carregar"
+              : activity?.publicSiteVisitorsAvailable
+                ? `hoje: ${formatStatNumber(activity?.publicSiteVisitorsToday)}`
+                : "migration pendente"
+          }
         />
         <CompactMetric
           label="Uso logado (7d)"
@@ -533,9 +541,11 @@ export function OverviewPanel({
               <span className="text-xs text-[var(--ac-text-faint)]">
                 {publicDailySeries.length
                   ? `${activity?.publicSiteVisitorsLast30Days ?? 0} visitantes · ${publicDailySeries.length} dias`
-                  : activity?.publicSiteVisitorsAvailable
-                    ? "0 visitantes nos últimos 30 dias"
-                    : "tabela ausente"}
+                  : visitorsLoading
+                    ? "a carregar"
+                    : activity?.publicSiteVisitorsAvailable
+                      ? "0 visitantes nos últimos 30 dias"
+                      : "tabela ausente"}
               </span>
             }
           >
@@ -561,7 +571,9 @@ export function OverviewPanel({
             ) : (
               <div className="py-12 text-center text-sm text-[var(--ac-text-muted)] max-w-md mx-auto">
                 <Globe className="mx-auto h-8 w-8 text-[var(--ac-text-faint)] mb-2" />
-                {!activity?.publicSiteVisitorsAvailable ? (
+                {visitorsLoading ? (
+                  <>A carregar visitantes do site público…</>
+                ) : visitorsUnavailable ? (
                   <>
                     Tabela <code className="text-[var(--ac-accent)]">public_site_visitors</code> não encontrada.
                     Aplique <code className="text-[var(--ac-accent)]">supabase/migrations/20260619120000_public_site_visitors.sql</code>.

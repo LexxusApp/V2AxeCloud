@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { isMissingOrUnknownTable } from './adminConsoleAuth.js';
+import { isMissingOrUnknownTable, isRememberedMissingTable } from './adminConsoleAuth.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PUBLIC_EVENTS = new Set([
@@ -109,7 +109,73 @@ function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
 }
 
-export async function fetchConversionFunnelStats(sb: SupabaseClient, visitors: number): Promise<ConversionFunnelStats> {
+const FUNNEL_STAGE_EVENTS = [
+  'landing_view',
+  'cta_click',
+  'register_view',
+  'register_started',
+  'register_completed',
+  'register_failed',
+] as const;
+
+const PAGE_SIZE = 1000;
+
+async function loadConversionRowsForEvent(
+  sb: SupabaseClient,
+  since: string,
+  eventName: string,
+  maxRows: number,
+): Promise<{ event_name: string; visitor_id: string; metadata: unknown }[]> {
+  const rows: { event_name: string; visitor_id: string; metadata: unknown }[] = [];
+  let from = 0;
+  while (from < maxRows) {
+    const { data, error } = await sb
+      .from('public_conversion_events')
+      .select('event_name, visitor_id, metadata')
+      .eq('event_name', eventName)
+      .gte('created_at', since)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      if (isMissingOrUnknownTable(error, 'public_conversion_events')) return [];
+      throw error;
+    }
+    const batch = data || [];
+    for (const row of batch) {
+      rows.push({
+        event_name: String(row.event_name || ''),
+        visitor_id: String(row.visitor_id || ''),
+        metadata: row.metadata,
+      });
+    }
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return rows;
+}
+
+/**
+ * PostgREST limita ~1000 linhas por request. section_view explode o volume e
+ * cortava register_completed do funil — por isso paginamos por tipo de evento.
+ */
+async function loadConversionRowsByEvents(
+  sb: SupabaseClient,
+  since: string,
+  eventNames: readonly string[],
+  maxRowsPerEvent = PAGE_SIZE * 50,
+): Promise<{ event_name: string; visitor_id: string; metadata: unknown }[]> {
+  if (isRememberedMissingTable('public_conversion_events')) return [];
+  const batches = await Promise.all(
+    eventNames.map((eventName) => loadConversionRowsForEvent(sb, since, eventName, maxRowsPerEvent)),
+  );
+  return batches.flat();
+}
+
+export async function fetchConversionFunnelStats(
+  sb: SupabaseClient,
+  visitors: number,
+  options?: { maxRowsPerEvent?: number },
+): Promise<ConversionFunnelStats> {
   const empty: ConversionFunnelStats = {
     available: false,
     periodDays: 30,
@@ -126,19 +192,27 @@ export async function fetchConversionFunnelStats(sb: SupabaseClient, visitors: n
     startToCompletePct: 0,
     visitToCompletePct: 0,
   };
+  if (isRememberedMissingTable('public_conversion_events')) return empty;
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  const { data, error } = await sb
-    .from('public_conversion_events')
-    .select('event_name, visitor_id, metadata')
-    .gte('created_at', since);
-  if (error) {
-    if (isMissingOrUnknownTable(error, 'public_conversion_events')) return empty;
+  const maxRowsPerEvent = options?.maxRowsPerEvent ?? PAGE_SIZE * 50;
+  let stageRows: { event_name: string; visitor_id: string; metadata: unknown }[];
+  let sectionRows: { event_name: string; visitor_id: string; metadata: unknown }[];
+  try {
+    [stageRows, sectionRows] = await Promise.all([
+      loadConversionRowsByEvents(sb, since, FUNNEL_STAGE_EVENTS, maxRowsPerEvent),
+      loadConversionRowsByEvents(sb, since, ['section_view'], maxRowsPerEvent),
+    ]);
+  } catch (error) {
+    if (isMissingOrUnknownTable(error as { message?: string }, 'public_conversion_events')) return empty;
     throw error;
   }
+  if (stageRows.length === 0 && sectionRows.length === 0) {
+    // Tabela existe, mas ainda sem eventos — funil disponível com zeros.
+  }
   const groups = new Map<string, Set<string>>();
-  for (const row of data || []) {
-    const name = String(row.event_name || '');
-    const visitorId = String(row.visitor_id || '');
+  for (const row of stageRows) {
+    const name = row.event_name;
+    const visitorId = row.visitor_id;
     if (!name || !visitorId) continue;
     if (!groups.has(name)) groups.set(name, new Set());
     groups.get(name)!.add(visitorId);
@@ -161,13 +235,12 @@ export async function fetchConversionFunnelStats(sb: SupabaseClient, visitors: n
     faq: 'Dúvidas',
   };
   const sectionVisitors = new Map<string, Set<string>>();
-  for (const row of data || []) {
-    if (String(row.event_name || '') !== 'section_view') continue;
+  for (const row of sectionRows) {
     const metadata = row.metadata && typeof row.metadata === 'object'
       ? row.metadata as Record<string, unknown>
       : {};
     const sectionId = String(metadata.sectionId || '');
-    const visitorId = String(row.visitor_id || '');
+    const visitorId = row.visitor_id;
     if (!sectionLabels[sectionId] || !visitorId) continue;
     if (!sectionVisitors.has(sectionId)) sectionVisitors.set(sectionId, new Set());
     sectionVisitors.get(sectionId)!.add(visitorId);
@@ -185,10 +258,11 @@ export async function fetchConversionFunnelStats(sb: SupabaseClient, visitors: n
     previousVisitors = sectionCount;
     return item;
   });
+  const visitorBase = visitors || landingViews;
   return {
     available: true,
     periodDays: 30,
-    visitors,
+    visitors: visitorBase,
     landingViews,
     ctaClicks,
     registerViews,
@@ -196,9 +270,9 @@ export async function fetchConversionFunnelStats(sb: SupabaseClient, visitors: n
     registerCompleted,
     registerFailures,
     sectionReach,
-    visitToClickPct: pct(ctaClicks, visitors),
+    visitToClickPct: pct(ctaClicks, visitorBase),
     clickToStartPct: pct(registerStarted, ctaClicks),
     startToCompletePct: pct(registerCompleted, registerStarted),
-    visitToCompletePct: pct(registerCompleted, visitors),
+    visitToCompletePct: pct(registerCompleted, visitorBase),
   };
 }

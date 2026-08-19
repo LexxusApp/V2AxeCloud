@@ -16,7 +16,11 @@ import {
   saveWelcomeMessageConfig,
   WELCOME_MESSAGE_DEFAULT,
 } from "./lib/welcomeMessage.js";
-import { handleAdminAuditLogs } from "./lib/adminConsoleHandlers.js";
+import {
+  handleAdminAuditLogs,
+  handleAdminActivity,
+  handleAdminOverview,
+} from "./lib/adminConsoleHandlers.js";
 import { handleAdminR2Usage } from "./lib/adminConsoleR2.js";
 import { logEvent } from "./lib/auditLog.js";
 import { createAuditLog } from "./lib/createAuditLog.js";
@@ -45,6 +49,7 @@ import {
 import type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
 import { generateSecureAccessPassword } from "./lib/accessPassword.js";
 import { validateStrongPassword } from "../lib/passwordPolicy.js";
+import { registerDiretorioClaimAdminRoutes } from "./lib/diretorioClaimAdminRoutes.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -115,6 +120,8 @@ async function requireConsoleAdmin(
 }
 
 export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRouteDeps) {
+  registerDiretorioClaimAdminRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
+
   app.get("/api/admin-console/session", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
@@ -128,99 +135,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
     try {
-      // 1) Perfis líder reais — exclui os auto-perfis "shadow" criados para filhos shadow.
-      const { data: leaderRows, error: e1 } = await deps.supabaseAdmin
-        .from("perfil_lider")
-        .select("id, email")
-        .is("deleted_at", null);
-      if (e1) throw e1;
-
-      // Filhos de santo: id de auth (user_id) usado pra excluir do conjunto de zeladores.
-      const { data: filhosRows, error: e2 } = await deps.supabaseAdmin
-        .from("filhos_de_santo")
-        .select("user_id");
-      if (e2) throw e2;
-      const filhosCount = (filhosRows || []).length;
-      const childUserIdSet = new Set<string>(
-        (filhosRows || []).map((r: any) => String(r.user_id || "")).filter(Boolean)
-      );
-
-      const isShadowFilhoEmail = (email?: string | null) =>
-        typeof email === "string" && /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i.test(email);
-
-      const realLeaderIdSet = new Set<string>();
-      for (const p of leaderRows || []) {
-        const pid = String((p as any).id || "");
-        const pem = (p as any).email as string | null | undefined;
-        if (!pid) continue;
-        if (childUserIdSet.has(pid)) continue;
-        if (isShadowFilhoEmail(pem)) continue;
-        realLeaderIdSet.add(pid);
-      }
-      const leadersCount = realLeaderIdSet.size;
-
-      const { data: subs, error: e3 } = await deps.supabaseAdmin
-        .from("subscriptions")
-        .select("id, plan, status");
-      if (e3) throw e3;
-
-      // Histograma só conta subscriptions ligadas a terreiros reais.
-      const planHistogram: Record<string, number> = {};
-      let realSubscriptionsCount = 0;
-      for (const row of subs || []) {
-        const subId = String((row as any).id || "");
-        if (subId && !realLeaderIdSet.has(subId)) continue;
-        const p = String((row as any).plan || "unknown").toLowerCase();
-        planHistogram[p] = (planHistogram[p] || 0) + 1;
-        realSubscriptionsCount++;
-      }
-
-      let accessLast7d = 0;
-      let accessLogsAvailable = true;
-      const since = new Date();
-      since.setDate(since.getDate() - 7);
-      try {
-        const { count: ac, error: e4 } = await deps.supabaseAdmin
-          .from("access_logs")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", since.toISOString());
-        if (e4 && isMissingOrUnknownTable(e4, "access_logs")) {
-          accessLogsAvailable = false;
-        } else if (e4) {
-          throw e4;
-        } else {
-          accessLast7d = ac ?? 0;
-        }
-      } catch (accessCatch: any) {
-        if (isMissingOrUnknownTable(accessCatch, "access_logs")) {
-          accessLogsAvailable = false;
-        } else {
-          throw accessCatch;
-        }
-      }
-
-      res.json({
-        leadersCount,
-        filhosCount: filhosCount ?? 0,
-        subscriptionsCount: realSubscriptionsCount,
-        planHistogram,
-        accessLogsAvailable,
-        accessEventsLast7Days: accessLast7d,
-        founderApplications: await (async () => {
-          try {
-            const { getFounderApplicationStats } = await import("./lib/founderProgramAdmin.js");
-            const stats = await getFounderApplicationStats(deps.supabaseAdmin);
-            return {
-              available: stats.available,
-              pending: stats.pending,
-              total: stats.total,
-              remainingSlots: stats.remainingSlots,
-            };
-          } catch {
-            return { available: false, pending: 0, total: 0, remainingSlots: 20 };
-          }
-        })(),
-      });
+      res.json(await handleAdminOverview(deps.supabaseAdmin));
     } catch (e: any) {
       console.error("[admin-console/overview]", e);
       res.status(500).json({ error: safeErrorMessage(e, "Erro interno") });
@@ -1334,18 +1249,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
     try {
-      const { data: childrenStats, error: childrenError } = await deps.supabaseAdmin
-        .from("filhos_de_santo")
-        .select("tenant_id");
-      if (childrenError) throw childrenError;
-      const childrenPerTenant: Record<string, number> = {};
-      (childrenStats || []).forEach((c: any) => {
-        const tid = c.tenant_id;
-        if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
-      });
-
-      const { fetchAdminActivityStats } = await import("./lib/adminActivityStats.js");
-      res.json(await fetchAdminActivityStats(deps.supabaseAdmin));
+      res.json(await handleAdminActivity(deps.supabaseAdmin));
     } catch (e: any) {
       console.error("[admin-console/activity]", e);
       res.status(500).json({ error: safeErrorMessage(e, "Erro interno") });

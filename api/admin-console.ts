@@ -155,6 +155,24 @@ async function handleGatewayGet(route: string, req: any, res: any): Promise<void
         sendJson(res, 200, await handleAdminR2Usage(r2.client, r2.bucket, cap));
         return;
       }
+      case "supabase-metrics": {
+        const qs = parseQuery(req);
+        const refresh =
+          String(req.query?.refresh || qs.get("refresh") || "") === "1";
+        const { fetchSupabaseMetricsSnapshot } = await import("./lib/supabaseMetrics.js");
+        sendJson(res, 200, { success: true, ...(await fetchSupabaseMetricsSnapshot({ bypassCache: refresh })) });
+        return;
+      }
+      case "whatsapp-dispatch-stats": {
+        const qs = parseQuery(req);
+        const periodRaw = String(req.query?.period || qs.get("period") || "daily")
+          .trim()
+          .toLowerCase();
+        const period = periodRaw === "monthly" ? "monthly" : "daily";
+        const { fetchWhatsAppDispatchStats } = await import("./lib/adminWhatsAppDispatchStats.js");
+        sendJson(res, 200, await fetchWhatsAppDispatchStats(sb, period));
+        return;
+      }
       default:
         sendJson(res, 404, { error: "Rota do console não encontrada", route });
     }
@@ -179,7 +197,14 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const gatewayRoutes = new Set(["overview", "activity", "audit-logs", "r2-usage"]);
+    const gatewayRoutes = new Set([
+      "overview",
+      "activity",
+      "audit-logs",
+      "r2-usage",
+      "supabase-metrics",
+      "whatsapp-dispatch-stats",
+    ]);
     if (gatewayRoutes.has(target) && method === "GET") {
       await handleGatewayGet(target, req, res);
       return;

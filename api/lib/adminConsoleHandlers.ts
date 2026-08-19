@@ -1,31 +1,71 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { countFilhosForPerfilLider } from "./countFilhosForTerreiro.js";
 import { getAuditLogsDisabled } from "./createAuditLog.js";
-import { isMissingOrUnknownTable } from "./adminConsoleAuth.js";
+import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
 import { loadPlansCatalog } from "./plansCatalog.js";
+import { getFounderApplicationStats } from "./founderProgramAdmin.js";
+import { fetchAdminActivityStats } from "./adminActivityStats.js";
 
 const SHADOW_FILHO_EMAIL = /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i;
+const ACCESS_HEARTBEATS = "(access.session.activity,session.activity)";
 
 function isShadowFilhoEmail(email?: string | null) {
   return typeof email === "string" && SHADOW_FILHO_EMAIL.test(email);
 }
 
 export async function handleAdminOverview(sb: SupabaseClient) {
-  const { data: leaderRows, error: e1 } = await sb
-    .from("perfil_lider")
-    .select("id, email")
-    .is("deleted_at", null);
-  if (e1) throw e1;
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+  const sinceIso = since.toISOString();
 
-  const { data: filhosRows, error: e2 } = await sb.from("filhos_de_santo").select("user_id");
-  if (e2) throw e2;
-  const filhosCount = (filhosRows || []).length;
+  const leadersPromise = sb.from("perfil_lider").select("id, email").is("deleted_at", null);
+  const filhosCountPromise = sb.from("filhos_de_santo").select("id", { count: "exact", head: true });
+  const subsPromise = sb.from("subscriptions").select("id, plan, status");
+  const accessPromise = isRememberedMissingTable("access_logs")
+    ? Promise.resolve({ count: 0, error: null, skipped: true as const })
+    : sb
+        .from("access_logs")
+        .select("id", { count: "estimated", head: true })
+        .gte("created_at", sinceIso)
+        .not("event_type", "in", ACCESS_HEARTBEATS);
+  const founderPromise = getFounderApplicationStats(sb).catch(() => ({
+    available: false,
+    pending: 0,
+    total: 0,
+    remainingSlots: 20,
+  }));
+
+  const leadersRes = await leadersPromise;
+  if (leadersRes.error) throw leadersRes.error;
+
+  const leaderIds = (leadersRes.data || [])
+    .map((p: { id?: string }) => String(p.id || ""))
+    .filter(Boolean);
+  const childLeadersPromise =
+    leaderIds.length > 0
+      ? sb.from("filhos_de_santo").select("user_id").in("user_id", leaderIds)
+      : Promise.resolve({ data: [] as { user_id?: string | null }[], error: null });
+
+  const [filhosCountRes, subsRes, accessRes, founderStats, childLeadersRes] = await Promise.all([
+    filhosCountPromise,
+    subsPromise,
+    accessPromise,
+    founderPromise,
+    childLeadersPromise,
+  ]);
+
+  if (filhosCountRes.error) throw filhosCountRes.error;
+  if (subsRes.error) throw subsRes.error;
+  if (childLeadersRes.error) throw childLeadersRes.error;
+
   const childUserIdSet = new Set<string>(
-    (filhosRows || []).map((r: { user_id?: string | null }) => String(r.user_id || "")).filter(Boolean)
+    (childLeadersRes.data || [])
+      .map((r: { user_id?: string | null }) => String(r.user_id || ""))
+      .filter(Boolean)
   );
 
   const realLeaderIdSet = new Set<string>();
-  for (const p of leaderRows || []) {
+  for (const p of leadersRes.data || []) {
     const pid = String((p as { id?: string }).id || "");
     const pem = (p as { email?: string | null }).email;
     if (!pid) continue;
@@ -33,14 +73,10 @@ export async function handleAdminOverview(sb: SupabaseClient) {
     if (isShadowFilhoEmail(pem)) continue;
     realLeaderIdSet.add(pid);
   }
-  const leadersCount = realLeaderIdSet.size;
-
-  const { data: subs, error: e3 } = await sb.from("subscriptions").select("id, plan, status");
-  if (e3) throw e3;
 
   const planHistogram: Record<string, number> = {};
   let realSubscriptionsCount = 0;
-  for (const row of subs || []) {
+  for (const row of subsRes.data || []) {
     const subId = String((row as { id?: string }).id || "");
     if (subId && !realLeaderIdSet.has(subId)) continue;
     const p = String((row as { plan?: string }).plan || "unknown").toLowerCase();
@@ -50,68 +86,33 @@ export async function handleAdminOverview(sb: SupabaseClient) {
 
   let accessLast7d = 0;
   let accessLogsAvailable = true;
-  const since = new Date();
-  since.setDate(since.getDate() - 7);
-  try {
-    const { count: ac, error: e4 } = await sb
-      .from("access_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", since.toISOString());
-    if (e4 && isMissingOrUnknownTable(e4, "access_logs")) {
-      accessLogsAvailable = false;
-    } else if (e4) {
-      throw e4;
-    } else {
-      accessLast7d = ac ?? 0;
-    }
-  } catch (accessCatch: unknown) {
-    if (isMissingOrUnknownTable(accessCatch as { message?: string }, "access_logs")) {
-      accessLogsAvailable = false;
-    } else {
-      throw accessCatch;
-    }
-  }
-
-  let founderApplications = {
-    available: false,
-    pending: 0,
-    total: 0,
-    remainingSlots: 20,
-  };
-  try {
-    const { getFounderApplicationStats } = await import("./founderProgramAdmin.js");
-    const stats = await getFounderApplicationStats(sb);
-    founderApplications = {
-      available: stats.available,
-      pending: stats.pending,
-      total: stats.total,
-      remainingSlots: stats.remainingSlots,
-    };
-  } catch {
-    /* opcional */
+  if ("skipped" in accessRes && accessRes.skipped) {
+    accessLogsAvailable = false;
+  } else if (accessRes.error && isMissingOrUnknownTable(accessRes.error, "access_logs")) {
+    accessLogsAvailable = false;
+  } else if (accessRes.error) {
+    throw accessRes.error;
+  } else {
+    accessLast7d = accessRes.count ?? 0;
   }
 
   return {
-    leadersCount,
-    filhosCount: filhosCount ?? 0,
+    leadersCount: realLeaderIdSet.size,
+    filhosCount: filhosCountRes.count ?? 0,
     subscriptionsCount: realSubscriptionsCount,
     planHistogram,
     accessLogsAvailable,
     accessEventsLast7Days: accessLast7d,
-    founderApplications,
+    founderApplications: {
+      available: founderStats.available,
+      pending: founderStats.pending,
+      total: founderStats.total,
+      remainingSlots: founderStats.remainingSlots,
+    },
   };
 }
 
 export async function handleAdminActivity(sb: SupabaseClient) {
-  const { data: childrenStats, error: childrenError } = await sb.from("filhos_de_santo").select("tenant_id");
-  if (childrenError) throw childrenError;
-  const childrenPerTenant: Record<string, number> = {};
-  (childrenStats || []).forEach((c: { tenant_id?: string | null }) => {
-    const tid = c.tenant_id;
-    if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
-  });
-
-  const { fetchAdminActivityStats } = await import("./adminActivityStats.js");
   return fetchAdminActivityStats(sb);
 }
 
@@ -375,6 +376,7 @@ export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchP
   const actionSet = new Set<string>([
     "auth.login_success",
     "auth.login_failed",
+    "auth.register_completed",
     "wa.dados_acesso",
     "wa.convite_evento",
     "wa.aviso_gira",
@@ -418,22 +420,22 @@ export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchP
 }
 
 export async function handleAdminTenants(sb: SupabaseClient) {
-  const { data: profiles, error: pError } = await sb
-    .from("perfil_lider")
-    .select("id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at")
-    .is("deleted_at", null);
-  if (pError) throw pError;
+  const [profilesRes, subsRes, childrenRes, plans] = await Promise.all([
+    sb
+      .from("perfil_lider")
+      .select("id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at")
+      .is("deleted_at", null),
+    sb.from("subscriptions").select("id, plan, expires_at, status, pending_since"),
+    sb.from("filhos_de_santo").select("tenant_id, lider_id, user_id"),
+    loadPlansCatalog(sb),
+  ]);
+  if (profilesRes.error) throw profilesRes.error;
+  if (subsRes.error) throw subsRes.error;
+  if (childrenRes.error) throw childrenRes.error;
 
-  const { data: subs, error: sError } = await sb
-    .from("subscriptions")
-    .select("id, plan, expires_at, status, pending_since");
-  if (sError) throw sError;
-
-  const { data: childrenRaw, error: cError } = await sb
-    .from("filhos_de_santo")
-    .select("tenant_id, lider_id, user_id");
-  if (cError) throw cError;
-  const childrenList = (childrenRaw || []) as {
+  const profiles = profilesRes.data;
+  const subs = subsRes.data;
+  const childrenList = (childrenRes.data || []) as {
     tenant_id?: string | null;
     lider_id?: string | null;
     user_id?: string | null;
@@ -441,8 +443,6 @@ export async function handleAdminTenants(sb: SupabaseClient) {
   const childUserIdSet = new Set<string>(
     childrenList.map((c) => String(c.user_id || "")).filter(Boolean)
   );
-
-  const plans = await loadPlansCatalog(sb);
 
   const realTenants =
     profiles?.filter((p: { id: string; email?: string | null }) => {

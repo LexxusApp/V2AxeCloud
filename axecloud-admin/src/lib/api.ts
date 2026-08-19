@@ -24,7 +24,7 @@ export function isApiUnreachable(e: unknown): boolean {
   if (e instanceof TypeError) return true;
   const m = e instanceof Error ? e.message : String(e);
   if (m === API_UNAVAILABLE) return true;
-  return /\b(failed to fetch|networkerror|load failed|bad gateway|gateway timeout)\b/i.test(m);
+  return /\b(failed to fetch|networkerror|load failed|bad gateway|gateway timeout|the operation was aborted|timeout)\b/i.test(m);
 }
 
 export function getAccessToken(): string | null {
@@ -75,7 +75,11 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   if (!headers.has("Content-Type") && init?.body && typeof init.body === "string") {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(apiUrl(path), { ...init, headers });
+  const res = await fetch(apiUrl(path), {
+    ...init,
+    headers,
+    signal: init?.signal ?? AbortSignal.timeout(25_000),
+  });
   const text = await res.text();
   let data: unknown = null;
   try {

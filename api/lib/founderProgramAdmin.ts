@@ -127,42 +127,43 @@ export async function countFounderApplications(sb: SupabaseClient, statuses?: Fo
 }
 
 export async function getFounderApplicationStats(sb: SupabaseClient) {
-  const tableMissing = async () => {
-    const { error } = await sb.from("founder_applications").select("id", { count: "exact", head: true }).limit(0);
-    return Boolean(error && isMissingOrUnknownTable(error, "founder_applications"));
+  const empty = {
+    available: false,
+    total: 0,
+    pending: 0,
+    contacted: 0,
+    accepted: 0,
+    rejected: 0,
+    maxSlots: 20,
+    remainingSlots: 20,
   };
 
-  if (await tableMissing()) {
-    return {
-      available: false,
-      total: 0,
-      pending: 0,
-      contacted: 0,
-      accepted: 0,
-      rejected: 0,
-      maxSlots: 20,
-      remainingSlots: 20,
-    };
+  const { data, error } = await sb.from("founder_applications").select("status");
+  if (error) {
+    if (isMissingOrUnknownTable(error, "founder_applications")) return empty;
+    throw error;
   }
 
-  const [total, pending, contacted, accepted, rejected] = await Promise.all([
-    countFounderApplications(sb),
-    countFounderApplications(sb, ["pending"]),
-    countFounderApplications(sb, ["contacted"]),
-    countFounderApplications(sb, ["accepted"]),
-    countFounderApplications(sb, ["rejected"]),
-  ]);
+  const counts = { pending: 0, contacted: 0, accepted: 0, rejected: 0, other: 0 };
+  for (const row of data || []) {
+    const status = String((row as { status?: string }).status || "").toLowerCase();
+    if (status === "pending") counts.pending++;
+    else if (status === "contacted") counts.contacted++;
+    else if (status === "accepted") counts.accepted++;
+    else if (status === "rejected") counts.rejected++;
+    else counts.other++;
+  }
 
   const maxSlots = 20;
-  const usedSlots = pending + contacted + accepted;
+  const usedSlots = counts.pending + counts.contacted + counts.accepted;
 
   return {
     available: true,
-    total,
-    pending,
-    contacted,
-    accepted,
-    rejected,
+    total: (data || []).length,
+    pending: counts.pending,
+    contacted: counts.contacted,
+    accepted: counts.accepted,
+    rejected: counts.rejected,
     maxSlots,
     remainingSlots: Math.max(0, maxSlots - usedSlots),
   };

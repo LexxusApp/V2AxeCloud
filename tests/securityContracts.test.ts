@@ -7,7 +7,7 @@ import { resolveClientIp } from "../api/lib/clientIp.ts";
 import { assertSafeImageBuffer } from "../api/lib/imageUpload.ts";
 import { isAllowedGalleryMime } from "../api/lib/mediaUpload.ts";
 import { assertSafeExternalUrl } from "../api/lib/ssrfGuard.ts";
-import { isConsoleGlobalAdmin } from "../api/lib/consoleAdmin.ts";
+import { isConsoleGlobalAdmin, clearConsoleAdminCache } from "../api/lib/consoleAdmin.ts";
 import { rawBodyForSignature } from "../api/lib/rawBody.ts";
 import { verifyMetaWebhookSignature } from "../api/lib/whatsappMetaWebhook.ts";
 
@@ -70,6 +70,7 @@ test("fontes críticas não reintroduzem JWT sem assinatura nem coletores de deb
 });
 
 test("admin global não é herdado de outro perfil por coincidência de e-mail", async () => {
+  clearConsoleAdminCache();
   const oldConsole = process.env.ADMIN_CONSOLE_EMAILS;
   const oldAdmin = process.env.ADMIN_EMAILS;
   delete process.env.ADMIN_CONSOLE_EMAILS;
@@ -95,6 +96,39 @@ test("admin global não é herdado de outro perfil por coincidência de e-mail",
   else process.env.ADMIN_CONSOLE_EMAILS = oldConsole;
   if (oldAdmin === undefined) delete process.env.ADMIN_EMAILS;
   else process.env.ADMIN_EMAILS = oldAdmin;
+  clearConsoleAdminCache();
+});
+
+test("allowlist não reescreve perfil já promovido a admin global", async () => {
+  clearConsoleAdminCache();
+  const oldConsole = process.env.ADMIN_CONSOLE_EMAILS;
+  const oldAdmin = process.env.ADMIN_EMAILS;
+  process.env.ADMIN_CONSOLE_EMAILS = "admin@axecloud.test";
+  delete process.env.ADMIN_EMAILS;
+  let updates = 0;
+  const fakeSupabase = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: { id: "u1", is_admin_global: true }, error: null }),
+        }),
+      }),
+      update: () => {
+        updates += 1;
+        return { eq: async () => ({ error: null }) };
+      },
+    }),
+  };
+  assert.equal(
+    await isConsoleGlobalAdmin(fakeSupabase, { id: "u1", email: "admin@axecloud.test" }),
+    true
+  );
+  assert.equal(updates, 0);
+  if (oldConsole === undefined) delete process.env.ADMIN_CONSOLE_EMAILS;
+  else process.env.ADMIN_CONSOLE_EMAILS = oldConsole;
+  if (oldAdmin === undefined) delete process.env.ADMIN_EMAILS;
+  else process.env.ADMIN_EMAILS = oldAdmin;
+  clearConsoleAdminCache();
 });
 
 test("webhook Meta falha fechado sem segredo ou sem corpo bruto", () => {

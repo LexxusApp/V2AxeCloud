@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { apiJson, isApiUnreachable, setAccessToken } from "./lib/api";
@@ -11,14 +11,17 @@ export default function App() {
   const [consoleOk, setConsoleOk] = useState(false);
   /** API em :3000 inacessível vs. sessão válida mas sem permissão no console */
   const [consoleGate, setConsoleGate] = useState<"network" | "forbidden" | null>(null);
+  const consoleOkRef = useRef(false);
 
   const verifyConsole = useCallback(async (s: Session) => {
     setAccessToken(s.access_token);
     try {
       await apiJson<{ ok: boolean }>("/api/admin-console/session");
+      consoleOkRef.current = true;
       setConsoleOk(true);
       setConsoleGate(null);
     } catch (e) {
+      consoleOkRef.current = false;
       setConsoleOk(false);
       setAccessToken(null);
       setConsoleGate(isApiUnreachable(e) ? "network" : "forbidden");
@@ -38,8 +41,14 @@ export default function App() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
-      if (s?.access_token) void verifyConsole(s);
-      else {
+      if (s?.access_token) {
+        if (consoleOkRef.current) {
+          setAccessToken(s.access_token);
+          return;
+        }
+        void verifyConsole(s);
+      } else {
+        consoleOkRef.current = false;
         setConsoleOk(false);
         setAccessToken(null);
       }
@@ -47,13 +56,13 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, [verifyConsole]);
 
-  const onAuthed = useCallback(
-    async (s: Session) => {
-      setSession(s);
-      await verifyConsole(s);
-    },
-    [verifyConsole]
-  );
+  const onAuthed = useCallback(async (s: Session) => {
+    setAccessToken(s.access_token);
+    consoleOkRef.current = true;
+    setSession(s);
+    setConsoleOk(true);
+    setConsoleGate(null);
+  }, []);
 
   if (!supabase) {
     return (

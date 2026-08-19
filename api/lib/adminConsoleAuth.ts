@@ -27,16 +27,39 @@ export async function requireConsoleAdminDiscrete(
   return { user };
 }
 
+const missingTableUntil = new Map<string, number>();
+
+function tableKey(tableHint: string): string {
+  return tableHint.toLowerCase().replace(/^public\./, "");
+}
+
+/** Evita repetir consultas a tabelas que já falharam com PGRST205 neste processo. */
+export function rememberMissingTable(tableHint: string, ttlMs = 5 * 60_000): void {
+  missingTableUntil.set(tableKey(tableHint), Date.now() + ttlMs);
+}
+
+export function isRememberedMissingTable(tableHint: string): boolean {
+  const key = tableKey(tableHint);
+  const until = missingTableUntil.get(key);
+  if (until == null) return false;
+  if (until <= Date.now()) {
+    missingTableUntil.delete(key);
+    return false;
+  }
+  return true;
+}
+
 export function isMissingOrUnknownTable(
   err: { message?: string; details?: string; code?: string } | null | undefined,
   tableHint: string
 ): boolean {
   const m = `${String(err?.message || "")} ${String(err?.details || "")}`.toLowerCase();
-  const t = tableHint.toLowerCase().replace(/^public\./, "");
+  const t = tableKey(tableHint);
   if (!m.includes(t)) return false;
-  return (
+  const missing =
     /schema cache|does not exist|could not find|undefined relation|unknown table|not find the table|pgrst/i.test(
       m
-    ) || String(err?.code || "") === "PGRST205"
-  );
+    ) || String(err?.code || "") === "PGRST205";
+  if (missing) rememberMissingTable(t);
+  return missing;
 }

@@ -26,6 +26,7 @@ import { DemoAccountPanel } from "./DemoAccountPanel";
 import { SupabaseMetricsPanel } from "./SupabaseMetricsPanel";
 import { StoragePanel } from "./StoragePanel";
 import { GrowthProspectingPanel } from "./GrowthProspectingPanel";
+import { DirectoryClaimsPanel } from "./DirectoryClaimsPanel";
 
 type Tab = AdminNavTab;
 
@@ -199,12 +200,14 @@ export function CommandShell({ session }: { session: Session }) {
     void (async () => {
       setBusy(true);
       setMsg(null);
-      const results = await Promise.allSettled([refreshOverview(), refreshTenants(), refreshActivity()]);
-      const errs = results
+      const activityPromise = refreshActivity();
+      const results = await Promise.allSettled([refreshOverview(), refreshTenants()]);
+      setBusy(false);
+      const activityResult = await Promise.allSettled([activityPromise]);
+      const errs = [...results, ...activityResult]
         .filter((r): r is PromiseRejectedResult => r.status === "rejected")
         .map((r) => (r.reason instanceof Error ? r.reason.message : String(r.reason)));
       if (errs.length) setMsg(errs.join(" · "));
-      setBusy(false);
     })();
   }, [refreshActivity, refreshOverview, refreshTenants]);
 
@@ -328,10 +331,11 @@ export function CommandShell({ session }: { session: Session }) {
   async function refreshDashboard() {
     setBusy(true);
     try {
-      await Promise.all([refreshOverview(), refreshTenants(), refreshActivity()]);
+      await Promise.all([refreshOverview(), refreshTenants()]);
+      setBusy(false);
+      await refreshActivity();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Erro ao actualizar");
-    } finally {
       setBusy(false);
     }
   }
@@ -596,6 +600,7 @@ export function CommandShell({ session }: { session: Session }) {
         {tab === "whatsapp" && <WhatsAppPanel />}
         {tab === "wa-inbox" && <WhatsAppInboxPanel />}
         {tab === "growth" && <GrowthProspectingPanel />}
+        {tab === "claims" && <DirectoryClaimsPanel tenants={tenants} onMessage={setMsg} />}
         {tab === "monitor" && <AuditMonitor />}
         </div>
       </AdminDashboardLayout>

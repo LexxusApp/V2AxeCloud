@@ -1,7 +1,7 @@
 import type { Request } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import geoip from "geoip-lite";
-import { isMissingOrUnknownTable } from "./adminConsoleAuth.js";
+import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
 import { resolveClientIp } from "./clientIp.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -199,6 +199,8 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const since7 = sevenDaysAgo.toISOString().slice(0, 10);
 
+  if (isRememberedMissingTable("public_site_visitors")) return empty;
+
   try {
     const { data, error } = await sb
       .from("public_site_visitors")
@@ -226,19 +228,21 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
 
     let topPages: PublicPageBreakdownRow[] = [];
     let pageViewsAvailable = false;
-    try {
-      const pageRes = await sb
-        .from("public_site_page_views")
-        .select("path_bucket, visitor_id")
-        .gte("visit_date", sinceDate);
-      if (pageRes.error) {
-        if (!isMissingOrUnknownTable(pageRes.error, "public_site_page_views")) throw pageRes.error;
-      } else {
-        pageViewsAvailable = true;
-        topPages = buildTopPages(pageRes.data || []);
+    if (!isRememberedMissingTable("public_site_page_views")) {
+      try {
+        const pageRes = await sb
+          .from("public_site_page_views")
+          .select("path_bucket, visitor_id")
+          .gte("visit_date", sinceDate);
+        if (pageRes.error) {
+          if (!isMissingOrUnknownTable(pageRes.error, "public_site_page_views")) throw pageRes.error;
+        } else {
+          pageViewsAvailable = true;
+          topPages = buildTopPages(pageRes.data || []);
+        }
+      } catch (pageErr: unknown) {
+        if (!isMissingOrUnknownTable(pageErr as { message?: string }, "public_site_page_views")) throw pageErr;
       }
-    } catch (pageErr: unknown) {
-      if (!isMissingOrUnknownTable(pageErr as { message?: string }, "public_site_page_views")) throw pageErr;
     }
 
     return {
