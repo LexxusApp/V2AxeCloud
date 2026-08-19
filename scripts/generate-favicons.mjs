@@ -13,8 +13,9 @@ import sharp from 'sharp';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC = path.join(ROOT, 'public');
-const FAVICON_SOURCE = path.join(PUBLIC, 'favicon.svg');
-const PWA_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-app-tile.svg');
+const SITE_HOME_PUBLIC = path.join(ROOT, 'site-next', 'public');
+const FAVICON_SOURCE = path.join(PUBLIC, 'axecloud-trident.png');
+const PWA_SOURCE = FAVICON_SOURCE;
 const LOGO_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-logo-dark.svg');
 const LOGO_LIGHT_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-logo-light.svg');
 const SYMBOL_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-symbol.svg');
@@ -24,6 +25,15 @@ const ASSETS = path.join(ROOT, 'assets');
 for (const source of [FAVICON_SOURCE, PWA_SOURCE, LOGO_SOURCE, LOGO_LIGHT_SOURCE, SYMBOL_SOURCE]) {
   if (!fs.existsSync(source)) throw new Error(`Fonte ausente: ${source}`);
 }
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">AxéCloud</title>
+  <rect width="64" height="64" rx="15" fill="#102117"/>
+  <image href="data:image/png;base64,${fs.readFileSync(FAVICON_SOURCE).toString('base64')}" x="7" y="7" width="50" height="50"/>
+</svg>\n`;
+fs.writeFileSync(path.join(PUBLIC, 'favicon.svg'), faviconSvg);
+fs.writeFileSync(path.join(ROOT, 'cinematic-site', 'favicon.svg'), faviconSvg);
+fs.writeFileSync(path.join(SITE_HOME_PUBLIC, 'favicon.svg'), faviconSvg);
 
 /** Empacota PNGs num .ico moderno (PNG-in-ICO). */
 function pngsToIco(pngBuffers) {
