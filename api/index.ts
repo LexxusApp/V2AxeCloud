@@ -61,6 +61,7 @@ import { registerPublicPortalRoutes } from "./lib/publicPortalRoutes.js";
 import { registerDiretorioPublicRoutes } from "./lib/diretorioPublicRoutes.js";
 import { registerAgentDiscoveryRoutes } from "./lib/agentDiscovery.js";
 import { registerDiretorioSeoRoutes } from "./lib/diretorioSeo.js";
+import { registerSitemapRoutes } from "./lib/sitemapRoutes.js";
 import { registerPublicMediaRoutes, buildR2PublicUrlFromKey, resolvePublicMediaUrl } from "./lib/r2PublicMedia.js";
 import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEventNotificationRoutes } from "./lib/eventNotificationRoutes.js";
@@ -157,11 +158,8 @@ function getServerEnv(...keys: string[]) {
   for (const key of keys) {
     const fromProcess = process.env[key];
     if (fromProcess) return fromProcess;
-    // Na Vercel, só process.env — import.meta.env do build pode ter placeholders inválidos.
-    if (process.env.VERCEL !== "1") {
-      const fromVite = viteEnv[key];
-      if (fromVite) return fromVite;
-    }
+    const fromVite = viteEnv[key];
+    if (fromVite) return fromVite;
   }
   return undefined;
 }
@@ -1005,8 +1003,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 const SUPABASE_URL = getSupabaseServerUrl();
 const SUPABASE_SERVICE_ROLE_KEY = getSupabaseServerServiceKey();
 const SUPABASE_ANON_KEY = getSupabaseServerAnonKey();
-const IS_PRODUCTION_SERVER =
-  process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+const IS_PRODUCTION_SERVER = process.env.NODE_ENV === "production";
 const SUPABASE_SERVER_KEY =
   SUPABASE_SERVICE_ROLE_KEY || (!IS_PRODUCTION_SERVER ? SUPABASE_ANON_KEY : undefined);
 
@@ -1297,39 +1294,6 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-
-  /** Na Vercel o path interno pode ser `/api/index`; restaura o URL público a partir de headers. */
-  app.use((req, _res, next) => {
-    if (process.env.VERCEL === "1") {
-      const orig = typeof req.originalUrl === "string" ? req.originalUrl.split("#")[0] : "";
-      if (orig.startsWith("/api/") && orig !== req.url) {
-        delete (req as any)._parsedUrl;
-        req.url = orig;
-        return next();
-      }
-      const h = req.headers;
-      const candidates = [
-        h["x-vercel-original-url"],
-        h["x-forwarded-uri"],
-        h["x-invoke-path"],
-      ].filter((x): x is string => typeof x === "string" && x.length > 0);
-      for (const raw of candidates) {
-        try {
-          const pathAndQuery = raw.startsWith("http")
-            ? new URL(raw).pathname + new URL(raw).search
-            : raw.split("#")[0];
-          if (pathAndQuery.startsWith("/api/") && pathAndQuery !== req.url) {
-            delete (req as any)._parsedUrl;
-            req.url = pathAndQuery;
-            break;
-          }
-        } catch {
-          /* ignorar header inválido */
-        }
-      }
-    }
-    next();
-  });
 
   app.use(compression({
     brotli: { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 } },
@@ -3850,6 +3814,7 @@ async function startServer() {
   registerDiretorioPublicRoutes(app, { supabaseAdmin });
   registerAgentDiscoveryRoutes(app);
   registerDiretorioSeoRoutes(app, { supabaseAdmin });
+  registerSitemapRoutes(app, { supabaseAdmin });
   registerPublicMediaRoutes(app, { r2Client, bucketName: R2_BUCKET_NAME });
   registerEventRsvpRoutes(app, { supabaseAdmin });
   registerGiraOperationsRoutes(app, { supabaseAdmin, resolveLeaderId });
@@ -3873,7 +3838,7 @@ async function startServer() {
     resolveLeaderIdFn: (_sb, id) => resolveLeaderId(id),
   });
 
-  // Cron: ping Evolution (Vercel rewrite + VPS Express)
+  // Cron: ping Evolution (VPS Express)
   app.get("/api/v1/cron/ping-evolution", async (req, res) => {
     req.query = { ...req.query, job: "ping-evolution" };
     await cronHandler(req, res);
@@ -5407,7 +5372,7 @@ async function startServer() {
       app.use(express.static(distPath));
     } else {
       console.warn(
-        "[SERVER] dist/index.html ausente neste bundle (comum na função serverless só-API na Vercel)."
+      console.warn("[SERVER] dist/index.html ausente neste bundle.");
       );
     }
     app.get("*", (req, res) => {
@@ -5419,7 +5384,7 @@ async function startServer() {
         });
       }
       if (!hasSpa) {
-        return res.status(503).type("text/plain").send("Frontend não incluído nesta função serverless.");
+        return res.status(503).type("text/plain").send("Frontend não incluído neste processo.");
       }
       try {
         const html = injectRuntimeConfigHtml(readFileSync(indexPath, "utf8"));
@@ -5432,15 +5397,13 @@ async function startServer() {
     });
   }
 
-  if (process.env.VERCEL !== '1') {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      
-      // Garantir buckets e esquema após o início para não bloquear o boot
-      ensureBucketsExist().catch(err => console.error("[SERVER] Erro ao garantir buckets:", err));
-      initializeDatabase().catch(err => console.error("[SERVER] Erro ao inicializar banco:", err));
-    });
-  }
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Garantir buckets e esquema após o início para não bloquear o boot
+    ensureBucketsExist().catch(err => console.error("[SERVER] Erro ao garantir buckets:", err));
+    initializeDatabase().catch(err => console.error("[SERVER] Erro ao inicializar banco:", err));
+  });
 
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -5451,16 +5414,4 @@ async function startServer() {
   return app;
 }
 
-const appPromise = startServer();
-
-export default async function handler(req: any, res: any) {
-  try {
-    const app = await appPromise;
-    return app(req, res);
-  } catch (err: any) {
-    console.error("[VERCEL HANDLER ERROR]", err);
-    res.status(500).json({ error: safeErrorMessage(err, "Erro interno do servidor") });
-  }
-}
-
-// deploy-bump: 2026-05-10 — permanentAccountDelete em /api (compatível com bundle Vercel)
+void startServer();
