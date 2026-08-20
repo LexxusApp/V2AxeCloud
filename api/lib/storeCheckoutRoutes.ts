@@ -14,6 +14,10 @@ type Deps = {
   resolveLeaderId: (id: string) => Promise<string>;
 };
 
+function todayYmd(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
   const { supabaseAdmin, resolveLeaderId: resolveLeader } = deps;
 
@@ -92,6 +96,50 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
           resumo_itens: resumo,
           valor_total: valorTotal,
         });
+
+        if (metodoGravar === "mensalidade" && valorTotal > 0) {
+          let dueDate = todayYmd();
+          const { data: mensalidadeBase, error: mensalidadeLookupErr } = await supabaseAdmin
+            .from("financeiro")
+            .select("data")
+            .eq("tenant_id", tenantPk)
+            .eq("filho_id", effectiveFilhoId)
+            .eq("categoria", "Mensalidade")
+            .eq("status", "pendente")
+            .order("data", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (!mensalidadeLookupErr && mensalidadeBase?.data) {
+            dueDate = String(mensalidadeBase.data).slice(0, 10);
+          }
+
+          const financeRow: Record<string, unknown> = {
+            tipo: "entrada",
+            valor: Number(valorTotal.toFixed(2)),
+            categoria: "Loja",
+            data: dueDate,
+            descricao: `Loja - ${filhoNomeRow?.nome || "Filho de santo"} - ${resumo} (ID:${effectiveFilhoId})`,
+            tenant_id: tenantPk,
+            lider_id: tenantPk,
+            filho_id: effectiveFilhoId,
+            status: "pendente",
+          };
+
+          let { error: financeiroError } = await supabaseAdmin.from("financeiro").insert([financeRow]);
+          if (financeiroError && String(financeiroError.message || "").toLowerCase().includes("status")) {
+            delete financeRow.status;
+            const retry = await supabaseAdmin.from("financeiro").insert([financeRow]);
+            financeiroError = retry.error;
+          }
+          if (financeiroError && String(financeiroError.message || "").includes("filho_id")) {
+            delete financeRow.filho_id;
+            const retry = await supabaseAdmin.from("financeiro").insert([financeRow]);
+            financeiroError = retry.error;
+          }
+          if (financeiroError) {
+            console.error("[store checkout] financeiro insert:", financeiroError);
+          }
+        }
       }
 
       res.json({ success: true, data });

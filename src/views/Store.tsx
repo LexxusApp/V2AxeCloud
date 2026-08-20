@@ -73,6 +73,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const [lojaPedidos, setLojaPedidos] = useState<LojaPedidoRow[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState('');
+  const [isUploadingProductImage, setIsUploadingProductImage] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -198,19 +201,51 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       if (!opts?.silent) setLoading(false);
       return;
     }
-    const { data, error } = await supabase
-      .from('produtos')
-      .select('*')
-      .eq('tenant_id', tenantPk)
-      .is('deleted_at', null)
-      .order('nome');
-    if (error) {
-      console.error('Error fetching products:', error);
+    const res = await authFetch(`/api/v1/store/products?tenantId=${encodeURIComponent(tenantPk)}`);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error('Error fetching products:', json);
       setProducts([]);
     } else {
-      setProducts((data || []).map((r) => rowToProduct(r as Record<string, unknown>)));
+      const rows = Array.isArray(json.data) ? json.data : [];
+      setProducts(rows.map((r) => rowToProduct(r as Record<string, unknown>)));
     }
     if (!opts?.silent) setLoading(false);
+  };
+
+  const uploadStoreProductImage = async (tenantPk: string, file: File): Promise<string> => {
+    const mime = String(file.type || '').toLowerCase();
+    const allowed = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
+    if (!allowed.has(mime)) {
+      throw new Error('Selecione uma imagem JPG, PNG, WEBP ou GIF.');
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('Imagem muito grande (máx. 10 MB).');
+    }
+
+    const uploadUrlResponse = await authFetch('/api/v1/store/product-image/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: mime,
+        tenantId: tenantPk,
+      }),
+    });
+    const uploadUrlResult = await uploadUrlResponse.json().catch(() => ({}));
+    if (!uploadUrlResponse.ok) {
+      throw new Error(uploadUrlResult.error || 'Erro ao preparar upload da imagem');
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('loja_imagens')
+      .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, file, {
+        contentType: mime,
+        upsert: true,
+      });
+    if (uploadError) throw uploadError;
+
+    return String(uploadUrlResult.path || '');
   };
 
   const addToCart = (product: Product) => {
@@ -259,6 +294,13 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const showToast = (title: string, description: string, type: 'success' | 'error' | 'warning') => {
     setToastMessage({ title, description, type });
     setToastOpen(true);
+  };
+
+  const closeAddProductDialog = () => {
+    setIsAddProductOpen(false);
+    setProductImageFile(null);
+    if (productImagePreview) URL.revokeObjectURL(productImagePreview);
+    setProductImagePreview('');
   };
 
   const handleCheckout = async (method: 'mensalidade' | 'pix' | 'reserva') => {
@@ -312,6 +354,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProduct(true);
+    setIsUploadingProductImage(false);
 
     const nomeDoEstado = (newProduct.nome || '').trim();
     const descricaoDoEstado = String(newProduct.descricao ?? '').trim();
@@ -337,17 +380,27 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
     let imagemUrl: string | null = null;
     try {
-      const imgRes = await authFetch(
-        `/api/store/product-image-suggestion?q=${encodeURIComponent(nomeDoEstado)}`
-      );
-      if (imgRes.ok) {
-        const j = (await imgRes.json()) as { url?: string | null };
-        const u = typeof j.url === 'string' ? j.url.trim() : '';
-        if (u) imagemUrl = u;
+      if (productImageFile) {
+        setIsUploadingProductImage(true);
+        imagemUrl = await uploadStoreProductImage(String(idDoTerreiroLogado), productImageFile);
+      } else {
+        const imgRes = await authFetch(
+          `/api/store/product-image-suggestion?q=${encodeURIComponent(nomeDoEstado)}`
+        );
+        if (imgRes.ok) {
+          const j = (await imgRes.json()) as { url?: string | null };
+          const u = typeof j.url === 'string' ? j.url.trim() : '';
+          if (u) imagemUrl = u;
+        }
       }
     } catch (e) {
-      console.warn('[Store] sugestão de imagem (Pexels):', e);
+      console.warn('[Store] imagem do produto:', e);
+      showToast('Erro', e instanceof Error ? e.message : 'Falha ao preparar imagem do produto.', 'error');
+      setIsSavingProduct(false);
+      setIsUploadingProductImage(false);
+      return;
     }
+    setIsUploadingProductImage(false);
 
     const resSave = await authFetch('/api/v1/store/products', {
       method: 'POST',
@@ -374,7 +427,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
     const novoProduto = inserted ? rowToProduct(inserted) : null;
 
     showToast('Sucesso', 'Produto salvo com sucesso!', 'success');
-    setIsAddProductOpen(false);
+    closeAddProductDialog();
     setNewProduct({ nome: '', descricao: '', preco: 0, estoque_atual: 0, estoque_minimo: 0, categoria: 'Velas' });
 
     if (novoProduto) {
@@ -785,7 +838,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       </Dialog.Root>
 
       {/* Add Product Dialog */}
-      <Dialog.Root open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+      <Dialog.Root open={isAddProductOpen} onOpenChange={(open) => (open ? setIsAddProductOpen(true) : closeAddProductDialog())}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content className="fixed left-[50%] top-[50%] z-[101] flex max-h-[88dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-8">
@@ -873,6 +926,29 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <label className={paperModalLabelClass}>Foto do produto</label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                  className={cn(paperModalInputClass, 'cursor-pointer file:mr-3 file:rounded-lg file:border-0 file:bg-[#17251D] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#FFFAF0]')}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setProductImageFile(file);
+                    if (productImagePreview) URL.revokeObjectURL(productImagePreview);
+                    setProductImagePreview(file ? URL.createObjectURL(file) : '');
+                  }}
+                />
+                <p className="text-xs text-[#6F675C]">
+                  Se nenhuma foto for enviada, o sistema tenta sugerir uma imagem automaticamente.
+                </p>
+                {productImagePreview ? (
+                  <div className="overflow-hidden rounded-2xl border border-[#D8D2C4] bg-white">
+                    <img src={productImagePreview} alt="Prévia do produto" className="h-48 w-full object-cover" />
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-6 flex justify-end gap-3 border-t border-[#E3DCCE] pt-4">
                 <Dialog.Close asChild>
                   <button type="button" className="rounded-xl border border-[#D8D2C4] bg-white px-6 py-3 font-bold text-[#4A463E] transition hover:bg-[#F5F0E5]">
@@ -881,10 +957,12 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                 </Dialog.Close>
                 <AppPrimaryButton 
                   type="submit" 
-                  disabled={isSavingProduct}
+                  disabled={isSavingProduct || isUploadingProductImage}
                   className="flex items-center gap-2 bg-[#17251D] px-6 py-3 text-[#FFFAF0] hover:bg-[#20342A]"
                 >
-                  {isSavingProduct ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FFFAF0]/30 border-t-[#FFFAF0]" /> : 'Salvar produto'}
+                  {isSavingProduct || isUploadingProductImage ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FFFAF0]/30 border-t-[#FFFAF0]" />
+                  ) : 'Salvar produto'}
                 </AppPrimaryButton>
               </div>
             </form>

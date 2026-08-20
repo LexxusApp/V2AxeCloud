@@ -133,7 +133,7 @@ import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./lib/runtimePu
 import { PUBLIC_PRERENDER_PATHS } from "../src/constants/seoPublicPages.js";
 import { childEligibleForDueMonth } from "./lib/mensalidadeEligibility.js";
 import { validateStrongPassword } from "../lib/passwordPolicy.js";
-import { assertSafeImageBuffer } from "./lib/imageUpload.js";
+import { SAFE_IMAGE_MIME_TYPES, assertSafeImageBuffer } from "./lib/imageUpload.js";
 import { isAllowedGalleryMime } from "./lib/mediaUpload.js";
 import { verifyCompletedGalleryUpload } from "./lib/galleryUploadSecurity.js";
 import { verifyUserPassword } from "./lib/passwordVerification.js";
@@ -1754,6 +1754,22 @@ async function startServer() {
     const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
     if (!access) return;
     try {
+      const isExternalImageUrl = (value: unknown) =>
+        /^https?:\/\//i.test(String(value || "").trim()) || String(value || "").trim().startsWith("/");
+
+      const resolveStoreImageUrl = async (rawValue: unknown) => {
+        const imageRef = String(rawValue || "").trim();
+        if (!imageRef || isExternalImageUrl(imageRef)) return imageRef;
+        const { data: signed, error: signErr } = await supabaseAdmin.storage
+          .from("loja_imagens")
+          .createSignedUrl(imageRef, 60 * 60 * 24 * 7);
+        if (signErr) {
+          console.warn("[store products] signed image url:", signErr.message || signErr);
+          return "";
+        }
+        return signed?.signedUrl || "";
+      };
+
       const { data, error } = await supabaseAdmin
         .from("produtos")
         .select("*")
@@ -1761,7 +1777,13 @@ async function startServer() {
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      res.json({ data: data || [] });
+      const enriched = await Promise.all(
+        (data || []).map(async (row) => ({
+          ...row,
+          imagem_url: await resolveStoreImageUrl((row as { imagem_url?: unknown }).imagem_url),
+        }))
+      );
+      res.json({ data: enriched });
     } catch (err: any) {
       console.error("[SERVER] Erro ao buscar produtos:", err.message);
       res.status(500).json({ error: safeErrorMessage(err) });
@@ -1968,6 +1990,48 @@ async function startServer() {
   };
   app.get("/api/v1/store/product-image-suggestion", handleStoreProductImageSuggestion);
   app.get("/api/store/product-image-suggestion", handleStoreProductImageSuggestion);
+
+  app.post("/api/v1/store/product-image/upload-url", async (req: express.Request, res: express.Response) => {
+    const { fileName, contentType, tenantId } = req.body || {};
+    if (!fileName || !tenantId) {
+      return res.status(400).json({ error: "fileName e tenantId são obrigatórios" });
+    }
+
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
+      if (!ok) return res.status(403).json({ error: "Acesso negado" });
+
+      const mime = String(contentType || "image/jpeg").toLowerCase().split(";", 1)[0].trim();
+      const allowedStoreImageTypes = new Set(
+        [...SAFE_IMAGE_MIME_TYPES].filter((type) =>
+          ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"].includes(type)
+        )
+      );
+      if (!allowedStoreImageTypes.has(mime)) {
+        return res.status(400).json({ error: "Formato de imagem não suportado." });
+      }
+
+      const safeFileName = slugifyStoragePath(String(fileName || "produto.jpg"));
+      const storagePath = `${String(tenantId).trim()}/produtos/${Date.now()}_${safeFileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from("loja_imagens")
+        .createSignedUploadUrl(storagePath);
+
+      if (error) throw error;
+      res.json({
+        path: storagePath,
+        token: data.token,
+        contentType: mime,
+      });
+    } catch (err: any) {
+      console.error("[SERVER] Erro ao criar upload da imagem da loja:", err.message || err);
+      res.status(500).json({ error: safeErrorMessage(err, "Erro ao preparar upload da imagem") });
+    }
+  });
 
   // API Route: Pix Config — GET e POST (bypasses RLS, resolve FK automaticamente)
   app.get("/api/v1/financial/pix-config", async (req, res) => {
