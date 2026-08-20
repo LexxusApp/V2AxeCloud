@@ -137,8 +137,16 @@ function daysOfWeekInMonth(weekMonday: string, monthStart: string, monthEnd: str
   return out;
 }
 
-type MensalidadeCronKind = "disponivel" | "pendente" | "vence_hoje";
+type MensalidadeCronKind = "disponivel" | "pendente" | "vence_hoje" | "atrasada";
 
+/**
+ * Calendário pedido:
+ * - dia 1 → disponível
+ * - toda semana → 1 dia estável
+ * - semana do vencimento → 2 dias estáveis (exceto o vencimento)
+ * - no vencimento → vence_hoje
+ * - após o vencimento (ainda no mês) → atrasada (diário até pagar)
+ */
 function resolveMensalidadeCronKind(opts: {
   todayYmd: string;
   monthStart: string;
@@ -150,12 +158,27 @@ function resolveMensalidadeCronKind(opts: {
   if (todayYmd === dueYmd) return "vence_hoje";
   if (todayYmd === monthStart) return "disponivel";
 
+  // Depois do vencimento: cobrar todo dia enquanto houver pendência.
+  if (todayYmd > dueYmd && todayYmd <= monthEnd) return "atrasada";
+
   const weekMonday = mondayOfWeek(todayYmd);
   const inDueWeek = weekMonday === mondayOfWeek(dueYmd);
   const exclude = new Set([dueYmd, monthStart]);
   const eligible = daysOfWeekInMonth(weekMonday, monthStart, monthEnd).filter((d) => !exclude.has(d));
   const picked = pickStableDays(eligible, inDueWeek ? 2 : 1, `${tenantId}:${weekMonday}`);
   return picked.includes(todayYmd) ? "pendente" : null;
+}
+
+function rowMatchesFilho(row: { filho_id?: string | null; descricao?: string | null }, fid: string): boolean {
+  const rowFilho = String(row.filho_id || "").trim();
+  if (rowFilho && rowFilho === fid) return true;
+  return String(row.descricao || "").includes(`ID:${fid}`);
+}
+
+function rowIsUnpaidMensalidade(row: { status?: string | null; descricao?: string | null }): boolean {
+  const stRow = String(row.status || "").toLowerCase();
+  if (stRow === "pago" || stRow === "paid") return false;
+  return stRow === "pendente" || stRow === "pending" || String(row.descricao || "").toLowerCase().includes("vencimento");
 }
 
 async function whatsappLogExistsToday(
@@ -194,6 +217,8 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
   const { y, m0, ymd: todayYmd } = brazilTodayParts();
   const mesAno = `${String(m0 + 1).padStart(2, "0")}/${y}`;
   const mesExtenso = format(new Date(y, m0, 15), "MMMM 'de' yyyy", { locale: ptBR });
+  // Janela ampliada para pegar atrasadas de meses anteriores.
+  const lookbackStart = addDaysYmd(todayYmd, -120);
 
   const cfgMap = await loadWhatsAppConfigsByTenant(sb);
   const tenantIds = await listMensalidadeTenantIds(sb, cfgMap);
@@ -224,33 +249,35 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
       const monthStart = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
       const lastDay = new Date(y, m0 + 1, 0).getDate();
       const monthEnd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-      const kind = resolveMensalidadeCronKind({
+      const calendarKind = resolveMensalidadeCronKind({
         todayYmd,
         monthStart,
         monthEnd,
         dueYmd,
         tenantId,
       });
-      if (!kind) {
-        skipped++;
-        continue;
-      }
 
       const vencStr = format(parseISO(dueYmd), "dd/MM/yyyy");
       const valorFmt = formatBrl(valor);
-      const tipo =
-        kind === "disponivel"
-          ? "mensalidade_disponivel"
-          : kind === "vence_hoje"
-            ? "mensalidade_vence_hoje"
-            : "mensalidade_pendente";
-      const mesAnoParam =
-        kind === "disponivel" || kind === "vence_hoje" ? mesExtenso : `${mesAno} (venc. ${vencStr})`;
 
       const { data: children } = await sb
         .from("filhos_de_santo")
         .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
         .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
+
+      const { data: pendingRows } = await sb
+        .from("financeiro")
+        .select("id, status, descricao, data, tenant_id, lider_id, filho_id, valor")
+        .eq("categoria", "Mensalidade")
+        .or(`tenant_id.eq.${tenantId},lider_id.eq.${ctx.leaderId}`)
+        .gte("data", lookbackStart)
+        .lte("data", monthEnd);
+
+      const unpaid = (pendingRows || []).filter((row) => rowIsUnpaidMensalidade(row));
+      if (unpaid.length === 0) {
+        skipped++;
+        continue;
+      }
 
       for (const child of children || []) {
         const st = String(child.status || "Ativo").trim().toLowerCase();
@@ -261,25 +288,49 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
 
         const fid = String(child.id);
-        const { data: pendingRows } = await sb
-          .from("financeiro")
-          .select("id, status, descricao, data, tenant_id, lider_id")
-          .eq("categoria", "Mensalidade")
-          .or(`tenant_id.eq.${tenantId},lider_id.eq.${ctx.leaderId}`)
-          .gte("data", monthStart)
-          .lte("data", monthEnd);
+        const childRows = unpaid.filter((row) => rowMatchesFilho(row, fid));
+        if (childRows.length === 0) continue;
 
-        const hasPending = (pendingRows || []).some((row: { descricao?: string; status?: string }) => {
-          const desc = String(row.descricao || "");
-          if (!desc.includes(`ID:${fid}`)) return false;
-          const stRow = String(row.status || "").toLowerCase();
-          if (stRow === "pago" || stRow === "paid") return false;
-          return desc.toLowerCase().includes("vencimento") || stRow === "pendente" || stRow === "pending";
+        const hasCurrentPending = childRows.some((row) => {
+          const d = String(row.data || "").slice(0, 10);
+          return d >= monthStart && d <= monthEnd;
         });
-        if (!hasPending) continue;
+        const hasOverdue = childRows.some((row) => {
+          const d = String(row.data || "").slice(0, 10);
+          return Boolean(d) && d < todayYmd;
+        });
+
+        let kind = calendarKind;
+        // Atrasadas começam a disparar imediatamente (não esperam o próximo dia sorteado).
+        if (!kind && hasOverdue) kind = "atrasada";
+        if (kind === "disponivel" && !hasCurrentPending && hasOverdue) kind = "atrasada";
+        if (!kind) continue;
+        if ((kind === "disponivel" || kind === "vence_hoje") && !hasCurrentPending) continue;
+        if (kind === "atrasada" && !hasOverdue && !(todayYmd > dueYmd && hasCurrentPending)) continue;
+        if (kind === "pendente" && !hasCurrentPending && !hasOverdue) continue;
+
+        const tipo =
+          kind === "disponivel"
+            ? "mensalidade_disponivel"
+            : kind === "vence_hoje"
+              ? "mensalidade_vence_hoje"
+              : "mensalidade_pendente";
+        const mesAnoParam =
+          kind === "disponivel" || kind === "vence_hoje"
+            ? mesExtenso
+            : kind === "atrasada"
+              ? `${mesAno} (atrasada · venc. ${vencStr})`
+              : `${mesAno} (venc. ${vencStr})`;
+
+        const overdueValor = Number(
+          childRows.find((row) => String(row.data || "").slice(0, 10) < todayYmd)?.valor ??
+            childRows[0]?.valor ??
+            valor
+        );
+        const valorEnvio = formatBrl(overdueValor > 0 ? overdueValor : valor);
 
         const dedupeKey =
-          kind === "pendente"
+          kind === "pendente" || kind === "atrasada"
             ? `${kind}-${fid}-${todayYmd}`
             : `${kind}-${fid}-${format(parseISO(dueYmd), "yyyy-MM")}`;
         if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, todayYmd)) {
@@ -291,8 +342,8 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
         const variables = {
           nome_filho: nomeMembro,
           nome_terreiro: ctx.nomeTerreiro,
-          valor_mensalidade: valorFmt,
-          valor: valorFmt,
+          valor_mensalidade: valorEnvio,
+          valor: valorEnvio,
           data_vencimento: vencStr,
           mes_ano: mesAnoParam,
           competencia: mesAno,
