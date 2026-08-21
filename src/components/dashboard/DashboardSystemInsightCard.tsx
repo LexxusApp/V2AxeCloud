@@ -31,7 +31,9 @@ export function DashboardSystemInsightCard({
 
   const eligible = useMemo(() => {
     if (userRole === "filho") return false;
-    if (tid === YLE_TENANT_ID) return true;
+    // YLÊ (Alex) já fechou o insight (access.insight.dismissed) — não mostrar mais
+    if (tid === YLE_TENANT_ID) return false;
+    // Prévia só na conta de teste do Lucas
     if (email && PREVIEW_EMAILS.has(email)) return true;
     return false;
   }, [tid, email, userRole]);
