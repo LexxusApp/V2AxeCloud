@@ -37,16 +37,33 @@ export function DashboardSystemInsightCard({
   }, [tid, email, userRole]);
 
   const storageKey = useMemo(() => {
-    const scope = tid || email || "default";
-    return `${STORAGE_KEY}:${scope}`;
+    // Chave estável para o YLÊ — evita gravar em "default" se tenantId atrasar no boot
+    if (tid === YLE_TENANT_ID) return `${STORAGE_KEY}:${YLE_TENANT_ID}`;
+    if (PREVIEW_EMAILS.has(email)) return `${STORAGE_KEY}:preview:${email}`;
+    return `${STORAGE_KEY}:${tid || email || "default"}`;
   }, [tid, email]);
 
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setDismissed(localStorage.getItem(storageKey) === "1");
-  }, [storageKey]);
+    const primary = localStorage.getItem(storageKey) === "1";
+    // Migra chaves antigas (scope errado / default) para a chave estável
+    if (!primary && tid === YLE_TENANT_ID) {
+      const legacyKeys = [
+        STORAGE_KEY,
+        `${STORAGE_KEY}:default`,
+        email ? `${STORAGE_KEY}:${email}` : "",
+      ].filter(Boolean);
+      const hit = legacyKeys.find((k) => localStorage.getItem(k) === "1");
+      if (hit) {
+        localStorage.setItem(storageKey, "1");
+        setDismissed(true);
+        return;
+      }
+    }
+    setDismissed(primary);
+  }, [storageKey, tid, email]);
 
   if (!eligible || dismissed) return null;
 

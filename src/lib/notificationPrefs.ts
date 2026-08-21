@@ -66,7 +66,9 @@ function isPreservedUiPrefKey(key: string): boolean {
     key === NOTIF_DISMISS_KEY ||
     key.startsWith(`${NOTIF_READ_KEY}:`) ||
     key.startsWith(`${NOTIF_DISMISS_KEY}:`) ||
-    key.startsWith(OBRIGACOES_SEEN_PREFIX)
+    key.startsWith(OBRIGACOES_SEEN_PREFIX) ||
+    // Insights do dashboard (ex.: card do YLÊ) — senão voltam a cada login
+    key.startsWith('axecloud:insight:')
   );
 }
 
