@@ -89,7 +89,7 @@ export default function Home() {
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
         .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
-        .from(".cx-hero-console", { y: 42, opacity: 0, scale: .96 }, .18)
+        .from(".cx-hero-housemap", { y: 42, opacity: 0, scale: .96 }, .18)
         .from(".cx-hero-module", { y: 22, opacity: 0, stagger: .05, duration: .5 }, .42)
         .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
 
@@ -150,13 +150,13 @@ export default function Home() {
           <div className="cx-hero-assurance"><span><ShieldCheck /> Dados privados</span><span><MessageCircleMore /> Suporte humano</span><span><Check /> Todos os módulos</span></div>
         </div>
 
-        <aside className="cx-hero-console" aria-label="Áreas reais organizadas pelo AxéCloud">
-          <header><div><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>A rotina da casa, conectada.</strong></span></div><p><i /> SISTEMA ONLINE</p></header>
-          <div className="cx-hero-console-intro"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
+        <aside className="cx-hero-housemap" aria-label="Áreas da casa organizadas pelo AxéCloud">
+          <div className="cx-hero-housemap-title"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
+          <div className="cx-hero-housemap-heart"><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>Uma casa. Uma direção.</strong></span></div>
           <div className="cx-hero-modules">
-            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div><i /></article>)}
+            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div></article>)}
           </div>
-          <footer><span><LockKeyhole /> Ambiente isolado por casa</span><span>14 módulos incluídos</span></footer>
+          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>14 módulos incluídos</span></p>
         </aside>
       </div>
       <a className="cx-hero-scroll" href="#casa"><span>CONHEÇA O SISTEMA</span><i /></a>
