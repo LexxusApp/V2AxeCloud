@@ -180,13 +180,14 @@ export function DirectoryCoverageMap({
     if (mapRef.current) mapRef.current.remove();
 
     const map = L.map(containerRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       scrollWheelZoom: false,
       minZoom: 4,
       maxZoom: 18,
       preferCanvas: true,
       zoomAnimation: true,
     });
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
     mapRef.current = map;
 
     // CartoDB Positron — clean, modern light basemap (no API key needed)
