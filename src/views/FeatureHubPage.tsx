@@ -4,7 +4,7 @@ import { FEATURE_HUB, FEATURE_PAGES, featurePagePath } from '../constants/featur
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import { appHref } from '../lib/appHref';
 import { ROUTES } from '../lib/routes';
-import { ContentMarketingLayout, matrizPortalCardClass } from '../components/marketing/ContentMarketingLayout';
+import { cinematicPortalCardClass, ContentMarketingLayout } from '../components/marketing/ContentMarketingLayout';
 import { cn } from '../lib/utils';
 
 const fade = {
@@ -22,6 +22,7 @@ export default function FeatureHubPage() {
       summary={FEATURE_HUB.lead}
       backHref={ROUTES.home}
       backLabel="Voltar ao início"
+      theme="cinematic"
     >
       <ul className="mt-10 grid list-none gap-4 sm:grid-cols-2" role="list">
         {FEATURE_PAGES.map((page, i) => (
@@ -29,35 +30,37 @@ export default function FeatureHubPage() {
             <a
               href={featurePagePath(page.slug)}
               className={cn(
-                'group flex h-full flex-col p-5 transition hover:border-[#ffc107]/50',
-                matrizPortalCardClass,
+                'group relative flex min-h-56 h-full flex-col overflow-hidden p-6 transition duration-300 hover:-translate-y-1 hover:border-[#e5ae12]/45 hover:bg-[#151a12]',
+                cinematicPortalCardClass,
               )}
             >
-              <h2 className="text-lg font-black text-[#1b1813] group-hover:text-[#a87400]">{page.h1}</h2>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-[#1b1813]/65">{page.lead}</p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#a87400]">
+              <span className="mb-8 text-[10px] font-black tracking-[.22em] text-[#e5ae12]/65">0{i + 1}</span>
+              <h2 className="max-w-md text-xl font-extrabold leading-tight text-[#f4efe3] group-hover:text-[#f2c03b]">{page.h1}</h2>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-[#9fa49a]">{page.lead}</p>
+              <span className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-[#e5ae12]">
                 Ver recurso
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </span>
+              <i className="pointer-events-none absolute -bottom-12 -right-12 h-32 w-32 rounded-full border border-[#e5ae12]/10" aria-hidden />
             </a>
           </motion.li>
         ))}
       </ul>
 
-      <div className={cn('mt-12 p-6 text-center sm:p-8', matrizPortalCardClass)}>
-        <p className="text-sm text-[#1b1813]/70">
+      <div className={cn('mt-12 border-l-2 border-l-[#e5ae12] p-6 text-center sm:p-8', cinematicPortalCardClass)}>
+        <p className="text-sm text-[#a9ada3]">
           Prefere ver tudo lado a lado? Compare com planilha e outros sistemas.
         </p>
         <div className="mt-4 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href={ROUTES.whyAxeCloud}
-            className="inline-flex items-center justify-center rounded-full border border-[#e8dfd0] px-5 py-2.5 text-xs font-bold text-[#1b1813] transition hover:border-[#ffc107]/50"
+            className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-xs font-bold text-[#f4efe3] transition hover:border-[#e5ae12]/50"
           >
             Por que AxéCloud
           </a>
           <a
             href={appHref(ROUTES.register)}
-            className="inline-flex items-center justify-center rounded-full bg-[#ffc107] px-5 py-2.5 text-xs font-bold text-[#1b1813] transition hover:bg-[#ffcd38]"
+            className="inline-flex items-center justify-center rounded-full bg-[#e5ae12] px-5 py-2.5 text-xs font-extrabold text-[#17150e] transition hover:bg-[#f2c03b]"
           >
             Teste {TRIAL_DAYS} dias grátis
           </a>

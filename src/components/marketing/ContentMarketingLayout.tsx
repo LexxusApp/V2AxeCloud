@@ -7,6 +7,9 @@ import { cn } from '../../lib/utils';
 export const matrizPortalCardClass =
   'rounded-[1.5rem] border border-[#e8dfd0] bg-white/80 shadow-sm shadow-black/5 backdrop-blur-sm';
 
+export const cinematicPortalCardClass =
+  'rounded-2xl border border-white/[0.1] bg-[#11150f]/90 shadow-[0_24px_70px_rgba(0,0,0,.22)]';
+
 export function MatrizKicker({ children }: { children: ReactNode }) {
   return (
     <span className="matriz-kicker-pulse inline-flex rounded-full bg-[#ffc107] px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1b1813]">
@@ -35,6 +38,7 @@ type ContentMarketingLayoutProps = {
   backHref?: string;
   backLabel?: string;
   wide?: boolean;
+  theme?: 'light' | 'cinematic';
 };
 
 export function ContentMarketingLayout({
@@ -46,10 +50,23 @@ export function ContentMarketingLayout({
   backHref,
   backLabel = 'Voltar ao conteúdo',
   wide = true,
+  theme = 'light',
 }: ContentMarketingLayoutProps) {
+  const cinematic = theme === 'cinematic';
   return (
-    <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
-      <MatrizPageBackground />
+    <div className={cn(
+      'relative min-h-dvh overflow-x-clip font-sans',
+      cinematic
+        ? 'cinematic-content bg-[#0b0f0a] text-[#f4efe3]'
+        : 'landing-v3 landing-mockup-theme bg-[#fdf8f0] text-[#1b1813]',
+    )}>
+      {cinematic ? (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_82%)]" />
+          <div className="absolute -right-40 top-32 h-[34rem] w-[34rem] rounded-full border border-[#e5ae12]/15 shadow-[0_0_0_80px_rgba(229,174,18,.025),0_0_0_160px_rgba(229,174,18,.018)]" />
+          <div className="absolute left-0 top-0 h-[42rem] w-[42rem] bg-[radial-gradient(circle,rgba(31,83,61,.22),transparent_64%)]" />
+        </div>
+      ) : <MatrizPageBackground />}
       <main
         className={cn(
           'relative z-[1] mx-auto w-full px-5 pb-24 pt-32 md:px-8 md:pt-36',
@@ -59,7 +76,12 @@ export function ContentMarketingLayout({
         {backHref ? (
           <a
             href={backHref}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#e8dfd0] bg-white/70 px-4 py-2 text-xs font-bold text-[#1b1813]/55 transition hover:border-[#ffc107]/40 hover:text-[#a87400]"
+            className={cn(
+              'mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition',
+              cinematic
+                ? 'border-white/10 bg-white/[.04] text-[#a9ada3] hover:border-[#e5ae12]/50 hover:text-[#f4efe3]'
+                : 'border-[#e8dfd0] bg-white/70 text-[#1b1813]/55 hover:border-[#ffc107]/40 hover:text-[#a87400]',
+            )}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             {backLabel}
@@ -74,13 +96,23 @@ export function ContentMarketingLayout({
             transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="lg:col-start-1 lg:row-start-1">
-              <MatrizKicker>{kicker}</MatrizKicker>
+              {cinematic ? (
+                <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.24em] text-[#e5ae12]">
+                  <i className="h-2 w-2 rounded-full bg-[#56d9a3] shadow-[0_0_16px_#56d9a3]" /> {kicker}
+                </span>
+              ) : <MatrizKicker>{kicker}</MatrizKicker>}
             </div>
-            <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-3xl font-black leading-[1.05] tracking-tight text-[#1b1813] sm:text-4xl md:text-5xl lg:text-6xl">
+            <h1 className={cn(
+              'lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-3xl font-black leading-[1.01] tracking-[-.045em] sm:text-4xl md:text-5xl lg:text-6xl',
+              cinematic ? 'max-w-4xl text-[#f4efe3]' : 'text-[#1b1813]',
+            )}>
               {title}
             </h1>
             {summary ? (
-              <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">
+              <p className={cn(
+                'lg:col-start-1 lg:row-start-3 mt-5 w-full max-w-3xl text-base leading-relaxed md:text-lg',
+                cinematic ? 'text-[#a9ada3]' : 'text-[#1b1813]/66',
+              )}>
                 {summary}
               </p>
             ) : null}
@@ -92,7 +124,7 @@ export function ContentMarketingLayout({
           </motion.div>
         </section>
 
-        <div className="mt-12 space-y-12 sm:mt-14">{children}</div>
+        <div className={cn('mt-12 space-y-12 sm:mt-14', cinematic && 'border-t border-white/[.08] pt-10')}>{children}</div>
       </main>
     </div>
   );
