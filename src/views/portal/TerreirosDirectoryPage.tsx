@@ -1,5 +1,5 @@
 ﻿import { motion } from 'framer-motion';
-import { BadgeCheck, MapPin, MessageCircle } from 'lucide-react';
+import { BadgeCheck, MapPin } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -9,7 +9,6 @@ import {
 } from '../../lib/diretorioSnapshot';
 import { fetchDiretorioMapPoints, type DiretorioMapPoint } from '../../lib/diretorioMap';
 import { MatrizPageBackground } from '../../components/marketing/MatrizPageBackground';
-import { commercialWhatsAppUrl } from '../../constants/commercialContact';
 import { monitorDirectoryPerformance } from '../../lib/directoryPerformance';
 
 const DirectoryCoverageMap = lazy(() =>
@@ -190,18 +189,16 @@ export default function TerreirosDirectoryPage() {
             <div>
               <h2 id="claim-profile-title" className="text-xl font-black text-[#1b1813]">Sua casa já aparece no diretório?</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#1b1813]/62">
-                Fale com o AxéCloud para corrigir informações, identificar sua casa e conhecer o perfil público com eventos e contato oficial.
+                Escolha a cidade, abra o perfil da sua casa e envie a solicitação de verificação pelo formulário da própria página.
               </p>
             </div>
           </div>
           <a
-            href={commercialWhatsAppUrl('Olá! Encontrei minha casa no diretório do AxéCloud e quero reivindicar ou atualizar o perfil.')}
-            target="_blank"
-            rel="noreferrer"
+            href="#coverage-map-title"
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1b1813] px-6 py-3.5 text-sm font-black text-white transition hover:bg-[#a87400]"
           >
-            <MessageCircle className="h-4 w-4 text-[#ffc107]" aria-hidden />
-            Reivindicar perfil
+            <MapPin className="h-4 w-4 text-[#ffc107]" aria-hidden />
+            Encontrar minha casa
           </a>
         </section>
       </main>
