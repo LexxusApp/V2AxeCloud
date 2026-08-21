@@ -154,6 +154,34 @@ export default function Home() {
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
     </section>
 
+    <section className="cx-services" id="servicos-publicos">
+      <div className="cx-services-copy cx-reveal">
+        <p>NOVIDADE NO MAPA AXÉCLOUD</p>
+        <h2>Quem procura cuidado.<br /><span>Encontra quem oferece.</span></h2>
+        <div className="cx-services-lead">
+          <MapPin />
+          <p>Casas com perfil reivindicado podem publicar seus serviços e atendimentos. As informações aparecem no perfil público do terreiro, com contato direto pelo WhatsApp.</p>
+        </div>
+        <ol>
+          <li><span>01</span><div><strong>Cadastre no painel</strong><small>Nome, descrição, duração, valor e disponibilidade.</small></div></li>
+          <li><span>02</span><div><strong>Publique no perfil</strong><small>Os atendimentos ficam visíveis para quem encontrou a casa no mapa.</small></div></li>
+          <li><span>03</span><div><strong>Receba o contato</strong><small>A pessoa fala diretamente com a casa pelo WhatsApp informado.</small></div></li>
+        </ol>
+        <a href="https://axecloud.com.br/terreiros">Explorar o mapa <ArrowRight /></a>
+      </div>
+
+      <div className="cx-services-profile cx-reveal" aria-label="Exemplo de como os atendimentos aparecem no perfil público">
+        <div className="cx-services-map"><i /><i /><i /><span><MapPin /></span><small>EXEMPLO DE PERFIL PÚBLICO</small></div>
+        <div className="cx-services-profile-head"><div><small>CASA DE AXÉ · PERFIL NO MAPA</small><strong>Atendimentos espirituais</strong></div><span>PUBLICADO</span></div>
+        <div className="cx-services-list">
+          <article><div><strong>Jogo de Búzios</strong><small>Orientação e consulta individual</small></div><span>60 min</span></article>
+          <article><div><strong>Limpeza Espiritual</strong><small>Atendimento com horário marcado</small></div><span>Sob consulta</span></article>
+          <article><div><strong>Atendimento de Umbanda</strong><small>Consulte dias e disponibilidade</small></div><span>Disponível</span></article>
+        </div>
+        <div className="cx-services-contact"><MessageCircleMore /><span><small>CONTATO DIRETO</small><strong>Agendar via WhatsApp</strong></span><ArrowRight /></div>
+      </div>
+    </section>
+
     <section className="cx-clutter" id="problema"><div className="cx-clutter-sticky"><div className="cx-clutter-copy"><p>01 — O PROBLEMA</p><h2 className="before">Quando tudo chega<br />por caminhos diferentes.</h2><h2 className="after">A rotina volta<br />a caber no dia.</h2><span>O sistema organiza sem interferir no fundamento da casa.</span></div><div className="cx-clutter-stage">{scattered.map(([a,b,c],i) => <div className={`cx-scattered ${c} scatter-${i}`} key={a}><small>{a}</small><strong>{b}</strong></div>)}<div className="cx-organized"><div className="cx-organized-head"><span><i /> ROTINA DE HOJE</span><small>4 AÇÕES ORGANIZADAS</small></div>{[[CircleDollarSign,"Financeiro conciliado","12 mensalidades"],[CalendarDays,"Agenda confirmada","Gira · 20h"],[MessageCircleMore,"Comunidade avisada","96% entregues"],[PackageCheck,"Materiais conferidos","Estoque atualizado"]].map(([Icon,title,note],i) => { const I = Icon as typeof CircleDollarSign; return <div className="cx-organized-row" key={title as string}><span>0{i+1}</span><I /><div><strong>{title as string}</strong><small>{note as string}</small></div><Check /></div>})}</div></div></div></section>
 
     <section className="cx-security" id="seguranca"><div className="cx-security-sticky"><div className="cx-corridor" aria-hidden="true"><div className="cx-corridor-left" /><div className="cx-corridor-right" /><div className="cx-corridor-ceiling" /></div><Rack /><div className="cx-security-copy"><p>02 — SEGURANÇA</p><h2>O que é sagrado<br />não pode ficar exposto.</h2><span>Dados financeiros, pessoais e registros da casa permanecem privados, protegidos e sob seu controle.</span><div className="cx-security-proof"><span><LockKeyhole /> Acesso controlado</span><span><ShieldCheck /> Privacidade e LGPD</span><span><FileText /> Backup contínuo</span></div></div></div></section>
