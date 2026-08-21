@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { BadgeCheck, LocateFixed, MapPin, Navigation, RotateCcw } from 'lucide-react';
+import { LocateFixed, MapPin, RotateCcw, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DiretorioMapPoint } from '../../lib/diretorioMap';
 
@@ -268,72 +268,54 @@ export function DirectoryCoverageMap({
 
   return (
     <section
-      className="mt-10 overflow-hidden rounded-[2rem] border border-[#e0d6c8] bg-white shadow-[0_32px_90px_rgba(0,0,0,.12)]"
+      className="relative mt-7 overflow-hidden rounded-[1.5rem] border border-[#d8cdbd] bg-[#f0ece3] shadow-[0_28px_80px_rgba(0,0,0,.14)] md:rounded-[2rem]"
       aria-labelledby="coverage-map-title"
     >
-      {/* Header */}
-      <div className="border-b border-[#e8dfd0] bg-[#111810] px-6 py-6 text-white md:px-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#E5AE12]">
-              Diretório AxéCloud
-            </p>
-            <h2 id="coverage-map-title" className="mt-1 text-2xl font-black md:text-3xl">
-              Terreiros no mapa
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/60">
-              Explore as casas com coordenadas confirmadas. Clique em qualquer pin para ver o perfil.
-            </p>
-
-            {/* Legenda */}
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-bold text-white/70" aria-label="Legenda do mapa">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full border border-[#6B4E00] bg-[#E5AE12]" />
-                Terreiro no diretório
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <BadgeCheck className="h-3 w-3 text-emerald-400" />
-                <span className="h-3 w-3 rounded-full border border-[#065F46] bg-[#34D399]" />
-                Perfil reivindicado ({verifiedCount.toLocaleString('pt-BR')})
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 md:items-end">
-            {/* Busca rápida */}
-            <div className="relative w-full md:w-64">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#E5AE12]" aria-hidden />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filtrar por nome ou cidade…"
-                className="h-10 w-full rounded-full border border-white/15 bg-white/10 pl-9 pr-4 text-sm font-semibold text-white placeholder:text-white/35 outline-none transition focus:border-[#E5AE12]/50 focus:ring-2 focus:ring-[#E5AE12]/15"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={locateNearest}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#E5AE12] px-5 py-2.5 text-sm font-black text-[#1b1813] transition hover:bg-[#F4C43A] md:w-auto"
-            >
-              <LocateFixed className="h-4 w-4" aria-hidden />
-              Encontrar perto de mim
-            </button>
-            {locationStatus ? (
-              <p className="max-w-xs text-[11px] text-white/60" role="status">{locationStatus}</p>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <h2 id="coverage-map-title" className="sr-only">Terreiros no mapa</h2>
 
       {/* Map area */}
-      <div className="relative min-h-[460px] bg-[#f0ece3] md:min-h-[680px]">
+      <div className="relative min-h-[68svh] bg-[#f0ece3] md:min-h-[72vh] md:max-h-[860px]">
         <div
           ref={containerRef}
           className="absolute inset-0 z-0"
           aria-label={`Mapa interativo com ${filteredPoints.length} terreiros`}
         />
+
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex flex-col gap-2 md:inset-x-5 md:top-5 md:flex-row md:items-start md:justify-between">
+          <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 rounded-2xl border border-white/70 bg-[#111810]/92 p-2 shadow-2xl backdrop-blur-xl">
+            <Search className="ml-2 h-4 w-4 shrink-0 text-[#E5AE12]" aria-hidden />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por terreiro ou cidade…"
+              className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm font-semibold text-white outline-none placeholder:text-white/45"
+            />
+            <button
+              type="button"
+              onClick={locateNearest}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#E5AE12] px-3 text-xs font-black text-[#1b1813] transition hover:bg-[#F4C43A] md:px-4 md:text-sm"
+            >
+              <LocateFixed className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Perto de mim</span>
+            </button>
+          </div>
+
+          <div className="pointer-events-auto self-start rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-[10px] font-bold text-[#1b1813]/70 shadow-lg backdrop-blur-xl" aria-label="Legenda do mapa">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-[#6B4E00] bg-[#E5AE12]" /> Casas mapeadas
+            </span>
+            <span className="ml-3 inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-[#065F46] bg-[#34D399]" /> {verifiedCount.toLocaleString('pt-BR')} verificadas
+            </span>
+          </div>
+        </div>
+
+        {locationStatus ? (
+          <p className="absolute bottom-14 left-1/2 z-[500] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-full bg-[#111810]/90 px-4 py-2 text-center text-[11px] font-semibold text-white shadow-xl backdrop-blur" role="status">
+            {locationStatus}
+          </p>
+        ) : null}
 
         {/* Loading skeleton */}
         {loading && points.length === 0 ? (
@@ -385,17 +367,14 @@ export function DirectoryCoverageMap({
             </div>
           </div>
         ) : null}
-      </div>
 
-      {/* Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e8dfd0] px-6 py-3.5 text-[11px] text-[#1b1813]/50 md:px-8">
-        <span className="flex items-center gap-1.5">
-          <Navigation className="h-3.5 w-3.5" aria-hidden />
-          {searchQuery.trim()
-            ? `${filteredPoints.length.toLocaleString('pt-BR')} de ${points.length.toLocaleString('pt-BR')} terreiros filtrados`
-            : `${points.length.toLocaleString('pt-BR')} terreiros com localização exata`}
-        </span>
-        <span>Coordenadas obtidas dos links públicos do Google Maps</span>
+        {!loading && points.length > 0 ? (
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-white/92 px-4 py-2 text-[11px] font-bold text-[#1b1813]/65 shadow-lg backdrop-blur-xl">
+            {searchQuery.trim()
+              ? `${filteredPoints.length.toLocaleString('pt-BR')} de ${points.length.toLocaleString('pt-BR')} casas`
+              : `${points.length.toLocaleString('pt-BR')} casas com localização confirmada`}
+          </div>
+        ) : null}
       </div>
     </section>
   );

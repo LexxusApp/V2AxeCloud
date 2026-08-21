@@ -1,8 +1,7 @@
 ﻿import { motion } from 'framer-motion';
-import { ArrowRight, BadgeCheck, Loader2, MapPin, MessageCircle, Search } from 'lucide-react';
+import { BadgeCheck, MapPin, MessageCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { diretorioCityPath } from '../../lib/diretorioSlug';
 import {
   loadDiretorioCidadesResumo,
   readEmbeddedDiretorioCidadesResumo,
@@ -18,14 +17,6 @@ const DirectoryCoverageMap = lazy(() =>
     default: module.DirectoryCoverageMap,
   })),
 );
-
-function normalizeSearch(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
 
 function MatrizKicker({ children }: { children: ReactNode }) {
   return (
@@ -105,10 +96,6 @@ function DeferredDirectoryCoverageMap() {
 export default function TerreirosDirectoryPage() {
   const embeddedCidades = useMemo(() => readEmbeddedDiretorioCidadesResumo(), []);
   const [cidades, setCidades] = useState<DiretorioCidadeResumo[]>(embeddedCidades);
-  const [loading, setLoading] = useState(embeddedCidades.length === 0);
-  const [q, setQ] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [showAllCities, setShowAllCities] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,8 +103,6 @@ export default function TerreirosDirectoryPage() {
     const performanceMonitor = monitorDirectoryPerformance();
 
     async function load() {
-      if (embeddedCidades.length === 0) setLoading(true);
-      setError(null);
       try {
         const snapshot = await loadDiretorioCidadesResumo();
         if (cancelled) return;
@@ -131,9 +116,7 @@ export default function TerreirosDirectoryPage() {
           totalTerreiros: snapshot.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0),
         });
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao carregar cidades');
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) console.warn(e instanceof Error ? e.message : 'Erro ao carregar cidades');
       }
     }
 
@@ -143,19 +126,6 @@ export default function TerreirosDirectoryPage() {
       performanceMonitor.stop();
     };
   }, [embeddedCidades.length]);
-
-  const filteredCidades = useMemo(() => {
-    const term = normalizeSearch(q);
-    if (!term) return cidades;
-    return cidades.filter((cidade) =>
-      normalizeSearch(`${cidade.cidade} ${cidade.estado || ''}`).includes(term),
-    );
-  }, [cidades, q]);
-
-  const visibleCidades = useMemo(
-    () => (q.trim() || showAllCities ? filteredCidades : filteredCidades.slice(0, 9)),
-    [filteredCidades, q, showAllCities],
-  );
 
   const totalTerreiros = useMemo(
     () => cidades.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0),
@@ -182,10 +152,10 @@ export default function TerreirosDirectoryPage() {
               <MatrizKicker>Diretório de terreiros</MatrizKicker>
             </div>
             <h1 className="lg:col-start-1 lg:row-start-2 mt-6 max-w-none text-balance text-3xl font-black leading-[1.05] tracking-tight text-[#1b1813] sm:text-4xl md:text-6xl">
-              Primeiro escolha uma cidade
+              Encontre uma casa de axé perto de você
             </h1>
             <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">
-              Mais de 2 mil terreiros mapeados por cidade e bairro. Escolha uma cidade para ver a lista completa.
+              Pesquise pelo nome ou pela cidade, explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos.
             </p>
             <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
               <div className="rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-5 shadow-xl shadow-black/5 backdrop-blur-sm">
@@ -205,97 +175,12 @@ export default function TerreirosDirectoryPage() {
                   <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#1b1813]/45">Terreiros</p>
                 </div>
               </div>
-              <label className="relative mt-5 block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1b1813]/40" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Buscar cidade..."
-                  className="w-full rounded-full border border-[#e8dfd0] bg-white py-3 pl-11 pr-4 text-sm font-semibold text-[#1b1813] outline-none transition placeholder:text-[#1b1813]/35 focus:border-[#ffc107]/60 focus:ring-4 focus:ring-[#ffc107]/15"
-                />
-              </label>
               </div>
             </div>
           </motion.div>
         </section>
 
         <DeferredDirectoryCoverageMap />
-
-        <section className="mt-14" aria-labelledby="directory-cities-title">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a87400]">Navegar pela lista</p>
-              <h2 id="directory-cities-title" className="mt-2 text-2xl font-black text-[#1b1813] md:text-3xl">
-                Escolha uma cidade
-              </h2>
-            </div>
-            <p className="text-sm font-semibold text-[#1b1813]/55">
-              {filteredCidades.length} cidade{filteredCidades.length === 1 ? '' : 's'} encontrada{filteredCidades.length === 1 ? '' : 's'}
-            </p>
-          </div>
-          {loading ? (
-            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
-              <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
-              <p className="mt-4 text-sm font-bold text-[#1b1813]/55">Carregando cidades mapeadas...</p>
-            </div>
-          ) : error ? (
-            <div className="rounded-[2rem] border border-red-200 bg-white/80 p-8 text-center text-red-600">
-              {error}
-            </div>
-          ) : filteredCidades.length === 0 ? (
-            <div className="rounded-[2rem] border border-dashed border-[#e8dfd0] bg-white/70 p-10 text-center">
-              <p className="font-bold text-[#1b1813]/70">Nenhuma cidade encontrada para essa busca.</p>
-            </div>
-          ) : (
-            <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {visibleCidades.map((cidade, index) => (
-                <motion.a
-                  key={`${cidade.estado || 'br'}-${cidade.cidadeSlug}`}
-                  href={diretorioCityPath(cidade.estado, cidade.cidadeSlug)}
-                  className="group relative overflow-hidden rounded-[1.25rem] border border-[#e8dfd0] bg-white/80 px-4 py-3.5 shadow-sm shadow-black/5 backdrop-blur-sm transition hover:-translate-y-1 hover:border-[#ffc107]/50 hover:shadow-xl hover:shadow-[#ffc107]/10"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -8, scale: 1.018 }}
-                  whileTap={{ scale: 0.985 }}
-                  transition={{ delay: Math.min(index * 0.025, 0.28), duration: 0.5 }}
-                >
-                  <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-[#ffc107]/14 blur-2xl" />
-                  <div className="relative flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="flex items-center gap-2 text-base font-black text-[#1b1813] md:text-lg">
-                        <MapPin className="h-4 w-4 shrink-0 text-[#a87400]" aria-hidden />
-                        {cidade.cidade}
-                        {cidade.estado ? `, ${cidade.estado}` : ''}
-                      </h3>
-                      <p className="mt-1 pl-6 text-xs text-[#1b1813]/58">
-                        {cidade.totalTerreiros} terreiro{cidade.totalTerreiros === 1 ? '' : 's'}
-                        {cidade.totalBairros > 0
-                          ? ` em ${cidade.totalBairros} bairro${cidade.totalBairros === 1 ? '' : 's'}.`
-                          : '.'}
-                      </p>
-                    </div>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ffc107] text-[#1b1813] transition group-hover:translate-x-1">
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </motion.a>
-              ))}
-            </div>
-            {!q.trim() && filteredCidades.length > 9 ? (
-              <div className="mt-7 text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowAllCities((value) => !value)}
-                  className="rounded-full border border-[#1b1813]/15 bg-white/80 px-6 py-3 text-sm font-black text-[#1b1813] shadow-sm transition hover:border-[#ffc107] hover:bg-[#ffc107]/10"
-                >
-                  {showAllCities ? 'Mostrar apenas as principais' : `Ver todas as ${filteredCidades.length} cidades`}
-                </button>
-              </div>
-            ) : null}
-            </>
-          )}
-        </section>
 
         <section className="mt-16 grid gap-6 overflow-hidden rounded-[2rem] border border-[#e8dfd0] bg-white/82 p-7 shadow-xl shadow-black/5 md:grid-cols-[1fr_auto] md:items-center md:p-9" aria-labelledby="claim-profile-title">
           <div className="flex gap-4">

@@ -190,11 +190,13 @@ h1 em { font-style: italic; color: var(--ouro); }
 .mapa-wrap {
   position: relative;
   z-index: 2;
-  max-width: 1180px;
-  margin: 0 auto 44px;
-  padding: 0 6vw;
+  width: min(94vw, 1500px);
+  max-width: none;
+  margin: 26px auto 64px;
+  padding: 0;
 }
 .mapa-card {
+  position: relative;
   overflow: hidden;
   border-radius: 22px;
   border: 1px solid #ded4c5;
@@ -202,38 +204,52 @@ h1 em { font-style: italic; color: var(--ouro); }
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.1);
 }
 .mapa-cabeca {
+  position: absolute;
+  z-index: 500;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.mapa-controles {
+  pointer-events: auto;
   display: grid;
-  gap: 18px;
-  padding: 20px 28px;
-  background: #17130e;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(190px, .85fr) auto;
+  gap: 8px;
+  width: min(820px, calc(100% - 210px));
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 16px;
+  background: rgba(17,24,16,.93);
+  box-shadow: 0 14px 40px rgba(0,0,0,.24);
+  backdrop-filter: blur(18px);
+}
+.mapa-controles .busca,
+.mapa-controles .seletor {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.08);
   color: #fff;
 }
-@media (min-width: 760px) {
-  .mapa-cabeca { grid-template-columns: 1fr auto; align-items: end; }
+.mapa-controles .busca::placeholder { color: rgba(255,255,255,.48); }
+.mapa-controles .seletor option { color: #1b1813; background: #fff; }
+.mapa-legenda-flutuante {
+  pointer-events: auto;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 12px;
+  background: rgba(255,255,255,.93);
+  box-shadow: 0 10px 30px rgba(0,0,0,.14);
+  backdrop-filter: blur(14px);
 }
-.mapa-cabeca h2 {
-  font-family: "Fraunces", serif;
-  font-weight: 400;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-}
-.mapa-kicker {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #E5AE12;
-  margin-bottom: 4px;
-}
-.mapa-cabeca p {
-  margin-top: 8px;
-  max-width: 560px;
-  font-size: 0.88rem;
-  font-weight: 300;
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.65);
-}
-.mapa-legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
-.mapa-legenda span { display: inline-flex; align-items: center; gap: 7px; color: rgba(255, 255, 255, 0.74); font-size: 0.7rem; font-weight: 600; }
+.mapa-legenda { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0; }
+.mapa-legenda span { display: inline-flex; align-items: center; gap: 7px; color: rgba(27,24,19,.72); font-size: 0.68rem; font-weight: 700; }
 .mapa-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; border: 1px solid #6B4E00; background: #E5AE12; }
 .mapa-legenda .reivindicado i { width: 12px; height: 12px; border-color: #065F46; background: #34D399; }
 .btn-perto {
@@ -254,15 +270,27 @@ h1 em { font-style: italic; color: var(--ouro); }
 }
 .btn-perto:hover { background: #ffcd38; transform: translateY(-2px); }
 .mapa-status {
-  margin-top: 10px;
-  max-width: 260px;
+  position: absolute;
+  z-index: 501;
+  left: 50%;
+  bottom: 48px;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(17,24,16,.9);
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.82);
   line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
 }
+.mapa-status:empty { display: none; }
 #mapa {
-  height: min(64vh, 640px);
-  min-height: 440px;
+  height: 74vh;
+  min-height: 650px;
+  max-height: 900px;
   background: #d6e4d0;
 }
 .leaflet-container { background: #d6e4d0; }
@@ -285,11 +313,58 @@ h1 em { font-style: italic; color: var(--ouro); }
 .popup-instagram { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: #c13584; text-decoration: none; font-size: 0.78rem; font-weight: 700; }
 .popup-instagram svg { width: 16px; height: 16px; }
 .mapa-nota {
-  text-align: center;
-  padding: 12px 16px;
+  position: absolute;
+  z-index: 500;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
   font-size: 0.72rem;
+  font-weight: 700;
   color: rgba(27, 24, 19, 0.5);
-  border-top: 1px solid var(--borda);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  white-space: nowrap;
+}
+
+.mapa-intro {
+  position: relative;
+  z-index: 2;
+  width: min(94vw, 1500px);
+  margin: 118px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr);
+  grid-template-rows: auto auto;
+  align-items: end;
+  gap: 8px 48px;
+}
+.mapa-intro .kicker { grid-column: 1; grid-row: 1; }
+.mapa-intro h1 { grid-column: 1; grid-row: 2; max-width: 820px; font-family: "Fraunces", serif; font-size: clamp(2.6rem, 4.2vw, 4.8rem); font-weight: 400; line-height: .98; }
+.mapa-intro h1 em { color: var(--ouro); font-weight: 400; }
+.mapa-intro .lede { grid-column: 2; grid-row: 1 / span 2; max-width: 650px; margin: 0 0 4px; color: var(--tinta-fraca); line-height: 1.65; }
+
+@media (max-width: 820px) {
+  .mapa-intro { margin-top: 92px; display: block; }
+  .mapa-intro h1 { margin-top: 10px; font-size: clamp(2.25rem, 10vw, 3.6rem); }
+  .mapa-intro .lede { margin-top: 13px; font-size: .9rem; line-height: 1.58; }
+  .mapa-cabeca { top: 10px; left: 10px; right: 10px; flex-direction: column; }
+  .mapa-controles { width: 100%; grid-template-columns: 1fr auto; }
+  .mapa-controles .seletor { grid-column: 1 / -1; grid-row: 2; }
+  .mapa-legenda-flutuante { padding: 8px 10px; }
+  #mapa { height: 68svh; min-height: 540px; }
+}
+@media (max-width: 520px) {
+  .mapa-wrap, .mapa-intro { width: calc(100vw - 20px); }
+  .mapa-card { border-radius: 16px; }
+  .mapa-controles { grid-template-columns: minmax(0, 1fr) 48px; }
+  .mapa-controles .btn-perto { width: 48px; padding: 0; font-size: 0; }
+  .mapa-controles .btn-perto::before { content: "⌖"; font-size: 1.25rem; }
+  .mapa-legenda-flutuante { font-size: 0; }
+  .mapa-legenda span { font-size: 0.62rem; }
+  #mapa { min-height: 600px; }
 }
 
 /* Grade de fichas mapeadas */
@@ -403,47 +478,38 @@ footer a { color: var(--ouro); text-decoration: none; }
   </div>
 </nav>
 
-<header>
-  <div class="sol" aria-hidden="true"></div>
+<section class="mapa-intro">
   <p class="kicker">✦ diretório mapeado · dados reais do sistema</p>
-  <h1>As casas de axé <em>do Brasil</em></h1>
-  <p class="lede">O mapeamento de terreiros de Umbanda e Candomblé feito casa a casa — com endereço, telefone e localização no mapa. <strong id="total-geral">Carregando…</strong></p>
-</header>
-
-<div class="filtros">
-  <input class="busca" id="busca" type="search" placeholder="Filtrar por nome ou bairro na cidade…" autocomplete="off" />
-  <select class="seletor" id="seletor-cidade" aria-label="Filtrar por cidade do estado">
-    <option value="">Todas as cidades do estado…</option>
-  </select>
-</div>
-<div class="cidades-chips" id="chips"></div>
+  <h1>Encontre uma casa de axé <em>perto de você</em></h1>
+  <p class="lede">Pesquise pelo nome ou pela cidade, explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos. <strong id="total-geral">Carregando…</strong></p>
+</section>
 
 <div class="mapa-wrap">
   <div class="mapa-card">
     <div class="mapa-cabeca">
-      <div>
-        <p class="mapa-kicker">Diretório AxéCloud</p>
-        <h2>Terreiros no mapa</h2>
-        <p>Explore as casas com coordenadas confirmadas. Clique em qualquer pin para ver o perfil ou use “perto de mim”.</p>
+      <div class="mapa-controles">
+        <input class="busca" id="busca" type="search" placeholder="Buscar por terreiro ou cidade…" autocomplete="off" />
+        <select class="seletor" id="seletor-cidade" aria-label="Filtrar por cidade do estado">
+          <option value="">Todas as cidades…</option>
+        </select>
+        <button type="button" class="btn-perto" id="btn-perto">Perto de mim</button>
+      </div>
+      <div class="mapa-legenda-flutuante">
         <div class="mapa-legenda" aria-label="Legenda do mapa">
-          <span><i aria-hidden="true"></i>Terreiro no diretório</span>
-          <span class="reivindicado"><i aria-hidden="true"></i>Perfil reivindicado</span>
+          <span><i aria-hidden="true"></i>Casas mapeadas</span>
+          <span class="reivindicado"><i aria-hidden="true"></i>Verificadas</span>
         </div>
       </div>
-      <div>
-        <button type="button" class="btn-perto" id="btn-perto">Encontrar perto de mim</button>
-        <p class="mapa-status" id="mapa-status" role="status"></p>
-      </div>
     </div>
+    <p class="mapa-status" id="mapa-status" role="status"></p>
     <div id="mapa" aria-label="Mapa interativo dos terreiros"></div>
     <p class="mapa-nota" id="mapa-nota">carregando pontos do mapeamento…</p>
   </div>
 </div>
 
-<p class="contagem" id="contagem"></p>
-<main class="grade" id="grade">
-  <p class="estado">abrindo a porteira do mapeamento…</p>
-</main>
+<div class="cidades-chips" id="chips" hidden></div>
+<p class="contagem" id="contagem" hidden></p>
+<main class="grade" id="grade" hidden></main>
 
 <div id="site-footer"></div>
 
@@ -1137,6 +1203,15 @@ function desenha() {
   }
 
   atualizaMapa(filtrados);
+
+  // A página principal agora é centrada no mapa. As fichas completas continuam
+  // disponíveis nas páginas de cidade e nos perfis individuais indexáveis.
+  grade.replaceChildren();
+  const notaMapa = $("#mapa-nota");
+  if (notaMapa) {
+    notaMapa.textContent = `${totalExibido || todosPontos.length} casa${(totalExibido || todosPontos.length) === 1 ? "" : "s"} com localização confirmada`;
+  }
+  return;
 
   if (!filtrados.length && !todosPontos.length) {
     grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta seleção.</p>';
