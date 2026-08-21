@@ -230,13 +230,17 @@ h1 em { font-style: italic; color: var(--ouro); }
 }
 .mapa-controles .busca,
 .mapa-controles .seletor {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
   height: 44px;
+  line-height: normal;
   border-color: rgba(255,255,255,.14);
   background: rgba(255,255,255,.08);
   color: #fff;
 }
+.mapa-controles .busca { padding: 0 18px; }
+.mapa-controles .seletor { padding: 0 38px 0 18px; }
 .mapa-controles .busca::placeholder { color: rgba(255,255,255,.48); }
 .mapa-controles .seletor option { color: #1b1813; background: #fff; }
 .mapa-legenda-flutuante {
