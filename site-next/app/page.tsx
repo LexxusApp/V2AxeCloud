@@ -87,14 +87,11 @@ export default function Home() {
     gsap.ticker.add(tick); gsap.ticker.lagSmoothing(0); lenis.on("scroll", ScrollTrigger.update);
 
     const ctx = gsap.context(() => {
-      gsap.timeline({ scrollTrigger: { trigger: ".cx-opening", start: "top top", end: "bottom bottom", scrub: 1 } })
-        .to(".cx-door-left", { rotateY: -104, xPercent: -28, ease: "power2.inOut" }, 0)
-        .to(".cx-door-right", { rotateY: 104, xPercent: 28, ease: "power2.inOut" }, 0)
-        .to(".cx-door-seam", { opacity: 0, scaleY: 1.8 }, 0)
-        .to(".cx-opening-light", { scale: 2.4, opacity: 1 }, 0)
-        .fromTo(".cx-opening-copy > *", { y: 55, opacity: 0 }, { y: 0, opacity: 1, stagger: .08 }, .18)
-        .to(".cx-opening-copy", { y: -70, opacity: .15 }, .72)
-        .fromTo(".cx-threshold-copy", { y: 80, opacity: 0 }, { y: 0, opacity: 1 }, .72);
+      gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
+        .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
+        .from(".cx-hero-console", { y: 42, opacity: 0, scale: .96 }, .18)
+        .from(".cx-hero-module", { y: 22, opacity: 0, stagger: .05, duration: .5 }, .42)
+        .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
 
       gsap.timeline({ scrollTrigger: { trigger: ".cx-house", start: "top top", end: "bottom bottom", scrub: 1 } })
         .from(".cx-house-title > *", { y: 45, opacity: 0, stagger: .08 })
@@ -138,8 +135,31 @@ export default function Home() {
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
     <header className="cx-header"><Brand /><nav aria-label="Navegação principal"><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/por-que-axecloud">Por quê?</a><a href="#plano">Planos</a></nav><a className="cx-header-contact" href={CONTACT_URL} target="_blank" rel="noreferrer">Fale conosco</a><a className="cx-header-login" href="/entrar">Entrar</a><a className="cx-header-cta" href="https://axecloud.com.br/register">Testar 30 dias <ArrowRight /></a><button type="button" aria-label={menu ? "Fechar menu" : "Abrir menu"} aria-expanded={menu} aria-controls="menu-principal" onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button>{menu && <div className="cx-menu" id="menu-principal" role="navigation" aria-label="Navegação móvel" onClick={() => setMenu(false)}><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/por-que-axecloud">Por quê?</a><a href="#plano">Planos</a><div className="cx-menu-actions"><a className="cx-menu-login" href="/entrar">Entrar</a><a className="cx-menu-contact" href={CONTACT_URL} target="_blank" rel="noreferrer">Fale conosco</a><a className="cx-menu-trial" href="https://axecloud.com.br/register">Testar 30 dias <ArrowRight /></a></div></div>}</header>
 
-    <section className="cx-opening">
-      <div className="cx-opening-sticky"><div className="cx-opening-light" /><div className="cx-opening-copy"><p>GESTÃO PARA CASAS DE UMBANDA E CANDOMBLÉ</p><h1>Toda casa carrega<br />uma história.</h1><span>O AxéCloud ajuda a cuidar dela.</span></div><div className="cx-threshold-copy"><small>ANTES DE SER SISTEMA, É UMA CASA VIVA.</small><strong>Entre.</strong><i /></div><div className="cx-doors" aria-hidden="true"><div className="cx-door cx-door-left"><i /><i /><span /></div><div className="cx-door-seam" /><div className="cx-door cx-door-right"><i /><i /><span /></div></div><div className="cx-scroll-cue"><span>ROLE PARA ABRIR</span><i /></div></div>
+    <section className="cx-opening cx-conversion-hero" aria-labelledby="hero-title">
+      <div className="cx-hero-architecture" aria-hidden="true"><i /><i /><span /></div>
+      <div className="cx-conversion-shell">
+        <div className="cx-conversion-copy">
+          <p className="cx-hero-eyebrow"><i /> GESTÃO COMPLETA PARA CASAS DE AXÉ</p>
+          <h1 id="hero-title">Sua casa de axé.<span>Organizada em um só lugar.</span></h1>
+          <p className="cx-hero-lead">Financeiro, filhos de santo, giras, estoque, memória e comunicação em um sistema criado para terreiros de Umbanda e Candomblé.</p>
+          <div className="cx-hero-actions">
+            <a className="cx-hero-primary" href="https://axecloud.com.br/register">Testar grátis por 30 dias <ArrowRight /></a>
+            <a className="cx-hero-secondary" href="#casa">Ver como funciona <ArrowRight /></a>
+          </div>
+          <div className="cx-hero-price"><strong>30 dias grátis</strong><span>sem cartão</span><i /><span>depois</span><b>R$ 69,90/mês</b></div>
+          <div className="cx-hero-assurance"><span><ShieldCheck /> Dados privados</span><span><MessageCircleMore /> Suporte humano</span><span><Check /> Todos os módulos</span></div>
+        </div>
+
+        <aside className="cx-hero-console" aria-label="Áreas reais organizadas pelo AxéCloud">
+          <header><div><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>A rotina da casa, conectada.</strong></span></div><p><i /> SISTEMA ONLINE</p></header>
+          <div className="cx-hero-console-intro"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
+          <div className="cx-hero-modules">
+            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div><i /></article>)}
+          </div>
+          <footer><span><LockKeyhole /> Ambiente isolado por casa</span><span>14 módulos incluídos</span></footer>
+        </aside>
+      </div>
+      <a className="cx-hero-scroll" href="#casa"><span>CONHEÇA O SISTEMA</span><i /></a>
     </section>
 
     <section className="cx-house" id="casa"><div className="cx-house-sticky"><div className="cx-house-title"><p>01 — A CASA GANHA VIDA</p><h2>Muitos ritmos.<br /><span>Uma única direção.</span></h2></div><div className="cx-floorplan"><i className="cx-plan-wall wall-a" /><i className="cx-plan-wall wall-b" /><i className="cx-plan-wall wall-c" /><i className="cx-plan-wall wall-d" /><i className="cx-flow-line flow-a" /><i className="cx-flow-line flow-b" />{rooms.map(r => <article className={`cx-room room-${r.area}`} key={r.title}><span>{r.n}</span><r.icon /><div><h3>{r.title}</h3><p>{r.note}</p></div></article>)}<div className="cx-house-heart"><img src="/axecloud-trident.png" alt="" width="54" height="54" /><span>AXÉCLOUD</span></div></div><p className="cx-house-result">Tudo conversa. Nada se perde no caminho.</p></div></section>

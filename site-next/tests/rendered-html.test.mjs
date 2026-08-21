@@ -49,6 +49,10 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.match(text, /<meta[^>]+name="description"[^>]+Sistema de gestão para terreiros/i);
   assert.match(text, /<link[^>]+rel="canonical"[^>]+href="https:\/\/axecloud\.com\.br\/"/i);
   assert.equal((text.match(/<h1[\s>]/gi) || []).length, 1);
+  assert.match(text, /Sua casa de axé/);
+  assert.match(text, /Organizada em um só lugar/);
+  assert.match(text, /R\$ 69,90\/mês/);
+  assert.match(text, /Testar grátis por 30 dias/);
   assert.match(text, /Toda casa carrega/);
   assert.match(text, /PERGUNTAS FREQUENTES/);
   assert.match(text, /"@type":"Organization"/);
