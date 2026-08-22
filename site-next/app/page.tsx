@@ -81,10 +81,39 @@ export default function Home() {
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
-    const tick = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.add(tick); gsap.ticker.lagSmoothing(0); lenis.on("scroll", ScrollTrigger.update);
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const usesTouchNavigation = window.matchMedia("(hover: none), (pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+    let lenis: Lenis | null = null;
+    let tick: ((time: number) => void) | null = null;
+
+    // Native scrolling is more reliable on touch devices, especially after a
+    // page is restored from the mobile browser's back/forward cache.
+    if (!prefersReducedMotion && !usesTouchNavigation) {
+      lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+      tick = (time: number) => lenis?.raf(time * 1000);
+      gsap.ticker.add(tick);
+      gsap.ticker.lagSmoothing(0);
+      lenis.on("scroll", ScrollTrigger.update);
+    }
+
+    const restoreScrolling = () => {
+      document.documentElement.style.removeProperty("overflow");
+      document.documentElement.style.removeProperty("height");
+      document.body.style.removeProperty("overflow");
+      document.body.style.removeProperty("height");
+      document.body.style.removeProperty("position");
+      document.body.style.removeProperty("touch-action");
+      lenis?.resize();
+      lenis?.start();
+      window.requestAnimationFrame(() => ScrollTrigger.refresh(true));
+    };
+
+    window.addEventListener("pageshow", restoreScrolling);
+    restoreScrolling();
+
+    if (prefersReducedMotion) {
+      return () => window.removeEventListener("pageshow", restoreScrolling);
+    }
 
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
@@ -114,7 +143,12 @@ export default function Home() {
 
       gsap.utils.toArray<HTMLElement>(".cx-reveal").forEach(el => gsap.from(el, { y: 55, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 82%" } }));
     }, root);
-    return () => { ctx.revert(); lenis.destroy(); gsap.ticker.remove(tick); };
+    return () => {
+      window.removeEventListener("pageshow", restoreScrolling);
+      ctx.revert();
+      lenis?.destroy();
+      if (tick) gsap.ticker.remove(tick);
+    };
   }, []);
 
   const organizationJsonLd = { "@context": "https://schema.org", "@type": "Organization", "@id": "https://axecloud.com.br/#organization", name: "AxéCloud", url: "https://axecloud.com.br/", logo: "https://axecloud.com.br/icon-512.png" };
