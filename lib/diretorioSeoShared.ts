@@ -6,8 +6,8 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-19";
-export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-19";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-23";
+export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-23";
 
 export const STATIC_SITEMAP_PATHS: readonly {
   path: string;
@@ -46,6 +46,26 @@ export const STATIC_SITEMAP_PATHS: readonly {
   { path: "/recursos/portal-filho-de-santo", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/recursos/whatsapp-oficial", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/recursos/app-pwa-terreiro", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/painel-do-zelador", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/cadastro-filhos-de-santo", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/mural-de-avisos", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/galeria-fotos-terreiro", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/biblioteca-estudos-terreiro", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/loja-do-axe", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/almoxarifado-terreiro", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/atendimentos-pedidos-reza", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/diretorio-publico-terreiros", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/notificacoes-push", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/obrigacoes-alertas", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/frequencia-check-in", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/central-relatorios", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/patrimonio-sagrado", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/documentos-da-casa", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/consulentes-agenda", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/caminhada-mediunica", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/calendario-liturgico", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/desenvolvimento-mediunico", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/recursos/controle-camarinha", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/conteudo/glossario", changeFrequency: "monthly", priority: 0.8, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/terreiros", changeFrequency: "daily", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/eventos", changeFrequency: "daily", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },

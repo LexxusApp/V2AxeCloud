@@ -4,14 +4,11 @@ import test from 'node:test';
 import { STATIC_SITEMAP_PATHS, PUBLIC_SITE_SHELL_LASTMOD, buildSitemapXml, buildTerreiroPrerenderPage, staticSitemapRoutes } from '../lib/diretorioSeoShared';
 import { omitSelectColumn, selectColumnFromSchemaError } from '../lib/diretorioQuery';
 import { PUBLIC_PRERENDER_PAGES } from '../src/constants/seoPublicPages';
+import { FEATURE_PAGE_PATHS } from '../src/constants/featurePagesContent';
 
 const RESOURCE_PATHS = [
   '/recursos',
-  '/recursos/financeiro-pix-mensalidades',
-  '/recursos/calendario-giras',
-  '/recursos/portal-filho-de-santo',
-  '/recursos/whatsapp-oficial',
-  '/recursos/app-pwa-terreiro',
+  ...FEATURE_PAGE_PATHS,
 ] as const;
 
 test('sitemap não publica páginas utilitárias e não contém rotas duplicadas', () => {
