@@ -5,7 +5,6 @@ import {registerSW} from 'virtual:pwa-register';
 import {EmergencyReloadBeacon} from './components/EmergencyReloadBeacon';
 import {PwaUpdateBanner} from './components/PwaUpdateBanner';
 import {AppErrorBoundary} from './components/AppErrorBoundary';
-import {VercelInsights} from './components/VercelInsights';
 import {GoogleAnalytics} from './components/GoogleAnalytics';
 import {isCanonicalAppOrigin, redirectToCanonicalOriginIfNeeded} from './lib/canonicalOrigin';
 import {hideSeoStaticFallbackAfterHydration} from './lib/seoStaticFallback';
@@ -143,7 +142,6 @@ function bootstrapApp() {
           <PwaUpdateBanner />
           <EmergencyReloadBeacon />
           <AppRouter />
-          <VercelInsights />
           <GoogleAnalytics />
         </AppErrorBoundary>
       </MotionConfig>

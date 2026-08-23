@@ -16,6 +16,7 @@ import {
   isClearlyOutsideDiretorioScope,
   isDiretorioListingIndexable,
   isDiretorioListingPublishable,
+  isDiretorioPriorityIndexSlug,
 } from '../lib/diretorioQuality.ts';
 
 test('política de senha rejeita cada requisito ausente e aceita senha forte', () => {
@@ -145,6 +146,7 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
       estado: 'SP',
       endereco: 'Rua das Flores, 123 - Centro',
       telefone: '(11) 99999-0000',
+      foto_url: 'https://cdn.example/foto.jpg',
     }),
     true,
   );
@@ -155,7 +157,36 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
       cidade: 'Salvador',
       estado: 'BA',
       endereco: 'Rua do Axé, 45 - Liberdade',
+      telefone: '(71) 99999-0000',
       foto_url: 'https://cdn.example/foto.jpg',
+    }),
+    true,
+  );
+  assert.equal(
+    isDiretorioListingIndexable({
+      nome: 'Tenda de Umbanda Estrela Guia',
+      slug: 'tenda-umbanda-estrela-guia',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      endereco: 'Rua das Flores, 123 - Centro',
+      telefone: '(11) 99999-0000',
+    }),
+    false,
+  );
+  assert.equal(
+    isDiretorioPriorityIndexSlug('e-u-j-a-espaco-universalista-dr-jose-de-arimateia'),
+    true,
+  );
+  assert.equal(
+    isDiretorioListingIndexable({
+      nome: 'E.U.J.A(Espaço Universalista Dr. José De Arimateia)',
+      slug: 'e-u-j-a-espaco-universalista-dr-jose-de-arimateia',
+      cidade: 'Sorocaba',
+      estado: 'SP',
+      endereco: 'R. Santa Catarina, 72 - Vila Augusta, Sorocaba - SP, 18040-125',
+      telefone: '015996958720',
+      foto_url: '/api/v1/public/diretorio/foto/e-u-j-a-espaco-universalista-dr-jose-de-arimateia?v=2',
+      link_maps: 'https://www.google.com/maps/place/E.U.J.A',
     }),
     true,
   );

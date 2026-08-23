@@ -2,17 +2,18 @@ import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DIRETORIO_SEO_TEMPLATE_LASTMOD,
-  STATIC_SITEMAP_PATHS,
   buildCityPrerenderPage,
   buildMinimalSeoHtmlDocument,
   buildSitemapXml,
   buildTerreiroPrerenderPage,
+  staticSitemapRoutes,
   type DiretorioSeoTerreiro,
 } from "../../lib/diretorioSeoShared.js";
-import { fetchAllTerreirosRows, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
+import { fetchAllTerreirosRowsResilient, fetchTerreirosByCitySlug } from "../../lib/diretorioQuery.js";
 import {
   isDiretorioListingIndexable,
   isDiretorioListingPublishable,
+  isDiretorioPriorityIndexSlug,
 } from "../../lib/diretorioQuality.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { apiReadRateLimit } from "./rateLimit.js";
@@ -24,18 +25,13 @@ import {
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, tipo";
+  "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, tipo, verified_at";
 
 function sitemapLastModified(rawModified: string): string | undefined {
-  const fromRow =
-    rawModified && !Number.isNaN(new Date(rawModified).getTime())
-      ? new Date(rawModified).toISOString().slice(0, 10)
-      : undefined;
-
-  // Piso do template SEO: após enriquecimento global do HTML crawler, o Google
-  // precisa recrawlear. Com sitemap só de perfis ricos, o sinal permanece útil.
-  if (!fromRow) return DIRETORIO_SEO_TEMPLATE_LASTMOD;
-  return fromRow > DIRETORIO_SEO_TEMPLATE_LASTMOD ? fromRow : DIRETORIO_SEO_TEMPLATE_LASTMOD;
+  if (rawModified && !Number.isNaN(new Date(rawModified).getTime())) {
+    return new Date(rawModified).toISOString().slice(0, 10);
+  }
+  return DIRETORIO_SEO_TEMPLATE_LASTMOD;
 }
 
 function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
@@ -67,24 +63,28 @@ function siteOrigin(): string {
   }
 }
 
-export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
-  const data = await fetchAllTerreirosRows(
-    sb,
-    TABLE,
-    "nome, endereco, telefone, foto_url, link_maps, cidade, estado, cidade_slug, slug, tipo, created_at, updated_at",
-  );
+const SITEMAP_BUDGET_MS = 12_000;
+const SITEMAP_DIRETORIO_SELECT =
+  "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, cidade_slug, slug, tipo, verified_at, created_at, updated_at";
 
-  const routes: Array<{
-    path: string;
-    changeFrequency?: string;
-    priority?: number;
-    lastModified?: string;
-  }> = STATIC_SITEMAP_PATHS.map((r) => ({
-    path: r.path,
-    changeFrequency: r.changeFrequency,
-    priority: r.priority,
-    lastModified: r.lastModified || DIRETORIO_SEO_TEMPLATE_LASTMOD,
-  }));
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("sitemap_timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
+  const data = await fetchAllTerreirosRowsResilient(sb, TABLE, SITEMAP_DIRETORIO_SELECT);
+
+  const routes = staticSitemapRoutes();
 
   const cityRoutes = new Map<string, string | undefined>();
   for (const row of data || []) {
@@ -105,10 +105,11 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
     // Sitemap só com perfis ricos — thin/off-topic ficam no site com noindex.
     const slug = String(row.slug || "").trim();
     if (slug && isDiretorioListingIndexable(row)) {
+      const featured = isDiretorioPriorityIndexSlug(slug);
       routes.push({
         path: `/terreiro/${slug}`,
-        changeFrequency: "monthly",
-        priority: 0.75,
+        changeFrequency: featured ? "weekly" : "monthly",
+        priority: featured ? 0.9 : 0.65,
         lastModified: modifiedDate,
       });
     }
@@ -123,16 +124,18 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
 
 export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: { supabaseAdmin: SupabaseClient }) {
   app.get("/sitemap.xml", apiReadRateLimit, async (_req: Request, res: Response) => {
+    let routes = staticSitemapRoutes();
     try {
-      const routes = await buildDiretorioSitemapRoutes(sb);
-      const xml = buildSitemapXml(siteOrigin(), routes);
-      res.setHeader("Content-Type", "application/xml; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=7200");
-      res.send(xml);
+      routes = await withTimeout(buildDiretorioSitemapRoutes(sb), SITEMAP_BUDGET_MS);
     } catch (e: unknown) {
-      console.error("[sitemap.xml]", e);
-      res.status(500).type("text/plain").send("Erro ao gerar sitemap.");
+      console.error("[sitemap.xml] diretório falhou, servindo rotas estáticas", e);
     }
+
+    const xml = buildSitemapXml(siteOrigin(), routes);
+    res.status(200);
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=7200");
+    res.send(xml);
   });
 
   app.get(

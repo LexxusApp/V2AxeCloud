@@ -8,8 +8,7 @@ Servidor de referência: `66.94.103.197`, pasta `/opt/axecloud`.
 |------|------|----------|-------|
 | A | `@` | IP da VPS | Ligado (recomendado) |
 | A | `www` | IP da VPS | Ligado |
-
-Painel admin (`axecloud-admin`) pode continuar na Vercel apontando API para `https://axecloud.com.br`.
+| A | `admin` | IP da VPS | Ligado |
 
 ## 2. Código no servidor
 
@@ -19,7 +18,7 @@ apt install -y git
 git clone https://github.com/SEU_USUARIO/AxecloudV2.git .
 # ou: rsync/scp do PC para /opt/axecloud
 cp deploy/.env.vps.example .env
-nano .env   # preencher secrets (copiar do Vercel/.env local)
+nano .env   # preencher secrets (copiar do .env local)
 ```
 
 ## 3. Subir stack
@@ -55,7 +54,7 @@ sed -i 's/\r$//' /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 (crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs | grep -v '^CRON_TZ=America/Sao_Paulo' ; echo "CRON_TZ=America/Sao_Paulo"; echo "0 9 * * * /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
 ```
 
-O script usa a rede Docker (`http://app:3000/...`) para não seguir redirect HTTPS do Caddy para a Vercel enquanto o DNS ainda aponta para `76.76.21.21`.
+O script usa a rede Docker (`http://app:3000/...`) e não passa pelo HTTPS público.
 
 `cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00 de Brasília: mensalidade disponível (dia 1), lembrete pendente (1× por semana; 2× na semana do vencimento), aviso no dia do vencimento, lembretes de gira e alertas de estoque crítico. Log em `/var/log/axecloud-whatsapp-cron.log`.
 
@@ -68,8 +67,7 @@ Atualizar URLs no painel Efí / integrações para `https://axecloud.com.br/...`
 ## 6. Cutover
 
 1. Testar login, dashboard, WhatsApp, pagamento.
-2. Desativar deploy Vercel (app) e Railway (Evolution) quando estável.
-3. Manter Supabase remoto.
+2. Manter Supabase remoto.
 
 ## 7. Atualizar versão
 

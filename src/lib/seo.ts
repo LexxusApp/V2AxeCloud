@@ -129,7 +129,7 @@ const ROUTE_SEO: Record<string, RouteSeo> = {
   [ROUTES.whyAxeCloud]: {
     title: `Por que AxéCloud? Comparativo e módulos | ${BRAND_NAME}`,
     description:
-      'Compare o AxéCloud com planilhas e outros softwares de terreiro. 14 módulos reais, app PWA, WhatsApp Meta e portal — tudo incluso. Teste 30 dias.',
+      'Compare o AxéCloud com planilhas e outros softwares de terreiro. 24 módulos reais, app PWA, WhatsApp Meta e portal — tudo incluso. Teste 30 dias.',
     canonicalPath: '/por-que-axecloud',
     robots: 'index, follow',
   },

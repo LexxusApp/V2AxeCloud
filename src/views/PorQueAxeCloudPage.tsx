@@ -149,7 +149,7 @@ export default function PorQueAxeCloudPage() {
             <motion.div {...fade}>
               <LandingSectionHeader
                 kicker="Módulos incluídos"
-                title="14 módulos ativos no plano Premium"
+                title="24 módulos ativos no plano Premium"
                 titleId="modulos-head"
                 lead="Lista completa do que já está no painel — financeiro, portal, WhatsApp, loja, galeria e mais."
               />

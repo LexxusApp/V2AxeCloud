@@ -13,9 +13,7 @@ import { verifyMetaWebhookSignature } from "../api/lib/whatsappMetaWebhook.ts";
 
 test("IP encaminhado pelo cliente não suplanta o endereço do proxy", () => {
   const oldTrust = process.env.TRUST_PROXY_CLIENT_IP;
-  const oldVercel = process.env.VERCEL;
   delete process.env.TRUST_PROXY_CLIENT_IP;
-  delete process.env.VERCEL;
   const request = {
     headers: { "x-forwarded-for": "6.6.6.6", "x-real-ip": "7.7.7.7" },
     socket: { remoteAddress: "203.0.113.20" },
@@ -26,8 +24,6 @@ test("IP encaminhado pelo cliente não suplanta o endereço do proxy", () => {
   assert.equal(resolveClientIp(request), "198.51.100.9");
   if (oldTrust === undefined) delete process.env.TRUST_PROXY_CLIENT_IP;
   else process.env.TRUST_PROXY_CLIENT_IP = oldTrust;
-  if (oldVercel === undefined) delete process.env.VERCEL;
-  else process.env.VERCEL = oldVercel;
 });
 
 test("senhas temporárias usam CSPRNG e todas as classes obrigatórias", () => {
@@ -154,12 +150,14 @@ test("webhook Meta falha fechado sem segredo ou sem corpo bruto", () => {
 });
 
 test("aliases do webhook Meta compartilham o mesmo handler autenticado", () => {
-  for (const path of ["api/index.ts", "server.ts"]) {
-    const source = readFileSync(path, "utf8");
-    assert.match(source, /app\.post\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
-    assert.match(source, /app\.get\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
-    assert.doesNotMatch(source, /app\.post\("\/webhook\/meta"/);
-  }
+  const apiSource = readFileSync("api/index.ts", "utf8");
+  assert.match(apiSource, /app\.all\(\["\/api\/whatsapp\/:action", "\/webhook\/meta"\]/);
+  assert.match(apiSource, /handleWhatsappRoute\(action, req, res\)/);
+
+  const serverSource = readFileSync("server.ts", "utf8");
+  assert.match(serverSource, /app\.post\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
+  assert.match(serverSource, /app\.get\(\["\/api\/whatsapp\/webhook", "\/webhook\/meta"\]/);
+  assert.doesNotMatch(serverSource, /app\.post\("\/webhook\/meta"/);
 });
 
 test("boot do servidor não promove administradores a partir de e-mail", () => {

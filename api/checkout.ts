@@ -17,7 +17,7 @@ async function getApp(): Promise<express.Express> {
     const sb = getDiscreteSupabaseAdmin();
     if (!sb) {
       app.use((_req, res) => {
-        res.status(503).json({ error: "Supabase não configurado na função da Vercel." });
+        res.status(503).json({ error: "Supabase não configurado na servidor." });
       });
       return app;
     }

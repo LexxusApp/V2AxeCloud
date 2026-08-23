@@ -134,6 +134,14 @@ const ADMIN_ACTIONS: Record<string, ContextAction> = {
     target: 'dashboard',
     icon: Settings2,
   },
+  subscription: {
+    eyebrow: 'Continuidade da casa',
+    title: 'Assinatura conferida, rotina protegida',
+    detail: 'Volte ao painel para continuar a gestão do terreiro.',
+    action: 'Voltar ao início',
+    target: 'dashboard',
+    icon: Wallet,
+  },
   suporte: {
     eyebrow: 'Precisa de ajuda?',
     title: 'Nossa equipe responde pelo WhatsApp',

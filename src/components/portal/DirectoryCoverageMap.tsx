@@ -138,7 +138,7 @@ const CanvasPointsLayer = L.Layer.extend({
       ctx.stroke();
     };
     drawPoints(false, 'rgba(229, 174, 18, 0.92)', '#6B4E00');
-    drawPoints(true, 'rgba(52, 211, 153, 0.97)', '#065F46', 1.4);
+    drawPoints(true, 'rgba(37, 99, 235, 0.97)', '#1E3A8A', 1.4);
   },
 }) as new () => L.Layer & {
   setPoints: (points: DiretorioMapPoint[]) => void;

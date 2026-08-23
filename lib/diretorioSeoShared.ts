@@ -6,8 +6,8 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-14";
-export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-14";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-19";
+export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-19";
 
 export const STATIC_SITEMAP_PATHS: readonly {
   path: string;
@@ -51,6 +51,23 @@ export const STATIC_SITEMAP_PATHS: readonly {
   { path: "/eventos", changeFrequency: "daily", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/conteudo/calendario-liturgico", changeFrequency: "yearly", priority: 0.75, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
 ];
+
+export type SitemapRoute = {
+  path: string;
+  changeFrequency?: string;
+  priority?: number;
+  lastModified?: string;
+};
+
+/** Rotas editoriais sempre presentes — fallback se o diretório falhar. */
+export function staticSitemapRoutes(): SitemapRoute[] {
+  return STATIC_SITEMAP_PATHS.map((route) => ({
+    path: route.path,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+    lastModified: route.lastModified || DIRETORIO_SEO_TEMPLATE_LASTMOD,
+  }));
+}
 
 export type DiretorioSeoTerreiro = {
   slug: string;
@@ -169,6 +186,38 @@ export type DiretorioPrerenderPage = {
   robots?: string;
 };
 
+const FEATURED_TERREIRO_COPY: Record<
+  string,
+  {
+    title: string;
+    description: string;
+    intro: string;
+    extraSections: { heading: string; body: string }[];
+  }
+> = {
+  "e-u-j-a-espaco-universalista-dr-jose-de-arimateia": {
+    title: "E.U.J.A. Espaço Universalista Dr. José de Arimateia — Terreiro em Sorocaba, SP | AxéCloud",
+    description:
+      "E.U.J.A. (Espaço Universalista Dr. José de Arimateia), casa de axé em Vila Augusta, Sorocaba. Endereço na Rua Santa Catarina, telefone e rota no Google Maps.",
+    intro:
+      "O E.U.J.A. — Espaço Universalista Dr. José de Arimateia — é uma casa de axé em Vila Augusta, Sorocaba (SP). Este perfil público reúne o endereço na Rua Santa Catarina, 72, o telefone da casa e a rota no Google Maps para quem busca visitar com respeito.",
+    extraSections: [
+      {
+        heading: "Terreiro em Vila Augusta, Sorocaba",
+        body: "A casa fica no bairro Vila Augusta, em Sorocaba, interior de São Paulo, no CEP 18040-125. Confirme horários de gira e regras de entrada diretamente com a diretoria antes de se deslocar.",
+      },
+      {
+        heading: "Como visitar o E.U.J.A.",
+        body: "Use o telefone público ou o mapa para planejar a chegada. Leve respeito à casa: vista-se de forma adequada, pergunte se a visita precisa de agendamento e siga as orientações de quem recebe na porteira.",
+      },
+    ],
+  },
+};
+
+export function getFeaturedTerreiroCopy(slug: string) {
+  return FEATURED_TERREIRO_COPY[slug] || null;
+}
+
 export function buildTerreiroPrerenderPage(
   terreiro: DiretorioSeoTerreiro,
   options?: { indexable?: boolean },
@@ -180,6 +229,7 @@ export function buildTerreiroPrerenderPage(
       ? `/terreiros/${terreiro.estado.toLowerCase()}/${terreiro.cidadeSlug}`
       : "/terreiros";
   const indexable = options?.indexable !== false;
+  const featured = FEATURED_TERREIRO_COPY[terreiro.slug];
 
   const sections: { heading: string; body: string }[] = [];
   if (terreiro.endereco) {
@@ -200,7 +250,9 @@ export function buildTerreiroPrerenderPage(
       body: `Há rota no Google Maps vinculada a este perfil. Confirme o endereço e pergunte à casa sobre estacionamento, horário de atendimento e se a visita precisa de agendamento prévio.`,
     });
   }
-  if (loc) {
+  if (featured?.extraSections) {
+    sections.push(...featured.extraSections);
+  } else if (loc) {
     sections.push({
       heading: `Terreiro em ${loc}`,
       body: `${terreiro.nome} aparece no diretório de casas de Umbanda, Candomblé e tradições afro-brasileiras em ${loc}. Confira também outras casas da mesma cidade no hub local.`,
@@ -235,15 +287,22 @@ export function buildTerreiroPrerenderPage(
 
   return {
     path,
-    title: `${terreiro.nome}${loc ? ` — ${loc}` : ""} | Diretório AxéCloud`,
-    description: `${descBits.join(" ")}.`,
+    title: featured?.title || `${terreiro.nome}${loc ? ` — ${loc}` : ""} | Diretório AxéCloud`,
+    description: featured?.description || `${descBits.join(" ")}.`,
     h1: terreiro.nome,
-    intro: loc
-      ? `${terreiro.nome} é uma casa de axé listada em ${loc}. Abaixo estão os dados públicos disponíveis para consulta e rota.`
-      : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`,
+    intro:
+      featured?.intro ||
+      (loc
+        ? `${terreiro.nome} é uma casa de axé listada em ${loc}. Abaixo estão os dados públicos disponíveis para consulta e rota.`
+        : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`),
     sections,
     jsonLd: [buildLocalBusinessJsonLd(terreiro), breadcrumbs],
-    listLinks: [{ href: "/terreiros", label: "Voltar para o mapa de terreiros" }],
+    listLinks: [
+      { href: "/terreiros", label: "Voltar para o mapa de terreiros" },
+      ...(cidadePath !== "/terreiros"
+        ? [{ href: cidadePath, label: loc ? `Terreiros em ${loc}` : "Terreiros da cidade" }]
+        : []),
+    ],
     robots: indexable ? "index, follow" : "noindex, follow",
   };
 }
@@ -267,10 +326,17 @@ export function buildCityPrerenderPage(
       { name: "Diretório", path: "/terreiros" },
       { name: meta.cidade, path },
     ]),
-    listLinks: terreiros.slice(0, 30).map((t) => ({
-      href: `/terreiro/${t.slug}`,
-      label: t.nome,
-    })),
+    listLinks: [...terreiros]
+      .sort((a, b) => {
+        const pa = FEATURED_TERREIRO_COPY[a.slug] ? 0 : 1;
+        const pb = FEATURED_TERREIRO_COPY[b.slug] ? 0 : 1;
+        return pa - pb;
+      })
+      .slice(0, 30)
+      .map((t) => ({
+        href: `/terreiro/${t.slug}`,
+        label: t.nome,
+      })),
   };
 }
 

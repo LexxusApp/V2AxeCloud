@@ -9,10 +9,30 @@ export type DiretorioQualityInput = {
   telefone?: unknown;
   foto_url?: unknown;
   fotoUrl?: unknown;
+  owner_photo_url?: unknown;
   link_maps?: unknown;
   linkMaps?: unknown;
   tipo?: unknown;
+  verified_at?: unknown;
+  verificada?: unknown;
 };
+
+/** Casas que devem entrar no índice mesmo sem o nome “de axé” no título. */
+export const DIRETORIO_PRIORITY_INDEX_SLUGS = new Set([
+  "e-u-j-a-espaco-universalista-dr-jose-de-arimateia",
+]);
+
+export function isDiretorioPriorityIndexSlug(slug: unknown): boolean {
+  return DIRETORIO_PRIORITY_INDEX_SLUGS.has(String(slug || "").trim());
+}
+
+export function prioritizeDiretorioSlugs<T extends { slug?: string | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const pa = isDiretorioPriorityIndexSlug(a.slug) ? 0 : 1;
+    const pb = isDiretorioPriorityIndexSlug(b.slug) ? 0 : 1;
+    return pa - pb;
+  });
+}
 
 const AXE_CONTEXT_RE =
   /\b(umbanda|candomble|quimbanda|terreiro|tenda|jurema|afro|orixa|caboclo|exu|vodun|nago|axe|ase|ile|abassa|barracao|egbe|kwe|hunkpame|nzo|pai|mae|ogum|oxossi|oxum|xango|iemanja|iansa|oya|oxala|omolu|obaluae|nan[ãa]|pombagira|preto\s+velho|vovo|boiadeiro|ze\s+pelintra|sete\s+flechas|marias)\b/i;
@@ -89,18 +109,25 @@ export function isDiretorioListingPublishable(row: DiretorioQualityInput): boole
 /**
  * Critério mais rigoroso para sitemap + robots index.
  * Thin / genérico permanece no site (reivindicação) com noindex.
+ *
+ * O Google recusou ~5 mil perfis-clone. Só pedimos índice para:
+ * - casas em destaque (allowlist)
+ * - perfis reivindicados/verificados
+ * - perfis ricos: endereço + telefone + foto + nome com sinal de axé
  */
 export function isDiretorioListingIndexable(row: DiretorioQualityInput): boolean {
   if (!isDiretorioListingPublishable(row)) return false;
+  if (isDiretorioPriorityIndexSlug(row.slug)) return true;
 
-  const endereco = String(row.endereco || '').trim();
-  const telefone = String(row.telefone || '').trim();
-  const foto = String(row.foto_url || row.fotoUrl || '').trim();
+  const verificada = Boolean(row.verified_at || row.verificada);
+  const endereco = String(row.endereco || "").trim();
+  const telefone = String(row.telefone || "").trim();
+  const foto = String(row.foto_url || row.fotoUrl || row.owner_photo_url || "").trim();
   const hasAxeSignal = hasAxeContextInName(row.nome);
 
-  // Precisa de endereço real (não só pin do Maps) + sinal de qualidade
   if (!endereco || endereco.length < 12) return false;
-  if (!(telefone || foto || hasAxeSignal)) return false;
+  if (verificada && telefone) return true;
+  if (!telefone || !foto || !hasAxeSignal) return false;
 
   return true;
 }

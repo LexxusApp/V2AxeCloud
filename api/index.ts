@@ -22,21 +22,14 @@ import {
   parseISO,
   startOfDay,
 } from "date-fns";
-import {
-  getOfficialWhatsAppStatus,
-  sendEvolutionTextMessage,
-  WHATSAPP_INITIALIZING_MESSAGE_PT,
-} from "../src/services/evolution.service.js";
+import { sendEvolutionTextMessage } from "../src/services/evolution.service.js";
 import {
   dispatchZeladorWelcomeWhatsApp,
   loadWelcomeMessageConfig,
   normalizeBrazilMsisdn,
   renderWelcomeMessage,
 } from "./lib/welcomeMessage.js";
-import {
-  normalizeWhatsAppTemplates,
-  resolveWhatsAppTemplate,
-} from "../src/constants/whatsappTemplates.js";
+import { resolveWhatsAppTemplate } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
 import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
@@ -44,8 +37,8 @@ import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
-import { sendWhatsAppForTenant, broadcastWhatsAppForTenant, resolveTerreiroWhatsAppContext, resendDadosAcessoWhatsAppForTenant } from "./lib/whatsappSendCore.js";
-import { validateWhatsAppOutboundMessage } from "./lib/whatsappSendGuards.js";
+import { sendWhatsAppForTenant } from "./lib/whatsappSendCore.js";
+import { handleWhatsappRoute } from "./lib/whatsappRouter.js";
 import { dispatchGiraWhatsApp, dispatchTransmissaoAviso } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
 import { countFilhosForPerfilLider } from "./lib/countFilhosForTerreiro.js";
@@ -74,6 +67,8 @@ import { registerStoreCheckoutRoutes } from "./lib/storeCheckoutRoutes.js";
 import { registerFilhoHomeRoutes } from "./lib/filhoHomeRoutes.js";
 import { registerFundamentosRoutes } from "./lib/fundamentosRoutes.js";
 import { registerPreceitoRoutes } from "./lib/preceitoRoutes.js";
+import { registerAdvancedManagementRoutes } from "./lib/advancedManagementRoutes.js";
+import { registerTerreiroServicosRoutes } from "./lib/terreiroServicosRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
@@ -109,19 +104,9 @@ import {
   normalizeGalleryCategory,
 } from "./lib/galleryHelpers.js";
 import { safeErrorMessage } from "./lib/safeError.js";
-import { requireTenantReadAccess, verifyWhatsAppWebhook } from "./lib/secureRoutes.js";
+import { requireTenantReadAccess } from "./lib/secureRoutes.js";
 import {
-  handleMetaWebhookChallenge,
-  isMetaCloudWebhookPayload,
-  processMetaCloudWebhook,
-  verifyMetaWebhookSignature,
-} from "./lib/whatsappMetaWebhook.js";
-import {
-  webhookRateLimit,
   sensitiveActionRateLimit,
-  whatsappSendRateLimit,
-  whatsappBroadcastRateLimit,
-  whatsappResendDadosAcessoRateLimit,
   pushDirectRateLimit,
   apiReadRateLimit,
   filhoLoginRateLimit,
@@ -138,7 +123,8 @@ import { isAllowedGalleryMime } from "./lib/mediaUpload.js";
 import { verifyCompletedGalleryUpload } from "./lib/galleryUploadSecurity.js";
 import { verifyUserPassword } from "./lib/passwordVerification.js";
 import { normalizePushSubscription } from "./lib/pushSubscription.js";
-import { captureWebhookRawBody, rawBodyForSignature } from "./lib/rawBody.js";
+import { captureWebhookRawBody } from "./lib/rawBody.js";
+import { registerDevCinematicMarketing } from "./lib/devCinematicMarketing.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -3894,6 +3880,8 @@ async function startServer() {
   registerFilhoHomeRoutes(app, { supabaseAdmin });
   registerFundamentosRoutes(app, { supabaseAdmin });
   registerPreceitoRoutes(app, { supabaseAdmin });
+  registerAdvancedManagementRoutes(app, { supabaseAdmin });
+  registerTerreiroServicosRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerChatRoutes(app, {
     supabaseAdmin,
@@ -5032,325 +5020,14 @@ async function startServer() {
     }
   });
 
-  /** WhatsApp via Evolution API (src/services/evolution.service). */
-  function whatsappInitializingResponse(res: express.Response, _err?: unknown) {
-    return res.status(503).json({
-      error: WHATSAPP_INITIALIZING_MESSAGE_PT,
-      code: "WHATSAPP_INITIALIZING",
-    });
-  }
-
-  const defaultWaPreferences = () => ({
-    notifGiras: true,
-    notifFinanceiro: true,
-    notifReza: true,
-    notifAniversarios: true,
+  // O mesmo roteador atende Express/VPS e as funções serverless, evitando
+  // divergência de autenticação, limites e comportamento entre ambientes.
+  app.all(["/api/whatsapp/:action", "/webhook/meta"], async (req, res) => {
+    const action = req.path === "/webhook/meta" ? "webhook" : String(req.params.action || "");
+    await handleWhatsappRoute(action, req, res);
   });
 
-  // --- WHATSAPP INTEGRATION ENDPOINTS (Evolution API) ---
-  app.get("/api/whatsapp/config", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const { data, error } = await supabaseAdmin
-        .from("whatsapp_config")
-        .select("templates, metadata, phone_number")
-        .eq("tenant_id", user.id)
-        .maybeSingle();
-      if (error) {
-        const msg = String((error as { message?: string })?.message || "");
-        const code = String((error as { code?: string })?.code || "");
-        if (code === "PGRST205" || code === "42P01" || /schema cache|whatsapp_config/i.test(msg)) {
-          return res.json({
-            success: true,
-            templates: normalizeWhatsAppTemplates(null),
-            preferences: defaultWaPreferences(),
-            phoneNumber: null,
-            warning: "WHATSAPP_TABLE_NOT_READY",
-          });
-        }
-        throw error;
-      }
-
-      const meta = (data?.metadata && typeof data.metadata === "object" ? data.metadata : {}) as Record<string, unknown>;
-      const prefs = (meta.preferences && typeof meta.preferences === "object" ? meta.preferences : {}) as Record<string, boolean>;
-
-      return res.json({
-        success: true,
-        templates: normalizeWhatsAppTemplates(data?.templates),
-        preferences: { ...defaultWaPreferences(), ...prefs },
-        phoneNumber: data?.phone_number || null,
-      });
-    } catch (error: any) {
-      return res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar configurações do WhatsApp.") });
-    }
-  });
-
-  app.post("/api/whatsapp/config", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
-      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
-
-      const { instance_name, evolution_api_url, templates, preferences } = req.body || {};
-      const safeTemplates = normalizeWhatsAppTemplates(templates);
-      const { data: existing } = await supabaseAdmin
-        .from("whatsapp_config")
-        .select("metadata")
-        .eq("tenant_id", user.id)
-        .maybeSingle();
-      const prevMeta = (existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {}) as Record<string, unknown>;
-      const nextMeta = { ...prevMeta };
-      if (preferences && typeof preferences === "object") {
-        nextMeta.preferences = { ...defaultWaPreferences(), ...preferences };
-      }
-      const { error } = await supabaseAdmin
-        .from('whatsapp_config')
-        .upsert({
-          instance_name,
-          evolution_api_url,
-          templates: safeTemplates,
-          metadata: nextMeta,
-          id: user.id,
-          tenant_id: user.id,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: safeErrorMessage(error) });
-    }
-  });
-
-  app.get("/api/whatsapp/logs", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-      const requestedLimit = Number(req.query?.limit ?? 12);
-      const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 50) : 12;
-      const { data, error } = await supabaseAdmin
-        .from("whatsapp_logs")
-        .select("id, telefone, mensagem, tipo, status, created_at")
-        .eq("tenant_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(logLimit);
-      if (error) throw error;
-      res.json({ success: true, logs: data || [] });
-    } catch (error: any) {
-      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar logs.") });
-    }
-  });
-
-  app.post("/api/whatsapp/broadcast", whatsappBroadcastRateLimit, async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
-      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
-
-      let message: string;
-      try {
-        message = validateWhatsAppOutboundMessage(String(req.body?.message || ""));
-      } catch (error: any) {
-        return res.status(error?.statusCode || 400).json({ error: safeErrorMessage(error, "Mensagem inválida.") });
-      }
-
-      const { sent, failed, total, lastError } = await broadcastWhatsAppForTenant(supabaseAdmin, user.id, message);
-      if (!total) {
-        return res.status(400).json({ error: "Nenhum filho de santo com WhatsApp cadastrado." });
-      }
-      if (!sent) {
-        return res.status(502).json({
-          error: lastError || "Não foi possível enviar para nenhum destinatário. Tente novamente em instantes.",
-          sent,
-          failed,
-          total,
-        });
-      }
-
-      res.json({
-        success: true,
-        sent,
-        failed,
-        total,
-        destino: `Corrente Geral (${total} médiuns)`,
-      });
-    } catch (error: any) {
-      if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
-      const status = Number(error?.statusCode) || 500;
-      res.status(status).json({ error: safeErrorMessage(error, "Erro na transmissão.") });
-    }
-  });
-
-  app.post("/api/whatsapp/resend-dados-acesso", whatsappResendDadosAcessoRateLimit, async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, user.id);
-      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
-
-      const result = await resendDadosAcessoWhatsAppForTenant(supabaseAdmin, user.id);
-      if (!result.total && result.skippedNoPhone > 0 && !result.sent) {
-        return res.status(400).json({
-          error: "Nenhum filho com WhatsApp e CPF cadastrados para envio de acesso.",
-          ...result,
-        });
-      }
-      if (!result.sent && result.failed > 0) {
-        return res.status(502).json({
-          error: result.lastError || "Não foi possível enviar os dados de acesso.",
-          ...result,
-        });
-      }
-
-      res.json({
-        success: true,
-        message: "Dados de acesso enfileirados com sucesso.",
-        ...result,
-      });
-    } catch (error: any) {
-      if (error?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, error);
-      const status = Number(error?.statusCode) || 500;
-      res.status(status).json({ error: safeErrorMessage(error, "Erro ao reenviar dados de acesso.") });
-    }
-  });
-
-  app.post("/api/whatsapp/send", whatsappSendRateLimit, async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const { tipo, filhoId, variables, forcePhone } = req.body;
-
-      const result = await sendWhatsAppForTenant(supabaseAdmin, {
-        tenantId: user.id,
-        tipo: String(tipo || ""),
-        filhoId,
-        forcePhone,
-        variables,
-      });
-
-      res.json({ success: true, message: "Mensagem enviada com sucesso", externalId: result.externalId });
-    } catch (error: any) {
-      if (error?.code === "WHATSAPP_INITIALIZING") {
-        return whatsappInitializingResponse(res, error);
-      }
-      const status =
-        error?.statusCode === 403 ? 403 : error?.statusCode === 400 ? 400 : error?.statusCode === 429 ? 429 : 500;
-      res.status(status).json({ error: safeErrorMessage(error, "Erro ao enviar mensagem") });
-    }
-  });
-
-  // The Meta dashboard still uses the legacy alias. Both paths deliberately
-  // share one verified handler so their authorization cannot drift.
-  app.get(["/api/whatsapp/webhook", "/webhook/meta"], webhookRateLimit, async (req, res) => {
-    const challenge = handleMetaWebhookChallenge((req.query || {}) as Record<string, unknown>);
-    if (!challenge.ok || !challenge.challenge) {
-      return res.status(challenge.status).json({ error: "Verify token inválido." });
-    }
-    return res.status(200).send(challenge.challenge);
-  });
-
-  app.post(["/api/whatsapp/webhook", "/webhook/meta"], webhookRateLimit, async (req, res) => {
-    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-
-    if (isMetaCloudWebhookPayload(body)) {
-      const raw = rawBodyForSignature(req, body);
-      if (!verifyMetaWebhookSignature(raw, req.headers?.["x-hub-signature-256"])) {
-        return res.status(401).json({ error: "Assinatura Meta inválida." });
-      }
-      await processMetaCloudWebhook(supabaseAdmin, body);
-      return res.status(200).send("OK");
-    }
-
-    if (!verifyWhatsAppWebhook(req)) {
-      return res.status(401).json({ error: "Webhook não autorizado" });
-    }
-    const { data } = body;
-    const externalId = data?.key?.id;
-    const status = data?.status;
-
-    if (externalId) {
-      let mappedStatus = "sent";
-      if (status === "DELIVERY_ACK") mappedStatus = "delivered";
-      if (status === "READ") mappedStatus = "read";
-      if (status === "ERROR" || status === "FAILED") mappedStatus = "failed";
-
-      await supabaseAdmin
-        .from("whatsapp_logs")
-        .update({ status: mappedStatus })
-        .eq("external_id", externalId);
-    }
-
-    return res.status(200).send("OK");
-  });
-
-  app.post("/api/whatsapp/start", async (_req, res) => {
-    res.status(410).json({
-      error: "Conexão por QR/pareamento foi descontinuada. As notificações saem pelo WhatsApp oficial do AxéCloud.",
-      channel: "official",
-    });
-  });
-
-  app.post("/api/whatsapp/test-message", async (req, res) => {
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const { phone } = req.body;
-      if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
-
-      const ctx = await resolveTerreiroWhatsAppContext(supabaseAdmin, user.id, user.id);
-      const result = await sendWhatsAppForTenant(supabaseAdmin, {
-        tenantId: user.id,
-        tipo: "teste",
-        forcePhone: phone,
-        variables: {
-          nome_filho: "Teste",
-          nome_terreiro: ctx.nomeTerreiro,
-          zelador: ctx.zelador || "",
-          nome_zelador: ctx.zelador || "",
-          comunicado:
-            "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
-        },
-      });
-      return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: safeErrorMessage(err, "Falha ao enviar.") });
-    }
-  });
-
-  app.get("/api/whatsapp/status", async (_req, res) => {
-    try {
-      const official = await getOfficialWhatsAppStatus();
-      res.json({
-        status: official.status,
-        qrcode: null,
-        channel: "official",
-        message:
-          official.status === "CONNECTED"
-            ? "Canal oficial AxéCloud ativo."
-            : WHATSAPP_INITIALIZING_MESSAGE_PT,
-      });
-    } catch (err: any) {
-      console.error("[WHATSAPP] /api/whatsapp/status:", err?.message || err);
-      return whatsappInitializingResponse(res, new Error(WHATSAPP_INITIALIZING_MESSAGE_PT));
-    }
-  });
-
-  app.post("/api/whatsapp/logout", async (_req, res) => {
-    res.status(410).json({
-      error: "Desconexão por terreiro não se aplica — o canal é o WhatsApp Business oficial do AxéCloud.",
-      channel: "official",
-    });
-  });
+  registerDevCinematicMarketing(app);
 
   // Vite middleware setup
   if (process.env.NODE_ENV !== "production") {

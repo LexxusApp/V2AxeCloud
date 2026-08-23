@@ -273,7 +273,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Compare antes de decidir',
         body:
-          'Nem todo software de terreiro entrega o mesmo: alguns cobram por médium, outros não têm portal público ou galeria. Veja a página dedicada AxéCloud vs planilhas em https://axecloud.com.br/por-que-axecloud/vs-planilhas e a tabela completa em https://axecloud.com.br/por-que-axecloud — 14 módulos reais do plano Premium.',
+          'Nem todo software de terreiro entrega o mesmo: alguns cobram por médium, outros não têm portal público ou galeria. Veja a página dedicada AxéCloud vs planilhas em https://axecloud.com.br/por-que-axecloud/vs-planilhas e a tabela completa em https://axecloud.com.br/por-que-axecloud — 24 módulos reais do plano Premium.',
       },
     ],
   },

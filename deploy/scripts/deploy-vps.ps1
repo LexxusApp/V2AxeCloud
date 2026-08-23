@@ -28,9 +28,25 @@ $remote = @"
 set -euo pipefail
 cd /opt/axecloud
 git fetch origin main
-git diff --quiet
-git diff --cached --quiet
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "[deploy] working tree suja — git stash antes do merge"
+  git stash push -u -m "deploy-auto-stash-\$(date +%s)"
+fi
 git merge --ff-only origin/main
+needs_marketing=false
+for s in $svc; do
+  [ "\$s" = "marketing" ] && needs_marketing=true
+done
+if \$needs_marketing; then
+  echo "[deploy] app primeiro (marketing prerender depende da API)"
+  docker compose -f deploy/docker-compose.yml --env-file .env up -d app
+  for i in \$(seq 1 24); do
+    st=\$(docker inspect -f '{{.State.Health.Status}}' deploy-app-1 2>/dev/null || echo starting)
+    echo "[deploy] app health: \$st"
+    [ "\$st" = "healthy" ] && break
+    sleep 5
+  done
+fi
 docker compose -f deploy/docker-compose.yml --env-file .env build $svc
 docker compose -f deploy/docker-compose.yml --env-file .env up -d $svc
 docker compose -f deploy/docker-compose.yml --env-file .env ps $svc

@@ -20,7 +20,7 @@ import {
 import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
 import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
-import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
+import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 import { cachedJson } from "./ttlCache.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
@@ -111,6 +111,7 @@ function mapRow(row: Record<string, unknown>) {
     longitude: hasCoords ? longitude : null,
     coordinateSource: hasCoords ? String(row.coordinate_source || "google_maps_url") : null,
     verificada: Boolean(row.verified_at),
+    indexable: isDiretorioListingIndexable(row),
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };

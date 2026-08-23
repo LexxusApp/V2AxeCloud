@@ -21,7 +21,7 @@ async function main() {
 
   console.log("OK — project:", getSupabaseProjectRef(url));
   console.log("premium:", plans.premium.price, "| vita:", plans.vita.price);
-  console.log("Confira na Vercel: SUPABASE_URL deve ser o mesmo project acima.");
+  console.log("Confira no .env da VPS: SUPABASE_URL deve ser o mesmo project acima.");
 }
 
 main().catch((e) => {

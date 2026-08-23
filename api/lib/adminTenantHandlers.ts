@@ -11,6 +11,14 @@ import {
 
 type R2Ctx = { client: S3Client; bucket: string } | null;
 
+async function bestEffort<T>(request: PromiseLike<T>): Promise<T | null> {
+  try {
+    return await request;
+  } catch {
+    return null;
+  }
+}
+
 function pickWhatsappCandidate(...candidates: unknown[]): string {
   for (const raw of candidates) {
     const s = String(raw ?? "").trim();
@@ -70,23 +78,19 @@ export async function runTenantDetail(
       .select("id, nome, status, cargo, foto_url, data_entrada")
       .or(`lider_id.eq.${id},tenant_id.eq.${id}`)
       .limit(500),
-    supabaseAdmin
+    bestEffort(supabaseAdmin
       .from("access_logs")
       .select("created_at, event_type, description")
       .or(`user_id.eq.${id},tenant_id.eq.${id}`)
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
-      .then((r) => r)
-      .catch(() => ({ data: null, error: null })),
-    supabaseAdmin
+      .maybeSingle()),
+    bestEffort(supabaseAdmin
       .from("whatsapp_logs")
       .select("created_at, tipo, telefone")
       .eq("tenant_id", id)
       .order("created_at", { ascending: false })
-      .limit(5)
-      .then((r) => r)
-      .catch(() => ({ data: null, error: null })),
+      .limit(5)),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -119,12 +123,10 @@ export async function runTenantDetail(
   if (whatsapp && !String(profile?.whatsapp_publico || "").trim()) {
     const digits = whatsapp.replace(/\D/g, "").slice(0, 15);
     if (digits.length >= 8) {
-      void supabaseAdmin
+      void bestEffort(supabaseAdmin
         .from("perfil_lider")
         .update({ whatsapp_publico: digits, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .then(() => undefined)
-        .catch(() => undefined);
+        .eq("id", id));
     }
   }
 

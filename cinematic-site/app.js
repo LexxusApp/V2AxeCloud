@@ -331,7 +331,7 @@ $$(".fundamento-linhas .linha-grande").forEach((linha) => {
 
 /* ═══ CONTEÚDO ══════════════════════════════════════════════ */
 
-/* Os 14 módulos reais do sistema (landingModules) com símbolos do nicho */
+/* Os 24 módulos reais do sistema (landingModules) com símbolos do nicho */
 const MODULOS = [
   { nome: "Painel do Zelador", desc: "A visão do pai e da mãe de santo: tudo o que acontece na casa, num olhar só.", tag: "gestão", icone: "olho" },
   { nome: "Filhos de Santo", desc: "Cadastro completo da corrente: orixás de cabeça, obrigações, datas e histórico de cada filho.", tag: "corrente", icone: "corrente" },
@@ -347,6 +347,16 @@ const MODULOS = [
   { nome: "Portal Público", desc: "Sua casa no diretório de terreiros do Brasil, com página própria e eventos abertos.", tag: "porteira", icone: "portao" },
   { nome: "App Instalável", desc: "PWA no celular de cada filho de santo — a casa no bolso, mesmo offline.", tag: "alcance", icone: "firmeza" },
   { nome: "Notificações Push", desc: "A casa chama, o filho recebe: avisos na tela do celular, na hora certa.", tag: "chamado", icone: "estrela" },
+  { nome: "Obrigações e Alertas", desc: "Datas, orientações e documentos da caminhada de cada filho, acompanhados com discrição.", tag: "cuidado", icone: "firmeza" },
+  { nome: "Frequência e Check-in", desc: "Presenças, faltas e assiduidade registradas nas giras e atividades da casa.", tag: "presença", icone: "corrente" },
+  { nome: "Central de Relatórios", desc: "Financeiro, eventos, obrigações e estoque reunidos em indicadores claros.", tag: "clareza", icone: "olho" },
+  { nome: "Patrimônio Sagrado", desc: "Bens permanentes, conservação, localização e responsáveis separados do estoque.", tag: "patrimônio", icone: "portao" },
+  { nome: "Documentos da Casa", desc: "Estatutos, atas, contratos e comprovantes com situação e vencimento.", tag: "arquivo", icone: "livro" },
+  { nome: "Consulentes e Agenda", desc: "Acolhimentos, agendamentos, retornos e histórico privado, sem perder contexto.", tag: "acolhida", icone: "maos" },
+  { nome: "Caminhada Mediúnica", desc: "Uma linha do tempo de entrada, iniciações, obrigações, cargos e marcos.", tag: "continuidade", icone: "corrente" },
+  { nome: "Calendário Litúrgico", desc: "Datas sagradas definidas pela própria casa, conforme sua tradição e recorrência.", tag: "tempo", icone: "lua" },
+  { nome: "Desenvolvimento Mediúnico", desc: "Turmas, atividades, facilitadores, frequência e evolução formativa da corrente.", tag: "formação", icone: "livro" },
+  { nome: "Controle de Camarinha", desc: "Recolhimentos, prazos e orientações em uma área reservada à zeladoria.", tag: "resguardo", icone: "firmeza" },
 ];
 
 /* Símbolos SVG desenhados no traço da pemba (stroke fino, nicho) */
@@ -467,7 +477,17 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
     contarAte($("#num-terreiros"), dir.total || (dir.items || []).length);
     if (cidades?.cidades) contarAte($("#num-cidades"), cidades.cidades.length);
 
-    const casas = dir.items || [];
+    const destaque = {
+      slug: "e-u-j-a-espaco-universalista-dr-jose-de-arimateia",
+      nome: "E.U.J.A. Espaço Universalista Dr. José de Arimateia",
+      cidade: "Sorocaba",
+      estado: "SP",
+      tradicao: "casa de axé",
+    };
+    const casas = [
+      destaque,
+      ...(dir.items || []).filter((c) => String(c.slug || "") !== destaque.slug),
+    ];
     if (!quemLista) return;
     if (!casas.length) {
       quemLista.innerHTML = `<p class="aviso-vazio">Novas casas autorizadas aparecerão aqui conforme os perfis forem publicados.</p>`;

@@ -18,8 +18,8 @@ export async function handlePlansRoute(req: any, res: any) {
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
     return sendJson(res, 503, {
-      error: "Supabase não configurado na função da Vercel.",
-      hint: "Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no projeto Vercel (Settings → Environment Variables).",
+      error: "Supabase não configurado no servidor.",
+      hint: "Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env da VPS.",
     });
   }
 

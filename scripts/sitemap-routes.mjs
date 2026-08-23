@@ -34,9 +34,29 @@ const FEATURE_PATHS = [
   '/recursos/portal-filho-de-santo',
   '/recursos/whatsapp-oficial',
   '/recursos/app-pwa-terreiro',
+  '/recursos/painel-do-zelador',
+  '/recursos/cadastro-filhos-de-santo',
+  '/recursos/mural-de-avisos',
+  '/recursos/galeria-fotos-terreiro',
+  '/recursos/biblioteca-estudos-terreiro',
+  '/recursos/loja-do-axe',
+  '/recursos/almoxarifado-terreiro',
+  '/recursos/atendimentos-pedidos-reza',
+  '/recursos/diretorio-publico-terreiros',
+  '/recursos/notificacoes-push',
+  '/recursos/obrigacoes-alertas',
+  '/recursos/frequencia-check-in',
+  '/recursos/central-relatorios',
+  '/recursos/patrimonio-sagrado',
+  '/recursos/documentos-da-casa',
+  '/recursos/consulentes-agenda',
+  '/recursos/caminhada-mediunica',
+  '/recursos/calendario-liturgico',
+  '/recursos/desenvolvimento-mediunico',
+  '/recursos/controle-camarinha',
 ];
 
-const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-14';
+const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-23';
 const LEGAL_CONTENT_LASTMOD = '2026-08-14';
 
 const SITEMAP_BASE_ROUTES = [

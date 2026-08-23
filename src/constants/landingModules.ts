@@ -14,6 +14,15 @@ import {
   Users,
   Wallet,
   Globe,
+  ClipboardCheck,
+  BarChart3,
+  Landmark,
+  FileText,
+  ContactRound,
+  Route,
+  CalendarHeart,
+  GraduationCap,
+  BedDouble,
 } from 'lucide-react';
 import type { LandingIconAccent } from '../components/landing/landingIconAccents';
 
@@ -154,6 +163,46 @@ export const LANDING_MODULES: readonly LandingModuleItem[] = [
     description:
       'Avisos no celular quando a diretoria publica no mural ou quando há novidade na casa.',
     live: true,
+  },
+  {
+    id: 'obrigacoes', icon: ClipboardCheck, iconAccent: 'rose', title: 'Obrigações e alertas',
+    description: 'Datas, orientações e documentos da caminhada de cada filho, com acesso individual no portal.', live: true,
+  },
+  {
+    id: 'frequencia', icon: ClipboardCheck, iconAccent: 'emerald', title: 'Frequência e check-in',
+    description: 'Presenças, faltas e percentual de assiduidade por filho, incluindo confirmação e QR Check-in.', live: true,
+  },
+  {
+    id: 'relatorios', icon: BarChart3, iconAccent: 'sky', title: 'Central de relatórios',
+    description: 'Financeiro, mensalidades, eventos, obrigações e estoque reunidos em indicadores claros.', live: true,
+  },
+  {
+    id: 'patrimonio', icon: Landmark, iconAccent: 'gold', title: 'Patrimônio sagrado',
+    description: 'Bens permanentes, localização, responsável, conservação e valor separados do estoque ritual.', live: true,
+  },
+  {
+    id: 'documentos', icon: FileText, iconAccent: 'amber', title: 'Documentos da casa',
+    description: 'Estatutos, atas, contratos e comprovantes organizados com situação e vencimento.', live: true,
+  },
+  {
+    id: 'consulentes', icon: ContactRound, iconAccent: 'sky', title: 'Consulentes e agenda',
+    description: 'Cadastro de acolhimento, atendimentos agendados, responsáveis, retornos e histórico privado.', live: true,
+  },
+  {
+    id: 'caminhada', icon: Route, iconAccent: 'rose', title: 'Caminhada mediúnica',
+    description: 'Linha do tempo individual de entrada na casa, iniciações, obrigações, cargos e marcos.', live: true,
+  },
+  {
+    id: 'liturgico', icon: CalendarHeart, iconAccent: 'gold', title: 'Calendário litúrgico',
+    description: 'Datas sagradas escolhidas pela casa, respeitando sua tradição, nação e recorrência.', live: true,
+  },
+  {
+    id: 'desenvolvimento', icon: GraduationCap, iconAccent: 'emerald', title: 'Desenvolvimento mediúnico',
+    description: 'Turmas, atividades, facilitadores, frequência e evolução formativa da corrente.', live: true,
+  },
+  {
+    id: 'camarinha', icon: BedDouble, iconAccent: 'violet', title: 'Controle de camarinha',
+    description: 'Recolhimentos, prazos, responsáveis e orientações em uma área reservada à zeladoria.', live: true,
   },
 ] as const;
 

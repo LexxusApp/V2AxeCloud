@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Check, Crown, Zap, ShieldCheck, ArrowRight, Loader2, CalendarDays, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { PLAN_NAMES, isLifetimePlan, canonicalPlanSlug, DEFAULT_PLAN_PRICES_REAIS } from '../constants/plans';
 import { usePlansCatalog } from '../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../lib/plansDisplay';
-import { renewSubscriptionPath } from '../lib/routes';
-import { supabase } from '../lib/supabase';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader } from '../components/ui/appDemoUi';
 import { useSubscriptionBillingCycle } from '../hooks/useSubscriptionBillingCycle';
+import { RegistrationCheckoutPanel } from '../components/RegistrationCheckoutPanel';
 
 interface PlanCardProps {
   name: string;
@@ -90,27 +89,20 @@ function PlanCard({ name, price, description, features, icon: Icon, isPopular, c
 
       <button
         onClick={onSelect}
-        disabled={loading || isCurrentPlan}
+        disabled={loading}
         className={cn(
           "w-full rounded-xl font-black flex items-center justify-center gap-2 transition-all group",
           compact ? "py-2.5 text-xs" : "py-3 text-sm gap-2.5",
-          isCurrentPlan
-            ? "bg-white/10 text-white cursor-not-allowed border border-white/10"
-            : isPopular 
-              ? "bg-[#FBBC00] text-background hover:bg-[#FBBC00]/90 shadow-lg shadow-[#FBBC00]/20" 
-              : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+          isPopular || isCurrentPlan
+            ? "bg-[#FBBC00] text-background hover:bg-[#FBBC00]/90 shadow-lg shadow-[#FBBC00]/20"
+            : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
         )}
       >
         {loading ? (
           <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-5 h-5 animate-spin"} />
-        ) : isCurrentPlan ? (
-          <>
-            <Check className={compact ? "w-4 h-4" : "w-5 h-5"} />
-            PLANO ATIVO
-          </>
         ) : (
           <>
-            {buttonLabel}
+            {isCurrentPlan ? 'Renovar neste plano' : buttonLabel}
             <ArrowRight className={compact ? "w-4 h-4 transition-transform group-hover:translate-x-1" : "w-5 h-5 transition-transform group-hover:translate-x-1"} />
           </>
         )}
@@ -126,11 +118,14 @@ interface SubscriptionProps {
   hideHeader?: boolean;
   onlyCurrentPlan?: boolean;
   onlyAvailablePlans?: boolean;
+  onChoosePlan?: (billingCycle: 'monthly' | 'annual') => void;
   setActiveTab: (tab: string) => void;
 }
 
-export default function Subscription({ session, tenantData, onPlanUpdated, hideHeader, onlyCurrentPlan, onlyAvailablePlans, setActiveTab }: SubscriptionProps) {
+export default function Subscription({ session, tenantData, onPlanUpdated, hideHeader, onlyCurrentPlan, onlyAvailablePlans, setActiveTab, onChoosePlan }: SubscriptionProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [payCycle, setPayCycle] = useState<'monthly' | 'annual' | null>(null);
+  const payRef = useRef<HTMLDivElement>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
   const currentBillingCycle = useSubscriptionBillingCycle(
     String(tenantData?.tenant_id || ''),
@@ -138,17 +133,34 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   );
 
   const handleSelectPlan = async (
-    planId: string,
+    _planId: string,
     billingCycle: 'monthly' | 'annual' = 'monthly'
   ) => {
-    setLoading(billingCycle);
-    let tenantId = String(tenantData?.tenant_id || '').trim();
-    if (!tenantId) {
-      const { data } = await supabase.auth.getSession();
-      tenantId = data.session?.user?.id || '';
+    if (onChoosePlan) {
+      onChoosePlan(billingCycle);
+      return;
     }
-    window.location.href = renewSubscriptionPath(tenantId, billingCycle);
+    setLoading(billingCycle);
+    setPayCycle(billingCycle);
+    setLoading(null);
+    requestAnimationFrame(() => {
+      payRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
+
+  const tenantId = String(tenantData?.tenant_id || session?.user?.id || '').trim();
+
+  const checkoutPanel = payCycle && tenantId ? (
+    <div ref={payRef} className="mt-5">
+      <InAppRenewCheckout
+        tenantId={tenantId}
+        billingCycle={payCycle}
+        onClose={() => setPayCycle(null)}
+        onSuccess={onPlanUpdated}
+        defaultHolderName={String(tenantData?.cargo || tenantData?.nome_terreiro || '')}
+      />
+    </div>
+  ) : null;
 
   const formatPrice = (price?: number, fallbackReais?: number) => {
     const fb =
@@ -288,8 +300,9 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   if (onlyAvailablePlans) {
     if (isLifetime) return null;
     return (
-      <div className="w-full">
+      <div className="w-full space-y-5">
         {plansGrid}
+        {checkoutPanel}
       </div>
     );
   }
@@ -336,6 +349,8 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
 
       {plansGrid}
 
+      {checkoutPanel}
+
       <AppDemoCard className="mt-20 flex flex-col items-center justify-between gap-8 md:flex-row">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
@@ -352,4 +367,51 @@ export default function Subscription({ session, tenantData, onPlanUpdated, hideH
   );
 
   return hideHeader ? inner : <AppPageShell>{inner}</AppPageShell>;
+}
+
+export function InAppRenewCheckout({
+  tenantId,
+  billingCycle,
+  onClose,
+  onSuccess,
+  defaultHolderName = '',
+}: {
+  tenantId: string;
+  billingCycle: 'monthly' | 'annual';
+  onClose?: () => void;
+  onSuccess?: () => void;
+  defaultHolderName?: string;
+}) {
+  return (
+    <div id="assinatura-checkout" className="overflow-hidden rounded-[1.75rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.95)] sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Pagamento</p>
+          <h3 className="mt-1 font-display text-lg font-black text-white">
+            PIX · Premium {billingCycle === 'annual' ? 'anual' : 'mensal'}
+          </h3>
+        </div>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-[#1E242B] px-3 py-1.5 text-[11px] font-bold text-[#94A3B8] transition hover:border-white/20 hover:text-white"
+          >
+            Fechar
+          </button>
+        ) : null}
+      </div>
+      <RegistrationCheckoutPanel
+        key={billingCycle}
+        tenantId={tenantId}
+        variant="app"
+        purpose="renewal"
+        billingCycle={billingCycle}
+        showFooter={false}
+        redirectToDashboard={false}
+        onSuccess={onSuccess}
+        defaultHolderName={defaultHolderName}
+      />
+    </div>
+  );
 }

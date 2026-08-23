@@ -9,7 +9,7 @@
  *  5. `x-default` é opcional, mas recomendado.
  *
  * A reciprocidade exige fetch das URLs apontadas (limitado a 5 para ficar
- * dentro do timeout do Vercel).
+ * dentro do timeout do pedido).
  */
 
 export type Alternate = { lang: string; href: string };

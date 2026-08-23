@@ -1,4 +1,4 @@
-/** Reconstrói req.url para routers Express após rewrite Vercel (?target= / ?path=). */
+/** Reconstrói req.url para routers Express após rewrite interno (?target= / ?path=). */
 export function restoreReqUrl(
   req: { url?: string; query?: Record<string, unknown> },
   basePath: string,

@@ -259,7 +259,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
   if (res.headersSent) return;
 
   if (!supabaseAdmin) {
-    return sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    return sendJson(res, 503, { error: "Supabase não configurado na servidor." });
   }
 
   let childIdRaw = "";

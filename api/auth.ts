@@ -1,6 +1,5 @@
 /**
  * Roteador único de autenticação: filho-login + audit-log.
- * URLs públicas preservadas via rewrites no vercel.json (?action=).
  */
 import { applyDiscreteRouteCors } from "./lib/corsOrigins.js";
 import { handleAuthAuditRoute } from "./lib/authAuditRoute.js";

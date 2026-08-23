@@ -16,6 +16,7 @@ import { verifyEfiWebhook } from "./secureRoutes.js";
 import { safeErrorMessage } from "./safeError.js";
 import { checkPasswordExposure } from "./pwnedPassword.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { createAuditLog } from "./createAuditLog.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -60,6 +61,14 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       } catch (metricError) {
         console.warn('[register] conversion metric failed:', metricError);
       }
+
+      void createAuditLog(supabaseAdmin, req, "auth.register_completed", "success", result.tenantId, {
+        surface: "app",
+        mode: "zelador",
+        source: "public-register",
+        email: result.email,
+        userId: result.userId,
+      });
 
       if (!resolveEfiEnv()) {
         return res.status(503).json({

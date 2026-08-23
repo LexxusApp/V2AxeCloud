@@ -124,7 +124,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         ? {
             cardSetup: {
               issues: [
-                "Defina EFI_PAYEE_CODE na Vercel (painel Efí → API → Introdução → Identificador de conta).",
+                "Defina EFI_PAYEE_CODE no .env da VPS (painel Efí → API → Introdução → Identificador de conta).",
               ],
             },
           }

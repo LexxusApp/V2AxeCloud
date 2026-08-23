@@ -123,11 +123,12 @@ export default function SubscriptionRenewCheckout() {
           });
         }
 
+        const apiLabel = String(cfg.amountLabel || '').trim();
+        const apiPeriod = String(cfg.periodLabel || (billingCycle === 'annual' ? '/ano' : '/mês'));
         setAmountLabel(
-          (String(cfg.amountLabel || '').trim()
-            ? `${String(cfg.amountLabel).trim()}${String(cfg.periodLabel || (billingCycle === 'annual' ? '/ano' : '/mês'))}`
-            : '') ||
-            billingCycle === 'annual'
+          apiLabel
+            ? `${apiLabel}${apiPeriod}`
+            : billingCycle === 'annual'
               ? `R$ ${formatPriceBRL(plans.premium?.annual_price ?? (plans.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium) * 10)}/ano`
               : `R$ ${formatPriceBRL(plans.premium?.price ?? DEFAULT_PLAN_PRICES_REAIS.premium)}/mês`,
         );

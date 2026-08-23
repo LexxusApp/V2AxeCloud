@@ -3,18 +3,29 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Clock,
   Compass,
+  DollarSign,
   ExternalLink,
   Instagram,
   Loader2,
   MapPin,
+  MessageCircle,
   Phone,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditorialLayout';
-import { fetchDiretorioTerreiro, type DiretorioTerreiro } from '../../lib/diretorioPublic';
+import {
+  fetchDiretorioTerreiro,
+  fetchDiretorioTerreiroServicos,
+  type DiretorioTerreiro,
+  type TerreiroServico,
+  type TerreiroServicosPublic,
+} from '../../lib/diretorioPublic';
 import { formatTelefoneBr, telefoneHref } from '../../lib/formatTelefone';
 import { applyCustomPageSeo } from '../../lib/seo';
+import { getFeaturedTerreiroCopy } from '../../../lib/diretorioSeoShared';
 import { ROUTES } from '../../lib/routes';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 import { trackConversionEvent } from '../../lib/trackConversion';
@@ -71,9 +82,150 @@ function TerreiroPortrait({ fotoUrl, nome }: { fotoUrl: string | null; nome: str
   );
 }
 
+function formatValorServico(min: number | null, max: number | null): string {
+  if (min == null && max == null) return 'Sob consulta';
+  if (min != null && max != null && min !== max) {
+    return `R$ ${min.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} – R$ ${max.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  }
+  const val = min ?? max ?? 0;
+  return `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+}
+
+function ServicoCard({ servico }: { servico: TerreiroServico }) {
+  return (
+    <div className="flex flex-col justify-between gap-3 rounded-2xl border border-[#d0c4ae] bg-[#fffaf1] p-5 shadow-sm">
+      <div>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#172018] text-[#e5ae12]">
+            <Sparkles className="h-4 w-4" aria-hidden />
+          </span>
+          <div>
+            <h4 className="font-extrabold text-[#1b1813]">{servico.nome}</h4>
+            {servico.descricao ? (
+              <p className="mt-1 text-sm leading-relaxed text-[#1b1813]/60">{servico.descricao}</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+        <span className="flex items-center gap-1.5 font-extrabold text-[#8a6200]">
+          <DollarSign className="h-4 w-4 shrink-0" aria-hidden />
+          {formatValorServico(servico.valor_min, servico.valor_max)}
+        </span>
+        {servico.duracao_minutos ? (
+          <span className="flex items-center gap-1.5 text-[#1b1813]/50">
+            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {servico.duracao_minutos} min
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ServicosSection({
+  servicos,
+  whatsappAtendimento,
+  terreiroNome,
+  verificada,
+}: {
+  servicos: TerreiroServico[];
+  whatsappAtendimento: string | null;
+  terreiroNome: string;
+  verificada: boolean;
+}) {
+  const rawWa = (whatsappAtendimento || '').replace(/\D/g, '');
+  const waHref = rawWa.length >= 10
+    ? `https://wa.me/55${rawWa}?text=${encodeURIComponent(`Olá! Vi os atendimentos de ${terreiroNome} no AxéCloud e gostaria de saber mais.`)}`
+    : null;
+
+  if (servicos.length === 0) {
+    if (!verificada) return null;
+    return (
+      <section
+        className="mt-8 overflow-hidden rounded-[2rem] border border-[#c9b990] bg-[#eadfbf]/60 px-6 py-8 sm:px-9 sm:py-10"
+        aria-labelledby="servicos-cta-title"
+      >
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#172018] text-[#e5ae12]">
+              <MessageCircle className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#8a6200]">
+                Atendimentos espirituais
+              </p>
+              <h2 id="servicos-cta-title" className="mt-1.5 text-2xl font-extrabold tracking-[-0.035em] text-[#1b1813]">
+                Esta casa ainda não publicou seus atendimentos.
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/60">
+                Se você é o zelador, acesse o painel AxéCloud e cadastre seus serviços para aparecerem aqui.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className="mt-8 overflow-hidden rounded-[2rem] border border-[#d8cbb5] bg-[#fffaf1]/92 px-6 py-7 shadow-[0_22px_65px_rgba(63,49,27,.08)] sm:px-9 sm:py-9"
+      aria-labelledby="servicos-heading"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">
+            Atendimentos espirituais
+          </p>
+          <h2 id="servicos-heading" className="mt-1 text-3xl font-extrabold tracking-[-0.045em] text-[#1b1813] sm:text-4xl">
+            O que esta casa oferece.
+          </h2>
+        </div>
+        {waHref ? (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#e5ae12] px-5 py-3 text-sm font-extrabold text-[#11150f] shadow-[0_10px_30px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden />
+            Agendar via WhatsApp
+          </a>
+        ) : null}
+      </div>
+
+      <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {servicos.map((s) => (
+          <ServicoCard key={s.id} servico={s} />
+        ))}
+      </div>
+
+      {waHref ? (
+        <div className="mt-8 rounded-2xl border border-[#d8cbb5] bg-[#f8efe1] p-5 text-center sm:p-6">
+          <p className="text-sm font-semibold text-[#1b1813]/70">
+            Para agendar, tirar dúvidas ou saber a disponibilidade, entre em contato diretamente pelo WhatsApp.
+          </p>
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#e5ae12] px-7 py-3.5 text-sm font-extrabold text-[#11150f] shadow-[0_14px_35px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden />
+            Falar com a casa pelo WhatsApp
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export default function DiretorioTerreiroPage() {
   const slug = slugFromPath();
   const [terreiro, setTerreiro] = useState<DiretorioTerreiro | null>(null);
+  const [servicosData, setServicosData] = useState<TerreiroServicosPublic>({ servicos: [], whatsappAtendimento: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,14 +236,22 @@ export default function DiretorioTerreiroPage() {
       return;
     }
 
-    void fetchDiretorioTerreiro(slug)
-      .then((t) => {
+    void Promise.all([
+      fetchDiretorioTerreiro(slug),
+      fetchDiretorioTerreiroServicos(slug),
+    ])
+      .then(([t, sData]) => {
         setTerreiro(t);
+        setServicosData(sData);
         const loc = [t.cidade, t.estado].filter(Boolean).join(', ');
+        const featured = getFeaturedTerreiroCopy(t.slug);
         applyCustomPageSeo({
-          title: `${t.nome}${loc ? ` — ${loc}` : ''} | Diretório AxéCloud`,
-          description: `Informações de ${t.nome}${loc ? ` em ${loc}` : ''}: endereço${t.telefone ? ', telefone' : ''} e como chegar pelo Google Maps.`,
+          title: featured?.title || `${t.nome}${loc ? ` — ${loc}` : ''} | Diretório AxéCloud`,
+          description:
+            featured?.description ||
+            `Informações de ${t.nome}${loc ? ` em ${loc}` : ''}: endereço${t.telefone ? ', telefone' : ''} e como chegar pelo Google Maps.`,
           canonicalPath: `/terreiro/${t.slug}`,
+          robots: t.indexable === false ? 'noindex, follow' : 'index, follow',
         });
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Não encontrado'))
@@ -170,8 +330,7 @@ export default function DiretorioTerreiroPage() {
           </div>
         </article>
 
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23rem]">
-          <section className="rounded-[2rem] border border-[#d8cbb5] bg-[#fffaf1]/92 px-6 py-7 shadow-[0_22px_65px_rgba(63,49,27,.08)] sm:px-9 sm:py-9" aria-labelledby="visit-heading">
+        <section className="mt-8 rounded-[2rem] border border-[#d8cbb5] bg-[#fffaf1]/92 px-6 py-7 shadow-[0_22px_65px_rgba(63,49,27,.08)] sm:px-9 sm:py-9" aria-labelledby="visit-heading">
             <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Dados disponíveis</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
               <h2 id="visit-heading" className="text-3xl font-extrabold tracking-[-0.045em] text-[#1b1813] sm:text-4xl">Planeje sua visita.</h2>
@@ -212,19 +371,12 @@ export default function DiretorioTerreiroPage() {
             ) : null}
           </section>
 
-          <aside className="overflow-hidden rounded-[2rem] border border-[#233328] bg-[#102117] text-white shadow-[0_25px_75px_rgba(16,33,23,.2)] lg:sticky lg:top-28">
-            <div className="relative p-6 sm:p-7">
-              <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(229,174,18,.17)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.17)_1px,transparent_1px)] [background-size:44px_44px]" aria-hidden />
-              <div className="relative">
-                <Compass className="h-7 w-7 text-[#e5ae12]" aria-hidden />
-                <p className="mt-7 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Antes de ir</p>
-                <h2 className="mt-2 text-2xl font-extrabold tracking-[-0.04em]">A visita começa pelo respeito.</h2>
-                <p className="mt-4 text-sm leading-relaxed text-white/62">Datas, horários e regras de entrada podem mudar. Entre em contato com a casa antes de se deslocar.</p>
-              </div>
-            </div>
-            <a href={mapHref} className="flex items-center justify-between gap-4 border-t border-white/12 px-6 py-5 text-sm font-extrabold text-white transition hover:bg-white/[0.05] sm:px-7">Voltar para o Mapa<ArrowRight className="h-4 w-4 text-[#e5ae12]" aria-hidden /></a>
-          </aside>
-        </div>
+        <ServicosSection
+          servicos={servicosData.servicos}
+          whatsappAtendimento={servicosData.whatsappAtendimento}
+          terreiroNome={terreiro.nome}
+          verificada={terreiro.verificada}
+        />
 
         <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-[#c9b990] bg-[#eadfbf]/70 px-6 py-8 sm:px-9 sm:py-10" aria-labelledby="management-title">
           <div className="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full border border-[#9b6a00]/15" aria-hidden />

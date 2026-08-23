@@ -13,6 +13,8 @@ export type DiretorioTerreiro = {
   bairro: string | null;
   bairroSlug: string | null;
   tipo: DiretorioEstabelecimentoTipo;
+  verificada: boolean;
+  indexable?: boolean;
   perfilUrl: string | null;
   cidadeUrl: string | null;
 };
@@ -85,4 +87,32 @@ export async function fetchDiretorioTerreiro(slug: string): Promise<DiretorioTer
   const json = await readApiJson<{ error?: string } & DiretorioTerreiro>(res, 'Terreiro não encontrado');
   if (!res.ok) throw new Error(json.error || 'Terreiro não encontrado');
   return json;
+}
+
+export type TerreiroServico = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  duracao_minutos: number | null;
+  valor_min: number | null;
+  valor_max: number | null;
+  ordem: number;
+};
+
+export type TerreiroServicosPublic = {
+  servicos: TerreiroServico[];
+  whatsappAtendimento: string | null;
+};
+
+export async function fetchDiretorioTerreiroServicos(slug: string): Promise<TerreiroServicosPublic> {
+  try {
+    const res = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}/servicos`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return { servicos: [], whatsappAtendimento: null };
+    const json = await readApiJson<TerreiroServicosPublic & { error?: string }>(res, '');
+    return { servicos: json.servicos || [], whatsappAtendimento: json.whatsappAtendimento || null };
+  } catch {
+    return { servicos: [], whatsappAtendimento: null };
+  }
 }

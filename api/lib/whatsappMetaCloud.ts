@@ -1180,7 +1180,9 @@ export function buildWhatsAppAuditMessage(
   }
 
   if (normalized === "estoque_critico") {
-    return `Estoque: ${v.item_nome || v.item || "—"} · qty ${v.quantidade ?? "—"} · ${v.nome_terreiro || nomeTerreiro}`;
+    const total = v.quantidade_itens ?? v.quantidade ?? "—";
+    const lista = String(v.lista_itens || v.item_nome || v.item || "—").replace(/\n/g, " | ");
+    return `Estoque crítico: ${total} item(ns) · ${lista} · ${v.nome_terreiro || nomeTerreiro}`;
   }
 
   if (normalized === "pedido_reza_novo_zelador") {

@@ -1,5 +1,5 @@
 /**
- * Gera public/sitemap.xml e public/robots.txt para o AxéCloud (Vite + Vercel).
+ * Gera public/sitemap.xml e public/robots.txt para o AxéCloud (Vite + VPS).
  *
  * Equivalente ao app/sitemap.ts do Next.js App Router: roda no build e
  * publica XML estático em /sitemap.xml.

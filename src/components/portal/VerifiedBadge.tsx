@@ -5,7 +5,7 @@ export function VerifiedBadge({ compact = false }: { compact?: boolean }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 font-bold text-emerald-400',
+        'inline-flex shrink-0 items-center gap-1 rounded-full bg-[#1877F2]/12 font-bold text-[#1877F2]',
         compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
       )}
       title="Terreiro verificado e reivindicado no AxéCloud"

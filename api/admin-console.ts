@@ -38,7 +38,7 @@ async function handleTenantRoutes(target: string, method: string, req: any, res:
 
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
-    sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    sendJson(res, 503, { error: "Supabase não configurado na servidor." });
     return true;
   }
 
@@ -86,7 +86,7 @@ async function getDispatchApp(): Promise<ExpressApp> {
     const deps = getAdminConsoleRouteDeps();
     if (!deps) {
       app.use((_req, res) => {
-        res.status(503).json({ error: "Supabase não configurado na função da Vercel." });
+        res.status(503).json({ error: "Supabase não configurado na servidor." });
       });
       return app;
     }
@@ -99,7 +99,7 @@ async function getDispatchApp(): Promise<ExpressApp> {
 async function handleSession(req: any, res: any): Promise<void> {
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
-    sendJson(res, 503, { error: "Supabase não configurado na função da Vercel" });
+    sendJson(res, 503, { error: "Supabase não configurado na servidor" });
     return;
   }
   const authHeader = req.headers?.authorization || req.headers?.Authorization;
@@ -124,7 +124,7 @@ async function handleSession(req: any, res: any): Promise<void> {
 async function handleGatewayGet(route: string, req: any, res: any): Promise<void> {
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
-    sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    sendJson(res, 503, { error: "Supabase não configurado na servidor." });
     return;
   }
   const ctx = await requireConsoleAdminDiscrete(sb, req, res);

@@ -2,8 +2,9 @@ export type PlanType = 'premium' | 'cortesia' | 'vita';
 
 const PREMIUM_LIKE_FEATURES = [
   'dashboard', 'children', 'calendar', 'gestao_eventos', 'mural', 'chat', 'gallery', 'inventory', 'library', 'notes',
-  'financial', 'financial_reports', 'financial_whatsapp', 'whatsapp_invites', 'store', 'settings', 'suporte',
+  'financial', 'financial_reports', 'financial_whatsapp', 'whatsapp_invites', 'store', 'settings', 'subscription', 'suporte',
   'caixinha', 'saude_axe', 'atendimentos',
+  'reports', 'patrimony', 'documents', 'consulentes', 'atendimento-agenda', 'journey', 'liturgical', 'development', 'camarinha',
 ] as const;
 
 /** Normaliza slug gravado no banco (ex.: "Plano Vita", "plano_vita", "Orô") para chave usada em PLAN_FEATURES / PLAN_LIMITS. */

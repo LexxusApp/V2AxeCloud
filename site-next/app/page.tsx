@@ -40,6 +40,7 @@ const ecosystem = [
   { href: "https://axecloud.com.br/recursos", icon: PackageCheck, eyebrow: "CONHEÇA A PLATAFORMA", title: "Todos os recursos", text: "Financeiro, calendário, portal, WhatsApp, PWA e os demais módulos." },
   { href: "https://axecloud.com.br/por-que-axecloud", icon: ShieldCheck, eyebrow: "DECIDA COM CLAREZA", title: "Por que AxéCloud", text: "Compare formas de organizar a casa e entenda a proposta da plataforma." },
   { href: "https://axecloud.com.br/terreiros", icon: MapPin, eyebrow: "SERVIÇO PÚBLICO", title: "Diretório de terreiros", text: "Encontre casas de Umbanda e Candomblé por cidade e região." },
+  { href: "https://axecloud.com.br/terreiro/e-u-j-a-espaco-universalista-dr-jose-de-arimateia", icon: MapPin, eyebrow: "CASA EM DESTAQUE", title: "E.U.J.A. Sorocaba", text: "Espaço Universalista Dr. José de Arimateia — terreiro em Vila Augusta, Sorocaba/SP." },
   { href: "https://axecloud.com.br/eventos", icon: CalendarDays, eyebrow: "AGENDA ABERTA", title: "Giras e eventos", text: "Consulte festas, giras e atividades abertas ao público." },
   { href: "https://axecloud.com.br/conteudo", icon: BookOpen, eyebrow: "CONHECIMENTO", title: "Guias e glossário", text: "Conteúdo sobre gestão, tradições afro-brasileiras e rotina da casa." },
   { href: "https://axecloud.com.br/espaco-do-fiel", icon: MessageCircleMore, eyebrow: "ESPAÇO DO FIEL", title: "Pedido de reza", text: "Envie uma intenção diretamente para uma casa participante." },
@@ -182,7 +183,7 @@ export default function Home() {
           <div className="cx-hero-modules">
             {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div></article>)}
           </div>
-          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>14 módulos incluídos</span></p>
+          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>24 módulos incluídos</span></p>
         </aside>
       </div>
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
@@ -233,7 +234,7 @@ export default function Home() {
             <div className="cx-cycle" role="group" aria-label="Periodicidade da assinatura"><button className={billing === "monthly" ? "active" : ""} onClick={() => setBilling("monthly")}><span>Mensal</span><small>Flexibilidade todo mês</small></button><button className={billing === "annual" ? "active" : ""} onClick={() => setBilling("annual")}><span>Anual</span><small>Economize 2 mensalidades</small><b>MAIS VANTAJOSO</b></button></div>
             <div className="cx-offer-number"><sup>R$</sup><strong>{billing === "monthly" ? "69,90" : "699"}</strong><small>{billing === "monthly" ? "por mês" : "por ano"}</small></div>
             <div className="cx-offer-economy">{billing === "monthly" ? <><i /><span><strong>30 dias para conhecer tudo</strong><small>Sem cartão e sem compromisso</small></span></> : <><i /><span><strong>R$ 139,80 de economia</strong><small>Equivale a R$ 58,25 por mês</small></span></>}</div>
-            <div className="cx-offer-numbers"><span><strong>14</strong><small>módulos</small></span><span><strong>100 GB</strong><small>de memória</small></span><span><strong>30 dias</strong><small>grátis</small></span></div>
+            <div className="cx-offer-numbers"><span><strong>24</strong><small>módulos</small></span><span><strong>100 GB</strong><small>de memória</small></span><span><strong>30 dias</strong><small>grátis</small></span></div>
           </div>
           <div className="cx-offer-included">
             <p>Tudo que sua casa recebe:</p><div className="cx-included-grid">{[["Financeiro e Pix","Mensalidades e prestação de contas"],["Corrente da casa","Filhos, documentos e histórico"],["Giras e frequência","Agenda, convites e confirmações"],["Comunicação oficial","Mural, mensagens e WhatsApp"],["Memória e acervo","Galeria, biblioteca e documentos"],["Gestão completa","Estoque, loja e patrimônio"]].map(([title,text]) => <div key={title}><Check /><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>

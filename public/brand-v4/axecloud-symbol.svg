@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Símbolo AxéCloud</title>
+  <desc id="desc">Atabaque contemporâneo com camadas de dados conectadas.</desc>
+  <path d="M16.5 15.5c1 13.8 3.1 28.8 7.3 38.1 5.2 2.8 11.2 2.8 16.4 0 4.2-9.3 6.3-24.3 7.3-38.1Z" fill="#17251D"/>
+  <path d="M18.5 28.6c8.6 3.7 18.4 3.7 27 0M20.7 41.8c7.2 3.1 15.4 3.1 22.6 0" fill="none" stroke="#4B6555" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M22.5 24.2c6.2 1.8 7.2 6.4 9.1 10.1 1.7 3.3 4 6.3 9.4 7.9" fill="none" stroke="#F7C928" stroke-width="2.2" stroke-linecap="round"/>
+  <g fill="#F7C928"><circle cx="22.5" cy="24.2" r="2.3"/><circle cx="31.6" cy="34.3" r="2.3"/><circle cx="41" cy="42.2" r="2.3"/></g>
+  <ellipse cx="32" cy="15.2" rx="17.4" ry="6.8" fill="#F7C928"/>
+  <ellipse cx="32" cy="15.2" rx="11.5" ry="3.5" fill="#17251D" opacity=".13"/>
+  <path d="M25.2 53.8c4.5 1.9 9.1 1.9 13.6 0" fill="none" stroke="#F7C928" stroke-width="2" stroke-linecap="round"/>
+</svg>

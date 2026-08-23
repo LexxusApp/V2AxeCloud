@@ -56,7 +56,7 @@ async function requireAuthUser(
 export async function handleWhatsappRoute(action: string, req: any, res: any): Promise<void> {
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
-    sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    sendJson(res, 503, { error: "Supabase não configurado na servidor." });
     return;
   }
 

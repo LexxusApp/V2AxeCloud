@@ -42,11 +42,6 @@ const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-const KNOWN_CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  // Sede municipal; usada somente para representar o agrupamento, nunca como endereço de uma casa.
-  "sp:biritiba-mirim": { lat: -23.575278, lng: -46.043611 },
-};
-
 type SnapshotRow = DiretorioSeoTerreiro & {
   bairro: string | null;
   bairroSlug: string | null;
@@ -54,6 +49,7 @@ type SnapshotRow = DiretorioSeoTerreiro & {
   latitude: number | null;
   longitude: number | null;
   coordinateSource: string | null;
+  verificada?: boolean;
 };
 
 type PublicCity = {
@@ -160,7 +156,11 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     nome,
     endereco: row.endereco ? String(row.endereco).trim() : null,
     telefone: row.telefone ? String(row.telefone).trim() : null,
-    fotoUrl: row.foto_url && slug ? `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}` : null,
+    fotoUrl: row.owner_photo_url
+      ? String(row.owner_photo_url).trim()
+      : row.foto_url && slug
+        ? `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}`
+        : null,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
     cidade: cidade || null,
     estado,
@@ -171,6 +171,7 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     latitude: hasCoordinates ? latitude : null,
     longitude: hasCoordinates ? longitude : null,
     coordinateSource: hasCoordinates ? String(row.coordinate_source || "google_maps_url") : null,
+    verificada: Boolean(row.verified_at),
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
 }
@@ -298,6 +299,8 @@ function writeDirectoryRootPage(
     '    <article id="axecloud-seo-static" aria-label="Diretório de terreiros">',
     '      <h1>Diretório de terreiros por cidade e bairro</h1>',
     `      <p>${summary.length} cidades, ${totalBairros} bairros e ${totalTerreiros} terreiros mapeados.</p>`,
+    '      <h2>Casa em destaque</h2>',
+    '      <p><a href="/terreiro/e-u-j-a-espaco-universalista-dr-jose-de-arimateia">E.U.J.A. Espaço Universalista Dr. José de Arimateia — terreiro em Sorocaba, SP</a></p>',
     '    </article>',
     '    <!-- /SEO_BODY_INJECT -->',
   ].join('\n');
@@ -327,54 +330,59 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
       nome: row.nome,
       cidade: row.cidade || '',
       estado: row.estado || 'SP',
-      perfilUrl: `/terreiro/${encodeURIComponent(row.slug)}`,
-      accuracy: "exact",
       ...coordinates,
     }];
   });
-  const exactByCity = new Map<string, typeof points>();
+
+  // Formato colunar v2: bem menor que array de objetos (gzip + parse mais rápidos).
+  const cities: string[] = [];
+  const cityIndex = new Map<string, number>();
+  const ufs: string[] = [];
+  const ufIndex = new Map<string, number>();
+  const s: string[] = [];
+  const n: string[] = [];
+  const c: number[] = [];
+  const e: number[] = [];
+  const a: number[] = [];
+  const o: number[] = [];
   for (const point of points) {
-    const key = `${point.estado}:${point.cidade}`.toLocaleLowerCase("pt-BR");
-    const list = exactByCity.get(key) || [];
-    list.push(point);
-    exactByCity.set(key, list);
+    const cityKey = point.cidade;
+    let ci = cityIndex.get(cityKey);
+    if (ci === undefined) {
+      ci = cities.length;
+      cityIndex.set(cityKey, ci);
+      cities.push(cityKey);
+    }
+    const ufKey = String(point.estado || 'SP').toUpperCase();
+    let ui = ufIndex.get(ufKey);
+    if (ui === undefined) {
+      ui = ufs.length;
+      ufIndex.set(ufKey, ui);
+      ufs.push(ufKey);
+    }
+    s.push(point.slug);
+    n.push(point.nome);
+    c.push(ci);
+    e.push(ui);
+    a.push(Math.round(point.lat * 1e5));
+    o.push(Math.round(point.lng * 1e5));
   }
-  const rowsByCity = new Map<string, SnapshotRow[]>();
-  for (const row of rows) {
-    if (!row.cidade || !row.estado) continue;
-    const key = `${row.estado}:${row.cidade}`.toLocaleLowerCase("pt-BR");
-    const list = rowsByCity.get(key) || [];
-    list.push(row);
-    rowsByCity.set(key, list);
-  }
-  const cityCoverage = [...rowsByCity.entries()].flatMap(([key, cityRows]) => {
-    const exact = exactByCity.get(key) || [];
-    const missing = cityRows.length - exact.length;
-    if (missing <= 0) return [];
-    const fallbackCenter = KNOWN_CITY_CENTERS[key];
-    if (exact.length === 0 && !fallbackCenter) return [];
-    return [{
-      cidade: cityRows[0].cidade || "",
-      estado: cityRows[0].estado || "",
-      total: cityRows.length,
-      exact: exact.length,
-      missing,
-      lat: exact.length
-        ? exact.reduce((sum, point) => sum + point.lat, 0) / exact.length
-        : fallbackCenter.lat,
-      lng: exact.length
-        ? exact.reduce((sum, point) => sum + point.lng, 0) / exact.length
-        : fallbackCenter.lng,
-    }];
-  });
+
   const outDir = path.join(OUT_DIR, 'terreiros');
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'mapa.json'),
     JSON.stringify({
-      points,
-      cityCoverage,
-      totals: { listed: rows.length, exact: points.length, grouped: rows.length - points.length },
+      v: 2,
+      t: { listed: rows.length, exact: points.length, grouped: rows.length - points.length },
+      cities,
+      ufs,
+      s,
+      n,
+      c,
+      e,
+      a,
+      o,
     }),
     'utf8',
   );
@@ -411,7 +419,7 @@ async function main() {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source", (query, { from, to }) =>
+    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, verified_at", (query, { from, to }) =>
       query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
     );
     rows = (data || [])

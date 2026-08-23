@@ -43,7 +43,7 @@ function LandingSectionFallback({
 const CNPJ = '66.335.964/0001-07';
 
 const premiumFeatures = [
-  '14 módulos reais: painel, filhos, giras, financeiro, galeria e mais',
+  '24 módulos reais: painel, filhos, giras, financeiro, patrimônio e mais',
   'WhatsApp oficial Meta, loja do axé, almoxarifado e biblioteca',
   'Portal do filho de santo + portal público e diretório de casas',
   'App instalável (PWA) no celular — sem App Store ou Google Play',

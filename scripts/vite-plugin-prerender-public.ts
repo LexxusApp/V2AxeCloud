@@ -19,7 +19,7 @@ type PrerenderOptions = {
 
 /**
  * Gera {outDir}/{rota}/index.html com meta e HTML estático corretos por URL.
- * O Vercel serve esses arquivos antes do rewrite SPA — essencial para indexação.
+ * O nginx/Caddy serve esses arquivos estáticos — essencial para indexação.
  */
 export function prerenderPublicPages(outDirName = 'dist', options?: PrerenderOptions): Plugin {
   const exclude = new Set(options?.excludePaths ?? []);

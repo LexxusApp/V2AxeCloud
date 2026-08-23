@@ -14,11 +14,13 @@ import {
   Newspaper,
   Package,
   PieChart,
+  ReceiptText,
   Settings as SettingsIcon,
   ShoppingBag,
   Smartphone,
   LifeBuoy,
   User,
+  Users,
   UserCircle,
   Wallet,
 } from 'lucide-react';
@@ -36,6 +38,10 @@ export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'frequencia', 'mu
 
 /** Sub-rotas do menu «Financeiro» (zelador). */
 export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
+export const ZELADOR_MANAGEMENT_CHILD_IDS = [
+  'reports', 'patrimony', 'documents', 'consulentes', 'atendimento-agenda',
+  'journey', 'liturgical', 'development', 'camarinha',
+] as const;
 
 export const ZELADOR_FINANCIAL_ITEMS: AppNavItem[] = [
   { id: 'financial', label: 'Visão geral', icon: PieChart },
@@ -43,10 +49,23 @@ export const ZELADOR_FINANCIAL_ITEMS: AppNavItem[] = [
   { id: 'financial-configs', label: 'Configurações Pix', icon: Smartphone },
 ];
 
+export const ZELADOR_MANAGEMENT_ITEMS: AppNavItem[] = [
+  { id: 'reports', label: 'Relatórios', icon: PieChart },
+  { id: 'patrimony', label: 'Patrimônio', icon: Landmark },
+  { id: 'documents', label: 'Documentos', icon: BookOpen },
+  { id: 'consulentes', label: 'Consulentes', icon: Users },
+  { id: 'atendimento-agenda', label: 'Agenda de atendimentos', icon: HandHeart },
+  { id: 'journey', label: 'Caminhada mediúnica', icon: Flame },
+  { id: 'liturgical', label: 'Calendário litúrgico', icon: CalendarDays },
+  { id: 'development', label: 'Desenvolvimento', icon: ClipboardList },
+  { id: 'camarinha', label: 'Camarinha', icon: Home },
+];
+
 export type ZeladorNavEntry =
   | { type: 'item'; item: AppNavItem }
   | { type: 'casa'; label: string; icon: LucideIcon; items: AppNavItem[] }
-  | { type: 'financial'; label: string; icon: LucideIcon; items: AppNavItem[] };
+  | { type: 'financial'; label: string; icon: LucideIcon; items: AppNavItem[] }
+  | { type: 'management'; label: string; icon: LucideIcon; items: AppNavItem[] };
 
 /** Mapeia id de navegação para feature de plano (sub-rotas do financeiro → `financial`). */
 export function navItemPlanFeature(itemId: string): string {
@@ -77,8 +96,10 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'chat', label: 'Mensagens', icon: MessageCircle },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
+  ...ZELADOR_MANAGEMENT_ITEMS,
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
+  { id: 'subscription', label: 'Minha assinatura', icon: ReceiptText },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon },
   { id: 'suporte', label: 'Suporte', icon: LifeBuoy },
 ];
@@ -99,12 +120,14 @@ export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {
 export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntry[] {
   const items = buildZeladorNavItems(tradicao);
   const casaSet = new Set<string>(ZELADOR_CASA_CHILD_IDS);
+  const managementSet = new Set<string>(ZELADOR_MANAGEMENT_CHILD_IDS);
   const casaItems = ZELADOR_CASA_CHILD_IDS.map((id) => items.find((i) => i.id === id)).filter(
     (i): i is AppNavItem => i != null,
   );
 
   const entries: ZeladorNavEntry[] = [];
   let casaInserted = false;
+  let managementInserted = false;
 
   for (const item of items) {
     if (casaSet.has(item.id)) {
@@ -116,6 +139,13 @@ export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntr
           items: casaItems,
         });
         casaInserted = true;
+      }
+      continue;
+    }
+    if (managementSet.has(item.id)) {
+      if (!managementInserted) {
+        entries.push({ type: 'management', label: 'Gestão avançada', icon: ClipboardList, items: ZELADOR_MANAGEMENT_ITEMS });
+        managementInserted = true;
       }
       continue;
     }

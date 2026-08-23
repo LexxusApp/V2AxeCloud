@@ -211,8 +211,7 @@ type HreflangReport = {
 const PRESETS = [
   { label: "produção", url: "https://axecloud.com.br" },
   { label: "www", url: "https://www.axecloud.com.br" },
-  { label: "axecloud-app", url: "https://axecloud-app.vercel.app" },
-  { label: "axecloud-admin", url: "https://axecloud-admin.vercel.app" },
+  { label: "admin", url: "https://admin.axecloud.com.br" },
 ];
 
 // ------- Score global ponderado (mesma lógica do backend) -------

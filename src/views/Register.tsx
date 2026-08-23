@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import {
@@ -148,12 +148,41 @@ export default function Register() {
         throw new Error(data.error || 'Não foi possível concluir o cadastro.');
       }
 
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
       if (signInErr) {
         throw new Error('Conta criada, mas o login automático falhou. Entre com seu e-mail e senha.');
+      }
+
+      // Login pós-cadastro não passa por Login.tsx — precisa auditar aqui.
+      try {
+        const session = signInData.session;
+        if (session?.access_token) {
+          await fetch('/api/auth/audit-log', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            keepalive: true,
+            body: JSON.stringify({
+              action: 'auth.login_success',
+              status: 'success',
+              terreiroId: data.tenantId || data.userId || session.user?.id || null,
+              details: {
+                surface: 'app',
+                mode: 'zelador',
+                source: 'register',
+                email: session.user?.email || email.trim().toLowerCase(),
+                userId: session.user?.id || data.userId,
+              },
+            }),
+          });
+        }
+      } catch {
+        /* auditoria best-effort */
       }
 
       window.location.href = appHref(ROUTES.dashboard);

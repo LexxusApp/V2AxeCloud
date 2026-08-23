@@ -1,5 +1,4 @@
 import {
-  CreditCard,
   MapPinned,
   MessageSquare,
   Settings,
@@ -9,7 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-export type SettingsSection = 'profile' | 'whatsapp' | 'subscription' | 'portal';
+export type SettingsSection = 'profile' | 'whatsapp' | 'portal';
 
 type NavItem = {
   id: SettingsSection;
@@ -22,7 +21,6 @@ type NavItem = {
 const ITEMS: NavItem[] = [
   { id: 'profile', label: 'Conta e Casa', description: 'Identidade, foto e acesso', icon: User },
   { id: 'whatsapp', label: 'WhatsApp', description: 'Canal e automações', icon: MessageSquare },
-  { id: 'subscription', label: 'Plano', description: 'Assinatura e recursos', icon: CreditCard },
   { id: 'portal', label: 'Dados do Mapa', description: 'Informações públicas da casa', icon: MapPinned },
 ];
 
@@ -97,7 +95,7 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
   return (
     <nav
       aria-label="Áreas de configuração"
-      className="settings-subnav grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      className="settings-subnav grid grid-cols-1 gap-3 sm:grid-cols-3"
     >
       {ITEMS.map((item) => (
         <NavButton key={item.id} item={item} isActive={active === item.id} onChange={onChange} />
@@ -117,7 +115,7 @@ export function SettingsTabHeader() {
           Configurações
         </h1>
         <p className="mt-3 max-w-3xl text-sm font-semibold leading-relaxed text-white/58">
-          Uma central única para identidade, acessos, comunicação, assinatura e dados exibidos no mapa.
+          Uma central única para identidade, acessos, comunicação e dados exibidos no mapa.
         </p>
       </div>
     </div>

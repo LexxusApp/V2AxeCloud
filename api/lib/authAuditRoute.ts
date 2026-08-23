@@ -22,7 +22,7 @@ export async function handleAuthAuditRoute(req: any, res: any) {
 
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
-    return sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+    return sendJson(res, 503, { error: "Supabase não configurado na servidor." });
   }
 
   try {

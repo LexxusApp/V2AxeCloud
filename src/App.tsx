@@ -1,23 +1,20 @@
 ﻿import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import AppTopNav from './components/app/AppTopNav';
-import { ContextualActionBar } from './components/app/ContextualActionBar';
+import { AppContextPrompts } from './components/app/AppContextPrompts';
+import { AppRuntimeOverlays } from './components/app/AppRuntimeOverlays';
 import { HouseToastHost } from './components/app/HouseToastHost';
 import SubscriptionLock from './components/SubscriptionLock';
 import { supabase } from './lib/supabase';
 import { authFetch } from './lib/authenticatedFetch';
 import { Session } from '@supabase/supabase-js';
 import { Loader2, ShieldAlert } from 'lucide-react';
-import { FilhoCoachTour } from './components/filho/FilhoCoachTour';
-import { FilhoPushPrompt } from './components/filho/FilhoPushPrompt';
 import { cn } from './lib/utils';
 import { ROUTES } from './lib/routes';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
-// === Fase 2: Code splitting ===
 // Views pesadas viram chunks separados, carregados sob demanda.
-// Reduz o bundle inicial em ~40-60% e acelera o primeiro paint.
 const Dashboard = lazy(() => import('./views/Dashboard'));
 const Children = lazy(() => import('./views/Children'));
 const Calendar = lazy(() => import('./views/Calendar'));
@@ -32,11 +29,13 @@ const ObrigacoesFilho = lazy(() => import('./views/ObrigacoesFilho'));
 const Library = lazy(() => import('./views/Library'));
 const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
-const Subscription = lazy(() => import('./views/Subscription'));
+const MinhaAssinatura = lazy(() => import('./views/MinhaAssinatura'));
 const Atendimentos = lazy(() => import('./views/Atendimentos'));
 const Frequencia = lazy(() => import('./views/Frequencia'));
 const ChatInbox = lazy(() => import('./views/ChatInbox'));
 const Support = lazy(() => import('./views/Support'));
+const AdvancedManagement = lazy(() => import('./views/AdvancedManagement'));
+import type { AdvancedSection } from './views/AdvancedManagement';
 import { useWebPush } from './hooks/useWebPush';
 import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
@@ -47,9 +46,7 @@ import {
   writeCachedTenantIdForUser,
 } from './lib/tenantCache';
 import { resolveTenantFromSupabase, resolveTerreiroNomeFromSupabase } from './lib/resolveTenantFromSupabase';
-import LegalTermsModal from './components/LegalTermsModal';
 import AppFooter from './components/AppFooter';
-import { ChatFloatingWidget } from './components/chat/ChatFloatingWidget';
 import { AuthScreenBackground } from './components/AuthScreenBackground';
 import { CURRENT_LEGAL_TERMS_VERSION } from './config/legal';
 import {
@@ -1022,10 +1019,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   useEffect(() => {
     const handleNavigateToSubscription = () => {
-      setActiveTab('settings');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('open-subscription-tab'));
-      }, 100);
+      setActiveTab('subscription');
     };
 
     window.addEventListener('navigate-to-subscription', handleNavigateToSubscription);
@@ -1260,15 +1254,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     setActiveTab(nextTab);
   };
   const renderView = () => {
-    // SISTEMA DO FILHO: Se for filho, ele tem um sistema de visualização dedicado
-    // Independente de planos ou assinaturas do zelador.
-    // Injetamos is_admin_global: true no tenantData enviado aos componentes APENAS para bypassar travas de PLANO
+    // O portal do filho ignora travas do plano da zeladoria, mas mantém edição desativada.
     // Mas passamos isAdminGlobal={false} para desativar botões de edição/exclusão.
     const hijoTenantData = tenantData ? { ...tenantData, is_admin_global: true } : null;
 
     if (userRole === 'filho') {
-      // Filhos de Santo nunca são bloqueados por plano — eles acessam o conteúdo
-      // que o zelador/zeladora publica, sem precisar de assinatura própria.
+      // Filhos acessam o conteúdo publicado sem assinatura própria.
       switch (activeTab) {
         case 'profile':
         case 'perfil': return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
@@ -1292,7 +1283,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       }
     }
 
-    
+    if (['reports', 'patrimony', 'documents', 'consulentes', 'atendimento-agenda', 'journey', 'liturgical', 'development', 'camarinha'].includes(activeTab))
+      return <AdvancedManagement section={activeTab as AdvancedSection} tenantData={tenantData} setActiveTab={navigateToTab} />;
     // Check access for the active tab (Filhos de Santo têm acesso total de visualização via plano Cortesia)
     const featureAccess = {
       dashboard: true,
@@ -1396,7 +1388,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         }
         return <ChildProfile childId={selectedChildId} setActiveTab={navigateToTab} user={session.user} tenantData={tenantData} isSelfView={false} />;
       case 'subscription':
-        return <Subscription session={session} tenantData={tenantData} onPlanUpdated={refreshAllData} setActiveTab={navigateToTab} />;
+        return <MinhaAssinatura session={session} tenantData={tenantData} onRefresh={refreshAllData} />;
       default: 
         return <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
     }
@@ -1474,16 +1466,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
           >
-            {userRole === 'filho' && session ? (
-              <div className="flex w-full justify-center px-4 pt-3 sm:px-6 lg:px-8">
-                <FilhoPushPrompt
-                  permission={permission}
-                  loading={pushLoading}
-                  onSubscribe={() => void subscribe()}
-                />
-              </div>
-            ) : null}
-            <ContextualActionBar activeTab={activeTab} userRole={userRole} onNavigate={navigateToTab} />
+            <AppContextPrompts userRole={userRole} session={session} permission={permission} pushLoading={pushLoading} onSubscribe={() => void subscribe()} activeTab={activeTab} tenantData={tenantData} onNavigate={navigateToTab} />
             <div className="flex-1">
               <Suspense
                 fallback={
@@ -1501,15 +1484,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           </main>
       </div>
     </div>
-    {showLegalTermsModal ? (
-      <LegalTermsModal open onAccept={handleAcceptLegalTerms} accepting={legalTermsAccepting} />
-    ) : null}
-    {userRole === 'filho' && session && !showLegalTermsModal ? (
-      <FilhoCoachTour activeTab={activeTab} onNavigate={navigateToTab} />
-    ) : null}
-    {session && effectiveTenantId && !blockingSpinnerActive ? (
-      <ChatFloatingWidget tenantData={tenantData} userId={session.user.id} userRole={userRole} />
-    ) : null}
+    <AppRuntimeOverlays showLegalTermsModal={showLegalTermsModal} onAcceptLegalTerms={handleAcceptLegalTerms} legalTermsAccepting={legalTermsAccepting} userRole={userRole} session={session} activeTab={activeTab} onNavigate={navigateToTab} effectiveTenantId={effectiveTenantId} blockingSpinnerActive={blockingSpinnerActive} tenantData={tenantData} />
     </>
   );
 }

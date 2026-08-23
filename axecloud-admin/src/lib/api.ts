@@ -4,8 +4,7 @@ export const API_UNAVAILABLE = "API_UNAVAILABLE";
 
 /**
  * Base da API no browser.
- * Produção no Vercel: vazio → `/api/...` no mesmo host; vercel.json faz proxy para axecloud.com.br.
- * Evita ERR_NAME_NOT_RESOLVED quando o DNS local do `axecloud.com.br` falha no PC do admin.
+ * Em produção na VPS, `/api/...` no mesmo host (Caddy faz proxy para o container app).
  * Override: VITE_API_BASE_URL=https://axecloud.com.br (chamada cross-origin direta).
  */
 export function resolveApiBaseUrl(): string {

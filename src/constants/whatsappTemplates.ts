@@ -65,7 +65,7 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
       'AxéCloud',
   ),
   estoque_critico: withAutoFooter(
-    '⚠️ *ALERTA DE ESTOQUE* ⚠️\nOlá! O item *{{item_nome}}* atingiu o nível crítico no {{nome_terreiro}}.\nQuantidade atual: {{quantidade}}\nPor favor, providencie a reposição conforme necessário.',
+    '⚠️ Alerta de estoque crítico — {{nome_terreiro}}\n\nOs seguintes itens estão abaixo do mínimo:\n{{lista_itens}}\n\nTotal: {{quantidade_itens}} item(s) precisam de reposição.',
   ),
   pedido_reza_novo_zelador: withAutoFooter(
     'Novo pedido de reza no {{nome_terreiro}}: {{nome_fiel}} — {{categoria}}. Acesse Atendimentos no AxéCloud para aceitar o pedido.',

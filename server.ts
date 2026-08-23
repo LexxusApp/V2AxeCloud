@@ -59,6 +59,8 @@ import { registerAdminMetricsRoutes } from "./api/lib/adminMetricsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./api/lib/efiCheckoutRoutes.js";
 import { registerFundamentosRoutes } from "./api/lib/fundamentosRoutes.js";
 import { registerPreceitoRoutes } from "./api/lib/preceitoRoutes.js";
+import { registerAdvancedManagementRoutes } from "./api/lib/advancedManagementRoutes.js";
+import { registerTerreiroServicosRoutes } from "./api/lib/terreiroServicosRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit, webhookRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
@@ -1230,39 +1232,6 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-
-  /** Na Vercel o path interno pode ser `/api/index`; restaura o URL público a partir de headers. */
-  app.use((req, _res, next) => {
-    if (process.env.VERCEL === "1") {
-      const orig = typeof req.originalUrl === "string" ? req.originalUrl.split("#")[0] : "";
-      if (orig.startsWith("/api/") && orig !== req.url) {
-        delete (req as any)._parsedUrl;
-        req.url = orig;
-        return next();
-      }
-      const h = req.headers;
-      const candidates = [
-        h["x-vercel-original-url"],
-        h["x-forwarded-uri"],
-        h["x-invoke-path"],
-      ].filter((x): x is string => typeof x === "string" && x.length > 0);
-      for (const raw of candidates) {
-        try {
-          const pathAndQuery = raw.startsWith("http")
-            ? new URL(raw).pathname + new URL(raw).search
-            : raw.split("#")[0];
-          if (pathAndQuery.startsWith("/api/") && pathAndQuery !== req.url) {
-            delete (req as any)._parsedUrl;
-            req.url = pathAndQuery;
-            break;
-          }
-        } catch {
-          /* ignorar */
-        }
-      }
-    }
-    next();
-  });
 
   // Log apenas em desenvolvimento e sem query string/tokens públicos.
   app.use((req, res, next) => {
@@ -3185,6 +3154,8 @@ async function startServer() {
   registerEfiCheckoutRoutes(app, { supabaseAdmin });
   registerFundamentosRoutes(app, { supabaseAdmin });
   registerPreceitoRoutes(app, { supabaseAdmin });
+  registerAdvancedManagementRoutes(app, { supabaseAdmin });
+  registerTerreiroServicosRoutes(app, { supabaseAdmin });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);
@@ -4652,9 +4623,7 @@ async function startServer() {
     if (hasSpa) {
       app.use(express.static(distPath));
     } else {
-      console.warn(
-        "[SERVER] dist/index.html ausente neste bundle (comum na função serverless só-API na Vercel)."
-      );
+      console.warn("[SERVER] dist/index.html ausente neste bundle.");
     }
     app.get("*", (req, res) => {
       const pathOnly = String(req.path || (req.url || "").split("?")[0] || "");
@@ -4665,7 +4634,7 @@ async function startServer() {
         });
       }
       if (!hasSpa) {
-        return res.status(503).type("text/plain").send("Frontend não incluído nesta função serverless.");
+        return res.status(503).type("text/plain").send("Frontend não incluído neste processo.");
       }
       try {
         const html = injectRuntimeConfigHtml(readFileSync(indexPath, "utf8"));
@@ -4678,15 +4647,13 @@ async function startServer() {
     });
   }
 
-  if (process.env.VERCEL !== '1') {
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      
-      // Garantir buckets e esquema após o início para não bloquear o boot
-      ensureBucketsExist().catch(err => console.error("[SERVER] Erro ao garantir buckets:", err));
-      initializeDatabase().catch(err => console.error("[SERVER] Erro ao inicializar banco:", err));
-    });
-  }
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Garantir buckets e esquema após o início para não bloquear o boot
+    ensureBucketsExist().catch(err => console.error("[SERVER] Erro ao garantir buckets:", err));
+    initializeDatabase().catch(err => console.error("[SERVER] Erro ao inicializar banco:", err));
+  });
 
   // Global Error Handler — nunca expõe detalhes internos em produção
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -4701,19 +4668,4 @@ async function startServer() {
   return app;
 }
 
-const appPromise = startServer();
-
-// Export for Vercel serverless environment
-export default async function handler(req: any, res: any) {
-  try {
-    const app = await appPromise;
-    return app(req, res);
-  } catch (err: any) {
-    console.error("[VERCEL HANDLER ERROR]", err);
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.status(500).json({
-      error: "Internal Server Error during initialization",
-      ...(isProduction ? {} : { details: err.message || String(err) }),
-    });
-  }
-}
+void startServer();

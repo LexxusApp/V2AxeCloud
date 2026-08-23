@@ -12,5 +12,5 @@ export function redirectToCanonicalOriginIfNeeded(): boolean {
 export function isCanonicalAppOrigin(): boolean {
   if (typeof window === 'undefined') return true;
   const host = window.location.hostname;
-  return host === CANONICAL_HOST || host.endsWith('.vercel.app') || host === 'localhost' || host === '127.0.0.1';
+  return host === CANONICAL_HOST || host === 'localhost' || host === '127.0.0.1';
 }

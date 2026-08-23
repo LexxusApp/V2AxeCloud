@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Check, Crown, Infinity, Loader2, ShieldCheck, Zap } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Check, Infinity, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import {
   PLAN_NAMES,
   canonicalPlanSlug,
@@ -9,12 +8,11 @@ import {
 } from '../../constants/plans';
 import { usePlansCatalog } from '../../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../../lib/plansDisplay';
-import { renewSubscriptionPath } from '../../lib/routes';
-import { supabase } from '../../lib/supabase';
 import { useSubscriptionBillingCycle } from '../../hooks/useSubscriptionBillingCycle';
 
 type SettingsSubscriptionPanelProps = {
   tenantData: Record<string, unknown> | null | undefined;
+  onRenew?: (billingCycle: 'monthly' | 'annual') => void;
 };
 
 const PLAN_BENEFITS = [
@@ -25,31 +23,6 @@ const PLAN_BENEFITS = [
   'WhatsApp automatizado',
   'Acesso ilimitado à plataforma',
 ] as const;
-
-function planAccent(planKey: string, isLifetime: boolean) {
-  if (isLifetime && planKey === 'vita') {
-    return {
-      bar: 'from-primary via-amber-400 to-primary',
-      iconBg: 'bg-primary/15 border-primary/30',
-      icon: 'text-primary',
-      badge: 'border-primary/25 bg-primary/10 text-primary',
-    };
-  }
-  if (isLifetime && planKey === 'cortesia') {
-    return {
-      bar: 'from-violet-500 via-fuchsia-400 to-violet-600',
-      iconBg: 'bg-violet-500/15 border-violet-500/30',
-      icon: 'text-violet-400',
-      badge: 'border-violet-500/25 bg-violet-950/40 text-violet-300',
-    };
-  }
-  return {
-    bar: 'from-primary via-[#FDE047] to-primary',
-    iconBg: 'bg-primary/15 border-primary/30',
-    icon: 'text-primary',
-    badge: 'border-primary/25 bg-primary/10 text-primary',
-  };
-}
 
 function statusBadge(status: string | undefined, isLifetime: boolean, isTrial: boolean) {
   if (isTrial && !isLifetime) {
@@ -81,8 +54,7 @@ function statusBadge(status: string | undefined, isLifetime: boolean, isTrial: b
   );
 }
 
-export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPanelProps) {
-  const [renewLoading, setRenewLoading] = useState(false);
+export function SettingsSubscriptionPanel({ tenantData, onRenew }: SettingsSubscriptionPanelProps) {
   const [renewError, setRenewError] = useState<string | null>(null);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
 
@@ -98,8 +70,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
       : planKey === 'cortesia'
         ? 'Plano Cortesia'
         : `Plano ${currentPlanName}`
-    : `Plano ${currentPlanName}`;
-  const accent = planAccent(planKey, isLifetime);
+        : `Plano ${currentPlanName}`;
   const status = String(tenantData?.status || 'active');
   const isTrial = tenantData?.is_trial === true && !isLifetime;
   const billingCycle = useSubscriptionBillingCycle(
@@ -112,20 +83,9 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
     billingCycle === 'annual' ? annualPriceValue : monthlyPriceValue,
   );
 
-  async function handleRenew() {
-    setRenewLoading(true);
+  function handleRenew() {
     setRenewError(null);
-    try {
-      let tenantId = String(tenantData?.tenant_id || '').trim();
-      if (!tenantId) {
-        const { data } = await supabase.auth.getSession();
-        tenantId = data.session?.user?.id || '';
-      }
-      window.location.href = renewSubscriptionPath(tenantId, billingCycle);
-    } catch {
-      setRenewError('Erro ao abrir o checkout. Tente novamente.');
-      setRenewLoading(false);
-    }
+    onRenew?.(billingCycle);
   }
 
   if (fetchingPlans) {
@@ -148,8 +108,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
         {statusBadge(status, isLifetime, isTrial)}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-        <div className="space-y-4 lg:col-span-7">
+      <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A]/60 p-3">
               <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
@@ -207,7 +166,7 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
           </div>
 
           {!isLifetime && (
-            <div className="space-y-2">
+            <div className="space-y-3 border-t border-[#1E242B] pt-4">
               {isTrial ? (
                 <p className="rounded-xl border border-sky-500/25 bg-sky-950/30 px-3 py-2 text-[11px] font-medium leading-snug text-sky-200">
                   Você está no teste grátis de 30 dias — nenhum pagamento foi realizado ainda.
@@ -220,73 +179,22 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
                   {renewError}
                 </p>
               ) : null}
+              <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => void handleRenew()}
-                disabled={renewLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-[#080A0D] shadow-md shadow-primary/15 transition-all hover:bg-[#fde047] disabled:opacity-50 sm:w-auto sm:px-6"
-            >
-              {renewLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Zap className="h-4 w-4" />
-              )}
-              {isTrial
-                ? billingCycle === 'annual'
-                  ? 'Assinar plano anual agora'
-                  : 'Assinar agora'
-                : 'Renovar assinatura'}
-            </button>
+                onClick={() => handleRenew()}
+                className="flex min-h-11 w-fit min-w-[13rem] items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-3 text-sm font-black text-[#080A0D] shadow-md shadow-primary/20 transition-all hover:bg-[#fde047]"
+              >
+                <Zap className="h-4 w-4 shrink-0" />
+                {isTrial
+                  ? billingCycle === 'annual'
+                    ? 'Assinar plano anual agora'
+                    : 'Assinar agora'
+                  : 'Renovar assinatura'}
+              </button>
+              </div>
             </div>
           )}
-        </div>
-
-        <div className="space-y-4 lg:col-span-5">
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-            Cartão do plano
-          </span>
-
-          <div className="group relative overflow-hidden rounded-2xl border border-[#1E242B] bg-gradient-to-b from-[#1E2530] to-[#12161A] p-5 text-center shadow-lg">
-            <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', accent.bar)} />
-
-            <div className="relative space-y-4 pt-2">
-              <div className="relative mx-auto h-16 w-16">
-                <div className="absolute inset-0 animate-pulse rounded-full bg-primary/15 blur-md filter" />
-                <div
-                  className={cn(
-                    'relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border shadow-inner',
-                    accent.iconBg,
-                  )}
-                >
-                  <Crown className={cn('h-7 w-7', accent.icon)} aria-hidden />
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 z-20 h-4 w-4 rounded-full border-2 border-[#1E252E] bg-emerald-500" />
-              </div>
-
-              <div>
-                <h6 className="font-display text-base font-black text-[#F1F5F9]">{displayPlanName}</h6>
-                <span
-                  className={cn(
-                    'mt-2 inline-block rounded border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wide',
-                    accent.badge,
-                  )}
-                >
-                  {isLifetime
-                    ? 'Acesso vitalício'
-                    : isTrial
-                      ? 'Teste grátis · 30 dias'
-                      : billingCycle === 'annual'
-                        ? 'Assinatura anual'
-                        : 'Assinatura mensal'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-center gap-1.5 border-t border-[#1E242B]/80 pt-3 text-[9px] leading-normal text-[#94A3B8]">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Todos os módulos liberados no painel
-              </div>
-            </div>
-          </div>
 
           <div className="flex items-start gap-3 rounded-xl border border-[#1E242B]/70 bg-zinc-950/40 p-3">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" aria-hidden />
@@ -299,7 +207,6 @@ export function SettingsSubscriptionPanel({ tenantData }: SettingsSubscriptionPa
               </p>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );

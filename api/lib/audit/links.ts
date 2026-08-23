@@ -3,7 +3,7 @@
  * relativas, e dispara HEAD/GET em paralelo controlado para classificar como
  * ok / redirect / broken (4xx/5xx) / timeout / network.
  *
- * Limites pensados para Vercel Serverless (10s Free, 60s Pro):
+ * Limites pensados para o cron da VPS:
  *  - máximo 30 links por chamada (configurável até 60).
  *  - 8 requests concorrentes.
  *  - 6s de timeout por link.

@@ -1,11 +1,11 @@
 /**
- * Tick agendado pelo Vercel Cron (ou cron externo).
+ * Tick agendado pelo cron da VPS.
  *
  * Itera por todos os `audit_targets` com `enabled=true` e schedule compatível
  * (no momento ignoramos o schedule e rodamos todos os habilitados — o intervalo
- * é controlado pelo Vercel Cron). Roda em série para não sobrecarregar PSI/CPU.
+ * é controlado pelo cron). Roda em série para não sobrecarregar PSI/CPU.
  *
- * Autorização: header `Authorization: Bearer <CRON_SECRET>` (padrão Vercel).
+ * Autorização: header `Authorization: Bearer <CRON_SECRET>`.
  */
 
 import type { Request, Response } from "express";
@@ -13,7 +13,7 @@ import { runFullAudit, type AuditTargetRow } from "./runFull.js";
 import { secureCompare } from "../secureCompare.js";
 import { safeErrorMessage } from "../safeError.js";
 
-const HARD_BUDGET_MS = 50_000; // teto p/ serverless de 60s
+const HARD_BUDGET_MS = 50_000;
 
 function unauthorized(res: Response, reason: string) {
   console.warn("[cron/audit-tick] unauthorized:", reason);

@@ -1,10 +1,6 @@
 /**
- * Rota isolada para Vercel: sem imports de /src, apenas process.env (não import.meta).
+ * Rota isolada: sem imports de /src, apenas process.env (não import.meta).
  * Planos/constantes usadas na resposta estão inline abaixo.
- *
- * CORS é aplicado inline (sem helper externo) para evitar que o bundler da Vercel
- * exclua a pasta api/_lib/ (prefix "_" não é deployado como função, e o import
- * pode falhar em runtime gerando 500).
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
@@ -19,7 +15,7 @@ const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
 // Slugs de plano alinhados ao app: premium, vita, cortesia (sem import de src)
 
 /**
- * Normaliza slug do plano gravado no banco. Inline para não importar /src no bundle da Vercel.
+ * Normaliza slug do plano gravado no banco. Inline para não importar /src.
  * Espelha src/constants/plans.ts → canonicalPlanSlug, mas restrito aos slugs ativos.
  */
 function canonicalPlanSlug(plan: string | undefined | null): string {
@@ -91,7 +87,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
   }
   if (!SUPABASE_URL || !SUPABASE_SERVER_KEY || !supabaseAdmin) {
     return res.status(503).json({
-      error: "Supabase não configurado na função da Vercel",
+      error: "Supabase não configurado no servidor",
     });
   }
 

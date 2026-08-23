@@ -8,11 +8,73 @@
  *   npx tsx scripts/reset-mensalidades-from-august.ts --all   # TODOS os terreiros
  */
 import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import { childEligibleForDueMonth, clampDayInMonth } from "../api/lib/mensalidadeEligibility.js";
 
 const CUTOFF = "2026-08-01";
+
+type FinanceiroRow = {
+  id: string;
+  tipo: string | null;
+  valor: number | null;
+  categoria: string | null;
+  data: string | null;
+  data_vencimento: string | null;
+  descricao: string | null;
+  tenant_id: string | null;
+  lider_id: string | null;
+  filho_id: string | null;
+  status: string | null;
+};
+
+type FinanceiroInsert = Partial<FinanceiroRow>;
+
+type FilhoRow = {
+  id: string;
+  nome: string | null;
+  tenant_id: string | null;
+  lider_id: string | null;
+  created_at: string | null;
+  data_entrada: string | null;
+  status: string | null;
+};
+
+type ConfiguracaoPixRow = {
+  valor_mensalidade: number | null;
+  dia_vencimento: number | null;
+  mensalidade_ativa: boolean | null;
+  terreiro_id: string | null;
+};
+
+type MaintenanceDatabase = {
+  public: {
+    Tables: {
+      financeiro: {
+        Row: FinanceiroRow;
+        Insert: FinanceiroInsert;
+        Update: FinanceiroInsert;
+        Relationships: [];
+      };
+      filhos_de_santo: {
+        Row: FilhoRow;
+        Insert: Partial<FilhoRow>;
+        Update: Partial<FilhoRow>;
+        Relationships: [];
+      };
+      configuracoes_pix: {
+        Row: ConfiguracaoPixRow;
+        Insert: Partial<ConfiguracaoPixRow>;
+        Update: Partial<ConfiguracaoPixRow>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+
+type AdminClient = SupabaseClient<MaintenanceDatabase>;
 
 function getUrl(): string | undefined {
   return (
@@ -55,7 +117,7 @@ function rowYmd(row: { data_vencimento?: string | null; data?: string | null }):
   return null;
 }
 
-async function findTenantByChildName(admin: ReturnType<typeof createClient>, namePart: string) {
+async function findTenantByChildName(admin: AdminClient, namePart: string) {
   const { data, error } = await admin
     .from("filhos_de_santo")
     .select("id, nome, tenant_id, lider_id")
@@ -66,7 +128,7 @@ async function findTenantByChildName(admin: ReturnType<typeof createClient>, nam
 }
 
 async function deletePreCutoffMensalidades(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   tenantIds: string[],
   dry: boolean
 ) {
@@ -102,7 +164,7 @@ async function deletePreCutoffMensalidades(
 }
 
 async function syncAugustForTenant(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   tenantId: string,
   dry: boolean
 ) {
@@ -166,7 +228,7 @@ async function syncAugustForTenant(
     if (hasOpenOrPaidAug) continue;
 
     const nome = String((child as any).nome || "Filho").trim() || "Filho";
-    const insert: Record<string, unknown> = {
+    const insert: FinanceiroInsert = {
       tipo: "entrada",
       valor: valorPadrao,
       categoria: "Mensalidade",
@@ -217,7 +279,7 @@ async function main() {
     process.exit(1);
   }
 
-  const admin = createClient(url, key, {
+  const admin = createClient<MaintenanceDatabase>(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 

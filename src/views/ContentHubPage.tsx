@@ -151,7 +151,7 @@ export default function ContentHubPage() {
             Por que AxéCloud? Tabela vs planilha e outros sistemas
           </p>
           <p className="mt-2 text-sm text-[#1b1813]/65">
-            14 módulos reais, app PWA instalável e checklist objetivo — tudo em uma página.
+            24 módulos reais, app PWA instalável e checklist objetivo — tudo em uma página.
           </p>
         </a>
 

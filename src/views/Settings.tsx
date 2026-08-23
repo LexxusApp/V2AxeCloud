@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CreditCard, Loader2, MapPinned, MessageCircleMore, UserRound } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, MapPinned, MessageCircleMore, UserRound } from 'lucide-react';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
 import { SettingsAccountCredentialsPanel } from '../components/settings/SettingsAccountCredentialsPanel';
 import {
@@ -13,9 +13,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
-import Subscription from './Subscription';
-import { SettingsSubscriptionPanel } from '../components/settings/SettingsSubscriptionPanel';
 import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
+import { TerreiroServicosSettings } from '../components/settings/TerreiroServicosSettings';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 
 const SECTION_COPY: Record<SettingsSection, { title: string; description: string }> = {
@@ -27,10 +26,6 @@ const SECTION_COPY: Record<SettingsSection, { title: string; description: string
     title: 'WhatsApp e automações',
     description: 'Confira o canal oficial, escolha os avisos automáticos e acompanhe os envios recentes.',
   },
-  subscription: {
-    title: 'Plano e assinatura',
-    description: 'Veja o plano atual, recursos disponíveis e opções para evoluir a conta.',
-  },
   portal: {
     title: 'Dados exibidos no mapa',
     description: 'Atualize as informações públicas da casa apresentadas no mapa e no diretório.',
@@ -40,7 +35,6 @@ const SECTION_COPY: Record<SettingsSection, { title: string; description: string
 const SECTION_ICON = {
   profile: UserRound,
   whatsapp: MessageCircleMore,
-  subscription: CreditCard,
   portal: MapPinned,
 } satisfies Record<SettingsSection, typeof UserRound>;
 
@@ -66,15 +60,6 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [accountEmail, setAccountEmail] = useState<string>(String(user?.email || ''));
   const activeSectionCopy = SECTION_COPY[activeSection];
   const ActiveSectionIcon = SECTION_ICON[activeSection];
-
-  useEffect(() => {
-    const handleOpenSubscription = () => {
-      setActiveSection('subscription');
-    };
-
-    window.addEventListener('open-subscription-tab', handleOpenSubscription);
-    return () => window.removeEventListener('open-subscription-tab', handleOpenSubscription);
-  }, []);
 
   useEffect(() => {
     setAccountEmail(String(user?.email || profile?.email || '').trim());
@@ -229,19 +214,11 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
           </>
         ) : activeSection === 'whatsapp' ? (
           <SettingsWhatsAppPanel />
-        ) : activeSection === 'subscription' ? (
-          <div className="space-y-5">
-            <SettingsSubscriptionPanel tenantData={tenantData} />
-            <Subscription
-              session={session}
-              tenantData={tenantData}
-              onPlanUpdated={onRefresh || (() => {})}
-              onlyAvailablePlans={true}
-              setActiveTab={setActiveTab}
-            />
-          </div>
         ) : activeSection === 'portal' ? (
-          <ClaimedDirectoryProfileSettings />
+          <div className="space-y-5">
+            <ClaimedDirectoryProfileSettings />
+            <TerreiroServicosSettings />
+          </div>
         ) : null}
         </div>
       </div>

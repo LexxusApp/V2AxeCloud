@@ -4,10 +4,6 @@ const APP_DEV_ORIGIN =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_DEV_ORIGIN) ||
   'http://localhost:3000';
 
-const MARKETING_DEV_ORIGIN =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MARKETING_DEV_ORIGIN) ||
-  'http://localhost:5174';
-
 const APP_SPA_PATHS = [
   ROUTES.login,
   ROUTES.register,
@@ -19,6 +15,7 @@ const APP_SPA_PATHS = [
   ROUTES.giraCheckin,
   ROUTES.visitantePresenca,
   ROUTES.checkinPortaria,
+  ROUTES.instrucoes,
   '/widget',
 ] as const;
 
@@ -63,14 +60,15 @@ export function appHref(path: string): string {
   return p;
 }
 
-/** Em dev no app (:3000), marketing vive em outra porta. */
+/**
+ * Href de marketing. Em DEV no app (:3000) mantém a mesma origem —
+ * o AppRouter serve MarketingRouter localmente (não depende da :5174).
+ */
 export function marketingHref(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   if (!import.meta.env.DEV || typeof window === 'undefined') return p;
   if (isMarketingDevServer()) return p;
-  if (isAppDevServer()) {
-    return `${MARKETING_DEV_ORIGIN.replace(/\/$/, '')}${p}`;
-  }
+  if (isAppDevServer()) return p;
   return p;
 }
 
@@ -83,13 +81,7 @@ export function redirectToAppDevOriginIfNeeded(path: string): boolean {
   return true;
 }
 
-export function redirectToMarketingDevOriginIfNeeded(path: string): boolean {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
-  if (!isAppDevServer()) return false;
-  const p = normalizePath(path);
-  if (isAppSpaPath(p)) return false;
-  const target = marketingHref(p) + window.location.search + window.location.hash;
-  if (window.location.href === target) return false;
-  window.location.replace(target);
-  return true;
+/** @deprecated Em DEV o app serve marketing na mesma porta; não redireciona mais. */
+export function redirectToMarketingDevOriginIfNeeded(_path: string): boolean {
+  return false;
 }

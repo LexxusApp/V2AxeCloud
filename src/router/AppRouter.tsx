@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { RouteLoadingFallback } from '../app/routeLoading';
 import { usePathname } from '../hooks/usePathname';
-import { redirectToMarketingDevOriginIfNeeded } from '../lib/appHref';
 import {
   MARKETING_REDIRECT_ATTEMPTS_KEY,
   escapeAppBundleOnMarketingUrl,
@@ -27,6 +26,7 @@ const GiraSenhasPublicPage = lazy(() => import('../views/GiraSenhasPublicPage'))
 const VisitantePresencaPage = lazy(() => import('../views/VisitantePresencaPage'));
 const CheckinPortariaKioskPage = lazy(() => import('../views/CheckinPortariaKioskPage'));
 const PortalWidgetPage = lazy(() => import('../views/portal/PortalWidgetPage'));
+const MarketingRouter = lazy(() => import('../marketing/MarketingRouter'));
 
 function AppNotFound({ path }: { path: string }) {
   const started = useRef(false);
@@ -36,7 +36,10 @@ function AppNotFound({ path }: { path: string }) {
     if (started.current || typeof window === 'undefined') return;
     started.current = true;
 
-    if (import.meta.env.DEV && redirectToMarketingDevOriginIfNeeded(path)) {
+    // Em DEV o app (:3000) já serve as rotas de marketing via MarketingRouter —
+    // não redirecionar para :5174 (landing) se ela não estiver no ar.
+    if (import.meta.env.DEV && isMarketingSitePath(path)) {
+      setStuck(true);
       return;
     }
 
@@ -116,8 +119,7 @@ function RoutedPage({ path }: { path: string }) {
 
   switch (path) {
     case ROUTES.home:
-      // Em dev o app (:3000) serve `/`; marketing vive em outra porta.
-      // Entrar no login evita AppNotFound → redirect :5174 (e loops se a landing não estiver no ar).
+      // Em dev o app (:3000) serve `/` como login (painel).
       if (import.meta.env.DEV) return <LoginPage />;
       return <AppNotFound path={path} />;
     case ROUTES.register:
@@ -140,6 +142,11 @@ function RoutedPage({ path }: { path: string }) {
     case ROUTES.dashboard:
       return <DashboardPage />;
     default:
+      // Em DEV, páginas públicas do diretório/marketing ficam no próprio :3000
+      // (evita redirect morto para :5174 quando a landing não está rodando).
+      if (import.meta.env.DEV && isMarketingSitePath(path)) {
+        return <MarketingRouter />;
+      }
       return <AppNotFound path={path} />;
   }
 }

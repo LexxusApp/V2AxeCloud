@@ -17,10 +17,51 @@ export const FEATURE_HUB = {
   title: `Recursos de gestão de terreiros | ${BRAND_NAME}`,
   h1: `Recursos do ${BRAND_NAME} para a rotina da casa`,
   description:
-    `Conheça os módulos do ${BRAND_NAME}: financeiro Pix, calendário de giras, portal do filho, WhatsApp oficial e app PWA. Teste ${TRIAL_DAYS} dias grátis.`,
+    `Conheça os 24 módulos do ${BRAND_NAME}: financeiro Pix, filhos, giras, patrimônio, documentos, relatórios e mais. Teste ${TRIAL_DAYS} dias grátis.`,
   lead:
     'Cada recurso abaixo existe hoje no plano Premium — sem módulo escondido. Escolha o que responde à dor da sua casa e compare no detalhe.',
 } as const;
+
+const ADDITIONAL_FEATURES = [
+  ['painel-do-zelador', 'Painel do zelador', 'Visão diária da casa com pendências, próximos compromissos e atalhos para a gestão.'],
+  ['cadastro-filhos-de-santo', 'Cadastro de filhos de santo', 'Fichas individuais com contatos, cargos, vínculos e informações da caminhada na casa.'],
+  ['mural-de-avisos', 'Mural de avisos', 'Comunicados oficiais organizados no portal, sem depender de mensagens perdidas em grupos.'],
+  ['galeria-fotos-terreiro', 'Galeria de fotos', 'Álbuns privados para preservar giras, festas e acontecimentos importantes da casa.'],
+  ['biblioteca-estudos-terreiro', 'Biblioteca de estudos', 'Textos, cantigas e materiais de fundamento organizados por categoria e acesso.'],
+  ['loja-do-axe', 'Loja do axé', 'Pedidos de itens da casa conectados ao estoque e à rotina financeira.'],
+  ['almoxarifado-terreiro', 'Almoxarifado', 'Materiais, insumos e estoque crítico acompanhados sem cadernos paralelos.'],
+  ['atendimentos-pedidos-reza', 'Atendimentos e pedidos de reza', 'Solicitações recebidas e acompanhadas com privacidade, contexto e histórico.'],
+  ['diretorio-publico-terreiros', 'Portal público e diretório', 'Perfil público da casa no mapa, eventos e informações para quem procura acolhimento.'],
+  ['notificacoes-push', 'Notificações push', 'Avisos importantes da casa entregues diretamente no celular dos integrantes.'],
+  ['obrigacoes-alertas', 'Obrigações e alertas', 'Datas, orientações e documentos da caminhada acompanhados individualmente.'],
+  ['frequencia-check-in', 'Frequência e check-in', 'Presenças, faltas e assiduidade registradas em giras e atividades da casa.'],
+  ['central-relatorios', 'Central de relatórios', 'Indicadores financeiros, mensalidades, agenda, obrigações e estoque em uma leitura objetiva.'],
+  ['patrimonio-sagrado', 'Patrimônio sagrado', 'Bens permanentes, conservação, localização, responsáveis e valores separados do estoque.'],
+  ['documentos-da-casa', 'Documentos da casa', 'Estatutos, atas, contratos e comprovantes com situação, vencimento e acesso protegido.'],
+  ['consulentes-agenda', 'Consulentes e agenda', 'Cadastro, agendamentos, responsáveis, retornos e histórico privado de acolhimento.'],
+  ['caminhada-mediunica', 'Caminhada mediúnica', 'Linha do tempo de entrada, iniciações, obrigações, cargos e marcos de cada integrante.'],
+  ['calendario-liturgico', 'Calendário litúrgico', 'Datas sagradas configuradas pela própria casa conforme sua tradição e recorrência.'],
+  ['desenvolvimento-mediunico', 'Desenvolvimento mediúnico', 'Turmas, atividades, facilitadores, frequência e evolução formativa da corrente.'],
+  ['controle-camarinha', 'Controle de camarinha', 'Recolhimentos, prazos, responsáveis e orientações em área reservada à zeladoria.'],
+] as const;
+
+const ADDITIONAL_FEATURE_PAGES: readonly FeaturePageContent[] = ADDITIONAL_FEATURES.map(([slug, name, benefit]) => ({
+  slug,
+  title: `${name} para terreiro | ${BRAND_NAME}`,
+  h1: `${name} para a gestão do terreiro`,
+  description: `${benefit} Conheça o módulo ${name} do ${BRAND_NAME} e teste ${TRIAL_DAYS} dias grátis.`,
+  lead: benefit,
+  sections: [
+    { heading: 'Criado para a rotina real da casa', body: `${benefit} O recurso fica integrado aos demais dados da gestão, sem planilhas ou cadastros duplicados.` },
+    { heading: 'Privacidade por terreiro', body: 'Os registros ficam no ambiente privado da casa e só podem ser consultados por pessoas autenticadas e autorizadas.' },
+    { heading: 'Tudo no plano Premium', body: `O módulo faz parte do conjunto de 24 recursos do ${BRAND_NAME}, sem cobrança isolada por funcionalidade.` },
+    { heading: 'Conheça com sua própria rotina', body: `Cadastre a casa em https://axecloud.com.br/register e teste por ${TRIAL_DAYS} dias grátis, sem cartão.` },
+  ],
+  faq: [
+    { q: `O módulo ${name} já está disponível?`, a: `Sim. ${name} faz parte do produto atual do ${BRAND_NAME} e está incluído no plano Premium.` },
+    { q: 'Os dados ficam misturados com os de outros terreiros?', a: 'Não. Cada casa possui ambiente isolado, com autenticação e acesso aos próprios registros.' },
+  ],
+}));
 
 export const FEATURE_PAGES: readonly FeaturePageContent[] = [
   {
@@ -208,6 +249,7 @@ export const FEATURE_PAGES: readonly FeaturePageContent[] = [
       },
     ],
   },
+  ...ADDITIONAL_FEATURE_PAGES,
 ] as const;
 
 export function featurePagePath(slug: string): string {

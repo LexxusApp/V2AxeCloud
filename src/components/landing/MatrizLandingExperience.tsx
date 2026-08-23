@@ -1359,7 +1359,7 @@ function ModulesSection() {
 
       <Shell className="relative">
         <Reveal className="text-center">
-          <Kicker dark>14 módulos reais</Kicker>
+          <Kicker dark>24 módulos reais</Kicker>
           <h2 className="mt-4 text-3xl font-extrabold text-white md:text-4xl">
             Do barracão ao celular do filho
           </h2>

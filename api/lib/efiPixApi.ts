@@ -26,7 +26,7 @@ function stripEnvQuotes(value: string): string {
   return t;
 }
 
-/** Remove prefixo data-URI, "base64:" e espaços/quebras comuns em secrets da Vercel. */
+/** Remove prefixo data-URI, "base64:" e espaços/quebras comuns em secrets. */
 function normalizeBase64CertInput(raw: string): string {
   let trimmed = stripEnvQuotes(raw);
   const comma = trimmed.indexOf(",");
@@ -87,7 +87,7 @@ function resolveCertPfxFromEnv(): { pfx: Buffer; cacheKey: string } | null {
 
 function resolveCertPathFromDisk(): string | null {
   for (const key of ["EFI_PIX_CERT_PATH", "EFI_CERTIFICATE_PATH"] as const) {
-    const raw = String(process.env[key] || "").trim();
+    const raw = stripEnvQuotes(String(process.env[key] || ""));
     if (!raw) continue;
     const resolved = path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
     if (fs.existsSync(resolved)) return resolved;
@@ -132,7 +132,7 @@ export function getEfiPixSetupDiagnostics(): EfiPixSetupDiagnostics {
   }
   if (!certEnvKeysPresent.length) {
     issues.push(
-      "Defina EFI_PIX_CERT_BASE64 com o arquivo .p12 inteiro em Base64 (recomendado na Vercel)."
+      "Defina EFI_PIX_CERT_BASE64 com o arquivo .p12 inteiro em Base64, ou EFI_CERTIFICATE_PATH na VPS."
     );
   } else if (!cert) {
     const key = certEnvKeysPresent[0]!;
@@ -140,6 +140,10 @@ export function getEfiPixSetupDiagnostics(): EfiPixSetupDiagnostics {
     if (sample.includes("-----BEGIN")) {
       issues.push(
         `${key}: formato PEM detectado. A API Pix exige certificado .p12 (PKCS#12), não .pem/.crt.`
+      );
+    } else if (/\.p12|\.pfx|[\\/]/.test(sample) && sample.length < 400) {
+      issues.push(
+        `${key}: caminho de arquivo informado, mas o .p12 não foi encontrado neste computador. No localhost o PIX só funciona com o certificado na pasta certs/; clientes pagam no site no ar (VPS).`
       );
     } else if (sample.length < 200) {
       issues.push(

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 132" role="img" aria-labelledby="title desc">
+  <title id="title">AxéCloud</title>
+  <desc id="desc">Gestão para terreiros.</desc>
+  <g transform="translate(8 8) scale(1.8)">
+    <path d="M15.5 14.5c.8 11.6 2.8 25.8 6.7 38.2 5.8 3.7 13.8 3.7 19.6 0 3.9-12.4 5.9-26.6 6.7-38.2Z" fill="#17251D"/>
+    <ellipse cx="32" cy="14.5" rx="17" ry="6.5" fill="#F7C928"/>
+    <ellipse cx="32" cy="14.5" rx="11.4" ry="3.3" fill="#17251D" opacity=".16"/>
+    <path d="M18.1 27.5c8.6 4.3 19.2 4.3 27.8 0M20.2 40.4c7.3 3.7 16.3 3.7 23.6 0" fill="none" stroke="#F7F2E8" stroke-width="3" stroke-linecap="round"/>
+    <path d="m19.3 22.5 24 25M44.7 22.5l-24 25" fill="none" stroke="#F7C928" stroke-width="1.8" stroke-linecap="round"/>
+    <g fill="#F7F2E8" stroke="#17251D" stroke-width="1.2"><circle cx="20.7" cy="24" r="2.25"/><circle cx="43.3" cy="24" r="2.25"/><circle cx="32" cy="34.2" r="2.45"/><circle cx="22.8" cy="45.6" r="2.25"/><circle cx="41.2" cy="45.6" r="2.25"/></g>
+  </g>
+  <text x="142" y="68" fill="#17251D" font-family="Outfit, 'Plus Jakarta Sans', Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="-2.5">AxéCloud</text>
+  <text x="146" y="96" fill="#5F6D64" font-family="Outfit, 'Plus Jakarta Sans', Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="3.4">GESTÃO PARA TERREIROS</text>
+</svg>

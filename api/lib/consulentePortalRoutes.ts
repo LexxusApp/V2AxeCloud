@@ -8,6 +8,8 @@ import { notifyFielPedidoAceito, notifyZeladorNovoPedidoReza } from "./pedidosRe
 import { isPlausibleDiretorioCoordinate, parseGoogleMapsCoordinates } from "../../lib/diretorioCoordinates.js";
 import { slugifyCidadeOnly } from "./diretorioSlug.js";
 import { slugifyBairro } from "../../lib/diretorioBairro.js";
+import { assertSafeImageBuffer } from "./imageUpload.js";
+import { safeErrorMessage } from "./safeError.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -199,7 +201,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data: current, error: currentError } = await sb
         .from("terreiros_diretorio")
-        .select("id, latitude, longitude")
+        .select("id, latitude, longitude, owner_photo_url")
         .eq("claimed_by_tenant_id", user.id)
         .maybeSingle();
       if (currentError) throw currentError;
@@ -237,8 +239,18 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         coordinateSource = geocoded ? "owner_address_geocoded" : "owner_settings_address";
       }
 
-      let ownerPhotoUrl: string | null = null;
-      if (body.useIdentityPhoto === true) {
+      const photoSourceRaw = String(body.photoSource || "").trim().toLowerCase();
+      const photoSource =
+        photoSourceRaw === "identity" || photoSourceRaw === "custom" || photoSourceRaw === "none"
+          ? photoSourceRaw
+          : body.useIdentityPhoto === true
+            ? "identity"
+            : body.useIdentityPhoto === false
+              ? "none"
+              : "custom";
+
+      let ownerPhotoUrl: string | null = current.owner_photo_url ? String(current.owner_photo_url) : null;
+      if (photoSource === "identity") {
         const { data: identity, error: identityError } = await sb
           .from("perfil_lider")
           .select("foto_url")
@@ -247,6 +259,24 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         if (identityError) throw identityError;
         ownerPhotoUrl = identity?.foto_url ? String(identity.foto_url) : null;
         if (!ownerPhotoUrl) return res.status(400).json({ error: "Adicione primeiro uma foto em Conta e Casa." });
+      } else if (photoSource === "none") {
+        ownerPhotoUrl = null;
+      } else {
+        const requested = String(body.ownerPhotoUrl || "").trim();
+        if (requested) {
+          let parsed: URL;
+          try {
+            parsed = new URL(requested);
+          } catch {
+            return res.status(400).json({ error: "URL da foto do diretório inválida." });
+          }
+          if (parsed.protocol !== "https:") {
+            return res.status(400).json({ error: "A foto do diretório precisa usar HTTPS." });
+          }
+          ownerPhotoUrl = requested.slice(0, 800);
+        } else if (!ownerPhotoUrl) {
+          return res.status(400).json({ error: "Envie uma foto para o diretório ou escolha outra opção." });
+        }
       }
 
       const update: Record<string, unknown> = {
@@ -274,18 +304,61 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .update(update)
         .eq("id", current.id)
         .eq("claimed_by_tenant_id", user.id)
-        .select("slug, updated_at")
+        .select("slug, updated_at, owner_photo_url")
         .single();
       if (saveError) throw saveError;
       return res.json({
         success: true,
         perfilUrl: saved?.slug ? `/terreiro/${saved.slug}` : null,
         updatedAt: saved?.updated_at || new Date().toISOString(),
+        ownerPhotoUrl: saved?.owner_photo_url || null,
         warning: hasCoordinates ? null : "Dados salvos, mas a posição no mapa precisa de latitude e longitude.",
       });
     } catch (error: unknown) {
       console.error("[settings/directory-profile/post]", error);
       res.status(500).json({ error: "Erro ao atualizar o perfil do diretório." });
+    }
+  });
+
+  app.post("/api/v1/settings/directory-profile/upload-photo", sensitiveActionRateLimit, async (req: Request, res: Response) => {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return;
+    try {
+      const { data: current, error: currentError } = await sb
+        .from("terreiros_diretorio")
+        .select("id")
+        .eq("claimed_by_tenant_id", user.id)
+        .maybeSingle();
+      if (currentError) throw currentError;
+      if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
+
+      const fileData = String(req.body?.fileData || "");
+      const fileName = String(req.body?.fileName || "").trim();
+      const contentType = String(req.body?.contentType || "image/jpeg");
+      if (!fileData || !fileName) return res.status(400).json({ error: "Dados da imagem ausentes." });
+
+      const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const safeName = `diretorio/${user.id}-${Date.now()}.${ext}`.slice(0, 160);
+      const buffer = Buffer.from(fileData, "base64");
+      const safeContentType = assertSafeImageBuffer(buffer, contentType);
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Imagem maior que 5 MB." });
+      }
+
+      const { error: uploadError } = await sb.storage.from("perfil_fotos").upload(safeName, buffer, {
+        contentType: safeContentType,
+        upsert: true,
+      });
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = sb.storage.from("perfil_fotos").getPublicUrl(safeName);
+
+      return res.json({ publicUrl });
+    } catch (error: unknown) {
+      console.error("[settings/directory-profile/upload-photo]", error);
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar foto do diretório.") });
     }
   });
 

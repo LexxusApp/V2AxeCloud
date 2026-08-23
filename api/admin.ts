@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
   const method = String(req.method || "GET").toUpperCase();
 
   const sb = getDiscreteSupabaseAdmin();
-  if (!sb) return sendJson(res, 503, { error: "Supabase não configurado na função da Vercel." });
+  if (!sb) return sendJson(res, 503, { error: "Supabase não configurado na servidor." });
 
   if (action === "tenants" && method === "GET") {
     const authHeader = req.headers?.authorization || req.headers?.Authorization;

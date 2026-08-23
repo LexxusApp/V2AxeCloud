@@ -162,6 +162,9 @@ export type RegistrationCheckoutPanelProps = {
   defaultPhone?: string;
   className?: string;
   showFooter?: boolean;
+  /** Cadastro vai ao painel; renovação no dashboard pode ficar na mesma tela. */
+  redirectToDashboard?: boolean;
+  onSuccess?: () => void;
 };
 
 export function RegistrationCheckoutPanel({
@@ -174,6 +177,8 @@ export function RegistrationCheckoutPanel({
   defaultPhone = '',
   className,
   showFooter = true,
+  redirectToDashboard = true,
+  onSuccess,
 }: RegistrationCheckoutPanelProps) {
   const { premium: catalogPrice } = usePlansCatalog();
   const base = themes[variant];
@@ -229,6 +234,18 @@ export function RegistrationCheckoutPanel({
   const [pixCopy, setPixCopy] = useState<string | null>(null);
   const [pixQr, setPixQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const onSuccessRef = React.useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  const redirectToDashboardRef = React.useRef(redirectToDashboard);
+  redirectToDashboardRef.current = redirectToDashboard;
+
+  const goAfterPaid = React.useCallback(() => {
+    onSuccessRef.current?.();
+    if (redirectToDashboardRef.current) {
+      window.location.href = '/dashboard';
+    }
+  }, []);
 
   const [cardLoading, setCardLoading] = useState(false);
   const [cardPaymentError, setCardPaymentError] = useState<string | null>(null);
@@ -327,9 +344,7 @@ export function RegistrationCheckoutPanel({
         if (data.paid) {
           setPaymentConfirmed(true);
           window.clearInterval(interval);
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 2000);
+          setTimeout(() => goAfterPaid(), redirectToDashboardRef.current ? 2000 : 400);
         }
       } catch {
         /* ignore */
@@ -337,7 +352,7 @@ export function RegistrationCheckoutPanel({
     }, 4000);
 
     return () => window.clearInterval(interval);
-  }, [pixTxid, paymentConfirmed, tenantId]);
+  }, [pixTxid, paymentConfirmed, tenantId, goAfterPaid]);
 
   const handleGeneratePix = async () => {
     setPixLoading(true);
@@ -389,7 +404,7 @@ export function RegistrationCheckoutPanel({
     if (!config?.payeeCode || config.cardTokenizationReady === false) {
       setError(
         config?.cardSetup?.issues?.[0] ||
-          'Configure EFI_PAYEE_CODE na Vercel (Efí → API → Introdução → Identificador de conta).'
+          'Configure EFI_PAYEE_CODE no .env da VPS (Efí → API → Introdução → Identificador de conta).'
       );
       return;
     }
@@ -461,16 +476,14 @@ export function RegistrationCheckoutPanel({
 
       if (data.active) {
         setPaymentConfirmed(true);
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 2000);
+        setTimeout(() => goAfterPaid(), redirectToDashboardRef.current ? 2000 : 400);
         return;
       }
 
       const active = await pollActivation();
       if (active) {
         setPaymentConfirmed(true);
-        window.location.href = '/dashboard';
+        goAfterPaid();
       } else {
         setError(
           'Assinatura criada. Aguardando confirmação do cartão — o painel libera automaticamente em instantes.'
@@ -516,14 +529,22 @@ export function RegistrationCheckoutPanel({
           />
           <h2 className="text-xl font-black">Pagamento confirmado!</h2>
           <p className={cn('mt-2 text-sm', t.textMuted)}>
-            {isRenewal ? 'Assinatura renovada. Redirecionando para o painel…' : 'Redirecionando para o painel…'}
+            {redirectToDashboard
+              ? isRenewal
+                ? 'Assinatura renovada. Redirecionando para o painel…'
+                : 'Redirecionando para o painel…'
+              : isRenewal
+                ? 'Assinatura renovada. Pode continuar no painel.'
+                : 'Acesso liberado. Pode continuar no painel.'}
           </p>
+          {redirectToDashboard ? (
           <Loader2
             className={cn(
               'mx-auto mt-6 h-6 w-6 animate-spin',
               variant === 'light' ? 'text-amber-600' : variant === 'app' ? 'text-primary' : 'text-[#f2b90f]'
             )}
           />
+          ) : null}
         </motion.div>
       ) : alreadyActive ? (
         <motion.div initial={{ scale: 0.98 }} animate={{ scale: 1 }} className={t.successPanel}>
@@ -711,7 +732,7 @@ export function RegistrationCheckoutPanel({
               </motion.div>
             ) : !config?.cardAvailable ? (
               <p className={cn('text-sm', t.textMuted)}>
-                Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET na Vercel.
+                Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET no .env da VPS.
               </p>
             ) : (
               <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>

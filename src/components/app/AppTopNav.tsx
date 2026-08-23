@@ -18,7 +18,8 @@ import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useObrigacoesUnread } from '../../hooks/useObrigacoesUnread';
 import { cn } from '../../lib/utils';
 import { uploadFilhoProfilePhoto } from '../../lib/filhoProfilePhoto';
-import { hasPlanAccess } from '../../constants/plans';
+import { hasPlanAccess, isLifetimePlan } from '../../constants/plans';
+import { getSubscriptionDueState } from '../../lib/subscriptionDue';
 import {
   buildZeladorNavEntries,
   buildZeladorNavItems,
@@ -44,6 +45,9 @@ type AppTopNavProps = {
     tenant_id?: string | null;
     foto_url?: string | null;
     tradicao?: string | null;
+    expires_at?: string | null;
+    status?: string | null;
+    is_trial?: boolean;
   } | null;
   userDisplayName?: string;
   userId?: string | null;
@@ -66,6 +70,19 @@ function useMediaQuery(query: string) {
   }, [query]);
 
   return matches;
+}
+
+function formatSidebarDueDate(value?: string | null) {
+  if (!value) return null;
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12)
+    : new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(date);
+  const month = new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date);
+  const year = new Intl.DateTimeFormat('pt-BR', { year: 'numeric' }).format(date);
+  return `${day} ${month} ${year}`;
 }
 
 function NavTab({
@@ -325,8 +342,22 @@ export default function AppTopNav({
     userEmail,
   );
 
-  const badgeForItem = (itemId: string) =>
-    userRole === 'filho' && itemId === 'obrigacoes' ? obrigacoesUnread : 0;
+  const subscriptionDue = getSubscriptionDueState({
+      expiresAt: tenantData?.expires_at,
+      plan: tenantData?.plan,
+      status: tenantData?.status,
+      isTrial: tenantData?.is_trial,
+    });
+  const subscriptionNeedsAttention =
+    userRole !== 'filho' &&
+    !isLifetimePlan(String(tenantData?.plan || '')) &&
+    subscriptionDue.needsAttention;
+
+  const badgeForItem = (itemId: string) => {
+    if (userRole === 'filho' && itemId === 'obrigacoes') return obrigacoesUnread;
+    if (userRole !== 'filho' && itemId === 'subscription' && subscriptionNeedsAttention) return 1;
+    return 0;
+  };
 
   useEffect(() => {
     if (isLgDesktop) setMobileOpen(false);
@@ -414,10 +445,23 @@ export default function AppTopNav({
   };
 
   const terreiroNome = tenantData?.nome?.trim() || 'Meu Terreiro';
+  const dueDateLabel = formatSidebarDueDate(tenantData?.expires_at);
   const subtitle =
     userRole === 'filho'
       ? userDisplayName || 'Filho de Santo'
-      : `${tenantData?.plan?.toUpperCase() || 'AXÉ'} · gestão do terreiro`;
+      : isLifetimePlan(String(tenantData?.plan || ''))
+        ? 'Acesso vitalício'
+        : subscriptionDue.isOverdue
+          ? dueDateLabel
+            ? `Vencida em ${dueDateLabel}`
+            : 'Mensalidade vencida'
+          : subscriptionDue.daysRemaining === 0
+            ? 'Vence hoje'
+            : subscriptionDue.daysRemaining != null && subscriptionDue.daysRemaining <= 7
+              ? `Vence em ${subscriptionDue.daysRemaining} dia${subscriptionDue.daysRemaining === 1 ? '' : 's'}`
+              : dueDateLabel
+                ? `Vence em ${dueDateLabel}`
+                : 'Vencimento não informado';
   const profileFoto = userRole === 'filho' ? filhoFotoUrl : tenantData?.foto_url;
 
   useEffect(() => {
@@ -480,6 +524,7 @@ export default function AppTopNav({
           layout="drawer"
           isActive={activeTab === entry.item.id}
           isLocked={isItemLocked(entry.item)}
+          badgeCount={badgeForItem(entry.item.id)}
           onSelect={() => handleSelect(entry.item)}
         />
       );
@@ -495,7 +540,7 @@ export default function AppTopNav({
         activeTab={activeTab}
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
-        menuLabel={entry.type === 'casa' ? 'Módulos da casa' : 'Módulos financeiros'}
+        menuLabel={entry.type === 'casa' ? 'Módulos da casa' : entry.type === 'financial' ? 'Módulos financeiros' : 'Módulos de gestão avançada'}
         defaultExpanded={defaultExpanded}
       />
     );
@@ -550,19 +595,11 @@ export default function AppTopNav({
               <AxeCloudEmblem className="h-8 w-8" />
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('dashboard')}
-                className="group shrink-0 rounded-lg p-0.5 text-left transition-colors hover:bg-white/[0.04]"
-                aria-label="Ir para o início"
-              >
-                <AxeCloudEmblem className="h-8 w-8" />
-              </button>
+            <div className="flex items-center">
               <button
                 type="button"
                 onClick={() => setActiveTab(userRole === 'filho' ? 'profile' : 'settings')}
-                className="app-v5-sidebar-copy flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.025] px-1.5 py-1 text-left transition-colors hover:bg-white/[0.05]"
+                className="app-v5-sidebar-copy flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-2 py-1.5 text-left transition-colors hover:bg-white/[0.05]"
                 aria-label={userRole === 'filho' ? 'Abrir meu perfil' : 'Abrir configurações da casa'}
               >
                 <div
@@ -628,6 +665,9 @@ export default function AppTopNav({
                     )}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
+                    {badgeForItem(item.id) > 0 ? (
+                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-[#0B0D11] bg-amber-400" aria-label="Requer atenção" />
+                    ) : null}
                   </button>
                 );
               })
@@ -717,7 +757,15 @@ export default function AppTopNav({
         aria-label="Menu de módulos do AxéCloud"
       >
         <div className="flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-[#1E242B] px-4 py-3">
-          <AxeCloudEmblem className="h-9 w-9" />
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-primary/40 bg-gradient-to-br from-primary to-amber-500">
+            <Avatar
+              src={profileFoto}
+              name={isFilhoProfile ? userDisplayName || 'Filho de Santo' : terreiroNome}
+              alt=""
+              className="h-full w-full"
+              textSize="text-[10px]"
+            />
+          </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-sm font-bold text-[#F1F5F9]">{terreiroNome}</p>
             <p className="truncate text-[11px] font-medium text-primary">{subtitle}</p>

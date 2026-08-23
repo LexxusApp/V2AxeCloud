@@ -30,6 +30,17 @@ export function LandingStoryProof() {
               <a href={ROUTES.terreiros} className="inline-flex items-center gap-1.5 text-sm font-black text-[#a87400] hover:text-[#1b1813]">Ver diretório <ArrowRight className="h-4 w-4" /></a>
             </div>
 
+            <a
+              href="/terreiro/e-u-j-a-espaco-universalista-dr-jose-de-arimateia"
+              className="mt-6 flex items-start gap-3 rounded-2xl border border-[#e8dfd0] bg-white p-5 shadow-sm transition hover:border-[#ffc107]"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#ffc107]/18 text-[#a87400]"><Building2 className="h-5 w-5" /></span>
+              <div>
+                <h4 className="font-black leading-snug">E.U.J.A. Espaço Universalista Dr. José de Arimateia</h4>
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-[#1b1813]/55"><MapPin className="h-3.5 w-3.5" />Sorocaba/SP · casa de axé</p>
+              </div>
+            </a>
+
             {visibleHouses.length ? (
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {visibleHouses.map((house) => (

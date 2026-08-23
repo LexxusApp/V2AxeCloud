@@ -252,7 +252,7 @@ export function AuditMonitor() {
               Monitor contínuo
             </h2>
             <p className="mt-0.5 text-xs text-neutral-400">
-              Auditoria automática dos alvos cadastrados via Vercel Cron, com alertas de queda de score.
+              Auditoria automática dos alvos cadastrados via cron da VPS, com alertas de queda de score.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -516,7 +516,7 @@ export function AuditMonitor() {
                       <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Última execução</p>
                       <p className="mt-1 text-[11px] text-neutral-300">{fmtDate(t.last_run_at)}</p>
                       <p className="mt-0.5 text-[10px] text-neutral-500">
-                        Schedule: {t.schedule} · Vercel Cron decide o intervalo real
+                        Schedule: {t.schedule} · o cron da VPS decide o intervalo real
                       </p>
                     </div>
                   </div>

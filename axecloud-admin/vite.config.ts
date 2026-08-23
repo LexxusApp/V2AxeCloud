@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes("node_modules")) return;
-            if (id.includes("@supabase") || id.includes("@vercel")) return "vendor-services";
+            if (id.includes("@supabase")) return "vendor-services";
             if (id.includes("react") || id.includes("scheduler")) return "vendor-react";
             if (id.includes("lucide-react")) return "vendor-icons";
             if (id.includes("date-fns")) return "vendor-dates";

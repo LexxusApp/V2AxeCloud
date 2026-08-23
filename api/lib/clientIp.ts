@@ -20,18 +20,12 @@ function normalizeIp(value: string): string {
  * Retorna IP validado sem confiar em X-Forwarded-For fornecido pelo cliente.
  *
  * Na VPS, o Caddy só escreve x-axecloud-client-ip após validar o peer contra
- * as faixas oficiais da Cloudflare. Em outros ambientes usamos o socket, salvo
- * na Vercel, cujo header dedicado é controlado pela plataforma.
+ * as faixas oficiais da Cloudflare.
  */
 export function resolveClientIp(req: RequestLike): string | null {
   if (process.env.TRUST_PROXY_CLIENT_IP === "1") {
     const trusted = normalizeIp(headerValue(req.headers, "x-axecloud-client-ip"));
     if (trusted) return trusted;
-  }
-
-  if (process.env.VERCEL === "1") {
-    const vercelIp = normalizeIp(headerValue(req.headers, "x-vercel-forwarded-for"));
-    if (vercelIp) return vercelIp;
   }
 
   return normalizeIp(String(req.socket?.remoteAddress || "")) || null;

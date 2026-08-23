@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Sistema de marca AxéCloud — direção Atabaque de Dados</title>
+  <desc id="desc">Prancha com assinatura principal, versão invertida, ícone de aplicativo, reduções e paleta.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#0E1512" flood-opacity=".14"/></filter>
+    <pattern id="grain" width="48" height="48" patternUnits="userSpaceOnUse"><circle cx="4" cy="8" r="1" fill="#17251D" opacity=".025"/><circle cx="32" cy="29" r="1" fill="#17251D" opacity=".018"/></pattern>
+    <g id="mark-positive">
+      <path d="M15.5 14.5c.8 11.6 2.8 25.8 6.7 38.2 5.8 3.7 13.8 3.7 19.6 0 3.9-12.4 5.9-26.6 6.7-38.2Z" fill="#17251D"/>
+      <ellipse cx="32" cy="14.5" rx="17" ry="6.5" fill="#F7C928"/>
+      <ellipse cx="32" cy="14.5" rx="11.4" ry="3.3" fill="#17251D" opacity=".16"/>
+      <path d="M18.1 27.5c8.6 4.3 19.2 4.3 27.8 0M20.2 40.4c7.3 3.7 16.3 3.7 23.6 0" fill="none" stroke="#F7F2E8" stroke-width="3" stroke-linecap="round"/>
+      <path d="m19.3 22.5 24 25M44.7 22.5l-24 25" fill="none" stroke="#F7C928" stroke-width="1.8" stroke-linecap="round" opacity=".92"/>
+      <g fill="#F7F2E8" stroke="#17251D" stroke-width="1.2"><circle cx="20.7" cy="24" r="2.25"/><circle cx="43.3" cy="24" r="2.25"/><circle cx="32" cy="34.2" r="2.45"/><circle cx="22.8" cy="45.6" r="2.25"/><circle cx="41.2" cy="45.6" r="2.25"/></g>
+    </g>
+    <g id="mark-inverse">
+      <path d="M15.5 14.5c.8 11.6 2.8 25.8 6.7 38.2 5.8 3.7 13.8 3.7 19.6 0 3.9-12.4 5.9-26.6 6.7-38.2Z" fill="#F7F2E8"/>
+      <ellipse cx="32" cy="14.5" rx="17" ry="6.5" fill="#F7C928"/>
+      <path d="M18.1 27.5c8.6 4.3 19.2 4.3 27.8 0M20.2 40.4c7.3 3.7 16.3 3.7 23.6 0" fill="none" stroke="#17251D" stroke-width="3" stroke-linecap="round"/>
+      <path d="m19.3 22.5 24 25M44.7 22.5l-24 25" fill="none" stroke="#F7C928" stroke-width="1.8" stroke-linecap="round"/>
+      <g fill="#17251D" stroke="#F7F2E8" stroke-width="1.2"><circle cx="20.7" cy="24" r="2.25"/><circle cx="43.3" cy="24" r="2.25"/><circle cx="32" cy="34.2" r="2.45"/><circle cx="22.8" cy="45.6" r="2.25"/><circle cx="41.2" cy="45.6" r="2.25"/></g>
+    </g>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#F7F2E8"/>
+  <rect width="1600" height="1000" fill="url(#grain)"/>
+  <text x="88" y="76" fill="#A58100" font-family="Outfit, Arial, sans-serif" font-size="14" font-weight="800" letter-spacing="3.5">AXÉCLOUD · SISTEMA DE MARCA 03</text>
+  <text x="88" y="126" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="36" font-weight="800">Atabaque de dados</text>
+  <text x="88" y="158" fill="#647168" font-family="Outfit, Arial, sans-serif" font-size="17">Tradição reconhecível. Tecnologia organizada. Uma marca que pertence ao produto.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="88" y="210" width="912" height="322" rx="30" fill="#FFFDF9" stroke="#DED7C9"/>
+    <rect x="1024" y="210" width="488" height="322" rx="30" fill="#17251D"/>
+  </g>
+
+  <g transform="translate(148 282) scale(3.25)"><use href="#mark-positive"/></g>
+  <text x="390" y="356" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="-3.8">AxéCloud</text>
+  <text x="396" y="403" fill="#667269" font-family="Outfit, Arial, sans-serif" font-size="17" font-weight="700" letter-spacing="5.4">GESTÃO PARA TERREIROS</text>
+  <path d="M390 439h456" stroke="#E4DED2"/>
+  <text x="390" y="474" fill="#8B958D" font-family="Outfit, Arial, sans-serif" font-size="14">ASSINATURA PRINCIPAL · FUNDO CLARO</text>
+
+  <g transform="translate(1080 264) scale(2.5)"><use href="#mark-inverse"/></g>
+  <text x="1248" y="346" fill="#F7F2E8" font-family="Outfit, Arial, sans-serif" font-size="44" font-weight="800" letter-spacing="-2.2">AxéCloud</text>
+  <text x="1252" y="379" fill="#C8D0CA" font-family="Outfit, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="3">GESTÃO PARA TERREIROS</text>
+  <text x="1080" y="474" fill="#8FA096" font-family="Outfit, Arial, sans-serif" font-size="14">VERSÃO INVERTIDA · INTERFACE ESCURA</text>
+
+  <text x="88" y="600" fill="#A58100" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="3">ÍCONE DO PRODUTO</text>
+  <g filter="url(#shadow)"><rect x="88" y="628" width="224" height="224" rx="50" fill="#17251D"/></g>
+  <circle cx="282" cy="658" r="56" fill="none" stroke="#F7C928" stroke-opacity=".16" stroke-width="2"/>
+  <g transform="translate(120 645) scale(2.5)"><use href="#mark-inverse"/></g>
+
+  <text x="370" y="600" fill="#A58100" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="3">LEITURA EM REDUÇÃO</text>
+  <rect x="370" y="628" width="486" height="224" rx="30" fill="#FFFDF9" stroke="#DED7C9"/>
+  <g transform="translate(408 665) scale(1.55)"><use href="#mark-positive"/></g>
+  <g transform="translate(550 690)"><use href="#mark-positive"/></g>
+  <g transform="translate(665 705) scale(.56)"><use href="#mark-positive"/></g>
+  <text x="408" y="816" fill="#707B73" font-family="Outfit, Arial, sans-serif" font-size="13">96 px</text>
+  <text x="550" y="816" fill="#707B73" font-family="Outfit, Arial, sans-serif" font-size="13">64 px</text>
+  <text x="665" y="816" fill="#707B73" font-family="Outfit, Arial, sans-serif" font-size="13">36 px</text>
+  <text x="720" y="678" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">Três leituras</text>
+  <text x="720" y="711" fill="#647168" font-family="Outfit, Arial, sans-serif" font-size="12">Silhueta: atabaque</text>
+  <text x="720" y="738" fill="#647168" font-family="Outfit, Arial, sans-serif" font-size="12">Camadas: dados</text>
+  <text x="720" y="765" fill="#647168" font-family="Outfit, Arial, sans-serif" font-size="12">Nós: corrente</text>
+
+  <text x="914" y="600" fill="#A58100" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="3">CORES DO AXÉCLOUD</text>
+  <rect x="914" y="628" width="598" height="224" rx="30" fill="#FFFDF9" stroke="#DED7C9"/>
+  <rect x="946" y="660" width="123" height="102" rx="18" fill="#17251D"/><rect x="1085" y="660" width="123" height="102" rx="18" fill="#F7C928"/><rect x="1224" y="660" width="123" height="102" rx="18" fill="#F7F2E8" stroke="#DED7C9"/><rect x="1363" y="660" width="117" height="102" rx="18" fill="#0E1512"/>
+  <text x="946" y="795" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">MATA</text><text x="946" y="818" fill="#738078" font-family="Outfit, Arial, sans-serif" font-size="12">#17251D</text>
+  <text x="1085" y="795" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">AXÉ</text><text x="1085" y="818" fill="#738078" font-family="Outfit, Arial, sans-serif" font-size="12">#F7C928</text>
+  <text x="1224" y="795" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">MARFIM</text><text x="1224" y="818" fill="#738078" font-family="Outfit, Arial, sans-serif" font-size="12">#F7F2E8</text>
+  <text x="1363" y="795" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">NOITE</text><text x="1363" y="818" fill="#738078" font-family="Outfit, Arial, sans-serif" font-size="12">#0E1512</text>
+
+  <line x1="88" y1="918" x2="1512" y2="918" stroke="#D8D1C4"/>
+  <text x="88" y="953" fill="#657168" font-family="Outfit, Arial, sans-serif" font-size="13">Conceito vetorial para validação · os arquivos atuais do sistema não foram substituídos</text>
+  <text x="1512" y="953" text-anchor="end" fill="#17251D" font-family="Outfit, Arial, sans-serif" font-size="13" font-weight="700">AXÉCLOUD · 2026</text>
+</svg>

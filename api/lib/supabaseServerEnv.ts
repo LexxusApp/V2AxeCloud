@@ -1,5 +1,5 @@
 /**
- * Variáveis Supabase no servidor (Vercel/Node).
+ * Variáveis Supabase no servidor Node.
  * Ordem alinhada a api/public (tenant-info): VITE_* costuma ser a fonte correta no deploy.
  */
 export function getSupabaseServerUrl(): string | undefined {

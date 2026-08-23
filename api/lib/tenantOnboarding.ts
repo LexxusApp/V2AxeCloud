@@ -52,12 +52,9 @@ export function resolvePublicAppUrl(): string {
     .find((v) => v.startsWith("http"));
   if (fromEnv) return fromEnv;
 
-  if (process.env.VERCEL_ENV === "production") {
+  if (process.env.NODE_ENV === "production") {
     return "https://axecloud.com.br";
   }
-
-  const vercel = process.env.VERCEL_URL;
-  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
 
   return "http://localhost:3000";
 }

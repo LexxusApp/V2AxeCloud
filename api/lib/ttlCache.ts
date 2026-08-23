@@ -2,20 +2,17 @@
  * Cache TTL para leituras públicas do diretório.
  * Memória no processo Node + Redis opcional (DIR_CACHE_REDIS_URI / CACHE_REDIS_URI).
  */
+import type Redis from 'ioredis';
+
 type CacheEntry = { exp: number; body: string };
 
 const memory = new Map<string, CacheEntry>();
 const PREFIX = String(process.env.DIR_CACHE_PREFIX || 'axe:dir:').trim() || 'axe:dir:';
 
-type RedisLike = {
-  get: (key: string) => Promise<string | null>;
-  set: (key: string, value: string, ...args: Array<string | number>) => Promise<unknown>;
-};
-
-let redisClient: RedisLike | null = null;
+let redisClient: Redis | null = null;
 let redisTried = false;
 
-async function getRedis(): Promise<RedisLike | null> {
+async function getRedis(): Promise<Redis | null> {
   if (redisTried) return redisClient;
   redisTried = true;
   const uri = String(
