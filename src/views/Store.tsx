@@ -553,9 +553,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           </div>
         ) : products.length === 0 ? (
           <AppDemoCard className="py-16 text-center">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-primary/40" />
-            <h3 className="text-lg font-bold text-[#F1F5F9]">Nenhum produto cadastrado</h3>
-            <p className="mt-2 text-sm text-[#94A3B8]">A loja do terreiro ainda está vazia.</p>
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-[#D7A818]" />
+            <h3 className="text-lg font-bold text-[#1D211B]">Nenhum produto cadastrado</h3>
+            <p className="mt-2 text-sm text-[#6F6A60]">A loja do terreiro ainda está vazia.</p>
           </AppDemoCard>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
@@ -662,18 +662,18 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
         {isAdmin && (
           <AppDemoCard className="space-y-4">
             <div className="flex items-center gap-3">
-              <ClipboardList className="h-6 w-6 shrink-0 text-primary" />
+              <ClipboardList className="h-6 w-6 shrink-0 text-[#D7A818]" />
               <div>
-                <h3 className="text-lg font-bold text-[#F1F5F9]">Pedidos dos filhos na loja</h3>
-                <p className="mt-0.5 text-xs text-[#94A3B8]">
+                <h3 className="text-lg font-bold text-[#1D211B]">Pedidos dos filhos na loja</h3>
+                <p className="mt-0.5 text-xs text-[#6F6A60]">
                   Compras e reservas feitas pelos filhos de santo aparecem aqui e no histórico do dashboard.
                 </p>
               </div>
             </div>
             {loadingPedidos ? (
-              <p className="text-sm text-[#94A3B8]">Carregando pedidos…</p>
+              <p className="text-sm text-[#6F6A60]">Carregando pedidos…</p>
             ) : lojaPedidos.length === 0 ? (
-              <p className="text-sm italic text-[#64748B]">Nenhum pedido registrado ainda.</p>
+              <p className="text-sm italic text-[#81796B]">Nenhum pedido registrado ainda.</p>
             ) : (
               <AppDemoTableShell>
                 <ul className="max-h-[min(420px,50vh)] space-y-2 overflow-y-auto p-3 no-scrollbar sm:p-4">

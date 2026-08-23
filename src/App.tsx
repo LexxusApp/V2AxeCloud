@@ -30,7 +30,6 @@ const Library = lazy(() => import('./views/Library'));
 const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
 const MinhaAssinatura = lazy(() => import('./views/MinhaAssinatura'));
-const Atendimentos = lazy(() => import('./views/Atendimentos'));
 const Frequencia = lazy(() => import('./views/Frequencia'));
 const ChatInbox = lazy(() => import('./views/ChatInbox'));
 const Support = lazy(() => import('./views/Support'));
@@ -1246,7 +1245,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }
 
   const navigateToTab = (tab: string) => {
-    const nextTab = userRole === 'filho' ? normalizeFilhoTab(tab) : tab;
+    const requestedTab = tab === 'atendimentos' ? 'dashboard' : tab;
+    const nextTab = userRole === 'filho' ? normalizeFilhoTab(requestedTab) : requestedTab;
     if (nextTab === activeTab) return;
     const transitionDocument = document as Document & { startViewTransition?: (update: () => void) => void };
     if (typeof transitionDocument.startViewTransition === 'function')
@@ -1326,8 +1326,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
       case 'inventory': 
         return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'atendimentos':
-        return <Atendimentos tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'gallery':
         return <Gallery tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'calendar': 

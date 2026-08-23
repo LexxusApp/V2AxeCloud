@@ -24,6 +24,7 @@ import {
   buildZeladorNavEntries,
   buildZeladorNavItems,
   FILHO_NAV,
+  managementHubFromTab,
   navItemPlanFeature,
   type AppNavItem,
   type ZeladorNavEntry,
@@ -321,6 +322,7 @@ export default function AppTopNav({
   onFilhoFotoUpdated,
 }: AppTopNavProps) {
   const isLgDesktop = useMediaQuery('(min-width: 880px)');
+  const navActiveTab = userRole === 'filho' ? activeTab : managementHubFromTab(activeTab);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopPinned, setDesktopPinned] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('axecloud:sidebar-pinned') === '1' : false,
@@ -522,7 +524,7 @@ export default function AppTopNav({
           key={key}
           item={entry.item}
           layout="drawer"
-          isActive={activeTab === entry.item.id}
+          isActive={navActiveTab === entry.item.id}
           isLocked={isItemLocked(entry.item)}
           badgeCount={badgeForItem(entry.item.id)}
           onSelect={() => handleSelect(entry.item)}
@@ -537,7 +539,7 @@ export default function AppTopNav({
         label={entry.label}
         icon={entry.icon}
         items={entry.items}
-        activeTab={activeTab}
+        activeTab={navActiveTab}
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
         menuLabel={entry.type === 'casa' ? 'Módulos da casa' : entry.type === 'financial' ? 'Módulos financeiros' : 'Módulos de gestão avançada'}
@@ -648,7 +650,7 @@ export default function AppTopNav({
           {desktopCompact
             ? navItems.map((item) => {
                 const Icon = item.icon;
-                const active = activeTab === item.id;
+                const active = navActiveTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -677,7 +679,7 @@ export default function AppTopNav({
                   key={item.id}
                   item={item}
                   layout="drawer"
-                  isActive={activeTab === item.id}
+                  isActive={navActiveTab === item.id}
                   isLocked={isItemLocked(item)}
                   badgeCount={badgeForItem(item.id)}
                   onSelect={() => handleSelect(item)}
@@ -794,7 +796,7 @@ export default function AppTopNav({
                   key={item.id}
                   item={item}
                   layout="drawer"
-                  isActive={activeTab === item.id}
+                  isActive={navActiveTab === item.id}
                   isLocked={isItemLocked(item)}
                   badgeCount={badgeForItem(item.id)}
                   onSelect={() => handleSelect(item)}
@@ -921,7 +923,7 @@ export default function AppTopNav({
       <nav className="app-v5-bottom-nav fixed inset-x-3 bottom-3 z-[52] grid grid-cols-5 items-center min-[880px]:hidden" aria-label="Navegação principal">
         {mobileDockItems.map((item) => {
           const Icon = item.icon;
-          const active = activeTab === item.id;
+          const active = navActiveTab === item.id;
           const tourTarget =
             item.id === 'financial'
               ? 'nav-mensalidade'

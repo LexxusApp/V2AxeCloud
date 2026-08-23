@@ -20,7 +20,6 @@ import {
   Smartphone,
   LifeBuoy,
   User,
-  Users,
   UserCircle,
   Wallet,
 } from 'lucide-react';
@@ -50,16 +49,28 @@ export const ZELADOR_FINANCIAL_ITEMS: AppNavItem[] = [
 ];
 
 export const ZELADOR_MANAGEMENT_ITEMS: AppNavItem[] = [
-  { id: 'reports', label: 'Relatórios', icon: PieChart },
-  { id: 'patrimony', label: 'Patrimônio', icon: Landmark },
-  { id: 'documents', label: 'Documentos', icon: BookOpen },
-  { id: 'consulentes', label: 'Consulentes', icon: Users },
-  { id: 'atendimento-agenda', label: 'Agenda de atendimentos', icon: HandHeart },
-  { id: 'journey', label: 'Caminhada mediúnica', icon: Flame },
-  { id: 'liturgical', label: 'Calendário litúrgico', icon: CalendarDays },
-  { id: 'development', label: 'Desenvolvimento', icon: ClipboardList },
-  { id: 'camarinha', label: 'Camarinha', icon: Home },
+  { id: 'reports', label: 'Visão da casa', icon: PieChart },
+  { id: 'consulentes', label: 'Atendimentos', icon: HandHeart },
+  { id: 'journey', label: 'Formação da corrente', icon: Flame },
+  { id: 'documents', label: 'Secretaria da casa', icon: BookOpen },
 ];
+
+const MANAGEMENT_HUB_BY_TAB: Record<string, string> = {
+  reports: 'reports',
+  consulentes: 'consulentes',
+  'atendimento-agenda': 'consulentes',
+  journey: 'journey',
+  development: 'journey',
+  camarinha: 'journey',
+  documents: 'documents',
+  patrimony: 'documents',
+  liturgical: 'documents',
+};
+
+/** Mantém o grupo correto destacado quando uma rotina interna está aberta. */
+export function managementHubFromTab(tab: string): string {
+  return MANAGEMENT_HUB_BY_TAB[tab] || tab;
+}
 
 export type ZeladorNavEntry =
   | { type: 'item'; item: AppNavItem }
@@ -144,7 +155,7 @@ export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntr
     }
     if (managementSet.has(item.id)) {
       if (!managementInserted) {
-        entries.push({ type: 'management', label: 'Gestão avançada', icon: ClipboardList, items: ZELADOR_MANAGEMENT_ITEMS });
+        entries.push({ type: 'management', label: 'Rotinas da casa', icon: ClipboardList, items: ZELADOR_MANAGEMENT_ITEMS });
         managementInserted = true;
       }
       continue;

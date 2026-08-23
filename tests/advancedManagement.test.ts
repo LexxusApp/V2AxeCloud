@@ -17,7 +17,10 @@ test('gestão avançada mantém os oito registros privados e relatórios autenti
   assert.match(api, /assertZeladorOrGlobalAdmin/);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /revoke all on public\.gestao_registros from anon, authenticated/i);
-  assert.match(nav, /label: 'Relatórios'/);
+  assert.match(nav, /label: 'Visão da casa'/);
+  assert.match(nav, /label: 'Atendimentos'/);
+  assert.match(nav, /label: 'Formação da corrente'/);
+  assert.match(nav, /label: 'Secretaria da casa'/);
 });
 
 test('catálogo público anuncia 24 módulos sem incluir recursos adiados', () => {
@@ -26,4 +29,17 @@ test('catálogo público anuncia 24 módulos sem incluir recursos adiados', () =
   assert.equal(entries.length, 24);
   assert.doesNotMatch(catalog, /Equipe e permissões/i);
   assert.doesNotMatch(catalog, /Carteirinha digital/i);
+});
+
+test('documentos usam upload privado em vez de campo de link', () => {
+  const api = read('api/lib/advancedManagementRoutes.ts');
+  const view = read('src/views/AdvancedManagement.tsx');
+
+  assert.match(api, /\/api\/v1\/gestao\/documentos\/upload-url/);
+  assert.match(api, /createSignedUploadUrl/);
+  assert.match(api, /createSignedUrl/);
+  assert.match(api, /DOCUMENT_MAX_BYTES = 20 \* 1024 \* 1024/);
+  assert.match(view, /type="file"/);
+  assert.match(view, /uploadToSignedUrl/);
+  assert.doesNotMatch(view, /label: 'Link seguro do arquivo'/);
 });
