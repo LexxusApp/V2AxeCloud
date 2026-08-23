@@ -59,7 +59,7 @@ $remoteOneLine = ($remote -split "`n" | ForEach-Object { $_.Trim() } | Where-Obj
 
 Write-Host "=== Deploy VPS: $svc ==="
 $env:AXECLOUD_VPS_HOST = $HostAlias
-& powershell -NoProfile -File $sshHelper -RemoteCommand $remoteOneLine
+& $sshHelper -RemoteCommand $remoteOneLine
 if ($LASTEXITCODE -ne 0) { throw "Deploy falhou (exit $LASTEXITCODE)" }
 Write-Host "=== Deploy concluido (SSH encerrado) ==="
 exit 0
