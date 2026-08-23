@@ -54,8 +54,10 @@ echo DEPLOY_OK
 '@.Trim() -replace "`r", ""
 $remote = $remote.Replace('__AXECLOUD_SERVICES__', $svc)
 
-# Uma linha para o ssh remoto
-$remoteOneLine = ($remote -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) -join " && "
+# Preserva blocos if/for ao atravessar Windows -> SSH. O helper recebe uma linha,
+# mas o bash remoto reconstrói o script original antes de executá-lo.
+$remoteBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remote))
+$remoteOneLine = "echo '$remoteBase64' | base64 -d | bash"
 
 Write-Host "=== Deploy VPS: $svc ==="
 $env:AXECLOUD_VPS_HOST = $HostAlias
