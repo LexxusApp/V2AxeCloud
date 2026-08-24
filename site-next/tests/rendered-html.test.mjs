@@ -53,6 +53,8 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.match(text, /Organizada em um só lugar/);
   assert.match(text, /R\$ 69,90\/mês/);
   assert.match(text, /Testar grátis por 30 dias/);
+  assert.match(text, /<article[^>]+class="cx-offer cx-reveal"[^>]+id="plano"/i);
+  assert.doesNotMatch(text, /<section[^>]+id="plano"[^>]+class="cx-finale"/i);
   assert.match(text, /Toda casa carrega/);
   assert.match(text, /PERGUNTAS FREQUENTES/);
   assert.match(text, /"@type":"Organization"/);

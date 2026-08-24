@@ -82,6 +82,7 @@ export default function Home() {
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
+    const rootElement = root.current;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const usesTouchNavigation = window.matchMedia("(hover: none), (pointer: coarse)").matches || navigator.maxTouchPoints > 0;
     let lenis: Lenis | null = null;
@@ -112,8 +113,33 @@ export default function Home() {
     window.addEventListener("pageshow", restoreScrolling);
     restoreScrolling();
 
+    const handleSamePageAnchor = (event: MouseEvent) => {
+      const source = event.target;
+      if (!(source instanceof Element)) return;
+      const anchor = source.closest<HTMLAnchorElement>('a[href^="#"]');
+      if (!anchor || !rootElement?.contains(anchor)) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href === "#") return;
+      const target = document.getElementById(decodeURIComponent(href.slice(1)));
+      if (!target) return;
+
+      event.preventDefault();
+      window.history.pushState(null, "", href);
+      if (lenis) {
+        lenis.scrollTo(target, { offset: -92, duration: 1.05 });
+      } else {
+        const top = target.getBoundingClientRect().top + window.scrollY - 92;
+        window.scrollTo({ top, behavior: prefersReducedMotion ? "auto" : "smooth" });
+      }
+    };
+
+    rootElement?.addEventListener("click", handleSamePageAnchor);
+
     if (prefersReducedMotion) {
-      return () => window.removeEventListener("pageshow", restoreScrolling);
+      return () => {
+        window.removeEventListener("pageshow", restoreScrolling);
+        rootElement?.removeEventListener("click", handleSamePageAnchor);
+      };
     }
 
     const ctx = gsap.context(() => {
@@ -146,6 +172,7 @@ export default function Home() {
     }, root);
     return () => {
       window.removeEventListener("pageshow", restoreScrolling);
+      rootElement?.removeEventListener("click", handleSamePageAnchor);
       ctx.revert();
       lenis?.destroy();
       if (tick) gsap.ticker.remove(tick);
@@ -225,8 +252,8 @@ export default function Home() {
 
     <section className="cx-ecosystem" id="descobrir"><div className="cx-ecosystem-head cx-reveal"><p>ALÉM DO SISTEMA</p><h2>Uma plataforma para a casa.<br /><span>Um serviço para a comunidade.</span></h2><div><Search /><p>O AxéCloud também mantém diretório público, agenda de eventos, conteúdo educativo, glossário e espaço para pedidos de reza.</p></div></div><div className="cx-ecosystem-grid">{ecosystem.map((item,i) => <a className="cx-ecosystem-link cx-reveal" href={item.href} key={item.title}><span>0{i+1}</span><item.icon /><small>{item.eyebrow}</small><h3>{item.title}</h3><p>{item.text}</p><ArrowRight /></a>)}</div></section>
 
-    <section className="cx-finale" id="plano"><div className="cx-final-plan" aria-hidden="true">{rooms.map(r => <span key={r.title}>{r.title}</span>)}<i /><i /><i /></div><div className="cx-finale-copy cx-reveal"><p>04 — A CASA ORGANIZADA E VIVA</p><h2>O AxéCloud cuida<br />da organização.<br /><span>Sua casa cuida das pessoas.</span></h2></div>
-      <article className="cx-offer cx-reveal">
+    <section className="cx-finale"><div className="cx-final-plan" aria-hidden="true">{rooms.map(r => <span key={r.title}>{r.title}</span>)}<i /><i /><i /></div><div className="cx-finale-copy cx-reveal"><p>04 — A CASA ORGANIZADA E VIVA</p><h2>O AxéCloud cuida<br />da organização.<br /><span>Sua casa cuida das pessoas.</span></h2></div>
+      <article className="cx-offer cx-reveal" id="plano">
         <div className="cx-offer-head"><div><img src="/axecloud-trident.png" alt="" width="54" height="54" /><span><small>PLANO PREMIUM</small><strong>Um plano. A casa inteira.</strong></span></div><p><i /> TODOS OS RECURSOS INCLUÍDOS</p></div>
         <div className="cx-offer-body">
           <div className="cx-offer-price">
