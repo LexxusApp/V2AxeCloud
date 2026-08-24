@@ -9,6 +9,7 @@ const migration = readFileSync(
   "utf8",
 );
 const dialog = readFileSync("src/components/portal/TerreiroClaimDialog.tsx", "utf8");
+const directoryProfile = readFileSync("src/views/portal/DiretorioTerreiroPage.tsx", "utf8");
 const settingsRoutes = readFileSync("api/lib/consulentePortalRoutes.ts", "utf8");
 const mapClient = readFileSync("src/lib/diretorioMap.ts", "utf8");
 
@@ -18,6 +19,8 @@ test("reivindicação pública é limitada, validada e gravada somente pela API"
   assert.match(publicRoutes, /String\(body\.website/);
   assert.match(publicRoutes, /\.from\("terreiro_claim_requests"\)/);
   assert.doesNotMatch(dialog, /supabase\.|\.from\("terreiro_claim_requests"\)/);
+  assert.match(directoryProfile, /<TerreiroClaimDialog/);
+  assert.doesNotMatch(directoryProfile, /wa\.me\/5511920033501[\s\S]*reivindicar/i);
 });
 
 test("análise de reivindicações passa pelo administrador global e por operação transacional", () => {
