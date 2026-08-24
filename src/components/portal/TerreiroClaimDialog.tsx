@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -106,7 +107,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
         <BadgeCheck className="h-4 w-4" aria-hidden /> Reivindicar esta casa
       </button>
 
-      {open ? (
+      {open && typeof document !== 'undefined' ? createPortal((
         <div className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-[#070906]/82 p-0 backdrop-blur-md sm:p-5" role="presentation">
           <button type="button" className="absolute inset-0 cursor-default" aria-label="Fechar formulário" onClick={closeDialog} />
           <section role="dialog" aria-modal="true" aria-labelledby="claim-dialog-title" className="relative my-auto grid min-h-dvh w-full overflow-hidden bg-[#f4eddf] text-[#1b1813] shadow-[0_35px_120px_rgba(0,0,0,.55)] sm:min-h-0 sm:max-w-5xl sm:rounded-[2rem] sm:border sm:border-[#ae9c7c]/45 lg:grid-cols-[19rem_minmax(0,1fr)]">
@@ -196,7 +197,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
             </div>
           </section>
         </div>
-      ) : null}
+      ), document.body) : null}
     </>
   );
 }

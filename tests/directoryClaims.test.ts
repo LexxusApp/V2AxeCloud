@@ -21,6 +21,7 @@ test("reivindicação pública é limitada, validada e gravada somente pela API"
   assert.doesNotMatch(dialog, /supabase\.|\.from\("terreiro_claim_requests"\)/);
   assert.match(directoryProfile, /<TerreiroClaimDialog/);
   assert.doesNotMatch(directoryProfile, /wa\.me\/5511920033501[\s\S]*reivindicar/i);
+  assert.match(dialog, /createPortal\([\s\S]*document\.body/);
 });
 
 test("análise de reivindicações passa pelo administrador global e por operação transacional", () => {
