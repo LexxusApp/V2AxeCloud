@@ -11405,3 +11405,37 @@ html:has(.landing-mockup-nav) {
   .axe-login-path-arrow{width:18px}.axe-login-help{margin-top:14px;font-size:9px;line-height:1.7}
   .axe-login-form-surface{padding:26px 19px 22px}
 }
+/* Cartografia editorial do diretório: reduz o aspecto de mapa genérico sem
+   comprometer a legibilidade dos nomes de cidades e vias. */
+.axecloud-directory-tiles {
+  filter: sepia(0.14) saturate(0.78) contrast(0.96) brightness(1.025);
+}
+
+.landing-v3 .leaflet-control-zoom {
+  overflow: hidden;
+  border: 1px solid rgba(21, 61, 45, 0.16) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 32px rgba(21, 61, 45, 0.16) !important;
+}
+
+.landing-v3 .leaflet-control-zoom a {
+  width: 38px !important;
+  height: 38px !important;
+  border-color: rgba(21, 61, 45, 0.1) !important;
+  background: rgba(255, 250, 240, 0.94) !important;
+  color: #153d2d !important;
+  font: 700 21px/38px Manrope, system-ui, sans-serif !important;
+  backdrop-filter: blur(12px);
+}
+
+.landing-v3 .leaflet-control-zoom a:hover {
+  background: #153d2d !important;
+  color: #fffaf0 !important;
+}
+
+.landing-v3 .leaflet-control-attribution {
+  border-radius: 10px 0 0 0;
+  background: rgba(255, 250, 240, 0.84) !important;
+  color: rgba(27, 24, 19, 0.55);
+  backdrop-filter: blur(8px);
+}

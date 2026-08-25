@@ -56,10 +56,28 @@ function popupHtml(point: DiretorioMapPoint) {
   `;
 }
 
-/** Uma camada canvas: milhares de pins sem criar CircleMarker por ponto. */
+type RenderedMapItem =
+  | { kind: 'point'; point: DiretorioMapPoint; x: number; y: number; radius: number }
+  | {
+      kind: 'cluster';
+      lat: number;
+      lng: number;
+      count: number;
+      verifiedCount: number;
+      x: number;
+      y: number;
+      radius: number;
+    };
+
+/**
+ * Camada canvas com agrupamento progressivo. No enquadramento regional o mapa
+ * comunica densidade sem transformar milhares de coordenadas em ruído visual;
+ * os pontos individuais aparecem conforme o usuário se aproxima.
+ */
 const CanvasPointsLayer = L.Layer.extend({
-  initialize(this: L.Layer & { _points: DiretorioMapPoint[] }) {
+  initialize(this: L.Layer & { _points: DiretorioMapPoint[]; _renderedItems: RenderedMapItem[] }) {
     this._points = [];
+    this._renderedItems = [];
   },
   onAdd(this: L.Layer & {
     _map: L.Map;
@@ -86,24 +104,29 @@ const CanvasPointsLayer = L.Layer.extend({
     this._points = points;
     this._redraw();
   },
-  hitTest(this: L.Layer & { _map: L.Map; _points: DiretorioMapPoint[] }, latlng: L.LatLng, maxPx = 16) {
-    if (!this._map || !this._points.length) return null;
+  hitTest(this: L.Layer & { _map: L.Map; _renderedItems: RenderedMapItem[] }, latlng: L.LatLng, maxPx = 12) {
+    if (!this._map || !this._renderedItems.length) return null;
     const origin = this._map.latLngToContainerPoint(latlng);
-    let best: DiretorioMapPoint | null = null;
-    let bestD = maxPx * maxPx;
-    for (const point of this._points) {
-      const pt = this._map.latLngToContainerPoint([point.lat, point.lng]);
-      const dx = pt.x - origin.x;
-      const dy = pt.y - origin.y;
+    let best: RenderedMapItem | null = null;
+    let bestD = Number.POSITIVE_INFINITY;
+    for (const item of this._renderedItems) {
+      const dx = item.x - origin.x;
+      const dy = item.y - origin.y;
       const d = dx * dx + dy * dy;
-      if (d <= bestD) {
+      const hitRadius = Math.max(maxPx, item.radius + 5);
+      if (d <= hitRadius * hitRadius && d < bestD) {
         bestD = d;
-        best = point;
+        best = item;
       }
     }
     return best;
   },
-  _redraw(this: L.Layer & { _map: L.Map; _canvas: HTMLCanvasElement; _points: DiretorioMapPoint[] }) {
+  _redraw(this: L.Layer & {
+    _map: L.Map;
+    _canvas: HTMLCanvasElement;
+    _points: DiretorioMapPoint[];
+    _renderedItems: RenderedMapItem[];
+  }) {
     const map = this._map;
     if (!map || !this._canvas) return;
     const size = map.getSize();
@@ -118,31 +141,107 @@ const CanvasPointsLayer = L.Layer.extend({
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size.x, size.y);
+    this._renderedItems = [];
     if (!this._points.length) return;
     const bounds = map.getBounds().pad(0.08);
     const zoom = map.getZoom();
-    const radius = zoom >= 13 ? 6 : zoom >= 10 ? 5 : zoom >= 8 ? 4 : 3;
-    ctx.lineWidth = zoom >= 10 ? 1.4 : 1;
-    const drawPoints = (verified: boolean, fill: string, stroke: string, radiusScale = 1) => {
-      ctx.fillStyle = fill;
-      ctx.strokeStyle = stroke;
+
+    const visible = this._points.filter((point) => bounds.contains([point.lat, point.lng]));
+    const renderPoint = (point: DiretorioMapPoint) => {
+      const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+      const radius = point.verificada ? 7 : zoom >= 13 ? 5.5 : 4.5;
+      ctx.save();
+      ctx.shadowColor = point.verificada ? 'rgba(16, 185, 129, .42)' : 'rgba(91, 62, 0, .24)';
+      ctx.shadowBlur = point.verificada ? 12 : 5;
       ctx.beginPath();
-      for (const point of this._points) {
-        if (point.verificada !== verified || !bounds.contains([point.lat, point.lng])) continue;
-        const pt = map.latLngToContainerPoint([point.lat, point.lng]);
-        const pointRadius = radius * radiusScale;
-        ctx.moveTo(pt.x + pointRadius, pt.y);
-        ctx.arc(pt.x, pt.y, pointRadius, 0, Math.PI * 2);
-      }
+      ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = point.verificada ? '#16865f' : '#e5ae12';
       ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = point.verificada ? 2.5 : 1.5;
+      ctx.strokeStyle = point.verificada ? '#ffffff' : '#fff8e2';
       ctx.stroke();
+      if (point.verificada) {
+        ctx.beginPath();
+        ctx.moveTo(pt.x - 2.4, pt.y);
+        ctx.lineTo(pt.x - 0.4, pt.y + 2.2);
+        ctx.lineTo(pt.x + 3.2, pt.y - 2.6);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+      ctx.restore();
+      this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius });
     };
-    drawPoints(false, 'rgba(229, 174, 18, 0.92)', '#6B4E00');
-    drawPoints(true, 'rgba(37, 99, 235, 0.97)', '#1E3A8A', 1.4);
+
+    if (zoom >= 12) {
+      visible.forEach(renderPoint);
+      return;
+    }
+
+    const cellSize = zoom <= 5 ? 112 : zoom <= 7 ? 100 : zoom <= 9 ? 68 : 52;
+    const groups = new Map<string, DiretorioMapPoint[]>();
+    for (const point of visible) {
+      const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+      const key = `${Math.floor(pt.x / cellSize)}:${Math.floor(pt.y / cellSize)}`;
+      const group = groups.get(key);
+      if (group) group.push(point);
+      else groups.set(key, [point]);
+    }
+
+    for (const group of groups.values()) {
+      if (group.length === 1) {
+        renderPoint(group[0]);
+        continue;
+      }
+      const lat = group.reduce((sum, point) => sum + point.lat, 0) / group.length;
+      const lng = group.reduce((sum, point) => sum + point.lng, 0) / group.length;
+      const verifiedCount = group.reduce((sum, point) => sum + (point.verificada ? 1 : 0), 0);
+      const pt = map.latLngToContainerPoint([lat, lng]);
+      const radius = Math.min(29, 14 + Math.log2(group.length) * 2.2);
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(10, 42, 30, .30)';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#153d2d';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#f1b90b';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, Math.max(4, radius - 6), 0, Math.PI * 2);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, .15)';
+      ctx.stroke();
+
+      const label = group.length > 999 ? `${(group.length / 1000).toFixed(1).replace('.', ',')}k` : String(group.length);
+      ctx.fillStyle = '#fffaf0';
+      ctx.font = `800 ${label.length > 3 ? 11 : 12}px Manrope, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pt.x, pt.y + 0.5);
+
+      if (verifiedCount > 0) {
+        ctx.beginPath();
+        ctx.arc(pt.x + radius * 0.72, pt.y - radius * 0.72, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#34d399';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      }
+      ctx.restore();
+      this._renderedItems.push({ kind: 'cluster', lat, lng, count: group.length, verifiedCount, x: pt.x, y: pt.y, radius });
+    }
   },
 }) as new () => L.Layer & {
   setPoints: (points: DiretorioMapPoint[]) => void;
-  hitTest: (latlng: L.LatLng, maxPx?: number) => DiretorioMapPoint | null;
+  hitTest: (latlng: L.LatLng, maxPx?: number) => RenderedMapItem | null;
   _redraw: () => void;
 };
 
@@ -190,9 +289,10 @@ export function DirectoryCoverageMap({
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     mapRef.current = map;
 
-    // CartoDB Positron — clean, modern light basemap (no API key needed)
+    // Cartografia clara e silenciosa, ajustada à paleta editorial do AxéCloud.
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
+      className: 'axecloud-directory-tiles',
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
@@ -208,9 +308,25 @@ export function DirectoryCoverageMap({
         .openOn(map);
     };
 
+    map.on('mousemove', (event: L.LeafletMouseEvent) => {
+      const hit = layer.hitTest(event.latlng);
+      map.getContainer().style.cursor = hit ? 'pointer' : '';
+    });
+
+    map.on('mouseout', () => {
+      map.getContainer().style.cursor = '';
+    });
+
     map.on('click', (event: L.LeafletMouseEvent) => {
       const hit = layer.hitTest(event.latlng);
-      if (hit) openPoint(hit);
+      if (!hit) return;
+      if (hit.kind === 'cluster') {
+        map.flyTo([hit.lat, hit.lng], Math.min(12, map.getZoom() + (map.getZoom() < 8 ? 2 : 1)), {
+          duration: 0.65,
+        });
+        return;
+      }
+      openPoint(hit.point);
     });
 
     window.setTimeout(() => map.invalidateSize(), 80);
@@ -275,15 +391,15 @@ export function DirectoryCoverageMap({
       <h2 id="coverage-map-title" className="sr-only">Terreiros no mapa</h2>
 
       {/* Map area */}
-      <div className="relative min-h-[68svh] bg-[#f0ece3] md:min-h-[72vh] md:max-h-[860px]">
+      <div className="relative min-h-[68svh] bg-[#eae4d8] md:min-h-[72vh] md:max-h-[860px]">
         <div
           ref={containerRef}
           className="absolute inset-0 z-0"
           aria-label={`Mapa interativo com ${filteredPoints.length} terreiros`}
         />
 
-        <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex flex-col gap-2 md:inset-x-5 md:top-5 md:flex-row md:items-start md:justify-between">
-          <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 rounded-2xl border border-white/70 bg-[#111810]/92 p-2 shadow-2xl backdrop-blur-xl">
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex flex-col items-start gap-2 md:inset-x-5 md:top-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="pointer-events-auto flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-[#ead8a2]/30 bg-[#10271e]/94 p-2 shadow-[0_18px_48px_rgba(12,37,27,.24)] backdrop-blur-xl">
             <Search className="ml-2 h-4 w-4 shrink-0 text-[#E5AE12]" aria-hidden />
             <input
               type="search"
@@ -302,12 +418,12 @@ export function DirectoryCoverageMap({
             </button>
           </div>
 
-          <div className="pointer-events-auto self-start rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-[10px] font-bold text-[#1b1813]/70 shadow-lg backdrop-blur-xl" aria-label="Legenda do mapa">
+          <div className="pointer-events-auto self-start rounded-xl border border-white/80 bg-[#fffaf0]/94 px-3 py-2 text-[10px] font-bold text-[#1b1813]/70 shadow-lg backdrop-blur-xl" aria-label="Legenda do mapa">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border border-[#6B4E00] bg-[#E5AE12]" /> Casas mapeadas
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-[#E5AE12] bg-[#153d2d]" /> Agrupamentos
             </span>
             <span className="ml-3 inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border border-[#065F46] bg-[#34D399]" /> {verifiedCount.toLocaleString('pt-BR')} verificadas
+              <span className="h-2.5 w-2.5 rounded-full border border-white bg-[#16865f] shadow-sm" /> {verifiedCount.toLocaleString('pt-BR')} verificadas
             </span>
           </div>
         </div>
