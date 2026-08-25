@@ -328,12 +328,83 @@ h1 em { font-style: italic; color: var(--ouro); }
   max-width: none !important;
   max-height: none !important;
 }
-.leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  font-family: "Outfit", sans-serif;
-  box-shadow: 0 10px 30px rgba(60, 44, 16, 0.25);
+.leaflet-popup-content-wrapper { font-family: "Outfit", sans-serif; }
+.axecloud-map-popup .leaflet-popup-content-wrapper {
+  overflow: hidden;
+  border: 1px solid rgba(229,174,18,.38);
+  border-radius: 22px;
+  background: #fffaf0;
+  box-shadow: 0 24px 70px rgba(13,36,27,.28);
 }
-.leaflet-popup-content { margin: 14px 18px; }
+.axecloud-map-popup .leaflet-popup-content { width: 330px !important; margin: 0; }
+.axecloud-map-popup .leaflet-popup-tip { background: #fffaf0; box-shadow: 4px 4px 10px rgba(13,36,27,.12); }
+.axecloud-map-popup .leaflet-popup-close-button {
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 3;
+  display: grid !important;
+  width: 30px !important;
+  height: 30px !important;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09) !important;
+  color: #fffaf0 !important;
+  font: 400 21px/27px Arial, sans-serif !important;
+}
+.axe-map-profile { color: #1b1813; }
+.axe-map-profile__head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 76px;
+  padding: 16px 52px 16px 18px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(229,174,18,.18), transparent 42%),
+    linear-gradient(135deg, #0e291f, #153d2d);
+  color: #fffaf0;
+}
+.axe-map-profile__head::after {
+  content: "";
+  position: absolute;
+  right: 45px;
+  bottom: 0;
+  left: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, #e5ae12, transparent);
+}
+.axe-map-profile__mark {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border: 1px solid rgba(229,174,18,.5);
+  border-radius: 13px;
+  background: #091c15;
+  box-shadow: inset 0 0 20px rgba(229,174,18,.08);
+}
+.axe-map-profile__mark img { width: 24px; height: 24px; object-fit: contain; }
+.axe-map-profile__eyebrow { margin: 0; color: #e5ae12; font-size: .58rem; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+.axe-map-profile__state { margin: 4px 0 0; color: rgba(255,250,240,.72); font-size: .66rem; font-weight: 600; }
+.axe-map-profile__body { padding: 18px 18px 17px; }
+.axe-map-profile__name { margin: 0; color: #1b1813; font-size: 1.05rem; font-weight: 800; line-height: 1.25; letter-spacing: -.02em; }
+.axe-map-profile__location { display: flex; align-items: center; gap: 7px; margin: 10px 0 0; color: #665f55; font-size: .76rem; font-weight: 600; }
+.axe-map-profile__location svg { width: 14px; height: 14px; flex: 0 0 14px; color: #a87400; }
+.axe-map-profile__address { margin: 7px 0 0 21px; color: #766e62; font-size: .7rem; line-height: 1.45; }
+.axe-map-profile__social { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: #9d247d; font-size: .72rem; font-weight: 700; text-decoration: none; }
+.axe-map-profile__social svg { width: 14px; height: 14px; }
+.axe-map-profile__actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 16px; }
+.axe-map-profile__action { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font-size: .71rem; font-weight: 800; text-decoration: none; }
+.axe-map-profile__action--primary { background: #e5ae12; color: #172018; box-shadow: 0 9px 24px rgba(229,174,18,.2); }
+.axe-map-profile__action--secondary { min-width: 112px; border: 1px solid rgba(21,61,45,.18); color: #153d2d; background: #fffdf8; }
+.axe-map-profile__action:hover { transform: translateY(-1px); filter: brightness(1.03); }
+@media (max-width: 520px) {
+  .axecloud-map-popup .leaflet-popup-content { width: min(310px, calc(100vw - 46px)) !important; }
+  .axe-map-profile__actions { grid-template-columns: 1fr; }
+  .axe-map-profile__action--secondary { min-width: 0; }
+}
 .popup-nome { font-family: "Fraunces", serif; font-size: 1rem; line-height: 1.3; color: var(--tinta); }
 .popup-endereco { margin-top: 6px; font-size: 0.78rem; font-weight: 300; color: var(--tinta-fraca); line-height: 1.5; }
 .popup-link { display: inline-block; margin-top: 8px; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ouro); text-decoration: none; }
@@ -547,8 +618,10 @@ const $ = (s, c = document) => c.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const urlSegura = (valor, { interna = false } = {}) => {
+  const raw = String(valor || "").trim();
+  if (!raw) return "";
   try {
-    const u = new URL(valor || "", location.origin);
+    const u = new URL(raw, location.origin);
     if (interna) return u.origin === location.origin ? u.pathname + u.search : "";
     return u.protocol === "https:" || u.origin === location.origin ? u.href : "";
   } catch { return ""; }
@@ -929,30 +1002,44 @@ function conteudoPopup(point) {
   const mapsUrl = urlSegura(item.linkMaps);
   const perfilUrl = perfilLocal(point) || urlSegura(point.perfilUrl, { interna: true });
   const instagramUrl = urlSegura(item.instagramUrl || point.instagramUrl);
-  const verifiedBadge = point.verificada
-    ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(24,119,242,.12);color:#1877F2;border:1px solid rgba(24,119,242,.22);border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:6px">✓ Verificado</span>'
-    : "";
+  const situacao = point.verificada ? "Perfil verificado" : "Casa mapeada";
   return `
-    <div style="min-width:210px;font-family:Outfit,system-ui,sans-serif">
-      <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px">
-        <strong style="font-size:15px;line-height:1.3">${esc(point.nome)}</strong>
-        ${verifiedBadge}
+    <article class="axe-map-profile">
+      <header class="axe-map-profile__head">
+        <span class="axe-map-profile__mark"><img src="/favicon.svg?v=tridente-2026" alt="" /></span>
+        <div>
+          <p class="axe-map-profile__eyebrow">Diretório AxéCloud</p>
+          <p class="axe-map-profile__state">${situacao}</p>
+        </div>
+      </header>
+      <div class="axe-map-profile__body">
+        <h2 class="axe-map-profile__name">${esc(point.nome)}</h2>
+        <p class="axe-map-profile__location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          ${esc(point.cidade)} · ${esc(point.estado)}
+        </p>
+        ${item.endereco ? `<p class="axe-map-profile__address">${esc(item.endereco)}</p>` : ""}
+        ${instagramUrl ? `<a class="axe-map-profile__social" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Ver Instagram</a>` : ""}
+        <div class="axe-map-profile__actions">
+          ${perfilUrl ? `<a class="axe-map-profile__action axe-map-profile__action--primary" href="${esc(perfilUrl)}">Conhecer esta casa <span aria-hidden="true">→</span></a>` : ""}
+          ${mapsUrl ? `<a class="axe-map-profile__action axe-map-profile__action--secondary" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">Como chegar</a>` : ""}
+        </div>
       </div>
-      <p style="margin:8px 0 0;color:#665f55;font-size:12px;font-weight:600">${esc(point.cidade)}, ${esc(point.estado)}</p>
-      ${item.endereco ? `<p style="margin:6px 0 0;color:#665f55;font-size:11px">${esc(item.endereco)}</p>` : ""}
-      ${instagramUrl ? `<a class="popup-instagram" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:#a21caf;text-decoration:none;font-size:12px;font-weight:700"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>` : ""}
-      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
-        ${perfilUrl ? `<a class="popup-link" href="${esc(perfilUrl)}" style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#172018;color:#fff;padding:8px 14px;text-decoration:none;font-weight:800;font-size:12px">Ver perfil completo →</a>` : ""}
-        ${mapsUrl ? `<a class="popup-link" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;font-weight:700">Abrir no Google Maps</a>` : ""}
-      </div>
-    </div>
+    </article>
   `;
 }
 
 function abrePopupPonto(point) {
   if (!mapa || !point) return;
   if (popupAtivo) mapa.closePopup(popupAtivo);
-  popupAtivo = L.popup({ maxWidth: 280, autoPanPadding: [24, 24] })
+  if (tooltipEl) tooltipEl.style.display = "none";
+  popupAtivo = L.popup({
+    maxWidth: 360,
+    minWidth: 300,
+    autoPanPaddingTopLeft: [32, 132],
+    autoPanPaddingBottomRight: [32, 48],
+    className: "axecloud-map-popup",
+  })
     .setLatLng([point.lat, point.lng])
     .setContent(conteudoPopup(point))
     .openOn(mapa);
@@ -989,6 +1076,11 @@ function garanteMapa() {
   });
   mapa.on("mousemove", (e) => {
     const tip = garanteTooltip();
+    if (popupAtivo && mapa.hasLayer(popupAtivo)) {
+      tip.style.display = "none";
+      mapa.getContainer().style.cursor = "";
+      return;
+    }
     const hit = camadaPontos && camadaPontos.hitTest(e.latlng, 14);
     if (!hit) {
       tip.style.display = "none";
@@ -1007,6 +1099,7 @@ function garanteMapa() {
   mapa.on("mouseout", () => {
     if (tooltipEl) tooltipEl.style.display = "none";
   });
+  mapa.on("popupclose", () => { popupAtivo = null; });
   snapMapaPixel();
   window.addEventListener("resize", snapMapaPixel);
 }
@@ -1090,6 +1183,9 @@ $("#btn-perto").addEventListener("click", () => {
       mapa.flyTo([nearest.lat, nearest.lng], 15, { duration: 1.1 });
       abrePopupPonto(nearest);
       status.textContent = `${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`;
+      window.setTimeout(() => {
+        if (status.textContent.includes(nearest.nome)) status.textContent = "";
+      }, 3600);
     },
     () => { status.textContent = "Permita a localização no navegador para usar “perto de mim”."; },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },

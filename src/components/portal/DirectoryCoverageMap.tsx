@@ -21,38 +21,29 @@ function escapeHtml(value: string) {
 }
 
 function popupHtml(point: DiretorioMapPoint) {
-  const verifiedBadge = point.verificada
-    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-        Verificado
-      </span>`
-    : '';
+  const situation = point.verificada ? 'Perfil verificado' : 'Casa mapeada';
   const igLink = point.instagramUrl
-    ? `<a href="${escapeHtml(point.instagramUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:#a21caf;text-decoration:none;font-size:12px;font-weight:700">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-        Instagram
+    ? `<a class="axe-map-profile__social" href="${escapeHtml(point.instagramUrl)}" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        Ver Instagram
       </a>`
     : '';
 
   return `
-    <div style="min-width:220px;max-width:280px;font-family:system-ui,-apple-system,sans-serif;color:#1b1813;padding:2px">
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-          <strong style="font-size:15px;line-height:1.3;font-weight:800">${escapeHtml(point.nome)}</strong>
-          ${verifiedBadge}
+    <article class="axe-map-profile">
+      <header class="axe-map-profile__head">
+        <span class="axe-map-profile__mark"><img src="/favicon.svg?v=tridente-2026" alt="" /></span>
+        <div><p class="axe-map-profile__eyebrow">Diretório AxéCloud</p><p class="axe-map-profile__state">${situation}</p></div>
+      </header>
+      <div class="axe-map-profile__body">
+        <h2 class="axe-map-profile__name">${escapeHtml(point.nome)}</h2>
+        <p class="axe-map-profile__location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${escapeHtml(point.cidade)} · ${escapeHtml(point.estado)}</p>
+        ${igLink}
+        <div class="axe-map-profile__actions">
+          <a class="axe-map-profile__action axe-map-profile__action--primary" href="${escapeHtml(point.perfilUrl)}">Conhecer esta casa <span>→</span></a>
         </div>
-        <p style="margin:0;color:#665f55;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a87400" stroke-width="2.5"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          ${escapeHtml(point.cidade)}, ${escapeHtml(point.estado)}
-        </p>
-        ${igLink ? `<div style="margin-top:2px">${igLink}</div>` : ''}
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <a href="${escapeHtml(point.perfilUrl)}" style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#172018;color:#fff;padding:8px 14px;text-decoration:none;font-weight:800;font-size:12px">
-          Ver perfil completo →
-        </a>
-      </div>
-    </div>
+    </article>
   `;
 }
 
@@ -302,7 +293,13 @@ export function DirectoryCoverageMap({
     layerRef.current = layer;
 
     const openPoint = (point: DiretorioMapPoint) => {
-      L.popup({ maxWidth: 300, className: 'axecloud-popup' })
+      L.popup({
+        maxWidth: 360,
+        minWidth: 300,
+        className: 'axecloud-map-popup',
+        autoPanPaddingTopLeft: [32, 132],
+        autoPanPaddingBottomRight: [32, 48],
+      })
         .setLatLng([point.lat, point.lng])
         .setContent(popupHtml(point))
         .openOn(map);
@@ -370,11 +367,18 @@ export function DirectoryCoverageMap({
           distanceKm(origin, point) < distanceKm(origin, best) ? point : best,
         );
         mapRef.current?.flyTo([nearest.lat, nearest.lng], 15, { duration: 1.1 });
-        L.popup({ maxWidth: 280 })
+        L.popup({
+          maxWidth: 360,
+          minWidth: 300,
+          className: 'axecloud-map-popup',
+          autoPanPaddingTopLeft: [32, 132],
+          autoPanPaddingBottomRight: [32, 48],
+        })
           .setLatLng([nearest.lat, nearest.lng])
           .setContent(popupHtml(nearest))
           .openOn(mapRef.current!);
         setLocationStatus(`${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`);
+        window.setTimeout(() => setLocationStatus(null), 3600);
       },
       () => setLocationStatus('Permita a localização no navegador para usar “perto de mim”.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
