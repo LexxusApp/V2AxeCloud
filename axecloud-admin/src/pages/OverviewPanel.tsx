@@ -97,13 +97,30 @@ type OverviewPanelProps = {
     publicConversionFunnel?: {
       available: boolean;
       periodDays: number;
-      visitors: number;
-      landingViews: number;
-      ctaClicks: number;
-      registerViews: number;
-      registerStarted: number;
-      registerCompleted: number;
-      registerFailures: number;
+      commercial: {
+        visitors: number;
+        ctaClicks: number;
+        trialClicks: number;
+        registerViews: number;
+        registerStarted: number;
+        registerSubmitted: number;
+        registerCompleted: number;
+        registerFailures: number;
+        viewToTrialPct: number;
+        trialToRegisterPct: number;
+        registerToStartPct: number;
+        startToSubmitPct: number;
+        submitToCompletePct: number;
+        viewToCompletePct: number;
+      };
+      directory: {
+        visitors: number;
+        actions: number;
+        claimStarted: number;
+        claimCompleted: number;
+        visitorToActionPct: number;
+        claimCompletionPct: number;
+      };
       sectionReach: {
         sectionId: string;
         label: string;
@@ -111,10 +128,6 @@ type OverviewPanelProps = {
         reachPct: number;
         dropOffPct: number;
       }[];
-      visitToClickPct: number;
-      clickToStartPct: number;
-      startToCompletePct: number;
-      visitToCompletePct: number;
     };
   } | null;
   plansCatalog: Record<string, unknown>;
@@ -589,35 +602,51 @@ export function OverviewPanel({
           </AdminPanel>
 
           <AdminPanel
-            kicker="Cadastro"
-            title="Funil de cadastro (30 dias)"
+            kicker="Aquisição"
+            title="Funis separados (30 dias)"
             action={
               <span className="text-xs text-[var(--ac-text-faint)]">
                 {activity?.publicConversionFunnel?.available
-                  ? `${activity.publicConversionFunnel.visitToCompletePct}% visita → cadastro`
+                  ? `${activity.publicConversionFunnel.commercial.viewToCompletePct}% visita comercial → cadastro`
                   : "iniciando coleta"}
               </span>
             }
           >
             {activity?.publicConversionFunnel?.available ? (
-              <div>
-                <div className="grid gap-2 sm:grid-cols-4">
+              <div className="space-y-5">
+                <section>
+                  <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-accent)]">Comercial</p>
+                      <p className="text-xs text-[var(--ac-text-faint)]">Somente páginas de venda e cadastro. O diretório não entra nestes números.</p>
+                    </div>
+                    <span className="text-xs font-semibold text-[var(--ac-text-muted)]">
+                      {activity.publicConversionFunnel.commercial.registerFailures} falha(s)
+                    </span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
                   {[
-                    ["Visitas", activity.publicConversionFunnel.visitors, "100%"],
+                    ["Visita comercial", activity.publicConversionFunnel.commercial.visitors, "100%"],
+                    ["CTA de teste", activity.publicConversionFunnel.commercial.trialClicks, `${activity.publicConversionFunnel.commercial.viewToTrialPct}%`],
                     [
-                      "Cliques nos CTAs",
-                      activity.publicConversionFunnel.ctaClicks,
-                      `${activity.publicConversionFunnel.visitToClickPct}%`,
+                      "Abriu cadastro",
+                      activity.publicConversionFunnel.commercial.registerViews,
+                      `${activity.publicConversionFunnel.commercial.trialToRegisterPct}% do CTA`,
                     ],
                     [
-                      "Cadastro iniciado",
-                      activity.publicConversionFunnel.registerStarted,
-                      `${activity.publicConversionFunnel.clickToStartPct}%`,
+                      "Iniciou",
+                      activity.publicConversionFunnel.commercial.registerStarted,
+                      `${activity.publicConversionFunnel.commercial.registerToStartPct}%`,
                     ],
                     [
-                      "Cadastro concluído",
-                      activity.publicConversionFunnel.registerCompleted,
-                      `${activity.publicConversionFunnel.startToCompletePct}%`,
+                      "Enviou",
+                      activity.publicConversionFunnel.commercial.registerSubmitted,
+                      `${activity.publicConversionFunnel.commercial.startToSubmitPct}%`,
+                    ],
+                    [
+                      "Concluiu",
+                      activity.publicConversionFunnel.commercial.registerCompleted,
+                      `${activity.publicConversionFunnel.commercial.submitToCompletePct}%`,
                     ],
                   ].map(([label, value, rate], index) => (
                     <div
@@ -631,22 +660,37 @@ export function OverviewPanel({
                         <strong className="admin-mono text-2xl text-[var(--ac-text)]">{value}</strong>
                         <span className="text-xs font-semibold text-[var(--ac-accent)]">{rate}</span>
                       </div>
-                      {index < 3 ? (
+                      {index < 5 ? (
                         <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 text-[var(--ac-text-faint)] sm:block" />
                       ) : null}
                     </div>
                   ))}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-[var(--ac-text-faint)]">
-                    Conclusão confirmada pelo servidor só depois que a conta é criada.
-                  </p>
-                  {activity.publicConversionFunnel.registerFailures > 0 ? (
-                    <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-500">
-                      {activity.publicConversionFunnel.registerFailures} falha(s) no cadastro
-                    </span>
-                  ) : null}
-                </div>
+                  </div>
+                </section>
+
+                <section className="border-t border-[var(--ac-paper-border)] pt-4">
+                  <div className="mb-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-accent)]">Diretório</p>
+                    <p className="text-xs text-[var(--ac-text-faint)]">Mapa, perfis e reivindicações, sem contaminar o funil de assinatura.</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-4">
+                    {[
+                      ["Visitantes", activity.publicConversionFunnel.directory.visitors, "100%"],
+                      ["Ações no diretório", activity.publicConversionFunnel.directory.actions, `${activity.publicConversionFunnel.directory.visitorToActionPct}%`],
+                      ["Reivindicações iniciadas", activity.publicConversionFunnel.directory.claimStarted, "aberturas"],
+                      ["Reivindicações enviadas", activity.publicConversionFunnel.directory.claimCompleted, `${activity.publicConversionFunnel.directory.claimCompletionPct}%`],
+                    ].map(([label, value, rate]) => (
+                      <div key={String(label)} className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{label}</p>
+                        <div className="mt-2 flex items-end justify-between gap-2">
+                          <strong className="admin-mono text-2xl text-[var(--ac-text)]">{value}</strong>
+                          <span className="text-xs font-semibold text-[var(--ac-accent)]">{rate}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <p className="text-xs text-[var(--ac-text-faint)]">Conclusão de cadastro e reivindicação só é contada após confirmação do servidor.</p>
               </div>
             ) : (
               <div className="rounded-[var(--ac-radius-sm)] border border-dashed border-[var(--ac-paper-border)] p-6 text-center text-sm text-[var(--ac-text-muted)]">

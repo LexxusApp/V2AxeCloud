@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
+import type { ConversionFunnelStats } from "./publicConversionTracking.js";
 
 const ACCESS_HEARTBEATS = "(access.session.activity,session.activity)";
 const DAILY_SAMPLE_LIMIT = 4000;
@@ -21,38 +22,13 @@ export type AdminActivityStats = {
   publicSiteVisitorsLast30Days: number;
   publicSiteVisitorsToday: number;
   publicSiteTopPages: { bucket: string; label: string; visitors: number; sharePct: number }[];
-  publicConversionFunnel: {
-    available: boolean;
-    periodDays: number;
-    visitors: number;
-    landingViews: number;
-    ctaClicks: number;
-    registerViews: number;
-    registerStarted: number;
-    registerCompleted: number;
-    registerFailures: number;
-    sectionReach: {
-      sectionId: string;
-      label: string;
-      visitors: number;
-      reachPct: number;
-      dropOffPct: number;
-    }[];
-    visitToClickPct: number;
-    clickToStartPct: number;
-    startToCompletePct: number;
-    visitToCompletePct: number;
-  };
+  publicConversionFunnel: ConversionFunnelStats;
 };
 
 function bumpDaily(bucket: Record<string, number>, createdAt: string | null | undefined) {
   const date = String(createdAt || "").split("T")[0];
   if (!date) return;
   bucket[date] = (bucket[date] || 0) + 1;
-}
-
-function pct(value: number, total: number) {
-  return total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
 }
 
 async function loadAccessLogRows(
@@ -187,18 +163,6 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
     const tid = c.tenant_id;
     if (tid) childrenPerTenant[tid] = (childrenPerTenant[tid] || 0) + 1;
   });
-
-  if (publicTraffic.visitorsLast30Days > 0) {
-    publicConversionFunnel.visitors = publicTraffic.visitorsLast30Days;
-    publicConversionFunnel.visitToClickPct = pct(
-      publicConversionFunnel.ctaClicks,
-      publicConversionFunnel.visitors
-    );
-    publicConversionFunnel.visitToCompletePct = pct(
-      publicConversionFunnel.registerCompleted,
-      publicConversionFunnel.visitors
-    );
-  }
 
   const accessLogsAvailable = accessResult.ok;
   const auditLogsAvailable = auditResult.ok;

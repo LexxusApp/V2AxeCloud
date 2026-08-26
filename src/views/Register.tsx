@@ -62,6 +62,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -126,6 +127,9 @@ export default function Register() {
     }
 
     setLoading(true);
+    void trackConversionEvent('register_submitted', {
+      metadata: { billingCycle, step: 2 },
+    });
 
     try {
       const res = await fetch('/api/v1/auth/register', {
@@ -193,6 +197,16 @@ export default function Register() {
     }
   };
 
+  const continueRegistration = () => {
+    setError(null);
+    if (!nomeTerreiro.trim() || !nomeZelador.trim()) {
+      setError('Informe o nome da casa e o nome de quem será responsável pela conta.');
+      return;
+    }
+    void trackConversionEvent('register_step_completed', { metadata: { step: 1 } });
+    setStep(2);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -249,10 +263,8 @@ export default function Register() {
             </ul>
 
             <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-white/85 backdrop-blur-sm">
-              <span className="font-bold text-[#f2b90f]">
-                {TRIAL_DAYS} dias grátis
-              </span>
-              {' · '}Depois, {selectedPrice} via PIX.
+              <span className="font-bold text-[#f2b90f]">{TRIAL_DAYS} dias grátis</span>
+              {' · '}Ao final, você decide se quer continuar por {selectedPrice}. Nada é cobrado automaticamente.
             </p>
           </motion.div>
 
@@ -285,17 +297,30 @@ export default function Register() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">AxéCloud</p>
             <p className="mt-1 text-sm font-bold text-zinc-900">A casa organizada. O axé em primeiro lugar.</p>
             <p className="mt-1 text-xs leading-relaxed text-zinc-600">
-              {TRIAL_DAYS} dias grátis para testar tudo · depois {selectedPrice}
+              {TRIAL_DAYS} dias grátis. Sem cartão e sem cobrança automática.
             </p>
           </div>
 
           <header className="mb-6">
+            <div className="mb-4" aria-label={`Etapa ${step} de 2`}>
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-amber-800">
+                <span>Etapa {step} de 2</span>
+                <span>{step === 1 ? 'Sua casa' : 'Seu acesso'}</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200">
+                <motion.div
+                  className="h-full rounded-full bg-amber-500"
+                  animate={{ width: step === 1 ? '50%' : '100%' }}
+                />
+              </div>
+            </div>
             <h2 className="text-[22px] font-extrabold tracking-tight text-zinc-900 sm:text-[24px]">
-              Cadastre seu terreiro
+              {step === 1 ? 'Conte um pouco sobre sua casa' : 'Crie seu acesso'}
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-700">
-              Crie sua conta e use o sistema completo por {TRIAL_DAYS} dias sem pagar. Após o período de teste,
-              o plano {billingCycle === 'annual' ? 'anual' : 'mensal'} escolhido é cobrado via PIX para manter o acesso.
+              {step === 1
+                ? 'São apenas duas informações para preparar o ambiente da sua casa.'
+                : `Use todos os recursos por ${TRIAL_DAYS} dias. Sem cartão e sem cobrança automática.`}
             </p>
           </header>
 
@@ -315,8 +340,14 @@ export default function Register() {
               </motion.div>
             )}
 
-            <motion.div className="grid grid-cols-1 gap-4 max-lg:gap-5 lg:grid-cols-2">
-              <motion.div className="sm:col-span-2">
+            {step === 1 ? (
+            <motion.div
+              key="register-house"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="grid grid-cols-1 gap-4 max-lg:gap-5"
+            >
+              <motion.div>
                 <label className={labelClass}>Nome do terreiro</label>
                 <input
                   className={fieldShell}
@@ -328,28 +359,33 @@ export default function Register() {
                 />
               </motion.div>
               <motion.div>
-                <label className={labelClass}>Seu nome (zelador)</label>
+                <label className={labelClass}>Nome do responsável</label>
                 <input
                   className={fieldShell}
                   value={nomeZelador}
                   onChange={(e) => setNomeZelador(e.target.value)}
-                  placeholder="Como é conhecido na casa"
+                  placeholder="Como você é conhecido(a) na casa"
                   required
                   autoComplete="name"
                 />
               </motion.div>
+              <button
+                type="button"
+                onClick={continueRegistration}
+                className="flex h-[46px] w-full items-center justify-center rounded-lg bg-zinc-900 text-[13px] font-black uppercase tracking-[0.06em] text-white transition hover:bg-zinc-800"
+              >
+                Continuar
+              </button>
+              <p className="text-center text-[11px] leading-relaxed text-zinc-500">Nenhum dado será publicado no diretório sem sua autorização.</p>
+            </motion.div>
+            ) : (
+            <motion.div
+              key="register-access"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="grid grid-cols-1 gap-4 max-lg:gap-5"
+            >
               <motion.div>
-                <label className={labelClass}>WhatsApp</label>
-                <input
-                  className={fieldShell}
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  inputMode="tel"
-                  autoComplete="tel"
-                />
-              </motion.div>
-              <motion.div className="sm:col-span-2">
                 <label className={labelClass}>E-mail</label>
                 <input
                   type="email"
@@ -361,7 +397,18 @@ export default function Register() {
                   autoComplete="email"
                 />
               </motion.div>
-              <motion.div className="sm:col-span-2">
+              <motion.div>
+                <label className={labelClass}>WhatsApp <span className="font-medium normal-case tracking-normal text-zinc-500">(opcional)</span></label>
+                <input
+                  className={fieldShell}
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
+              </motion.div>
+              <motion.div>
                 <label className={labelClass}>Senha</label>
                 <motion.div className="relative">
                   <input
@@ -428,8 +475,9 @@ export default function Register() {
                 ) : null}
               </motion.div>
             </motion.div>
+            )}
 
-            <motion.button
+            {step === 2 ? <motion.button
               type="submit"
               disabled={loading}
               whileTap={{ scale: 0.99 }}
@@ -439,14 +487,15 @@ export default function Register() {
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                `Começar teste de ${TRIAL_DAYS} dias`
+                `Criar minha conta e começar`
               )}
-            </motion.button>
+            </motion.button> : null}
 
-            <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
+            {step === 2 ? <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-600">
               <ShieldCheck className="h-3.5 w-3.5 text-amber-700" />
-              Sem cartão · {TRIAL_DAYS} dias grátis · depois {catalogPrice.label}/mês
-            </p>
+              Sem cartão · cancele quando quiser · nada é cobrado automaticamente
+            </p> : null}
+            {step === 2 ? <button type="button" onClick={() => { setError(null); setStep(1); }} className="mx-auto text-[12px] font-bold text-zinc-500 hover:text-zinc-900 hover:underline">Voltar para a etapa anterior</button> : null}
           </form>
 
           <p className="mt-6 text-center text-[13px] text-zinc-700">

@@ -410,7 +410,7 @@ export default function DiretorioTerreiroPage() {
               <TerreiroClaimDialog
                 slug={terreiro.slug}
                 terreiroNome={terreiro.nome}
-                onTrack={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-claim', ctaLabel: 'Reivindicar esta casa', metadata: { slug: terreiro.slug } })}
+                onTrack={() => void trackConversionEvent('claim_started', { ctaId: 'directory-profile-claim', ctaLabel: 'Reivindicar esta casa', metadata: { slug: terreiro.slug } })}
               />
             )}
           </div>

@@ -5,10 +5,20 @@ import { isMissingOrUnknownTable, isRememberedMissingTable } from './adminConsol
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PUBLIC_EVENTS = new Set([
   'landing_view',
+  'commercial_view',
   'section_view',
   'cta_click',
+  'commercial_cta_click',
+  'trial_cta_click',
+  'login_click',
+  'directory_view',
+  'directory_action',
+  'claim_started',
+  'claim_completed',
   'register_view',
   'register_started',
+  'register_step_completed',
+  'register_submitted',
   'register_failed',
   'directory_performance',
 ]);
@@ -16,13 +26,30 @@ const PUBLIC_EVENTS = new Set([
 export type ConversionFunnelStats = {
   available: boolean;
   periodDays: number;
-  visitors: number;
-  landingViews: number;
-  ctaClicks: number;
-  registerViews: number;
-  registerStarted: number;
-  registerCompleted: number;
-  registerFailures: number;
+  commercial: {
+    visitors: number;
+    ctaClicks: number;
+    trialClicks: number;
+    registerViews: number;
+    registerStarted: number;
+    registerSubmitted: number;
+    registerCompleted: number;
+    registerFailures: number;
+    viewToTrialPct: number;
+    trialToRegisterPct: number;
+    registerToStartPct: number;
+    startToSubmitPct: number;
+    submitToCompletePct: number;
+    viewToCompletePct: number;
+  };
+  directory: {
+    visitors: number;
+    actions: number;
+    claimStarted: number;
+    claimCompleted: number;
+    visitorToActionPct: number;
+    claimCompletionPct: number;
+  };
   sectionReach: {
     sectionId: string;
     label: string;
@@ -30,10 +57,6 @@ export type ConversionFunnelStats = {
     reachPct: number;
     dropOffPct: number;
   }[];
-  visitToClickPct: number;
-  clickToStartPct: number;
-  startToCompletePct: number;
-  visitToCompletePct: number;
 };
 
 function cleanText(value: unknown, max = 300): string | null {
@@ -111,9 +134,19 @@ function pct(value: number, total: number) {
 
 const FUNNEL_STAGE_EVENTS = [
   'landing_view',
+  'commercial_view',
   'cta_click',
+  'commercial_cta_click',
+  'trial_cta_click',
+  'login_click',
+  'directory_view',
+  'directory_action',
+  'claim_started',
+  'claim_completed',
   'register_view',
   'register_started',
+  'register_step_completed',
+  'register_submitted',
   'register_completed',
   'register_failed',
 ] as const;
@@ -125,13 +158,13 @@ async function loadConversionRowsForEvent(
   since: string,
   eventName: string,
   maxRows: number,
-): Promise<{ event_name: string; visitor_id: string; metadata: unknown }[]> {
-  const rows: { event_name: string; visitor_id: string; metadata: unknown }[] = [];
+): Promise<{ event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[]> {
+  const rows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[] = [];
   let from = 0;
   while (from < maxRows) {
     const { data, error } = await sb
       .from('public_conversion_events')
-      .select('event_name, visitor_id, metadata')
+      .select('event_name, visitor_id, path, cta_id, metadata')
       .eq('event_name', eventName)
       .gte('created_at', since)
       .order('created_at', { ascending: true })
@@ -145,6 +178,8 @@ async function loadConversionRowsForEvent(
       rows.push({
         event_name: String(row.event_name || ''),
         visitor_id: String(row.visitor_id || ''),
+        path: String(row.path || '/'),
+        cta_id: row.cta_id ? String(row.cta_id) : null,
         metadata: row.metadata,
       });
     }
@@ -163,7 +198,7 @@ async function loadConversionRowsByEvents(
   since: string,
   eventNames: readonly string[],
   maxRowsPerEvent = PAGE_SIZE * 50,
-): Promise<{ event_name: string; visitor_id: string; metadata: unknown }[]> {
+): Promise<{ event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[]> {
   if (isRememberedMissingTable('public_conversion_events')) return [];
   const batches = await Promise.all(
     eventNames.map((eventName) => loadConversionRowsForEvent(sb, since, eventName, maxRowsPerEvent)),
@@ -179,24 +214,23 @@ export async function fetchConversionFunnelStats(
   const empty: ConversionFunnelStats = {
     available: false,
     periodDays: 30,
-    visitors,
-    landingViews: 0,
-    ctaClicks: 0,
-    registerViews: 0,
-    registerStarted: 0,
-    registerCompleted: 0,
-    registerFailures: 0,
+    commercial: {
+      visitors, ctaClicks: 0, trialClicks: 0, registerViews: 0, registerStarted: 0,
+      registerSubmitted: 0, registerCompleted: 0, registerFailures: 0, viewToTrialPct: 0,
+      trialToRegisterPct: 0, registerToStartPct: 0, startToSubmitPct: 0,
+      submitToCompletePct: 0, viewToCompletePct: 0,
+    },
+    directory: {
+      visitors: 0, actions: 0, claimStarted: 0, claimCompleted: 0,
+      visitorToActionPct: 0, claimCompletionPct: 0,
+    },
     sectionReach: [],
-    visitToClickPct: 0,
-    clickToStartPct: 0,
-    startToCompletePct: 0,
-    visitToCompletePct: 0,
   };
   if (isRememberedMissingTable('public_conversion_events')) return empty;
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const maxRowsPerEvent = options?.maxRowsPerEvent ?? PAGE_SIZE * 50;
-  let stageRows: { event_name: string; visitor_id: string; metadata: unknown }[];
-  let sectionRows: { event_name: string; visitor_id: string; metadata: unknown }[];
+  let stageRows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[];
+  let sectionRows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[];
   try {
     [stageRows, sectionRows] = await Promise.all([
       loadConversionRowsByEvents(sb, since, FUNNEL_STAGE_EVENTS, maxRowsPerEvent),
@@ -217,10 +251,28 @@ export async function fetchConversionFunnelStats(
     if (!groups.has(name)) groups.set(name, new Set());
     groups.get(name)!.add(visitorId);
   }
-  const landingViews = groups.get('landing_view')?.size || 0;
-  const ctaClicks = groups.get('cta_click')?.size || 0;
+  const unique = (predicate: (row: (typeof stageRows)[number]) => boolean) =>
+    new Set(stageRows.filter(predicate).map((row) => row.visitor_id).filter(Boolean)).size;
+  const isDirectoryPath = (path: string) => /^\/(?:terreiros|terreiro)(?:\/|$)/.test(path);
+  const legacyTrialClick = (row: (typeof stageRows)[number]) =>
+    row.event_name === 'cta_click' && row.cta_id === 'cta_trial_click';
+  const commercialVisitors = unique((row) =>
+    row.event_name === 'commercial_view' || (row.event_name === 'landing_view' && !isDirectoryPath(row.path)));
+  const directoryVisitors = unique((row) =>
+    row.event_name === 'directory_view' || (row.event_name === 'landing_view' && isDirectoryPath(row.path)));
+  const commercialCtaClicks = unique((row) =>
+    row.event_name === 'commercial_cta_click' || row.event_name === 'trial_cta_click' || legacyTrialClick(row));
+  const trialClicks = unique((row) => row.event_name === 'trial_cta_click' || legacyTrialClick(row));
+  const directoryActions = unique((row) => row.event_name === 'directory_action' || (
+    row.event_name === 'cta_click' && Boolean(row.cta_id?.startsWith('directory')) && row.cta_id !== 'directory-profile-claim'
+  ));
+  const claimStarted = unique((row) => row.event_name === 'claim_started' || (
+    row.event_name === 'cta_click' && row.cta_id === 'directory-profile-claim'
+  ));
+  const claimCompleted = groups.get('claim_completed')?.size || 0;
   const registerViews = groups.get('register_view')?.size || 0;
   const registerStarted = groups.get('register_started')?.size || 0;
+  const registerSubmitted = groups.get('register_submitted')?.size || 0;
   const registerCompleted = groups.get('register_completed')?.size || 0;
   const registerFailures = groups.get('register_failed')?.size || 0;
   const sectionLabels: Record<string, string> = {
@@ -245,34 +297,47 @@ export async function fetchConversionFunnelStats(
     if (!sectionVisitors.has(sectionId)) sectionVisitors.set(sectionId, new Set());
     sectionVisitors.get(sectionId)!.add(visitorId);
   }
-  let previousVisitors = landingViews;
+  let previousVisitors = commercialVisitors;
   const sectionReach = Object.entries(sectionLabels).map(([sectionId, label]) => {
     const sectionCount = sectionVisitors.get(sectionId)?.size || 0;
     const item = {
       sectionId,
       label,
       visitors: sectionCount,
-      reachPct: pct(sectionCount, landingViews),
+      reachPct: pct(sectionCount, commercialVisitors),
       dropOffPct: pct(Math.max(0, previousVisitors - sectionCount), previousVisitors),
     };
     previousVisitors = sectionCount;
     return item;
   });
-  const visitorBase = visitors || landingViews;
+  const visitorBase = visitors || commercialVisitors;
   return {
     available: true,
     periodDays: 30,
-    visitors: visitorBase,
-    landingViews,
-    ctaClicks,
-    registerViews,
-    registerStarted,
-    registerCompleted,
-    registerFailures,
+    commercial: {
+      visitors: visitorBase,
+      ctaClicks: commercialCtaClicks,
+      trialClicks,
+      registerViews,
+      registerStarted,
+      registerSubmitted,
+      registerCompleted,
+      registerFailures,
+      viewToTrialPct: pct(trialClicks, visitorBase),
+      trialToRegisterPct: pct(registerViews, trialClicks),
+      registerToStartPct: pct(registerStarted, registerViews),
+      startToSubmitPct: pct(registerSubmitted, registerStarted),
+      submitToCompletePct: pct(registerCompleted, registerSubmitted),
+      viewToCompletePct: pct(registerCompleted, visitorBase),
+    },
+    directory: {
+      visitors: directoryVisitors,
+      actions: directoryActions,
+      claimStarted,
+      claimCompleted,
+      visitorToActionPct: pct(directoryActions, directoryVisitors),
+      claimCompletionPct: pct(claimCompleted, claimStarted),
+    },
     sectionReach,
-    visitToClickPct: pct(ctaClicks, visitorBase),
-    clickToStartPct: pct(registerStarted, ctaClicks),
-    startToCompletePct: pct(registerCompleted, registerStarted),
-    visitToCompletePct: pct(registerCompleted, visitorBase),
   };
 }

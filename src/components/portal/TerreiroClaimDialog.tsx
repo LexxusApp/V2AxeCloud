@@ -13,6 +13,7 @@ import {
   UserRoundCheck,
   X,
 } from 'lucide-react';
+import { trackConversionEvent } from '../../lib/trackConversion';
 
 type ClaimForm = {
   name: string;
@@ -87,6 +88,10 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
     try {
       const result = await submitClaim(slug, form);
       setRequestId(result.requestId || 'enviada');
+      void trackConversionEvent('claim_completed', {
+        ctaId: 'directory-profile-claim',
+        metadata: { slug, requestId: result.requestId || null },
+      });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Não foi possível enviar a solicitação.');
     } finally {

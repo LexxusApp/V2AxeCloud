@@ -53,9 +53,11 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(mapClient, /verificada/);
 
   const appMap = readFileSync("src/components/portal/DirectoryCoverageMap.tsx", "utf8");
-  assert.match(appMap, /drawPoints\(true, 'rgba\(37, 99, 235/);
+  assert.match(appMap, /point\.verificada \? '#16865f' : '#e5ae12'/);
+  assert.match(appMap, /verifiedCount/);
 
   const marketingMap = readFileSync("cinematic-site/terreiros.html", "utf8");
   assert.match(marketingMap, /Terreiro verificado e reivindicado/);
-  assert.match(marketingMap, /drawPoints\(true, "rgba\(24, 119, 242/);
+  assert.match(marketingMap, /point\.verificada \? "#16865f" : "#e5ae12"/);
+  assert.match(marketingMap, /verifiedCount/);
 });

@@ -50,7 +50,10 @@
   window.dataLayer = window.dataLayer || [];
 
   function conversion(eventName, details = {}) {
-    const allowed = new Set(["landing_view", "section_view", "cta_click", "directory_performance"]);
+    const allowed = new Set([
+      "commercial_view", "section_view", "commercial_cta_click", "trial_cta_click", "login_click",
+      "directory_view", "directory_action", "claim_started", "claim_completed", "directory_performance",
+    ]);
     if (!allowed.has(eventName)) return;
     void fetch("/api/metrics/conversion-event", {
       method: "POST",
@@ -72,8 +75,19 @@
 
   window.axeTrack = function axeTrack(event, data = {}) {
     window.dataLayer.push({ event, ...data, path: location.pathname, timestamp: Date.now() });
-    if (event === "cta_trial_click" || event === "login_click" || event === "directory_click") {
-      conversion("cta_click", {
+    const eventMap = {
+      cta_trial_click: "trial_cta_click",
+      login_click: "login_click",
+      directory_click: "directory_action",
+      "directory-profile-claim": "claim_started",
+      "directory-profile-management": "commercial_cta_click",
+      "directory-profile-map": "directory_action",
+      "directory-profile-instagram": "directory_action",
+      "directory-profile-whatsapp": "directory_action",
+    };
+    const conversionEvent = eventMap[event];
+    if (conversionEvent) {
+      conversion(conversionEvent, {
         ctaId: event,
         ctaLabel: data.label || data.destination || event,
         metadata: data,
@@ -112,7 +126,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     void purgeLegacyServiceWorker();
     trackVisit();
-    conversion("landing_view");
+    const isDirectory = /^\/(?:terreiros|terreiro)(?:\/|$)/.test(location.pathname);
+    conversion(isDirectory ? "directory_view" : "commercial_view", {
+      metadata: { surface: isDirectory ? "directory" : "commercial" },
+    });
 
     const seen = new Set();
     const observer = new IntersectionObserver((entries) => {
@@ -120,7 +137,7 @@
         if (!entry.isIntersecting || seen.has(entry.target)) return;
         seen.add(entry.target);
         const section = entry.target.id || entry.target.getAttribute("aria-label") || "section";
-        conversion("section_view", { metadata: { section } });
+        conversion("section_view", { metadata: { sectionId: section } });
         observer.unobserve(entry.target);
       });
     }, { threshold: 0.35 });

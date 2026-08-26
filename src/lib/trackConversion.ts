@@ -2,10 +2,20 @@ import { getOrCreateVisitorId } from './trackPublicVisit';
 
 export type ConversionEventName =
   | 'landing_view'
+  | 'commercial_view'
   | 'section_view'
   | 'cta_click'
+  | 'commercial_cta_click'
+  | 'trial_cta_click'
+  | 'login_click'
+  | 'directory_view'
+  | 'directory_action'
+  | 'claim_started'
+  | 'claim_completed'
   | 'register_view'
   | 'register_started'
+  | 'register_step_completed'
+  | 'register_submitted'
   | 'register_failed'
   | 'directory_performance';
 
