@@ -22,6 +22,8 @@ type Deps = {
   supabaseAdmin: SupabaseClient;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
   app.post("/api/v1/auth/password/check", authRateLimit, async (req: Request, res: Response) => {
     const password = String(req.body?.password || "");
@@ -39,12 +41,27 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle, conversion } = req.body || {};
+      const { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle, conversion, claimId } = req.body || {};
       const result = await registerNewTenant(
         supabaseAdmin,
         { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle },
         resolveEfiEnv()
       );
+
+      let claimLinked = false;
+      const approvedClaimId = String(claimId || "").trim();
+      if (approvedClaimId && UUID_PATTERN.test(approvedClaimId)) {
+        const { error: claimLinkError } = await supabaseAdmin.rpc("connect_approved_terreiro_claim", {
+          p_claim_id: approvedClaimId,
+          p_requester_email: result.email,
+          p_tenant_id: result.tenantId,
+        });
+        if (claimLinkError) {
+          console.warn("[register] approved directory claim not linked:", claimLinkError.message);
+        } else {
+          claimLinked = true;
+        }
+      }
 
       try {
         const { insertConversionEvent } = await import('./publicConversionTracking.js');
@@ -90,6 +107,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         trialDays: result.trialDays,
         loginUrl: resolvePublicAppUrl(),
         dashboardPath: '/dashboard',
+        claimLinked,
       });
     } catch (err: any) {
       const status = Number(err?.status) || 500;

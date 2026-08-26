@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 
 type TenantOption = { id: string; nome_terreiro: string | null; email: string | null };
 type ClaimStatus = "pending" | "approved" | "rejected";
+type ClaimSummary = { total: number; pending: number; approved: number; rejected: number; linked: number };
 type ClaimRow = {
   id: string;
   requester_name: string;
@@ -65,14 +66,16 @@ export function DirectoryClaimsPanel({
   const [search, setSearch] = useState("");
   const [tenantByClaim, setTenantByClaim] = useState<Record<string, string>>({});
   const [notesByClaim, setNotesByClaim] = useState<Record<string, string>>({});
+  const [summary, setSummary] = useState<ClaimSummary>({ total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiJson<{ rows: ClaimRow[] }>(
+      const result = await apiJson<{ rows: ClaimRow[]; summary: ClaimSummary }>(
         `/api/admin-console/diretorio-claims?status=${encodeURIComponent(status)}`,
       );
       setRows(result.rows || []);
+      setSummary(result.summary || { total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 });
       setTenantByClaim((current) => {
         const next = { ...current };
         for (const row of result.rows || []) if (row.claimed_tenant_id) next[row.id] = row.claimed_tenant_id;
@@ -113,7 +116,11 @@ export function DirectoryClaimsPanel({
           adminNotes: notesByClaim[row.id] || null,
         }),
       });
-      onMessage(nextStatus === "approved" ? "Reivindicação aprovada e vinculada à conta do terreiro." : "Reivindicação recusada.");
+      onMessage(nextStatus === "approved"
+        ? tenantByClaim[row.id]
+          ? "Reivindicação aprovada e vinculada à conta do terreiro."
+          : "Reivindicação aprovada. O responsável poderá criar o acesso e conectar a casa."
+        : "Reivindicação recusada.");
       await load();
     } catch (error) {
       onMessage(error instanceof Error ? error.message : "Erro ao analisar reivindicação.");
@@ -124,6 +131,20 @@ export function DirectoryClaimsPanel({
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          ["Recebidas", summary.total],
+          ["Em análise", summary.pending],
+          ["Aprovadas", summary.approved],
+          ["Conectadas", summary.linked],
+          ["Recusadas", summary.rejected],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="admin-panel !p-4">
+            <p className="admin-label">{label}</p>
+            <p className="mt-1 text-2xl font-bold text-[var(--ac-text)]">{value}</p>
+          </div>
+        ))}
+      </div>
       <div className="admin-panel flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex flex-wrap gap-2">
           {(["pending", "approved", "rejected", "all"] as const).map((item) => (
@@ -187,11 +208,11 @@ export function DirectoryClaimsPanel({
 
                   {row.status === "pending" ? (
                     <div className="space-y-3 border-t border-[var(--ac-paper-border)] pt-4">
-                      <label className="block"><span className="admin-label">Conta que administrará o perfil</span><select required value={tenantByClaim[row.id] || ""} onChange={(event) => setTenantByClaim({ ...tenantByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full"><option value="">Selecione uma conta antes de aprovar</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.nome_terreiro || tenant.email || tenant.id}</option>)}</select><span className="mt-1.5 block text-[10px] text-[var(--ac-text-faint)]">Se o responsável ainda não tem acesso, crie a conta em “Novo terreiro” e volte para concluir.</span></label>
+                      <label className="block"><span className="admin-label">Conta que administrará o perfil <span className="normal-case tracking-normal text-[var(--ac-text-faint)]">(opcional)</span></span><select value={tenantByClaim[row.id] || ""} onChange={(event) => setTenantByClaim({ ...tenantByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full"><option value="">Aprovar e aguardar o responsável criar o acesso</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.nome_terreiro || tenant.email || tenant.id}</option>)}</select><span className="mt-1.5 block text-[10px] text-[var(--ac-text-faint)]">Sem conta selecionada, o solicitante verá no protocolo a opção de criar o acesso e conectar a casa automaticamente.</span></label>
                       <label className="block"><span className="admin-label">Nota interna</span><textarea rows={2} maxLength={1500} value={notesByClaim[row.id] || ""} onChange={(event) => setNotesByClaim({ ...notesByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full" placeholder="Resultado da verificação ou motivo da recusa" /></label>
                       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                         <button type="button" disabled={working} onClick={() => void review(row, "rejected")} className="admin-btn-secondary text-[var(--ac-danger)]"><XCircle className="h-4 w-4" /> Recusar</button>
-                        <button type="button" disabled={working || !tenantByClaim[row.id]} onClick={() => void review(row, "approved")} className="admin-btn-primary disabled:cursor-not-allowed disabled:opacity-45">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />} Aprovar e liberar edição</button>
+                        <button type="button" disabled={working} onClick={() => void review(row, "approved")} className="admin-btn-primary disabled:cursor-not-allowed disabled:opacity-45">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />} {tenantByClaim[row.id] ? "Aprovar e conectar" : "Aprovar reivindicação"}</button>
                       </div>
                     </div>
                   ) : (

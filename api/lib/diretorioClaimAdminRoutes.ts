@@ -27,8 +27,15 @@ export function registerDiretorioClaimAdminRoutes(
         .order("created_at", { ascending: false })
         .limit(250);
       if (status !== "all") query = query.eq("status", status);
-      const { data: claims, error } = await query;
+      const [{ data: claims, error }, { data: summaryRows, error: summaryError }] = await Promise.all([
+        query,
+        deps.supabaseAdmin
+          .from("terreiro_claim_requests")
+          .select("status, claimed_tenant_id")
+          .limit(5000),
+      ]);
       if (error) throw error;
+      if (summaryError) throw summaryError;
 
       const terreiroIds = [...new Set((claims || []).map((row) => String(row.terreiro_id || "")).filter(Boolean))];
       const tenantIds = [...new Set((claims || []).map((row) => String(row.claimed_tenant_id || "")).filter(Boolean))];
@@ -54,7 +61,20 @@ export function registerDiretorioClaimAdminRoutes(
         tenant: claim.claimed_tenant_id ? tenantById.get(String(claim.claimed_tenant_id)) || null : null,
       }));
 
-      res.json({ rows, status });
+      const summary = (summaryRows || []).reduce(
+        (result, row) => {
+          const itemStatus = String(row.status || "");
+          result.total += 1;
+          if (itemStatus === "pending") result.pending += 1;
+          if (itemStatus === "approved") result.approved += 1;
+          if (itemStatus === "rejected") result.rejected += 1;
+          if (row.claimed_tenant_id) result.linked += 1;
+          return result;
+        },
+        { total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 },
+      );
+
+      res.json({ rows, status, summary });
     } catch (error: unknown) {
       const message = String((error as { message?: string })?.message || "");
       if (/terreiro_claim_requests|schema cache|does not exist/i.test(message)) {
@@ -75,9 +95,6 @@ export function registerDiretorioClaimAdminRoutes(
     if (!UUID_PATTERN.test(claimId)) return res.status(400).json({ error: "Solicitação inválida." });
     if (status !== "approved" && status !== "rejected") {
       return res.status(400).json({ error: "Escolha aprovar ou recusar a solicitação." });
-    }
-    if (status === "approved" && !tenantId) {
-      return res.status(400).json({ error: "Crie ou selecione a conta do terreiro antes de aprovar. Essa conta administrará o perfil." });
     }
     if (tenantId && !UUID_PATTERN.test(tenantId)) return res.status(400).json({ error: "Conta de terreiro inválida." });
 
@@ -108,7 +125,11 @@ export function registerDiretorioClaimAdminRoutes(
         targetType: "directory-claim",
         targetId: claimId,
         tenantId: tenantId || undefined,
-        description: status === "approved" ? "Reivindicação de terreiro aprovada." : "Reivindicação de terreiro recusada.",
+        description: status === "approved"
+          ? tenantId
+            ? "Reivindicação aprovada e vinculada à conta."
+            : "Reivindicação aprovada, aguardando criação da conta."
+          : "Reivindicação de terreiro recusada.",
         metadata: { claimId, tenantId, adminNotes },
         req,
       });

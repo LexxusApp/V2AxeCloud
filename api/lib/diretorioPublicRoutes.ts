@@ -139,6 +139,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         const requesterPhone = String(body.phone || "").replace(/\D/g, "").slice(0, 15);
         const evidence = String(body.evidence || "").trim().slice(0, 1000);
         const message = String(body.message || "").trim().slice(0, 1500) || null;
+        const conversion = body.conversion && typeof body.conversion === "object" ? body.conversion : {};
 
         if (!slug || slug.length < 2) return res.status(400).json({ error: "Perfil inválido." });
         if (requesterName.length < 3) return res.status(400).json({ error: "Informe seu nome completo." });
@@ -198,6 +199,23 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           .single();
         if (claimError) throw claimError;
 
+        try {
+          const { insertConversionEvent } = await import("./publicConversionTracking.js");
+          await insertConversionEvent(
+            sb,
+            req,
+            {
+              ...conversion,
+              eventName: "claim_completed",
+              ctaId: "directory-profile-claim",
+              metadata: { slug, claimId: claim.id },
+            },
+            { allowCompleted: true },
+          );
+        } catch (metricError) {
+          console.warn("[public/diretorio/reivindicar] conversion metric failed:", metricError);
+        }
+
         return res.status(201).json({
           success: true,
           requestId: claim.id,
@@ -211,6 +229,63 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           return res.status(503).json({ error: "O serviço de reivindicação está sendo configurado. Tente novamente em instantes." });
         }
         return res.status(500).json({ error: "Não foi possível enviar a solicitação. Tente novamente." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/v1/public/diretorio/reivindicacao/acompanhar",
+    publicFormRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {};
+        const slug = slugifyTerreiroNome(String(body.slug || ""));
+        const requesterEmail = String(body.email || "").trim().toLowerCase().slice(0, 180);
+        if (!slug || slug.length < 2) return res.status(400).json({ error: "Perfil inválido." });
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
+          return res.status(400).json({ error: "Informe o mesmo e-mail usado na solicitação." });
+        }
+
+        const { data: terreiro, error: terreiroError } = await sb
+          .from(TABLE)
+          .select("id, nome, slug, claimed_by_tenant_id, verified_at")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (terreiroError) throw terreiroError;
+        if (!terreiro) return res.status(404).json({ error: "Perfil não encontrado." });
+
+        const { data: claim, error: claimError } = await sb
+          .from("terreiro_claim_requests")
+          .select("id, status, requester_email, claimed_tenant_id, created_at, reviewed_at, updated_at")
+          .eq("terreiro_id", terreiro.id)
+          .eq("requester_email", requesterEmail)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (!claim) {
+          return res.status(404).json({ error: "Não encontramos uma solicitação para este perfil com esse e-mail." });
+        }
+
+        const linked = Boolean(claim.claimed_tenant_id || terreiro.claimed_by_tenant_id);
+        return res.json({
+          requestId: claim.id,
+          protocol: String(claim.id).slice(0, 8).toUpperCase(),
+          status: linked ? "linked" : claim.status,
+          createdAt: claim.created_at,
+          reviewedAt: claim.reviewed_at,
+          updatedAt: claim.updated_at,
+          terreiro: { nome: terreiro.nome, slug: terreiro.slug },
+          nextAction:
+            claim.status === "approved" && !linked
+              ? { label: "Criar acesso e conectar a casa", href: `/register?claim=${encodeURIComponent(claim.id)}` }
+              : linked
+                ? { label: "Entrar no AxéCloud", href: "/entrar" }
+                : null,
+        });
+      } catch (e: unknown) {
+        console.error("[public/diretorio/reivindicacao/acompanhar]", e);
+        return res.status(500).json({ error: "Não foi possível consultar a solicitação agora." });
       }
     },
   );

@@ -8,7 +8,12 @@ const migration = readFileSync(
   "supabase/migrations/20260818120000_terreiros_diretorio_claims.sql",
   "utf8",
 );
+const acquisitionMigration = readFileSync(
+  "supabase/migrations/20260826193000_directory_claim_acquisition.sql",
+  "utf8",
+);
 const dialog = readFileSync("src/components/portal/TerreiroClaimDialog.tsx", "utf8");
+const statusDialog = readFileSync("src/components/portal/TerreiroClaimStatusDialog.tsx", "utf8");
 const directoryProfile = readFileSync("src/views/portal/DiretorioTerreiroPage.tsx", "utf8");
 const settingsRoutes = readFileSync("api/lib/consulentePortalRoutes.ts", "utf8");
 const mapClient = readFileSync("src/lib/diretorioMap.ts", "utf8");
@@ -28,7 +33,23 @@ test("análise de reivindicações passa pelo administrador global e por operaç
   assert.match(adminRoutes, /const ctx = await requireAdmin\(req, res\)/);
   assert.match(adminRoutes, /\.rpc\("review_terreiro_claim"/);
   assert.match(adminRoutes, /directory\.claim\.\$\{status\}/);
-  assert.match(adminRoutes, /status === "approved" && !tenantId/);
+  assert.doesNotMatch(adminRoutes, /status === "approved" && !tenantId/);
+  assert.match(adminRoutes, /aguardando criação da conta/);
+});
+
+test("responsável acompanha o protocolo sem exposição pública de dados", () => {
+  assert.match(publicRoutes, /reivindicacao\/acompanhar/);
+  assert.match(publicRoutes, /\.eq\("requester_email", requesterEmail\)/);
+  assert.doesNotMatch(publicRoutes, /nextAction:[\s\S]{0,500}admin_notes/);
+  assert.match(statusDialog, /Acompanhamento protegido/);
+  assert.match(publicRoutes, /Criar acesso e conectar a casa/);
+});
+
+test("cadastro conecta somente reivindicação aprovada com o mesmo e-mail", () => {
+  assert.match(acquisitionMigration, /v_claim\.status <> 'approved'/);
+  assert.match(acquisitionMigration, /lower\(trim\(v_claim\.requester_email\)\)/);
+  assert.match(acquisitionMigration, /claimed_by_tenant_id = p_tenant_id/);
+  assert.match(acquisitionMigration, /revoke all[\s\S]*from public, anon, authenticated/i);
 });
 
 test("dados de reivindicação não ficam expostos por RLS", () => {

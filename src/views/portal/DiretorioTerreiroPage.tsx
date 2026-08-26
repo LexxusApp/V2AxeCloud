@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  CheckCircle2,
   Clock,
   Compass,
   DollarSign,
@@ -31,6 +32,7 @@ import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 import { trackConversionEvent } from '../../lib/trackConversion';
 import { VerifiedBadge } from '../../components/portal/VerifiedBadge';
 import { TerreiroClaimDialog } from '../../components/portal/TerreiroClaimDialog';
+import { TerreiroClaimStatusDialog } from '../../components/portal/TerreiroClaimStatusDialog';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -317,6 +319,15 @@ export default function DiretorioTerreiroPage() {
                 </div>
                 <h1 className="mt-6 max-w-[15ch] text-balance text-[clamp(2.5rem,6.3vw,5.4rem)] font-extrabold leading-[0.94] tracking-[-0.065em] text-[#181a16]">{terreiro.nome}</h1>
                 {localidade ? <p className="mt-7 flex items-center gap-2.5 text-sm font-bold text-[#1b1813]/58 sm:text-base"><MapPin className="h-4 w-4 shrink-0 text-[#a67300]" aria-hidden />{localidade}</p> : null}
+                {!terreiro.verificada ? (
+                  <a
+                    href="#reivindicar-perfil"
+                    onClick={() => void trackConversionEvent('directory_action', { ctaId: 'directory-profile-hero-claim', ctaLabel: 'Sou responsável por esta casa', metadata: { slug: terreiro.slug } })}
+                    className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#b98500]/35 bg-[#fffaf1]/75 px-4 py-2.5 text-xs font-extrabold text-[#6f5000] transition hover:border-[#b98500] hover:bg-[#fffaf1]"
+                  >
+                    <BadgeCheck className="h-4 w-4" /> Sou responsável por esta casa <ArrowRight className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
               </div>
 
               <div className="relative mt-14 grid grid-cols-2 border-y border-[#cbbb9f]/65 sm:grid-cols-3">
@@ -393,26 +404,42 @@ export default function DiretorioTerreiroPage() {
           </div>
         </section>
 
-        <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-[#2b251d] bg-[#0c120e] p-6 text-white shadow-[0_25px_70px_rgba(20,25,18,.18)] sm:p-9" aria-labelledby="claim-house-title">
+        <section id="reivindicar-perfil" className="relative mt-8 scroll-mt-28 overflow-hidden rounded-[2rem] border border-[#2b251d] bg-[#0c120e] p-6 text-white shadow-[0_25px_70px_rgba(20,25,18,.18)] sm:p-9" aria-labelledby="claim-house-title">
           <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(229,174,18,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.14)_1px,transparent_1px)] [background-size:64px_64px]" aria-hidden />
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e5ae12] text-[#1b1813]"><BadgeCheck className="h-5 w-5" aria-hidden /></span>
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Responsáveis pela casa</p>
-                <h2 id="claim-house-title" className="mt-1 text-xl font-extrabold sm:text-2xl">Esta é sua casa?</h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/62">Reivindique o perfil para corrigir os dados públicos e identificar oficialmente a casa no diretório.</p>
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-center">
+            <div>
+              <div className="flex gap-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e5ae12] text-[#1b1813]"><BadgeCheck className="h-5 w-5" aria-hidden /></span>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Presença oficial da casa</p>
+                  <h2 id="claim-house-title" className="mt-1 max-w-2xl text-2xl font-extrabold tracking-[-0.035em] sm:text-3xl">Transforme este perfil na voz oficial da sua casa.</h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/62">Confirme sua responsabilidade para corrigir informações, publicar serviços e atendimentos e administrar tudo pelo AxéCloud.</p>
+                </div>
               </div>
+              <ul className="mt-6 grid gap-3 text-xs font-bold text-white/72 sm:grid-cols-3">
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Dados sob seu controle</li>
+                <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[#e5ae12]" /> Serviços no mapa</li>
+                <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Verificação humana</li>
+              </ul>
+              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">Reivindicar é gratuito · não cria assinatura automática</p>
             </div>
+            <div className="flex flex-col gap-3 lg:items-stretch">
             {terreiro.verificada ? (
-              <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-6 py-3.5 text-sm font-extrabold text-emerald-200"><BadgeCheck className="h-4 w-4" aria-hidden />Perfil verificado</span>
+              <>
+                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-6 py-3.5 text-sm font-extrabold text-emerald-200"><BadgeCheck className="h-4 w-4" aria-hidden />Perfil verificado</span>
+                <TerreiroClaimStatusDialog slug={terreiro.slug} terreiroNome={terreiro.nome} />
+              </>
             ) : (
-              <TerreiroClaimDialog
-                slug={terreiro.slug}
-                terreiroNome={terreiro.nome}
-                onTrack={() => void trackConversionEvent('claim_started', { ctaId: 'directory-profile-claim', ctaLabel: 'Reivindicar esta casa', metadata: { slug: terreiro.slug } })}
-              />
+              <>
+                <TerreiroClaimDialog
+                  slug={terreiro.slug}
+                  terreiroNome={terreiro.nome}
+                  onTrack={() => void trackConversionEvent('claim_started', { ctaId: 'directory-profile-claim', ctaLabel: 'Assumir a gestão deste perfil', metadata: { slug: terreiro.slug } })}
+                />
+                <TerreiroClaimStatusDialog slug={terreiro.slug} terreiroNome={terreiro.nome} />
+              </>
             )}
+            </div>
           </div>
         </section>
       </main>

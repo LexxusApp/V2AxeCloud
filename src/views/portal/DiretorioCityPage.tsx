@@ -7,7 +7,7 @@ import type { DiretorioBairroGroup } from '../../lib/diretorioPublic';
 import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { ROUTES } from '../../lib/routes';
-import { DirectoryManagementCta } from '../../components/portal/DirectoryManagementCta';
+import { DirectoryClaimAcquisitionCta } from '../../components/portal/DirectoryClaimAcquisitionCta';
 
 function parseCityRoute(): { estado: string; cidade: string } {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -227,7 +227,7 @@ export default function DiretorioCityPage() {
         </header>
 
         <div className="mt-8">
-          <DirectoryManagementCta source="city" />
+          <DirectoryClaimAcquisitionCta cidade={cidade?.cidade || cidadeSlug.replace(/-/g, ' ')} total={cidade?.totalTerreiros || 0} />
         </div>
 
         <section className="mt-12" aria-labelledby="bairros-heading">

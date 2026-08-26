@@ -85,7 +85,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
           href={href}
           className="mt-4 inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-[#FFC107] px-4 py-2.5 text-sm font-black text-[#1b1813] transition group-hover:bg-[#ffcd38] hover:bg-[#e6ac00]"
         >
-          Ver detalhes
+          {terreiro.verificada ? 'Ver perfil verificado' : 'Ver perfil e reivindicar'}
         </a>
       </div>
     </li>

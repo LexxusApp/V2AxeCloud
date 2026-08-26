@@ -11,7 +11,6 @@ export type ConversionEventName =
   | 'directory_view'
   | 'directory_action'
   | 'claim_started'
-  | 'claim_completed'
   | 'register_view'
   | 'register_started'
   | 'register_step_completed'

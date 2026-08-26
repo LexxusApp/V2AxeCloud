@@ -55,6 +55,9 @@ function readPreferredBillingCycle(): 'monthly' | 'annual' {
 
 export default function Register() {
   const { premium: catalogPrice } = usePlansCatalog();
+  const claimId = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('claim')?.trim() || ''
+    : '';
   const [billingCycle] = useState<'monthly' | 'annual'>(readPreferredBillingCycle);
   const [nomeTerreiro, setNomeTerreiro] = useState('');
   const [nomeZelador, setNomeZelador] = useState('');
@@ -142,6 +145,7 @@ export default function Register() {
           password,
           whatsapp: whatsapp.trim(),
           billingCycle,
+          claimId: claimId || undefined,
           conversion: getConversionContext(),
         }),
       });
@@ -302,6 +306,13 @@ export default function Register() {
           </div>
 
           <header className="mb-6">
+            {claimId ? (
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-800">Reivindicação aprovada</p>
+                <p className="mt-1 text-sm font-bold text-zinc-900">Crie o acesso com o mesmo e-mail da solicitação.</p>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-600">Ao concluir, o perfil público será conectado automaticamente a esta conta.</p>
+              </div>
+            ) : null}
             <div className="mb-4" aria-label={`Etapa ${step} de 2`}>
               <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-amber-800">
                 <span>Etapa {step} de 2</span>

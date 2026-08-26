@@ -13,7 +13,8 @@ import {
   UserRoundCheck,
   X,
 } from 'lucide-react';
-import { trackConversionEvent } from '../../lib/trackConversion';
+import { getConversionContext } from '../../lib/trackConversion';
+import { rememberDirectoryClaim } from './TerreiroClaimStatusDialog';
 
 type ClaimForm = {
   name: string;
@@ -34,11 +35,12 @@ async function submitClaim(slug: string, form: ClaimForm) {
   const response = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}/reivindicar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(form),
+    body: JSON.stringify({ ...form, conversion: getConversionContext() }),
   });
   const text = await response.text();
   let payload: { error?: string; requestId?: string; message?: string } = {};
   try { payload = text ? JSON.parse(text) : {}; } catch { payload = {}; }
+  if (response.status === 409 && payload.requestId) return payload;
   if (!response.ok) throw new Error(payload.error || 'Não foi possível enviar a solicitação.');
   return payload;
 }
@@ -88,10 +90,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
     try {
       const result = await submitClaim(slug, form);
       setRequestId(result.requestId || 'enviada');
-      void trackConversionEvent('claim_completed', {
-        ctaId: 'directory-profile-claim',
-        metadata: { slug, requestId: result.requestId || null },
-      });
+      rememberDirectoryClaim(slug, form.email.trim(), result.requestId);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Não foi possível enviar a solicitação.');
     } finally {
@@ -109,7 +108,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
   return (
     <>
       <button type="button" onClick={openDialog} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#e5ae12] px-6 py-3.5 text-sm font-extrabold text-[#1b1813] shadow-[0_12px_30px_rgba(229,174,18,.18)] transition hover:-translate-y-0.5 hover:bg-[#ffcd38]">
-        <BadgeCheck className="h-4 w-4" aria-hidden /> Reivindicar esta casa
+        <BadgeCheck className="h-4 w-4" aria-hidden /> Assumir a gestão deste perfil
       </button>
 
       {open && typeof document !== 'undefined' ? createPortal((
@@ -160,7 +159,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
                     <span className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-emerald-700/20 bg-emerald-700/10 text-emerald-700"><CheckCircle2 className="h-10 w-10" aria-hidden /></span>
                     <p className="mt-7 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#8d6300]">Solicitação protegida</p>
                     <h2 id="claim-dialog-title" className="mt-2 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">A casa está em análise.</h2>
-                    <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#1b1813]/62">A equipe do AxéCloud vai confirmar as informações e retornar pelos contatos informados.</p>
+                    <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#1b1813]/62">A equipe do AxéCloud vai confirmar as informações. Você pode acompanhar cada etapa pelo mesmo e-mail informado.</p>
                     {requestId !== 'enviada' ? <div className="mx-auto mt-7 max-w-sm rounded-2xl border border-[#cdbfaa] bg-[#fffaf1] px-5 py-4"><small className="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#1b1813]/42">Seu protocolo</small><strong className="mt-1 block font-mono text-lg tracking-[0.16em] text-[#8a6200]">{requestId.slice(0, 8).toUpperCase()}</strong></div> : null}
                     <button type="button" onClick={closeDialog} className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-[#142119] px-7 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#26372c]">Concluir<Check className="h-4 w-4 text-[#e5ae12]" /></button>
                   </div>
