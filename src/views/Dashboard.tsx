@@ -865,6 +865,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const setupPendingSteps = setupStepsV5.filter((step) => !step.done);
   const nextSetupStep = setupPendingSteps[0] ?? null;
   const setupComplete = setupPendingSteps.length === 0;
+  const trialDaysRemaining = (() => {
+    if (tenantData?.is_trial !== true || !tenantData?.expires_at) return null;
+    const expiresAt = new Date(String(tenantData.expires_at)).getTime();
+    return Number.isFinite(expiresAt)
+      ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 86_400_000))
+      : null;
+  })();
 
   // Uma missão por sessão: o que a casa precisa agora.
   const houseMission: HouseMission = (() => {
@@ -961,7 +968,11 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <div className="min-w-0">
             <p className="dashboard-v5-eyebrow">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              {setupComplete ? 'Sua casa hoje' : 'Primeiros passos da casa'}
+              {setupComplete
+                ? 'Sua casa hoje'
+                : trialDaysRemaining != null
+                  ? `Ativação guiada · ${trialDaysRemaining} dias de teste`
+                  : 'Primeiros passos da casa'}
             </p>
             <h1 id="dashboard-v5-title" className="mt-3 font-display text-3xl font-black tracking-[-0.035em] text-[#FFFDF7] sm:text-4xl">
               {timeGreeting}, {firstName}.
@@ -1152,8 +1163,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="dashboard-v5-section-kicker">Casa viva</p>
-                <h2 id="progress-v5">Sua casa em 3 passos</h2>
+                <p className="dashboard-v5-section-kicker">Ativação do teste</p>
+                <h2 id="progress-v5">Comece sem configurar tudo</h2>
               </div>
               <TrendingUp className="h-5 w-5 text-[#D8AD37]" aria-hidden />
             </div>
@@ -1166,7 +1177,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   {`${setupDoneCount} de ${setupStepsV5.length} passos`}
                 </strong>
                 <p>
-                  Só o essencial: corrente, mensalidade e uma gira.
+                  Só o essencial para sentir o sistema funcionando: corrente, mensalidade e uma gira.
                 </p>
               </div>
             </div>

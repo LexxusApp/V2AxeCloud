@@ -56,6 +56,20 @@ export type ConversionFunnelStats = {
     reachPct: number;
     dropOffPct: number;
   }[];
+  comparison: {
+    previousPeriod: {
+      visitors: number;
+      trialClicks: number;
+      registerCompleted: number;
+      viewToCompletePct: number;
+    };
+    delta: {
+      visitorsPct: number | null;
+      trialClicksPct: number | null;
+      registerCompletedPct: number | null;
+      viewToCompletePoints: number;
+    };
+  };
 };
 
 function cleanText(value: unknown, max = 300): string | null {
@@ -158,15 +172,18 @@ async function loadConversionRowsForEvent(
   since: string,
   eventName: string,
   maxRows: number,
+  until?: string,
 ): Promise<{ event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[]> {
   const rows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[] = [];
   let from = 0;
   while (from < maxRows) {
-    const { data, error } = await sb
+    let query = sb
       .from('public_conversion_events')
       .select('event_name, visitor_id, path, cta_id, metadata')
       .eq('event_name', eventName)
-      .gte('created_at', since)
+      .gte('created_at', since);
+    if (until) query = query.lt('created_at', until);
+    const { data, error } = await query
       .order('created_at', { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
     if (error) {
@@ -198,10 +215,11 @@ async function loadConversionRowsByEvents(
   since: string,
   eventNames: readonly string[],
   maxRowsPerEvent = PAGE_SIZE * 50,
+  until?: string,
 ): Promise<{ event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[]> {
   if (isRememberedMissingTable('public_conversion_events')) return [];
   const batches = await Promise.all(
-    eventNames.map((eventName) => loadConversionRowsForEvent(sb, since, eventName, maxRowsPerEvent)),
+    eventNames.map((eventName) => loadConversionRowsForEvent(sb, since, eventName, maxRowsPerEvent, until)),
   );
   return batches.flat();
 }
@@ -225,16 +243,23 @@ export async function fetchConversionFunnelStats(
       visitorToActionPct: 0, claimCompletionPct: 0,
     },
     sectionReach: [],
+    comparison: {
+      previousPeriod: { visitors: 0, trialClicks: 0, registerCompleted: 0, viewToCompletePct: 0 },
+      delta: { visitorsPct: null, trialClicksPct: null, registerCompletedPct: null, viewToCompletePoints: 0 },
+    },
   };
   if (isRememberedMissingTable('public_conversion_events')) return empty;
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const previousSince = new Date(Date.now() - 60 * 86400000).toISOString();
   const maxRowsPerEvent = options?.maxRowsPerEvent ?? PAGE_SIZE * 50;
   let stageRows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[];
   let sectionRows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[];
+  let previousStageRows: { event_name: string; visitor_id: string; path: string; cta_id: string | null; metadata: unknown }[];
   try {
-    [stageRows, sectionRows] = await Promise.all([
+    [stageRows, sectionRows, previousStageRows] = await Promise.all([
       loadConversionRowsByEvents(sb, since, FUNNEL_STAGE_EVENTS, maxRowsPerEvent),
       loadConversionRowsByEvents(sb, since, ['section_view'], maxRowsPerEvent),
+      loadConversionRowsByEvents(sb, previousSince, FUNNEL_STAGE_EVENTS, maxRowsPerEvent, since),
     ]);
   } catch (error) {
     if (isMissingOrUnknownTable(error as { message?: string }, 'public_conversion_events')) return empty;
@@ -276,14 +301,13 @@ export async function fetchConversionFunnelStats(
   const registerCompleted = groups.get('register_completed')?.size || 0;
   const registerFailures = groups.get('register_failed')?.size || 0;
   const sectionLabels: Record<string, string> = {
-    plataforma: 'Apresentação',
-    'galeria-100gb': 'Galeria 100 GB',
-    agenda: 'Agenda',
+    'servicos-publicos': 'Serviços no mapa',
+    problema: 'Problema',
     seguranca: 'Segurança',
-    recursos: 'Recursos',
-    'quem-somos': 'Prova social',
-    whatsapp: 'WhatsApp',
-    mensalidade: 'Preço',
+    memoria: 'Demonstração real',
+    prova: 'Prova social',
+    descobrir: 'Ecossistema',
+    plano: 'Preço',
     faq: 'Dúvidas',
   };
   const sectionVisitors = new Map<string, Set<string>>();
@@ -297,7 +321,7 @@ export async function fetchConversionFunnelStats(
     if (!sectionVisitors.has(sectionId)) sectionVisitors.set(sectionId, new Set());
     sectionVisitors.get(sectionId)!.add(visitorId);
   }
-  let previousVisitors = commercialVisitors;
+  let previousSectionVisitors = commercialVisitors;
   const sectionReach = Object.entries(sectionLabels).map(([sectionId, label]) => {
     const sectionCount = sectionVisitors.get(sectionId)?.size || 0;
     const item = {
@@ -305,12 +329,21 @@ export async function fetchConversionFunnelStats(
       label,
       visitors: sectionCount,
       reachPct: pct(sectionCount, commercialVisitors),
-      dropOffPct: pct(Math.max(0, previousVisitors - sectionCount), previousVisitors),
+      dropOffPct: pct(Math.max(0, previousSectionVisitors - sectionCount), previousSectionVisitors),
     };
-    previousVisitors = sectionCount;
+    if (sectionCount > 0) previousSectionVisitors = sectionCount;
     return item;
   });
-  const visitorBase = visitors || commercialVisitors;
+  const visitorBase = commercialVisitors || visitors;
+  const previousUnique = (predicate: (row: (typeof previousStageRows)[number]) => boolean) =>
+    new Set(previousStageRows.filter(predicate).map((row) => row.visitor_id).filter(Boolean)).size;
+  const previousVisitors = previousUnique((row) =>
+    row.event_name === 'commercial_view' || (row.event_name === 'landing_view' && !isDirectoryPath(row.path)));
+  const previousTrialClicks = previousUnique((row) => row.event_name === 'trial_cta_click' || legacyTrialClick(row));
+  const previousRegisterCompleted = previousUnique((row) => row.event_name === 'register_completed');
+  const previousViewToCompletePct = pct(previousRegisterCompleted, previousVisitors);
+  const relativeDelta = (current: number, previous: number): number | null =>
+    previous > 0 ? Math.round(((current - previous) / previous) * 1000) / 10 : null;
   return {
     available: true,
     periodDays: 30,
@@ -339,5 +372,19 @@ export async function fetchConversionFunnelStats(
       claimCompletionPct: pct(claimCompleted, claimStarted),
     },
     sectionReach,
+    comparison: {
+      previousPeriod: {
+        visitors: previousVisitors,
+        trialClicks: previousTrialClicks,
+        registerCompleted: previousRegisterCompleted,
+        viewToCompletePct: previousViewToCompletePct,
+      },
+      delta: {
+        visitorsPct: relativeDelta(visitorBase, previousVisitors),
+        trialClicksPct: relativeDelta(trialClicks, previousTrialClicks),
+        registerCompletedPct: relativeDelta(registerCompleted, previousRegisterCompleted),
+        viewToCompletePoints: Math.round((pct(registerCompleted, visitorBase) - previousViewToCompletePct) * 10) / 10,
+      },
+    },
   };
 }

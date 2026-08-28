@@ -56,6 +56,64 @@ const faqItems = [
   { q: "Posso testar antes de assinar?", a: "Sim. A casa pode testar o plano Premium completo por 30 dias, sem cartão de crédito e sem compromisso." },
 ];
 
+type PublicTestimonial = {
+  id: string;
+  quote: string;
+  authorName: string;
+  houseName?: string;
+  authorRole?: string;
+  city?: string;
+  state?: string;
+};
+
+const VISITOR_KEY = "axecloud_public_vid";
+const SESSION_KEY = "axecloud_conversion_sid";
+const ATTRIBUTION_KEY = "axecloud_conversion_attribution";
+
+function getOrCreateUuid(storage: Storage, key: string) {
+  const existing = storage.getItem(key);
+  if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing;
+  const value = crypto.randomUUID();
+  storage.setItem(key, value);
+  return value;
+}
+
+function trackHomeEvent(eventName: string, details: { ctaId?: string; ctaLabel?: string; metadata?: Record<string, unknown> } = {}) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    let attribution: Record<string, string | undefined> = {};
+    const storedAttribution = localStorage.getItem(ATTRIBUTION_KEY);
+    if (storedAttribution) attribution = JSON.parse(storedAttribution) as Record<string, string | undefined>;
+    else {
+      attribution = {
+        source: params.get("utm_source") || undefined,
+        medium: params.get("utm_medium") || undefined,
+        campaign: params.get("utm_campaign") || undefined,
+        content: params.get("utm_content") || undefined,
+        term: params.get("utm_term") || undefined,
+        landingPath: `${window.location.pathname}${window.location.search}`.slice(0, 500),
+      };
+      localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
+    }
+    void fetch("/api/metrics/conversion-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        eventName,
+        visitorId: getOrCreateUuid(localStorage, VISITOR_KEY),
+        sessionId: getOrCreateUuid(sessionStorage, SESSION_KEY),
+        path: window.location.pathname,
+        referrer: document.referrer || null,
+        attribution,
+        ...details,
+      }),
+    });
+  } catch {
+    /* A medicao nunca pode interromper a experiencia da pagina. */
+  }
+}
+
 function Brand() {
   return <a className="cx-brand" href="#inicio" aria-label="AxéCloud — início"><span className="cx-brand-trident" aria-hidden="true" /><strong><span>Axé</span><em>Cloud</em></strong></a>;
 }
@@ -63,7 +121,7 @@ function Brand() {
 function Rack() {
   return <div className="cx-rack-wrap" aria-label="Infraestrutura protegida do AxéCloud">
     <div className="cx-rack-shadow" /><div className="cx-rack">
-      <div className="cx-rack-top"><span><i /> AXÉCLOUD PRIVATE CLOUD</span><b>ONLINE</b></div>
+      <div className="cx-rack-top"><span><i /> INFRAESTRUTURA AXÉCLOUD</span><b>ONLINE</b></div>
       {["IDENTIDADE", "DADOS", "BACKUP", "REDE"].map((name, row) => <div className="cx-unit" key={name}>
         <span className="cx-handle" /><div className="cx-unit-name"><small>NODE 0{row + 1}</small><strong>{name}</strong></div>
         <div className="cx-vents">{Array.from({ length: 30 }, (_, i) => <i key={i} />)}</div>
@@ -79,6 +137,70 @@ export default function Home() {
   const root = useRef<HTMLElement>(null);
   const [menu, setMenu] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const [testimonials, setTestimonials] = useState<PublicTestimonial[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/v1/landing/testimonials", { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : { items: [] })
+      .then((payload) => {
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        setTestimonials(items.filter((item: PublicTestimonial) => String(item?.quote || "").trim().length >= 12).slice(0, 3));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const rootElement = root.current;
+    if (!rootElement) return;
+    const viewMarker = `axecloud_commercial_view:${window.location.pathname}`;
+    if (!sessionStorage.getItem(viewMarker)) {
+      sessionStorage.setItem(viewMarker, "1");
+      trackHomeEvent("commercial_view");
+    }
+
+    const viewedSections = new Set<string>();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < .3) return;
+        const sectionId = (entry.target as HTMLElement).id;
+        const sectionMarker = `axecloud_section_view:${window.location.pathname}:${sectionId}`;
+        if (!sectionId || viewedSections.has(sectionId) || sessionStorage.getItem(sectionMarker)) return;
+        viewedSections.add(sectionId);
+        sessionStorage.setItem(sectionMarker, "1");
+        trackHomeEvent("section_view", { metadata: { sectionId } });
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: [.3] });
+    rootElement.querySelectorAll<HTMLElement>("section[id], article[id]").forEach((section) => observer.observe(section));
+
+    const handleTrackedClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a");
+      if (!anchor || !rootElement.contains(anchor)) return;
+      const href = anchor.getAttribute("href") || "";
+      const label = anchor.textContent?.replace(/\s+/g, " ").trim().slice(0, 160) || "";
+      if (/\/register(?:$|[?#])/.test(href)) {
+        const ctaId = anchor.closest("#plano")
+          ? "home_plan_trial"
+          : anchor.classList.contains("cx-header-cta")
+            ? "home_header_trial"
+            : "home_hero_trial";
+        trackHomeEvent("trial_cta_click", { ctaId, ctaLabel: label });
+      } else if (href === "/entrar") {
+        trackHomeEvent("login_click", { ctaId: "home_login", ctaLabel: label });
+      } else if (href.startsWith("https://wa.me/")) {
+        trackHomeEvent("commercial_cta_click", { ctaId: "home_contact_whatsapp", ctaLabel: label });
+      }
+    };
+    rootElement.addEventListener("click", handleTrackedClick);
+    return () => {
+      observer.disconnect();
+      rootElement.removeEventListener("click", handleTrackedClick);
+    };
+  }, [testimonials.length]);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -145,8 +267,8 @@ export default function Home() {
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
         .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
-        .from(".cx-hero-housemap", { y: 42, opacity: 0, scale: .96 }, .18)
-        .from(".cx-hero-module", { y: 22, opacity: 0, stagger: .05, duration: .5 }, .42)
+        .from(".cx-hero-activation", { y: 42, opacity: 0, scale: .96 }, .18)
+        .from(".cx-activation-step", { y: 22, opacity: 0, stagger: .06, duration: .5 }, .42)
         .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
 
       gsap.timeline({ scrollTrigger: { trigger: ".cx-clutter", start: "top top", end: "bottom bottom", scrub: 1 } })
@@ -193,24 +315,32 @@ export default function Home() {
       <div className="cx-hero-architecture" aria-hidden="true"><i /><i /><span /></div>
       <div className="cx-conversion-shell">
         <div className="cx-conversion-copy">
-          <p className="cx-hero-eyebrow"><i /> GESTÃO COMPLETA PARA CASAS DE AXÉ</p>
-          <h1 id="hero-title">Sua casa de axé.<span>Organizada em um só lugar.</span></h1>
-          <p className="cx-hero-lead">Financeiro, filhos de santo, giras, estoque, memória e comunicação em um sistema criado para terreiros de Umbanda e Candomblé.</p>
+          <p className="cx-hero-eyebrow"><i /> GESTÃO CRIADA PARA A ROTINA DO TERREIRO</p>
+          <h1 id="hero-title">Menos tempo com a burocracia.<span>Mais tempo para cuidar da casa.</span></h1>
+          <p className="cx-hero-lead">O AxéCloud reúne cobranças, corrente, giras e comunicação sem mudar o fundamento do seu terreiro. Comece pelo que mais pesa hoje e organize o restante no seu ritmo.</p>
           <div className="cx-hero-actions">
-            <a className="cx-hero-primary" href="https://axecloud.com.br/register">Testar grátis por 30 dias <ArrowRight /></a>
-            <a className="cx-hero-secondary" href="#problema">Ver como funciona <ArrowRight /></a>
+            <a className="cx-hero-primary" href="https://axecloud.com.br/register">Organizar minha casa por 30 dias <ArrowRight /></a>
+            <a className="cx-hero-secondary" href="#memoria">Ver telas reais <ArrowRight /></a>
           </div>
           <div className="cx-hero-price"><strong>30 dias grátis</strong><span>sem cartão</span><i /><span>depois</span><b>R$ 69,90/mês</b></div>
-          <div className="cx-hero-assurance"><span><ShieldCheck /> Dados privados</span><span><MessageCircleMore /> Suporte humano</span><span><Check /> Todos os módulos</span></div>
+          <div className="cx-hero-assurance"><span><ShieldCheck /> Ambiente privado</span><span><MessageCircleMore /> Implantação acompanhada</span><span><Check /> Funciona no celular</span></div>
         </div>
 
-        <aside className="cx-hero-housemap" aria-label="Áreas da casa organizadas pelo AxéCloud">
-          <div className="cx-hero-housemap-title"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
-          <div className="cx-hero-housemap-heart"><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>Uma casa. Uma direção.</strong></span></div>
-          <div className="cx-hero-modules">
-            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div></article>)}
+        <aside className="cx-hero-activation" aria-label="Como começar no AxéCloud">
+          <div className="cx-activation-head">
+            <span><img src="/axecloud-trident.png" alt="" width="32" height="39" /><small>COMEÇO ASSISTIDO</small></span>
+            <b><i /> TESTE ATIVO EM MINUTOS</b>
           </div>
-          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>24 módulos incluídos</span></p>
+          <div className="cx-activation-copy">
+            <p>VOCÊ NÃO PRECISA MUDAR TUDO DE UMA VEZ</p>
+            <h2>Comece pela rotina que mais pesa hoje.</h2>
+          </div>
+          <ol className="cx-activation-steps">
+            <li className="cx-activation-step"><span>01</span><div><strong>Crie o espaço da sua casa</strong><small>São duas etapas, sem cartão e sem cobrança automática.</small></div><Check /></li>
+            <li className="cx-activation-step"><span>02</span><div><strong>Escolha o primeiro cuidado</strong><small>Cadastre a corrente, configure a mensalidade ou marque uma gira.</small></div><ArrowRight /></li>
+            <li className="cx-activation-step"><span>03</span><div><strong>Avance com orientação</strong><small>O painel mostra o próximo passo e o suporte humano acompanha você.</small></div><MessageCircleMore /></li>
+          </ol>
+          <p className="cx-activation-note"><LockKeyhole /> Seus dados só aparecem publicamente quando você autorizar.</p>
         </aside>
       </div>
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
@@ -246,9 +376,14 @@ export default function Home() {
 
     <section className="cx-clutter" id="problema"><div className="cx-clutter-sticky"><div className="cx-clutter-copy"><p>01 — O PROBLEMA</p><h2 className="before">Quando tudo chega<br />por caminhos diferentes.</h2><h2 className="after">A rotina volta<br />a caber no dia.</h2><span>O sistema organiza sem interferir no fundamento da casa.</span></div><div className="cx-clutter-stage">{scattered.map(([a,b,c],i) => <div className={`cx-scattered ${c} scatter-${i}`} key={a}><small>{a}</small><strong>{b}</strong></div>)}<div className="cx-organized"><div className="cx-organized-head"><span><i /> ROTINA DE HOJE</span><small>4 AÇÕES ORGANIZADAS</small></div>{[[CircleDollarSign,"Financeiro conciliado","12 mensalidades"],[CalendarDays,"Agenda confirmada","Gira · 20h"],[MessageCircleMore,"Comunidade avisada","96% entregues"],[PackageCheck,"Materiais conferidos","Estoque atualizado"]].map(([Icon,title,note],i) => { const I = Icon as typeof CircleDollarSign; return <div className="cx-organized-row" key={title as string}><span>0{i+1}</span><I /><div><strong>{title as string}</strong><small>{note as string}</small></div><Check /></div>})}</div></div></div></section>
 
-    <section className="cx-security" id="seguranca"><div className="cx-security-sticky"><div className="cx-corridor" aria-hidden="true"><div className="cx-corridor-left" /><div className="cx-corridor-right" /><div className="cx-corridor-ceiling" /></div><Rack /><div className="cx-security-copy"><p>02 — SEGURANÇA</p><h2>O que é sagrado<br />não pode ficar exposto.</h2><span>Dados financeiros, pessoais e registros da casa permanecem privados, protegidos e sob seu controle.</span><div className="cx-security-proof"><span><LockKeyhole /> Acesso controlado</span><span><ShieldCheck /> Privacidade e LGPD</span><span><FileText /> Backup contínuo</span></div></div></div></section>
+    <section className="cx-security" id="seguranca"><div className="cx-security-sticky"><div className="cx-corridor" aria-hidden="true"><div className="cx-corridor-left" /><div className="cx-corridor-right" /><div className="cx-corridor-ceiling" /></div><Rack /><div className="cx-security-copy"><p>02 — SEGURANÇA</p><h2>O que é sagrado<br />não pode ficar exposto.</h2><span>Os dados administrativos da casa permanecem separados por terreiro, protegidos por perfis de acesso e sob o controle da zeladoria.</span><div className="cx-security-proof"><span><LockKeyhole /> Dados separados por casa</span><span><ShieldCheck /> Acesso conforme o perfil</span><span><FileText /> Rotinas de backup</span></div></div></div></section>
 
     <section className="cx-archive" id="memoria"><div className="cx-archive-track"><div className="cx-archive-intro"><p>03 — O AXÉCLOUD REAL</p><h2>O presente passa.<br />O que foi cuidado<br /><span>permanece.</span></h2><small>TELAS ATUAIS · CAPTURADAS NO SISTEMA REAL</small></div>{archive.map((item,i) => <article className="cx-archive-frame" key={item.title}><div className="cx-frame-number">0{i+1}</div><div className="cx-frame-image"><Image src={item.image} alt={`Tela atual do AxéCloud — ${item.tag}`} width={1440} height={900} sizes="(max-width: 650px) 88vw, (max-width: 900px) 78vw, 68vw" /></div><p>{item.tag}</p><h3>{item.title}</h3></article>)}<div className="cx-archive-end"><BookOpen /><p>Organização para o presente.</p><h2>Memória para<br />quem vem depois.</h2></div></div></section>
+
+    {testimonials.length > 0 ? <section className="cx-proof" id="prova" aria-labelledby="proof-title">
+      <div className="cx-proof-head cx-reveal"><p>RELATOS AUTORIZADOS</p><h2 id="proof-title">A experiência de quem<br /><span>já cuida da casa com o AxéCloud.</span></h2><small>Publicamos somente depoimentos liberados pelas próprias casas.</small></div>
+      <div className="cx-proof-grid">{testimonials.map((item) => <article className="cx-proof-card cx-reveal" key={item.id}><span>“</span><blockquote>{item.quote}</blockquote><footer><strong>{item.authorName}</strong><small>{[item.houseName, [item.city, item.state].filter(Boolean).join("/")].filter(Boolean).join(" · ")}</small></footer></article>)}</div>
+    </section> : null}
 
     <section className="cx-ecosystem" id="descobrir"><div className="cx-ecosystem-head cx-reveal"><p>ALÉM DO SISTEMA</p><h2>Uma plataforma para a casa.<br /><span>Um serviço para a comunidade.</span></h2><div><Search /><p>O AxéCloud também mantém diretório público, agenda de eventos, conteúdo educativo, glossário e espaço para pedidos de reza.</p></div></div><div className="cx-ecosystem-grid">{ecosystem.map((item,i) => <a className="cx-ecosystem-link cx-reveal" href={item.href} key={item.title}><span>0{i+1}</span><item.icon /><small>{item.eyebrow}</small><h3>{item.title}</h3><p>{item.text}</p><ArrowRight /></a>)}</div></section>
 

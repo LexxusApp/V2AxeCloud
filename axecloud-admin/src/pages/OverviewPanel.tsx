@@ -128,6 +128,20 @@ type OverviewPanelProps = {
         reachPct: number;
         dropOffPct: number;
       }[];
+      comparison: {
+        previousPeriod: {
+          visitors: number;
+          trialClicks: number;
+          registerCompleted: number;
+          viewToCompletePct: number;
+        };
+        delta: {
+          visitorsPct: number | null;
+          trialClicksPct: number | null;
+          registerCompletedPct: number | null;
+          viewToCompletePoints: number;
+        };
+      };
     };
   } | null;
   plansCatalog: Record<string, unknown>;
@@ -688,6 +702,35 @@ export function OverviewPanel({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </section>
+                <section className="border-t border-[var(--ac-paper-border)] pt-4">
+                  <div className="mb-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-accent)]">Comparação</p>
+                    <p className="text-xs text-[var(--ac-text-faint)]">Últimos 30 dias comparados aos 30 dias imediatamente anteriores.</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      ["Visitas comerciais", activity.publicConversionFunnel.commercial.visitors, activity.publicConversionFunnel.comparison.previousPeriod.visitors, activity.publicConversionFunnel.comparison.delta.visitorsPct, "%"],
+                      ["Cliques no teste", activity.publicConversionFunnel.commercial.trialClicks, activity.publicConversionFunnel.comparison.previousPeriod.trialClicks, activity.publicConversionFunnel.comparison.delta.trialClicksPct, "%"],
+                      ["Cadastros concluídos", activity.publicConversionFunnel.commercial.registerCompleted, activity.publicConversionFunnel.comparison.previousPeriod.registerCompleted, activity.publicConversionFunnel.comparison.delta.registerCompletedPct, "%"],
+                      ["Conversão visita → cadastro", activity.publicConversionFunnel.commercial.viewToCompletePct, activity.publicConversionFunnel.comparison.previousPeriod.viewToCompletePct, activity.publicConversionFunnel.comparison.delta.viewToCompletePoints, "p.p."],
+                    ].map(([label, current, previous, delta, unit]) => {
+                      const numericDelta = delta as number | null;
+                      const deltaLabel = numericDelta == null
+                        ? (Number(current) > 0 ? 'novo' : 'sem base')
+                        : `${numericDelta > 0 ? '+' : ''}${numericDelta}${unit}`;
+                      return (
+                        <div key={String(label)} className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{label}</p>
+                          <div className="mt-2 flex items-end justify-between gap-2">
+                            <strong className="admin-mono text-2xl text-[var(--ac-text)]">{current}{unit === 'p.p.' ? '%' : ''}</strong>
+                            <span className={`text-xs font-semibold ${numericDelta != null && numericDelta < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>{deltaLabel}</span>
+                          </div>
+                          <p className="mt-2 text-[10px] text-[var(--ac-text-faint)]">Período anterior: {previous}{unit === 'p.p.' ? '%' : ''}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
                 <p className="text-xs text-[var(--ac-text-faint)]">Conclusão de cadastro e reivindicação só é contada após confirmação do servidor.</p>

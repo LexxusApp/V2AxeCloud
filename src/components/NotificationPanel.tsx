@@ -40,7 +40,7 @@ import {
 
 export interface AppNotification {
   id: string;
-  type: 'payment' | 'reza' | 'event' | 'obligation' | 'store' | 'wafail' | 'library' | 'system' | 'info';
+  type: 'payment' | 'reza' | 'event' | 'obligation' | 'store' | 'wafail' | 'library' | 'system' | 'trial' | 'info';
   title: string;
   body: string;
   read: boolean;
@@ -50,6 +50,10 @@ export interface AppNotification {
 interface NotificationPanelProps {
   tenantData?: {
     tenant_id?: string | null;
+    expires_at?: string | null;
+    is_trial?: boolean;
+    plan?: string | null;
+    status?: string | null;
   } | null;
   userRole?: string | null;
   userId?: string | null;
@@ -107,6 +111,12 @@ const TYPE_META: Record<
   system: {
     icon: <Sparkles className="h-4 w-4" />,
     label: 'Atualização',
+    iconClass: 'text-amber-300',
+    surfaceClass: 'border-amber-400/20 bg-amber-400/10',
+  },
+  trial: {
+    icon: <CalendarDays className="h-4 w-4" />,
+    label: 'Período de teste',
     iconClass: 'text-amber-300',
     surfaceClass: 'border-amber-400/20 bg-amber-400/10',
   },
@@ -200,12 +210,57 @@ function notificationTarget(type: AppNotification['type'], isFilho: boolean): st
       return 'library';
     case 'system':
       return 'calendar';
+    case 'trial':
+      return 'dashboard';
     default:
       return isFilho ? 'profile' : 'dashboard';
   }
 }
 
 type RawNotification = Omit<AppNotification, 'read'>;
+
+function buildTrialFollowup(tenantData: NotificationPanelProps['tenantData']): RawNotification | null {
+  if (tenantData?.is_trial !== true || !tenantData.expires_at) return null;
+  const expiresAt = new Date(tenantData.expires_at).getTime();
+  if (!Number.isFinite(expiresAt)) return null;
+  const daysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 86_400_000));
+  const createdAt = new Date().toISOString();
+
+  if (daysRemaining <= 3) {
+    return {
+      id: 'trial_followup_decision',
+      type: 'trial',
+      title: daysRemaining === 0 ? 'Seu teste termina hoje' : `Seu teste termina em ${daysRemaining} dia${daysRemaining === 1 ? '' : 's'}`,
+      body: 'Revise o que sua casa já organizou e escolha como deseja continuar, sem perder os dados cadastrados.',
+      created_at: createdAt,
+    };
+  }
+  if (daysRemaining <= 7) {
+    return {
+      id: 'trial_followup_last_week',
+      type: 'trial',
+      title: 'Última semana do seu teste',
+      body: 'Use estes dias para testar uma rotina completa: corrente, mensalidade e próxima gira.',
+      created_at: createdAt,
+    };
+  }
+  if (daysRemaining <= 15) {
+    return {
+      id: 'trial_followup_midpoint',
+      type: 'trial',
+      title: 'Como está a organização da sua casa?',
+      body: 'Você não precisa configurar tudo. Conclua os três primeiros passos e chame o suporte se travar.',
+      created_at: createdAt,
+    };
+  }
+  return {
+    id: 'trial_followup_start',
+    type: 'trial',
+    title: 'Comece pelo essencial',
+    body: 'Cadastre uma pessoa, configure a mensalidade e marque uma gira. O painel acompanha cada passo.',
+    created_at: createdAt,
+  };
+}
 
 /** Fontes do sino do zelador: mensalidades pagas, pedidos de reza, lembretes de
  *  gira e obrigação, pedidos da loja e falhas de envio de WhatsApp. */
@@ -553,6 +608,10 @@ export default function NotificationPanel({
         const items = isFilho
           ? await loadFilhoNotifications(tenantId)
           : await loadZeladorNotifications(tenantId, userId ?? null);
+        if (!isFilho) {
+          const trialFollowup = buildTrialFollowup(tenantData);
+          if (trialFollowup) items.unshift(trialFollowup);
+        }
         if (!cancelled) setRawItems(items);
       } catch (error) {
         console.warn('[notifications] load:', error);
@@ -564,7 +623,7 @@ export default function NotificationPanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [isFilho, tenantId, userId]);
+  }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, userId]);
 
   const allNotifications = useMemo<AppNotification[]>(
     () =>
@@ -650,6 +709,10 @@ export default function NotificationPanel({
   const openNotification = (notification: AppNotification) => {
     markRead(notification.id);
     setOpen(false);
+    if (notification.id.startsWith('trial_followup_')) {
+      onNavigate?.(notification.id === 'trial_followup_decision' ? 'subscription' : 'dashboard');
+      return;
+    }
     if (notification.id === GIRA_REMINDER_FEATURE_NOTIF_ID) {
       setFeatureModalOpen(true);
       return;
