@@ -49,10 +49,10 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.match(text, /<meta[^>]+name="description"[^>]+Sistema de gestão para terreiros/i);
   assert.match(text, /<link[^>]+rel="canonical"[^>]+href="https:\/\/axecloud\.com\.br\/"/i);
   assert.equal((text.match(/<h1[\s>]/gi) || []).length, 1);
-  assert.match(text, /Menos tempo com a burocracia/);
+  assert.match(text, /Menos burocracia/);
   assert.match(text, /Mais tempo para cuidar da casa/);
-  assert.match(text, /R\$ 69,90\/mês/);
-  assert.match(text, /Organizar minha casa por 30 dias/);
+  assert.match(text, />69,90<\/strong><small>por mês<\/small>/);
+  assert.match(text, /Testar grátis por 30 dias/);
   assert.match(text, /<article[^>]+class="cx-offer cx-reveal"[^>]+id="plano"/i);
   assert.doesNotMatch(text, /<section[^>]+id="plano"[^>]+class="cx-finale"/i);
   assert.match(text, /TELAS ATUAIS · CAPTURADAS NO SISTEMA REAL/);

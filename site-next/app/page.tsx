@@ -267,9 +267,8 @@ export default function Home() {
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
         .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
-        .from(".cx-hero-activation", { y: 42, opacity: 0, scale: .96 }, .18)
-        .from(".cx-activation-step", { y: 22, opacity: 0, stagger: .06, duration: .5 }, .42)
-        .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
+        .from(".cx-hero-symbol", { y: 42, opacity: 0, scale: .94 }, .18)
+        .from(".cx-hero-symbol-node", { y: 18, opacity: 0, stagger: .08, duration: .55 }, .38);
 
       gsap.timeline({ scrollTrigger: { trigger: ".cx-clutter", start: "top top", end: "bottom bottom", scrub: 1 } })
         .from(".cx-clutter-copy > p, .cx-clutter-copy > .before, .cx-clutter-copy > span", { y: 40, opacity: 0, stagger: .08 })
@@ -315,32 +314,26 @@ export default function Home() {
       <div className="cx-hero-architecture" aria-hidden="true"><i /><i /><span /></div>
       <div className="cx-conversion-shell">
         <div className="cx-conversion-copy">
-          <p className="cx-hero-eyebrow"><i /> GESTÃO CRIADA PARA A ROTINA DO TERREIRO</p>
-          <h1 id="hero-title">Menos tempo com a burocracia.<span>Mais tempo para cuidar da casa.</span></h1>
-          <p className="cx-hero-lead">O AxéCloud reúne cobranças, corrente, giras e comunicação sem mudar o fundamento do seu terreiro. Comece pelo que mais pesa hoje e organize o restante no seu ritmo.</p>
+          <p className="cx-hero-eyebrow"><i /> SISTEMA DE GESTÃO PARA TERREIROS</p>
+          <h1 id="hero-title">Menos burocracia.<span>Mais tempo para cuidar da casa.</span></h1>
+          <p className="cx-hero-lead">Financeiro, filhos de santo, giras e comunicação organizados em um só lugar.</p>
           <div className="cx-hero-actions">
-            <a className="cx-hero-primary" href="https://axecloud.com.br/register">Organizar minha casa por 30 dias <ArrowRight /></a>
-            <a className="cx-hero-secondary" href="#memoria">Ver telas reais <ArrowRight /></a>
+            <a className="cx-hero-primary" href="https://axecloud.com.br/register">Testar grátis por 30 dias <ArrowRight /></a>
+            <a className="cx-hero-secondary" href="#memoria">Ver o sistema real <ArrowRight /></a>
           </div>
-          <div className="cx-hero-price"><strong>30 dias grátis</strong><span>sem cartão</span><i /><span>depois</span><b>R$ 69,90/mês</b></div>
-          <div className="cx-hero-assurance"><span><ShieldCheck /> Ambiente privado</span><span><MessageCircleMore /> Implantação acompanhada</span><span><Check /> Funciona no celular</span></div>
         </div>
 
-        <aside className="cx-hero-activation" aria-label="Como começar no AxéCloud">
-          <div className="cx-activation-head">
-            <span><img src="/axecloud-trident.png" alt="" width="32" height="39" /><small>COMEÇO ASSISTIDO</small></span>
-            <b><i /> TESTE ATIVO EM MINUTOS</b>
+        <aside className="cx-hero-symbol" aria-label="A rotina da casa organizada pelo AxéCloud">
+          <div className="cx-hero-symbol-rings" aria-hidden="true"><i /><i /><i /></div>
+          <div className="cx-hero-symbol-core">
+            <img src="/axecloud-trident.png" alt="" width="58" height="70" />
+            <small>AXÉCLOUD</small>
+            <strong>Uma casa.<br />Uma direção.</strong>
           </div>
-          <div className="cx-activation-copy">
-            <p>VOCÊ NÃO PRECISA MUDAR TUDO DE UMA VEZ</p>
-            <h2>Comece pela rotina que mais pesa hoje.</h2>
-          </div>
-          <ol className="cx-activation-steps">
-            <li className="cx-activation-step"><span>01</span><div><strong>Crie o espaço da sua casa</strong><small>São duas etapas, sem cartão e sem cobrança automática.</small></div><Check /></li>
-            <li className="cx-activation-step"><span>02</span><div><strong>Escolha o primeiro cuidado</strong><small>Cadastre a corrente, configure a mensalidade ou marque uma gira.</small></div><ArrowRight /></li>
-            <li className="cx-activation-step"><span>03</span><div><strong>Avance com orientação</strong><small>O painel mostra o próximo passo e o suporte humano acompanha você.</small></div><MessageCircleMore /></li>
-          </ol>
-          <p className="cx-activation-note"><LockKeyhole /> Seus dados só aparecem publicamente quando você autorizar.</p>
+          <div className="cx-hero-symbol-node cx-hero-symbol-node-a"><span>01</span><strong>Sua casa</strong></div>
+          <div className="cx-hero-symbol-node cx-hero-symbol-node-b"><span>02</span><strong>Sua rotina</strong></div>
+          <div className="cx-hero-symbol-node cx-hero-symbol-node-c"><span>03</span><strong>Tudo organizado</strong></div>
+          <p><i /> IMPLANTAÇÃO ACOMPANHADA</p>
         </aside>
       </div>
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
