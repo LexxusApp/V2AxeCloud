@@ -267,8 +267,9 @@ export default function Home() {
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
         .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
-        .from(".cx-hero-symbol", { y: 42, opacity: 0, scale: .94 }, .18)
-        .from(".cx-hero-symbol-node", { y: 18, opacity: 0, stagger: .08, duration: .55 }, .38);
+        .from(".cx-hero-housemap", { y: 42, opacity: 0, scale: .96 }, .18)
+        .from(".cx-hero-module", { y: 22, opacity: 0, stagger: .05, duration: .5 }, .42)
+        .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
 
       gsap.timeline({ scrollTrigger: { trigger: ".cx-clutter", start: "top top", end: "bottom bottom", scrub: 1 } })
         .from(".cx-clutter-copy > p, .cx-clutter-copy > .before, .cx-clutter-copy > span", { y: 40, opacity: 0, stagger: .08 })
@@ -314,26 +315,24 @@ export default function Home() {
       <div className="cx-hero-architecture" aria-hidden="true"><i /><i /><span /></div>
       <div className="cx-conversion-shell">
         <div className="cx-conversion-copy">
-          <p className="cx-hero-eyebrow"><i /> SISTEMA DE GESTÃO PARA TERREIROS</p>
-          <h1 id="hero-title">Menos burocracia.<span>Mais tempo para cuidar da casa.</span></h1>
-          <p className="cx-hero-lead">Financeiro, filhos de santo, giras e comunicação organizados em um só lugar.</p>
+          <p className="cx-hero-eyebrow"><i /> GESTÃO COMPLETA PARA CASAS DE AXÉ</p>
+          <h1 id="hero-title">Sua casa de axé.<span>Organizada em um só lugar.</span></h1>
+          <p className="cx-hero-lead">Financeiro, filhos de santo, giras, estoque, memória e comunicação em um sistema criado para terreiros de Umbanda e Candomblé.</p>
           <div className="cx-hero-actions">
             <a className="cx-hero-primary" href="https://axecloud.com.br/register">Testar grátis por 30 dias <ArrowRight /></a>
-            <a className="cx-hero-secondary" href="#memoria">Ver o sistema real <ArrowRight /></a>
+            <a className="cx-hero-secondary" href="#problema">Ver como funciona <ArrowRight /></a>
           </div>
+          <div className="cx-hero-price"><strong>30 dias grátis</strong><span>sem cartão</span><i /><span>depois</span><b>R$ 69,90/mês</b></div>
+          <div className="cx-hero-assurance"><span><ShieldCheck /> Dados privados</span><span><MessageCircleMore /> Suporte humano</span><span><Check /> Todos os módulos</span></div>
         </div>
 
-        <aside className="cx-hero-symbol" aria-label="A rotina da casa organizada pelo AxéCloud">
-          <div className="cx-hero-symbol-rings" aria-hidden="true"><i /><i /><i /></div>
-          <div className="cx-hero-symbol-core">
-            <img src="/axecloud-trident.png" alt="" width="58" height="70" />
-            <small>AXÉCLOUD</small>
-            <strong>Uma casa.<br />Uma direção.</strong>
+        <aside className="cx-hero-housemap" aria-label="Áreas da casa organizadas pelo AxéCloud">
+          <div className="cx-hero-housemap-title"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
+          <div className="cx-hero-housemap-heart"><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>Uma casa. Uma direção.</strong></span></div>
+          <div className="cx-hero-modules">
+            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div></article>)}
           </div>
-          <div className="cx-hero-symbol-node cx-hero-symbol-node-a"><span>01</span><strong>Sua casa</strong></div>
-          <div className="cx-hero-symbol-node cx-hero-symbol-node-b"><span>02</span><strong>Sua rotina</strong></div>
-          <div className="cx-hero-symbol-node cx-hero-symbol-node-c"><span>03</span><strong>Tudo organizado</strong></div>
-          <p><i /> IMPLANTAÇÃO ACOMPANHADA</p>
+          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>24 módulos incluídos</span></p>
         </aside>
       </div>
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
