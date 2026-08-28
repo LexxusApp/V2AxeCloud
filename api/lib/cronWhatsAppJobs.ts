@@ -379,96 +379,12 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
 
 
 async function runEstoqueAlerts(sb: SupabaseClient): Promise<{ sent: number; skipped: number; errors: number }> {
-  let sent = 0;
-  let skipped = 0;
-  let errors = 0;
-
-  if (!(await isOfficialChannelReady())) {
+  // HARD OFF — nao reativar sem aprovacao explicita.
+  void sb;
+  if (String(process.env.WA_DISABLE_ESTOQUE_ALERTS || "1").trim() === "1") {
     return { sent: 0, skipped: 0, errors: 0 };
   }
-
-  const { data: allItems } = await sb
-    .from("almoxarifado")
-    .select("id, item, quantidade_atual, quantidade_minima, tenant_id");
-
-  const lowItems = (allItems || []).filter((row) => {
-    const min = Number(row.quantidade_minima);
-    // ignora itens sem estoque mínimo definido (NULL ou 0)
-    if (!min || min <= 0) return false;
-    return Number(row.quantidade_atual) <= min;
-  });
-
-  const byTenant = new Map<string, typeof lowItems>();
-  for (const row of lowItems) {
-    const tid = String(row.tenant_id || "");
-    if (!tid) continue;
-    const list = byTenant.get(tid) || [];
-    list.push(row);
-    byTenant.set(tid, list);
-  }
-
-  for (const [tenantId, items] of byTenant) {
-    try {
-      const ctx = await resolveCronTerreiroContext(sb, tenantId);
-
-      const { data: authData } = await sb.auth.admin.getUserById(tenantId);
-      const meta = authData?.user?.user_metadata as { whatsapp?: string } | undefined;
-      const { data: waCfg } = await sb
-        .from("whatsapp_config")
-        .select("phone_number, templates")
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
-      const alertPhone = String(waCfg?.phone_number || meta?.whatsapp || "").trim();
-      if (!alertPhone) {
-        skipped += items.length;
-        continue;
-      }
-
-      let digits = String(alertPhone).replace(/\D/g, "");
-      if (!digits.startsWith("55")) digits = `55${digits}`;
-
-      // Dedupe: chave única por terreiro por dia (não por item)
-      const dedupeKey = `estoque-resumo-${tenantId}`;
-      if (await whatsappLogExistsToday(sb, tenantId, "estoque_critico", dedupeKey)) {
-        skipped += items.length;
-        continue;
-      }
-
-      // Filtra itens que ainda não foram enviados individualmente hoje
-      // (compatibilidade retroativa: se algum foi enviado individualmente, inclui mesmo assim no resumo)
-      const listaItens = items
-        .map((item) => `• ${item.item}: ${item.quantidade_atual} un.`)
-        .join("\n");
-
-      const message =
-        buildWhatsAppMessage(waCfg?.templates, "estoque_critico", {
-          lista_itens: listaItens,
-          quantidade_itens: String(items.length),
-          nome_terreiro: ctx.nomeTerreiro,
-        }) + `\n\n[${dedupeKey}]`;
-
-      await logAndSendWhatsApp(sb, {
-        tenantId,
-        tipo: "estoque_critico",
-        phone: digits,
-        message,
-        nomeMembro: ctx.nomeTerreiro,
-        nomeTerreiro: ctx.nomeTerreiro,
-        idTerreiro: ctx.idTerreiro,
-        variables: {
-          nome_terreiro: ctx.nomeTerreiro,
-          lista_itens: listaItens,
-          quantidade_itens: String(items.length),
-        },
-      });
-      sent++;
-    } catch (err) {
-      errors++;
-      console.error(`[CRON WA] estoque tenant=${tenantId}:`, err);
-    }
-  }
-
-  return { sent, skipped, errors };
+  return { sent: 0, skipped: 0, errors: 0 };
 }
 
 export async function dispatchTransmissaoAviso(
@@ -858,7 +774,9 @@ async function runGiraReminders(
 
 export async function runWhatsAppCronJobs(sb: SupabaseClient) {
   const mensalidade = await runMensalidadeReminders(sb);
-  const estoque = await runEstoqueAlerts(sb);
+  // Estoque crítico desligado (WA_DISABLE_ESTOQUE_ALERTS=1 por padrão).
+  const estoque = { sent: 0, skipped: 0, errors: 0 };
+  void runEstoqueAlerts;
   const gira = await runGiraReminders(sb);
   return { mensalidade, estoque, gira };
 }
