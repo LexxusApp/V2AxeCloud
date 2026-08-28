@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-08-12T18:52:21.691Z",
+  "updatedAt": "2026-08-13T03:22:54.259Z",
+  "totalPendentes": 607,
+  "fromIndex": 42,
+  "lastCompletedIndex": 41,
+  "lastCity": "Araras - SP",
+  "inserted": 0,
+  "skipped": 0,
+  "errors": 0,
+  "lastExitCode": 0,
+  "stoppedByUser": true,
+  "note": "Parado manualmente em Leme (lote 30-44). Amanhã: node scripts/run-raspagem-sp-completa.mjs"
+}

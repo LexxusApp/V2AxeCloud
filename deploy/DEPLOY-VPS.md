@@ -51,12 +51,12 @@ chmod +x /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 sed -i 's/\r$//' /opt/axecloud/deploy/cron-ping-evolution.sh   # se veio do Windows
 sed -i 's/\r$//' /opt/axecloud/deploy/cron-whatsapp-jobs.sh
 (crontab -l 2>/dev/null | grep -v cron-ping-evolution; echo "*/10 * * * * /opt/axecloud/deploy/cron-ping-evolution.sh") | crontab -
-(crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs | grep -v '^CRON_TZ=America/Sao_Paulo' ; echo "CRON_TZ=America/Sao_Paulo"; echo "0 9 * * * /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
+(crontab -l 2>/dev/null | grep -v cron-whatsapp-jobs | grep -v '^CRON_TZ=America/Sao_Paulo' ; echo "5 * * * * /bin/sh /opt/axecloud/deploy/cron-whatsapp-jobs.sh") | crontab -
 ```
 
 O script usa a rede Docker (`http://app:3000/...`) e não passa pelo HTTPS público.
 
-`cron-whatsapp-jobs.sh` dispara, uma vez por dia às 09:00 de Brasília: mensalidade disponível (dia 1), lembrete pendente (1× por semana; 2× na semana do vencimento), aviso no dia do vencimento, lembretes de gira e alertas de estoque crítico. Log em `/var/log/axecloud-whatsapp-cron.log`.
+`cron-whatsapp-jobs.sh` é chamado de hora em hora; o próprio script só dispara às **12:00 de Brasília** (`America/Sao_Paulo`), porque a VPS está em `Europe/Berlin` e `CRON_TZ` no crontab é ignorado neste host (antes caía às 04:00 BRT). Manual fora das 12h: `FORCE=1 /bin/sh /opt/axecloud/deploy/cron-whatsapp-jobs.sh`. Log em `/var/log/axecloud-whatsapp-cron.log`.
 
 ## 5. Webhooks
 
@@ -76,6 +76,37 @@ cd /opt/axecloud && git pull
 docker compose -f deploy/docker-compose.yml --env-file .env build app
 docker compose -f deploy/docker-compose.yml --env-file .env up -d app
 ```
+
+## 7b. Raspagem de terreiros (SP/RJ) na VPS
+
+O scrape usa **Playwright no host** (não dentro do container `app`, que não tem Chromium).
+
+```bash
+cd /opt/axecloud
+git pull
+sed -i 's/\r$//' deploy/scripts/vps-scrape-diretorio.sh
+chmod +x deploy/scripts/vps-scrape-diretorio.sh
+
+# 1ª vez: Node deps + Chromium
+bash deploy/scripts/vps-scrape-diretorio.sh install
+
+# SP (retoma de scripts/data/sp-scrape-progress.json — atualmente ~Leme)
+bash deploy/scripts/vps-scrape-diretorio.sh start-sp
+
+# RJ (27 municípios ainda vazios)
+bash deploy/scripts/vps-scrape-diretorio.sh start-rj
+
+# Acompanhar
+bash deploy/scripts/vps-scrape-diretorio.sh status
+bash deploy/scripts/vps-scrape-diretorio.sh logs
+tail -f /var/log/axecloud-scrape-sp.log
+
+# Parar
+bash deploy/scripts/vps-scrape-diretorio.sh stop
+```
+
+Requisito: `.env` na VPS com `SUPABASE_SERVICE_ROLE_KEY` (já usado pelo app).
+Após terminar SP, rode `build:landing` no marketing para atualizar `mapa.json` no site.
 
 ## 8. Segurança (Semana 1)
 
