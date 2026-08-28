@@ -1,6 +1,7 @@
 ﻿import { metadata as homeMetadata } from '../app/page';
 import { BRAND_NAME, PORTAL_BRAND, buildBrandKeywordsMeta } from '../constants/seoBrandKeywords';
 import { FEATURE_HUB, getFeaturePageBySlug, parseFeaturePageSlug } from '../constants/featurePagesContent';
+import { getCommercialPageByPath } from '../constants/commercialPagesContent';
 import { VS_PLANILHAS } from '../constants/comparisonContent';
 import { getPortalArticleBySlug, parseContentArticleSlug } from '../content/portalContent';
 import { ROUTES, normalizePath } from './routes';
@@ -188,6 +189,16 @@ function upsertTwitter(name: string, content: string) {
 }
 
 function resolveRouteSeo(path: string): RouteSeo {
+  const commercialPage = getCommercialPageByPath(path);
+  if (commercialPage) {
+    return {
+      title: commercialPage.title,
+      description: commercialPage.description,
+      canonicalPath: commercialPage.path,
+      robots: 'index, follow',
+    };
+  }
+
   if (path.startsWith(`${ROUTES.eventRsvp}/`)) {
     return {
       title: `Confirmação de presença | ${BRAND_NAME}`,

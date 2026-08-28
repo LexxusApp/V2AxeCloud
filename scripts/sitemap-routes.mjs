@@ -56,7 +56,14 @@ const FEATURE_PATHS = [
   '/recursos/controle-camarinha',
 ];
 
-const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-23';
+const COMMERCIAL_PATHS = [
+  '/sistema-de-gestao-para-terreiros',
+  '/financeiro-para-terreiros',
+  '/mensalidades-para-terreiros',
+  '/gestao-de-filhos-de-santo',
+];
+
+const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-27';
 const LEGAL_CONTENT_LASTMOD = '2026-08-14';
 
 const SITEMAP_BASE_ROUTES = [
@@ -108,6 +115,12 @@ const SITEMAP_BASE_ROUTES = [
     priority: 0.9,
     comment: 'AxéCloud vs planilhas — decisão de migração',
   },
+  ...COMMERCIAL_PATHS.map((path, index) => ({
+    path,
+    changeFrequency: 'monthly',
+    priority: index === 0 ? 0.95 : 0.9,
+    comment: 'Página comercial de alta intenção',
+  })),
   ...FEATURE_PATHS.map((path) => ({
     path,
     changeFrequency: 'monthly',

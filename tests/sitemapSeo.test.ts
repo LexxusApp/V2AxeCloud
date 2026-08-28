@@ -5,6 +5,7 @@ import { STATIC_SITEMAP_PATHS, PUBLIC_SITE_SHELL_LASTMOD, buildSitemapXml, build
 import { omitSelectColumn, selectColumnFromSchemaError } from '../lib/diretorioQuery';
 import { PUBLIC_PRERENDER_PAGES } from '../src/constants/seoPublicPages';
 import { FEATURE_PAGE_PATHS } from '../src/constants/featurePagesContent';
+import { COMMERCIAL_PAGE_PATHS } from '../src/constants/commercialPagesContent';
 
 const RESOURCE_PATHS = [
   '/recursos',
@@ -39,11 +40,25 @@ test('select do diretório remove coluna ausente do PostgREST', () => {
 });
 
 test('páginas públicas atualizadas declaram lastmod atual', () => {
-  for (const path of ['/', '/conteudo', '/por-que-axecloud', '/terreiros', '/eventos', ...RESOURCE_PATHS]) {
+  for (const path of ['/', '/conteudo', '/por-que-axecloud', '/terreiros', '/eventos', ...COMMERCIAL_PAGE_PATHS, ...RESOURCE_PATHS]) {
     const route = STATIC_SITEMAP_PATHS.find((item) => item.path === path);
     assert.ok(route, `rota ausente: ${path}`);
     assert.equal(route.lastModified, PUBLIC_SITE_SHELL_LASTMOD, `lastmod incorreto: ${path}`);
   }
+});
+
+test('cluster comercial tem páginas únicas, indexáveis e com dados estruturados', () => {
+  const pages = COMMERCIAL_PAGE_PATHS.map((path) => {
+    const page = PUBLIC_PRERENDER_PAGES.find((item) => item.path === path);
+    assert.ok(page, `página comercial ausente: ${path}`);
+    assert.notEqual(page.robots, 'noindex, follow');
+    const blocks = Array.isArray(page.jsonLd) ? page.jsonLd : [page.jsonLd];
+    assert.ok(blocks.some((block) => block?.['@type'] === 'FAQPage'), `FAQ schema ausente: ${path}`);
+    assert.ok(blocks.some((block) => block?.['@type'] === 'BreadcrumbList'), `breadcrumb schema ausente: ${path}`);
+    return page;
+  });
+  assert.equal(new Set(pages.map((page) => page.title)).size, COMMERCIAL_PAGE_PATHS.length);
+  assert.equal(new Set(pages.map((page) => page.description)).size, COMMERCIAL_PAGE_PATHS.length);
 });
 
 test('login é noindex e Recursos têm metadados únicos por URL', () => {

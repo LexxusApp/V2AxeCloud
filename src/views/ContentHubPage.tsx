@@ -124,7 +124,7 @@ export default function ContentHubPage() {
         </p>
 
         <a
-          href={ROUTES.home}
+          href={ROUTES.systemForTerreiros}
           className={cn(
             matrizPortalCardClass,
             'group mt-5 block p-5 transition hover:-translate-y-1 hover:border-[#ffc107]/50 sm:p-6',
@@ -132,7 +132,7 @@ export default function ContentHubPage() {
         >
           <p className="text-xs font-black uppercase tracking-wider text-[#a87400]">Gestão de terreiros</p>
           <p className="mt-1 text-lg font-bold text-[#1b1813] group-hover:text-[#a87400]">
-            Software AxéCloud para Umbanda, Candomblé e Jurema
+            Sistema de gestão para terreiros de Umbanda, Candomblé e Jurema
           </p>
           <p className="mt-2 text-sm text-[#1b1813]/65">
             Financeiro com Pix, calendário de giras, portal do filho de santo e app PWA — tudo em um só lugar.

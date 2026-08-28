@@ -6,8 +6,8 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-23";
-export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-23";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-27";
+export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-27";
 
 export const STATIC_SITEMAP_PATHS: readonly {
   path: string;
@@ -40,6 +40,10 @@ export const STATIC_SITEMAP_PATHS: readonly {
   { path: "/conteudo/o-que-sistema-terreiro-precisa-ter-2026", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/por-que-axecloud", changeFrequency: "monthly", priority: 0.92, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/por-que-axecloud/vs-planilhas", changeFrequency: "monthly", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/sistema-de-gestao-para-terreiros", changeFrequency: "monthly", priority: 0.95, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/financeiro-para-terreiros", changeFrequency: "monthly", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/mensalidades-para-terreiros", changeFrequency: "monthly", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
+  { path: "/gestao-de-filhos-de-santo", changeFrequency: "monthly", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/recursos", changeFrequency: "monthly", priority: 0.9, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/recursos/financeiro-pix-mensalidades", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },
   { path: "/recursos/calendario-giras", changeFrequency: "monthly", priority: 0.85, lastModified: PUBLIC_SITE_SHELL_LASTMOD },

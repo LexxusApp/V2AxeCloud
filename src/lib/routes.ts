@@ -1,5 +1,6 @@
 import { PORTAL_ARTICLE_PATHS } from '../content/portalContent';
 import { FEATURE_PAGE_PATHS } from '../constants/featurePagesContent';
+import { COMMERCIAL_PAGE_PATHS, COMMERCIAL_ROUTES } from '../constants/commercialPagesContent';
 
 /** Rotas públicas e do app (SPA Vite — equivalente conceitual ao App Router do Next). */
 export function isHomePath(path: string): boolean {
@@ -44,6 +45,11 @@ export const ROUTES = {
   whyVsPlanilhas: '/por-que-axecloud/vs-planilhas',
   /** Hub de páginas de funcionalidade. */
   recursos: '/recursos',
+  /** Página pilar comercial: sistema completo de gestão para terreiros. */
+  systemForTerreiros: COMMERCIAL_ROUTES.system,
+  financialForTerreiros: COMMERCIAL_ROUTES.financial,
+  duesForTerreiros: COMMERCIAL_ROUTES.dues,
+  membersForTerreiros: COMMERCIAL_ROUTES.members,
   /** Guia público: instruções de uso e acesso (zelador). */
   instrucoes: '/instrucoes',
   /** Guia público: como o membro / filho de santo entra. */
@@ -111,6 +117,7 @@ export const MARKETING_SITE_PATHS = [
   ROUTES.whyAxeCloud,
   ROUTES.whyVsPlanilhas,
   ROUTES.recursos,
+  ...COMMERCIAL_PAGE_PATHS,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,
@@ -136,6 +143,7 @@ export const PUBLIC_MARKETING_PATHS = [
   ROUTES.whyAxeCloud,
   ROUTES.whyVsPlanilhas,
   ROUTES.recursos,
+  ...COMMERCIAL_PAGE_PATHS,
   ROUTES.contentHub,
   ROUTES.glossary,
   ...PORTAL_ARTICLE_PATHS,

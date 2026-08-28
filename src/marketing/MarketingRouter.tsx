@@ -13,6 +13,7 @@ import { trackGaPageView } from '../components/GoogleAnalytics';
 import { trackPublicVisit } from '../lib/trackPublicVisit';
 import { parseContentArticleSlug } from '../content/portalContent';
 import { getFeaturePageBySlug, parseFeaturePageSlug } from '../constants/featurePagesContent';
+import { getCommercialPageByPath } from '../constants/commercialPagesContent';
 import { LITURGICAL_CALENDAR_PATH } from '../content/portalLiturgical';
 
 const ContentHubPage = lazy(() => import('../views/ContentHubPage'));
@@ -31,6 +32,7 @@ const PorQueAxeCloudPage = lazy(() => import('../views/PorQueAxeCloudPage'));
 const VsPlanilhasPage = lazy(() => import('../views/VsPlanilhasPage'));
 const FeatureHubPage = lazy(() => import('../views/FeatureHubPage'));
 const FeaturePage = lazy(() => import('../views/FeaturePage'));
+const CommercialAcquisitionPage = lazy(() => import('../views/CommercialAcquisitionPage'));
 const Register = lazy(() => import('../views/Register'));
 
 function scheduleIdle(fn: () => void) {
@@ -122,6 +124,9 @@ function PublicDocumentRedirect({ to }: { to: string }) {
 }
 
 function RoutedMarketingPage({ path }: { path: string }) {
+  const commercialPage = getCommercialPageByPath(path);
+  if (commercialPage) return <CommercialAcquisitionPage page={commercialPage} />;
+
   const articleSlug = parseContentArticleSlug(path);
   if (articleSlug) {
     return <PortalArticlePage slug={articleSlug} />;
@@ -222,6 +227,7 @@ export default function MarketingRouter() {
       prefetchMarketingRoute(ROUTES.recursos);
       prefetchMarketingRoute(ROUTES.contentHub);
       prefetchMarketingRoute(ROUTES.terreiros);
+      prefetchMarketingRoute(ROUTES.systemForTerreiros);
     });
   }, []);
 

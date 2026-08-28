@@ -27,6 +27,10 @@ const REACT = [
   'recursos/portal-filho-de-santo/index.html',
   'recursos/whatsapp-oficial/index.html',
   'recursos/app-pwa-terreiro/index.html',
+  'sistema-de-gestao-para-terreiros/index.html',
+  'financeiro-para-terreiros/index.html',
+  'mensalidades-para-terreiros/index.html',
+  'gestao-de-filhos-de-santo/index.html',
 ];
 const RESOURCE_ROUTES = [
   '/recursos',
@@ -35,6 +39,12 @@ const RESOURCE_ROUTES = [
   '/recursos/portal-filho-de-santo',
   '/recursos/whatsapp-oficial',
   '/recursos/app-pwa-terreiro',
+];
+const COMMERCIAL_ROUTES = [
+  '/sistema-de-gestao-para-terreiros',
+  '/financeiro-para-terreiros',
+  '/mensalidades-para-terreiros',
+  '/gestao-de-filhos-de-santo',
 ];
 
 function fail(message) {
@@ -86,6 +96,22 @@ for (const route of RESOURCE_ROUTES) {
   if (!title) fail(`title ausente: ${route}`);
   if (resourceTitles.has(title)) fail(`title duplicado em Recursos: ${title}`);
   resourceTitles.add(title);
+}
+
+const commercialTitles = new Set();
+for (const route of COMMERCIAL_ROUTES) {
+  const html = read(`${route.slice(1)}/index.html`);
+  const canonical = `https://axecloud.com.br${route}`;
+  if (!html.includes(`<link rel="canonical" href="${canonical}" />`)) {
+    fail(`canonical comercial incorreto: ${route}`);
+  }
+  if (!html.includes('application/ld+json') || !html.includes('FAQPage') || !html.includes('BreadcrumbList')) {
+    fail(`dados estruturados comerciais incompletos: ${route}`);
+  }
+  const title = html.match(/<title>([^<]+)<\/title>/)?.[1]?.trim();
+  if (!title) fail(`title comercial ausente: ${route}`);
+  if (commercialTitles.has(title)) fail(`title comercial duplicado: ${title}`);
+  commercialTitles.add(title);
 }
 
 const homeMarkdown = read('index.md');

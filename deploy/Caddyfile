@@ -304,6 +304,10 @@ axecloud.com.br, www.axecloud.com.br {
 			path /conteudo/*
 			path /recursos
 			path /recursos/*
+			path /sistema-de-gestao-para-terreiros
+			path /financeiro-para-terreiros
+			path /mensalidades-para-terreiros
+			path /gestao-de-filhos-de-santo
 		}
 		handle @marketing {
 			reverse_proxy marketing:80 {

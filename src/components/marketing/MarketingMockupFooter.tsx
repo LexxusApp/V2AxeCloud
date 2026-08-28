@@ -3,9 +3,12 @@ import { ROUTES } from '../../lib/routes';
 const CNPJ = '66.335.964/0001-07';
 
 const footerLinks = [
-  { href: '/#casa', label: 'Recursos' },
+  { href: ROUTES.systemForTerreiros, label: 'Sistema' },
+  { href: ROUTES.financialForTerreiros, label: 'Financeiro' },
+  { href: ROUTES.duesForTerreiros, label: 'Mensalidades' },
+  { href: ROUTES.membersForTerreiros, label: 'Filhos de santo' },
+  { href: ROUTES.recursos, label: 'Recursos' },
   { href: ROUTES.terreiros, label: 'Terreiros' },
-  { href: ROUTES.eventosPublicos, label: 'Eventos' },
   { href: ROUTES.contentHub, label: 'Conteúdo' },
   { href: ROUTES.privacy, label: 'Privacidade' },
   { href: ROUTES.terms, label: 'Termos' },

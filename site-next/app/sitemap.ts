@@ -24,13 +24,15 @@ const publicRoutes = [
   "/conteudo/portal-filho-de-santo-no-celular",
   "/conteudo/o-que-sistema-terreiro-precisa-ter-2026",
   "/por-que-axecloud", "/por-que-axecloud/vs-planilhas", "/recursos",
+  "/sistema-de-gestao-para-terreiros", "/financeiro-para-terreiros",
+  "/mensalidades-para-terreiros", "/gestao-de-filhos-de-santo",
   "/terreiros", "/eventos",
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return publicRoutes.map((path) => ({
     url: `${origin}${path || "/"}`,
-    ...(path === "" ? { lastModified: new Date("2026-08-14T00:00:00-03:00") } : {}),
+    ...(path === "" ? { lastModified: new Date("2026-08-27T00:00:00-03:00") } : {}),
     changeFrequency: path === "" ? "weekly" : "monthly",
     priority: path === "" ? 1 : path === "/terreiros" || path === "/conteudo" ? 0.9 : 0.7,
   }));

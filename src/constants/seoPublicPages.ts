@@ -16,6 +16,7 @@ import {
   VS_PLANILHAS,
 } from './comparisonContent';
 import { FEATURE_HUB, FEATURE_PAGES, featurePagePath } from './featurePagesContent';
+import { COMMERCIAL_PAGES, COMMERCIAL_ROUTES } from './commercialPagesContent';
 import { LANDING_MODULES } from './landingModules';
 import { TRIAL_DAYS } from '../../lib/planPricing';
 import {
@@ -295,6 +296,69 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       body: `${p.lead} Leia em ${SITE_ORIGIN}${featurePagePath(p.slug)}.`,
     })),
   },
+  ...COMMERCIAL_PAGES.map((page) => ({
+    path: page.path,
+    title: page.title,
+    description: page.description,
+    h1: page.h1,
+    intro: page.lead,
+    sections: [
+      { heading: page.contrast.afterTitle, body: page.contrast.after.join('. ') },
+      { heading: page.workflowTitle, body: `${page.workflowLead} ${page.workflow.map((step) => `${step.title}: ${step.body}`).join(' ')}` },
+      ...page.capabilities.map((item) => ({ heading: item.title, body: item.body })),
+      ...page.faq.map((item) => ({ heading: item.q, body: item.a })),
+    ],
+    jsonLd: [
+      page.key === 'system'
+        ? {
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: BRAND_NAME,
+            url: `${SITE_ORIGIN}${page.path}`,
+            description: page.description,
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web, Android, iOS',
+            inLanguage: 'pt-BR',
+            offers: {
+              '@type': 'Offer',
+              price: '69.90',
+              priceCurrency: 'BRL',
+              availability: 'https://schema.org/InStock',
+              url: `${SITE_ORIGIN}${ROUTES.register}`,
+            },
+            featureList: page.capabilities.map((item) => item.title),
+          }
+        : {
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: page.h1,
+            url: `${SITE_ORIGIN}${page.path}`,
+            description: page.description,
+            isPartOf: {
+              '@type': 'WebPage',
+              name: 'Sistema de gestão para terreiros',
+              url: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.system}`,
+            },
+          },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: page.faq.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Início', item: `${SITE_ORIGIN}/` },
+          { '@type': 'ListItem', position: 2, name: page.kicker, item: `${SITE_ORIGIN}${page.path}` },
+        ],
+      },
+    ],
+  })),
   ...FEATURE_PAGES.map((page) => ({
     path: featurePagePath(page.slug),
     title: page.title,
@@ -325,6 +389,10 @@ export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] =
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
   { href: `${SITE_ORIGIN}${ROUTES.register}`, label: `Teste grátis ${TRIAL_DAYS} dias` },
   { href: `${SITE_ORIGIN}${ROUTES.recursos}`, label: 'Recursos' },
+  { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.system}`, label: 'Sistema de gestão para terreiros' },
+  { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.financial}`, label: 'Financeiro para terreiros' },
+  { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.dues}`, label: 'Mensalidades para terreiros' },
+  { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.members}`, label: 'Gestão de filhos de santo' },
   { href: `${SITE_ORIGIN}${ROUTES.contentHub}`, label: 'Conteúdo' },
   { href: `${SITE_ORIGIN}${ROUTES.whyAxeCloud}`, label: 'Por que AxéCloud' },
   { href: `${SITE_ORIGIN}${ROUTES.whyVsPlanilhas}`, label: 'Vs planilhas' },

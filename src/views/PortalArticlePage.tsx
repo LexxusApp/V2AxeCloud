@@ -104,8 +104,12 @@ export default function PortalArticlePage({ slug }: PortalArticlePageProps) {
       </div>
 
       <p className="text-center text-sm text-[#1b1813]/55">
-        <a href={ROUTES.home} className="font-semibold text-[#a87400] hover:text-[#ffc107]">
-          Gestão de terreiros
+        <a href={ROUTES.systemForTerreiros} className="font-semibold text-[#a87400] hover:text-[#ffc107]">
+          Sistema de gestão para terreiros
+        </a>
+        {' · '}
+        <a href={ROUTES.recursos} className="font-semibold text-[#a87400] hover:text-[#ffc107]">
+          Recursos
         </a>
         {' · '}
         <a href={ROUTES.contentHub} className="font-semibold text-[#a87400] hover:text-[#ffc107]">
