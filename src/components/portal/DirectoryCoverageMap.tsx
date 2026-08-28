@@ -280,13 +280,11 @@ export function DirectoryCoverageMap({
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     mapRef.current = map;
 
-    // Cartografia clara e silenciosa, ajustada à paleta editorial do AxéCloud.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    // Camada pública oficial do OpenStreetMap, sem dependência de chave da CARTO.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       className: 'axecloud-directory-tiles',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
     const layer = new CanvasPointsLayer().addTo(map) as InstanceType<typeof CanvasPointsLayer>;
