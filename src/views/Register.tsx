@@ -193,7 +193,9 @@ export default function Register() {
         /* auditoria best-effort */
       }
 
-      window.location.href = appHref(ROUTES.dashboard);
+      // URL exclusiva de sucesso: permite ao Google Ads contabilizar somente
+      // cadastros realmente concluídos, sem confundir a abertura do formulário.
+      window.location.href = appHref(`${ROUTES.dashboard}?cadastro=concluido`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {
