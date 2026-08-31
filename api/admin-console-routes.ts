@@ -788,6 +788,86 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  // -------------- Disparo Meta templates → zeladores --------------------
+  app.get("/api/admin-console/meta-templates/catalog", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { ADMIN_META_ZELADOR_TEMPLATES } = await import("./lib/adminMetaTemplateCatalog.js");
+      const { isMetaCloudDirectConfigured } = await import("./lib/metaCloudSend.js");
+      res.json({ templates: ADMIN_META_ZELADOR_TEMPLATES, metaConfigured: isMetaCloudDirectConfigured() });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar templates") });
+    }
+  });
+
+  app.get("/api/admin-console/meta-templates/recipients", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const filterRaw = String(req.query.filter || "all").trim().toLowerCase();
+    const filter =
+      filterRaw === "trial" || filterRaw === "expiring_14" ? filterRaw : ("all" as const);
+    try {
+      const { listAdminMetaTemplateRecipients } = await import("./lib/adminMetaTemplateDispatch.js");
+      const out = await listAdminMetaTemplateRecipients(deps.supabaseAdmin, filter);
+      res.json(out);
+    } catch (e: any) {
+      console.error("[admin-console/meta-templates/recipients]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar terreiros") });
+    }
+  });
+
+  app.get("/api/admin-console/meta-templates/dispatch-log", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const limit = Number(req.query.limit || 40);
+    try {
+      const { listAdminMetaDispatchLog } = await import("./lib/adminMetaTemplateDispatch.js");
+      const rows = await listAdminMetaDispatchLog(deps.supabaseAdmin, limit);
+      res.json({ rows });
+    } catch (e: any) {
+      console.error("[admin-console/meta-templates/dispatch-log]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar histórico") });
+    }
+  });
+
+  app.post("/api/admin-console/meta-templates/send", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    const templateId = String(body.templateId || "").trim();
+    const tenantIds = Array.isArray(body.tenantIds)
+      ? body.tenantIds.map((id) => String(id || "").trim()).filter(Boolean)
+      : [];
+    const manualValues =
+      body.manualValues && typeof body.manualValues === "object" && !Array.isArray(body.manualValues)
+        ? (body.manualValues as Record<string, string>)
+        : {};
+    if (!templateId) return res.status(400).json({ error: "Selecione um template." });
+    try {
+      const { sendAdminMetaTemplateDispatch } = await import("./lib/adminMetaTemplateDispatch.js");
+      const result = await sendAdminMetaTemplateDispatch(deps.supabaseAdmin, {
+        templateId,
+        tenantIds,
+        manualValues,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "meta-template.dispatch",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "global",
+        description: `Template ${templateId}: ${result.sent} enviados, ${result.failed} falhas.`,
+        metadata: { templateId, sent: result.sent, failed: result.failed },
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      const status = Number(e?.status) || 500;
+      console.error("[admin-console/meta-templates/send]", e);
+      res.status(status).json({ error: safeErrorMessage(e, "Falha ao enviar template") });
+    }
+  });
+
   // -------------- Caixa de entrada Meta Cloud (número oficial) --------------------
   app.get("/api/admin-console/whatsapp-inbox/conversations", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);

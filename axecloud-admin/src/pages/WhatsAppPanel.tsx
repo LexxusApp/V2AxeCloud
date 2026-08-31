@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { apiJson, isApiUnreachable } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { MetaTemplateDispatchPanel } from "./MetaTemplateDispatchPanel";
 
 type StatusPayload = {
   instanceName: string;
@@ -51,6 +52,7 @@ function maskPhone(value: string): string {
 }
 
 export function WhatsAppPanel() {
+  const [tab, setTab] = useState<"connect" | "templates" | "welcome">("templates");
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [phone, setPhone] = useState("");
   const [testPhone, setTestPhone] = useState("");
@@ -174,17 +176,45 @@ export function WhatsAppPanel() {
             <p className="admin-kicker">Console · Mensageria</p>
             <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold text-[var(--ac-text)]">
               <MessageCircle className="h-6 w-6 text-[var(--ac-accent)]" />
-              WhatsApp do administrador
+              Notificações WhatsApp
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--ac-text-muted)]">
-              Conecte um número exclusivo do console para envios globais. A vinculação é feita por{" "}
-              <span className="font-semibold text-[var(--ac-text)]">código de pareamento</span> — não há QR code.
+              Disparos Meta para zeladores (templates aprovados) ou conexão Baileys do console para testes.
             </p>
           </div>
-          <StatusBadge status={status?.status} number={status?.number || null} />
+          {tab === "connect" && (
+            <StatusBadge status={status?.status} number={status?.number || null} />
+          )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--ac-paper-border)] pt-4">
+          {(
+            [
+              ["templates", "Templates Meta"],
+              ["connect", "Conexão Baileys"],
+              ["welcome", "Boas-vindas auto"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
+                tab === id
+                  ? "bg-[var(--ac-accent)] text-white"
+                  : "border border-[var(--ac-paper-border)] text-[var(--ac-text-muted)] hover:text-[var(--ac-text)]"
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </header>
 
+      {tab === "templates" && <MetaTemplateDispatchPanel />}
+
+      {tab === "connect" && (
+        <>
       {feedback && (
         <div
           className={cn(
@@ -308,7 +338,10 @@ export function WhatsAppPanel() {
         </section>
       )}
 
-      <WelcomeMessageEditor connected={connected} />
+      </>
+      )}
+
+      {tab === "welcome" && <WelcomeMessageEditor connected={connected} />}
     </div>
   );
 }
