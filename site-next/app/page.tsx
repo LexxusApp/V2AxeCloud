@@ -37,7 +37,7 @@ const archive = [
 ];
 
 const ecosystem = [
-  { href: "https://axecloud.com.br/recursos", icon: PackageCheck, eyebrow: "CONHEÇA A PLATAFORMA", title: "Todos os recursos", text: "Financeiro, calendário, portal, WhatsApp, PWA e os demais módulos." },
+  { href: "https://axecloud.com.br/sistema-de-gestao-para-terreiros", icon: PackageCheck, eyebrow: "CONHEÇA A PLATAFORMA", title: "Sistema de gestão para terreiros", text: "Financeiro, calendário, portal, WhatsApp, PWA e os demais módulos em uma única gestão." },
   { href: "https://axecloud.com.br/por-que-axecloud", icon: ShieldCheck, eyebrow: "DECIDA COM CLAREZA", title: "Por que AxéCloud", text: "Compare formas de organizar a casa e entenda a proposta da plataforma." },
   { href: "https://axecloud.com.br/terreiros", icon: MapPin, eyebrow: "SERVIÇO PÚBLICO", title: "Diretório de terreiros", text: "Encontre casas de Umbanda e Candomblé por cidade e região." },
   { href: "https://axecloud.com.br/terreiro/e-u-j-a-espaco-universalista-dr-jose-de-arimateia", icon: MapPin, eyebrow: "CASA EM DESTAQUE", title: "E.U.J.A. Sorocaba", text: "Espaço Universalista Dr. José de Arimateia — terreiro em Vila Augusta, Sorocaba/SP." },
@@ -315,7 +315,7 @@ export default function Home() {
       <div className="cx-hero-architecture" aria-hidden="true"><i /><i /><span /></div>
       <div className="cx-conversion-shell">
         <div className="cx-conversion-copy">
-          <p className="cx-hero-eyebrow"><i /> GESTÃO COMPLETA PARA CASAS DE AXÉ</p>
+          <p className="cx-hero-eyebrow"><i /> GESTÃO DE TERREIROS · UMBANDA E CANDOMBLÉ</p>
           <h1 id="hero-title">Sua casa de axé.<span>Organizada em um só lugar.</span></h1>
           <p className="cx-hero-lead">Financeiro, filhos de santo, giras, estoque, memória e comunicação em um sistema criado para terreiros de Umbanda e Candomblé.</p>
           <div className="cx-hero-actions">
@@ -404,6 +404,6 @@ export default function Home() {
       <div className="cx-faq-list cx-reveal">{faqItems.map((item, i) => <details key={item.q}><summary><span>0{i + 1}</span><strong>{item.q}</strong><i /></summary><p>{item.a}</p></details>)}</div>
     </section>
 
-    <footer className="cx-footer"><Brand /><p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p><nav><a href="https://axecloud.com.br/recursos">Recursos</a><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/privacidade">Privacidade</a><a href="https://axecloud.com.br/termos">Termos</a></nav><a href="#inicio">Voltar ao início ↑</a></footer>
+    <footer className="cx-footer"><Brand /><p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p><nav><a href="https://axecloud.com.br/sistema-de-gestao-para-terreiros">Sistema</a><a href="https://axecloud.com.br/recursos">Recursos</a><a href="https://axecloud.com.br/terreiros">Terreiros</a><a href="https://axecloud.com.br/eventos">Eventos</a><a href="https://axecloud.com.br/conteudo">Conteúdo</a><a href="https://axecloud.com.br/privacidade">Privacidade</a><a href="https://axecloud.com.br/termos">Termos</a></nav><a href="#inicio">Voltar ao início ↑</a></footer>
   </main>;
 }
