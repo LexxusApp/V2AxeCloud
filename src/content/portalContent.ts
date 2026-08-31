@@ -263,7 +263,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O que muda com um software de gestão',
         body:
-          'Um software para terreiro centraliza filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho de santo — cada um vê o que precisa, sem expor o que é sigiloso. O zelador deixa de repetir a mesma informação dez vezes e ganha tempo para cuidar do chão do terreiro. Veja como o AxéCloud faz gestão de terreiros em https://axecloud.com.br/.',
+          'Um software para terreiro centraliza filhos de santo, calendário, financeiro com Pix, mural, galeria e portal do filho de santo — cada um vê o que precisa, sem expor o que é sigiloso. O zelador deixa de repetir a mesma informação dez vezes e ganha tempo para cuidar do chão do terreiro. Veja o sistema de gestão para terreiros do AxéCloud em https://axecloud.com.br/sistema-de-gestao-para-terreiros.',
       },
       {
         title: 'Como migrar sem assustar a comunidade',
@@ -433,7 +433,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Como começar a gestão do seu terreiro',
         body:
-          'Comece cadastrando a diretoria e a corrente, configure o calendário, registre o saldo financeiro inicial e defina os canais oficiais. Depois, organize galeria, estoque, biblioteca e demais módulos. O AxéCloud oferece 30 dias grátis, sem cartão, em https://axecloud.com.br/register e o comparativo completo está em https://axecloud.com.br/por-que-axecloud.',
+          'Comece cadastrando a diretoria e a corrente, configure o calendário, registre o saldo financeiro inicial e defina os canais oficiais. Depois, organize galeria, estoque, biblioteca e demais módulos. Conheça o sistema completo em https://axecloud.com.br/sistema-de-gestao-para-terreiros, compare em https://axecloud.com.br/por-que-axecloud e teste 30 dias grátis em https://axecloud.com.br/register.',
       },
     ],
   },
@@ -448,7 +448,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O que é um sistema para terreiro',
         body:
-          'Um sistema para terreiro é uma plataforma criada para centralizar a administração de uma casa de Umbanda, Candomblé, Jurema ou tradição mista. Diferentemente de um ERP genérico, ele precisa entender filhos de santo, giras, obrigações, mensalidades, comunicação da corrente e privacidade litúrgica. O AxéCloud reúne essas rotinas em https://axecloud.com.br/.',
+          'Um sistema para terreiro é uma plataforma criada para centralizar a administração de uma casa de Umbanda, Candomblé, Jurema ou tradição mista. Diferentemente de um ERP genérico, ele precisa entender filhos de santo, giras, obrigações, mensalidades, comunicação da corrente e privacidade litúrgica. O AxéCloud reúne essas rotinas em https://axecloud.com.br/sistema-de-gestao-para-terreiros.',
       },
       {
         title: 'Os módulos essenciais',
@@ -513,7 +513,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Memória da casa com 100 GB',
         body:
-          'Fotos e vídeos de giras, festas e momentos importantes formam a memória da comunidade. O AxéCloud inclui 100 GB de galeria para cada terreiro, organizados em álbuns sob controle da gestão. Veja todos os diferenciais e teste o sistema em https://axecloud.com.br/.',
+          'Fotos e vídeos de giras, festas e momentos importantes formam a memória da comunidade. O AxéCloud inclui 100 GB de galeria para cada terreiro, organizados em álbuns sob controle da gestão. Veja todos os diferenciais em https://axecloud.com.br/sistema-de-gestao-para-terreiros e teste o sistema em https://axecloud.com.br/register.',
       },
     ],
   },

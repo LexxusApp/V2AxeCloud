@@ -159,22 +159,38 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
     h1: article.title,
     intro: article.summary,
     sections: article.sections.map((s) => ({ heading: s.title, body: s.body })),
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: article.title,
-      description: article.summary,
-      datePublished: article.publishedAt,
-      inLanguage: 'pt-BR',
-      author: { '@type': 'Organization', name: BRAND_NAME, url: SITE_ORIGIN },
-      publisher: {
-        '@type': 'Organization',
-        name: BRAND_NAME,
-        url: SITE_ORIGIN,
-        logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/og-image.png` },
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        description: article.summary,
+        datePublished: article.publishedAt,
+        inLanguage: 'pt-BR',
+        author: { '@type': 'Organization', name: BRAND_NAME, url: SITE_ORIGIN },
+        publisher: {
+          '@type': 'Organization',
+          name: BRAND_NAME,
+          url: SITE_ORIGIN,
+          logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/og-image.png` },
+        },
+        mainEntityOfPage: `${SITE_ORIGIN}${contentArticlePath(article.slug)}`,
+        isPartOf: {
+          '@type': 'WebPage',
+          name: 'Conteúdo sobre gestão de terreiros',
+          url: `${SITE_ORIGIN}${ROUTES.contentHub}`,
+        },
       },
-      mainEntityOfPage: `${SITE_ORIGIN}${contentArticlePath(article.slug)}`,
-    },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Início', item: `${SITE_ORIGIN}/` },
+          { '@type': 'ListItem', position: 2, name: 'Conteúdo', item: `${SITE_ORIGIN}${ROUTES.contentHub}` },
+          { '@type': 'ListItem', position: 3, name: article.title, item: `${SITE_ORIGIN}${contentArticlePath(article.slug)}` },
+        ],
+      },
+    ],
   })),
   {
     path: ROUTES.espacoDoFiel,
@@ -369,15 +385,38 @@ export const PUBLIC_PRERENDER_PAGES: readonly PublicPrerenderPage[] = [
       ...page.sections.map((s) => ({ heading: s.heading, body: s.body })),
       ...page.faq.map((f) => ({ heading: f.q, body: f.a })),
     ],
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: page.faq.map((item) => ({
-        '@type': 'Question',
-        name: item.q,
-        acceptedAnswer: { '@type': 'Answer', text: item.a },
-      })),
-    },
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: page.h1,
+        url: `${SITE_ORIGIN}${featurePagePath(page.slug)}`,
+        description: page.description,
+        isPartOf: {
+          '@type': 'WebPage',
+          name: FEATURE_HUB.h1,
+          url: `${SITE_ORIGIN}${ROUTES.recursos}`,
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: page.faq.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Início', item: `${SITE_ORIGIN}/` },
+          { '@type': 'ListItem', position: 2, name: 'Recursos', item: `${SITE_ORIGIN}${ROUTES.recursos}` },
+          { '@type': 'ListItem', position: 3, name: page.h1, item: `${SITE_ORIGIN}${featurePagePath(page.slug)}` },
+        ],
+      },
+    ],
   })),
 ] as const;
 
@@ -388,8 +427,8 @@ export const PUBLIC_SITE_NAV_LINKS: readonly { href: string; label: string }[] =
   { href: `${SITE_ORIGIN}/`, label: 'Início' },
   { href: `${SITE_ORIGIN}${ROUTES.login}`, label: 'Entrar' },
   { href: `${SITE_ORIGIN}${ROUTES.register}`, label: `Teste grátis ${TRIAL_DAYS} dias` },
-  { href: `${SITE_ORIGIN}${ROUTES.recursos}`, label: 'Recursos' },
   { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.system}`, label: 'Sistema de gestão para terreiros' },
+  { href: `${SITE_ORIGIN}${ROUTES.recursos}`, label: 'Recursos' },
   { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.financial}`, label: 'Financeiro para terreiros' },
   { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.dues}`, label: 'Mensalidades para terreiros' },
   { href: `${SITE_ORIGIN}${COMMERCIAL_ROUTES.members}`, label: 'Gestão de filhos de santo' },

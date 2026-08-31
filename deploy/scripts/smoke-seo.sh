@@ -21,6 +21,13 @@ check_redirect() {
 }
 
 check_redirect "/programa-fundador" "301"
+check_redirect "/recursos/%3Ca%20href=" "301"
+malformed_final="$(curl -sS -o /dev/null -w '%{url_effective}' -L --max-redirs 3 "${BASE}/recursos/%3Ca%20href=")"
+[[ "$malformed_final" == "${BASE}/recursos" ]] || {
+  echo "FAIL URL SEO malformada — destino inesperado (${malformed_final})"
+  exit 1
+}
+echo "OK   URL SEO malformada — consolidada em /recursos"
 final_url="$(curl -sS -o /dev/null -w '%{url_effective}' -L --max-redirs 3 "${BASE}/programa-fundador")"
 echo "$final_url" | grep -qi '/register' || {
   echo "FAIL /programa-fundador — redirect não aponta para /register (${final_url})"

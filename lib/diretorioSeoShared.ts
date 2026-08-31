@@ -6,8 +6,8 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-27";
-export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-27";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-31";
+export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-31";
 
 export const STATIC_SITEMAP_PATHS: readonly {
   path: string;
@@ -408,7 +408,7 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
     ? `      <aside aria-label="Gestão para terreiros">
         <h2>Gestão de terreiros</h2>
         <p>Administra uma casa de axé? Conheça a plataforma de gestão para terreiros do AxéCloud: financeiro Pix, filhos de santo, giras, comunicação e memória da casa.</p>
-        <a href="/conteudo/gestao-de-terreiros">Conhecer a gestão de terreiros do AxéCloud</a>
+        <a href="/sistema-de-gestao-para-terreiros">Conhecer o sistema de gestão para terreiros do AxéCloud</a>
       </aside>`
     : "";
 

@@ -63,7 +63,7 @@ const COMMERCIAL_PATHS = [
   '/gestao-de-filhos-de-santo',
 ];
 
-const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-27';
+const PUBLIC_SITE_SHELL_LASTMOD = '2026-08-31';
 const LEGAL_CONTENT_LASTMOD = '2026-08-14';
 
 const SITEMAP_BASE_ROUTES = [
