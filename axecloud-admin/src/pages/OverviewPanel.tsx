@@ -685,14 +685,14 @@ export function OverviewPanel({
                 <section className="border-t border-[var(--ac-paper-border)] pt-4">
                   <div className="mb-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-accent)]">Diretório</p>
-                    <p className="text-xs text-[var(--ac-text-faint)]">Mapa, perfis e reivindicações, sem contaminar o funil de assinatura.</p>
+                    <p className="text-xs text-[var(--ac-text-faint)]">Mapa, perfis e solicitações. Abrir o formulário não significa que a reivindicação foi enviada.</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-4">
                     {[
                       ["Visitantes", activity.publicConversionFunnel.directory.visitors, "100%"],
                       ["Ações no diretório", activity.publicConversionFunnel.directory.actions, `${activity.publicConversionFunnel.directory.visitorToActionPct}%`],
-                      ["Reivindicações iniciadas", activity.publicConversionFunnel.directory.claimStarted, "aberturas"],
-                      ["Reivindicações enviadas", activity.publicConversionFunnel.directory.claimCompleted, `${activity.publicConversionFunnel.directory.claimCompletionPct}%`],
+                      ["Formulários abertos", activity.publicConversionFunnel.directory.claimStarted, "não enviados"],
+                      ["Solicitações recebidas", activity.publicConversionFunnel.directory.claimCompleted, `${activity.publicConversionFunnel.directory.claimCompletionPct}%`],
                     ].map(([label, value, rate]) => (
                       <div key={String(label)} className="rounded-[var(--ac-radius-sm)] border border-[var(--ac-paper-border)] bg-[var(--ac-paper-elevated)] p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ac-text-faint)]">{label}</p>
@@ -733,7 +733,7 @@ export function OverviewPanel({
                     })}
                   </div>
                 </section>
-                <p className="text-xs text-[var(--ac-text-faint)]">Conclusão de cadastro e reivindicação só é contada após confirmação do servidor.</p>
+                <p className="text-xs text-[var(--ac-text-faint)]">Somente “Solicitações recebidas” gera uma reivindicação para análise na aba Reivindicações.</p>
               </div>
             ) : (
               <div className="rounded-[var(--ac-radius-sm)] border border-dashed border-[var(--ac-paper-border)] p-6 text-center text-sm text-[var(--ac-text-muted)]">
