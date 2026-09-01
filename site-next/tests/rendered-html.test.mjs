@@ -45,12 +45,13 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") || "", /^text\/html/i);
   assert.match(text, /<html[^>]+lang="pt-BR"/i);
-  assert.match(text, /<title>Gestão de Terreiros \| AxéCloud para Umbanda e Candomblé<\/title>/i);
-  assert.match(text, /<meta[^>]+name="description"[^>]+Sistema de gestão para terreiros/i);
+  assert.match(text, /<title>AxéCloud \| Sistema de Gestão para Terreiros<\/title>/i);
+  assert.match(text, /<meta[^>]+name="description"[^>]+O AxéCloud é um sistema de gestão para terreiros/i);
   assert.match(text, /<link[^>]+rel="canonical"[^>]+href="https:\/\/axecloud\.com\.br\/"/i);
   assert.equal((text.match(/<h1[\s>]/gi) || []).length, 1);
-  assert.match(text, /Sua casa de axé/);
-  assert.match(text, /Organizada em um só lugar/);
+  assert.match(text, /Sistema de gestão para terreiros/);
+  assert.match(text, /Toda a casa em um só lugar/);
+  assert.match(text, /<div[^>]+data-nosnippet/i);
   assert.match(text, /R\$ 69,90\/mês/);
   assert.match(text, /Testar grátis por 30 dias/);
   assert.match(text, /<article[^>]+class="cx-offer cx-reveal"[^>]+id="plano"/i);
@@ -58,6 +59,8 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.match(text, /TELAS ATUAIS · CAPTURADAS NO SISTEMA REAL/);
   assert.match(text, /PERGUNTAS FREQUENTES/);
   assert.match(text, /"@type":"Organization"/);
+  assert.match(text, /"@type":"WebSite"/);
+  assert.match(text, /"alternateName":"AxéCloud Gestão para Terreiros"/);
   assert.match(text, /"@type":"SoftwareApplication"/);
   assert.match(text, /"@type":"FAQPage"/);
   assert.match(text, /<img[^>]+width="1440"[^>]+height="900"/i);

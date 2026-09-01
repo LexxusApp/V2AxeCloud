@@ -6,10 +6,10 @@ import "./cinematic.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://axecloud.com.br"),
   title: {
-    default: "Gestão de Terreiros | AxéCloud para Umbanda e Candomblé",
+    default: "AxéCloud | Sistema de Gestão para Terreiros",
     template: "%s | AxéCloud",
   },
-  description: "Sistema de gestão para terreiros de Umbanda, Candomblé e Jurema: financeiro, Pix, mensalidades, filhos de santo, giras, WhatsApp, estoque e memória.",
+  description: "O AxéCloud é um sistema de gestão para terreiros de Umbanda e Candomblé. Organize filhos de santo, mensalidades, giras, comunicados e documentos.",
   keywords: ["gestão de terreiros", "sistema para terreiro", "software para terreiro", "gestão Umbanda", "gestão Candomblé", "mensalidade terreiro", "filhos de santo", "agenda de giras"],
   applicationName: "AxéCloud",
   creator: "AxéCloud",
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "/",
     siteName: "AxéCloud",
-    title: "Gestão de Terreiros | AxéCloud para Umbanda e Candomblé",
-    description: "Organize financeiro, filhos de santo, giras, comunicação, estoque e memória da sua casa de axé.",
+    title: "AxéCloud | Sistema de Gestão para Terreiros",
+    description: "Sistema de gestão para terreiros de Umbanda e Candomblé: filhos de santo, mensalidades, giras, comunicados e documentos em um só lugar.",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "AxéCloud — Toda casa carrega uma história" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gestão de Terreiros | AxéCloud",
-    description: "Gestão completa para casas de Umbanda, Candomblé e Jurema.",
+    title: "AxéCloud | Sistema de Gestão para Terreiros",
+    description: "Gestão completa para terreiros de Umbanda, Candomblé e Jurema.",
     images: ["/og.jpg"],
   },
   icons: {
