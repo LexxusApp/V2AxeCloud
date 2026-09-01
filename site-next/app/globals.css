@@ -19,8 +19,8 @@
   --light-panel: #ffffff;
   --light-text: #17171a;
   --light-muted: #606066;
-  --font-display: "Manrope", "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-body: "Manrope", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-display: "Outfit Variable", "Outfit", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-body: "Outfit Variable", "Outfit", "Segoe UI", Arial, Helvetica, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

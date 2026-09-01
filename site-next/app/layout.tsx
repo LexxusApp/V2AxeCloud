@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/manrope";
+import "@fontsource-variable/outfit";
 import "./globals.css";
 import "./cinematic.css";
 
