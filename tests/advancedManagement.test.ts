@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { buildZeladorNavEntries } from '../src/constants/appNav';
 
 const read = (path: string) => fs.readFileSync(path, 'utf8');
 
@@ -21,6 +22,11 @@ test('gestão avançada mantém os oito registros privados e relatórios autenti
   assert.match(nav, /label: 'Atendimentos'/);
   assert.match(nav, /label: 'Formação da corrente'/);
   assert.match(nav, /label: 'Secretaria da casa'/);
+});
+
+test('gestão avançada permanece fora do menu do zelador', () => {
+  const entries = buildZeladorNavEntries('umbanda');
+  assert.equal(entries.some((entry) => entry.type === 'management'), false);
 });
 
 test('catálogo público anuncia 24 módulos sem incluir recursos adiados', () => {

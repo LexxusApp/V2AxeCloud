@@ -107,7 +107,6 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'chat', label: 'Mensagens', icon: MessageCircle },
   { id: 'gallery', label: 'Galeria', icon: Images },
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
-  ...ZELADOR_MANAGEMENT_ITEMS,
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
   { id: 'subscription', label: 'Minha assinatura', icon: ReceiptText },
