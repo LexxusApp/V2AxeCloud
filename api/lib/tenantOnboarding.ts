@@ -25,13 +25,14 @@ import { rejectCompromisedPassword } from "./pwnedPassword.js";
 import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
 import { slugifyCidadeOnly } from "./diretorioSlug.js";
 import { slugifyBairro } from "../../lib/diretorioBairro.js";
+import { normalizeBrazilPhone } from "../../lib/brazilPhone.js";
 
 export type RegisterTenantInput = {
   email: string;
   password: string;
   nome_terreiro: string;
   nome_zelador: string;
-  whatsapp?: string;
+  whatsapp: string;
   billingCycle?: BillingCycle;
   cep: string;
   endereco: string;
@@ -127,7 +128,7 @@ export async function registerNewTenant(
   const password = String(input.password || "");
   const nome_terreiro = String(input.nome_terreiro || "").trim();
   const nome_zelador = String(input.nome_zelador || "").trim();
-  const whatsapp = String(input.whatsapp || "").trim();
+  const whatsapp = normalizeBrazilPhone(input.whatsapp);
   const billingCycle = normalizeBillingCycle(input.billingCycle);
   const cep = String(input.cep || "").replace(/\D/g, "").slice(0, 8);
   const logradouro = String(input.endereco || "").trim().slice(0, 220);
@@ -151,6 +152,9 @@ export async function registerNewTenant(
   await rejectCompromisedPassword(password);
   if (!nome_terreiro) {
     throw Object.assign(new Error("Informe o nome do terreiro."), { status: 400 });
+  }
+  if (!whatsapp) {
+    throw Object.assign(new Error("Informe um WhatsApp brasileiro válido com DDD."), { status: 400 });
   }
   if (!/^\d{8}$/.test(cep)) {
     throw Object.assign(new Error("Informe um CEP válido."), { status: 400 });

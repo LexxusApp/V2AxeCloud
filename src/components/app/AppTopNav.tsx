@@ -49,6 +49,8 @@ type AppTopNavProps = {
     expires_at?: string | null;
     status?: string | null;
     is_trial?: boolean;
+    cargo?: string | null;
+    whatsapp_missing?: boolean;
   } | null;
   userDisplayName?: string;
   userId?: string | null;

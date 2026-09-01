@@ -9,6 +9,7 @@ import { safeErrorMessage } from "./safeError.js";
 import { humanizePasswordPolicyError, validateStrongPassword } from "../../lib/passwordPolicy.js";
 import { rejectCompromisedPassword } from "./pwnedPassword.js";
 import { verifyUserPassword } from "./passwordVerification.js";
+import { normalizeBrazilPhone } from "../../lib/brazilPhone.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -50,6 +51,60 @@ function invalidPasswordMessage(msg: string): string {
 }
 
 export function registerAccountCredentialsRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.post(
+    "/api/v1/account/whatsapp",
+    sensitiveActionRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await requireApiUser(supabaseAdmin, req, res);
+        if (!user) return;
+        if (!(await assertZeladorAccount(supabaseAdmin, user.id, res))) return;
+
+        const whatsapp = normalizeBrazilPhone((req.body || {}).whatsapp);
+        if (!whatsapp) {
+          return res.status(400).json({ error: "Informe um WhatsApp brasileiro válido com DDD." });
+        }
+
+        const now = new Date().toISOString();
+        const { data: profile, error: profileError } = await supabaseAdmin
+          .from("perfil_lider")
+          .update({ whatsapp_publico: whatsapp, updated_at: now })
+          .eq("id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (profileError) throw profileError;
+        if (!profile) return res.status(404).json({ error: "Perfil do terreiro não encontrado." });
+
+        const { error: directoryError } = await supabaseAdmin
+          .from("terreiros_diretorio")
+          .update({ telefone: whatsapp })
+          .eq("claimed_by_tenant_id", user.id);
+        if (directoryError) throw directoryError;
+
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          user_metadata: { ...(user.user_metadata || {}), whatsapp },
+        });
+        if (authError) throw authError;
+
+        void logEvent(supabaseAdmin, {
+          eventType: "account.whatsapp-completed",
+          userId: user.id,
+          userEmail: user.email || undefined,
+          targetType: "account",
+          targetId: user.id,
+          description: "Zelador completou o WhatsApp solicitado no sino.",
+          req,
+        });
+
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ success: true, whatsapp });
+      } catch (error: unknown) {
+        console.error("[account/whatsapp]", error);
+        return res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao salvar WhatsApp.") });
+      }
+    }
+  );
+
   app.post(
     "/api/v1/account/change-password",
     sensitiveActionRateLimit,

@@ -9,6 +9,7 @@ import { getConsoleAdminEmailAllowlist } from "./consoleAdmin.js";
 import { verifyUser } from "./verifyUser.js";
 import { safeErrorMessage } from "./safeError.js";
 import { getBearerToken } from "./requireAuth.js";
+import { normalizeBrazilPhone } from "../../lib/brazilPhone.js";
 
 dotenv.config();
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
@@ -34,7 +35,7 @@ function isLifetimePlanSlug(slug: string): boolean {
 }
 
 const PERFIL_LIDER_BASE_SELECT =
-  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao";
+  "nome_terreiro, cargo, role, tenant_id, is_admin_global, is_blocked, deleted_at, foto_url, tradicao, whatsapp_publico";
 
 async function fetchPerfilLiderByUserId(sb: SupabaseClient, userId: string) {
   const withTerms = `${PERFIL_LIDER_BASE_SELECT}, terms_accepted_version`;
@@ -308,7 +309,15 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       (authUser as any)?.user_metadata?.is_trial === true &&
       !subRes.data?.efi_charge_id;
 
-    res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
+    const whatsappMissing =
+      !isSuperAdmin &&
+      roleOut !== "filho" &&
+      !normalizeBrazilPhone(profileRes.data?.whatsapp_publico || (authUser as any)?.user_metadata?.whatsapp);
+
+    res.setHeader(
+      "Cache-Control",
+      whatsappMissing ? "private, no-store, must-revalidate" : "private, max-age=30, stale-while-revalidate=120"
+    );
     return res.json({
       nome_terreiro: profileRes.data?.nome_terreiro || null,
       cargo: cargoOut,
@@ -323,6 +332,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
       foto_url: profileRes.data?.foto_url || null,
       terms_accepted_version: profileRes.data?.terms_accepted_version || null,
       tradicao: profileRes.data?.tradicao || "mista",
+      whatsapp_missing: whatsappMissing,
     });
   } catch (error: any) {
     console.error("[SERVER] Erro ao buscar tenant info:", error);

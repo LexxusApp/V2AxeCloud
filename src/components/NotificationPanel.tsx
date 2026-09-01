@@ -37,6 +37,9 @@ import {
   GiraReminderFeatureModal,
   requestOpenGiraReminderConfig,
 } from './gira/GiraReminderFeatureModal';
+import { CompleteWhatsAppModal } from './CompleteWhatsAppModal';
+
+export const COMPLETE_WHATSAPP_NOTIF_ID = 'account_complete_whatsapp_v1';
 
 export interface AppNotification {
   id: string;
@@ -54,6 +57,9 @@ interface NotificationPanelProps {
     is_trial?: boolean;
     plan?: string | null;
     status?: string | null;
+    nome?: string | null;
+    cargo?: string | null;
+    whatsapp_missing?: boolean;
   } | null;
   userRole?: string | null;
   userId?: string | null;
@@ -130,7 +136,10 @@ const TYPE_META: Record<
 
 const LIST_CAP = 30;
 /** Avisos de nova função: não somem só de “ver o painel” — pedem clique ou “Ler todas”. */
-const FEATURE_ANNOUNCEMENT_IDS = new Set([GIRA_REMINDER_FEATURE_NOTIF_ID]);
+const FEATURE_ANNOUNCEMENT_IDS = new Set([
+  GIRA_REMINDER_FEATURE_NOTIF_ID,
+  COMPLETE_WHATSAPP_NOTIF_ID,
+]);
 
 function timeAgo(dateStr: string): string {
   const timestamp = new Date(dateStr).getTime();
@@ -554,6 +563,8 @@ export default function NotificationPanel({
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [featureModalOpen, setFeatureModalOpen] = useState(false);
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
+  const [whatsappResolved, setWhatsappResolved] = useState(false);
   const [rawItems, setRawItems] = useState<RawNotification[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(
     () => loadNotifIdSetForUser(NOTIF_READ_KEY, userId),
@@ -577,6 +588,8 @@ export default function NotificationPanel({
   useEffect(() => {
     setReadIds(loadNotifIdSetForUser(NOTIF_READ_KEY, userId));
     setDismissedIds(loadNotifIdSetForUser(NOTIF_DISMISS_KEY, userId));
+    setWhatsappResolved(false);
+    setWhatsappModalOpen(false);
   }, [userId]);
 
   useEffect(() => {
@@ -611,6 +624,15 @@ export default function NotificationPanel({
         if (!isFilho) {
           const trialFollowup = buildTrialFollowup(tenantData);
           if (trialFollowup) items.unshift(trialFollowup);
+          if (tenantData?.whatsapp_missing && !whatsappResolved) {
+            items.unshift({
+              id: COMPLETE_WHATSAPP_NOTIF_ID,
+              type: 'system',
+              title: 'Complete seu WhatsApp',
+              body: 'Precisamos do seu número para acompanhar a configuração da sua casa.',
+              created_at: new Date().toISOString(),
+            });
+          }
         }
         if (!cancelled) setRawItems(items);
       } catch (error) {
@@ -623,7 +645,7 @@ export default function NotificationPanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, userId]);
+  }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, tenantData?.whatsapp_missing, userId, whatsappResolved]);
 
   const allNotifications = useMemo<AppNotification[]>(
     () =>
@@ -661,6 +683,7 @@ export default function NotificationPanel({
     setReadIds((current) => {
       const updated = new Set(current);
       for (const item of rawItemsRef.current) {
+        if (item.id === COMPLETE_WHATSAPP_NOTIF_ID) continue;
         if (!includeFeatures && FEATURE_ANNOUNCEMENT_IDS.has(item.id)) continue;
         updated.add(item.id);
       }
@@ -707,6 +730,11 @@ export default function NotificationPanel({
   };
 
   const openNotification = (notification: AppNotification) => {
+    if (notification.id === COMPLETE_WHATSAPP_NOTIF_ID) {
+      setOpen(false);
+      setWhatsappModalOpen(true);
+      return;
+    }
     markRead(notification.id);
     setOpen(false);
     if (notification.id.startsWith('trial_followup_')) {
@@ -864,14 +892,16 @@ export default function NotificationPanel({
                       </span>
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => dismiss(notification.id)}
-                    className="axecloud-notification-dismiss"
-                    aria-label={`Remover ${notification.title}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                  </button>
+                  {notification.id !== COMPLETE_WHATSAPP_NOTIF_ID ? (
+                    <button
+                      type="button"
+                      onClick={() => dismiss(notification.id)}
+                      className="axecloud-notification-dismiss"
+                      aria-label={`Remover ${notification.title}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  ) : null}
                 </motion.article>
               );
             })
@@ -951,6 +981,17 @@ export default function NotificationPanel({
           setFeatureModalOpen(false);
           requestOpenGiraReminderConfig();
           onNavigate?.('calendar');
+        }}
+      />
+      <CompleteWhatsAppModal
+        open={whatsappModalOpen}
+        leaderName={tenantData?.cargo}
+        terreiroName={tenantData?.nome}
+        onClose={() => setWhatsappModalOpen(false)}
+        onSaved={() => {
+          markRead(COMPLETE_WHATSAPP_NOTIF_ID);
+          setWhatsappResolved(true);
+          setWhatsappModalOpen(false);
         }}
       />
     </div>

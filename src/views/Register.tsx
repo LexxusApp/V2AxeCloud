@@ -24,6 +24,7 @@ import { TRIAL_DAYS } from '../../lib/planPricing';
 import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { getConversionContext, trackConversionEvent } from '../lib/trackConversion';
 import { PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
+import { formatBrazilPhone, normalizeBrazilPhone } from '../../lib/brazilPhone';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:Outfit,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
@@ -96,6 +97,7 @@ export default function Register() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const startedTracked = useRef(false);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const whatsappRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -187,6 +189,13 @@ export default function Register() {
     if (step !== 3) return;
     setError(null);
     setPasswordError(null);
+
+    if (!normalizeBrazilPhone(whatsapp)) {
+      setError('Informe um WhatsApp brasileiro válido com DDD.');
+      whatsappRef.current?.focus();
+      void trackConversionEvent('register_failed', { metadata: { reason: 'invalid_whatsapp' } });
+      return;
+    }
 
     const passwordCheck = validateStrongPassword(password);
     if (passwordCheck.ok === false) {
@@ -665,14 +674,16 @@ export default function Register() {
                 />
               </motion.div>
               <motion.div>
-                <label className={labelClass}>WhatsApp <span className="font-medium normal-case tracking-normal text-zinc-500">(opcional)</span></label>
+                <label className={labelClass}>WhatsApp</label>
                 <input
+                  ref={whatsappRef}
                   className={fieldShell}
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
+                  onChange={(e) => setWhatsapp(formatBrazilPhone(e.target.value))}
                   placeholder="(11) 99999-9999"
                   inputMode="tel"
                   autoComplete="tel"
+                  required
                 />
               </motion.div>
               <motion.div className="sm:col-span-2">

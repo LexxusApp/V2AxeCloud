@@ -192,6 +192,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     cargo?: string | null;
     role?: string | null;
     tradicao?: string | null;
+    whatsapp_missing?: boolean;
   } | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filhoFotoUrl, setFilhoFotoUrl] = useState<string | null>(null);
@@ -658,6 +659,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           cargo: data.cargo ?? undefined,
           role: role,
           tradicao: data.tradicao || 'mista',
+          whatsapp_missing: data.whatsapp_missing === true,
         });
         if (String(tenantId || '').trim()) {
           writeCachedTenantIdForUser(userId, String(tenantId), nome);
