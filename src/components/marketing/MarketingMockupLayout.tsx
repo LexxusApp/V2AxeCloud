@@ -21,7 +21,7 @@ export function MarketingMockupLayout({
       {showSideRails ? <LandingMockupSideRails /> : null}
       <div
         className={cn(
-          'landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-hidden bg-[#fdf8f0] font-sans text-[#1b1813] antialiased',
+          'landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-hidden bg-[#fdf8f0] font-display text-[#1b1813] antialiased',
           className,
         )}
       >

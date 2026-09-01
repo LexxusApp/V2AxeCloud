@@ -11454,7 +11454,7 @@ html:has(.landing-mockup-nav) {
   border: 1px solid rgba(255,255,255,.2) !important; border-radius: 999px; background: rgba(255,255,255,.09) !important;
   color: #fffaf0 !important; font: 400 21px/27px Arial, sans-serif !important;
 }
-.axe-map-profile { color: #1b1813; font-family: Manrope, system-ui, sans-serif; }
+.axe-map-profile { color: #1b1813; font-family: Outfit, system-ui, sans-serif; }
 .axe-map-profile__head {
   position: relative; display: flex; min-height: 76px; align-items: center; gap: 11px; padding: 16px 52px 16px 18px;
   background: radial-gradient(circle at 100% 0, rgba(229,174,18,.18), transparent 42%), linear-gradient(135deg, #0e291f, #153d2d);

@@ -39,7 +39,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
   const position = FEATURE_PAGES.findIndex((item) => item.slug === page.slug) + 1;
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-[#f6f0e5] font-sans text-[#1b1813]">
+    <div className="min-h-dvh overflow-x-clip bg-[#f6f0e5] font-display text-[#1b1813]">
       <main>
         <section className="relative overflow-hidden bg-[#0a0d09] px-5 pb-20 pt-32 text-[#f4efe3] sm:px-8 md:pb-24 md:pt-36">
           <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_90%)]" />

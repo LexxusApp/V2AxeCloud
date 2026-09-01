@@ -47,7 +47,7 @@ export function LandingSecurity() {
                     <span>{'>'} BACKUP AUTOMÁTICO:</span>
                     <span className="font-bold text-sky-400">DE HORA EM HORA</span>
                   </p>
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 font-sans text-[10px] text-amber-200">
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 font-display text-[10px] text-amber-200">
                     Diferente de redes sociais públicas, os dados de assentamentos, obrigações espirituais e
                     fichas litúrgicas nunca são monitorados por sistemas de anúncio ou buscadores como o Google.
                   </div>

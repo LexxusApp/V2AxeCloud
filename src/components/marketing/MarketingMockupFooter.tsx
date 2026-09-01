@@ -16,7 +16,7 @@ const footerLinks = [
 
 export function MarketingMockupFooter() {
   return (
-    <footer className="relative z-20 border-t border-white/10 bg-[#090b08] px-[max(5vw,24px)] pb-6 pt-11 font-sans text-[#8e9188]" role="contentinfo">
+    <footer className="relative z-20 border-t border-white/10 bg-[#090b08] px-[max(5vw,24px)] pb-6 pt-11 font-display text-[#8e9188]" role="contentinfo">
       <div className="mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-7 md:grid-cols-[auto_minmax(240px,1fr)] lg:grid-cols-[auto_minmax(240px,1fr)_auto]">
         <a href="/" className="flex items-center gap-2 text-[#f2eee3]" aria-label="AxéCloud — página inicial">
           <img src="/axecloud-trident.png" alt="" className="h-[49px] w-[38px] object-contain" width="38" height="49" />

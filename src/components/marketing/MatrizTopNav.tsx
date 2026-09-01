@@ -27,7 +27,7 @@ export function MatrizTopNav() {
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-[18px] z-[80] px-4 font-sans">
+    <header className="fixed inset-x-0 top-[18px] z-[80] px-4 font-display">
       <nav
         className="relative mx-auto flex h-[62px] w-full max-w-[1180px] items-center gap-4 rounded-lg border border-white/15 bg-[#0c0e0b]/95 px-3 pl-4 text-[#f4f0e4] shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-xl"
         aria-label="Navegação principal"

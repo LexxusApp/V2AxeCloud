@@ -44,7 +44,7 @@ export default function PortalWidgetPage() {
   }
 
   return (
-    <div className="border border-[#ece4d2] bg-[#f6f1e6] p-4 font-sans text-[#1b1813]">
+    <div className="border border-[#ece4d2] bg-[#f6f1e6] p-4 font-display text-[#1b1813]">
       <div className="flex gap-3">
         {terreiro.fotoUrl ? (
           <img src={terreiro.fotoUrl} alt="" className="h-14 w-14 rounded-xl object-cover ring-1 ring-[#ece4d2]" />

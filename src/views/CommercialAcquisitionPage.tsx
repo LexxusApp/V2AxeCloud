@@ -133,7 +133,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
   const accent = pageAccent[page.key];
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-[#0a0d09] font-sans text-[#f4efe3]">
+    <div className="min-h-dvh overflow-x-clip bg-[#0a0d09] font-display text-[#f4efe3]">
       <main>
         <section className="relative overflow-hidden px-5 pb-20 pt-32 sm:px-8 md:pb-28 md:pt-36">
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_92%)]" aria-hidden />

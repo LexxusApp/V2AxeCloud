@@ -55,7 +55,7 @@ export function ContentMarketingLayout({
   const cinematic = theme === 'cinematic';
   return (
     <div className={cn(
-      'relative min-h-dvh overflow-x-clip font-sans',
+      'relative min-h-dvh overflow-x-clip font-display',
       cinematic
         ? 'cinematic-content bg-[#0b0f0a] text-[#f4efe3]'
         : 'landing-v3 landing-mockup-theme bg-[#fdf8f0] text-[#1b1813]',

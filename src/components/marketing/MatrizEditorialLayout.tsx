@@ -13,7 +13,7 @@ type MatrizEditorialLayoutProps = {
  */
 export function MatrizEditorialLayout({ children, showFooter = true }: MatrizEditorialLayoutProps) {
   return (
-    <div className="landing-v3 relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-sans text-[#181a16]">
+    <div className="landing-v3 relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#181a16]">
       <MatrizPageBackground />
       <div
         className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[34rem] bg-gradient-to-b from-[#0b100c]/[0.055] via-transparent to-transparent"
