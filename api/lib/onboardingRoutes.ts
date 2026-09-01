@@ -11,7 +11,7 @@ import {
 import { requireAuthUser } from "./requireAuth.js";
 import { secureCompare } from "./secureCompare.js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
-import { authRateLimit, webhookRateLimit } from "./rateLimit.js";
+import { apiReadRateLimit, authRateLimit, webhookRateLimit } from "./rateLimit.js";
 import { verifyEfiWebhook } from "./secureRoutes.js";
 import { safeErrorMessage } from "./safeError.js";
 import { checkPasswordExposure } from "./pwnedPassword.js";
@@ -25,6 +25,43 @@ type Deps = {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
+  app.get("/api/v1/public/cep/:cep", apiReadRateLimit, async (req: Request, res: Response) => {
+    const cep = String(req.params.cep || "").replace(/\D/g, "").slice(0, 8);
+    if (!/^\d{8}$/.test(cep)) return res.status(400).json({ error: "Informe um CEP com 8 números." });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+        signal: controller.signal,
+        headers: { Accept: "application/json", "User-Agent": "AxeCloudRegister/1.0 (https://axecloud.com.br)" },
+      });
+      if (!response.ok) return res.status(502).json({ error: "Não foi possível consultar o CEP agora." });
+      const address = (await response.json()) as {
+        erro?: boolean;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+      if (address.erro) return res.status(404).json({ error: "CEP não encontrado. Confira os números." });
+      return res.set("Cache-Control", "public, max-age=86400").json({
+        cep,
+        logradouro: String(address.logradouro || "").trim(),
+        bairro: String(address.bairro || "").trim(),
+        cidade: String(address.localidade || "").trim(),
+        estado: String(address.uf || "").trim().toUpperCase().slice(0, 2),
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return res.status(504).json({ error: "A consulta do CEP demorou demais. Tente novamente." });
+      }
+      return res.status(502).json({ error: "Não foi possível consultar o CEP agora." });
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
   app.post("/api/v1/auth/password/check", authRateLimit, async (req: Request, res: Response) => {
     const password = String(req.body?.password || "");
     const policy = validateStrongPassword(password);
@@ -41,10 +78,44 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle, conversion, claimId } = req.body || {};
+      const {
+        email,
+        password,
+        nome_terreiro,
+        nome_zelador,
+        whatsapp,
+        billingCycle,
+        conversion,
+        claimId,
+        cep,
+        endereco,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        estado,
+        descricao_publica,
+        publicar_no_mapa,
+      } = req.body || {};
       const result = await registerNewTenant(
         supabaseAdmin,
-        { email, password, nome_terreiro, nome_zelador, whatsapp, billingCycle },
+        {
+          email,
+          password,
+          nome_terreiro,
+          nome_zelador,
+          whatsapp,
+          billingCycle,
+          cep,
+          endereco,
+          numero,
+          complemento,
+          bairro,
+          cidade,
+          estado,
+          descricao_publica,
+          publicar_no_mapa,
+        },
         resolveEfiEnv()
       );
 
@@ -60,6 +131,17 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
           console.warn("[register] approved directory claim not linked:", claimLinkError.message);
         } else {
           claimLinked = true;
+          const { data: linkedProfiles } = await supabaseAdmin
+            .from("terreiros_diretorio")
+            .select("id, verified_at, publicacao_status")
+            .eq("claimed_by_tenant_id", result.tenantId);
+          const verifiedProfile = (linkedProfiles || []).find((row) => Boolean(row.verified_at));
+          const redundantDraftIds = (linkedProfiles || [])
+            .filter((row) => row.id !== verifiedProfile?.id && row.publicacao_status === "rascunho")
+            .map((row) => row.id);
+          if (verifiedProfile && redundantDraftIds.length > 0) {
+            await supabaseAdmin.from("terreiros_diretorio").delete().in("id", redundantDraftIds);
+          }
         }
       }
 
@@ -108,6 +190,7 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         loginUrl: resolvePublicAppUrl(),
         dashboardPath: '/dashboard',
         claimLinked,
+        radarPublished: result.radarPublished,
       });
     } catch (err: any) {
       const status = Number(err?.status) || 500;

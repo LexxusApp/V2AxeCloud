@@ -22,6 +22,9 @@ import { updateSubscriptionResilient, upsertSubscriptionResilient } from "./subs
 import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
 import { rejectCompromisedPassword } from "./pwnedPassword.js";
+import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
+import { slugifyCidadeOnly } from "./diretorioSlug.js";
+import { slugifyBairro } from "../../lib/diretorioBairro.js";
 
 export type RegisterTenantInput = {
   email: string;
@@ -30,6 +33,15 @@ export type RegisterTenantInput = {
   nome_zelador: string;
   whatsapp?: string;
   billingCycle?: BillingCycle;
+  cep: string;
+  endereco: string;
+  numero: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  descricao_publica?: string;
+  publicar_no_mapa: boolean;
 };
 
 export type RegisterTenantResult = {
@@ -40,6 +52,7 @@ export type RegisterTenantResult = {
   subscriptionStatus: string;
   trialEndsAt: string;
   trialDays: number;
+  radarPublished: boolean;
 };
 
 export function trialExpiresAtFromNow(days: number = TRIAL_DAYS): string {
@@ -61,6 +74,37 @@ export function resolvePublicAppUrl(): string {
 
 export function efiNotificationUrl(): string {
   return `${resolvePublicAppUrl()}/api/webhooks/efi`;
+}
+
+async function geocodeRegistrationAddress(address: string, city: string, state: string) {
+  const cep = address.match(/\b\d{5}-?\d{3}\b/)?.[0] || "";
+  const queries = [
+    `${address}, ${city}, ${state}, Brasil`,
+    cep ? `${cep}, ${city}, ${state}, Brasil` : "",
+    `${city}, ${state}, Brasil`,
+  ].filter(Boolean);
+
+  for (const query of queries) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "AxeCloudRegister/1.0 (https://axecloud.com.br)" },
+      });
+      if (!response.ok) continue;
+      const rows = (await response.json()) as Array<{ lat?: string; lon?: string }>;
+      const lat = Number(rows[0]?.lat);
+      const lng = Number(rows[0]?.lon);
+      if (isPlausibleDiretorioCoordinate(lat, lng)) return { lat, lng };
+    } catch {
+      // O perfil fica como rascunho e pode ser confirmado depois no Radar.
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return null;
 }
 
 /** Preço do onboarding Premium: catálogo → env → fallback R$ 69,90. */
@@ -85,6 +129,15 @@ export async function registerNewTenant(
   const nome_zelador = String(input.nome_zelador || "").trim();
   const whatsapp = String(input.whatsapp || "").trim();
   const billingCycle = normalizeBillingCycle(input.billingCycle);
+  const cep = String(input.cep || "").replace(/\D/g, "").slice(0, 8);
+  const logradouro = String(input.endereco || "").trim().slice(0, 220);
+  const numero = String(input.numero || "").trim().slice(0, 30);
+  const complemento = String(input.complemento || "").trim().slice(0, 100);
+  const bairro = String(input.bairro || "").trim().slice(0, 120);
+  const cidade = String(input.cidade || "").trim().slice(0, 120);
+  const estado = String(input.estado || "").trim().toUpperCase().slice(0, 2);
+  const descricaoPublica = String(input.descricao_publica || "").trim().slice(0, 1200);
+  const publicarNoMapa = input.publicar_no_mapa === true;
 
   if (!email || !password) {
     throw Object.assign(new Error("E-mail e senha são obrigatórios."), {
@@ -99,6 +152,23 @@ export async function registerNewTenant(
   if (!nome_terreiro) {
     throw Object.assign(new Error("Informe o nome do terreiro."), { status: 400 });
   }
+  if (!/^\d{8}$/.test(cep)) {
+    throw Object.assign(new Error("Informe um CEP válido."), { status: 400 });
+  }
+  if (logradouro.length < 3 || numero.length < 1 || bairro.length < 2 || cidade.length < 2 || !/^[A-Z]{2}$/.test(estado)) {
+    throw Object.assign(new Error("Complete o endereço da casa antes de criar a conta."), { status: 400 });
+  }
+  if (!publicarNoMapa) {
+    throw Object.assign(new Error("Autorize a publicação dos dados informados para incluir a casa no mapa."), { status: 400 });
+  }
+
+  const enderecoCompleto = [
+    `${logradouro}, ${numero}`,
+    complemento,
+    bairro,
+    `${cidade} - ${estado}`,
+    `CEP ${cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")}`,
+  ].filter(Boolean).join(" · ");
 
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -108,6 +178,11 @@ export async function registerNewTenant(
       nome_terreiro,
       nome_zelador,
       whatsapp,
+      cep,
+      endereco: enderecoCompleto,
+      cidade,
+      estado,
+      publicar_no_mapa: publicarNoMapa,
       onboarding: "public_register",
       is_trial: true,
       billing_cycle: billingCycle,
@@ -138,6 +213,7 @@ export async function registerNewTenant(
       role: "admin",
       tenant_id: tenantId,
       whatsapp_publico: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
+      descricao_publica: descricaoPublica || null,
       updated_at: now,
     },
     { onConflict: "id" }
@@ -145,6 +221,44 @@ export async function registerNewTenant(
   if (profileError) {
     await supabaseAdmin.auth.admin.deleteUser(tenantId).catch(() => undefined);
     throw profileError;
+  }
+
+  // O Radar nasce preenchido junto com a conta. A publicação só acontece após
+  // consentimento explícito e geocodificação válida; se o serviço externo não
+  // responder, os dados permanecem salvos para confirmação posterior no Radar.
+  const radarSlugBase = nome_terreiro
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 52) || "casa-de-axe";
+  const coordinates = await geocodeRegistrationAddress(enderecoCompleto, cidade, estado);
+  const radarPublicado = publicarNoMapa && Boolean(coordinates);
+  const { error: radarError } = await supabaseAdmin.from("terreiros_diretorio").insert({
+    nome: nome_terreiro,
+    cep,
+    endereco: enderecoCompleto,
+    telefone: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
+    link_maps: null,
+    cidade,
+    estado,
+    slug: `${radarSlugBase}-${tenantId.replace(/-/g, "").slice(0, 8)}`,
+    cidade_slug: slugifyCidadeOnly(cidade),
+    bairro,
+    bairro_slug: slugifyBairro(bairro),
+    tipo: "terreiro",
+    claimed_by_tenant_id: tenantId,
+    descricao_publica: descricaoPublica || null,
+    latitude: coordinates?.lat ?? null,
+    longitude: coordinates?.lng ?? null,
+    coordinate_source: coordinates ? "public_register_address" : "public_register_pending",
+    publicacao_status: radarPublicado ? "publicado" : "rascunho",
+    publicado_em: radarPublicado ? now : null,
+  });
+  if (radarError) {
+    // Não desfaz o cadastro: a tela Radar também repara contas sem perfil.
+    console.warn("[onboarding] Radar draft:", radarError.message);
   }
 
   const trialEndsAt = trialExpiresAtFromNow();
@@ -249,6 +363,7 @@ export async function registerNewTenant(
     subscriptionStatus: "active",
     trialEndsAt,
     trialDays: TRIAL_DAYS,
+    radarPublished: radarPublicado,
   };
 }
 

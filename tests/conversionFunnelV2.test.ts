@@ -14,6 +14,7 @@ function fakeSupabase(rows: Row[]): SupabaseClient {
         select() { return query; },
         eq(_column: string, value: string) { eventName = value; return query; },
         gte() { return query; },
+        lt() { return query; },
         order() { return query; },
         async range(from: number, to: number) {
           const data = rows
@@ -58,7 +59,8 @@ test('cadastro mede abertura, início, envio e conclusão e mantém conclusão n
   assert.match(register, /trackConversionEvent\('register_view'/);
   assert.match(register, /trackConversionEvent\('register_started'/);
   assert.match(register, /trackConversionEvent\('register_submitted'/);
-  assert.match(register, /Etapa \{step\} de 2/);
+  assert.match(register, /Etapa \{step\} de 3/);
+  assert.match(register, /register_step_completed', \{ metadata: \{ step: 2 \} \}/);
   assert.match(onboarding, /eventName: 'register_completed'/);
   assert.match(migration, /'register_submitted'/);
   assert.match(migration, /'commercial_view'/);
