@@ -22,7 +22,8 @@ TEMPLATE = {
             "text": (
                 "Ola, {{1}}!\n\n"
                 "O aviso sobre {{2}} foi enviado para a corrente.\n\n"
-                "{{3}}"
+                "{{3}}\n\n"
+                "Este e um recibo automatico do seu envio."
             ),
             "example": {
                 "body_text": [
