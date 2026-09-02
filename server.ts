@@ -3628,7 +3628,7 @@ async function startServer() {
             data: String(data?.data || req.body.data || ""),
             hora: String(data?.hora || req.body.hora || ""),
             banner_url: data?.banner_url || null,
-          })
+          }, { notifyZeladorSummary: true })
         )
         .catch((e) => console.error("[GIRA WA] após criar evento:", e));
 

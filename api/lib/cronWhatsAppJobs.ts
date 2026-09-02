@@ -503,6 +503,7 @@ export type GiraWhatsAppDispatchResult = {
   errors: number;
   eligible: number;
   status: "sent" | "partial" | "no_recipients" | "channel_offline" | "disabled" | "failed";
+  externalIds?: string[];
 };
 
 export type DispatchGiraWhatsAppOptions = {
@@ -510,6 +511,8 @@ export type DispatchGiraWhatsAppOptions = {
   messageSuffix?: string;
   /** Cron de lembretes: vários eventos no mesmo tenant no mesmo dia. */
   bypassFanoutCooldown?: boolean;
+  /** Envia resumo atrasado ao zelador após o fan-out (criação manual / reenvio). */
+  notifyZeladorSummary?: boolean;
 };
 
 export async function dispatchGiraWhatsApp(
@@ -527,10 +530,13 @@ export async function dispatchGiraWhatsApp(
   let sent = 0;
   let errors = 0;
   let eligible = 0;
-
+  const externalIds: string[] = [];
+  let ctx: Awaited<ReturnType<typeof resolveCronTerreiroContext>> | null = null;
+  let dataEvento = "";
+  let horaEvento = "";
   try {
     if (!(await isOfficialChannelReady())) {
-      return { sent: 0, errors: 0, eligible: 0, status: "channel_offline" };
+      return { sent: 0, errors: 0, eligible: 0, status: "channel_offline", externalIds };
     }
 
     if (!options?.bypassFanoutCooldown) {
@@ -551,12 +557,12 @@ export async function dispatchGiraWhatsApp(
       ? meta.preferences
       : {}) as Record<string, boolean>;
     if (prefs.notifGiras === false) {
-      return { sent: 0, errors: 0, eligible: 0, status: "disabled" };
+      return { sent: 0, errors: 0, eligible: 0, status: "disabled", externalIds };
     }
 
-    const ctx = await resolveCronTerreiroContext(sb, tenantId);
-    const dataEvento = formatEventDateBr(event.data);
-    const horaEvento = String(event.hora || "").trim();
+    ctx = await resolveCronTerreiroContext(sb, tenantId);
+    dataEvento = formatEventDateBr(event.data);
+    horaEvento = String(event.hora || "").trim();
 
     let baseVariables: Record<string, string | number> = {
       event_id: event.id || "",
@@ -605,7 +611,7 @@ export async function dispatchGiraWhatsApp(
         const nomeMembro = String(child.nome || "Filho");
         const suffix = String(options?.messageSuffix || "").trim();
         const baseMsg = `Gira: ${event.titulo} — ${dataEvento} ${horaEvento}`;
-        await logAndSendWhatsApp(sb, {
+        const out = await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: String(child.id),
           tipo: "aviso_gira",
@@ -616,6 +622,7 @@ export async function dispatchGiraWhatsApp(
           idTerreiro: ctx.idTerreiro,
           variables: { ...baseVariables },
         });
+        if (out.externalId) externalIds.push(out.externalId);
         sent++;
       } catch (err) {
         errors++;
@@ -648,7 +655,32 @@ export async function dispatchGiraWhatsApp(
     );
   }
 
-  return { sent, errors, eligible, status };
+  if (options?.notifyZeladorSummary && ctx) {
+    const eventoRotulo = `${String(event.titulo || "Gira/Evento").trim()} — ${dataEvento} ${horaEvento}`
+      .replace(/\s+/g, " ")
+      .trim();
+    void import("./giraDispatchSummaryWhatsApp.js")
+      .then(({ scheduleGiraDispatchSummary }) =>
+        scheduleGiraDispatchSummary(sb, {
+          tenantId,
+          leaderId: ctx!.leaderId,
+          zeladorNome: ctx!.zelador,
+          eventoRotulo,
+          externalIds,
+          apiErrors: errors,
+          eligible,
+          dispatchStatus: status,
+        })
+      )
+      .catch((err: unknown) => {
+        console.error(
+          "[GIRA WA] agendar resumo zelador:",
+          err instanceof Error ? err.message : err
+        );
+      });
+  }
+
+  return { sent, errors, eligible, status, externalIds };
 }
 
 async function runGiraReminders(

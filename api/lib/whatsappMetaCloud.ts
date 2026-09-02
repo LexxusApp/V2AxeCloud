@@ -26,6 +26,8 @@ const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
 const ESTOQUE_CRITICO_TEMPLATE = "estoque_critico_axecloud";
 /** Alerta interno: novo terreiro cadastrado (ops) */
 export const OPS_NOVO_CADASTRO_TEMPLATE = "novo_cadastro_terreiro_ops_axecloud";
+/** Resumo atrasado de disparo de gira/evento para o zelador */
+export const RESUMO_DISPARO_GIRA_TEMPLATE = "resumo_disparo_gira_axecloud";
 /** Transmissão / mural — aviso curto (2 vars); texto completo vai em mensagem livre na sequência */
 const AVISO_PORTAL_TEMPLATE = "aviso_portal_axecloud";
 /** Legado — corpo inclui texto do comunicado (3 vars; difícil aprovação na Meta) */
@@ -834,6 +836,33 @@ export function buildOpsNovoCadastroComponents(opts: {
 export function resolveOpsAlertTemplateName(): string {
   return (
     String(process.env.WA_META_TEMPLATE_OPS_ALERT || "").trim() || OPS_NOVO_CADASTRO_TEMPLATE
+  );
+}
+
+/**
+ * resumo_disparo_gira_axecloud — {{1}} zelador · {{2}} evento · {{3}} resumo numérico
+ */
+export function buildResumoDisparoGiraComponents(opts: {
+  nome_zelador: string;
+  evento_rotulo: string;
+  resumo: string;
+}): MetaTemplateComponent[] {
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(opts.nome_zelador || "Zelador")),
+        textParam(String(opts.evento_rotulo || "Gira/Evento")),
+        textParam(String(opts.resumo || "Sem dados"), 900),
+      ],
+    },
+  ];
+}
+
+export function resolveResumoDisparoGiraTemplateName(): string {
+  return (
+    String(process.env.WA_META_TEMPLATE_RESUMO_DISPARO_GIRA || "").trim() ||
+    RESUMO_DISPARO_GIRA_TEMPLATE
   );
 }
 
