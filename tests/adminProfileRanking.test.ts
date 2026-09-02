@@ -23,6 +23,8 @@ test('admin oferece ranking acumulado de cliques nos perfis', () => {
   assert.match(panel, /Cliques acumulados/);
   assert.match(panel, /Total histórico; a contagem não reinicia por dia ou mês/);
   assert.match(publicRoutes, /\/profile-click/);
+  assert.match(publicRoutes, /!isDiretorioListingPublishable\(data as Record<string, unknown>\)/);
+  assert.doesNotMatch(publicRoutes, /isPublicDirectoryRow/);
   assert.match(card, /trackDiretorioProfileClick\(terreiro\.slug\)/);
   assert.match(directory, /data-profile-click/);
   assert.match(directory, /registraCliquePerfil/);

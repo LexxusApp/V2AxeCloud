@@ -438,7 +438,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
         if (error) throw error;
-        if (!data || !isPublicDirectoryRow(data as Record<string, unknown>)) {
+        if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
           return res.status(404).json({ error: "Terreiro não encontrado." });
         }
 
