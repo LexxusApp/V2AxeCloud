@@ -1,3 +1,5 @@
+import type { GiraScheduleItem } from '../../lib/giraSchedule';
+
 export type DiretorioEstabelecimentoTipo = 'terreiro' | 'loja';
 
 export type DiretorioTerreiro = {
@@ -17,6 +19,7 @@ export type DiretorioTerreiro = {
   indexable?: boolean;
   perfilUrl: string | null;
   cidadeUrl: string | null;
+  horariosGira?: GiraScheduleItem[];
 };
 
 export type DiretorioBairroGroup = {

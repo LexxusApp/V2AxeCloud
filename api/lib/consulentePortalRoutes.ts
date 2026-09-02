@@ -10,6 +10,7 @@ import { slugifyCidadeOnly } from "./diretorioSlug.js";
 import { slugifyBairro } from "../../lib/diretorioBairro.js";
 import { assertSafeImageBuffer } from "./imageUpload.js";
 import { safeErrorMessage } from "./safeError.js";
+import { normalizeGiraSchedule } from "../../lib/giraSchedule.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -157,7 +158,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data, error } = await sb
         .from("terreiros_diretorio")
-        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, bairro, latitude, longitude, verified_at, updated_at")
+        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
         .eq("claimed_by_tenant_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -184,6 +185,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
           bairro: data.bairro,
           latitude: data.latitude,
           longitude: data.longitude,
+          horariosGira: normalizeGiraSchedule(data.gira_horarios),
           verificada: Boolean(data.verified_at),
           updatedAt: data.updated_at,
           perfilUrl: data.slug ? `/terreiro/${data.slug}` : null,
@@ -216,6 +218,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const bairro = String(body.bairro || "").trim().slice(0, 120) || null;
       const linkMaps = validGoogleMapsUrl(body.linkMaps);
       const instagramUrl = validInstagramUrl(body.instagramUrl);
+      const horariosGira = normalizeGiraSchedule(body.horariosGira);
       if (nome.length < 3) return res.status(400).json({ error: "Informe o nome público da casa." });
       if (endereco.length < 8) return res.status(400).json({ error: "Informe o endereço completo." });
       if (cidade.length < 2) return res.status(400).json({ error: "Informe a cidade." });
@@ -290,6 +293,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         bairro_slug: bairro ? slugifyBairro(bairro) : null,
         link_maps: linkMaps,
         instagram_url: instagramUrl,
+        gira_horarios: horariosGira,
         owner_photo_url: ownerPhotoUrl,
       };
       const hasCoordinates = isPlausibleDiretorioCoordinate(latitude, longitude);

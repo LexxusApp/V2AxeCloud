@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  CalendarDays,
   CheckCircle2,
   Clock,
   Compass,
@@ -33,6 +34,12 @@ import { trackConversionEvent } from '../../lib/trackConversion';
 import { VerifiedBadge } from '../../components/portal/VerifiedBadge';
 import { TerreiroClaimDialog } from '../../components/portal/TerreiroClaimDialog';
 import { TerreiroClaimStatusDialog } from '../../components/portal/TerreiroClaimStatusDialog';
+import {
+  formatGiraTime,
+  getNextGiraScheduleItem,
+  GIRA_WEEKDAYS,
+  type GiraScheduleItem,
+} from '../../../lib/giraSchedule';
 
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -82,6 +89,52 @@ function TerreiroPortrait({ fotoUrl, nome }: { fotoUrl: string | null; nome: str
         <span>Perfil público</span><span className="h-px flex-1 bg-white/25" aria-hidden /><span>AxéCloud</span>
       </div>
     </div>
+  );
+}
+
+function GiraScheduleSection({ horarios }: { horarios: GiraScheduleItem[] }) {
+  const next = getNextGiraScheduleItem(horarios);
+  if (horarios.length === 0) return null;
+  const nextWhen = next
+    ? next.daysUntil === 0
+      ? `Hoje, às ${formatGiraTime(next.item.horario)}`
+      : next.daysUntil === 1
+        ? `Amanhã, às ${formatGiraTime(next.item.horario)}`
+        : `${GIRA_WEEKDAYS[next.item.diaSemana]}, às ${formatGiraTime(next.item.horario)}`
+    : '';
+
+  return (
+    <section className="mt-8 overflow-hidden rounded-[2rem] border border-[#2b382f]/30 bg-[#102117] px-6 py-7 text-white shadow-[0_24px_70px_rgba(22,36,27,.16)] sm:px-9 sm:py-9" aria-labelledby="gira-schedule-heading">
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">
+            <CalendarDays className="h-4 w-4" /> Horários habituais
+          </p>
+          <h2 id="gira-schedule-heading" className="mt-2 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">Dias de gira.</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {horarios.map((horario, index) => (
+              <div key={`${horario.diaSemana}-${horario.horario}-${index}`} className="rounded-2xl border border-white/12 bg-white/[.055] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <strong className="text-sm text-white">{GIRA_WEEKDAYS[horario.diaSemana]}</strong>
+                  <span className="rounded-full bg-[#e5ae12] px-3 py-1 text-xs font-black text-[#11150f]">{formatGiraTime(horario.horario)}</span>
+                </div>
+                {horario.titulo ? <p className="mt-3 text-sm font-bold text-[#f4e3aa]">{horario.titulo}</p> : null}
+                {horario.observacao ? <p className="mt-1.5 text-xs leading-relaxed text-white/55">{horario.observacao}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {next ? (
+          <aside className="rounded-2xl border border-[#e5ae12]/35 bg-[#e5ae12]/10 p-5">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Próxima gira prevista</p>
+            <p className="mt-2 text-xl font-extrabold leading-tight text-white">{nextWhen}</p>
+            {next.item.titulo ? <p className="mt-2 text-sm font-semibold text-white/70">{next.item.titulo}</p> : null}
+            <p className="mt-5 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-white/48">A programação pode mudar. Confirme diretamente com a casa antes de visitar.</p>
+          </aside>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -381,6 +434,8 @@ export default function DiretorioTerreiroPage() {
               </a>
             ) : null}
           </section>
+
+        <GiraScheduleSection horarios={terreiro.horariosGira || []} />
 
         <ServicosSection
           servicos={servicosData.servicos}

@@ -22,12 +22,13 @@ import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.j
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 import { cachedJson } from "./ttlCache.js";
+import { normalizeGiraSchedule } from "../../lib/giraSchedule.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, created_at";
+  "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
 const ESTADO_NOMES: Record<string, string> = {
@@ -101,6 +102,7 @@ function mapRow(row: Record<string, unknown>) {
         : null,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
     instagramUrl: row.instagram_url ? String(row.instagram_url).trim() : null,
+    horariosGira: normalizeGiraSchedule(row.gira_horarios),
     cidade: cidade || null,
     estado,
     cidadeSlug,

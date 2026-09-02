@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   BadgeCheck,
+  CalendarDays,
   Camera,
+  Clock3,
   ExternalLink,
   Instagram,
   Loader2,
   MapPinned,
+  Plus,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { marketingHref } from '../../lib/appHref';
 import { AppPrimaryButton } from '../ui/appDemoUi';
+import { GIRA_WEEKDAYS, type GiraScheduleItem } from '../../../lib/giraSchedule';
 
 type DirectoryProfile = {
   id: string;
@@ -26,6 +31,7 @@ type DirectoryProfile = {
   bairro: string | null;
   latitude: number | null;
   longitude: number | null;
+  horariosGira: GiraScheduleItem[];
   verificada: boolean;
   updatedAt: string;
   perfilUrl: string | null;
@@ -161,6 +167,7 @@ export function ClaimedDirectoryProfileSettings() {
           instagramUrl: profile.instagramUrl,
           latitude: profile.latitude,
           longitude: profile.longitude,
+          horariosGira: profile.horariosGira || [],
           photoSource,
           ownerPhotoUrl: photoSource === 'custom' ? profile.ownerPhotoUrl : null,
         }),
@@ -392,6 +399,114 @@ export function ClaimedDirectoryProfileSettings() {
               className={paperInput}
               placeholder="https://www.instagram.com/sua.casa/"
             />
+          </div>
+          <div className="sm:col-span-2 rounded-2xl border border-[#D8D2C4] bg-[#F8F1DF] p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">
+                  <CalendarDays className="h-4 w-4 text-[#9B6A00]" /> Dias e horários de gira
+                </p>
+                <p className="mt-1.5 text-xs font-semibold leading-relaxed text-[#70695F]">
+                  Publique a rotina semanal da casa. O perfil destacará a próxima gira prevista.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={(profile.horariosGira || []).length >= 14}
+                onClick={() => setProfile({
+                  ...profile,
+                  horariosGira: [
+                    ...(profile.horariosGira || []),
+                    { diaSemana: 5, horario: '19:00', titulo: null, observacao: null },
+                  ],
+                })}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#17251D] px-3.5 text-xs font-black text-white transition hover:bg-[#263A2E] disabled:opacity-45"
+              >
+                <Plus className="h-4 w-4" /> Adicionar horário
+              </button>
+            </div>
+
+            {(profile.horariosGira || []).length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {(profile.horariosGira || []).map((horario, index) => (
+                  <div key={`${index}-${horario.diaSemana}-${horario.horario}`} className="grid gap-3 rounded-xl border border-[#DED6C8] bg-white p-3 sm:grid-cols-[1fr_8rem_1.25fr_auto] sm:items-end">
+                    <div>
+                      <label className={paperLabel}>Dia da semana</label>
+                      <select
+                        value={horario.diaSemana}
+                        onChange={(event) => {
+                          const next = [...(profile.horariosGira || [])];
+                          next[index] = { ...horario, diaSemana: Number(event.target.value) };
+                          setProfile({ ...profile, horariosGira: next });
+                        }}
+                        className={paperInput}
+                      >
+                        {GIRA_WEEKDAYS.map((dia, dayIndex) => <option key={dia} value={dayIndex}>{dia}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={paperLabel}>Horário</label>
+                      <div className="relative">
+                        <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8174]" />
+                        <input
+                          type="time"
+                          value={horario.horario}
+                          onChange={(event) => {
+                            const next = [...(profile.horariosGira || [])];
+                            next[index] = { ...horario, horario: event.target.value };
+                            setProfile({ ...profile, horariosGira: next });
+                          }}
+                          className={`${paperInput} pl-9`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={paperLabel}>Nome da gira (opcional)</label>
+                      <input
+                        value={horario.titulo || ''}
+                        maxLength={80}
+                        onChange={(event) => {
+                          const next = [...(profile.horariosGira || [])];
+                          next[index] = { ...horario, titulo: event.target.value || null };
+                          setProfile({ ...profile, horariosGira: next });
+                        }}
+                        className={paperInput}
+                        placeholder="Ex.: Gira de Caboclo"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Remover horário"
+                      onClick={() => setProfile({
+                        ...profile,
+                        horariosGira: (profile.horariosGira || []).filter((_, rowIndex) => rowIndex !== index),
+                      })}
+                      className="grid h-11 w-11 place-items-center rounded-xl border border-[#B96545]/25 text-[#B96545] transition hover:bg-[#B96545]/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <div className="sm:col-span-4">
+                      <label className={paperLabel}>Aviso sobre este horário (opcional)</label>
+                      <input
+                        value={horario.observacao || ''}
+                        maxLength={160}
+                        onChange={(event) => {
+                          const next = [...(profile.horariosGira || [])];
+                          next[index] = { ...horario, observacao: event.target.value || null };
+                          setProfile({ ...profile, horariosGira: next });
+                        }}
+                        className={paperInput}
+                        placeholder="Ex.: Em feriados, confirme antes pelo WhatsApp"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-dashed border-[#C6AF78] bg-white/65 px-4 py-5 text-center text-xs font-bold text-[#8A8174]">
+                Nenhum horário público cadastrado.
+              </p>
+            )}
           </div>
           <div>
             <label className={paperLabel}>Latitude</label>
