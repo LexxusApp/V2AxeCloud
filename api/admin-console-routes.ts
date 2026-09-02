@@ -211,6 +211,22 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  /** Visitas do site público agrupadas por mês civil, incluindo meses já encerrados. */
+  app.get("/api/admin-console/visitor-months", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+
+    try {
+      const { fetchPublicSiteMonthlyTraffic } = await import("./lib/publicSiteMonthlyTraffic.js");
+      const traffic = await fetchPublicSiteMonthlyTraffic(deps.supabaseAdmin);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json(traffic);
+    } catch (e: any) {
+      console.error("[admin-console/visitor-months]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar visitas mensais.") });
+    }
+  });
+
   /**
    * Detalhe completo de um terreiro: perfil + assinatura + filhos + uso de R2 (storage)
    * pelo prefixo do tenant. Usado pelo drawer do painel admin.

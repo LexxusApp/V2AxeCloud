@@ -474,13 +474,13 @@ export function OverviewPanel({
           sub="cadastrados"
         />
         <CompactMetric
-          label="Visitantes (7d)"
+          label="Visitantes (30d)"
           value={
             visitorsLoading
               ? "…"
               : visitorsUnavailable
                 ? "N/D"
-                : formatStatNumber(activity?.publicSiteVisitorsLast7Days)
+                : formatStatNumber(activity?.publicSiteVisitorsLast30Days)
           }
           sub={
             visitorsLoading
