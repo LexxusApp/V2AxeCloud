@@ -89,6 +89,16 @@ export async function fetchDiretorioTerreiro(slug: string): Promise<DiretorioTer
   return json;
 }
 
+/** Best-effort: não bloqueia a navegação para o perfil. */
+export function trackDiretorioProfileClick(slug: string): void {
+  const normalized = String(slug || '').trim();
+  if (!normalized) return;
+  void fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(normalized)}/profile-click`, {
+    method: 'POST',
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 export type TerreiroServico = {
   id: string;
   nome: string;

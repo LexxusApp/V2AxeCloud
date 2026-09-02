@@ -20,6 +20,7 @@ import {
   Radio,
   ScrollText,
   Sparkles,
+  Trophy,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -37,6 +38,7 @@ export type AdminNavTab =
   | "wa-inbox"
   | "growth"
   | "claims"
+  | "ranking"
   | "monitor";
 
 type IconTone = "blue" | "violet" | "emerald" | "amber" | "rose" | "teal" | "sky" | "orange";
@@ -52,6 +54,7 @@ const MAIN_NAV: NavItem[] = [
   { id: "wa-inbox", label: "Caixa WA", icon: Inbox, tone: "sky" },
   { id: "growth", label: "Prospecção", icon: Target, tone: "emerald" },
   { id: "claims", label: "Reivindicações", icon: BadgeCheck, tone: "amber" },
+  { id: "ranking", label: "Ranking", icon: Trophy, tone: "violet" },
 ];
 
 const EXTRA_NAV: NavItem[] = [
@@ -73,6 +76,7 @@ const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   "wa-inbox": "Mensagens recebidas no WhatsApp oficial",
   growth: "Dois novos candidatos por dia e atendimento comercial por IA",
   claims: "Verificação dos responsáveis pelos perfis do diretório",
+  ranking: "Visitas acumuladas aos perfis públicos dos terreiros",
   storage: "Uso de armazenamento e ficheiros",
   metrics: "Métricas de infraestrutura Supabase",
   monitor: "Monitorização em tempo real",

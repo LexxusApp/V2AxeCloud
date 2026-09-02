@@ -427,6 +427,40 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     },
   );
 
+  /** Conta somente a ação explícita nos botões que levam ao perfil público. */
+  app.post(
+    "/api/v1/public/diretorio/terreiro/:slug/profile-click",
+    publicFormRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
+        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+
+        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        if (error) throw error;
+        if (!data || !isPublicDirectoryRow(data as Record<string, unknown>)) {
+          return res.status(404).json({ error: "Terreiro não encontrado." });
+        }
+
+        const publicItem = mapRow(data as Record<string, unknown>);
+        if (publicItem.tipo !== "terreiro") return res.status(404).json({ error: "Terreiro não encontrado." });
+
+        const { error: logError } = await sb.from("access_logs").insert({
+          event_type: "directory.profile_click",
+          target_type: "directory_terreiro",
+          target_id: String(data.id),
+          description: `Clique em Ver perfil: ${publicItem.nome}`.slice(0, 500),
+          metadata: { slug: publicItem.slug },
+        });
+        if (logError) throw logError;
+        res.status(204).end();
+      } catch (e: unknown) {
+        console.error("[public/diretorio/profile-click]", e);
+        res.status(500).json({ error: "Erro ao registrar visita." });
+      }
+    },
+  );
+
   app.get(
     "/api/v1/public/diretorio/uf/:estado",
     apiReadRateLimit,

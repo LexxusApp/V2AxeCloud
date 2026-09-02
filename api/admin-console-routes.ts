@@ -142,6 +142,75 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  /** Ranking acumulado de cliques nos botões de perfil público, sem recorte por período. */
+  app.get("/api/admin-console/profile-ranking", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+
+    try {
+      const counts = new Map<string, number>();
+      const pageSize = 1000;
+      let offset = 0;
+
+      while (true) {
+        const { data, error } = await deps.supabaseAdmin
+          .from("access_logs")
+          .select("target_id")
+          .eq("event_type", "directory.profile_click")
+          .eq("target_type", "directory_terreiro")
+          .range(offset, offset + pageSize - 1);
+
+        if (error) {
+          if (isMissingOrUnknownTable(error, "access_logs")) {
+            return res.json({ items: [], totalClicks: 0, profilesWithViews: 0 });
+          }
+          throw error;
+        }
+
+        const rows = data || [];
+        for (const row of rows) {
+          const terreiroId = String(row.target_id || "").trim();
+          if (!terreiroId) continue;
+          counts.set(terreiroId, (counts.get(terreiroId) || 0) + 1);
+        }
+        if (rows.length < pageSize) break;
+        offset += pageSize;
+      }
+
+      const terreiroIds = [...counts.keys()];
+      const names = new Map<string, string>();
+      for (let start = 0; start < terreiroIds.length; start += 200) {
+        const ids = terreiroIds.slice(start, start + 200);
+        const { data, error } = await deps.supabaseAdmin
+          .from("terreiros_diretorio")
+          .select("id, nome")
+          .in("id", ids);
+        if (error) throw error;
+        for (const row of data || []) {
+          names.set(String(row.id), String(row.nome || "Terreiro sem nome").trim());
+        }
+      }
+
+      const items = terreiroIds
+        .map((terreiroId) => ({
+          terreiroId,
+          terreiro: names.get(terreiroId) || "Terreiro sem nome",
+          visits: counts.get(terreiroId) || 0,
+        }))
+        .sort((a, b) => b.visits - a.visits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
+
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        items,
+        totalClicks: items.reduce((total, item) => total + item.visits, 0),
+        profilesWithViews: items.length,
+      });
+    } catch (e: any) {
+      console.error("[admin-console/profile-ranking]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao carregar ranking de perfis.") });
+    }
+  });
+
   /**
    * Detalhe completo de um terreiro: perfil + assinatura + filhos + uso de R2 (storage)
    * pelo prefixo do tenant. Usado pelo drawer do painel admin.

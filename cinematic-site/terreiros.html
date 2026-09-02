@@ -637,6 +637,19 @@ const perfilLocal = (c) => {
   return "";
 };
 const telefoneSeguro = (valor) => String(valor || "").replace(/[^\d+]/g, "").slice(0, 20);
+const registraCliquePerfil = (slug) => {
+  const valor = String(slug || "").trim();
+  if (!valor) return;
+  fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(valor)}/profile-click`, {
+    method: "POST",
+    keepalive: true,
+  }).catch(() => undefined);
+};
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const link = target?.closest("[data-profile-click]");
+  if (link) registraCliquePerfil(link.getAttribute("data-profile-click"));
+});
 
 /* Mariwo: centenas de fios finos de palha, curvos e afilados, em SVG */
 (function mariwo() {
@@ -1021,7 +1034,7 @@ function conteudoPopup(point) {
         ${item.endereco ? `<p class="axe-map-profile__address">${esc(item.endereco)}</p>` : ""}
         ${instagramUrl ? `<a class="axe-map-profile__social" href="${esc(instagramUrl)}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Ver Instagram</a>` : ""}
         <div class="axe-map-profile__actions">
-          ${perfilUrl ? `<a class="axe-map-profile__action axe-map-profile__action--primary" href="${esc(perfilUrl)}">Conhecer esta casa <span aria-hidden="true">→</span></a>` : ""}
+          ${perfilUrl ? `<a class="axe-map-profile__action axe-map-profile__action--primary" href="${esc(perfilUrl)}" data-profile-click="${esc(point.slug)}">Conhecer esta casa <span aria-hidden="true">→</span></a>` : ""}
           ${mapsUrl ? `<a class="axe-map-profile__action axe-map-profile__action--secondary" href="${esc(mapsUrl)}" target="_blank" rel="noopener noreferrer">Como chegar</a>` : ""}
         </div>
       </div>
@@ -1446,7 +1459,7 @@ function desenha() {
         <p class="ficha-endereco">${esc(c.endereco || [c.cidade, c.estado].filter(Boolean).join(" · "))}</p>
         ${c.bairro ? `<span class="ficha-bairro">${esc(c.bairro)}</span>` : ""}
         <div class="ficha-acoes">
-          ${perfil ? `<a class="acao" href="${esc(perfil)}">Ver perfil</a>` : ""}
+          ${perfil ? `<a class="acao" href="${esc(perfil)}" data-profile-click="${esc(c.slug)}">Ver perfil</a>` : ""}
           ${maps ? `<a class="acao acao-maps" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Ver no mapa</a>` : ""}
           ${telefone ? `<a class="acao acao-tel" href="tel:${esc(telefone)}">Ligar</a>` : ""}
         </div>
