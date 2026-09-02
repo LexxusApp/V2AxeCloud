@@ -24,6 +24,8 @@ const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
 const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
 /** Alerta de estoque crítico para o zelador */
 const ESTOQUE_CRITICO_TEMPLATE = "estoque_critico_axecloud";
+/** Alerta interno: novo terreiro cadastrado (ops) */
+export const OPS_NOVO_CADASTRO_TEMPLATE = "novo_cadastro_terreiro_ops_axecloud";
 /** Transmissão / mural — aviso curto (2 vars); texto completo vai em mensagem livre na sequência */
 const AVISO_PORTAL_TEMPLATE = "aviso_portal_axecloud";
 /** Legado — corpo inclui texto do comunicado (3 vars; difícil aprovação na Meta) */
@@ -796,6 +798,37 @@ export function buildPedidoRezaNovoZeladorComponents(
       ],
     },
   ];
+}
+
+/**
+ * novo_cadastro_terreiro_ops_axecloud — alerta interno de novo terreiro.
+ * Corpo: Terreiro {{1}} · Zelador {{2}} · E-mail {{3}} · WhatsApp {{4}} · Origem {{5}}
+ */
+export function buildOpsNovoCadastroComponents(opts: {
+  nome_terreiro: string;
+  nome_zelador?: string | null;
+  email: string;
+  whatsapp?: string | null;
+  origem: string;
+}): MetaTemplateComponent[] {
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(opts.nome_terreiro || "Terreiro")),
+        textParam(String(opts.nome_zelador || "").trim() || "nao informado"),
+        textParam(String(opts.email || "nao informado")),
+        textParam(String(opts.whatsapp || "").trim() || "sem WA"),
+        textParam(String(opts.origem || "site")),
+      ],
+    },
+  ];
+}
+
+export function resolveOpsAlertTemplateName(): string {
+  return (
+    String(process.env.WA_META_TEMPLATE_OPS_ALERT || "").trim() || OPS_NOVO_CADASTRO_TEMPLATE
+  );
 }
 
 /**
