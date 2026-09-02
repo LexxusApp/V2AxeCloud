@@ -20,21 +20,18 @@ TEMPLATE = {
         {
             "type": "BODY",
             "text": (
-                "Novo cadastro no AxéCloud.\n\n"
+                "Ola! Um novo terreiro se cadastrou no AxéCloud.\n\n"
                 "Terreiro: {{1}}\n"
-                "Zelador: {{2}}\n"
-                "E-mail: {{3}}\n"
-                "WhatsApp: {{4}}\n"
-                "Origem: {{5}}"
+                "Zelador: {{2}}\n\n"
+                "Contato: {{3}}\n\n"
+                "Consulte o console administrativo para acompanhar o onboarding."
             ),
             "example": {
                 "body_text": [
                     [
                         "Terreiro de Oxum",
                         "Maria Silva",
-                        "maria@exemplo.com",
-                        "5511999999999",
-                        "site",
+                        "maria@exemplo.com · WhatsApp 5511999999999 · origem site",
                     ]
                 ]
             },

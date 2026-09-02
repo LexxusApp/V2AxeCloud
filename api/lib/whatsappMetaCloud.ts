@@ -802,7 +802,7 @@ export function buildPedidoRezaNovoZeladorComponents(
 
 /**
  * novo_cadastro_terreiro_ops_axecloud — alerta interno de novo terreiro.
- * Corpo: Terreiro {{1}} · Zelador {{2}} · E-mail {{3}} · WhatsApp {{4}} · Origem {{5}}
+ * Corpo: {{1}} terreiro · {{2}} zelador · {{3}} contato (e-mail, WA, origem)
  */
 export function buildOpsNovoCadastroComponents(opts: {
   nome_terreiro: string;
@@ -811,15 +811,21 @@ export function buildOpsNovoCadastroComponents(opts: {
   whatsapp?: string | null;
   origem: string;
 }): MetaTemplateComponent[] {
+  const contato = [
+    opts.email ? `E-mail: ${opts.email}` : null,
+    opts.whatsapp ? `WhatsApp: ${opts.whatsapp}` : null,
+    `origem ${opts.origem || "site"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return [
     {
       type: "body",
       parameters: [
         textParam(String(opts.nome_terreiro || "Terreiro")),
         textParam(String(opts.nome_zelador || "").trim() || "nao informado"),
-        textParam(String(opts.email || "nao informado")),
-        textParam(String(opts.whatsapp || "").trim() || "sem WA"),
-        textParam(String(opts.origem || "site")),
+        textParam(contato || "sem contato", 900),
       ],
     },
   ];
