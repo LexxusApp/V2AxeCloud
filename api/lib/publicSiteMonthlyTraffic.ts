@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
+import { brazilDate } from "./brazilCalendar.js";
 
 export type PublicSiteMonthlyVisitorRow = {
   month: string;
@@ -53,7 +54,7 @@ export function buildMonthlyVisitorSeries(
     counts.set(month, (counts.get(month) || 0) + 1);
   }
 
-  const currentMonth = now.toISOString().slice(0, 7);
+  const currentMonth = brazilDate(now).slice(0, 7);
   const recordedMonths = [...counts.keys()].sort();
   const firstMonth = recordedMonths[0] || currentMonth;
   const months: PublicSiteMonthlyVisitorRow[] = [];

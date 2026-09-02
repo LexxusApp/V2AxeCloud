@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import geoip from "geoip-lite";
 import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsoleAuth.js";
 import { resolveClientIp } from "./clientIp.js";
+import { brazilDate, brazilMonthStart } from "./brazilCalendar.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -19,6 +20,7 @@ export type PublicSiteTrafficStats = {
   dailyVisitors: Record<string, number>;
   visitorsLast7Days: number;
   visitorsLast30Days: number;
+  visitorsCurrentMonth: number;
   visitorsToday: number;
   topPages: PublicPageBreakdownRow[];
 };
@@ -118,7 +120,7 @@ export async function trackPublicSiteVisit(
   const visitorId = String(input.visitorId || "").trim().toLowerCase();
   if (!UUID_RE.test(visitorId)) return { ok: false };
 
-  const visitDate = new Date().toISOString().slice(0, 10);
+  const visitDate = brazilDate();
   const safePath = sanitizePath(input.path);
   const ip = extractClientIp(req);
   let geo: geoip.Lookup | null = null;
@@ -187,15 +189,18 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
     dailyVisitors: {},
     visitorsLast7Days: 0,
     visitorsLast30Days: 0,
+    visitorsCurrentMonth: 0,
     visitorsToday: 0,
     topPages: [],
   };
 
-  const thirtyDaysAgo = new Date();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sinceDate = thirtyDaysAgo.toISOString().slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  const sevenDaysAgo = new Date();
+  const today = brazilDate(now);
+  const monthStart = brazilMonthStart(now);
+  const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const since7 = sevenDaysAgo.toISOString().slice(0, 10);
 
@@ -215,14 +220,18 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
     const dailyVisitors: Record<string, number> = {};
     let visitorsLast30Days = 0;
     let visitorsLast7Days = 0;
+    let visitorsCurrentMonth = 0;
     let visitorsToday = 0;
 
     for (const row of data || []) {
       const d = String((row as { visit_date?: string }).visit_date || "");
       if (!d) continue;
-      dailyVisitors[d] = (dailyVisitors[d] || 0) + 1;
       visitorsLast30Days++;
       if (d >= since7) visitorsLast7Days++;
+      if (d >= monthStart) {
+        dailyVisitors[d] = (dailyVisitors[d] || 0) + 1;
+        visitorsCurrentMonth++;
+      }
       if (d === today) visitorsToday++;
     }
 
@@ -233,7 +242,7 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
         const pageRes = await sb
           .from("public_site_page_views")
           .select("path_bucket, visitor_id")
-          .gte("visit_date", sinceDate);
+          .gte("visit_date", monthStart);
         if (pageRes.error) {
           if (!isMissingOrUnknownTable(pageRes.error, "public_site_page_views")) throw pageRes.error;
         } else {
@@ -251,6 +260,7 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
       dailyVisitors,
       visitorsLast7Days,
       visitorsLast30Days,
+      visitorsCurrentMonth,
       visitorsToday,
       topPages,
     };

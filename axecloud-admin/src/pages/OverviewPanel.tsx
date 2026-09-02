@@ -92,6 +92,7 @@ type OverviewPanelProps = {
     publicSiteDailyVisitors?: Record<string, number>;
     publicSiteVisitorsLast7Days?: number;
     publicSiteVisitorsLast30Days?: number;
+    publicSiteVisitorsCurrentMonth?: number;
     publicSiteVisitorsToday?: number;
     publicSiteTopPages?: { bucket: string; label: string; visitors: number; sharePct: number }[];
     publicConversionFunnel?: {
@@ -347,8 +348,7 @@ export function OverviewPanel({
     const d = activity?.publicSiteDailyVisitors;
     if (!d) return [];
     return Object.entries(d)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-14);
+      .sort(([a], [b]) => a.localeCompare(b));
   }, [activity]);
 
   const maxPublicDaily = useMemo(
@@ -474,13 +474,13 @@ export function OverviewPanel({
           sub="cadastrados"
         />
         <CompactMetric
-          label="Visitantes (30d)"
+          label="Visitantes (mês)"
           value={
             visitorsLoading
               ? "…"
               : visitorsUnavailable
                 ? "N/D"
-                : formatStatNumber(activity?.publicSiteVisitorsLast30Days)
+                : formatStatNumber(activity?.publicSiteVisitorsCurrentMonth)
           }
           sub={
             visitorsLoading
@@ -567,11 +567,11 @@ export function OverviewPanel({
             action={
               <span className="text-xs text-[var(--ac-text-faint)]">
                 {publicDailySeries.length
-                  ? `${activity?.publicSiteVisitorsLast30Days ?? 0} visitantes · ${publicDailySeries.length} dias`
+                  ? `${activity?.publicSiteVisitorsCurrentMonth ?? 0} visitantes · desde o dia 01`
                   : visitorsLoading
                     ? "a carregar"
                     : activity?.publicSiteVisitorsAvailable
-                      ? "0 visitantes nos últimos 30 dias"
+                      ? "0 visitantes neste mês"
                       : "tabela ausente"}
               </span>
             }
@@ -607,7 +607,7 @@ export function OverviewPanel({
                   </>
                 ) : (
                   <>
-                    Nenhum visitante registado nos últimos 30 dias. O contador inicia quando alguém abre páginas
+                    Nenhum visitante registado neste mês. O contador reinicia no primeiro dia de cada mês quando alguém abre páginas
                     públicas (landing, terreiros, cadastro, etc.) sem estar logado.
                   </>
                 )}

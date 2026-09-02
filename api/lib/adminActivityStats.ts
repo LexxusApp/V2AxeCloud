@@ -20,6 +20,7 @@ export type AdminActivityStats = {
   publicSiteDailyVisitors: Record<string, number>;
   publicSiteVisitorsLast7Days: number;
   publicSiteVisitorsLast30Days: number;
+  publicSiteVisitorsCurrentMonth: number;
   publicSiteVisitorsToday: number;
   publicSiteTopPages: { bucket: string; label: string; visitors: number; sharePct: number }[];
   publicConversionFunnel: ConversionFunnelStats;
@@ -219,6 +220,7 @@ export async function fetchAdminActivityStats(sb: SupabaseClient): Promise<Admin
     publicSiteDailyVisitors: publicTraffic.dailyVisitors,
     publicSiteVisitorsLast7Days: publicTraffic.visitorsLast7Days,
     publicSiteVisitorsLast30Days: publicTraffic.visitorsLast30Days,
+    publicSiteVisitorsCurrentMonth: publicTraffic.visitorsCurrentMonth,
     publicSiteVisitorsToday: publicTraffic.visitorsToday,
     publicSiteTopPages: publicTraffic.topPages,
     publicConversionFunnel,
