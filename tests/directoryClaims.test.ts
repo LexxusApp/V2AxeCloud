@@ -81,4 +81,7 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(marketingMap, /Terreiro verificado e reivindicado/);
   assert.match(marketingMap, /point\.verificada \? "#16865f" : "#e5ae12"/);
   assert.match(marketingMap, /verifiedCount/);
+  assert.match(marketingMap, /axe-map-profile__photo/);
+  assert.match(marketingMap, /\/api\/v1\/public\/diretorio\/terreiro\/\$\{encodeURIComponent\(point\.slug\)\}/);
+  assert.match(marketingMap, /detalhesPopupPorSlug\.set\(point\.slug, detalhes\)/);
 });

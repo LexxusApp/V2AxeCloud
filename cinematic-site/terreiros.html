@@ -388,6 +388,14 @@ h1 em { font-style: italic; color: var(--ouro); }
 .axe-map-profile__mark img { width: 24px; height: 24px; object-fit: contain; }
 .axe-map-profile__eyebrow { margin: 0; color: #e5ae12; font-size: .58rem; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
 .axe-map-profile__state { margin: 4px 0 0; color: rgba(255,250,240,.72); font-size: .66rem; font-weight: 600; }
+.axe-map-profile__photo {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  object-position: center;
+  background: #eee7da;
+}
 .axe-map-profile__body { padding: 18px 18px 17px; }
 .axe-map-profile__name { margin: 0; color: #1b1813; font-size: 1.05rem; font-weight: 800; line-height: 1.25; letter-spacing: -.02em; }
 .axe-map-profile__location { display: flex; align-items: center; gap: 7px; margin: 10px 0 0; color: #665f55; font-size: .76rem; font-weight: 600; }
@@ -729,7 +737,9 @@ let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
 let totaisMapa = { listed: 0, exact: 0, grouped: 0 };
 let pontosAtivos = []; // pontos desenhados no canvas
 let itensPorSlug = new Map();
+const detalhesPopupPorSlug = new Map();
 let popupAtivo = null;
+let popupRequestToken = 0;
 let tooltipEl = null;
 const MAPA_URL = "/api/v1/public/diretorio/mapa";
 const MAPA_FALLBACK_URL = "/terreiros/mapa.json";
@@ -1011,7 +1021,8 @@ function garanteTooltip() {
 }
 
 function conteudoPopup(point) {
-  const item = itensPorSlug.get(point.slug) || {};
+  const item = detalhesPopupPorSlug.get(point.slug) || itensPorSlug.get(point.slug) || {};
+  const fotoUrl = urlSegura(item.fotoUrl);
   const mapsUrl = urlSegura(item.linkMaps);
   const perfilUrl = perfilLocal(point) || urlSegura(point.perfilUrl, { interna: true });
   const instagramUrl = urlSegura(item.instagramUrl || point.instagramUrl);
@@ -1025,6 +1036,7 @@ function conteudoPopup(point) {
           <p class="axe-map-profile__state">${situacao}</p>
         </div>
       </header>
+      ${fotoUrl ? `<img class="axe-map-profile__photo" src="${esc(fotoUrl)}" alt="Foto de ${esc(point.nome)}" loading="eager" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}
       <div class="axe-map-profile__body">
         <h2 class="axe-map-profile__name">${esc(point.nome)}</h2>
         <p class="axe-map-profile__location">
@@ -1042,8 +1054,9 @@ function conteudoPopup(point) {
   `;
 }
 
-function abrePopupPonto(point) {
+async function abrePopupPonto(point) {
   if (!mapa || !point) return;
+  const requestToken = ++popupRequestToken;
   if (popupAtivo) mapa.closePopup(popupAtivo);
   if (tooltipEl) tooltipEl.style.display = "none";
   popupAtivo = L.popup({
@@ -1056,6 +1069,21 @@ function abrePopupPonto(point) {
     .setLatLng([point.lat, point.lng])
     .setContent(conteudoPopup(point))
     .openOn(mapa);
+
+  const itemAtual = detalhesPopupPorSlug.get(point.slug) || itensPorSlug.get(point.slug);
+  if (itemAtual?.fotoUrl) return;
+
+  try {
+    const response = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(point.slug)}`);
+    if (!response.ok) return;
+    const detalhes = await response.json();
+    detalhesPopupPorSlug.set(point.slug, detalhes);
+    if (requestToken !== popupRequestToken || !popupAtivo || !mapa.hasLayer(popupAtivo)) return;
+    popupAtivo.setContent(conteudoPopup(point));
+    popupAtivo.update();
+  } catch {
+    /* O card continua funcional mesmo se os detalhes extras falharem. */
+  }
 }
 
 function garanteMapa() {
