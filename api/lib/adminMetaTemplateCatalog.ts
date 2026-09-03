@@ -94,18 +94,17 @@ export const ADMIN_META_ZELADOR_TEMPLATES: AdminMetaTemplateDefinition[] = [
   },
   {
     id: "boas_vindas_zelador",
-    templateName: "boas_vindas_zelador_axecloud",
+    templateName: "boas_vindas_zelador_v2_axecloud",
     label: "Boas-vindas zelador",
-    description: "Mensagem de boas-vindas ao cadastrar terreiro (template Meta oficial).",
+    description: "Boas-vindas humanizadas no cadastro (teste + orientação de registro dos membros).",
     category: "UTILITY",
     body:
-      "Axé, {{1}}! O terreiro {{2}} foi cadastrado no AxéCloud com sucesso. Entre no painel com o e-mail {{3}}. No botão abaixo você encontra as instruções de uso e como seus membros acessam o app.",
-    button: { text: "Instruções de uso", url: "https://axecloud.com.br/instrucoes" },
+      "Ola, {{1}}!\n\nSeja bem-vindo(a) ao AxéCloud.\nDurante o periodo de teste, vamos acompanhar voce de perto para que tenha a melhor experiencia possivel no sistema. Em breve, o responsavel pelo acompanhamento do teste entrara em contato com voce.\n\nOriente seus membros: cada membro registrado recebe uma mensagem automatica no WhatsApp com o numero de Registro. Peca que guardem, pois esse e o acesso deles ao sistema.\n\nPara mais instrucoes, use o botao abaixo.",
+    footer: "Mensagem automática. Não responda.",
+    button: { text: "Ver instrucoes", url: "https://axecloud.com.br/instrucoes" },
     logTipo: "boas_vindas_zelador",
     variables: [
       { key: "1", label: "Nome do zelador", source: "zelador", placeholder: "Alex", maxLength: 60 },
-      { key: "2", label: "Nome do terreiro", source: "terreiro", placeholder: "Terreiro de Oxum", maxLength: 80 },
-      { key: "3", label: "E-mail de acesso", source: "email", placeholder: "zelador@email.com", maxLength: 80 },
     ],
   },
 ];

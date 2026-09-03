@@ -566,9 +566,38 @@ O código envia o OTP no formato de autenticação Meta (corpo + botão Copiar c
 
 ## Novos (04/08/2026) — onboarding / instruções
 
-### `boas_vindas_zelador_axecloud` (Utilidade) — **APPROVED**
+### `boas_vindas_zelador_v2_axecloud` (Utilidade) — **submetido**
 
-**Uso:** WhatsApp de boas-vindas ao cadastrar terreiro (zelador), com botão para `/instrucoes`.
+**Uso:** WhatsApp de boas-vindas ao cadastrar terreiro (zelador), tom humanizado + orientação de registro.
+
+**Corpo:**
+
+```
+Ola, {{1}}!
+
+Seja bem-vindo(a) ao AxéCloud.
+Durante o periodo de teste, vamos acompanhar voce de perto para que tenha a melhor experiencia possivel no sistema. Em breve, o responsavel pelo acompanhamento do teste entrara em contato com voce.
+
+Oriente seus membros: cada membro registrado recebe uma mensagem automatica no WhatsApp com o numero de Registro. Peca que guardem, pois esse e o acesso deles ao sistema.
+
+Para mais instrucoes, use o botao abaixo.
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria Silva |
+
+**Botão URL (fix):** `Ver instrucoes` → `https://axecloud.com.br/instrucoes`
+
+**Env:** `WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_v2_axecloud`
+
+> **Legado:** `boas_vindas_zelador_axecloud` (3 vars: zelador, terreiro, e-mail) — mantido se o env apontar para ele.
+
+---
+
+### `boas_vindas_zelador_axecloud` (legado)
+
+**Uso:** versão anterior (mais robótica).
 
 **Status Meta:** APPROVED (id `1469762495172100`).
 
@@ -585,8 +614,6 @@ Axé, {{1}}! O terreiro {{2}} foi cadastrado no AxéCloud com sucesso. Entre no 
 | {{3}} | sistemap514@gmail.com |
 
 **Botão URL (fix):** `Instruções de uso` → `https://axecloud.com.br/instrucoes`
-
-**Env:** `WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_axecloud`
 
 ---
 
@@ -636,7 +663,7 @@ WA_META_TEMPLATE_PEDIDO_REZA_NOVO_ZELADOR=pedido_reza_novo_zelador_axecloud
 WA_META_TEMPLATE_PEDIDO_REZA_ACEITO_FIEL=pedido_reza_aceito_fiel_util_axecloud
 WA_META_TEMPLATE_SENHA_EVENTO_VISITANTE=acesso_evento_visitante_axecloud
 WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
-WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_axecloud
+WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_v2_axecloud
 WA_META_TEMPLATE_DADOS_ACESSO=acesso_membro_guia_axecloud
 WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
 ```

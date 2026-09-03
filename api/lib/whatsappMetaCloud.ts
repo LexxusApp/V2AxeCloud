@@ -42,7 +42,9 @@ const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
  */
 const ACESSO_MEMBRO_GUIA_TEMPLATE = "acesso_membro_guia_axecloud";
 /** Boas-vindas zelador (cadastro de terreiro) — botão estático /instrucoes */
-const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_axecloud";
+const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_v2_axecloud";
+/** Legado: 3 vars (zelador, terreiro, e-mail) */
+const BOAS_VINDAS_ZELADOR_LEGACY_TEMPLATE = "boas_vindas_zelador_axecloud";
 /** Alias histórico `guia_membro` → mesmo template de acesso com registro + guia */
 const GUIA_MEMBRO_TEMPLATE = ACESSO_MEMBRO_GUIA_TEMPLATE;
 /** Acesso de visitante (portaria / presença) — evitar "senha" no nome (Meta rejeita como auth). */
@@ -464,7 +466,8 @@ export function buildContaAtivaComponents(
 }
 
 /**
- * boas_vindas_zelador_axecloud — {{1}} zelador, {{2}} terreiro, {{3}} e-mail
+ * boas_vindas_zelador_v2_axecloud — {{1}} zelador (tom humanizado + orientações)
+ * Legado boas_vindas_zelador_axecloud — {{1}} zelador, {{2}} terreiro, {{3}} e-mail
  * Botão estático: https://axecloud.com.br/instrucoes
  */
 export function buildBoasVindasZeladorComponents(
@@ -473,14 +476,24 @@ export function buildBoasVindasZeladorComponents(
   variables?: Record<string, string | number>
 ): MetaTemplateComponent[] {
   const v = variables || {};
+  const nome = textParam(String(v.nome_zelador || nomeZelador || "Zelador"));
+  const templateName = resolveMetaTemplateName("boas_vindas_zelador");
+  if (templateName === BOAS_VINDAS_ZELADOR_LEGACY_TEMPLATE) {
+    return [
+      {
+        type: "body",
+        parameters: [
+          nome,
+          textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+          textParam(String(v.email || v.login_email || "—")),
+        ],
+      },
+    ];
+  }
   return [
     {
       type: "body",
-      parameters: [
-        textParam(String(v.nome_zelador || nomeZelador || "Zelador")),
-        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
-        textParam(String(v.email || v.login_email || "—")),
-      ],
+      parameters: [nome],
     },
   ];
 }
