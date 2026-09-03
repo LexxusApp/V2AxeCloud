@@ -205,7 +205,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
           googleVisits: counts.get(terreiroId)?.googleVisits || 0,
           directoryClicks: counts.get(terreiroId)?.directoryClicks || 0,
         }))
-        .sort((a, b) => b.googleVisits - a.googleVisits || b.visits - a.visits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
+        .sort((a, b) => b.visits - a.visits || b.googleVisits - a.googleVisits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
 
       res.setHeader("Cache-Control", "private, no-store");
       res.json({

@@ -25,7 +25,7 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(shell, /tab === "ranking"/);
   assert.match(panel, /Vindas do Google/);
   assert.match(panel, /Terreiros mais procurados/);
-  assert.match(panel, /Ordenado pelas visitas vindas do Google/);
+  assert.match(panel, /Ordenado pelo total histórico de visitas/);
   assert.match(publicRoutes, /\/profile-click/);
   assert.match(publicRoutes, /!isDiretorioListingPublishable\(data as Record<string, unknown>\)/);
   assert.doesNotMatch(publicRoutes, /isPublicDirectoryRow/);

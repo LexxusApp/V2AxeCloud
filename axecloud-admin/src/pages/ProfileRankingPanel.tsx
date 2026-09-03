@@ -78,7 +78,7 @@ export function ProfileRankingPanel() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ac-paper-border)] p-4">
           <div>
             <h2 className="font-semibold text-[var(--ac-text)]">Terreiros mais procurados</h2>
-            <p className="mt-0.5 text-xs text-[var(--ac-text-muted)]">Ordenado pelas visitas vindas do Google; o total histórico não reinicia.</p>
+            <p className="mt-0.5 text-xs text-[var(--ac-text-muted)]">Ordenado pelo total histórico de visitas; o Google aparece como desempate.</p>
           </div>
           <button type="button" onClick={() => void load()} disabled={loading} className="admin-btn-secondary">
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} /> Atualizar
