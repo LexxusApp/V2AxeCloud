@@ -82,8 +82,9 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(marketingMap, /point\.verificada \? "#16865f" : "#e5ae12"/);
   assert.match(marketingMap, /verifiedCount/);
   assert.match(marketingMap, /axe-map-profile__photo/);
-  assert.match(marketingMap, /\.axecloud-map-popup\.leaflet-popup\s*\{[\s\S]*top:\s*214px\s*!important;[\s\S]*bottom:\s*48px\s*!important;/);
-  assert.match(marketingMap, /\.axecloud-map-popup \.axe-map-profile\s*\{[\s\S]*overflow-y:\s*auto;/);
+  assert.match(marketingMap, /\.axecloud-map-popup \.leaflet-popup-content\s*\{[\s\S]*width:\s*min\(310px, calc\(100vw - 46px\)\)\s*!important;[\s\S]*overflow:\s*hidden;/);
+  assert.match(marketingMap, /\.axecloud-map-popup \.axe-map-profile\s*\{[\s\S]*max-height:[\s\S]*overflow-y:\s*auto;/);
+  assert.doesNotMatch(marketingMap, /\.axecloud-map-popup\.leaflet-popup\s*\{[\s\S]*transform:\s*none\s*!important;/);
   assert.match(marketingMap, /\/api\/v1\/public\/diretorio\/terreiro\/\$\{encodeURIComponent\(point\.slug\)\}/);
   assert.match(marketingMap, /detalhesPopupPorSlug\.set\(point\.slug, detalhes\)/);
 });
