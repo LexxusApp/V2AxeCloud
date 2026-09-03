@@ -122,6 +122,41 @@
         const full = digits.startsWith("55") ? digits : `55${digits}`;
         return `https://wa.me/${full}`;
       };
+      const origemGoogle = () => {
+        const params = new URLSearchParams(location.search);
+        const referrer = document.referrer || "";
+        let google = false;
+        try {
+          const host = new URL(referrer).hostname.toLowerCase().replace(/^www\./, "");
+          google = host === "google.com" || host.startsWith("google.") || host.endsWith(".google.com");
+        } catch { /* sem referência */ }
+        const source = (params.get("utm_source") || "").toLowerCase();
+        google = google || source === "google" || source === "google_ads";
+        return {
+          referrer: referrer || null,
+          source: source || (google ? "google" : null),
+          medium: (params.get("utm_medium") || (params.has("gclid") ? "cpc" : google ? "organic" : "")) || null,
+          landingPath: `${location.pathname}${location.search}`.slice(0, 500),
+          google,
+        };
+      };
+      const registrarVisitaGoogle = (profileSlug) => {
+        const origem = origemGoogle();
+        if (!origem.google) return;
+        const marker = `axecloud_google_profile:${new Date().toISOString().slice(0, 10)}:${profileSlug}`;
+        if (sessionStorage.getItem(marker)) return;
+        const key = "axecloud_public_vid";
+        let visitorId = localStorage.getItem(key);
+        if (!visitorId || !/^[0-9a-f-]{36}$/i.test(visitorId)) {
+          visitorId = crypto.randomUUID(); localStorage.setItem(key, visitorId);
+        }
+        fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(profileSlug)}/google-view`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({ ...origem, visitorId }),
+        }).then((response) => { if (response.ok) sessionStorage.setItem(marker, "1"); }).catch(() => undefined);
+      };
       const TRADICAO = {
         umbanda: "Umbanda",
         candomble: "Candomblé",
@@ -231,6 +266,7 @@
           const diretorio = await loadJson(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}`);
           if (diretorio.ok) {
             renderDiretorio(diretorio.data);
+            registrarVisitaGoogle(diretorio.data.slug || slug);
             return;
           }
           const portal = await loadJson(`/api/v1/public/terreiros/${encodeURIComponent(slug)}`);

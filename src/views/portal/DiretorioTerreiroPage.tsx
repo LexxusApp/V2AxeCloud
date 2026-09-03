@@ -21,6 +21,7 @@ import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditoria
 import {
   fetchDiretorioTerreiro,
   fetchDiretorioTerreiroServicos,
+  trackDiretorioGoogleProfileView,
   type DiretorioTerreiro,
   type TerreiroServico,
   type TerreiroServicosPublic,
@@ -299,6 +300,7 @@ export default function DiretorioTerreiroPage() {
       .then(([t, sData]) => {
         setTerreiro(t);
         setServicosData(sData);
+        trackDiretorioGoogleProfileView(t.slug);
         const loc = [t.cidade, t.estado].filter(Boolean).join(', ');
         const featured = getFeaturedTerreiroCopy(t.slug);
         applyCustomPageSeo({

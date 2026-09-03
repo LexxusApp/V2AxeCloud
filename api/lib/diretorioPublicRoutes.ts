@@ -31,6 +31,53 @@ const SELECT =
   "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
+type DirectoryTrafficMetadata = {
+  slug: string;
+  visitor_id: string | null;
+  referrer: string | null;
+  source: string | null;
+  medium: string | null;
+  channel: "google_organic" | "google_ads" | "other";
+  google: boolean;
+  landing_path: string | null;
+};
+
+function cleanTrackingValue(value: unknown, max = 500): string | null {
+  const text = String(value || "").trim();
+  return text ? text.slice(0, max) : null;
+}
+
+function isGoogleReferrer(referrer: string | null): boolean {
+  if (!referrer) return false;
+  try {
+    const hostname = new URL(referrer).hostname.toLowerCase().replace(/^www\./, "");
+    return hostname === "google.com" || hostname.startsWith("google.") || hostname.endsWith(".google.com");
+  } catch {
+    return false;
+  }
+}
+
+function directoryTrafficMetadata(body: unknown, slug: string): DirectoryTrafficMetadata {
+  const input = body && typeof body === "object" ? body as Record<string, unknown> : {};
+  const referrer = cleanTrackingValue(input.referrer);
+  const source = cleanTrackingValue(input.source, 80)?.toLowerCase() || null;
+  const medium = cleanTrackingValue(input.medium, 80)?.toLowerCase() || null;
+  const visitorRaw = cleanTrackingValue(input.visitorId, 80);
+  const visitorId = visitorRaw && /^[0-9a-f-]{36}$/i.test(visitorRaw) ? visitorRaw : null;
+  const google = isGoogleReferrer(referrer) || source === "google" || source === "google_ads";
+  const paid = google && (source === "google_ads" || /^(?:cpc|ppc|paid|paid_search)$/.test(medium || ""));
+  return {
+    slug,
+    visitor_id: visitorId,
+    referrer,
+    source,
+    medium,
+    channel: paid ? "google_ads" : google ? "google_organic" : "other",
+    google,
+    landing_path: cleanTrackingValue(input.landingPath),
+  };
+}
+
 const ESTADO_NOMES: Record<string, string> = {
   AC: "Acre",
   AL: "Alagoas",
@@ -447,18 +494,71 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         const publicItem = mapRow(data as Record<string, unknown>);
         if (publicItem.tipo !== "terreiro") return res.status(404).json({ error: "Terreiro não encontrado." });
 
+        const traffic = directoryTrafficMetadata(req.body, publicItem.slug);
         const { error: logError } = await sb.from("access_logs").insert({
           event_type: "directory.profile_click",
           target_type: "directory_terreiro",
           target_id: String(data.id),
           description: `Clique em Ver perfil: ${publicItem.nome}`.slice(0, 500),
-          metadata: { slug: publicItem.slug },
+          metadata: traffic,
         });
         if (logError) throw logError;
         res.status(204).end();
       } catch (e: unknown) {
         console.error("[public/diretorio/profile-click]", e);
         res.status(500).json({ error: "Erro ao registrar visita." });
+      }
+    },
+  );
+
+  /** Registra quem chegou diretamente a um perfil por uma busca do Google. */
+  app.post(
+    "/api/v1/public/diretorio/terreiro/:slug/google-view",
+    publicFormRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
+        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+
+        const traffic = directoryTrafficMetadata(req.body, slug);
+        if (!traffic.google) return res.status(204).end();
+
+        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        if (error) throw error;
+        if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
+          return res.status(404).json({ error: "Terreiro não encontrado." });
+        }
+        const publicItem = mapRow(data as Record<string, unknown>);
+        if (publicItem.tipo !== "terreiro") return res.status(404).json({ error: "Terreiro não encontrado." });
+
+        if (traffic.visitor_id) {
+          const dayStart = new Date();
+          dayStart.setUTCHours(0, 0, 0, 0);
+          const { data: existing, error: existingError } = await sb
+            .from("access_logs")
+            .select("id")
+            .eq("event_type", "directory.profile_google_view")
+            .eq("target_type", "directory_terreiro")
+            .eq("target_id", String(data.id))
+            .gte("created_at", dayStart.toISOString())
+            .contains("metadata", { visitor_id: traffic.visitor_id })
+            .limit(1);
+          if (existingError) throw existingError;
+          if ((existing || []).length > 0) return res.status(204).end();
+        }
+
+        const { error: logError } = await sb.from("access_logs").insert({
+          event_type: "directory.profile_google_view",
+          target_type: "directory_terreiro",
+          target_id: String(data.id),
+          description: `Visita do Google ao perfil: ${publicItem.nome}`.slice(0, 500),
+          metadata: traffic,
+        });
+        if (logError) throw logError;
+        res.status(204).end();
+      } catch (e: unknown) {
+        console.error("[public/diretorio/google-view]", e);
+        res.status(500).json({ error: "Erro ao registrar origem da visita." });
       }
     },
   );

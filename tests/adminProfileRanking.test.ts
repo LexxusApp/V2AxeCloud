@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const read = (path: string) => fs.readFileSync(path, 'utf8');
 
-test('admin oferece ranking acumulado de cliques nos perfis', () => {
+test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   const routes = read('api/admin-console-routes.ts');
   const layout = read('axecloud-admin/src/pages/AdminDashboardLayout.tsx');
   const shell = read('axecloud-admin/src/pages/CommandShell.tsx');
@@ -12,20 +12,27 @@ test('admin oferece ranking acumulado de cliques nos perfis', () => {
   const publicRoutes = read('api/lib/diretorioPublicRoutes.ts');
   const card = read('src/components/portal/DiretorioTerreiroCard.tsx');
   const directory = read('cinematic-site/terreiros.html');
+  const profile = read('cinematic-site/terreiro.html');
 
   assert.match(routes, /\/api\/admin-console\/profile-ranking/);
   assert.match(routes, /from\("access_logs"\)/);
   assert.match(routes, /directory\.profile_click/);
+  assert.match(routes, /directory\.profile_google_view/);
+  assert.match(routes, /totalGoogleVisits/);
   assert.match(routes, /profilesWithViews/);
   assert.doesNotMatch(routes, /profile-ranking[\s\S]{0,1000}gte\("created_at"/);
   assert.match(layout, /id: "ranking", label: "Ranking"/);
   assert.match(shell, /tab === "ranking"/);
-  assert.match(panel, /Cliques acumulados/);
-  assert.match(panel, /Total histórico; a contagem não reinicia por dia ou mês/);
+  assert.match(panel, /Vindas do Google/);
+  assert.match(panel, /Terreiros mais procurados/);
+  assert.match(panel, /Ordenado pelas visitas vindas do Google/);
   assert.match(publicRoutes, /\/profile-click/);
   assert.match(publicRoutes, /!isDiretorioListingPublishable\(data as Record<string, unknown>\)/);
   assert.doesNotMatch(publicRoutes, /isPublicDirectoryRow/);
   assert.match(card, /trackDiretorioProfileClick\(terreiro\.slug\)/);
   assert.match(directory, /data-profile-click/);
   assert.match(directory, /registraCliquePerfil/);
+  assert.match(directory, /axecloud_directory_attribution/);
+  assert.match(profile, /google-view/);
+  assert.match(profile, /registrarVisitaGoogle/);
 });

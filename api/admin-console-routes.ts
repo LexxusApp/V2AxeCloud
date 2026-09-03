@@ -142,27 +142,27 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
-  /** Ranking acumulado de cliques nos botões de perfil público, sem recorte por período. */
+  /** Ranking acumulado de interesse: cliques no diretório + entradas diretas do Google. */
   app.get("/api/admin-console/profile-ranking", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
 
     try {
-      const counts = new Map<string, number>();
+      const counts = new Map<string, { visits: number; googleVisits: number; directoryClicks: number }>();
       const pageSize = 1000;
       let offset = 0;
 
       while (true) {
         const { data, error } = await deps.supabaseAdmin
           .from("access_logs")
-          .select("target_id")
-          .eq("event_type", "directory.profile_click")
+          .select("target_id, event_type, metadata")
+          .in("event_type", ["directory.profile_click", "directory.profile_google_view"])
           .eq("target_type", "directory_terreiro")
           .range(offset, offset + pageSize - 1);
 
         if (error) {
           if (isMissingOrUnknownTable(error, "access_logs")) {
-            return res.json({ items: [], totalClicks: 0, profilesWithViews: 0 });
+            return res.json({ items: [], totalClicks: 0, totalGoogleVisits: 0, profilesWithViews: 0 });
           }
           throw error;
         }
@@ -171,7 +171,13 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         for (const row of rows) {
           const terreiroId = String(row.target_id || "").trim();
           if (!terreiroId) continue;
-          counts.set(terreiroId, (counts.get(terreiroId) || 0) + 1);
+          const current = counts.get(terreiroId) || { visits: 0, googleVisits: 0, directoryClicks: 0 };
+          const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata as Record<string, unknown> : {};
+          const fromGoogle = row.event_type === "directory.profile_google_view" || metadata.google === true || String(metadata.channel || "").startsWith("google_");
+          current.visits += 1;
+          if (fromGoogle) current.googleVisits += 1;
+          if (row.event_type === "directory.profile_click") current.directoryClicks += 1;
+          counts.set(terreiroId, current);
         }
         if (rows.length < pageSize) break;
         offset += pageSize;
@@ -195,14 +201,17 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         .map((terreiroId) => ({
           terreiroId,
           terreiro: names.get(terreiroId) || "Terreiro sem nome",
-          visits: counts.get(terreiroId) || 0,
+          visits: counts.get(terreiroId)?.visits || 0,
+          googleVisits: counts.get(terreiroId)?.googleVisits || 0,
+          directoryClicks: counts.get(terreiroId)?.directoryClicks || 0,
         }))
-        .sort((a, b) => b.visits - a.visits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
+        .sort((a, b) => b.googleVisits - a.googleVisits || b.visits - a.visits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
 
       res.setHeader("Cache-Control", "private, no-store");
       res.json({
         items,
         totalClicks: items.reduce((total, item) => total + item.visits, 0),
+        totalGoogleVisits: items.reduce((total, item) => total + item.googleVisits, 0),
         profilesWithViews: items.length,
       });
     } catch (e: any) {
