@@ -30,6 +30,7 @@ import { formatTelefoneBr, telefoneHref } from '../../lib/formatTelefone';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { getFeaturedTerreiroCopy } from '../../../lib/diretorioSeoShared';
 import { ROUTES } from '../../lib/routes';
+import { PLAN_PRICE_STANDARD_LABEL, TRIAL_DAYS } from '../../../lib/planPricing';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
 import { trackConversionEvent } from '../../lib/trackConversion';
 import { VerifiedBadge } from '../../components/portal/VerifiedBadge';
@@ -468,17 +469,20 @@ export default function DiretorioTerreiroPage() {
               <div className="flex gap-4">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e5ae12] text-[#1b1813]"><BadgeCheck className="h-5 w-5" aria-hidden /></span>
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Presença oficial da casa</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Sistema AxéCloud de gestão de terreiros</p>
                   <h2 id="claim-house-title" className="mt-1 max-w-2xl text-2xl font-extrabold tracking-[-0.035em] sm:text-3xl">Transforme este perfil na voz oficial da sua casa.</h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/62">Confirme sua responsabilidade para corrigir informações, publicar serviços e atendimentos e administrar tudo pelo AxéCloud.</p>
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/62">
+                    A reivindicação entra no sistema AxéCloud de gestão de terreiros: você assume os dados públicos e passa a administrar a casa no painel — financeiro, filhos de santo, giras e comunicação.
+                    Teste {TRIAL_DAYS} dias grátis; depois, {PLAN_PRICE_STANDARD_LABEL}.
+                  </p>
                 </div>
               </div>
               <ul className="mt-6 grid gap-3 text-xs font-bold text-white/72 sm:grid-cols-3">
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Dados sob seu controle</li>
-                <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[#e5ae12]" /> Serviços no mapa</li>
-                <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Verificação humana</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Gestão da casa no AxéCloud</li>
+                <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[#e5ae12]" /> {TRIAL_DAYS} dias de teste grátis</li>
+                <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Depois {PLAN_PRICE_STANDARD_LABEL}</li>
               </ul>
-              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">Reivindicar é gratuito · não cria assinatura automática</p>
+              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">{TRIAL_DAYS} dias grátis · depois {PLAN_PRICE_STANDARD_LABEL}</p>
             </div>
             <div className="flex flex-col gap-3 lg:items-stretch">
             {terreiro.verificada ? (

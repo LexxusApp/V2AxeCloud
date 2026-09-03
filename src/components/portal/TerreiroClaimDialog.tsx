@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getConversionContext } from '../../lib/trackConversion';
 import { rememberDirectoryClaim } from './TerreiroClaimStatusDialog';
+import { PLAN_PRICE_STANDARD_LABEL, TRIAL_DAYS } from '../../../lib/planPricing';
 
 type ClaimForm = {
   name: string;
@@ -131,7 +132,7 @@ export function TerreiroClaimDialog({ slug, terreiroNome, onTrack }: { slug: str
                 <div className="mt-7 hidden lg:block">
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.22em] text-[#d6aa31]">A casa reconhece quem cuida</p>
                   <h2 className="mt-3 text-3xl font-extrabold leading-[1.02] tracking-[-0.045em]">Sua casa.<br /><span className="text-white/55">Sua voz.</span></h2>
-                  <p className="mt-4 text-sm leading-relaxed text-white/52">Confirme seu vínculo para cuidar dos dados públicos com segurança.</p>
+                  <p className="mt-4 text-sm leading-relaxed text-white/52">A reivindicação entra no sistema AxéCloud de gestão de terreiros. {TRIAL_DAYS} dias grátis; depois {PLAN_PRICE_STANDARD_LABEL}.</p>
                 </div>
 
                 <ol className="mt-6 grid grid-cols-3 gap-2 lg:mt-10 lg:grid-cols-1 lg:gap-3">
