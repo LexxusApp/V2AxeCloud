@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { LocateFixed, MapPin, RotateCcw, Search } from 'lucide-react';
+import { LocateFixed, MapPin, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DiretorioMapPoint } from '../../lib/diretorioMap';
 
@@ -250,20 +250,8 @@ export function DirectoryCoverageMap({
   const layerRef = useRef<InstanceType<typeof CanvasPointsLayer> | null>(null);
   const pointsRef = useRef(points);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-
   pointsRef.current = points;
-
-  const filteredPoints = searchQuery.trim()
-    ? points.filter((p) => {
-        const q = searchQuery.toLowerCase();
-        return (
-          p.nome.toLowerCase().includes(q) ||
-          p.cidade.toLowerCase().includes(q) ||
-          p.estado.toLowerCase().includes(q)
-        );
-      })
-    : points;
+  const filteredPoints = points;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -339,14 +327,12 @@ export function DirectoryCoverageMap({
     if (!map || !layer) return;
     layer.setPoints(filteredPoints);
     if (filteredPoints.length === 0) return;
-    if (!searchQuery.trim()) {
-      map.fitBounds(L.latLngBounds(filteredPoints.map((p) => [p.lat, p.lng] as [number, number])), {
-        padding: [34, 34],
-        maxZoom: 11,
-      });
-    }
+    map.fitBounds(L.latLngBounds(filteredPoints.map((p) => [p.lat, p.lng] as [number, number])), {
+      padding: [34, 34],
+      maxZoom: 11,
+    });
     window.setTimeout(() => map.invalidateSize(), 80);
-  }, [filteredPoints, searchQuery]);
+  }, [filteredPoints]);
 
   const locateNearest = () => {
     if (!navigator.geolocation) {
@@ -401,22 +387,14 @@ export function DirectoryCoverageMap({
         />
 
         <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex flex-col items-start gap-2 md:inset-x-5 md:top-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="pointer-events-auto flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-[#ead8a2]/30 bg-[#10271e]/94 p-2 shadow-[0_18px_48px_rgba(12,37,27,.24)] backdrop-blur-xl">
-            <Search className="ml-2 h-4 w-4 shrink-0 text-[#E5AE12]" aria-hidden />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por terreiro ou cidade…"
-              className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm font-semibold text-white outline-none placeholder:text-white/45"
-            />
+          <div className="pointer-events-auto flex w-auto items-center gap-2 rounded-2xl border border-[#ead8a2]/30 bg-[#10271e]/94 p-2 shadow-[0_18px_48px_rgba(12,37,27,.24)] backdrop-blur-xl">
             <button
               type="button"
               onClick={locateNearest}
               className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#E5AE12] px-3 text-xs font-black text-[#1b1813] transition hover:bg-[#F4C43A] md:px-4 md:text-sm"
             >
               <LocateFixed className="h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline">Perto de mim</span>
+              <span>Identificar minha localização</span>
             </button>
           </div>
 
@@ -471,27 +449,11 @@ export function DirectoryCoverageMap({
               ) : null}
             </div>
           </div>
-        ) : searchQuery.trim() && filteredPoints.length === 0 ? (
-          <div className="absolute inset-0 z-10 grid place-items-center bg-[#f4efe7]/80 px-6 text-center">
-            <div>
-              <MapPin className="mx-auto h-7 w-7 text-[#a87400]" aria-hidden />
-              <p className="mt-3 font-bold text-[#1b1813]">Nenhum terreiro encontrado para "{searchQuery}".</p>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="mt-4 rounded-full border border-[#1b1813]/20 bg-white px-5 py-2 text-sm font-bold text-[#1b1813]"
-              >
-                Limpar filtro
-              </button>
-            </div>
-          </div>
         ) : null}
 
         {!loading && points.length > 0 ? (
           <div className="pointer-events-none absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-white/92 px-4 py-2 text-[11px] font-bold text-[#1b1813]/65 shadow-lg backdrop-blur-xl">
-            {searchQuery.trim()
-              ? `${filteredPoints.length.toLocaleString('pt-BR')} de ${points.length.toLocaleString('pt-BR')} casas`
-              : `${points.length.toLocaleString('pt-BR')} casas com localização confirmada`}
+            {points.length.toLocaleString('pt-BR')} casas com localização confirmada
           </div>
         ) : null}
       </div>

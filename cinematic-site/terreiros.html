@@ -217,10 +217,10 @@ h1 em { font-style: italic; color: var(--ouro); }
 }
 .mapa-controles {
   pointer-events: auto;
-  display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) minmax(190px, .85fr) auto;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  width: min(820px, calc(100% - 210px));
+  width: auto;
   padding: 8px;
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 16px;
@@ -409,7 +409,39 @@ h1 em { font-style: italic; color: var(--ouro); }
 .axe-map-profile__action--secondary { min-width: 112px; border: 1px solid rgba(21,61,45,.18); color: #153d2d; background: #fffdf8; }
 .axe-map-profile__action:hover { transform: translateY(-1px); filter: brightness(1.03); }
 @media (max-width: 520px) {
-  .axecloud-map-popup .leaflet-popup-content { width: min(310px, calc(100vw - 46px)) !important; }
+  /* No celular o popup tradicional do Leaflet fica maior que a área útil e
+     acaba escondido atrás da busca e dos avisos do mapa. Aqui ele vira uma
+     ficha fixa e rolável dentro do mapa, abaixo dos controles. */
+  .axecloud-map-popup.leaflet-popup {
+    top: 214px !important;
+    right: 10px !important;
+    bottom: 48px !important;
+    left: 10px !important;
+    width: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+  .axecloud-map-popup .leaflet-popup-content-wrapper {
+    height: 100%;
+    max-height: 100%;
+    border-radius: 18px;
+  }
+  .axecloud-map-popup .leaflet-popup-content {
+    width: 100% !important;
+    height: 100%;
+    overflow: hidden;
+  }
+  .axecloud-map-popup .leaflet-popup-tip-container { display: none; }
+  .axecloud-map-popup .axe-map-profile {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .axe-map-profile__head { min-height: 62px; padding-top: 11px; padding-bottom: 11px; }
+  .axe-map-profile__photo { height: 112px; }
+  .axe-map-profile__body { padding: 14px 16px 16px; }
   .axe-map-profile__actions { grid-template-columns: 1fr; }
   .axe-map-profile__action--secondary { min-width: 0; }
 }
@@ -457,17 +489,14 @@ h1 em { font-style: italic; color: var(--ouro); }
   .mapa-intro h1 { margin-top: 10px; font-size: clamp(2.25rem, 10vw, 3.6rem); }
   .mapa-intro .lede { margin-top: 13px; font-size: .9rem; line-height: 1.58; }
   .mapa-cabeca { top: 10px; left: 10px; right: 10px; flex-direction: column; }
-  .mapa-controles { width: 100%; grid-template-columns: 1fr auto; }
-  .mapa-controles .seletor { grid-column: 1 / -1; grid-row: 2; }
+  .mapa-controles { width: auto; }
   .mapa-legenda-flutuante { padding: 8px 10px; }
   #mapa { height: 68svh; min-height: 540px; }
 }
 @media (max-width: 520px) {
   .mapa-wrap, .mapa-intro { width: calc(100vw - 20px); }
   .mapa-card { border-radius: 16px; }
-  .mapa-controles { grid-template-columns: minmax(0, 1fr) 48px; }
-  .mapa-controles .btn-perto { width: 48px; padding: 0; font-size: 0; }
-  .mapa-controles .btn-perto::before { content: "⌖"; font-size: 1.25rem; }
+  .mapa-controles .btn-perto { width: auto; padding: 12px 18px; font-size: .78rem; }
   .mapa-legenda-flutuante { font-size: 0; }
   .mapa-legenda span { font-size: 0.62rem; }
   #mapa { min-height: 600px; }
@@ -587,18 +616,14 @@ footer a { color: var(--ouro); text-decoration: none; }
 <section class="mapa-intro">
   <p class="kicker">✦ diretório mapeado · dados reais do sistema</p>
   <h1>Encontre uma casa de axé <em>perto de você</em></h1>
-  <p class="lede">Pesquise pelo nome ou pela cidade, explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos. <strong id="total-geral">Carregando…</strong></p>
+  <p class="lede">Explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos. Use sua localização para encontrar as casas mais próximas. <strong id="total-geral">Carregando…</strong></p>
 </section>
 
 <div class="mapa-wrap">
   <div class="mapa-card">
     <div class="mapa-cabeca">
       <div class="mapa-controles">
-        <input class="busca" id="busca" type="search" placeholder="Buscar por terreiro ou cidade…" autocomplete="off" />
-        <select class="seletor" id="seletor-cidade" aria-label="Filtrar por cidade do estado">
-          <option value="">Todas as cidades…</option>
-        </select>
-        <button type="button" class="btn-perto" id="btn-perto">Perto de mim</button>
+        <button type="button" class="btn-perto" id="btn-perto">Identificar minha localização</button>
       </div>
       <div class="mapa-legenda-flutuante">
         <div class="mapa-legenda" aria-label="Legenda do mapa">
@@ -740,7 +765,6 @@ let totalItens = 0;
 let listaCompleta = true;
 let visiveis = 24;        // paginação local
 let termo = "";
-let aguarde = null;
 
 const ESTADO_NOMES = {
   AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará",
@@ -1261,28 +1285,6 @@ $("#btn-perto").addEventListener("click", () => {
   );
 });
 
-function cidadesDoEstado(uf) {
-  const key = String(uf || "").toLowerCase();
-  if (!key) return cidades;
-  return cidades.filter((c) => String(c.estado || "").toLowerCase() === key);
-}
-
-function atualizaSeletorCidades(uf, selectedSlug = "") {
-  const lista = cidadesDoEstado(uf);
-  const seletor = $("#seletor-cidade");
-  const placeholder = uf ? "Todas as cidades do estado…" : "Todas as cidades…";
-  seletor.innerHTML =
-    `<option value="">${placeholder}</option>` +
-    lista
-      .map(
-        (c) =>
-          `<option value="${esc((c.estado || "br").toLowerCase())}|${esc(c.cidadeSlug)}">${esc(c.cidade)}${c.estado ? " – " + esc(c.estado) : ""} (${c.count})</option>`,
-      )
-      .join("");
-  if (selectedSlug && uf) seletor.value = `${String(uf).toLowerCase()}|${selectedSlug}`;
-  else seletor.value = "";
-}
-
 async function carregaCidades() {
   // Preferência: JSON estático do build (nginx/CDN) — sem bater no Supabase.
   let lista = null;
@@ -1367,7 +1369,6 @@ async function carregaTodos() {
   totalItens = itens.length || totaisMapa.exact || 0;
   listaCompleta = true;
   visiveis = 24;
-  atualizaSeletorCidades("");
   desenha();
 }
 
@@ -1389,7 +1390,6 @@ async function carregaEstado(uf) {
     totalItens = Number(data.total) || itens.length;
     listaCompleta = itens.length >= totalItens;
     visiveis = 24;
-    atualizaSeletorCidades(estadoAtual.estado);
     desenha();
   } catch (e) {
     console.warn(e);
@@ -1413,7 +1413,6 @@ async function carregaCidade(uf, slug) {
     totalItens = Number(data.total) || itens.length;
     listaCompleta = itens.length >= totalItens;
     visiveis = 24;
-    atualizaSeletorCidades(estadoAtual.estado, data.cidadeSlug);
     syncUrlEstado(estadoAtual.estado, data.cidadeSlug);
     desenha();
   } catch (e) {
@@ -1571,30 +1570,6 @@ $("#chips").addEventListener("click", (e) => {
   }
   marcaChipEstado(uf);
   carregaEstado(uf);
-});
-
-$("#seletor-cidade").addEventListener("change", (e) => {
-  if (!e.target.value) {
-    if (estadoAtual) carregaEstado(estadoAtual.estado.toLowerCase());
-    else carregaTodos();
-    return;
-  }
-  const [uf, slug] = e.target.value.split("|");
-  marcaChipEstado(uf);
-  carregaCidade(uf, slug);
-});
-
-$("#busca").addEventListener("input", (e) => {
-  termo = e.target.value.trim();
-  clearTimeout(aguarde);
-  aguarde = setTimeout(async () => {
-    try {
-      if (termo && !listaCompleta) await garanteListaCompleta();
-    } catch (erro) {
-      console.warn(erro);
-    }
-    desenha();
-  }, 250);
 });
 
 /* Início: mapa aparece na hora; lista carrega em paralelo */

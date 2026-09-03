@@ -154,7 +154,7 @@ export default function TerreirosDirectoryPage() {
               Encontre uma casa de axé perto de você
             </h1>
             <p className="lg:col-start-1 lg:row-start-3 mt-4 w-full max-w-none text-base leading-relaxed text-[#1b1813]/66 md:text-lg">
-              Pesquise pelo nome ou pela cidade, explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos.
+              Explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos. Use sua localização para encontrar as casas mais próximas.
             </p>
             <div className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-end w-full lg:w-auto lg:min-w-[18rem] lg:max-w-md">
               <div className="rounded-[2rem] border border-[#e8dfd0] bg-white/78 p-5 shadow-xl shadow-black/5 backdrop-blur-sm">
@@ -189,7 +189,7 @@ export default function TerreirosDirectoryPage() {
             <div>
               <h2 id="claim-profile-title" className="text-xl font-black text-[#1b1813]">Sua casa já aparece no diretório?</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#1b1813]/62">
-                Escolha a cidade, abra o perfil da sua casa e envie a solicitação de verificação pelo formulário da própria página.
+                Abra o perfil da sua casa e envie a solicitação de verificação pelo formulário da própria página.
               </p>
             </div>
           </div>
