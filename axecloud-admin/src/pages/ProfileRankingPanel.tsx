@@ -92,23 +92,23 @@ export function ProfileRankingPanel() {
         ) : !data?.items.length ? (
           <div className="p-12 text-center text-sm text-[var(--ac-text-muted)]">Nenhum perfil recebeu visitas ainda.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className={admin.table}>
+          <div className="overflow-x-hidden">
+            <table className={cn(admin.table, "table-fixed text-[11px] sm:text-sm")}>
               <thead><tr className={admin.thead}>
-                <th className={cn(admin.th, "w-20 text-center")}>Posição</th>
+                <th className={cn(admin.th, "w-14 px-2 text-center sm:w-20 sm:px-4")}>Posição</th>
                 <th className={admin.th}>Terreiro</th>
-                <th className={cn(admin.th, "w-36 text-right")}>Google</th>
-                <th className={cn(admin.th, "w-36 text-right")}>Mapa</th>
-                <th className={cn(admin.th, "w-36 text-right")}>Total</th>
+                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Google</th>
+                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Mapa</th>
+                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Total</th>
               </tr></thead>
               <tbody>
                 {data.items.map((item, index) => (
                   <tr key={item.terreiroId} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)] last:border-0")}>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-[var(--ac-text-muted)]">{index + 1}º</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[var(--ac-text)]">{item.terreiro}</td>
-                    <td className="px-4 py-3 text-right admin-mono text-sm font-bold text-emerald-700">{number.format(item.googleVisits)}</td>
-                    <td className="px-4 py-3 text-right admin-mono text-sm font-semibold text-[var(--ac-text-muted)]">{number.format(item.directoryClicks)}</td>
-                    <td className="px-4 py-3 text-right admin-mono text-sm font-bold text-[var(--ac-accent)]">{number.format(item.visits)}</td>
+                    <td className="px-2 py-3 text-center text-sm font-semibold text-[var(--ac-text-muted)] sm:px-4">{index + 1}º</td>
+                    <td className="break-words px-2 py-3 text-sm font-semibold leading-tight text-[var(--ac-text)] sm:px-4">{item.terreiro}</td>
+                    <td className="px-2 py-3 text-right admin-mono text-sm font-bold text-emerald-700 sm:px-4">{number.format(item.googleVisits)}</td>
+                    <td className="px-2 py-3 text-right admin-mono text-sm font-semibold text-[var(--ac-text-muted)] sm:px-4">{number.format(item.directoryClicks)}</td>
+                    <td className="px-2 py-3 text-right admin-mono text-sm font-bold text-[var(--ac-accent)] sm:px-4">{number.format(item.visits)}</td>
                   </tr>
                 ))}
               </tbody>
