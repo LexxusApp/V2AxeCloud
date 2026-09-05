@@ -160,6 +160,16 @@ test("aliases do webhook Meta compartilham o mesmo handler autenticado", () => {
   assert.doesNotMatch(serverSource, /app\.post\("\/webhook\/meta"/);
 });
 
+test("chave privada do Gemini permanece somente no servidor", () => {
+  const viteConfig = readFileSync("vite.config.ts", "utf8");
+  const visionServer = readFileSync("api/lib/comprovanteVisionExtract.ts", "utf8");
+
+  assert.doesNotMatch(viteConfig, /GEMINI_API_KEY|GOOGLE_GEMINI_API_KEY/);
+  assert.doesNotMatch(viteConfig, /process\.env\.(?:[A-Z0-9_]*(?:SECRET|PRIVATE|TOKEN)|GEMINI_API_KEY)/);
+  assert.match(visionServer, /process\.env\.GEMINI_API_KEY/);
+  assert.match(visionServer, /new GoogleGenerativeAI\(apiKey\)/);
+});
+
 test("boot do servidor não promove administradores a partir de e-mail", () => {
   for (const path of ["api/index.ts", "server.ts"]) {
     const source = readFileSync(path, "utf8");
