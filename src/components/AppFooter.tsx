@@ -5,7 +5,7 @@ export default function AppFooter() {
       <div className="app-footer__glow" aria-hidden />
       <div className="relative mx-auto flex max-w-3xl flex-col items-center">
         <div className="app-footer__line" aria-hidden />
-        <p className="mt-5 text-center text-[11px] font-medium tracking-[0.05em] text-gray-500">
+        <p className="mt-5 text-center text-[11px] font-semibold tracking-[0.05em] text-[#625B51]">
           © 2026 AxéCloud • CNPJ: 66.335.964/0001-07
         </p>
       </div>

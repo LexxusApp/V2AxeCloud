@@ -146,8 +146,8 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
       initial={{ opacity: 0, x: isReply ? 20 : 0 }}
       animate={{ opacity: 1, x: isReply ? 20 : 0 }}
       className={cn(
-        "flex gap-4 p-4 rounded-2xl transition-all",
-        isReply ? "bg-white/2 border-l-2 border-primary/20 ml-4" : "bg-white/5"
+        "flex gap-4 rounded-2xl border border-[#DDD5C9] bg-white p-4 text-[#211D17] shadow-sm transition-all",
+        isReply ? "ml-4 border-l-2 border-l-primary/50 bg-[#FBF8F1]" : ""
       )}
     >
       <div className="flex-shrink-0">
@@ -176,7 +176,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
                 Liderança
               </span>
             )}
-            <span className="text-[10px] text-gray-600 font-bold">
+            <span className="text-[10px] font-bold text-[#756E63]">
               {new Date(comment.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -185,7 +185,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
             {!isReply && (
               <button 
                 onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                className="p-2 text-gray-500 hover:text-primary transition-colors"
+                className="p-2 text-[#756E63] transition-colors hover:text-[#8C6A00]"
               >
                 <Reply className="w-4 h-4" />
               </button>
@@ -193,7 +193,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
             {(isAdmin || user.id === comment.user_id) && (
               <button 
                 onClick={() => handleDelete(comment.id)}
-                className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                className="p-2 text-[#756E63] transition-colors hover:text-red-600"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -201,7 +201,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
           </div>
         </div>
 
-        <p className="text-sm text-gray-300 leading-relaxed">
+        <p className="text-sm leading-relaxed text-[#39342D]">
           {comment.texto}
         </p>
 
@@ -211,7 +211,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
               name="replyText"
               autoFocus
               placeholder="Sua resposta..."
-              className="flex-1 bg-background border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-primary outline-none transition-all"
+              className="flex-1 rounded-xl border border-[#CFC5B7] bg-white px-4 py-2 text-sm text-[#211D17] outline-none transition-all placeholder:text-[#81796E] focus:border-primary"
             />
             <button 
               type="submit"
@@ -238,7 +238,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
     <div className="mt-12 space-y-8">
       <div className="flex items-center gap-3">
         <MessageSquare className="w-6 h-6 text-primary" />
-        <h2 className="text-2xl font-black text-white tracking-tight">Dúvidas e <span className="text-primary">Esclarecimentos</span></h2>
+        <h2 className="text-2xl font-black tracking-tight text-[#211D17]">Dúvidas e <span className="text-[#B38300]">Esclarecimentos</span></h2>
       </div>
 
       {/* New Comment Input */}
@@ -247,7 +247,7 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Tire sua dúvida sobre este fundamento..."
-          className="w-full bg-card border border-white/5 rounded-3xl p-6 text-white focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:text-gray-700 min-h-[120px] resize-none"
+          className="min-h-[120px] w-full resize-none rounded-3xl border border-[#2D333B] bg-[#111418] p-6 pr-32 font-medium text-[#F8FAFC] shadow-sm transition-all placeholder:text-[#AAB2BD] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
         <button 
           type="submit"
@@ -270,8 +270,8 @@ export default function CommentSection({ materialId, user, userRole, tenantId, i
             <CommentItem key={comment.id} comment={comment} />
           ))
         ) : (
-          <div className="text-center py-10 bg-white/2 rounded-3xl border border-dashed border-white/5">
-            <p className="text-gray-600 font-bold italic">Nenhuma dúvida registrada ainda. Seja o primeiro a perguntar!</p>
+          <div className="rounded-3xl border border-dashed border-[#AFA697] bg-white/70 px-5 py-10 text-center shadow-sm">
+            <p className="font-bold text-[#5B554C]">Nenhuma dúvida registrada ainda. Seja o primeiro a perguntar!</p>
           </div>
         )}
       </div>
