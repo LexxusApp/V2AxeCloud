@@ -17,6 +17,7 @@ import {
 import { motion } from 'framer-motion';
 import CommentSection from '../CommentSection';
 import type { Material } from '../../views/Library';
+import { AuthenticatedPdfFrame } from '../library/AuthenticatedPdfFrame';
 
 type Props = {
   materials: Material[];
@@ -130,9 +131,11 @@ export default function FilhoLibraryExperience({
         </section>
 
         <section className="filho-reading-viewer">
-          <iframe
-            src={`${selectedMaterial.arquivo_url}#toolbar=0`}
+          <AuthenticatedPdfFrame
             title={selectedMaterial.titulo}
+            url={selectedMaterial.arquivo_url}
+            storagePath={selectedMaterial.storage_path}
+            tenantId={tenantId}
           />
         </section>
 

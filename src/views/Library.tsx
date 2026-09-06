@@ -31,6 +31,7 @@ import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { FundamentosAcervo } from '../components/library/FundamentosAcervo';
 import FilhoLibraryExperience from '../components/filho/FilhoLibraryExperience';
+import { AuthenticatedPdfFrame } from '../components/library/AuthenticatedPdfFrame';
 
 interface LibraryProps {
   user: any;
@@ -447,10 +448,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
             {/* PDF Viewer (Iframe) */}
             <AppDemoCard className="relative aspect-[16/9] w-full min-w-0 max-w-full overflow-hidden p-0">
-              <iframe 
-                src={`${selectedMaterial.arquivo_url}#toolbar=0`}
-                className="w-full h-full border-none"
+              <AuthenticatedPdfFrame
                 title={selectedMaterial.titulo}
+                url={selectedMaterial.arquivo_url}
+                storagePath={selectedMaterial.storage_path}
+                tenantId={effectiveTenantId}
+                className="h-full w-full border-none"
               />
               <div className="absolute right-2 top-2 max-w-[calc(100%-1rem)] sm:right-4 sm:top-4">
                 <div className="rounded-lg border border-[#1E242B] bg-[#13171D]/90 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#94A3B8] backdrop-blur-sm sm:px-3 sm:py-2 sm:text-[10px]">
