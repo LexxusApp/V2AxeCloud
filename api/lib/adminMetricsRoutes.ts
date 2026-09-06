@@ -11,6 +11,7 @@ import { safeErrorMessage } from "./safeError.js";
 import { insertConversionEvent } from './publicConversionTracking.js';
 import { resolveClientIp } from "./clientIp.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./pwnedPassword.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -294,6 +295,7 @@ export function registerAdminMetricsRoutes(app: Express, { supabaseAdmin }: Deps
       if (passwordCheck.ok === false) {
         return res.status(400).json({ error: passwordCheck.message });
       }
+      await rejectCompromisedPassword(String(password));
 
       const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,

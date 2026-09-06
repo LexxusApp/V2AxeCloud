@@ -49,6 +49,7 @@ import {
 import type { AdminConsoleRouteDeps } from "./lib/adminConsoleDeps.js";
 import { generateSecureAccessPassword } from "./lib/accessPassword.js";
 import { validateStrongPassword } from "../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./lib/pwnedPassword.js";
 import { registerDiretorioClaimAdminRoutes } from "./lib/diretorioClaimAdminRoutes.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
@@ -639,6 +640,7 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       return res.status(400).json({ error: passwordCheck.message });
     }
     try {
+      await rejectCompromisedPassword(password);
       const demoDays = Math.min(90, Math.max(3, Number((req.body || {}).demoDays || 14)));
       const expires = new Date();
       expires.setDate(expires.getDate() + demoDays);

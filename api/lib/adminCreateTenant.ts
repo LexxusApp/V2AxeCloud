@@ -9,6 +9,7 @@ import { createAuditLog } from "./createAuditLog.js";
 import { logEvent } from "./auditLog.js";
 import { safeErrorMessage } from "./safeError.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./pwnedPassword.js";
 
 export type CreateTenantBody = {
   email?: string;
@@ -41,6 +42,7 @@ export async function runCreateTenant(
   if (passwordCheck.ok === false) {
     return { status: 400, body: { error: passwordCheck.message } };
   }
+  await rejectCompromisedPassword(password);
 
   let targetUser;
   const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

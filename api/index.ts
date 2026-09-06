@@ -118,6 +118,7 @@ import { getRuntimePublicConfig, injectRuntimeConfigHtml } from "./lib/runtimePu
 import { PUBLIC_PRERENDER_PATHS } from "../src/constants/seoPublicPages.js";
 import { childEligibleForDueMonth } from "./lib/mensalidadeEligibility.js";
 import { validateStrongPassword } from "../lib/passwordPolicy.js";
+import { rejectCompromisedPassword } from "./lib/pwnedPassword.js";
 import { SAFE_IMAGE_MIME_TYPES, assertSafeImageBuffer } from "./lib/imageUpload.js";
 import { isAllowedGalleryMime } from "./lib/mediaUpload.js";
 import { verifyCompletedGalleryUpload } from "./lib/galleryUploadSecurity.js";
@@ -3130,6 +3131,7 @@ async function startServer() {
       if (passwordCheck.ok === false) {
         return res.status(400).json({ error: passwordCheck.message });
       }
+      await rejectCompromisedPassword(String(password || ""));
 
       // 2. Create or Update User in Supabase Auth
       let targetUser;

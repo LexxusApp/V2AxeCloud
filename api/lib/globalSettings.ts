@@ -9,8 +9,9 @@ export async function loadGlobalSettingPayload(
 ): Promise<unknown | null> {
   const modern = await supabaseAdmin.from("global_settings").select("data").eq("id", id).maybeSingle();
   if (!modern.error) {
-    const payload = pickSettingsPayload(modern.data as SettingsRow | null);
-    if (payload != null) return payload;
+    // Schema atual confirmado: `data`. Uma linha ausente é um resultado válido
+    // e deve usar o fallback do chamador, sem consultar a coluna legada `value`.
+    return pickSettingsPayload(modern.data as SettingsRow | null);
   }
 
   const legacyDual = await supabaseAdmin.from("global_settings").select("data, value").eq("id", id).maybeSingle();

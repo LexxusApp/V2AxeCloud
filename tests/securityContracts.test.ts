@@ -170,6 +170,19 @@ test("chave privada do Gemini permanece somente no servidor", () => {
   assert.match(visionServer, /new GoogleGenerativeAI\(apiKey\)/);
 });
 
+test("todos os fluxos de criação de conta rejeitam senhas conhecidas em vazamentos", () => {
+  for (const path of [
+    "api/lib/tenantOnboarding.ts",
+    "api/lib/adminCreateTenant.ts",
+    "api/lib/adminMetricsRoutes.ts",
+    "api/admin-console-routes.ts",
+    "api/index.ts",
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /rejectCompromisedPassword\s*\(/, path);
+  }
+});
+
 test("boot do servidor não promove administradores a partir de e-mail", () => {
   for (const path of ["api/index.ts", "server.ts"]) {
     const source = readFileSync(path, "utf8");
