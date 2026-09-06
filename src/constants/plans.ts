@@ -72,6 +72,10 @@ export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
 export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'chat' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'suporte' | 'subscription' | 'caixinha' | 'saude_axe' | 'atendimentos';
 
 export const hasPlanAccess = (plan: string | undefined, feature: string, isAdminGlobal: boolean = false): boolean => {
+  // A Biblioteca faz parte da experiência base de toda casa, inclusive durante o teste.
+  // Manter esta exceção na regra central evita que menu, rota e conteúdo a bloqueiem
+  // de formas diferentes quando o plano ainda está carregando ou tem um slug legado.
+  if (feature === 'library') return true;
   if (isAdminGlobal) return true;
   if (!plan) return PLAN_FEATURES.premium.includes(feature);
 
