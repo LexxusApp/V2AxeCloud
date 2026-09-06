@@ -7,6 +7,7 @@ export type DiretorioMapPoint = {
   lat: number;
   lng: number;
   verificada: boolean;
+  gerenciada: boolean;
   instagramUrl: string | null;
 };
 
@@ -23,6 +24,7 @@ type DiretorioMapPayloadV2 = {
   a?: number[];
   o?: number[];
   r?: number[];
+  m?: number[];
   i?: string[];
 };
 
@@ -49,6 +51,7 @@ function expandCompactMap(payload: DiretorioMapPayloadV2): DiretorioMapPoint[] {
   const lats = payload.a || [];
   const lngs = payload.o || [];
   const verified = payload.r || [];
+  const managed = payload.m || [];
   const instagram = payload.i || [];
   const points: DiretorioMapPoint[] = [];
   for (let i = 0; i < slugs.length; i += 1) {
@@ -61,6 +64,7 @@ function expandCompactMap(payload: DiretorioMapPayloadV2): DiretorioMapPoint[] {
       lat: (lats[i] || 0) / 1e5,
       lng: (lngs[i] || 0) / 1e5,
       verificada: verified[i] === 1,
+      gerenciada: managed[i] === 1 || verified[i] === 1,
       instagramUrl: instagram[i] || null,
     };
     if (isMapPoint(candidate)) points.push(candidate);
@@ -81,7 +85,12 @@ export async function fetchDiretorioMapPoints(signal?: AbortSignal): Promise<Dir
     return points;
   }
   const points = Array.isArray(payload.points)
-    ? payload.points.filter(isMapPoint).map((point) => ({ ...point, verificada: point.verificada === true, instagramUrl: point.instagramUrl || null }))
+    ? payload.points.filter(isMapPoint).map((point) => ({
+        ...point,
+        verificada: point.verificada === true,
+        gerenciada: point.gerenciada === true || point.verificada === true,
+        instagramUrl: point.instagramUrl || null,
+      }))
     : [];
   if (points.length === 0) throw new Error('Mapa sem coordenadas válidas');
   return points;

@@ -21,7 +21,11 @@ function escapeHtml(value: string) {
 }
 
 function popupHtml(point: DiretorioMapPoint) {
-  const situation = point.verificada ? 'Perfil verificado' : 'Casa mapeada';
+  const situation = point.verificada
+    ? 'Perfil verificado'
+    : point.gerenciada
+      ? 'Casa no AxéCloud'
+      : 'Casa mapeada';
   const igLink = point.instagramUrl
     ? `<a class="axe-map-profile__social" href="${escapeHtml(point.instagramUrl)}" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
@@ -140,19 +144,20 @@ const CanvasPointsLayer = L.Layer.extend({
     const visible = this._points.filter((point) => bounds.contains([point.lat, point.lng]));
     const renderPoint = (point: DiretorioMapPoint) => {
       const pt = map.latLngToContainerPoint([point.lat, point.lng]);
-      const radius = point.verificada ? 7 : zoom >= 13 ? 5.5 : 4.5;
+      const highlighted = point.verificada || point.gerenciada;
+      const radius = highlighted ? 7 : zoom >= 13 ? 5.5 : 4.5;
       ctx.save();
-      ctx.shadowColor = point.verificada ? 'rgba(16, 185, 129, .42)' : 'rgba(91, 62, 0, .24)';
-      ctx.shadowBlur = point.verificada ? 12 : 5;
+      ctx.shadowColor = highlighted ? 'rgba(16, 185, 129, .42)' : 'rgba(91, 62, 0, .24)';
+      ctx.shadowBlur = highlighted ? 12 : 5;
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = point.verificada ? '#16865f' : '#e5ae12';
+      ctx.fillStyle = highlighted ? '#16865f' : '#e5ae12';
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.lineWidth = point.verificada ? 2.5 : 1.5;
-      ctx.strokeStyle = point.verificada ? '#ffffff' : '#fff8e2';
+      ctx.lineWidth = highlighted ? 2.5 : 1.5;
+      ctx.strokeStyle = highlighted ? '#ffffff' : '#fff8e2';
       ctx.stroke();
-      if (point.verificada) {
+      if (highlighted) {
         ctx.beginPath();
         ctx.moveTo(pt.x - 2.4, pt.y);
         ctx.lineTo(pt.x - 0.4, pt.y + 2.2);
@@ -189,7 +194,7 @@ const CanvasPointsLayer = L.Layer.extend({
       }
       const lat = group.reduce((sum, point) => sum + point.lat, 0) / group.length;
       const lng = group.reduce((sum, point) => sum + point.lng, 0) / group.length;
-      const verifiedCount = group.reduce((sum, point) => sum + (point.verificada ? 1 : 0), 0);
+      const verifiedCount = group.reduce((sum, point) => sum + (point.verificada || point.gerenciada ? 1 : 0), 0);
       const pt = map.latLngToContainerPoint([lat, lng]);
       const radius = Math.min(29, 14 + Math.log2(group.length) * 2.2);
 
@@ -369,7 +374,7 @@ export function DirectoryCoverageMap({
     );
   };
 
-  const verifiedCount = points.filter((p) => p.verificada).length;
+  const managedCount = points.filter((p) => p.verificada || p.gerenciada).length;
 
   return (
     <section
@@ -403,7 +408,7 @@ export function DirectoryCoverageMap({
               <span className="h-2.5 w-2.5 rounded-full border-2 border-[#E5AE12] bg-[#153d2d]" /> Agrupamentos
             </span>
             <span className="ml-3 inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border border-white bg-[#16865f] shadow-sm" /> {verifiedCount.toLocaleString('pt-BR')} verificadas
+              <span className="h-2.5 w-2.5 rounded-full border border-white bg-[#16865f] shadow-sm" /> {managedCount.toLocaleString('pt-BR')} no AxéCloud
             </span>
           </div>
         </div>

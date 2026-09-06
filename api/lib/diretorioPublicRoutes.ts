@@ -160,6 +160,7 @@ function mapRow(row: Record<string, unknown>) {
     longitude: hasCoords ? longitude : null,
     coordinateSource: hasCoords ? String(row.coordinate_source || "google_maps_url") : null,
     verificada: Boolean(row.verified_at),
+    gerenciada: Boolean(row.claimed_by_tenant_id),
     indexable: isDiretorioListingIndexable(row),
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
@@ -391,7 +392,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const data = await fetchAllTerreirosRows(
         sb,
         TABLE,
-        "nome, endereco, link_maps, instagram_url, slug, cidade, estado, tipo, latitude, longitude, verified_at",
+        "nome, endereco, link_maps, instagram_url, slug, cidade, estado, tipo, latitude, longitude, claimed_by_tenant_id, verified_at",
       );
       const rows = (data || [])
         .filter((row) => isDiretorioListingPublishable(row))
@@ -412,6 +413,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         a: rows.map((row) => Math.round(Number(row.latitude) * 100000)),
         o: rows.map((row) => Math.round(Number(row.longitude) * 100000)),
         r: rows.map((row) => (row.verificada ? 1 : 0)),
+        m: rows.map((row) => (row.gerenciada ? 1 : 0)),
         i: rows.map((row) => row.instagramUrl || ""),
       });
     } catch (error: unknown) {
