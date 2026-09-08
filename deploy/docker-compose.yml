@@ -11,6 +11,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.landing
+      secrets:
+        - axecloud_build_env
       args:
         GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
         BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
@@ -228,6 +230,10 @@ networks:
   web:
   evolution_internal:
     internal: true
+
+secrets:
+  axecloud_build_env:
+    file: ../.env
 
 volumes:
   evolution_pg:

@@ -12,7 +12,10 @@ ENV GOOGLE_SITE_VERIFICATION=$GOOGLE_SITE_VERIFICATION \
     BING_SITE_VERIFICATION=$BING_SITE_VERIFICATION \
     VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-RUN npm run build:landing
+RUN --mount=type=secret,id=axecloud_build_env,required=true \
+    cp /run/secrets/axecloud_build_env .env && \
+    npm run build:landing && \
+    rm -f .env
 
 FROM nginx:1.27-alpine
 RUN apk upgrade --no-cache
