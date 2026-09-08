@@ -20,7 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
 <link rel="preload" href="/diretorio-cidades.json" as="fetch" crossorigin />
-<link rel="preload" href="/api/v1/public/diretorio/mapa" as="fetch" crossorigin />
+<link rel="preload" href="/terreiros/mapa.json" as="fetch" crossorigin />
 <style>
 /* ═══ O AMANHECER NO BARRACÃO — tema claro, porteira de mariwo ═══ */
 :root {
@@ -998,27 +998,33 @@ async function carregaPontosMapa() {
     totaisMapa = data.t || data.totals || totaisMapa;
   };
 
+  const revalidaEmSegundoPlano = () => {
+    void fetch(MAPA_URL, { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) return;
+        const clone = r.clone();
+        const fresh = await r.json();
+        applyPayload(fresh);
+        if (window.caches) {
+          const cache = await caches.open(MAPA_CACHE);
+          await cache.put(MAPA_URL, clone);
+        }
+        if (!estadoAtual && !cidadeAtual && !termo) {
+          aplicaPontosNoMapa(todosPontos, { ajustarVista: false });
+        }
+      })
+      .catch(() => undefined);
+  };
+
   try {
-    // Cache no browser: 2ª visita abre o mapa sem esperar a rede.
+    // Cache no browser: visitas seguintes abrem o mapa sem esperar a rede.
     if (window.caches) {
       try {
         const cache = await caches.open(MAPA_CACHE);
         const cached = await cache.match(MAPA_URL);
         if (cached) {
           applyPayload(await cached.json());
-          // Revalida em segundo plano sem bloquear a UI.
-          void fetch(MAPA_URL)
-            .then(async (r) => {
-              if (!r.ok) return;
-              const clone = r.clone();
-              const fresh = await r.json();
-              applyPayload(fresh);
-              await cache.put(MAPA_URL, clone);
-              if (!estadoAtual && !cidadeAtual && !termo) {
-                aplicaPontosNoMapa(todosPontos, { ajustarVista: false });
-              }
-            })
-            .catch(() => undefined);
+          revalidaEmSegundoPlano();
           return;
         }
       } catch {
@@ -1026,8 +1032,12 @@ async function carregaPontosMapa() {
       }
     }
 
-    let r = await fetch(MAPA_URL, { cache: "no-store" });
-    if (!r.ok) r = await fetch(MAPA_FALLBACK_URL);
+    // Primeira visita: o JSON estático é servido pelo nginx e chega muito antes
+    // da consulta completa ao Supabase. A API atualiza os pontos depois, sem
+    // segurar a primeira pintura dos pins.
+    let r = await fetch(MAPA_FALLBACK_URL, { cache: "force-cache" });
+    const veioDoEstatico = r.ok;
+    if (!r.ok) r = await fetch(MAPA_URL, { cache: "no-store" });
     if (!r.ok) throw new Error("mapa " + r.status);
     const clone = window.caches ? r.clone() : null;
     const data = await r.json();
@@ -1035,6 +1045,7 @@ async function carregaPontosMapa() {
     if (clone && window.caches) {
       void caches.open(MAPA_CACHE).then((cache) => cache.put(MAPA_URL, clone)).catch(() => undefined);
     }
+    if (veioDoEstatico) revalidaEmSegundoPlano();
   } catch (e) {
     console.warn("mapa.json indisponível", e);
   }

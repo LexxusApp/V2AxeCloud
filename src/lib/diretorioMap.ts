@@ -73,9 +73,11 @@ function expandCompactMap(payload: DiretorioMapPayloadV2): DiretorioMapPoint[] {
 }
 
 export async function fetchDiretorioMapPoints(signal?: AbortSignal): Promise<DiretorioMapPoint[]> {
-  let response = await fetch('/api/v1/public/diretorio/mapa', { signal, cache: 'no-store' });
+  // O snapshot estático sai no build e é servido diretamente pelo nginx. Ele
+  // evita segurar a primeira pintura enquanto a API pagina milhares de linhas.
+  let response = await fetch('/terreiros/mapa.json', { signal, cache: 'force-cache' });
   if (!response.ok) {
-    response = await fetch('/terreiros/mapa.json', { signal });
+    response = await fetch('/api/v1/public/diretorio/mapa', { signal, cache: 'no-store' });
   }
   if (!response.ok) throw new Error(`Mapa respondeu ${response.status}`);
   const payload = (await response.json()) as DiretorioMapPayloadV1 & DiretorioMapPayloadV2;
