@@ -5,6 +5,10 @@ import { getBearerToken } from "./requireAuth.js";
 import { safeErrorMessage } from "./safeError.js";
 import { sendMetaCloudTemplate } from "./metaCloudSend.js";
 import { runSafeGrowthOutreachTick } from "./growthSafeOutreach.js";
+import { fetchAllTerreirosRows } from "../../lib/diretorioQuery.js";
+import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
+import { isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
+import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 
 type GrowthDeps = {
   supabaseAdmin: SupabaseClient;
@@ -27,6 +31,8 @@ type QueueInput = {
 const INITIAL_TEMPLATE = "axecloud_prospeccao_inicial";
 const FOLLOWUP_1_TEMPLATE = "axecloud_prospeccao_retorno_1";
 const FOLLOWUP_2_TEMPLATE = "axecloud_prospeccao_retorno_final";
+const DIRECTORY_SELECT = "nome,endereco,telefone,foto_url,owner_photo_url,link_maps,instagram_url,cidade,estado,bairro,tipo,slug,latitude,longitude,claimed_by_tenant_id,verified_at,gira_horarios";
+let directoryCache: { expiresAt: number; items: Record<string, unknown>[] } | null = null;
 
 function normalizePhone(value: unknown): string {
   let digits = String(value || "").replace(/\D/g, "");
@@ -80,6 +86,72 @@ function toClientQueue(row: any) {
 }
 
 export function registerGrowthProspectingRoutes(app: Express, deps: GrowthDeps) {
+  app.get("/api/admin-console/growth/directory", async (req, res) => {
+    if (!(await requireGrowthAdmin(deps, req, res))) return;
+    try {
+      if (directoryCache && directoryCache.expiresAt > Date.now()) {
+        return res.json({ items: directoryCache.items, cached: true });
+      }
+
+      const [rows, conversations] = await Promise.all([
+        fetchAllTerreirosRows(deps.supabaseAdmin, "terreiros_diretorio", DIRECTORY_SELECT),
+        fetchAllTerreirosRows(deps.supabaseAdmin, "admin_whatsapp_conversations", "phone_e164"),
+      ]);
+      const confirmedPhones = new Set(
+        conversations.map((row) => normalizePhone(row.phone_e164)).filter(Boolean),
+      );
+      const items = rows
+        .filter((row) => {
+          const latitude = Number(row.latitude);
+          const longitude = Number(row.longitude);
+          return resolveDiretorioTipo(row.tipo, row.nome) === "terreiro" &&
+            isDiretorioListingPublishable(row) &&
+            Number.isFinite(latitude) && Number.isFinite(longitude) &&
+            isPlausibleDiretorioCoordinate(latitude, longitude);
+        })
+        .map((row) => {
+          const phone = normalizePhone(row.telefone);
+          const isBrazilianMobile = /^55\d{2}9\d{8}$/.test(phone);
+          const slug = clean(row.slug);
+          return {
+            slug,
+            nome: clean(row.nome),
+            endereco: clean(row.endereco, 500) || null,
+            telefone: clean(row.telefone, 40) || null,
+            fotoUrl: row.owner_photo_url
+              ? clean(row.owner_photo_url, 900)
+              : row.foto_url && slug
+                ? `https://axecloud.com.br/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}?v=2`
+                : null,
+            linkMaps: clean(row.link_maps, 900) || null,
+            instagramUrl: clean(row.instagram_url, 900) || null,
+            cidade: clean(row.cidade, 100) || null,
+            estado: clean(row.estado, 2).toUpperCase() || null,
+            bairro: clean(row.bairro, 140) || null,
+            tipo: "terreiro",
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            verificada: Boolean(row.verified_at),
+            gerenciada: Boolean(row.claimed_by_tenant_id),
+            horariosGira: Array.isArray(row.gira_horarios) ? row.gira_horarios : [],
+            perfilUrl: slug ? `https://axecloud.com.br/terreiro/${encodeURIComponent(slug)}` : null,
+            whatsappStatus: phone && confirmedPhones.has(phone)
+              ? "confirmado"
+              : isBrazilianMobile
+                ? "compativel"
+                : phone
+                  ? "incerto"
+                  : "sem_numero",
+          };
+        });
+
+      directoryCache = { expiresAt: Date.now() + 5 * 60_000, items };
+      res.json({ items, cached: false });
+    } catch (error) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar o mapa comercial") });
+    }
+  });
+
   app.get("/api/admin-console/growth/status", async (req, res) => {
     if (!(await requireGrowthAdmin(deps, req, res))) return;
     const enabled = String(process.env.GROWTH_PROSPECTING_ENABLED || "false").toLowerCase() === "true";
