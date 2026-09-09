@@ -20,6 +20,7 @@ import {
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
+import { showHouseToast } from '../lib/houseToast';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
@@ -74,6 +75,8 @@ export default function Inventory({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInventory();
@@ -154,9 +157,10 @@ export default function Inventory({
         quantidade_minima: 5
       });
       fetchInventory();
+      showHouseToast(editingProduct ? 'Item atualizado com sucesso' : 'Item adicionado ao almoxarifado');
     } catch (error) {
       console.error('Error adding item:', error);
-      alert(editingProduct ? 'Erro ao atualizar item.' : 'Erro ao adicionar item ao almoxarifado.');
+      showHouseToast(editingProduct ? 'Erro ao atualizar item.' : 'Erro ao adicionar item ao almoxarifado.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -191,8 +195,11 @@ export default function Inventory({
   };
 
   async function deleteItem(id: string) {
+    if (deletingId) return;
     if (!confirm('Deseja realmente excluir este item?')) return;
-    
+
+    setDeletingId(id);
+    showHouseToast('Excluindo item…', 'info');
     try {
       const { error } = await supabase
         .from('almoxarifado')
@@ -201,18 +208,22 @@ export default function Inventory({
 
       if (error) throw error;
       fetchInventory();
+      showHouseToast('Item excluído do almoxarifado');
     } catch (error) {
       console.error('Error deleting item:', error);
-      alert('Erro ao excluir item.');
+      showHouseToast('Erro ao excluir item.', 'error');
+    } finally {
+      setDeletingId(null);
     }
   }
 
   const adjustStock = async (id: string, delta: number) => {
+    if (adjustingId) return;
     const product = products.find(p => p.id === id);
     if (!product) return;
 
     const newQty = Math.max(0, product.quantidade_atual + delta);
-    
+    setAdjustingId(id);
     try {
       const { error } = await supabase
         .from('almoxarifado')
@@ -221,11 +232,15 @@ export default function Inventory({
 
       if (error) throw error;
       
-      setProducts(prev => prev.map(p => 
+      setProducts(prev => prev.map(p =>
         p.id === id ? { ...p, quantidade_atual: newQty } : p
       ));
+      showHouseToast(`${product.item}: estoque atualizado para ${newQty}`);
     } catch (error) {
       console.error('Error updating stock:', error);
+      showHouseToast('Não foi possível atualizar o estoque.', 'error');
+    } finally {
+      setAdjustingId(null);
     }
   };
 
@@ -450,18 +465,22 @@ export default function Inventory({
                         <button
                           type="button"
                           onClick={() => void adjustStock(product.id, -1)}
+                          disabled={adjustingId !== null}
+                          aria-busy={adjustingId === product.id}
                           className="grid h-10 w-10 place-items-center rounded-xl border border-[#303844] bg-[#171C22] text-[#94A3B8]"
                           aria-label={`Retirar uma unidade de ${product.item}`}
                         >
-                          <Minus className="h-4 w-4" />
+                          {adjustingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
                         </button>
                         <button
                           type="button"
                           onClick={() => void adjustStock(product.id, 1)}
+                          disabled={adjustingId !== null}
+                          aria-busy={adjustingId === product.id}
                           className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-[#080A0D]"
                           aria-label={`Adicionar uma unidade de ${product.item}`}
                         >
-                          <Plus className="h-4 w-4" />
+                          {adjustingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                         </button>
                         {isAdmin ? (
                           <button
@@ -517,21 +536,25 @@ export default function Inventory({
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => void adjustStock(product.id, -1)}
+                                <button
+                                  type="button"
+                                  onClick={() => void adjustStock(product.id, -1)}
+                                  disabled={adjustingId !== null}
+                                  aria-busy={adjustingId === product.id}
                                 className="grid h-9 w-9 place-items-center rounded-xl border border-[#303844] bg-[#171C22] text-[#94A3B8] transition hover:text-white"
                                 aria-label={`Retirar uma unidade de ${product.item}`}
                               >
-                                <Minus className="h-4 w-4" />
+                                  {adjustingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => void adjustStock(product.id, 1)}
+                                <button
+                                  type="button"
+                                  onClick={() => void adjustStock(product.id, 1)}
+                                  disabled={adjustingId !== null}
+                                  aria-busy={adjustingId === product.id}
                                 className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-[#080A0D]"
                                 aria-label={`Adicionar uma unidade de ${product.item}`}
                               >
-                                <Plus className="h-4 w-4" />
+                                  {adjustingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                               </button>
                               {isAdmin ? (
                                 <>
@@ -546,10 +569,12 @@ export default function Inventory({
                                   <button
                                     type="button"
                                     onClick={() => void deleteItem(product.id)}
+                                    disabled={deletingId !== null}
+                                    aria-busy={deletingId === product.id}
                                     className="grid h-9 w-9 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/30 text-rose-300 transition hover:bg-rose-950/50"
                                     aria-label={`Excluir ${product.item}`}
                                   >
-                                    <X className="h-4 w-4" />
+                                    {deletingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                                   </button>
                                 </>
                               ) : null}

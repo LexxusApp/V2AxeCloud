@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../../constants/plans';
 import { AppPrimaryButton, appInputClass } from '../ui/appDemoUi';
+import { showHouseToast } from '../../lib/houseToast';
 
 type GuestStatus = 'Confirmado' | 'Pendente' | 'Check-in' | 'Recusado';
 
@@ -59,6 +60,8 @@ export function EventGuestsInline({
   const [newGuestName, setNewGuestName] = useState('');
   const [newGuestPhone, setNewGuestPhone] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [addingGuest, setAddingGuest] = useState(false);
+  const [busyGuestId, setBusyGuestId] = useState<string | null>(null);
 
   const isPremium = hasPremiumTierFeatures(tenantPlan);
   const hasWhatsApp = hasPlanAccess(tenantPlan, 'whatsapp_invites', isGlobalAdmin);
@@ -103,7 +106,10 @@ export function EventGuestsInline({
   }, [fetchGuests]);
 
   async function addGuest() {
-    if (!newGuestName.trim()) return;
+    if (!newGuestName.trim() || addingGuest) return;
+    const guestName = newGuestName.trim();
+    setAddingGuest(true);
+    showHouseToast(newGuestPhone.trim() ? 'Adicionando convidado e enviando convite…' : 'Adicionando convidado…', 'info');
     try {
       const { data, error } = await supabase
         .from('convidados_eventos')
@@ -147,17 +153,27 @@ export function EventGuestsInline({
       }
       setNewGuestName('');
       setNewGuestPhone('');
+      showHouseToast(newGuestPhone.trim() ? `${guestName} foi adicionado; convite processado` : `${guestName} foi adicionado à gira`);
     } catch {
-      alert('Erro ao adicionar convidado.');
+      showHouseToast('Erro ao adicionar convidado.', 'error');
+    } finally {
+      setAddingGuest(false);
     }
   }
 
   async function updateGuestStatus(guestId: string, status: GuestStatus) {
+    if (busyGuestId) return;
+    setBusyGuestId(guestId);
+    showHouseToast('Atualizando presença…', 'info');
     try {
-      await supabase.from('convidados_eventos').update({ status }).eq('id', guestId);
+      const { error } = await supabase.from('convidados_eventos').update({ status }).eq('id', guestId);
+      if (error) throw error;
       setGuests(guests.map((g) => (g.id === guestId ? { ...g, status } : g)));
+      showHouseToast(status === 'Check-in' ? 'Presença confirmada' : 'Situação do convidado atualizada');
     } catch {
-      alert('Erro ao atualizar status.');
+      showHouseToast('Erro ao atualizar status.', 'error');
+    } finally {
+      setBusyGuestId(null);
     }
   }
 
@@ -168,11 +184,18 @@ export function EventGuestsInline({
         ? `Remover ${guest.nome}? O link de confirmação já enviado no WhatsApp deixa de funcionar.`
         : `Remover ${guest?.nome || 'este convidado'}?`;
     if (!window.confirm(warn)) return;
+    if (busyGuestId) return;
+    setBusyGuestId(guestId);
+    showHouseToast('Removendo convidado…', 'info');
     try {
-      await supabase.from('convidados_eventos').delete().eq('id', guestId);
+      const { error } = await supabase.from('convidados_eventos').delete().eq('id', guestId);
+      if (error) throw error;
       setGuests(guests.filter((g) => g.id !== guestId));
+      showHouseToast('Convidado removido da gira');
     } catch {
-      alert('Erro ao remover.');
+      showHouseToast('Erro ao remover convidado.', 'error');
+    } finally {
+      setBusyGuestId(null);
     }
   }
 
@@ -253,8 +276,9 @@ export function EventGuestsInline({
             className={cn(appInputClass, 'flex-1 py-2 text-sm')}
           />
         ) : null}
-        <AppPrimaryButton type="button" className="shrink-0" onClick={() => void addGuest()}>
-          <UserPlus className="h-4 w-4" />
+        <AppPrimaryButton type="button" disabled={addingGuest} className="shrink-0" onClick={() => void addGuest()}>
+          {addingGuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          {addingGuest ? 'Adicionando…' : 'Adicionar'}
         </AppPrimaryButton>
       </div>
       {guests.length > 3 ? (
@@ -303,18 +327,22 @@ export function EventGuestsInline({
                   <button
                     type="button"
                     onClick={() => void updateGuestStatus(guest.id, 'Check-in')}
+                    disabled={busyGuestId !== null}
+                    aria-busy={busyGuestId === guest.id}
                     className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary"
                   >
-                    Check-in
+                    {busyGuestId === guest.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Check-in'}
                   </button>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => void removeGuest(guest.id)}
+                  disabled={busyGuestId !== null}
+                  aria-busy={busyGuestId === guest.id}
                   className="rounded p-1 text-gray-500 hover:text-red-400"
                   aria-label="Remover"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  {busyGuestId === guest.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                 </button>
               </div>
             </div>

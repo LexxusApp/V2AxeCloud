@@ -29,6 +29,7 @@ import BodyPortal from '../components/BodyPortal';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import { showHouseToast } from '../lib/houseToast';
 import { FundamentosAcervo } from '../components/library/FundamentosAcervo';
 import FilhoLibraryExperience from '../components/filho/FilhoLibraryExperience';
 import { AuthenticatedPdfFrame } from '../components/library/AuthenticatedPdfFrame';
@@ -179,6 +180,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const [loading, setLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingMaterialId, setDeletingMaterialId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
@@ -244,16 +246,16 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     e.preventDefault();
 
     if (!newMaterial.file) {
-      alert('Por favor, selecione um arquivo PDF.');
+      showHouseToast('Selecione um arquivo PDF.', 'error');
       return;
     }
     if (!newMaterial.titulo) {
-      alert('Por favor, insira um título para o material.');
+      showHouseToast('Informe um título para o material.', 'error');
       return;
     }
 
     if (!effectiveTenantId) {
-      alert('Erro: ID do terreiro não encontrado. Tente recarregar a página.');
+      showHouseToast('Terreiro não identificado. Recarregue a página.', 'error');
       return;
     }
 
@@ -318,22 +320,26 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       setIsUploadModalOpen(false);
       setNewMaterial({ titulo: '', categoria: 'Cantigas', file: null });
       fetchMaterials();
+      showHouseToast('Material publicado na biblioteca');
     } catch (error: any) {
       console.error('Error uploading material:', error);
-      alert('Erro ao subir material: ' + (error.message || 'Desconhecido'));
+      showHouseToast(`Erro ao publicar material: ${error.message || 'tente novamente'}`, 'error');
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (id: string, storagePath: string) => {
+    if (deletingMaterialId) return;
     if (!confirm('Deseja realmente excluir este material?')) return;
 
     if (!effectiveTenantId) {
-      alert('Terreiro não identificado.');
+      showHouseToast('Terreiro não identificado.', 'error');
       return;
     }
 
+    setDeletingMaterialId(id);
+    showHouseToast('Excluindo material…', 'info');
     try {
       const res = await authFetch(
         `/api/v1/library/material/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(effectiveTenantId)}`,
@@ -342,9 +348,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Erro ao excluir material');
       fetchMaterials();
+      showHouseToast('Material excluído da biblioteca');
     } catch (error) {
       console.error('Error deleting material:', error);
-      alert('Erro ao excluir material.');
+      showHouseToast('Erro ao excluir material.', 'error');
+    } finally {
+      setDeletingMaterialId(null);
     }
   };
 
@@ -690,10 +699,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(material.id, (material as any).storage_path)}
-                            className="shrink-0 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2 text-rose-300 transition hover:bg-rose-950/60"
+                            disabled={deletingMaterialId !== null}
+                            aria-busy={deletingMaterialId === material.id}
+                            className="shrink-0 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2 text-rose-300 transition hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
                             aria-label={`Excluir ${material.titulo}`}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            {deletingMaterialId === material.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                           </button>
                         )}
                       </div>

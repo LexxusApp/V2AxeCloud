@@ -254,10 +254,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         result.skippedNoCpf ? `${result.skippedNoCpf} sem CPF` : null,
       ].filter(Boolean);
 
-      alert(`Acessos enfileirados.\n\n${parts.join(' · ')}\n\nCada pessoa entra com Registro + 6 dígitos do CPF.`);
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(`Acessos enfileirados · ${parts.join(' · ')}`);
     } catch (error) {
       console.error('[Children] resend dados acesso WA:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.');
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.', 'error');
     } finally {
       setResendingWelcome(false);
     }
@@ -299,7 +301,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       showHouseToast(`Acesso enviado · ${childName} entra com Registro + 6 dígitos do CPF`);
     } catch (error) {
       console.error('[Children] send credentials WA:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.');
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao enviar acesso via WhatsApp.', 'error');
     } finally {
       setSendingCredentialsId(null);
     }
@@ -326,10 +329,13 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       if (!response.ok) {
         throw new Error(result.error || 'Erro ao excluir filho de santo');
       }
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(`${name} foi removido da corrente`);
     } catch (error) {
       console.error('Error deleting child:', error);
       setChildren(snapshot);
-      alert(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.');
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -558,7 +564,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           ) : (
             <MessageCircle className="h-3.5 w-3.5" aria-hidden />
           )}
-          Enviar acesso
+          {resendingWelcome ? 'Enviando acessos…' : 'Enviar acesso'}
         </button>
         </div>
         <p className="mt-2 text-[11px] font-semibold leading-snug text-[#8E9AAA]">
@@ -873,7 +879,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 >
                   <span className="inline-flex items-center gap-2 text-sm font-bold">
                     {sendingCredentialsId === previewChild.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                    Enviar acesso
+                    {sendingCredentialsId === previewChild.id ? 'Enviando acesso…' : 'Enviar acesso'}
                   </span>
                   <span className="text-[10px] font-semibold leading-snug text-emerald-300/75">
                     Entra com Registro + 6 dígitos do CPF

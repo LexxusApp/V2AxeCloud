@@ -5,6 +5,7 @@ import { ObligationScheduleModal, type ObligationFormData } from '../components/
 import { authFetch } from '../lib/authenticatedFetch';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import { showHouseToast } from '../lib/houseToast';
 
 type Member = { id: string; nome: string; user_id?: string | null };
 type Obligation = { id: string; titulo: string; data: string; hora: string | null; descricao: string; status: string; childId: string; childName: string; pdfPath: string | null };
@@ -76,8 +77,9 @@ export default function Obligations({ user, tenantData, setActiveTab, setSelecte
   }
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (!selectedMemberId) return alert('Selecione o filho de santo.');
+    if (!selectedMemberId) return showHouseToast('Selecione o filho de santo.', 'error');
     setSaving(true);
+    showHouseToast('Registrando obrigação…', 'info');
     try {
       const pdfPath = pdfFile ? await uploadPdf(pdfFile, selectedMemberId) : null;
       const insert: Record<string, unknown> = { titulo: form.titulo.trim(), data: form.data, hora: form.hora, descricao: `${form.descricao.trim()}\n\n=== METADADOS ===\nFILHO_ID:${selectedMemberId}`, tipo: 'Obrigação', lider_id: user.id, tenant_id: tenantId, status_confirmacao: 'Pendente' };
@@ -87,16 +89,19 @@ export default function Obligations({ user, tenantData, setActiveTab, setSelecte
       const member = members.find((entry) => entry.id === selectedMemberId);
       if (form.notifyChild && member?.user_id) await authFetch('/api/push-direct', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ childId: selectedMemberId, title: '🌿 Nova obrigação de Axé', body: `A obrigação “${form.titulo.trim()}” foi registrada para ${formatDate(form.data)}.`, url: '/?tab=obrigacoes' }) }).catch(() => undefined);
       setModalOpen(false); await load();
-    } catch (saveError) { alert(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a obrigação.'); }
+      showHouseToast('Obrigação registrada com sucesso');
+    } catch (saveError) { showHouseToast(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a obrigação.', 'error'); }
     finally { setSaving(false); }
   }
   async function complete(item: Obligation) {
     setBusyId(item.id);
+    showHouseToast('Concluindo obrigação…', 'info');
     try {
       const { error: updateError } = await supabase.from('calendario_axe').update({ status_confirmacao: 'Concluído' }).eq('id', item.id).eq('tenant_id', tenantId);
       if (updateError) throw updateError;
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, status: 'Concluído' } : entry));
-    } catch (completeError) { alert(completeError instanceof Error ? completeError.message : 'Não foi possível concluir a obrigação.'); }
+      showHouseToast('Obrigação marcada como concluída');
+    } catch (completeError) { showHouseToast(completeError instanceof Error ? completeError.message : 'Não foi possível concluir a obrigação.', 'error'); }
     finally { setBusyId(null); }
   }
   async function openPdf(item: Obligation) {
@@ -107,7 +112,7 @@ export default function Obligations({ user, tenantData, setActiveTab, setSelecte
       const response = await authFetch(url);
       if (!response.ok) throw new Error('Não foi possível abrir o documento.');
       const objectUrl = URL.createObjectURL(await response.blob()); window.open(objectUrl, '_blank', 'noopener,noreferrer'); setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000);
-    } catch (pdfError) { alert(pdfError instanceof Error ? pdfError.message : 'Erro ao abrir o documento.'); }
+    } catch (pdfError) { showHouseToast(pdfError instanceof Error ? pdfError.message : 'Erro ao abrir o documento.', 'error'); }
     finally { setOpeningPdf(null); }
   }
   function openMember(item: Obligation) { if (item.childId) { setSelectedChildId(item.childId); setActiveTab('profile'); } }

@@ -364,6 +364,9 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   const [gallerySearch, setGallerySearch] = useState('');
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null);
+  const [sendingAxeId, setSendingAxeId] = useState<string | null>(null);
   const [addAlbumModalOpen, setAddAlbumModalOpen] = useState(false);
 
   const [albumName, setAlbumName] = useState('');
@@ -564,11 +567,14 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   };
 
   const deletePhoto = async (photo: MediaItem) => {
+    if (deletingPhotoId) return;
     const confirmDel = window.confirm(
       `Deseja mesmo remover "${photo.title || photo.file_name}" deste álbum?`,
     );
     if (!confirmDel) return;
 
+    setDeletingPhotoId(photo.id);
+    showToast(setToast, 'Removendo foto…', 'info');
     try {
       const response = await authFetch(
         `/api/v1/gallery/media/${photo.id}?tenantId=${encodeURIComponent(tenantId)}`,
@@ -596,15 +602,20 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
       showToast(setToast, 'Foto removida do álbum.', 'info');
     } catch (error: any) {
       showToast(setToast, error.message || 'Erro ao remover foto', 'error');
+    } finally {
+      setDeletingPhotoId(null);
     }
   };
 
   const deleteAlbum = async (album: AlbumItem) => {
+    if (deletingAlbumId) return;
     const confirmDel = window.confirm(
       `Deseja mesmo remover o álbum "${album.name}" e todas as ${album.media.length} foto(s) da corrente?`,
     );
     if (!confirmDel) return;
 
+    setDeletingAlbumId(album.id);
+    showToast(setToast, 'Removendo álbum…', 'info');
     try {
       const response = await authFetch(
         `/api/v1/gallery/albums/${album.id}?tenantId=${encodeURIComponent(tenantId)}`,
@@ -618,10 +629,15 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
       showToast(setToast, `Álbum "${album.name}" removido.`, 'info');
     } catch (error: any) {
       showToast(setToast, error.message || 'Erro ao remover álbum', 'error');
+    } finally {
+      setDeletingAlbumId(null);
     }
   };
 
   const sendAxe = async (photo: MediaItem) => {
+    if (sendingAxeId) return;
+    setSendingAxeId(photo.id);
+    showToast(setToast, 'Enviando Axé…', 'info');
     try {
       const response = await authFetch(`/api/v1/gallery/media/${photo.id}/axe`, {
         method: 'POST',
@@ -645,6 +661,8 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
       showToast(setToast, `Você enviou vibrações de Axé! ✨`, 'success');
     } catch (error: any) {
       showToast(setToast, error.message || 'Erro ao enviar Axé', 'error');
+    } finally {
+      setSendingAxeId(null);
     }
   };
 
@@ -725,10 +743,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           <button
             type="button"
             onClick={() => void deletePhoto(photo)}
+            disabled={deletingPhotoId !== null}
+            aria-busy={deletingPhotoId === photo.id}
             className="absolute right-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-[#1E242B] bg-black/60 text-zinc-400 transition-all hover:bg-rose-950 hover:text-rose-400"
             title="Remover foto"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            {deletingPhotoId === photo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
           </button>
         )}
 
@@ -751,10 +771,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             <button
               type="button"
               onClick={() => void sendAxe(photo)}
+              disabled={sendingAxeId !== null}
+              aria-busy={sendingAxeId === photo.id}
               className="flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-xl border border-rose-500/10 bg-rose-950/20 px-2.5 py-1.5 font-bold text-rose-400 transition-all hover:bg-rose-950/50 active:scale-95"
             >
-              <Heart className="h-3.5 w-3.5 fill-rose-500/20 text-rose-500" />
-              <span>{photo.likes_count || 0} Axé</span>
+              {sendingAxeId === photo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Heart className="h-3.5 w-3.5 fill-rose-500/20 text-rose-500" />}
+              <span>{sendingAxeId === photo.id ? 'Enviando…' : `${photo.likes_count || 0} Axé`}</span>
             </button>
           </div>
         </div>
@@ -842,10 +864,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                 e.stopPropagation();
                 void deleteAlbum(album);
               }}
+              disabled={deletingAlbumId !== null}
+              aria-busy={deletingAlbumId === album.id}
               className="absolute right-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-[#1E242B] bg-black/60 text-zinc-400 transition-all hover:bg-rose-950 hover:text-rose-400"
               title="Deletar álbum"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              {deletingAlbumId === album.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
               </button>
           )}
         </div>

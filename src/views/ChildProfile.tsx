@@ -11,6 +11,7 @@ import { resolveChildWhatsAppPhone } from '../lib/whatsappPhone';
 import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
 import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
 import BodyPortal from '../components/BodyPortal';
+import { showHouseToast } from '../lib/houseToast';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -341,9 +342,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         whatsapp_phone: resolveChildWhatsAppPhone(result.data),
       });
       setIsEditModalOpen(false);
+      showHouseToast('Dados do membro atualizados');
     } catch (err: any) {
       console.error("Error saving child:", err);
-      alert(err.message || "Erro ao salvar os dados.");
+      showHouseToast(err.message || 'Erro ao salvar os dados.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -369,10 +371,11 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       if (!response.ok) {
         throw new Error(result.error || 'Erro ao excluir filho de santo');
       }
+      showHouseToast(`${child.nome} foi removido da corrente`);
       setActiveTab('children');
     } catch (error) {
       console.error('Error deleting child:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -466,9 +469,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     try {
       const path = await uploadObligationPdfFile(file);
       await patchObligationPdf(eventId, path);
+      showHouseToast('Documento da obrigação atualizado');
     } catch (error) {
       console.error('Error replacing obligation PDF:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao trocar PDF.');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao trocar PDF.', 'error');
     } finally {
       setUpdatingPdfEventId(null);
       setPendingPdfReplaceEventId(null);
@@ -482,9 +486,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     setUpdatingPdfEventId(eventId);
     try {
       await patchObligationPdf(eventId, null);
+      showHouseToast('Documento removido da obrigação');
     } catch (error) {
       console.error('Error removing obligation PDF:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao remover PDF.');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao remover PDF.', 'error');
     } finally {
       setUpdatingPdfEventId(null);
     }
@@ -579,10 +584,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       }
 
       closeObligationModal();
-      alert(successMessage);
+      showHouseToast(successMessage);
     } catch (error) {
       console.error('Error adding obligation:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao agendar obrigação.');
+      showHouseToast(error instanceof Error ? error.message : 'Erro ao agendar obrigação.', 'error');
     } finally {
       setIsSubmittingObligation(false);
     }
@@ -622,9 +627,9 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       console.error('Error saving zelador notes:', err);
       setZeladorNotes(previous);
       if (err.message?.includes('notas_sigilosas') || err.code === 'PGRST204') {
-        alert('ERRO DE BANCO DE DADOS: A coluna "notas_sigilosas" não foi encontrada. Execute a migração do schema no Supabase.');
+        showHouseToast('Não foi possível salvar as notas: recurso indisponível no banco.', 'error');
       } else {
-        alert('Erro ao salvar notas: ' + (err?.message || 'desconhecido'));
+        showHouseToast(`Erro ao salvar notas: ${err?.message || 'tente novamente'}`, 'error');
       }
       return false;
     } finally {
@@ -659,7 +664,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     const title = noteDraftTitle.trim() || 'Sem título';
     const content = noteDraftContent;
     if (!content.trim()) {
-      alert('Escreva algum conteúdo antes de salvar a nota.');
+      showHouseToast('Escreva algum conteúdo antes de salvar a nota.', 'error');
       return;
     }
     const now = new Date().toISOString();
@@ -675,7 +680,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       ];
     }
     const ok = await persistZeladorNotes(next);
-    if (ok) closeNoteModal();
+    if (ok) {
+      closeNoteModal();
+      showHouseToast(selectedNoteId ? 'Nota atualizada' : 'Nota adicionada ao perfil');
+    }
   }
 
   async function handleDeleteCurrentNote() {
@@ -683,7 +691,10 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     if (!confirm('Excluir esta nota? Esta ação não pode ser desfeita.')) return;
     const next = zeladorNotes.filter((n) => n.id !== selectedNoteId);
     const ok = await persistZeladorNotes(next);
-    if (ok) closeNoteModal();
+    if (ok) {
+      closeNoteModal();
+      showHouseToast('Nota excluída do perfil');
+    }
   }
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -736,17 +747,17 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
           if (dbError) throw dbError;
 
           setChild({ ...child, foto_url: publicUrl });
-          alert('Foto de perfil atualizada com sucesso!');
+          showHouseToast('Foto de perfil atualizada');
         } catch (error: any) {
           console.error('Error uploading photo:', error);
-          alert('Erro ao atualizar foto: ' + (error.message || 'Desconhecido'));
+          showHouseToast(`Erro ao atualizar foto: ${error.message || 'tente novamente'}`, 'error');
         } finally {
           setIsUploadingPhoto(false);
         }
       };
 
       reader.onerror = () => {
-        alert('Erro ao processar imagem.');
+        showHouseToast('Erro ao processar imagem.', 'error');
         setIsUploadingPhoto(false);
       };
 
@@ -754,7 +765,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
     } catch (error: any) {
       console.error('Error initiating photo upload:', error);
-      alert('Erro ao iniciar upload de foto: ' + error.message);
+      showHouseToast(`Erro ao iniciar upload de foto: ${error.message}`, 'error');
       setIsUploadingPhoto(false);
     }
   };

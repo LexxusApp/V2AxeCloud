@@ -43,6 +43,7 @@ import {
 } from '../components/ui/appDemoUi';
 import FilhoNoticeExperience from '../components/filho/FilhoNoticeExperience';
 import BodyPortal from '../components/BodyPortal';
+import { showHouseToast } from '../lib/houseToast';
 
 export interface Notice {
   id: string;
@@ -123,6 +124,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const [composerOpen, setComposerOpen] = useState(false);
   const [broadcastLogs, setBroadcastLogs] = useState<BroadcastLog[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+  const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -151,7 +153,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
       } else {
-        alert('Texto copiado para o WhatsApp!');
+        showHouseToast('Texto copiado para o WhatsApp');
       }
     } catch (err) {
       console.error('Failed to copy text: ', err);
@@ -263,9 +265,9 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
     } catch (error: any) {
       console.error('Error posting notice:', error);
       if (error.code === 'PGRST205') {
-        alert('Erro: Tabela mural_avisos não encontrada. Por favor, execute o script de migração no Supabase.');
+        showHouseToast('O mural está temporariamente indisponível.', 'error');
       } else {
-        alert('Erro ao publicar aviso: ' + (error.message || 'Erro desconhecido'));
+        showHouseToast(`Erro ao publicar aviso: ${error.message || 'tente novamente'}`, 'error');
       }
     } finally {
       setIsSubmitting(false);
@@ -273,11 +275,14 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   }
 
   async function deleteNotice(id: string) {
+    if (deletingNoticeId) return;
     if (!confirm('Deseja realmente excluir este aviso?')) return;
+    setDeletingNoticeId(id);
+    showHouseToast('Excluindo comunicado…', 'info');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        alert('Sessão expirada. Faça login novamente.');
+        showHouseToast('Sessão expirada. Faça login novamente.', 'error');
         return;
       }
       const response = await authFetch(`/api/notices/${encodeURIComponent(id)}`, {
@@ -292,10 +297,13 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       }
       setSelectedNotice(null);
       fetchNotices();
+      showHouseToast('Comunicado excluído do mural');
     } catch (error: unknown) {
       console.error('Error deleting notice:', error);
       const msg = error instanceof Error ? error.message : 'Erro ao excluir aviso.';
-      alert(msg);
+      showHouseToast(msg, 'error');
+    } finally {
+      setDeletingNoticeId(null);
     }
   }
 
@@ -427,7 +435,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                   <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3"><MessageSquareText className="h-5 w-5 text-emerald-300" /><div><p className="text-sm font-black text-white">WhatsApp</p><p className="text-xs font-semibold text-[#64748B]">Com proteção anti-spam</p></div><input type="checkbox" checked={notifyWhatsApp} onChange={(e) => setNotifyWhatsApp(e.target.checked)} className="ml-auto h-4 w-4 accent-[#10B981]" /></label>
                 </div>
               </div>
-              <AppPrimaryButton type="submit" disabled={isSubmitting} className="sm:col-span-2 inline-flex items-center justify-center gap-2">{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" />Publicar comunicado</>}</AppPrimaryButton>
+              <AppPrimaryButton type="submit" disabled={isSubmitting} className="sm:col-span-2 inline-flex items-center justify-center gap-2">{isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />Publicando e avisando…</> : <><Send className="h-4 w-4" />Publicar comunicado</>}</AppPrimaryButton>
             </form>
           </AppDemoCard>
           <AppDemoCard className="p-5">
@@ -529,7 +537,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl" role="dialog" aria-modal="true">
               <div className="flex items-center justify-between border-b border-[#DED8CB] p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">{selectedNotice.categoria}</p><h2 className="mt-1 font-display text-lg font-black text-[#171A16]">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-full border border-[#DCD6CA] bg-white/70 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button></div>
               <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{(() => { const d = new Date(selectedNotice.data_publicacao); return Number.isNaN(d.getTime()) ? 'Data indisponível' : format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }); })()}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo || ''}</ReactMarkdown></div>{(() => { const expiryLabel = selectedNotice.expiracao ? formatNoticeExpiry(selectedNotice.expiracao) : null; return expiryLabel ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {expiryLabel}</div> : null; })()}</div>
-              {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-[#DED8CB] p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white text-sm font-bold text-[#4A463E] hover:bg-[#F5F0E5]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B04A32] text-sm font-bold text-white hover:bg-[#9C3F2A]"><Trash2 className="h-4 w-4" />Excluir</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17251D] text-sm font-black text-[#FFFAF0] hover:bg-[#20342A]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
+              {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-[#DED8CB] p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white text-sm font-bold text-[#4A463E] hover:bg-[#F5F0E5]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" disabled={deletingNoticeId !== null} aria-busy={deletingNoticeId === selectedNotice.id} onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B04A32] text-sm font-bold text-white hover:bg-[#9C3F2A] disabled:cursor-wait disabled:opacity-55">{deletingNoticeId === selectedNotice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{deletingNoticeId === selectedNotice.id ? 'Excluindo…' : 'Excluir'}</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17251D] text-sm font-black text-[#FFFAF0] hover:bg-[#20342A]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
             </motion.aside>
           </>
         ) : null}

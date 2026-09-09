@@ -227,6 +227,7 @@ export default function Financial({
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
+  const [processingMensalidadeId, setProcessingMensalidadeId] = useState<string | null>(null);
   const [sendingChargeKey, setSendingChargeKey] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -574,7 +575,7 @@ export default function Financial({
       fetchCaixinhaData();
     } catch (error) {
       console.error('Error creating meta:', error);
-      alert('Erro ao criar meta.');
+      showHouseToast('Erro ao criar meta.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -602,7 +603,7 @@ export default function Financial({
       fetchTransactions();
     } catch (error) {
       console.error('Error validating donation:', error);
-      alert('Erro ao processar doação.');
+      showHouseToast('Erro ao processar doação.', 'error');
     }
   }
 
@@ -652,27 +653,22 @@ export default function Financial({
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (error) {
       console.error('Error downloading report:', error);
-      alert('Erro ao gerar relatório.');
+      showHouseToast('Erro ao gerar relatório.', 'error');
     }
   }
 
   async function handleMensalidadeLiquidar(row: MensalidadeZeladorRow) {
-    if (!tenantId || !row.filho_id) return;
+    if (!tenantId || !row.filho_id || processingMensalidadeId) return;
     const valorStr = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
     const valor = parseFloat(valorStr);
     if (!Number.isFinite(valor) || valor <= 0) {
-      alert('Informe um valor válido para a mensalidade.');
+      showHouseToast('Informe um valor válido para a mensalidade.', 'error');
       return;
     }
 
-    const backup = mensalidades;
+    setProcessingMensalidadeId(row.id);
+    showHouseToast('Registrando pagamento…', 'info');
     const paymentDate = new Date().toISOString().split('T')[0];
-    setMensalidades((prev) =>
-      prev.map((r) =>
-        r.id === row.id ? { ...r, status: 'pago', valor, data: paymentDate } : r
-      )
-    );
-    window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -691,27 +687,28 @@ export default function Financial({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(body.error || 'Falha ao marcar como pago'));
+      setMensalidades((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, status: 'pago', valor, data: paymentDate } : r
+        )
+      );
       await fetchTransactions({ silent: true });
       window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
+      showHouseToast('Pagamento registrado com sucesso');
     } catch (error: any) {
       console.error('Error liquidar mensalidade:', error);
-      setMensalidades(backup);
-      window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
-      alert(error?.message || 'Erro ao registrar pagamento.');
+      showHouseToast(error?.message || 'Erro ao registrar pagamento.', 'error');
+    } finally {
+      setProcessingMensalidadeId(null);
     }
   }
 
   async function handleMensalidadeEstornar(row: MensalidadeZeladorRow) {
-    if (!tenantId) return;
+    if (!tenantId || processingMensalidadeId) return;
     if (!confirm('Estornar este pagamento? A mensalidade voltará para pendentes.')) return;
-    const backup = mensalidades;
+    setProcessingMensalidadeId(row.id);
+    showHouseToast('Estornando pagamento…', 'info');
     const due = String(row.data_vencimento || row.data || '').slice(0, 10);
-    setMensalidades((prev) =>
-      prev.map((r) =>
-        r.id === row.id ? { ...r, status: 'pendente', data: due || r.data } : r
-      )
-    );
-    window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sessão inválida');
@@ -725,13 +722,19 @@ export default function Financial({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(body.error || 'Falha ao estornar'));
+      setMensalidades((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, status: 'pendente', data: due || r.data } : r
+        )
+      );
       await fetchTransactions({ silent: true });
       window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
+      showHouseToast('Pagamento estornado; mensalidade voltou para pendentes');
     } catch (error: any) {
       console.error('Error estornar mensalidade:', error);
-      setMensalidades(backup);
-      window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
-      alert(error?.message || 'Erro ao estornar.');
+      showHouseToast(error?.message || 'Erro ao estornar.', 'error');
+    } finally {
+      setProcessingMensalidadeId(null);
     }
   }
 
@@ -765,9 +768,10 @@ export default function Financial({
       } else if (activeView === 'mensalidades') {
         void refreshMensalidades();
       }
+      showHouseToast(enabled ? 'Cobrança de mensalidade ativada' : 'Cobrança de mensalidade desativada');
     } catch (error: any) {
       setPixConfig((prev) => ({ ...prev, mensalidade_ativa: previous }));
-      alert(error?.message || 'Erro ao atualizar cobrança de mensalidade.');
+      showHouseToast(error?.message || 'Erro ao atualizar cobrança de mensalidade.', 'error');
     } finally {
       setIsTogglingMensalidade(false);
     }
@@ -775,7 +779,7 @@ export default function Financial({
 
   async function handleGerarCobranca(childId: string, nome: string, competenciaIso: string, valorExibicao: string) {
     if (!mensalidadeAtiva) {
-      alert('A cobrança de mensalidade está desativada neste terreiro.');
+      showHouseToast('A cobrança de mensalidade está desativada neste terreiro.', 'info');
       return;
     }
     if (!hasMensalidadesAccess) {
@@ -871,9 +875,10 @@ export default function Financial({
         filho_id: ''
       });
       fetchTransactions();
+      showHouseToast('Lançamento financeiro registrado');
     } catch (error) {
       console.error('Error adding transaction:', error);
-      alert('Erro ao realizar lançamento financeiro.');
+      showHouseToast('Erro ao realizar lançamento financeiro.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -912,6 +917,7 @@ export default function Financial({
       }
       await fetchTransactions({ silent: true });
       window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
+      showHouseToast('Lançamento financeiro excluído');
     } catch (error: unknown) {
       const err = error as { message?: string; name?: string; stack?: string };
       console.error('[Financial] Erro ao excluir lançamento:', {
@@ -923,7 +929,7 @@ export default function Financial({
       });
       setTransactions(backup);
       window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
-      alert(err?.message || 'Erro ao excluir lançamento.');
+      showHouseToast(err?.message || 'Erro ao excluir lançamento.', 'error');
     }
   }
 
@@ -1661,9 +1667,12 @@ export default function Financial({
                                 <button
                                   type="button"
                                   onClick={() => void handleMensalidadeLiquidar(row)}
-                                  className="h-10 rounded-xl border border-[#1E242B] bg-[#13171D] text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
+                                  disabled={processingMensalidadeId !== null}
+                                  aria-busy={processingMensalidadeId === row.id}
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#13171D] text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:cursor-wait disabled:opacity-55"
                                 >
-                                  Pago
+                                  {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                  {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
                                 </button>
                                 <button
                                   type="button"
@@ -1732,9 +1741,12 @@ export default function Financial({
                                     <button
                                       type="button"
                                       onClick={() => void handleMensalidadeLiquidar(row)}
-                                      className="rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
+                                      disabled={processingMensalidadeId !== null}
+                                      aria-busy={processingMensalidadeId === row.id}
+                                      className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:cursor-wait disabled:opacity-55"
                                     >
-                                      Pago
+                                      {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                      {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
                                     </button>
                                     <button
                                       type="button"
@@ -1799,10 +1811,12 @@ export default function Financial({
                               <button
                                 type="button"
                                 onClick={() => void handleMensalidadeEstornar(row)}
-                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60"
+                                disabled={processingMensalidadeId !== null}
+                                aria-busy={processingMensalidadeId === row.id}
+                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
                               >
-                                <Undo2 className="h-3.5 w-3.5" />
-                                Estornar pagamento
+                                {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+                                {processingMensalidadeId === row.id ? 'Estornando…' : 'Estornar pagamento'}
                               </button>
                             </div>
                           );
@@ -1839,10 +1853,12 @@ export default function Financial({
                                       <button
                                         type="button"
                                         onClick={() => void handleMensalidadeEstornar(row)}
-                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60"
+                                        disabled={processingMensalidadeId !== null}
+                                        aria-busy={processingMensalidadeId === row.id}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
                                       >
-                                        <Undo2 className="h-3.5 w-3.5" />
-                                        Estornar
+                                        {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+                                        {processingMensalidadeId === row.id ? 'Estornando…' : 'Estornar'}
                                       </button>
                                     </td>
                                   </tr>

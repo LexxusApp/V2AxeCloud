@@ -147,7 +147,7 @@ export default function ChildrenCurrentExperience({
                 className="current-map__secondary-action"
               >
                 {resendingWelcome ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                Enviar acessos
+                {resendingWelcome ? 'Enviando acessos…' : 'Enviar acessos'}
               </button>
               <p className="max-w-[16rem] text-[11px] font-semibold leading-snug text-[#8E9AAA] sm:text-right">
                 {withoutAccessCount > 0
@@ -306,14 +306,16 @@ export default function ChildrenCurrentExperience({
                                 className="current-person__menu"
                                 role="menu"
                               >
-                                <button type="button" onClick={() => onSendCredentials(child.id, child.nome)} role="menuitem">
-                                  <Send className="h-3.5 w-3.5" /> Enviar acesso
+                                <button type="button" disabled={isBusy} onClick={() => onSendCredentials(child.id, child.nome)} role="menuitem">
+                                  {sendingCredentialsId === child.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                                  {sendingCredentialsId === child.id ? 'Enviando…' : 'Enviar acesso'}
                                 </button>
                                 <p className="current-person__menu-hint" role="note">
                                   Registro + 6 dígitos do CPF
                                 </p>
-                                <button type="button" onClick={() => onDelete(child.id, child.nome)} role="menuitem" className="is-danger">
-                                  <Trash2 className="h-3.5 w-3.5" /> Excluir cadastro
+                                <button type="button" disabled={isBusy} onClick={() => onDelete(child.id, child.nome)} role="menuitem" className="is-danger">
+                                  {deletingId === child.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  {deletingId === child.id ? 'Excluindo…' : 'Excluir cadastro'}
                                 </button>
                               </motion.div>
                             ) : null}
