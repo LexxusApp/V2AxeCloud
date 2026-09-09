@@ -49,6 +49,7 @@ import {
   parseFinanceiroDataRef,
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import { showHouseToast } from '../lib/houseToast';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
 type MensalidadeZeladorRow = {
@@ -226,6 +227,8 @@ export default function Financial({
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
+  const [sendingChargeKey, setSendingChargeKey] = useState<string | null>(null);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [openTransactionActions, setOpenTransactionActions] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState('');
@@ -780,6 +783,12 @@ export default function Financial({
       return;
     }
 
+    const chargeKey = `${childId}:${competenciaIso}`;
+    if (sendingChargeKey) return;
+
+    setSendingChargeKey(chargeKey);
+    showHouseToast(`Enviando cobrança para ${nome}…`, 'info');
+
     try {
       const [year, month] = competenciaIso.split('-');
       const mesAno = `${month}/${year}`;
@@ -803,11 +812,21 @@ export default function Financial({
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to send message');
-      alert('✅ Cobrança Enviada com Sucesso para o WhatsApp!');
-    } catch (error) {
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(String(result?.error || result?.message || 'Não foi possível enviar a mensagem.'));
+      }
+      showHouseToast(`Cobrança enviada para ${nome} pelo WhatsApp`);
+    } catch (error: unknown) {
       console.error('Error sending cobranca:', error);
-      alert('Erro ao enviar cobrança.');
+      showHouseToast(
+        error instanceof Error && error.message
+          ? `Não foi possível enviar: ${error.message}`
+          : 'Não foi possível enviar a cobrança. Tente novamente.',
+        'error',
+      );
+    } finally {
+      setSendingChargeKey(null);
     }
   }
 
@@ -909,6 +928,9 @@ export default function Financial({
   }
 
   async function handleSendFinancialReminder(t: Transaction) {
+    if (sendingReminderId) return;
+    setSendingReminderId(t.id);
+    showHouseToast('Enviando cobrança pelo WhatsApp…', 'info');
     try {
       const filhoId = (t as Transaction & { filho_id?: string }).filho_id;
       if (!filhoId) return;
@@ -918,7 +940,7 @@ export default function Financial({
       const token = session?.access_token;
       const uid = session?.user?.id;
       if (!token || !uid) throw new Error('Sessão expirada');
-      await fetch(whatsappApiUrl('/whatsapp/send'), {
+      const response = await fetch(whatsappApiUrl('/whatsapp/send'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, uid),
         body: JSON.stringify({
@@ -933,10 +955,21 @@ export default function Financial({
           },
         }),
       });
-      alert('Lembrete enviado com sucesso!');
-    } catch (e) {
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(String(result?.error || result?.message || 'Não foi possível enviar a mensagem.'));
+      }
+      showHouseToast('Cobrança enviada pelo WhatsApp');
+    } catch (e: unknown) {
       console.error('Error sending financial reminder:', e);
-      alert('Erro ao enviar lembrete.');
+      showHouseToast(
+        e instanceof Error && e.message
+          ? `Não foi possível enviar: ${e.message}`
+          : 'Não foi possível enviar a cobrança. Tente novamente.',
+        'error',
+      );
+    } finally {
+      setSendingReminderId(null);
     }
   }
 
@@ -1011,11 +1044,13 @@ export default function Financial({
                   setOpenTransactionActions(null);
                   void handleSendFinancialReminder(t);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-[#25D366] transition hover:bg-[#25D366]/10"
+                disabled={sendingReminderId !== null}
+                aria-busy={sendingReminderId === t.id}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-[#25D366] transition hover:bg-[#25D366]/10 disabled:cursor-wait disabled:opacity-60"
                 role="menuitem"
               >
-                <MessageCircle className="h-4 w-4" />
-                Cobrar pelo WhatsApp
+                {sendingReminderId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                {sendingReminderId === t.id ? 'Enviando…' : 'Cobrar pelo WhatsApp'}
               </button>
             ) : null}
             {isAdmin ? (
@@ -1592,6 +1627,8 @@ export default function Financial({
                           const fid = row.filho_id || '';
                           const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
                           const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
+                          const chargeKey = `${fid}:${venc}`;
+                          const isSendingCharge = sendingChargeKey === chargeKey;
                           return (
                             <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
                               <div className="mb-3 flex items-start justify-between gap-3">
@@ -1635,12 +1672,13 @@ export default function Financial({
                                       ? void handleGerarCobranca(fid, nome, venc, valorCampo)
                                       : undefined
                                   }
-                                  disabled={!fid}
-                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366]/10 text-xs font-black text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:opacity-40"
+                                  disabled={!fid || sendingChargeKey !== null}
+                                  aria-busy={isSendingCharge}
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366]/10 text-xs font-black text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-wait disabled:opacity-50"
                                   title="Gerar Cobrança WhatsApp"
                                 >
-                                  <MessageCircle className="h-4 w-4" />
-                                  Cobrar
+                                  {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                                  {isSendingCharge ? 'Enviando…' : 'Cobrar'}
                                 </button>
                               </div>
                             </div>
@@ -1666,6 +1704,8 @@ export default function Financial({
                               const fid = row.filho_id || '';
                               const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
                               const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
+                              const chargeKey = `${fid}:${venc}`;
+                              const isSendingCharge = sendingChargeKey === chargeKey;
                               return (
                                 <tr key={row.id} className="transition-colors hover:bg-[#F1ECE3]">
                                   <td className="px-4 py-3 font-bold text-[#25211B]">{nome}</td>
@@ -1701,12 +1741,13 @@ export default function Financial({
                                       onClick={() =>
                                         fid ? void handleGerarCobranca(fid, nome, venc, valorCampo) : undefined
                                       }
-                                      disabled={!fid}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-[#25D366]/10 px-4 py-2 text-xs font-bold text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:opacity-40"
+                                      disabled={!fid || sendingChargeKey !== null}
+                                      aria-busy={isSendingCharge}
+                                      className="inline-flex items-center gap-2 rounded-lg bg-[#25D366]/10 px-4 py-2 text-xs font-bold text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-wait disabled:opacity-50"
                                       title="Gerar Cobrança WhatsApp"
                                     >
-                                      <MessageCircle className="h-4 w-4" />
-                                      Cobrar
+                                      {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                                      {isSendingCharge ? 'Enviando…' : 'Cobrar'}
                                     </button>
                                   </td>
                                 </tr>
