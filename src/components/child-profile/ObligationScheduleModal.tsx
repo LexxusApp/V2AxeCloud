@@ -29,6 +29,9 @@ type ObligationScheduleModalProps = {
   setPdfFile: (file: File | null) => void;
   isSubmitting: boolean;
   showNotifyCheckbox: boolean;
+  memberOptions?: Array<{ id: string; nome: string }>;
+  selectedMemberId?: string;
+  onSelectMember?: (id: string) => void;
 };
 
 export function ObligationScheduleModal({
@@ -41,6 +44,9 @@ export function ObligationScheduleModal({
   setPdfFile,
   isSubmitting,
   showNotifyCheckbox,
+  memberOptions,
+  selectedMemberId,
+  onSelectMember,
 }: ObligationScheduleModalProps) {
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +103,15 @@ export function ObligationScheduleModal({
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-5">
             <div className="space-y-3">
+            {memberOptions?.length ? (
+              <div>
+                <label className={paperLabelClass}>Filho de santo</label>
+                <select required value={selectedMemberId || ''} onChange={(event) => onSelectMember?.(event.target.value)} className={paperInputClass}>
+                  <option value="">Selecione o membro</option>
+                  {memberOptions.map((member) => <option key={member.id} value={member.id}>{member.nome}</option>)}
+                </select>
+              </div>
+            ) : null}
             <div>
               <label className={paperLabelClass}>Título da obrigação</label>
               <input

@@ -26,6 +26,7 @@ const Settings = lazy(() => import('./views/Settings'));
 const ChildProfile = lazy(() => import('./views/ChildProfile'));
 const PerfilFilho = lazy(() => import('./views/PerfilFilho'));
 const ObrigacoesFilho = lazy(() => import('./views/ObrigacoesFilho'));
+const Obligations = lazy(() => import('./views/Obligations'));
 const Library = lazy(() => import('./views/Library'));
 const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
 const Store = lazy(() => import('./views/Store'));
@@ -1291,6 +1292,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const featureAccess = {
       dashboard: true,
       children: true,
+      obligations: true,
       calendar: true,
       frequencia: hasPlanAccess(tenantData?.plan, 'gestao_eventos', isAdminGlobal),
       mural: true,
@@ -1324,8 +1326,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     switch (activeTab) {
       case 'dashboard': 
         return <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setSelectedChildId={setSelectedChildId} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
-      case 'children': 
+      case 'children':
         return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
+      case 'obligations':
+        return <Obligations user={session.user} tenantData={tenantData} setActiveTab={navigateToTab} setSelectedChildId={setSelectedChildId} />;
       case 'inventory': 
         return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
       case 'gallery':

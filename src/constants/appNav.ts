@@ -33,7 +33,7 @@ export type AppNavItem = {
 };
 
 /** Módulos agrupados no menu «Casa» (zelador). */
-export const ZELADOR_CASA_CHILD_IDS = ['children', 'calendar', 'frequencia', 'mural', 'chat'] as const;
+export const ZELADOR_CASA_CHILD_IDS = ['children', 'obligations', 'calendar', 'frequencia', 'mural', 'chat'] as const;
 
 /** Sub-rotas do menu «Financeiro» (zelador). */
 export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
@@ -81,6 +81,7 @@ export type ZeladorNavEntry =
 /** Mapeia id de navegação para feature de plano (sub-rotas do financeiro → `financial`). */
 export function navItemPlanFeature(itemId: string): string {
   if (itemId === 'financial' || itemId.startsWith('financial-')) return 'financial';
+  if (itemId === 'obligations') return 'children';
   if (itemId === 'frequencia') return 'gestao_eventos';
   return itemId;
 }
@@ -100,6 +101,7 @@ export function financialSubviewFromTab(tab: string): FinancialSubview {
 const ZELADOR_CORE: AppNavItem[] = [
   { id: 'dashboard', label: 'Início', icon: Home, filledWhenActive: true },
   { id: 'children', label: 'Filhos de Santo', icon: User },
+  { id: 'obligations', label: 'Obrigações', icon: Flame },
   { id: 'financial', label: 'Financeiro', icon: PieChart },
   { id: 'calendar', label: 'Giras', icon: CalendarDays },
   { id: 'frequencia', label: 'Frequência', icon: ClipboardList },

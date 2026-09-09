@@ -150,6 +150,21 @@ type HouseMission = {
   tab: string;
 };
 
+function DashboardObligationsCard({ tenantId, onOpen }: { tenantId: string; onOpen: () => void }) {
+  const [summary, setSummary] = useState<{ pending: number; overdue: number; next: { titulo: string; data: string } | null } | null>(null);
+  useEffect(() => {
+    let active = true;
+    void supabase.from('calendario_axe').select('titulo,data,status_confirmacao').eq('tenant_id', tenantId).eq('tipo', 'Obrigação').order('data', { ascending: true }).then(({ data }) => {
+      if (!active) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const pending = (data || []).filter((item) => !['Confirmado', 'Concluído'].includes(String(item.status_confirmacao || '')));
+      setSummary({ pending: pending.length, overdue: pending.filter((item) => String(item.data || '') < today).length, next: pending.find((item) => String(item.data || '') >= today) ? { titulo: String(pending.find((item) => String(item.data || '') >= today)?.titulo || 'Obrigação'), data: String(pending.find((item) => String(item.data || '') >= today)?.data || '') } : null });
+    });
+    return () => { active = false; };
+  }, [tenantId]);
+  return <button type="button" onClick={onOpen} className="mb-5 flex w-full flex-col gap-4 rounded-2xl border border-[#E1D5B7] bg-[#FFF9E9] p-4 text-left transition hover:border-[#C5A94F] sm:flex-row sm:items-center sm:p-5"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#17251D] text-[#E2C95A]"><CalendarDays className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[.18em] text-[#8F7724]">Obrigações da corrente</p><h2 className="mt-1 font-display text-base font-black text-[#171A16]">{summary?.pending || 0} pendente{summary?.pending === 1 ? '' : 's'}{summary?.overdue ? ` · ${summary.overdue} atrasada${summary.overdue === 1 ? '' : 's'}` : ''}</h2><p className="mt-1 text-xs text-[#6F675C]">{summary?.next ? `Próxima: ${summary.next.titulo} em ${new Date(`${summary.next.data}T12:00:00`).toLocaleDateString('pt-BR')}` : 'Abra a central para cadastrar e acompanhar as obrigações.'}</p></div><span className="inline-flex items-center gap-1 text-xs font-black text-[#526A55]">Abrir central <ArrowRight className="h-4 w-4" /></span></button>;
+}
+
 function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
   const month = new Date().getMonth();
   return children
@@ -1016,6 +1031,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </div>
         </div>
       </section>
+
+      <DashboardObligationsCard tenantId={tenantId} onOpen={() => setActiveTab('obligations')} />
 
       <PreceitoCommandCenter tenantId={tenantId} />
 
