@@ -17,11 +17,11 @@ import {
   Settings,
   Sparkles,
   ArrowRight,
-  Landmark,
   Images,
   Package,
   BookOpen,
   HandHeart,
+  MessageCircle,
   TrendingUp,
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
@@ -56,7 +56,6 @@ import {
   YAxis,
 } from 'recharts';
 import { cn } from '../lib/utils';
-import { getHouseDailyMessage } from '../lib/houseDailyMessage';
 import LuxuryLoading from '../components/LuxuryLoading';
 import { AppPageShell } from '../components/app/AppTopNav';
 import Avatar from '../components/Avatar';
@@ -159,28 +158,6 @@ type SetupStepV5 = {
   done: boolean;
   tab: string;
 };
-
-type HouseMission = {
-  title: string;
-  detail: string;
-  cta: string;
-  tab: string;
-};
-
-function DashboardObligationsCard({ tenantId, onOpen }: { tenantId: string; onOpen: () => void }) {
-  const [summary, setSummary] = useState<{ pending: number; overdue: number; next: { titulo: string; data: string } | null } | null>(null);
-  useEffect(() => {
-    let active = true;
-    void supabase.from('calendario_axe').select('titulo,data,status_confirmacao').eq('tenant_id', tenantId).eq('tipo', 'Obrigação').order('data', { ascending: true }).then(({ data }) => {
-      if (!active) return;
-      const today = new Date().toISOString().slice(0, 10);
-      const pending = (data || []).filter((item) => !['Confirmado', 'Concluído'].includes(String(item.status_confirmacao || '')));
-      setSummary({ pending: pending.length, overdue: pending.filter((item) => String(item.data || '') < today).length, next: pending.find((item) => String(item.data || '') >= today) ? { titulo: String(pending.find((item) => String(item.data || '') >= today)?.titulo || 'Obrigação'), data: String(pending.find((item) => String(item.data || '') >= today)?.data || '') } : null });
-    });
-    return () => { active = false; };
-  }, [tenantId]);
-  return <button type="button" onClick={onOpen} className="mb-5 flex w-full flex-col gap-4 rounded-2xl border border-[#E1D5B7] bg-[#FFF9E9] p-4 text-left transition hover:border-[#C5A94F] sm:flex-row sm:items-center sm:p-5"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#17251D] text-[#E2C95A]"><CalendarDays className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[.18em] text-[#8F7724]">Obrigações da corrente</p><h2 className="mt-1 font-display text-base font-black text-[#171A16]">{summary?.pending || 0} pendente{summary?.pending === 1 ? '' : 's'}{summary?.overdue ? ` · ${summary.overdue} atrasada${summary.overdue === 1 ? '' : 's'}` : ''}</h2><p className="mt-1 text-xs text-[#6F675C]">{summary?.next ? `Próxima: ${summary.next.titulo} em ${new Date(`${summary.next.data}T12:00:00`).toLocaleDateString('pt-BR')}` : 'Abra a central para cadastrar e acompanhar as obrigações.'}</p></div><span className="inline-flex items-center gap-1 text-xs font-black text-[#526A55]">Abrir central <ArrowRight className="h-4 w-4" /></span></button>;
-}
 
 function birthdaysThisMonth(children: any[]): DashboardBirthday[] {
   const month = new Date().getMonth();
@@ -918,7 +895,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
-  const houseDailyMessage = getHouseDailyMessage(now);
   // Ativação guiada: cada passo representa valor real já percebido pelo novo terreiro.
   const pixOk = Boolean(String(pixConfig?.chave_pix || '').trim());
   const mensalidadeConfigurada =
@@ -992,66 +968,6 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       : null;
   })();
 
-  // Uma missão por sessão: o que a casa precisa agora.
-  const houseMission: HouseMission = (() => {
-    if (!setupComplete && nextSetupStep) {
-      return {
-        title: nextSetupStep.label,
-        detail: nextSetupStep.detail,
-        cta:
-          nextSetupStep.id === 'corrente'
-            ? 'Cadastrar pessoa'
-            : nextSetupStep.id === 'dinheiro'
-              ? 'Configurar mensalidade'
-              : nextSetupStep.id === 'agenda'
-                ? 'Marcar gira'
-                : 'Completar perfil',
-        tab: nextSetupStep.tab,
-      };
-    }
-    if (withoutAppAccess > 0) {
-      return {
-        title: 'Ativar acesso da corrente',
-        detail:
-          withoutAppAccess === 1
-            ? '1 pessoa ainda não entrou no app · Registro + 6 dígitos do CPF'
-            : `${withoutAppAccess} pessoas ainda não entraram no app · Registro + 6 dígitos do CPF`,
-        cta: 'Enviar acesso',
-        tab: 'children',
-      };
-    }
-    if (pendingMensalidades > 0) {
-      return {
-        title: 'Cobrar mensalidades',
-        detail: `${pendingMensalidades} pessoa${pendingMensalidades === 1 ? '' : 's'} ainda sem confirmação neste mês`,
-        cta: 'Ver cobranças',
-        tab: 'financial-mensalidades',
-      };
-    }
-    if (pendingRezas > 0) {
-      return {
-        title: 'Acolher pedidos de reza',
-        detail: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} esperando resposta da casa`,
-        cta: 'Ver pedidos',
-        tab: 'atendimentos',
-      };
-    }
-    if (!nextEvent) {
-      return {
-        title: 'Marcar a próxima gira',
-        detail: 'A corrente fica alinhada quando a agenda está clara',
-        cta: 'Abrir agenda',
-        tab: 'calendar',
-      };
-    }
-    return {
-      title: nextEvent.titulo,
-      detail: `Próxima gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}${nextEvent.hora ? ` · ${nextEvent.hora.slice(0, 5)}` : ''}`,
-      cta: 'Ver gira',
-      tab: 'calendar',
-    };
-  })();
-
   return (
     <AppPageShell>
       <div className="dashboard-v5">
@@ -1085,7 +1001,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       )}
 
       <section className="dashboard-v5-hero mb-6 overflow-hidden rounded-[2rem]" aria-labelledby="dashboard-v5-title">
-        <div className="dashboard-v5-hero__content">
+        <div className="dashboard-v5-hero__content" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           <div className="min-w-0">
             <p className="dashboard-v5-eyebrow">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
@@ -1099,46 +1015,77 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               {timeGreeting}, {firstName}.
             </h1>
             <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-[#D8E0D7]">
-              {formattedDate}. Agora: <span className="text-[#FFFDF7]">{houseMission.title.toLowerCase()}</span>.
+              {formattedDate}. Aqui está o resumo mais importante da sua casa.
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab(houseMission.tab)} className="dashboard-v5-hero__primary">
-                {houseMission.tab === 'children' ? (
-                  <Users className="h-4 w-4" aria-hidden />
-                ) : houseMission.tab.startsWith('financial') ? (
-                  <Wallet className="h-4 w-4" aria-hidden />
-                ) : houseMission.tab === 'atendimentos' ? (
-                  <HandHeart className="h-4 w-4" aria-hidden />
-                ) : (
-                  <CalendarDays className="h-4 w-4" aria-hidden />
-                )}
-                {houseMission.cta}
-              </button>
-              <button type="button" onClick={() => setActiveTab('children')} className="dashboard-v5-hero__secondary">
-                Ver corrente
-                <ArrowRight className="h-4 w-4" aria-hidden />
+              <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')} className="dashboard-v5-hero__primary">
+                {setupComplete ? <Users className="h-4 w-4" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}
+                {setupComplete ? 'Ver corrente' : 'Continuar configuração'}
               </button>
             </div>
-          </div>
-
-          <div className="dashboard-v5-hero__moment">
-            <div className="flex items-center justify-between gap-3">
-              <span className="dashboard-v5-hero__moment-label">Missão de agora</span>
-              <Landmark className="h-4 w-4 text-[#E8C767]" aria-hidden />
-            </div>
-            <p className="mt-5 text-2xl font-black leading-tight text-white">{houseMission.title}</p>
-            <p className="mt-2 text-xs font-semibold leading-relaxed text-[#B8C5BB]">
-              {houseMission.detail}
-            </p>
-            <div className="mt-5 h-px bg-white/10" />
-            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#AEBBAF]">
-              “Organização também é uma forma de cuidado.”
-            </p>
           </div>
         </div>
       </section>
 
-      <DashboardObligationsCard tenantId={tenantId} onOpen={() => setActiveTab('obligations')} />
+      <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Indicadores principais da casa">
+        {[
+          {
+            label: 'Corrente',
+            value: String(allChildren.length),
+            detail: allChildren.length === 1 ? 'pessoa ativa' : 'pessoas ativas',
+            icon: Users,
+            tab: 'children',
+            tone: 'text-sky-700 bg-sky-50',
+          },
+          {
+            label: 'Mensalidades',
+            value: String(pendingMensalidades),
+            detail: pendingMensalidades > 0 ? 'aguardando confirmação' : 'nenhuma pendência',
+            icon: Wallet,
+            tab: 'financial-mensalidades',
+            tone: pendingMensalidades > 0 ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50',
+          },
+          {
+            label: 'Próxima gira',
+            value: nextEvent ? format(new Date(`${nextEvent.data}T12:00:00`), 'dd/MM') : '—',
+            detail: nextEvent ? String(nextEvent.titulo || 'Gira agendada') : 'ainda não agendada',
+            icon: CalendarDays,
+            tab: 'calendar',
+            tone: 'text-[#8A6A16] bg-[#FFF8DF]',
+          },
+          {
+            label: 'WhatsApp',
+            value: attention.whatsappFailed > 0 ? String(attention.whatsappFailed) : 'OK',
+            detail: attention.whatsappFailed > 0 ? 'envios para revisar' : 'últimos envios sem falha',
+            icon: MessageCircle,
+            tab: 'settings',
+            tone: attention.whatsappFailed > 0 ? 'text-rose-700 bg-rose-50' : 'text-emerald-700 bg-emerald-50',
+          },
+        ].map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <button
+              key={metric.label}
+              type="button"
+              onClick={() => {
+                if (metric.tab === 'settings') {
+                  sessionStorage.setItem('axecloud:settings-section', 'whatsapp');
+                  sessionStorage.setItem('axecloud:whatsapp-view', 'historico');
+                }
+                setActiveTab(metric.tab);
+              }}
+              className="min-w-0 rounded-2xl border border-[#DED6C8] bg-[#FFFDF8] p-4 text-left shadow-[0_18px_42px_-38px_rgba(46,36,24,.7)] transition hover:-translate-y-0.5 hover:border-[#C9B05B] sm:p-5"
+            >
+              <span className={`grid h-9 w-9 place-items-center rounded-xl ${metric.tone}`}>
+                <Icon className="h-4 w-4" aria-hidden />
+              </span>
+              <span className="mt-4 block text-[9px] font-black uppercase tracking-[.16em] text-[#81786C]">{metric.label}</span>
+              <strong className="mt-1 block truncate font-display text-2xl font-black text-[#171A16]">{metric.value}</strong>
+              <small className="mt-1 block truncate text-[10px] font-semibold text-[#80786D]">{metric.detail}</small>
+            </button>
+          );
+        })}
+      </section>
 
       <PreceitoCommandCenter tenantId={tenantId} />
 
@@ -1154,8 +1101,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       />
 
       <div className="dashboard-v5-home grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.55fr)]">
-        <div className="space-y-5">
-          <section className="dashboard-v5-module-launcher" aria-labelledby="quick-access-v5">
+        <div className="flex flex-col gap-5">
+          <section className="dashboard-v5-module-launcher order-2" aria-labelledby="quick-access-v5">
             <div className="dashboard-v5-section-heading">
               <div>
                 <p className="dashboard-v5-section-kicker">Da casa</p>
@@ -1165,14 +1112,14 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </div>
             <div className="dashboard-v5-module-grid">
               {[
-                { label: 'Corrente', detail: `${allChildren.length} pessoas`, icon: Users, tab: 'children', tone: 'blue' },
-                { label: 'Giras', detail: nextEvent ? 'próxima marcada' : 'marcar gira', icon: CalendarDays, tab: 'calendar', tone: 'gold' },
-                { label: 'Mensalidades', detail: pendingMensalidades > 0 ? `${pendingMensalidades} pendentes` : 'em dia', icon: Wallet, tab: 'financial', tone: 'green' },
-                { label: 'Avisos', detail: noticesData.length > 0 ? `${noticesData.length} no mural` : 'avisar a casa', icon: Megaphone, tab: 'mural', tone: 'terra' },
+                { label: 'Corrente', detail: 'membros e acessos', icon: Users, tab: 'children', tone: 'blue' },
+                { label: 'Giras', detail: 'agenda da casa', icon: CalendarDays, tab: 'calendar', tone: 'gold' },
+                { label: 'Mensalidades', detail: 'cobranças e caixa', icon: Wallet, tab: 'financial', tone: 'green' },
+                { label: 'Avisos', detail: 'comunicar a corrente', icon: Megaphone, tab: 'mural', tone: 'terra' },
                 { label: 'Galeria', detail: 'fotos da casa', icon: Images, tab: 'gallery', tone: 'violet' },
                 { label: 'Almoxarifado', detail: 'itens da casa', icon: Package, tab: 'inventory', tone: 'blue' },
                 { label: 'Biblioteca', detail: 'estudo e tradição', icon: BookOpen, tab: 'library', tone: 'gold' },
-                { label: 'Rezas', detail: pendingRezas > 0 ? `${pendingRezas} aguardando` : 'nenhum pedido', icon: HandHeart, tab: 'atendimentos', tone: 'terra' },
+                { label: 'Rezas', detail: 'pedidos e acolhimento', icon: HandHeart, tab: 'atendimentos', tone: 'terra' },
               ].map((module) => {
                 const Icon = module.icon;
                 return (
@@ -1195,7 +1142,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </div>
           </section>
 
-          <section className="dashboard-v5-routine" aria-labelledby="routine-v5">
+          <section className="dashboard-v5-routine order-1" aria-labelledby="routine-v5">
             <div className="dashboard-v5-section-heading">
               <div>
                 <p className="dashboard-v5-section-kicker">Hoje</p>
@@ -1265,45 +1212,25 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       status: 'Cobrar',
                       tone: 'gold',
                     }
-                  : {
-                      label: 'Mensalidades em dia',
-                      detail: 'Ninguém aguardando confirmação agora',
-                      tab: 'financial-mensalidades',
-                      status: 'Em dia',
-                      tone: 'green',
-                    },
-                nextEvent
+                  : null,
+                !nextEvent
                   ? {
-                      label: nextEvent.titulo,
-                      detail: `Gira em ${format(new Date(`${nextEvent.data}T12:00:00`), "dd 'de' MMMM", { locale: ptBR })}`,
-                      tab: 'calendar',
-                      status: 'Agenda',
-                      tone: 'blue',
-                    }
-                  : {
                       label: 'Ainda sem próxima gira',
                       detail: 'Marque a data e avise a corrente',
                       tab: 'calendar',
                       status: 'Marcar',
                       tone: 'blue',
-                    },
-                withoutAppAccess > 0
-                  ? null
-                  : pendingRezas > 0
-                    ? {
-                        label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`,
-                        detail: 'Pessoas aguardando acolhimento da casa',
-                        tab: 'atendimentos',
-                        status: 'Acolher',
-                        tone: 'terra',
-                      }
-                    : {
-                        label: 'Pedidos de reza em dia',
-                        detail: 'Nenhum pedido aguardando agora',
-                        tab: 'atendimentos',
-                        status: 'Em dia',
-                        tone: 'green',
-                      },
+                    }
+                  : null,
+                pendingRezas > 0
+                  ? {
+                      label: `${pendingRezas} pedido${pendingRezas === 1 ? '' : 's'} de reza`,
+                      detail: 'Pessoas aguardando acolhimento da casa',
+                      tab: 'atendimentos',
+                      status: 'Acolher',
+                      tone: 'terra',
+                    }
+                  : null,
               ]
                 .filter(Boolean)
                 .map((item, index) => (
@@ -1323,6 +1250,19 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               ))}
+              {withoutAppAccess === 0 &&
+              attention.whatsappFailed === 0 &&
+              attention.obligationsPending === 0 &&
+              attention.lowStock === 0 &&
+              incompleteProfiles === 0 &&
+              pendingMensalidades === 0 &&
+              Boolean(nextEvent) &&
+              pendingRezas === 0 ? (
+                <div className="flex min-h-24 items-center justify-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-center">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />
+                  <p className="text-sm font-bold text-emerald-800">Nada pede atenção agora.</p>
+                </div>
+              ) : null}
             </div>
           </section>
         </div>
@@ -1389,40 +1329,15 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </section>
           ) : null}
 
-          <section className="dashboard-v5-message">
-            <p className="dashboard-v5-section-kicker">Mensagem da casa</p>
-            <blockquote>“{houseDailyMessage}”</blockquote>
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <span>AxéCloud</span>
-              <Sparkles className="h-4 w-4 text-[#E8C767]" aria-hidden />
-            </div>
-          </section>
-
-          <section className="dashboard-v5-current">
-            <div>
-              <p className="dashboard-v5-section-kicker">Sua corrente</p>
-              <h2>Quem faz a casa</h2>
-            </div>
-            <div className="mt-5 flex items-center">
-              {childrenData.slice(0, 5).map((filho, index) => (
-                <Avatar
-                  key={filho.id}
-                  src={filho.foto_url}
-                  name={filho.nome}
-                  shape="circle"
-                  textSize="text-xs"
-                  className={cn('h-10 w-10 border-2 border-[#FFFDF8]', index > 0 && '-ml-2.5')}
-                />
-              ))}
-              <button type="button" onClick={() => setActiveTab('children')} className="ml-3 text-xs font-black text-[#526A55]">
-                Ver {allChildren.length} pessoas
-              </button>
-            </div>
-          </section>
         </aside>
       </div>
 
-      <HouseTimeline events={houseTimelineEvents} onNavigate={setActiveTab} />
+      <HouseTimeline
+        events={houseTimelineEvents.slice(0, 3)}
+        onNavigate={setActiveTab}
+        title="Atividades recentes"
+        description="Os três últimos movimentos registrados na casa."
+      />
 
       {/* Painel administrativo antigo: substituído pela home V5 e oculto via CSS.
           Não montar evita DOM morto e os warnings de 0x0 do Recharts no console. */}
