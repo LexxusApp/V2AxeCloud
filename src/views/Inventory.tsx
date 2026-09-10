@@ -21,6 +21,7 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { showHouseToast } from '../lib/houseToast';
+import { confirmAction } from '../lib/confirmAction';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
@@ -196,7 +197,7 @@ export default function Inventory({
 
   async function deleteItem(id: string) {
     if (deletingId) return;
-    if (!confirm('Deseja realmente excluir este item?')) return;
+    if (!(await confirmAction({ title: 'Excluir item do estoque?', description: 'O item deixará de aparecer no almoxarifado da casa.', confirmLabel: 'Excluir item', tone: 'danger' }))) return;
 
     setDeletingId(id);
     showHouseToast('Excluindo item…', 'info');

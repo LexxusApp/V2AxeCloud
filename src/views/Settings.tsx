@@ -51,7 +51,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
+  const [activeSection, setActiveSection] = useState<SettingsSection>(() => {
+    const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:settings-section') : null;
+    return requested === 'whatsapp' || requested === 'portal' || requested === 'profile' ? requested : 'profile';
+  });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleteCurrentPassword, setDeleteCurrentPassword] = useState('');
@@ -60,6 +63,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [accountEmail, setAccountEmail] = useState<string>(String(user?.email || ''));
   const activeSectionCopy = SECTION_COPY[activeSection];
   const ActiveSectionIcon = SECTION_ICON[activeSection];
+
+  useEffect(() => {
+    sessionStorage.removeItem('axecloud:settings-section');
+  }, []);
 
   useEffect(() => {
     setAccountEmail(String(user?.email || profile?.email || '').trim());

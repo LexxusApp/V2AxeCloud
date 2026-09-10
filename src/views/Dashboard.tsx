@@ -133,6 +133,23 @@ type DashboardBundle = {
     valor_mensalidade?: number | null;
     mensalidade_ativa?: boolean | null;
   } | null;
+  profileSetup: {
+    nome_terreiro?: string | null;
+    foto_url?: string | null;
+    whatsapp_publico?: string | null;
+    descricao_publica?: string | null;
+    cidade_publica?: string | null;
+    estado_publico?: string | null;
+    portal_publico_ativo?: boolean | null;
+    public_slug?: string | null;
+  } | null;
+  attention: {
+    obligationsPending: number;
+    obligationsOverdue: number;
+    lowStock: number;
+    outOfStock: number;
+    whatsappFailed: number;
+  };
 };
 
 type SetupStepV5 = {
@@ -217,7 +234,7 @@ async function fetchDashboardFinanceBundle(
 
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
     const today = format(new Date(), 'yyyy-MM-dd');
-    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes] = await Promise.all([
+    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes, profileSetupRes, inventoryRes, whatsappLogsRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -270,6 +287,23 @@ async function fetchDashboardFinanceBundle(
             parseApiJson<any>(r, null)
           )
         : Promise.resolve(null),
+      userRole !== 'filho'
+        ? supabase
+            .from('perfil_lider')
+            .select('nome_terreiro,foto_url,whatsapp_publico,descricao_publica,cidade_publica,estado_publico,portal_publico_ativo,public_slug')
+            .eq('id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      userRole !== 'filho'
+        ? authFetch(`/api/inventory?tenantId=${tidEnc}`).then((r) =>
+            parseApiJson<{ data?: any[] }>(r, { data: [] })
+          )
+        : Promise.resolve({ data: [] as any[] }),
+      userRole !== 'filho'
+        ? authFetch('/api/whatsapp/logs?limit=50', { cache: 'no-store' }).then((r) =>
+            parseApiJson<{ logs?: any[] }>(r, { logs: [] })
+          )
+        : Promise.resolve({ logs: [] as any[] }),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -346,9 +380,8 @@ async function fetchDashboardFinanceBundle(
       )
       .slice(0, 8);
 
-    const calendarEvents = excludeObrigacaoEvents(
-      (eventsRes.data || []) as DashboardNextEvent[],
-    );
+    const rawCalendarEvents = (eventsRes.data || []) as any[];
+    const calendarEvents = excludeObrigacaoEvents(rawCalendarEvents as DashboardNextEvent[]);
     const upcomingEvents = [...calendarEvents]
       .filter((e) => String(e.data || '') >= today)
       .sort((a, b) => {
@@ -357,6 +390,20 @@ async function fetchDashboardFinanceBundle(
         return first - second;
       })
       .slice(0, 4);
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const pendingObligations = rawCalendarEvents.filter((event) => {
+      const isObligation = String(event?.tipo || '').trim().toLowerCase() === 'obrigação' || String(event?.tipo || '').trim().toLowerCase() === 'obrigacao';
+      const status = String(event?.status_confirmacao || '').trim().toLowerCase();
+      return isObligation && status !== 'confirmado' && status !== 'concluído' && status !== 'concluido';
+    });
+    const inventoryRows = (inventoryRes.data || []) as any[];
+    const lowStockRows = inventoryRows.filter((item) => Number(item?.quantidade_atual) <= Number(item?.quantidade_minima));
+    const whatsappRows = (whatsappLogsRes.logs || []) as any[];
+    const whatsappFailed = whatsappRows.filter((log) => {
+      const status = String(log?.status || '').trim().toLowerCase();
+      return status === 'failed' || status === 'falha' || status === 'partial' || status === 'parcial';
+    }).length;
 
     return {
       transactions: normalized,
@@ -370,6 +417,14 @@ async function fetchDashboardFinanceBundle(
       birthdayData: birthdaysThisMonth(children),
       upcomingEvents,
       pixConfig: pixConfigRes?.data || pixConfigRes || null,
+      profileSetup: profileSetupRes?.data || null,
+      attention: {
+        obligationsPending: pendingObligations.length,
+        obligationsOverdue: pendingObligations.filter((event) => String(event?.data || '') < todayIso).length,
+        lowStock: lowStockRows.length,
+        outOfStock: lowStockRows.filter((item) => Number(item?.quantidade_atual) <= 0).length,
+        whatsappFailed,
+      },
     };
   } catch (e) {
     if (e instanceof Error && e.message === SESSION_EXPIRED_ERR) throw e;
@@ -387,6 +442,14 @@ async function fetchDashboardFinanceBundle(
       birthdayData: [],
       upcomingEvents: [],
       pixConfig: null,
+      profileSetup: null,
+      attention: {
+        obligationsPending: 0,
+        obligationsOverdue: 0,
+        lowStock: 0,
+        outOfStock: 0,
+        whatsappFailed: 0,
+      },
     };
   }
 }
@@ -474,6 +537,14 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const birthdayData = resolvedBundle?.birthdayData ?? [];
   const upcomingEvents = resolvedBundle?.upcomingEvents ?? [];
   const pixConfig = resolvedBundle?.pixConfig ?? null;
+  const profileSetup = resolvedBundle?.profileSetup ?? null;
+  const attention = resolvedBundle?.attention ?? {
+    obligationsPending: 0,
+    obligationsOverdue: 0,
+    lowStock: 0,
+    outOfStock: 0,
+    whatsappFailed: 0,
+  };
 
   const birthdayMonthLabel = useMemo(() => {
     const raw = format(new Date(), 'MMMM', { locale: ptBR });
@@ -848,11 +919,30 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   })();
   const houseDailyMessage = getHouseDailyMessage(now);
-  // Casa viva em 3 passos (linguagem da casa, não do software).
+  // Ativação guiada: cada passo representa valor real já percebido pelo novo terreiro.
   const pixOk = Boolean(String(pixConfig?.chave_pix || '').trim());
   const mensalidadeConfigurada =
     pixConfig?.mensalidade_ativa !== false && Number(pixConfig?.valor_mensalidade) > 0;
   const setupStepsV5: SetupStepV5[] = [
+    {
+      id: 'dados',
+      label: 'Dados da casa',
+      detail: 'Complete nome, WhatsApp e localização pública',
+      done: Boolean(
+        String(profileSetup?.nome_terreiro || terreiroNome).trim() &&
+        String(profileSetup?.whatsapp_publico || '').trim() &&
+        String(profileSetup?.cidade_publica || '').trim() &&
+        String(profileSetup?.estado_publico || '').trim(),
+      ),
+      tab: 'settings',
+    },
+    {
+      id: 'foto',
+      label: 'Foto da casa',
+      detail: 'Adicione uma imagem para identificar o terreiro',
+      done: Boolean(String(profileSetup?.foto_url || tenantData?.foto_url || '').trim()),
+      tab: 'settings',
+    },
     {
       id: 'corrente',
       label: 'Corrente',
@@ -874,12 +964,26 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       done: hasAnyGira,
       tab: 'calendar',
     },
+    {
+      id: 'perfil-publico',
+      label: 'Perfil no mapa',
+      detail: 'Ative o perfil público para sua casa ser encontrada',
+      done: Boolean(profileSetup?.portal_publico_ativo && String(profileSetup?.public_slug || '').trim()),
+      tab: 'settings',
+    },
   ];
   const setupDoneCount = setupStepsV5.filter((step) => step.done).length;
   const setupProgressV5 = Math.round((setupDoneCount / setupStepsV5.length) * 100);
   const setupPendingSteps = setupStepsV5.filter((step) => !step.done);
   const nextSetupStep = setupPendingSteps[0] ?? null;
   const setupComplete = setupPendingSteps.length === 0;
+  const openSetupStep = (step: SetupStepV5) => {
+    if (step.tab === 'settings') {
+      const section = step.id === 'foto' ? 'profile' : 'portal';
+      sessionStorage.setItem('axecloud:settings-section', section);
+    }
+    setActiveTab(step.tab);
+  };
   const trialDaysRemaining = (() => {
     if (tenantData?.is_trial !== true || !tenantData?.expires_at) return null;
     const expiresAt = new Date(String(tenantData.expires_at)).getTime();
@@ -899,7 +1003,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             ? 'Cadastrar pessoa'
             : nextSetupStep.id === 'dinheiro'
               ? 'Configurar mensalidade'
-              : 'Marcar gira',
+              : nextSetupStep.id === 'agenda'
+                ? 'Marcar gira'
+                : 'Completar perfil',
         tab: nextSetupStep.tab,
       };
     }
@@ -996,7 +1102,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               {formattedDate}. Agora: <span className="text-[#FFFDF7]">{houseMission.title.toLowerCase()}</span>.
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => setActiveTab(houseMission.tab)} className="dashboard-v5-hero__primary">
+              <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab(houseMission.tab)} className="dashboard-v5-hero__primary">
                 {houseMission.tab === 'children' ? (
                   <Users className="h-4 w-4" aria-hidden />
                 ) : houseMission.tab.startsWith('financial') ? (
@@ -1111,6 +1217,46 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                       tone: 'gold',
                     }
                   : null,
+                attention.whatsappFailed > 0
+                  ? {
+                      label: `${attention.whatsappFailed} envio${attention.whatsappFailed === 1 ? '' : 's'} de WhatsApp com falha`,
+                      detail: 'Confira o destinatário e o status no histórico de envios',
+                      tab: 'settings',
+                      status: 'Revisar',
+                      tone: 'terra',
+                    }
+                  : null,
+                attention.obligationsPending > 0
+                  ? {
+                      label: `${attention.obligationsPending} obrigação${attention.obligationsPending === 1 ? '' : 'ões'} pendente${attention.obligationsPending === 1 ? '' : 's'}`,
+                      detail: attention.obligationsOverdue > 0
+                        ? `${attention.obligationsOverdue} já passou da data prevista`
+                        : 'Acompanhe prazos e documentos da corrente',
+                      tab: 'obligations',
+                      status: attention.obligationsOverdue > 0 ? 'Atrasada' : 'Acompanhar',
+                      tone: attention.obligationsOverdue > 0 ? 'terra' : 'gold',
+                    }
+                  : null,
+                attention.lowStock > 0
+                  ? {
+                      label: `${attention.lowStock} item${attention.lowStock === 1 ? '' : 's'} para repor`,
+                      detail: attention.outOfStock > 0
+                        ? `${attention.outOfStock} sem estoque no almoxarifado`
+                        : 'Estoque abaixo do mínimo configurado',
+                      tab: 'inventory',
+                      status: 'Repor',
+                      tone: 'gold',
+                    }
+                  : null,
+                incompleteProfiles > 0
+                  ? {
+                      label: `${incompleteProfiles} cadastro${incompleteProfiles === 1 ? '' : 's'} incompleto${incompleteProfiles === 1 ? '' : 's'}`,
+                      detail: 'Faltam telefone ou data de nascimento',
+                      tab: 'children',
+                      status: 'Completar',
+                      tone: 'blue',
+                    }
+                  : null,
                 pendingMensalidades > 0
                   ? {
                       label: 'Há mensalidades para confirmar',
@@ -1161,7 +1307,13 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               ]
                 .filter(Boolean)
                 .map((item, index) => (
-                <button key={`${item!.label}-${index}`} type="button" onClick={() => setActiveTab(item!.tab)} className="dashboard-v5-routine-item" data-tone={item!.tone}>
+                <button key={`${item!.label}-${index}`} type="button" onClick={() => {
+                  if (item!.tab === 'settings' && item!.label.includes('WhatsApp')) {
+                    sessionStorage.setItem('axecloud:settings-section', 'whatsapp');
+                    sessionStorage.setItem('axecloud:whatsapp-view', 'historico');
+                  }
+                  setActiveTab(item!.tab);
+                }} className="dashboard-v5-routine-item" data-tone={item!.tone}>
                   <span className="dashboard-v5-routine-index">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
                     <strong>{item!.label}</strong>
@@ -1181,7 +1333,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="dashboard-v5-section-kicker">Ativação do teste</p>
-                <h2 id="progress-v5">Comece sem configurar tudo</h2>
+                <h2 id="progress-v5">Prepare sua casa passo a passo</h2>
               </div>
               <TrendingUp className="h-5 w-5 text-[#D8AD37]" aria-hidden />
             </div>
@@ -1194,7 +1346,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   {`${setupDoneCount} de ${setupStepsV5.length} passos`}
                 </strong>
                 <p>
-                  Só o essencial para sentir o sistema funcionando: corrente, mensalidade e uma gira.
+                  Cada etapa libera mais valor no painel e deixa sua casa pronta para ser encontrada.
                 </p>
               </div>
             </div>
@@ -1203,7 +1355,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 <li key={step.id}>
                   <button
                     type="button"
-                    onClick={() => setActiveTab(step.tab)}
+                    onClick={() => openSetupStep(step)}
                     className={cn(
                       'dashboard-v5-progress__step',
                       step.done && 'is-done',
@@ -1227,7 +1379,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             {nextSetupStep ? (
               <button
                 type="button"
-                onClick={() => setActiveTab(nextSetupStep.tab)}
+                onClick={() => openSetupStep(nextSetupStep)}
                 className="dashboard-v5-progress__action"
               >
                 Fazer agora: {nextSetupStep.label}

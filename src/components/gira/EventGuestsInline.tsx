@@ -6,6 +6,7 @@ import { authFetch } from '../../lib/authenticatedFetch';
 import { hasPlanAccess, hasPremiumTierFeatures } from '../../constants/plans';
 import { AppPrimaryButton, appInputClass } from '../ui/appDemoUi';
 import { showHouseToast } from '../../lib/houseToast';
+import { confirmAction } from '../../lib/confirmAction';
 
 type GuestStatus = 'Confirmado' | 'Pendente' | 'Check-in' | 'Recusado';
 
@@ -183,7 +184,7 @@ export function EventGuestsInline({
       guest?.telefone && guest?.rsvp_token
         ? `Remover ${guest.nome}? O link de confirmação já enviado no WhatsApp deixa de funcionar.`
         : `Remover ${guest?.nome || 'este convidado'}?`;
-    if (!window.confirm(warn)) return;
+    if (!(await confirmAction({ title: 'Remover convidado?', description: warn, confirmLabel: 'Remover convidado', tone: 'danger' }))) return;
     if (busyGuestId) return;
     setBusyGuestId(guestId);
     showHouseToast('Removendo convidado…', 'info');

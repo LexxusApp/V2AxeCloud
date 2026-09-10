@@ -26,6 +26,7 @@ import {
   appInputClass,
 } from '../components/ui/appDemoUi';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
+import { confirmAction } from '../lib/confirmAction';
 import { authFetch } from '../lib/authenticatedFetch';
 
 interface GalleryProps {
@@ -568,9 +569,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
   const deletePhoto = async (photo: MediaItem) => {
     if (deletingPhotoId) return;
-    const confirmDel = window.confirm(
-      `Deseja mesmo remover "${photo.title || photo.file_name}" deste álbum?`,
-    );
+    const confirmDel = await confirmAction({
+      title: 'Remover foto do álbum?',
+      description: `“${photo.title || photo.file_name}” será removida da memória da casa.`,
+      confirmLabel: 'Remover foto',
+      tone: 'danger',
+    });
     if (!confirmDel) return;
 
     setDeletingPhotoId(photo.id);
@@ -609,9 +613,12 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
   const deleteAlbum = async (album: AlbumItem) => {
     if (deletingAlbumId) return;
-    const confirmDel = window.confirm(
-      `Deseja mesmo remover o álbum "${album.name}" e todas as ${album.media.length} foto(s) da corrente?`,
-    );
+    const confirmDel = await confirmAction({
+      title: 'Excluir álbum completo?',
+      description: `O álbum “${album.name}” e suas ${album.media.length} foto(s) serão removidos da corrente. Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir álbum',
+      tone: 'danger',
+    });
     if (!confirmDel) return;
 
     setDeletingAlbumId(album.id);

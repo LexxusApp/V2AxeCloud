@@ -26,6 +26,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { confirmAction } from '../lib/confirmAction';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -705,7 +706,7 @@ export default function Financial({
 
   async function handleMensalidadeEstornar(row: MensalidadeZeladorRow) {
     if (!tenantId || processingMensalidadeId) return;
-    if (!confirm('Estornar este pagamento? A mensalidade voltará para pendentes.')) return;
+    if (!(await confirmAction({ title: 'Estornar pagamento?', description: 'A mensalidade voltará para a lista de pendentes. O histórico financeiro será atualizado.', confirmLabel: 'Estornar pagamento', tone: 'warning' }))) return;
     setProcessingMensalidadeId(row.id);
     showHouseToast('Estornando pagamento…', 'info');
     const due = String(row.data_vencimento || row.data || '').slice(0, 10);
@@ -885,7 +886,7 @@ export default function Financial({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Deseja realmente excluir este lançamento? Esta ação não pode ser desfeita.')) return;
+    if (!(await confirmAction({ title: 'Excluir lançamento?', description: 'Esta ação remove o lançamento do financeiro e não poderá ser desfeita.', confirmLabel: 'Excluir lançamento', tone: 'danger' }))) return;
 
     const backup = transactions;
     setTransactions((prev) => prev.filter((t) => t.id !== id));

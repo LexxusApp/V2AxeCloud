@@ -25,6 +25,7 @@ import {
   MessageSquareText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { confirmAction } from '../lib/confirmAction';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
@@ -276,7 +277,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   async function deleteNotice(id: string) {
     if (deletingNoticeId) return;
-    if (!confirm('Deseja realmente excluir este aviso?')) return;
+    if (!(await confirmAction({ title: 'Excluir comunicado?', description: 'O aviso deixará de aparecer no mural da corrente.', confirmLabel: 'Excluir comunicado', tone: 'danger' }))) return;
     setDeletingNoticeId(id);
     showHouseToast('Excluindo comunicado…', 'info');
     try {

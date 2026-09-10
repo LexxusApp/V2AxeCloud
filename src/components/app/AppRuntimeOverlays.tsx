@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import LegalTermsModal from '../LegalTermsModal';
 import { ChatFloatingWidget } from '../chat/ChatFloatingWidget';
 import { FilhoCoachTour } from '../filho/FilhoCoachTour';
+import { ConfirmActionDialog } from './ConfirmActionDialog';
 
 type AppRuntimeOverlaysProps = {
   showLegalTermsModal: boolean;
@@ -19,6 +20,7 @@ type AppRuntimeOverlaysProps = {
 export function AppRuntimeOverlays({ showLegalTermsModal, onAcceptLegalTerms, legalTermsAccepting, userRole, session, activeTab, onNavigate, effectiveTenantId, blockingSpinnerActive, tenantData }: AppRuntimeOverlaysProps) {
   return (
     <>
+      <ConfirmActionDialog />
       {showLegalTermsModal ? <LegalTermsModal open onAccept={onAcceptLegalTerms} accepting={legalTermsAccepting} /> : null}
       {userRole === 'filho' && session && !showLegalTermsModal ? <FilhoCoachTour activeTab={activeTab} onNavigate={onNavigate} /> : null}
       {session && effectiveTenantId && !blockingSpinnerActive ? <ChatFloatingWidget tenantData={tenantData} userId={session.user.id} userRole={userRole} /> : null}

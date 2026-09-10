@@ -4,6 +4,7 @@ import {
   Clock3,
   MessageSquare,
   Radio,
+  RefreshCw,
   Send,
   Settings,
   Shield,
@@ -24,6 +25,7 @@ type WaLogTipo = 'gira' | 'financeiro' | 'reza' | 'transmissao' | 'broadcast' | 
 type WaLogUi = {
   id: string;
   destino: string;
+  telefone: string;
   mensagem: string;
   data: string;
   tipo: WaLogTipo;
@@ -45,7 +47,7 @@ const DEFAULT_PREFS: WaPreferences = {
 };
 
 const MAX_VISIBLE_LOGS = 40;
-const LOG_FETCH_LIMIT = 40;
+const LOG_FETCH_LIMIT = 50;
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
   gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
@@ -121,18 +123,28 @@ function WaLiveDot({ active, className }: { active: boolean; className?: string 
 }
 
 export function SettingsWhatsAppPanel() {
-  const [waView, setWaView] = useState<'automacoes' | 'teste' | 'historico'>('automacoes');
+  const [waView, setWaView] = useState<'automacoes' | 'teste' | 'historico'>(() => {
+    const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:whatsapp-view') : null;
+    return requested === 'historico' || requested === 'teste' ? requested : 'automacoes';
+  });
   const [connected, setConnected] = useState(false);
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
   const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [logs, setLogs] = useState<WaLogUi[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState('');
+  const [logFilter, setLogFilter] = useState<'todos' | 'falhas' | WaLogTipo>('todos');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.removeItem('axecloud:whatsapp-view');
   }, []);
 
   useEffect(() => {
@@ -158,6 +170,8 @@ export function SettingsWhatsAppPanel() {
   };
 
   const loadLogs = useCallback(async () => {
+    setLogsLoading(true);
+    setLogsError('');
     try {
       const token = await getAccessToken();
       const userId = await getSessionUserId();
@@ -166,7 +180,7 @@ export function SettingsWhatsAppPanel() {
         cache: 'no-store',
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) return;
+      if (!res.ok) throw new Error(String(data.error || 'Não foi possível carregar o histórico.'));
       const rows = Array.isArray(data.logs) ? data.logs : [];
       setLogs(
         rows.map((row: Record<string, unknown>) => {
@@ -174,7 +188,8 @@ export function SettingsWhatsAppPanel() {
           const st = String(row.status || 'sent').toLowerCase();
           return {
             id: String(row.id),
-            destino: logDestino(String(row.telefone || ''), tipo),
+            destino: String(row.destinatario_nome || '').trim() || logDestino(String(row.telefone || ''), tipo),
+            telefone: logDestino(String(row.telefone || ''), tipo),
             mensagem: String(row.mensagem || ''),
             data: formatLogDate(String(row.created_at || '')),
             tipo,
@@ -191,8 +206,10 @@ export function SettingsWhatsAppPanel() {
           };
         }),
       );
-    } catch {
-      /* silencioso */
+    } catch (error) {
+      setLogsError(error instanceof Error ? error.message : 'Não foi possível carregar o histórico.');
+    } finally {
+      setLogsLoading(false);
     }
   }, []);
 
@@ -243,8 +260,16 @@ export function SettingsWhatsAppPanel() {
     return () => window.clearInterval(id);
   }, [checkStatus, loadConfig, loadLogs]);
 
-  const visibleLogs = logs.slice(0, MAX_VISIBLE_LOGS);
-  const hiddenLogsCount = Math.max(logs.length - visibleLogs.length, 0);
+  const filteredLogs = logs.filter((log) => {
+    if (logFilter === 'todos') return true;
+    if (logFilter === 'falhas') return log.status === 'Falha' || log.status === 'Parcial';
+    return log.tipo === logFilter;
+  });
+  const visibleLogs = filteredLogs.slice(0, MAX_VISIBLE_LOGS);
+  const hiddenLogsCount = Math.max(filteredLogs.length - visibleLogs.length, 0);
+  const failedLogsCount = logs.filter((log) => log.status === 'Falha' || log.status === 'Parcial').length;
+  const deliveredLogsCount = logs.filter((log) => log.status === 'Entregue' || log.status === 'Lido').length;
+  const readLogsCount = logs.filter((log) => log.status === 'Lido').length;
   const enabledAutomations = Object.values(preferences).filter(Boolean).length;
 
   const persistPreferences = (next: WaPreferences) => {
@@ -587,25 +612,63 @@ export function SettingsWhatsAppPanel() {
         {waView === 'historico' ? (
         <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[#1E242B] bg-[#0E1318] p-5 lg:col-span-12">
           <div className="flex min-h-0 flex-1 flex-col space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1E242B] pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1E242B] pb-3">
               <div className="flex items-center gap-2">
                 <WaLiveDot active className="h-1.5 w-1.5" />
                 <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Histórico de envios</h6>
               </div>
-              <span className="rounded border border-emerald-500/20 bg-[#12161A] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-[#10B981]">
-                Últimas {visibleLogs.length || 0}
-              </span>
+              <button type="button" onClick={() => void loadLogs()} disabled={logsLoading} className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-500/20 bg-[#12161A] px-3 text-[9px] font-extrabold uppercase tracking-wider text-[#10B981] disabled:cursor-wait disabled:opacity-60">
+                <RefreshCw className={cn('h-3.5 w-3.5', logsLoading && 'animate-spin')} />
+                {logsLoading ? 'Atualizando' : 'Atualizar'}
+              </button>
             </div>
 
             <p className="text-[11px] font-light text-gray-400">
-              Role a lista para ver os envios mais antigos. Mantemos os registros recentes nesta tela para ficar leve no
-              celular.
+              Veja quem recebeu, o conteúdo enviado e o resultado informado pelo WhatsApp.
             </p>
 
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { label: 'Registrados', value: logs.length, color: 'text-white' },
+                { label: 'Entregues', value: deliveredLogsCount, color: 'text-emerald-300' },
+                { label: 'Lidos', value: readLogsCount, color: 'text-sky-300' },
+                { label: 'Com falha', value: failedLogsCount, color: failedLogsCount ? 'text-rose-300' : 'text-gray-400' },
+              ].map((metric) => (
+                <div key={metric.label} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3">
+                  <strong className={cn('block text-xl font-black', metric.color)}>{metric.value}</strong>
+                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-500">{metric.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Filtros do histórico">
+              {[
+                { id: 'todos' as const, label: 'Todos' },
+                { id: 'falhas' as const, label: `Falhas${failedLogsCount ? ` (${failedLogsCount})` : ''}` },
+                { id: 'financeiro' as const, label: 'Financeiro' },
+                { id: 'gira' as const, label: 'Giras' },
+                { id: 'acesso' as const, label: 'Acessos' },
+                { id: 'transmissao' as const, label: 'Comunicados' },
+              ].map((filter) => (
+                <button key={filter.id} type="button" onClick={() => setLogFilter(filter.id)} className={cn('min-h-9 shrink-0 rounded-xl border px-3 text-[9px] font-black uppercase tracking-wide transition', logFilter === filter.id ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200' : 'border-[#27303A] bg-[#12161A] text-gray-400 hover:text-white')}>
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            {logsError ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-[10px] font-bold text-rose-200">
+                <span>{logsError}</span>
+                <button type="button" onClick={() => void loadLogs()} className="shrink-0 underline">Tentar novamente</button>
+              </div>
+            ) : null}
+
             <div className="wa-settings-panel__logs-list max-h-[min(32rem,58dvh)] min-h-[12rem] space-y-0 overflow-y-auto overscroll-contain pr-1">
-              {visibleLogs.length === 0 ? (
+              {logsLoading && logs.length === 0 ? (
+                <div className="flex min-h-32 items-center justify-center gap-2 text-xs font-bold text-gray-400"><RefreshCw className="h-4 w-4 animate-spin" /> Carregando envios…</div>
+              ) : visibleLogs.length === 0 ? (
                 <p className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-center text-[10px] text-gray-500">
-                  Nenhuma transmissão registrada ainda. Conecte o WhatsApp e envie a primeira mensagem.
+                  {logFilter === 'todos' ? 'Nenhuma transmissão registrada ainda.' : 'Nenhum envio encontrado neste filtro.'}
                 </p>
               ) : (
                 visibleLogs.map((log) => (
@@ -614,8 +677,8 @@ export function SettingsWhatsAppPanel() {
                     className="space-y-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 transition-colors hover:bg-[#1E242B]/20"
                   >
                     <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="max-w-[124px] truncate text-[10px] font-bold text-white">{log.destino}</span>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 max-w-[170px] truncate text-[10px] font-bold text-white">{log.destino}</span>
                         <span
                           className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${BADGE_COLORS[log.tipo]}`}
                         >
@@ -624,6 +687,7 @@ export function SettingsWhatsAppPanel() {
                       </div>
                       <span className="shrink-0 font-mono text-[8px] text-gray-500">{log.data}</span>
                     </div>
+                    {log.telefone !== log.destino ? <p className="font-mono text-[9px] text-gray-500">{log.telefone}</p> : null}
                     <p className="rounded bg-black/15 p-2 text-[10.5px] italic leading-relaxed text-gray-300">
                       &quot;{log.mensagem}&quot;
                     </p>

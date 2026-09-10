@@ -14,6 +14,7 @@ import {
 } from '../constants/whatsappTemplates';
 import { digitsOnly, normalizeBrWhatsAppMsisdn, previewBrWhatsAppMsisdn } from '../lib/whatsappPhone';
 import { AppDemoCard } from '../components/ui/appDemoUi';
+import { confirmAction } from '../lib/confirmAction';
 
 const WHATSAPP_INIT_FALLBACK =
   'O serviço de mensageria está inicializando ou temporariamente indisponível. Aguarde um instante e tente novamente.';
@@ -364,7 +365,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
   const pairingLocked = pairingLockedUntil > Date.now();
 
   const handleLogout = async () => {
-    if (!confirm('Deseja realmente desconectar o WhatsApp? Isso limpará sua sessão atual.')) return;
+    if (!(await confirmAction({ title: 'Desconectar WhatsApp?', description: 'A sessão atual será encerrada e será necessário conectar novamente para retomar os envios.', confirmLabel: 'Desconectar', tone: 'danger' }))) return;
     
     setLoading(true);
     setErrorMsg(null);

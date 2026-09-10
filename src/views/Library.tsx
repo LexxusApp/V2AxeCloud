@@ -26,6 +26,7 @@ import CommentSection from '../components/CommentSection';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass } from '../components/ui/appDemoUi';
 import BodyPortal from '../components/BodyPortal';
+import { confirmAction } from '../lib/confirmAction';
 import { LibraryCardSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
@@ -331,7 +332,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
   const handleDelete = async (id: string, storagePath: string) => {
     if (deletingMaterialId) return;
-    if (!confirm('Deseja realmente excluir este material?')) return;
+    if (!(await confirmAction({ title: 'Excluir material?', description: 'O material deixará de aparecer na biblioteca da casa.', confirmLabel: 'Excluir material', tone: 'danger' }))) return;
 
     if (!effectiveTenantId) {
       showHouseToast('Terreiro não identificado.', 'error');

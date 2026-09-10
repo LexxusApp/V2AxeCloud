@@ -10,6 +10,7 @@ import * as Toast from '@radix-ui/react-toast';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoPanelHeader, AppDemoCard, AppDemoTableShell, AppPrimaryButton } from '../components/ui/appDemoUi';
 import FilhoStoreExperience from '../components/filho/FilhoStoreExperience';
+import { confirmAction } from '../lib/confirmAction';
 
 // Campos dos modais (portais fora do escopo .app-v5-identity): tokens de papel explícitos.
 const paperModalInputClass =
@@ -445,7 +446,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
   const handleDeleteProduct = async (product: Product) => {
     if (!isAdmin) return;
-    if (!confirm(`Excluir o produto "${product.nome}"? Ele deixa de aparecer na loja.`)) return;
+    if (!(await confirmAction({ title: `Excluir “${product.nome}”?`, description: 'O produto deixará de aparecer na Loja do Axé. Esta ação não pode ser desfeita.', confirmLabel: 'Excluir produto', tone: 'danger' }))) return;
 
     setDeletingProductId(product.id);
     try {

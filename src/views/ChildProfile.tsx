@@ -12,6 +12,7 @@ import { ObligationScheduleModal } from '../components/child-profile/ObligationS
 import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
 import BodyPortal from '../components/BodyPortal';
 import { showHouseToast } from '../lib/houseToast';
+import { confirmAction } from '../lib/confirmAction';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -357,7 +358,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   async function handleDelete() {
     if (!child || !user) return;
-    if (!confirm(`Deseja realmente excluir o perfil de ${child.nome}? Esta ação é irreversível.`)) return;
+    if (!(await confirmAction({ title: `Excluir o perfil de ${child.nome}?`, description: 'O cadastro e o acesso desta pessoa serão removidos. Esta ação não pode ser desfeita.', confirmLabel: 'Excluir perfil', tone: 'danger' }))) return;
 
     setIsDeleting(true);
     try {
@@ -482,7 +483,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   async function handleRemoveObligationPdf(eventId: string) {
     if (!child || isSelfView) return;
-    if (!confirm('Remover o PDF desta obrigação? Esta ação não pode ser desfeita.')) return;
+    if (!(await confirmAction({ title: 'Remover documento da obrigação?', description: 'O PDF será desvinculado desta obrigação e não poderá ser recuperado por esta tela.', confirmLabel: 'Remover documento', tone: 'danger' }))) return;
     setUpdatingPdfEventId(eventId);
     try {
       await patchObligationPdf(eventId, null);
@@ -688,7 +689,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   async function handleDeleteCurrentNote() {
     if (isSelfView || !selectedNoteId) return;
-    if (!confirm('Excluir esta nota? Esta ação não pode ser desfeita.')) return;
+    if (!(await confirmAction({ title: 'Excluir nota reservada?', description: 'Esta anotação será removida do perfil e não poderá ser recuperada.', confirmLabel: 'Excluir nota', tone: 'danger' }))) return;
     const next = zeladorNotes.filter((n) => n.id !== selectedNoteId);
     const ok = await persistZeladorNotes(next);
     if (ok) {

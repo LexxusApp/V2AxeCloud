@@ -179,12 +179,25 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 50) : 12;
       const { data, error } = await sb
         .from("whatsapp_logs")
-        .select("id, telefone, mensagem, tipo, status, created_at")
+        .select("id, filho_id, telefone, mensagem, tipo, status, created_at")
         .eq("tenant_id", user.id)
         .order("created_at", { ascending: false })
         .limit(logLimit);
       if (error) throw error;
-      return sendJson(res, 200, { success: true, logs: data || [] });
+      const childIds = [...new Set((data || []).map((row: any) => String(row?.filho_id || "")).filter(Boolean))];
+      let childNames = new Map<string, string>();
+      if (childIds.length > 0) {
+        const { data: children } = await sb
+          .from("filhos_de_santo")
+          .select("id, nome")
+          .in("id", childIds);
+        childNames = new Map((children || []).map((child: any) => [String(child.id), String(child.nome || "")]));
+      }
+      const logs = (data || []).map((row: any) => ({
+        ...row,
+        destinatario_nome: childNames.get(String(row?.filho_id || "")) || null,
+      }));
+      return sendJson(res, 200, { success: true, logs });
     }
 
     if (act === "resend-dados-acesso" && method === "POST") {

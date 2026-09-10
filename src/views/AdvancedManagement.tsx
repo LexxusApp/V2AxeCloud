@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AppPageShell } from '../components/app/AppTopNav';
+import { confirmAction } from '../lib/confirmAction';
 import { authFetch } from '../lib/authenticatedFetch';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -347,7 +348,7 @@ export default function AdvancedManagement({ section, tenantData, setActiveTab }
   }
 
   async function remove(item: RegistryItem) {
-    if (!confirm(`Excluir “${item.titulo}”?`)) return;
+    if (!(await confirmAction({ title: `Excluir “${item.titulo}”?`, description: 'O registro será removido desta área de gestão e não poderá ser recuperado.', confirmLabel: 'Excluir registro', tone: 'danger' }))) return;
     const response = await authFetch(`/api/v1/gestao/${config.resource}/${item.id}?tenantId=${encodeURIComponent(tenantId)}`, { method: 'DELETE' });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));

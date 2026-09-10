@@ -23,6 +23,7 @@ import {
 import { authFetch } from '../../lib/authenticatedFetch';
 import BodyPortal from '../BodyPortal';
 import { cn } from '../../lib/utils';
+import { confirmAction } from '../../lib/confirmAction';
 
 type ChildOption = {
   id: string;
@@ -210,7 +211,7 @@ export default function PreceitoCommandCenter({ tenantId }: Props) {
   };
 
   const endCycle = async (cycle: Cycle) => {
-    if (!confirm(`Encerrar o ciclo “${cycle.titulo}”? As orientações deixarão de aparecer para os participantes.`)) return;
+    if (!(await confirmAction({ title: `Encerrar “${cycle.titulo}”?`, description: 'As orientações deixarão de aparecer para os participantes deste ciclo.', confirmLabel: 'Encerrar ciclo', tone: 'warning' }))) return;
     setBusy(true);
     try {
       const response = await authFetch(`/api/v1/preceitos/${encodeURIComponent(cycle.id)}/status`, {

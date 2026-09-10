@@ -18,6 +18,7 @@ import Avatar from '../components/Avatar';
 import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 import ChildrenCurrentExperience from '../components/children/ChildrenCurrentExperience';
 import BodyPortal from '../components/BodyPortal';
+import { confirmAction } from '../lib/confirmAction';
 
 const paperLabelClass =
   'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
@@ -225,9 +226,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function handleResendDadosAcessoWhatsApp() {
     if (!user?.id) return;
-    const ok = confirm(
-      'Enviar acesso via WhatsApp para toda a corrente com telefone e CPF?\n\nCada pessoa entra com o Registro da casa + 6 dígitos do CPF.\n\nOs envios entram na fila anti-spam e podem levar alguns minutos.',
-    );
+    const ok = await confirmAction({
+      title: 'Enviar acesso para toda a corrente?',
+      description: 'Cada pessoa com WhatsApp e CPF receberá o Registro da casa e as instruções de entrada. Os envios entram na fila anti-spam e podem levar alguns minutos.',
+      confirmLabel: 'Enviar acessos',
+      tone: 'primary',
+    });
     if (!ok) return;
 
     setResendingWelcome(true);
@@ -268,9 +272,12 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   async function handleSendCredentials(childId: string, childName: string) {
     if (!user?.id) return;
     if (sendingCredentialsId) return;
-    const ok = confirm(
-      `Enviar acesso via WhatsApp para ${childName}?\n\nEntra com o Registro da casa + 6 dígitos do CPF.\n\nSe você já enviou há poucos minutos, o sistema bloqueia para evitar spam.`,
-    );
+    const ok = await confirmAction({
+      title: `Enviar acesso para ${childName}?`,
+      description: 'A pessoa receberá o Registro da casa e as instruções de entrada no WhatsApp. Reenvios muito próximos são bloqueados para evitar spam.',
+      confirmLabel: 'Enviar acesso',
+      tone: 'primary',
+    });
     if (!ok) return;
 
     setOpenActionsId(null);
@@ -310,7 +317,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function handleDelete(id: string, name: string) {
     setOpenActionsId(null);
-    if (!confirm(`Deseja realmente excluir o perfil de ${name}? Esta ação é irreversível.`)) return;
+    if (!(await confirmAction({ title: `Excluir o perfil de ${name}?`, description: 'O cadastro e o acesso desta pessoa serão removidos. Esta ação não pode ser desfeita.', confirmLabel: 'Excluir perfil', tone: 'danger' }))) return;
 
     const snapshot = children;
     setChildren((prev) => prev.filter((c) => c.id !== id));

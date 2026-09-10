@@ -14,6 +14,7 @@ import {
 import { authFetch } from '../../lib/authenticatedFetch';
 import { marketingHref } from '../../lib/appHref';
 import { AppPrimaryButton } from '../ui/appDemoUi';
+import { confirmAction } from '../../lib/confirmAction';
 
 type Servico = {
   id: string;
@@ -285,7 +286,7 @@ export function TerreiroServicosSettings() {
   }
 
   async function deleteServico(id: string) {
-    if (!window.confirm('Excluir este atendimento?')) return;
+    if (!(await confirmAction({ title: 'Excluir atendimento?', description: 'Este serviço deixará de aparecer entre os atendimentos oferecidos pela casa.', confirmLabel: 'Excluir atendimento', tone: 'danger' }))) return;
     setDeletingId(id);
     setGlobalMsg(null);
     try {
