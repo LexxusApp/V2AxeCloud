@@ -13,6 +13,8 @@ import {
 
 const CONTACT_URL = "https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud.";
 
+const roomNames = ["Financeiro", "Agenda", "Comunidade", "Comunicação", "Patrimônio", "Memória"];
+
 const scattered = [
   ["Recibo 028", "R$ 120,00", "paper receipt"], ["Gira de sábado", "20h — confirmar equipe", "paper event"],
   ["3 mensagens", "Quem ficará na cozinha?", "message msg-a"], ["Mensalidade", "Faltam 7 confirmações", "paper bill"],
@@ -362,7 +364,7 @@ export default function Home() {
 
     <section className="cx-ecosystem" id="descobrir"><div className="cx-ecosystem-head cx-reveal"><p>ALÉM DO SISTEMA</p><h2>Uma plataforma para a casa.<br /><span>Um serviço para a comunidade.</span></h2><div><Search /><p>O AxéCloud também mantém diretório público, agenda de eventos, conteúdo educativo, glossário e espaço para pedidos de reza.</p></div></div><div className="cx-ecosystem-grid">{ecosystem.map((item,i) => <a className="cx-ecosystem-link cx-reveal" href={item.href} key={item.title}><span>0{i+1}</span><item.icon /><small>{item.eyebrow}</small><h3>{item.title}</h3><p>{item.text}</p><ArrowRight /></a>)}</div></section>
 
-    <section className="cx-finale"><div className="cx-final-plan" aria-hidden="true">{rooms.map(r => <span key={r.title}>{r.title}</span>)}<i /><i /><i /></div><div className="cx-finale-copy cx-reveal"><p>04 — A CASA ORGANIZADA E VIVA</p><h2>O AxéCloud cuida<br />da organização.<br /><span>Sua casa cuida das pessoas.</span></h2></div>
+    <section className="cx-finale"><div className="cx-final-plan" aria-hidden="true">{roomNames.map(name => <span key={name}>{name}</span>)}<i /><i /><i /></div><div className="cx-finale-copy cx-reveal"><p>04 — A CASA ORGANIZADA E VIVA</p><h2>O AxéCloud cuida<br />da organização.<br /><span>Sua casa cuida das pessoas.</span></h2></div>
       <article className="cx-offer cx-reveal" id="plano">
         <div className="cx-offer-head"><div><img src="/axecloud-trident.png" alt="" width="54" height="54" /><span><small>PLANO PREMIUM</small><strong>Um plano. A casa inteira.</strong></span></div><p><i /> TODOS OS RECURSOS INCLUÍDOS</p></div>
         <div className="cx-offer-body">

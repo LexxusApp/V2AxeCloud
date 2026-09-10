@@ -24,10 +24,13 @@ async function waitForServer() {
 }
 
 before(async () => {
-  server = spawn(process.execPath, [
-    path.join(root, "node_modules", "vinext", "dist", "cli.js"),
-    "start", "--hostname", "127.0.0.1", "--port", String(port),
-  ], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+  // Valida diretamente a saída standalone gerada pelo build. O comando
+  // `vinext start` deixou de inicializar de forma confiável nesta versão.
+  server = spawn(process.execPath, [path.join(root, "dist", "standalone", "server.js")], {
+    cwd: root,
+    env: { ...process.env, HOSTNAME: "127.0.0.1", PORT: String(port) },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   await waitForServer();
 });
 
