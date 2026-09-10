@@ -7,20 +7,11 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   ArrowRight, BookOpen, CalendarDays, Check, CircleDollarSign, FileText,
-  Images, LockKeyhole, MapPin, Menu, MessageCircleMore, PackageCheck, Search,
-  ShieldCheck, UsersRound, X,
+  LockKeyhole, MapPin, Menu, MessageCircleMore, PackageCheck, Search,
+  ShieldCheck, X,
 } from "lucide-react";
 
 const CONTACT_URL = "https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud.";
-
-const rooms = [
-  { n: "01", title: "Financeiro", note: "Mensalidades, Pix e prestação de contas", icon: CircleDollarSign, area: "finance" },
-  { n: "02", title: "Agenda", note: "Giras, eventos e obrigações", icon: CalendarDays, area: "agenda" },
-  { n: "03", title: "Comunidade", note: "Filhos, visitantes e vínculos", icon: UsersRound, area: "people" },
-  { n: "04", title: "Comunicação", note: "Avisos pelo WhatsApp oficial", icon: MessageCircleMore, area: "talk" },
-  { n: "05", title: "Patrimônio", note: "Estoque, materiais e loja", icon: PackageCheck, area: "stock" },
-  { n: "06", title: "Memória", note: "Documentos, imagens e estudos", icon: Images, area: "memory" },
-];
 
 const scattered = [
   ["Recibo 028", "R$ 120,00", "paper receipt"], ["Gira de sábado", "20h — confirmar equipe", "paper event"],
@@ -267,8 +258,6 @@ export default function Home() {
     const ctx = gsap.context(() => {
       gsap.timeline({ defaults: { duration: .85, ease: "power3.out" } })
         .from(".cx-conversion-copy > *", { y: 34, opacity: 0, stagger: .07 })
-        .from(".cx-hero-housemap", { y: 42, opacity: 0, scale: .96 }, .18)
-        .from(".cx-hero-module", { y: 22, opacity: 0, stagger: .05, duration: .5 }, .42)
         .from(".cx-hero-assurance > *", { y: 16, opacity: 0, stagger: .05, duration: .45 }, .56);
 
       gsap.timeline({ scrollTrigger: { trigger: ".cx-clutter", start: "top top", end: "bottom bottom", scrub: 1 } })
@@ -328,14 +317,6 @@ export default function Home() {
           <div className="cx-hero-assurance"><span><ShieldCheck /> Dados privados</span><span><MessageCircleMore /> Suporte humano</span><span><Check /> Todos os módulos</span></div>
         </div>
 
-        <aside className="cx-hero-housemap" aria-label="Áreas da casa organizadas pelo AxéCloud">
-          <div className="cx-hero-housemap-title"><span>UMA CASA · UMA GESTÃO</span><small>6 ÁREAS ESSENCIAIS</small></div>
-          <div className="cx-hero-housemap-heart"><img src="/axecloud-trident.png" alt="" width="42" height="51" /><span><small>AXÉCLOUD</small><strong>Uma casa. Uma direção.</strong></span></div>
-          <div className="cx-hero-modules">
-            {rooms.map((room) => <article className="cx-hero-module" key={room.title}><span>{room.n}</span><room.icon /><div><strong>{room.title}</strong><small>{room.note}</small></div></article>)}
-          </div>
-          <p className="cx-hero-housemap-note"><span>A rotina se conecta</span><span>24 módulos incluídos</span></p>
-        </aside>
       </div>
       <a className="cx-hero-scroll" href="#problema"><span>CONHEÇA O SISTEMA</span><i /></a>
     </section>
