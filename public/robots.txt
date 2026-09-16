@@ -11,10 +11,10 @@
 
 User-agent: *
 Allow: /
+Allow: /api/v1/public/diretorio/foto/
 Disallow: /api/
 Disallow: /dashboard
 Disallow: /checkout
-Disallow: /register
 Disallow: /consulente
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 
