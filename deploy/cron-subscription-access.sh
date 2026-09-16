@@ -10,5 +10,5 @@ CRON_SECRET=$(grep -m1 '^CRON_SECRET=' .env | cut -d= -f2- | tr -d '\r\n')
     --connect-timeout 20 --max-time 180 \
     -w "\nHTTP=%{http_code}\n" \
     -H "Authorization: Bearer ${CRON_SECRET}" \
-    "http://app:3000/api/v1/cron/subscription-access" || echo "CURL_FAIL=$?"
+    "http://app:3000/api/cron?job=subscription-access" || echo "CURL_FAIL=$?"
 } >> "$LOG" 2>&1
