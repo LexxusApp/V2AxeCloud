@@ -340,6 +340,67 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     },
   );
 
+  app.get(
+    "/api/v1/public/diretorio/reivindicacao/:claimId/cadastro",
+    apiReadRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const claimId = String(req.params.claimId || "").trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claimId)) {
+          return res.status(400).json({ error: "Protocolo inválido." });
+        }
+
+        const { data: claim, error: claimError } = await sb
+          .from("terreiro_claim_requests")
+          .select("id, status, requester_name, requester_role, requester_email, requester_phone, claimed_tenant_id, terreiro_id")
+          .eq("id", claimId)
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (!claim) return res.status(404).json({ error: "Solicitação não encontrada." });
+        if (claim.status === "rejected") {
+          return res.status(409).json({ error: "Esta solicitação foi recusada e não pode ser usada no cadastro." });
+        }
+        if (claim.status !== "approved" && claim.status !== "pending") {
+          return res.status(409).json({ error: "Esta solicitação não está disponível para cadastro." });
+        }
+        if (claim.claimed_tenant_id) {
+          return res.status(409).json({ error: "Esta casa já foi conectada a uma conta." });
+        }
+
+        const { data: terreiro, error: terreiroError } = await sb
+          .from(TABLE)
+          .select("id, nome, slug, endereco, cidade, estado, bairro, claimed_by_tenant_id")
+          .eq("id", claim.terreiro_id)
+          .maybeSingle();
+        if (terreiroError) throw terreiroError;
+        if (!terreiro) return res.status(404).json({ error: "Perfil do terreiro não encontrado." });
+        if (terreiro.claimed_by_tenant_id) {
+          return res.status(409).json({ error: "Esta casa já foi conectada a uma conta." });
+        }
+
+        return res.json({
+          claimId: claim.id,
+          protocol: String(claim.id).slice(0, 8).toUpperCase(),
+          status: claim.status,
+          canRegister: claim.status === "approved",
+          nomeTerreiro: String(terreiro.nome || "").trim(),
+          nomeZelador: String(claim.requester_name || "").trim(),
+          requesterRole: String(claim.requester_role || "").trim() || null,
+          email: String(claim.requester_email || "").trim().toLowerCase(),
+          whatsapp: String(claim.requester_phone || "").trim(),
+          endereco: terreiro.endereco ? String(terreiro.endereco).trim() : "",
+          cidade: terreiro.cidade ? String(terreiro.cidade).trim() : "",
+          estado: terreiro.estado ? String(terreiro.estado).trim().toUpperCase() : "",
+          bairro: terreiro.bairro ? String(terreiro.bairro).trim() : "",
+          terreiro: { nome: terreiro.nome, slug: terreiro.slug },
+        });
+      } catch (e: unknown) {
+        console.error("[public/diretorio/reivindicacao/cadastro]", e);
+        return res.status(500).json({ error: "Não foi possível carregar os dados da solicitação." });
+      }
+    },
+  );
+
   app.get("/api/v1/public/diretorio/cidades", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
       const payload = await cachedJson<{ cidades: unknown[] }>(
@@ -436,7 +497,9 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const photo = await fetchBestGooglePhoto(rawUrl);
       if (!photo) {
         console.warn("[public/diretorio/foto] sem imagem útil", slug);
-        return res.status(502).end();
+        // A URL de origem do Google pode expirar. Isso significa que a foto
+        // deixou de existir, não que o servidor do AxéCloud esteja indisponível.
+        return res.status(404).end();
       }
 
       res.setHeader("Content-Type", photo.contentType);
