@@ -74,16 +74,10 @@ axecloud.com.br, www.axecloud.com.br {
 			header_regexp User-Agent (?i)(googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider)
 		}
 		handle @diretorio_crawlers {
-			@terreiro_page path /terreiro/*
-			handle @terreiro_page {
-				rewrite * /api/v1/public/diretorio/render{path}
-				import app_upstream
-			}
-			@city_page path /terreiros/*/*
-			handle @city_page {
-				rewrite * /api/v1/public/diretorio/render/{path.1}/{path.2}
-				import app_upstream
-			}
+			# O diretório já é pré-renderizado no build do marketing. Servi-lo
+			# diretamente evita transformar uma oscilação do banco em 5xx para
+			# mecanismos de busca e mantém humanos e crawlers no mesmo HTML.
+			reverse_proxy marketing:80
 		}
 
 		crowdsec
