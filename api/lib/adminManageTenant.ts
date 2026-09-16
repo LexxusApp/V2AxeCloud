@@ -4,6 +4,15 @@ import { permanentDeleteZeladorAccount } from "../permanentAccountDelete.js";
 import { createAuditLog } from "./createAuditLog.js";
 import { logEvent } from "./auditLog.js";
 
+async function releaseSubscriptionExpiryBlock(supabaseAdmin: SupabaseClient, tenantId: string) {
+  const { error } = await supabaseAdmin
+    .from("perfil_lider")
+    .update({ is_blocked: false, access_block_reason: null, access_blocked_at: null })
+    .eq("id", tenantId)
+    .eq("access_block_reason", "subscription_expired");
+  if (error) throw error;
+}
+
 export type ManageTenantBody = {
   targetUserId?: string;
   action?: string;
@@ -30,11 +39,17 @@ export async function runManageTenant(
 
   switch (action) {
     case "block":
-      await supabaseAdmin.from("perfil_lider").update({ is_blocked: true }).eq("id", targetUserId);
+      await supabaseAdmin
+        .from("perfil_lider")
+        .update({ is_blocked: true, access_block_reason: "manual", access_blocked_at: new Date().toISOString() })
+        .eq("id", targetUserId);
       logDescription = `Terreiro ${targetUserId} bloqueado.`;
       break;
     case "unblock":
-      await supabaseAdmin.from("perfil_lider").update({ is_blocked: false }).eq("id", targetUserId);
+      await supabaseAdmin
+        .from("perfil_lider")
+        .update({ is_blocked: false, access_block_reason: null, access_blocked_at: null })
+        .eq("id", targetUserId);
       logDescription = `Terreiro ${targetUserId} desbloqueado.`;
       break;
     case "delete":
@@ -104,6 +119,7 @@ export async function runManageTenant(
         },
         { onConflict: "id" }
       );
+      await releaseSubscriptionExpiryBlock(supabaseAdmin, targetUserId);
       logDescription = `Assinatura renovada (+${body.amount} ${body.unit}) até ${baseDate.toISOString().split("T")[0]}.`;
       logMetadata = { amount: body.amount, unit: body.unit, newExpiresAt: baseDate.toISOString() };
       break;
@@ -118,6 +134,7 @@ export async function runManageTenant(
         },
         { onConflict: "id" }
       );
+      await releaseSubscriptionExpiryBlock(supabaseAdmin, targetUserId);
       logDescription = "Terreiro marcado como Vitalício (sem expiração).";
       break;
     default:

@@ -89,6 +89,23 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  if (job === "subscription-access" && method === "GET") {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
+      return sendJson(res, 401, { error: "Não autorizado" });
+    }
+    const sb = getDiscreteSupabaseAdmin();
+    if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
+    try {
+      const { reconcileExpiredTenantAccess } = await import("./lib/subscriptionAccessReconcile.js");
+      const subscriptionAccess = await reconcileExpiredTenantAccess(sb);
+      return sendJson(res, 200, { ok: true, subscriptionAccess });
+    } catch (error) {
+      console.error("[CRON] subscription-access:", error);
+      return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao atualizar acessos vencidos") });
+    }
+  }
   if (job === "growth-prospecting" && method === "GET") {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
@@ -107,5 +124,5 @@ export default async function handler(req: any, res: any) {
     }
   }
 
-  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|growth-prospecting|audit-tick" });
+  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|subscription-access|growth-prospecting|audit-tick" });
 }

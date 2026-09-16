@@ -1,6 +1,7 @@
 import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { logEvent } from "./auditLog.js";
+import { isSubscriptionExpired } from "./subscriptionAccess.js";
 import { generateSecureAccessPassword } from "./accessPassword.js";
 import {
   dispatchZeladorWelcomeWhatsApp,
@@ -50,9 +51,9 @@ export async function runTenantDetail(
   if (!id) throw new Error("id obrigatório");
 
   const profileSelectFull =
-    "id, tenant_id, email, nome_terreiro, cargo, role, is_admin_global, is_blocked, deleted_at, foto_url, updated_at, whatsapp_publico, zelador";
+    "id, tenant_id, email, nome_terreiro, cargo, role, is_admin_global, is_blocked, access_block_reason, deleted_at, foto_url, updated_at, whatsapp_publico, zelador";
   const profileSelectBase =
-    "id, tenant_id, email, nome_terreiro, cargo, role, is_admin_global, is_blocked, deleted_at, foto_url, updated_at";
+    "id, tenant_id, email, nome_terreiro, cargo, role, is_admin_global, is_blocked, access_block_reason, deleted_at, foto_url, updated_at";
 
   let profileRes = await supabaseAdmin
     .from("perfil_lider")
@@ -99,6 +100,7 @@ export async function runTenantDetail(
 
   const profile = profileRes.data as Record<string, unknown> | null;
   const sub = subRes.data;
+  const subscriptionExpired = isSubscriptionExpired(sub);
   const authMeta = authUser.data?.user ?? null;
   const children = childrenRes.data || [];
   const lastAccess = (lastAccessRes as { data?: { created_at?: string; event_type?: string; description?: string } | null })
@@ -202,7 +204,8 @@ export async function runTenantDetail(
           zelador: profile.zelador || nomeZelador || null,
           role: profile.role,
           is_admin_global: profile.is_admin_global,
-          is_blocked: profile.is_blocked,
+          is_blocked: Boolean(profile.is_blocked) || subscriptionExpired,
+          access_block_reason: profile.access_block_reason || (subscriptionExpired ? "subscription_expired" : null),
           deleted_at: profile.deleted_at,
           foto_url: profile.foto_url,
           updated_at: profile.updated_at,

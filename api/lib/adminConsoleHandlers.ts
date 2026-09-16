@@ -5,6 +5,7 @@ import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsol
 import { loadPlansCatalog } from "./plansCatalog.js";
 import { getFounderApplicationStats } from "./founderProgramAdmin.js";
 import { fetchAdminActivityStats } from "./adminActivityStats.js";
+import { isSubscriptionExpired } from "./subscriptionAccess.js";
 
 const SHADOW_FILHO_EMAIL = /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i;
 const ACCESS_HEARTBEATS = "(access.session.activity,session.activity)";
@@ -423,7 +424,7 @@ export async function handleAdminTenants(sb: SupabaseClient) {
   const [profilesRes, subsRes, childrenRes, plans] = await Promise.all([
     sb
       .from("perfil_lider")
-      .select("id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, deleted_at")
+      .select("id, tenant_id, email, nome_terreiro, cargo, updated_at, is_blocked, access_block_reason, deleted_at")
       .is("deleted_at", null),
     sb.from("subscriptions").select("id, plan, expires_at, status, pending_since"),
     sb.from("filhos_de_santo").select("tenant_id, lider_id, user_id"),
@@ -453,8 +454,11 @@ export async function handleAdminTenants(sb: SupabaseClient) {
 
   const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null; updated_at?: string | null }) => {
     const sub = subs?.find((s: { id?: string }) => s.id === p.id);
+    const expired = isSubscriptionExpired(sub);
     return {
       ...p,
+      is_blocked: Boolean(p.is_blocked) || expired,
+      access_block_reason: p.access_block_reason || (expired ? "subscription_expired" : null),
       totalChildren: countFilhosForPerfilLider({ id: p.id, tenant_id: p.tenant_id }, childrenList),
       plan: sub?.plan || "premium",
       expires_at: sub?.expires_at ?? null,

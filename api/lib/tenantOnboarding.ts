@@ -491,7 +491,7 @@ export async function activateTenantSubscription(
 
   const { data: profile } = await supabaseAdmin
     .from("perfil_lider")
-    .select("nome_terreiro, cargo, email")
+    .select("nome_terreiro, cargo, email, is_blocked, access_block_reason")
     .eq("id", tid)
     .maybeSingle();
 
@@ -505,6 +505,21 @@ export async function activateTenantSubscription(
     await supabaseAdmin.auth.admin
       .updateUserById(tid, { user_metadata: { ...userMeta, is_trial: false } })
       .catch(() => undefined);
+  }
+
+  // Um pagamento só remove bloqueios que foram aplicados automaticamente pelo
+  // vencimento. Um bloqueio manual do administrador continua respeitado.
+  if (profile?.is_blocked && profile?.access_block_reason === "subscription_expired") {
+    const { error: unblockError } = await supabaseAdmin
+      .from("perfil_lider")
+      .update({
+        is_blocked: false,
+        access_block_reason: null,
+        access_blocked_at: null,
+        updated_at: now,
+      })
+      .eq("id", tid);
+    if (unblockError) throw unblockError;
   }
 
   if (!hadAccessBefore) {
