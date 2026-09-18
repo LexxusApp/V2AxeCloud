@@ -7,6 +7,8 @@ export type DiretorioTerreiro = {
   nome: string;
   endereco: string | null;
   telefone: string | null;
+  whatsapp?: string | null;
+  hasWhatsapp?: boolean;
   fotoUrl: string | null;
   linkMaps: string | null;
   cidade: string | null;
@@ -176,6 +178,18 @@ export function trackDiretorioGoogleProfileView(slug: string): void {
     body: JSON.stringify({ ...attribution, visitorId: directoryVisitorId() }),
   }).then((response) => {
     if (response.ok) sessionStorage.setItem(marker, '1');
+  }).catch(() => undefined);
+}
+
+/** Registra o interesse comercial sem atrasar a abertura do WhatsApp. */
+export function trackDiretorioWhatsappClick(slug: string): void {
+  const normalized = String(slug || '').trim();
+  if (!normalized) return;
+  void fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(normalized)}/whatsapp-click`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify(directoryTrackingPayload()),
   }).catch(() => undefined);
 }
 

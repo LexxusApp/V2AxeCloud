@@ -13,6 +13,8 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   const card = read('src/components/portal/DiretorioTerreiroCard.tsx');
   const directory = read('cinematic-site/terreiros.html');
   const profile = read('cinematic-site/terreiro.html');
+  const reactProfile = read('src/views/portal/DiretorioTerreiroPage.tsx');
+  const publicClient = read('src/lib/diretorioPublic.ts');
 
   assert.match(routes, /\/api\/admin-console\/profile-ranking/);
   assert.match(routes, /from\("access_logs"\)/);
@@ -41,4 +43,7 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(profile, /registrarVisitaGoogle/);
   assert.match(profile, /whatsapp-click/);
   assert.match(profile, /Conheci o \$\{texto\(nome/);
+  assert.match(reactProfile, /directory-profile-whatsapp/);
+  assert.match(reactProfile, /Conheci o \$\{terreiro\.nome\}/);
+  assert.match(publicClient, /trackDiretorioWhatsappClick/);
 });
