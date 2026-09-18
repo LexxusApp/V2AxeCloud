@@ -23,12 +23,13 @@ import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 import { cachedJson } from "./ttlCache.js";
 import { normalizeGiraSchedule } from "../../lib/giraSchedule.js";
+import { resolveDiretorioWhatsapp } from "../../lib/diretorioWhatsapp.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
+  "id, nome, endereco, telefone, whatsapp_atendimento, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
 type DirectoryTrafficMetadata = {
@@ -137,11 +138,14 @@ function mapRow(row: Record<string, unknown>) {
     latitude !== null &&
     longitude !== null &&
     isPlausibleDiretorioCoordinate(latitude, longitude);
+  const whatsapp = resolveDiretorioWhatsapp(row.whatsapp_atendimento, row.telefone);
   return {
     slug,
     nome,
     endereco: row.endereco ? String(row.endereco).trim() : null,
     telefone: row.telefone ? String(row.telefone).trim() : null,
+    whatsapp,
+    hasWhatsapp: Boolean(whatsapp),
     fotoUrl: row.owner_photo_url
       ? String(row.owner_photo_url).trim()
       : row.foto_url && slug
@@ -541,6 +545,57 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     },
   );
 
+  /** Registra interesse explícito no contato da casa sem expor o número no log. */
+  app.post(
+    "/api/v1/public/diretorio/terreiro/:slug/whatsapp-click",
+    publicFormRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
+        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+
+        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        if (error) throw error;
+        if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
+          return res.status(404).json({ error: "Terreiro não encontrado." });
+        }
+
+        const publicItem = mapRow(data as Record<string, unknown>);
+        if (publicItem.tipo !== "terreiro" || !publicItem.hasWhatsapp) {
+          return res.status(404).json({ error: "WhatsApp não disponível para este terreiro." });
+        }
+
+        const traffic = directoryTrafficMetadata(req.body, publicItem.slug);
+        if (traffic.visitor_id) {
+          const dedupeSince = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          const { data: existing, error: existingError } = await sb
+            .from("access_logs")
+            .select("id")
+            .eq("event_type", "directory.whatsapp_click")
+            .eq("target_type", "directory_terreiro")
+            .eq("target_id", String(data.id))
+            .gte("created_at", dedupeSince)
+            .contains("metadata", { visitor_id: traffic.visitor_id })
+            .limit(1);
+          if (existingError) throw existingError;
+          if ((existing || []).length > 0) return res.status(204).end();
+        }
+
+        const { error: logError } = await sb.from("access_logs").insert({
+          event_type: "directory.whatsapp_click",
+          target_type: "directory_terreiro",
+          target_id: String(data.id),
+          description: `Clique no WhatsApp: ${publicItem.nome}`.slice(0, 500),
+          metadata: { ...traffic, action: "whatsapp" },
+        });
+        if (logError) throw logError;
+        res.status(204).end();
+      } catch (e: unknown) {
+        console.error("[public/diretorio/whatsapp-click]", e);
+        res.status(500).json({ error: "Erro ao registrar contato." });
+      }
+    },
+  );
   /** Conta somente a ação explícita nos botões que levam ao perfil público. */
   app.post(
     "/api/v1/public/diretorio/terreiro/:slug/profile-click",

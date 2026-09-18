@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Eye, RefreshCw, Trophy } from "lucide-react";
+import { Eye, MessageCircle, RefreshCw, Trophy } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { admin } from "@/lib/adminTheme";
 import { cn } from "@/lib/cn";
@@ -10,12 +10,14 @@ type RankingItem = {
   visits: number;
   googleVisits: number;
   directoryClicks: number;
+  whatsappClicks: number;
 };
 
 type RankingResponse = {
   items: RankingItem[];
   totalClicks: number;
   totalGoogleVisits: number;
+  totalWhatsappClicks: number;
   profilesWithViews: number;
 };
 
@@ -44,12 +46,12 @@ export function ProfileRankingPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className={cn(admin.card, "p-5")}>
           <div className="flex items-center gap-3">
             <span className="admin-icon-chip admin-icon-chip--violet"><Eye className="h-4 w-4" /></span>
             <div>
-              <p className="admin-label">Visitas acumuladas</p>
+              <p className="admin-label">Interações acumuladas</p>
               <strong className="mt-1 block text-2xl text-[var(--ac-text)]">{loading ? "—" : number.format(data?.totalClicks || 0)}</strong>
             </div>
           </div>
@@ -65,9 +67,18 @@ export function ProfileRankingPanel() {
         </div>
         <div className={cn(admin.card, "p-5")}>
           <div className="flex items-center gap-3">
+            <span className="admin-icon-chip admin-icon-chip--emerald"><MessageCircle className="h-4 w-4" /></span>
+            <div>
+              <p className="admin-label">Cliques no WhatsApp</p>
+              <strong className="mt-1 block text-2xl text-[var(--ac-text)]">{loading ? "—" : number.format(data?.totalWhatsappClicks || 0)}</strong>
+            </div>
+          </div>
+        </div>
+        <div className={cn(admin.card, "p-5")}>
+          <div className="flex items-center gap-3">
             <span className="admin-icon-chip admin-icon-chip--amber"><Trophy className="h-4 w-4" /></span>
             <div>
-              <p className="admin-label">Perfis com visitas</p>
+              <p className="admin-label">Perfis com interações</p>
               <strong className="mt-1 block text-2xl text-[var(--ac-text)]">{loading ? "—" : number.format(data?.profilesWithViews || 0)}</strong>
             </div>
           </div>
@@ -78,7 +89,7 @@ export function ProfileRankingPanel() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ac-paper-border)] p-4">
           <div>
             <h2 className="font-semibold text-[var(--ac-text)]">Terreiros mais procurados</h2>
-            <p className="mt-0.5 text-xs text-[var(--ac-text-muted)]">Ordenado pelo total histórico de visitas; o Google aparece como desempate.</p>
+            <p className="mt-0.5 text-xs text-[var(--ac-text-muted)]">Ordenado pelo total histórico de interações: Google, mapa e WhatsApp.</p>
           </div>
           <button type="button" onClick={() => void load()} disabled={loading} className="admin-btn-secondary">
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} /> Atualizar
@@ -90,25 +101,27 @@ export function ProfileRankingPanel() {
         ) : loading ? (
           <div className="p-12 text-center text-sm text-[var(--ac-text-muted)]">Carregando ranking…</div>
         ) : !data?.items.length ? (
-          <div className="p-12 text-center text-sm text-[var(--ac-text-muted)]">Nenhum perfil recebeu visitas ainda.</div>
+          <div className="p-12 text-center text-sm text-[var(--ac-text-muted)]">Nenhum perfil recebeu interações ainda.</div>
         ) : (
           <div className="overflow-x-hidden">
             <table className={cn(admin.table, "table-fixed text-[11px] sm:text-sm")}>
               <thead><tr className={admin.thead}>
-                <th className={cn(admin.th, "w-14 px-2 text-center sm:w-20 sm:px-4")}>Posição</th>
+                <th className={cn(admin.th, "w-11 px-1 text-center sm:w-20 sm:px-4")}><span className="sm:hidden">Pos.</span><span className="hidden sm:inline">Posição</span></th>
                 <th className={admin.th}>Terreiro</th>
-                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Google</th>
-                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Mapa</th>
-                <th className={cn(admin.th, "w-[15%] px-2 text-right sm:w-36 sm:px-4")}>Total</th>
+                <th className={cn(admin.th, "w-[13%] px-1 text-right sm:w-28 sm:px-3")}>Google</th>
+                <th className={cn(admin.th, "w-[13%] px-1 text-right sm:w-28 sm:px-3")}>Mapa</th>
+                <th className={cn(admin.th, "w-[13%] px-1 text-right sm:w-28 sm:px-3")} title="WhatsApp"><span className="sm:hidden">Whats.</span><span className="hidden sm:inline">WhatsApp</span></th>
+                <th className={cn(admin.th, "w-[13%] px-1 text-right sm:w-28 sm:px-3")}>Total</th>
               </tr></thead>
               <tbody>
                 {data.items.map((item, index) => (
                   <tr key={item.terreiroId} className={cn(admin.trHover, "border-b border-[var(--ac-paper-border)] last:border-0")}>
-                    <td className="px-2 py-3 text-center text-sm font-semibold text-[var(--ac-text-muted)] sm:px-4">{index + 1}º</td>
-                    <td className="break-words px-2 py-3 text-sm font-semibold leading-tight text-[var(--ac-text)] sm:px-4">{item.terreiro}</td>
-                    <td className="px-2 py-3 text-right admin-mono text-sm font-bold text-emerald-700 sm:px-4">{number.format(item.googleVisits)}</td>
-                    <td className="px-2 py-3 text-right admin-mono text-sm font-semibold text-[var(--ac-text-muted)] sm:px-4">{number.format(item.directoryClicks)}</td>
-                    <td className="px-2 py-3 text-right admin-mono text-sm font-bold text-[var(--ac-accent)] sm:px-4">{number.format(item.visits)}</td>
+                    <td className="px-1 py-3 text-center text-xs font-semibold text-[var(--ac-text-muted)] sm:px-4 sm:text-sm">{index + 1}º</td>
+                    <td className="break-words px-1 py-3 text-xs font-semibold leading-tight text-[var(--ac-text)] sm:px-4 sm:text-sm">{item.terreiro}</td>
+                    <td className="px-1 py-3 text-right admin-mono text-xs font-bold text-emerald-700 sm:px-3 sm:text-sm">{number.format(item.googleVisits)}</td>
+                    <td className="px-1 py-3 text-right admin-mono text-xs font-semibold text-[var(--ac-text-muted)] sm:px-3 sm:text-sm">{number.format(item.directoryClicks)}</td>
+                    <td className="px-1 py-3 text-right admin-mono text-xs font-bold text-emerald-700 sm:px-3 sm:text-sm">{number.format(item.whatsappClicks)}</td>
+                    <td className="px-1 py-3 text-right admin-mono text-xs font-bold text-[var(--ac-accent)] sm:px-3 sm:text-sm">{number.format(item.visits)}</td>
                   </tr>
                 ))}
               </tbody>

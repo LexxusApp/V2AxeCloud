@@ -18,6 +18,8 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(routes, /from\("access_logs"\)/);
   assert.match(routes, /directory\.profile_click/);
   assert.match(routes, /directory\.profile_google_view/);
+  assert.match(routes, /directory\.whatsapp_click/);
+  assert.match(routes, /totalWhatsappClicks/);
   assert.match(routes, /totalGoogleVisits/);
   assert.match(routes, /profilesWithViews/);
   assert.doesNotMatch(routes, /profile-ranking[\s\S]{0,1000}gte\("created_at"/);
@@ -25,7 +27,9 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(shell, /tab === "ranking"/);
   assert.match(panel, /Vindas do Google/);
   assert.match(panel, /Terreiros mais procurados/);
-  assert.match(panel, /Ordenado pelo total histórico de visitas/);
+  assert.match(panel, /Cliques no WhatsApp/);
+  assert.match(panel, /whatsappClicks/);
+  assert.match(panel, /Ordenado pelo total histórico de interações/);
   assert.match(publicRoutes, /\/profile-click/);
   assert.match(publicRoutes, /!isDiretorioListingPublishable\(data as Record<string, unknown>\)/);
   assert.doesNotMatch(publicRoutes, /isPublicDirectoryRow/);
@@ -35,4 +39,6 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(directory, /axecloud_directory_attribution/);
   assert.match(profile, /google-view/);
   assert.match(profile, /registrarVisitaGoogle/);
+  assert.match(profile, /whatsapp-click/);
+  assert.match(profile, /Conheci o \$\{texto\(nome/);
 });

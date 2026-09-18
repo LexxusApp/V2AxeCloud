@@ -143,13 +143,13 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
-  /** Ranking acumulado de interesse: cliques no diretório + entradas diretas do Google. */
+  /** Ranking acumulado de interesse: mapa, Google e contato por WhatsApp. */
   app.get("/api/admin-console/profile-ranking", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;
 
     try {
-      const counts = new Map<string, { visits: number; googleVisits: number; directoryClicks: number }>();
+      const counts = new Map<string, { visits: number; googleVisits: number; directoryClicks: number; whatsappClicks: number }>();
       const pageSize = 1000;
       let offset = 0;
 
@@ -157,13 +157,13 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         const { data, error } = await deps.supabaseAdmin
           .from("access_logs")
           .select("target_id, event_type, metadata")
-          .in("event_type", ["directory.profile_click", "directory.profile_google_view"])
+          .in("event_type", ["directory.profile_click", "directory.profile_google_view", "directory.whatsapp_click"])
           .eq("target_type", "directory_terreiro")
           .range(offset, offset + pageSize - 1);
 
         if (error) {
           if (isMissingOrUnknownTable(error, "access_logs")) {
-            return res.json({ items: [], totalClicks: 0, totalGoogleVisits: 0, profilesWithViews: 0 });
+            return res.json({ items: [], totalClicks: 0, totalGoogleVisits: 0, totalWhatsappClicks: 0, profilesWithViews: 0 });
           }
           throw error;
         }
@@ -172,12 +172,13 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
         for (const row of rows) {
           const terreiroId = String(row.target_id || "").trim();
           if (!terreiroId) continue;
-          const current = counts.get(terreiroId) || { visits: 0, googleVisits: 0, directoryClicks: 0 };
+          const current = counts.get(terreiroId) || { visits: 0, googleVisits: 0, directoryClicks: 0, whatsappClicks: 0 };
           const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata as Record<string, unknown> : {};
-          const fromGoogle = row.event_type === "directory.profile_google_view" || metadata.google === true || String(metadata.channel || "").startsWith("google_");
+          const fromGoogle = row.event_type === "directory.profile_google_view" || (row.event_type !== "directory.whatsapp_click" && (metadata.google === true || String(metadata.channel || "").startsWith("google_")));
           current.visits += 1;
           if (fromGoogle) current.googleVisits += 1;
           if (row.event_type === "directory.profile_click") current.directoryClicks += 1;
+          if (row.event_type === "directory.whatsapp_click") current.whatsappClicks += 1;
           counts.set(terreiroId, current);
         }
         if (rows.length < pageSize) break;
@@ -205,14 +206,16 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
           visits: counts.get(terreiroId)?.visits || 0,
           googleVisits: counts.get(terreiroId)?.googleVisits || 0,
           directoryClicks: counts.get(terreiroId)?.directoryClicks || 0,
+          whatsappClicks: counts.get(terreiroId)?.whatsappClicks || 0,
         }))
-        .sort((a, b) => b.visits - a.visits || b.googleVisits - a.googleVisits || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
+        .sort((a, b) => b.visits - a.visits || b.googleVisits - a.googleVisits || b.whatsappClicks - a.whatsappClicks || a.terreiro.localeCompare(b.terreiro, "pt-BR"));
 
       res.setHeader("Cache-Control", "private, no-store");
       res.json({
         items,
         totalClicks: items.reduce((total, item) => total + item.visits, 0),
         totalGoogleVisits: items.reduce((total, item) => total + item.googleVisits, 0),
+        totalWhatsappClicks: items.reduce((total, item) => total + item.whatsappClicks, 0),
         profilesWithViews: items.length,
       });
     } catch (e: any) {
