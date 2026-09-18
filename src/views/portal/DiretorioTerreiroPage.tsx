@@ -13,7 +13,6 @@ import {
   Loader2,
   MapPin,
   MessageCircle,
-  Phone,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -27,7 +26,6 @@ import {
   type TerreiroServico,
   type TerreiroServicosPublic,
 } from '../../lib/diretorioPublic';
-import { formatTelefoneBr, telefoneHref } from '../../lib/formatTelefone';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { getFeaturedTerreiroCopy } from '../../../lib/diretorioSeoShared';
 import { ROUTES } from '../../lib/routes';
@@ -60,6 +58,10 @@ function InfoRow({ icon: Icon, label, children }: { icon: typeof MapPin; label: 
       <div className="min-w-0 text-base font-semibold leading-relaxed text-[#1b1813]/80 sm:text-lg">{children}</div>
     </div>
   );
+}
+
+function WhatsAppIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return <img src="/whatsapp.svg" alt="" aria-hidden className={`${className} shrink-0`} />;
 }
 
 function TerreiroPortrait({ fotoUrl, nome }: { fotoUrl: string | null; nome: string }) {
@@ -251,7 +253,7 @@ function ServicosSection({
             rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#e5ae12] px-5 py-3 text-sm font-extrabold text-[#11150f] shadow-[0_10px_30px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
           >
-            <MessageCircle className="h-4 w-4" aria-hidden />
+            <WhatsAppIcon className="h-5 w-5" />
             Agendar via WhatsApp
           </a>
         ) : null}
@@ -275,7 +277,7 @@ function ServicosSection({
             rel="noopener noreferrer"
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#e5ae12] px-7 py-3.5 text-sm font-extrabold text-[#11150f] shadow-[0_14px_35px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
           >
-            <MessageCircle className="h-4 w-4" aria-hidden />
+            <WhatsAppIcon className="h-5 w-5" />
             Falar com a casa pelo WhatsApp
             <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           </a>
@@ -313,7 +315,7 @@ export default function DiretorioTerreiroPage() {
           title: featured?.title || `${t.nome}${loc ? ` — ${loc}` : ''} | Diretório AxéCloud`,
           description:
             featured?.description ||
-            `Informações de ${t.nome}${loc ? ` em ${loc}` : ''}: endereço${t.telefone ? ', telefone' : ''} e como chegar pelo Google Maps.`,
+            `Informações de ${t.nome}${loc ? ` em ${loc}` : ''}: endereço${t.whatsapp ? ', contato via WhatsApp' : ''} e como chegar pelo Google Maps.`,
           canonicalPath: `/terreiro/${t.slug}`,
           robots: t.indexable === false ? 'noindex, follow' : 'index, follow',
         });
@@ -414,29 +416,23 @@ export default function DiretorioTerreiroPage() {
 
             <div className="mt-6 border-y border-[#cfc1ab]/60">
               <InfoRow icon={MapPin} label="Endereço">{terreiro.endereco || <span className="font-medium text-[#1b1813]/45">Endereço não informado</span>}</InfoRow>
-              <InfoRow icon={Phone} label="Telefone">
-                {terreiro.telefone || terreiro.whatsapp ? (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <a href={telefoneHref(terreiro.telefone || terreiro.whatsapp!)} className="underline decoration-[#b98500]/35 underline-offset-4 transition hover:text-[#8a6200]">
-                      {formatTelefoneBr(terreiro.telefone || terreiro.whatsapp!)}
-                    </a>
-                    {whatsappHref ? (
-                      <a
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => {
-                          trackDiretorioWhatsappClick(terreiro.slug);
-                          void trackConversionEvent('cta_click', { ctaId: 'directory-profile-whatsapp', ctaLabel: 'Falar com a casa pelo WhatsApp', metadata: { slug: terreiro.slug } });
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#168a47] px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_10px_25px_rgba(22,138,71,.2)] transition hover:-translate-y-0.5 hover:bg-[#11753b]"
-                      >
-                        <MessageCircle className="h-4 w-4" aria-hidden />
-                        WhatsApp
-                      </a>
-                    ) : null}
-                  </div>
-                ) : <span className="font-medium text-[#1b1813]/45">Telefone não informado</span>}
+              <InfoRow icon={MessageCircle} label="WhatsApp">
+                {whatsappHref ? (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Conversar com ${terreiro.nome} pelo WhatsApp`}
+                    onClick={() => {
+                      trackDiretorioWhatsappClick(terreiro.slug);
+                      void trackConversionEvent('cta_click', { ctaId: 'directory-profile-whatsapp', ctaLabel: 'Conversar pelo WhatsApp', metadata: { slug: terreiro.slug } });
+                    }}
+                    className="inline-flex min-h-12 items-center gap-3 rounded-full bg-[#168a47] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(22,138,71,.24)] transition hover:-translate-y-0.5 hover:bg-[#11753b] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25d366]/30"
+                  >
+                    <WhatsAppIcon className="h-6 w-6" />
+                    Conversar pelo WhatsApp
+                  </a>
+                ) : <span className="font-medium text-[#1b1813]/45">WhatsApp não disponível</span>}
               </InfoRow>
               {instagramUrl ? (
                 <InfoRow icon={Instagram} label="Instagram">

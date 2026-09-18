@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Perfil do terreiro | Diretório AxéCloud</title>
-  <meta name="description" content="Conheça este terreiro no Diretório AxéCloud: endereço, telefone, localização e como chegar pelo Google Maps." />
+  <meta name="description" content="Conheça este terreiro no Diretório AxéCloud: endereço, contato via WhatsApp, localização e como chegar pelo Google Maps." />
   <link rel="canonical" href="https://axecloud.com.br/terreiro/perfil" />
   <link rel="icon" href="/favicon.svg?v=tridente-2026" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,10 +51,9 @@
     .rotulo { display:block; margin-bottom:6px; color:#887c69; text-transform:uppercase; letter-spacing:.16em; font-size:.64rem; font-weight:800; }
     .valor { color:var(--preto); font-size:1rem; line-height:1.6; overflow-wrap:anywhere; }
     .valor a { color:inherit; font-weight:700; }
-    .telefone-linha { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
-    .whatsapp-contato { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:10px 15px; border-radius:999px; background:#168a47; color:#fff !important; text-decoration:none; font-size:.82rem; font-weight:800 !important; box-shadow:0 8px 20px rgba(22,138,71,.2); transition:transform .18s ease,background .18s ease; }
+    .whatsapp-contato { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:12px 20px; border-radius:999px; background:#168a47; color:#fff !important; text-decoration:none; font-size:.88rem; font-weight:800 !important; box-shadow:0 10px 26px rgba(22,138,71,.24); transition:transform .18s ease,background .18s ease; }
     .whatsapp-contato:hover { transform:translateY(-1px); background:#11753b; }
-    .whatsapp-contato svg { width:18px; height:18px; flex:0 0 auto; }
+    .whatsapp-contato img { width:24px; height:24px; flex:0 0 auto; }
     .mapa { display:inline-flex; justify-content:center; width:100%; margin-top:18px; padding:15px 22px; border-radius:999px; background:#ffc107; color:var(--preto); text-decoration:none; font-weight:800; }
     .reivindicar { color:#fff; background:var(--preto); border-color:rgba(255,255,255,.09); }
     .reivindicar h2 { color:white; }
@@ -104,7 +103,7 @@
         <div class="hero-texto"><p class="kicker">Diretório AxéCloud · casa mapeada</p><h1 id="nome"></h1><p class="localidade" id="localidade"></p></div>
       </header>
       <div class="grade">
-        <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info" id="info-tradicao" hidden><span class="rotulo">Tradição</span><div class="valor" id="tradicao"></div></div><div class="info"><span class="rotulo">Telefone</span><div class="valor" id="telefone"></div></div><div class="info" id="info-desc" hidden><span class="rotulo">Sobre a casa</span><div class="valor" id="descricao"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a><a class="mapa" id="pedir-reza" href="/espaco-do-fiel" hidden style="margin-top:12px;background:#e11d48;color:#fff">Pedir reza</a><a class="mapa" id="ver-eventos" href="/eventos" hidden style="margin-top:12px;background:transparent;border:1px solid rgba(25,21,15,.18)">Eventos públicos</a></section>
+        <section class="cartao"><h2>Informações da casa</h2><div class="info"><span class="rotulo">Endereço</span><div class="valor" id="endereco"></div></div><div class="info" id="info-tradicao" hidden><span class="rotulo">Tradição</span><div class="valor" id="tradicao"></div></div><div class="info"><span class="rotulo">WhatsApp</span><div class="valor" id="whatsapp"></div></div><div class="info" id="info-desc" hidden><span class="rotulo">Sobre a casa</span><div class="valor" id="descricao"></div></div><a class="mapa" id="mapa" target="_blank" rel="noopener noreferrer">Abrir no Google Maps · como chegar</a><a class="mapa" id="pedir-reza" href="/espaco-do-fiel" hidden style="margin-top:12px;background:#e11d48;color:#fff">Pedir reza</a><a class="mapa" id="ver-eventos" href="/eventos" hidden style="margin-top:12px;background:transparent;border:1px solid rgba(25,21,15,.18)">Eventos públicos</a></section>
         <aside class="cartao reivindicar" id="lado-reivindicar"><h2>Esta é sua casa?</h2><p>Reivindique este perfil sem custo para corrigir os dados e identificar oficialmente a sua casa.</p><a id="reivindicar" target="_blank" rel="noopener noreferrer">Falar com o comercial</a></aside>
         <aside class="cartao verificado" id="lado-verificado" hidden><h2>✓ Terreiro verificado e reivindicado</h2><p>Este perfil é administrado pelo responsável aprovado da casa no AxéCloud.</p></aside>
         <aside class="cartao reivindicar" id="lado-portal" hidden><h2>Casa no AxéCloud</h2><p id="portal-msg">Perfil público de uma casa que usa o AxéCloud para organizar a corrente.</p><a id="portal-cta" href="/register">Conhecer o AxéCloud</a></aside>
@@ -119,7 +118,6 @@
       const $ = (id) => document.getElementById(id);
       const slug = decodeURIComponent(location.pathname.replace(/\/+$/, "").split("/").pop() || "");
       const texto = (value, fallback) => String(value || fallback);
-      const telefoneHref = (value) => `tel:${String(value).replace(/[^\d+]/g, "")}`;
       const visitorId = () => {
         const key = "axecloud_public_vid";
         let value = localStorage.getItem(key);
@@ -193,35 +191,23 @@
           body: JSON.stringify({ ...origem, visitorId: visitorId() }),
         }).catch(() => undefined);
       };
-      const setTelefone = (valor, casa) => {
-        const container = $("telefone");
+      const setWhatsapp = (casa) => {
+        const container = $("whatsapp");
         container.innerHTML = "";
-        const displayedPhone = valor || casa?.whatsapp;
-        if (!displayedPhone) {
-          container.textContent = "Telefone não informado";
+        const wa = waHref(casa?.whatsapp, casa?.nome);
+        if (!wa) {
+          container.textContent = "WhatsApp não disponível";
           return;
         }
-
-        const row = document.createElement("div");
-        row.className = "telefone-linha";
-        const phoneLink = document.createElement("a");
-        phoneLink.href = telefoneHref(displayedPhone);
-        phoneLink.textContent = displayedPhone;
-        row.appendChild(phoneLink);
-
-        const wa = waHref(casa?.whatsapp, casa?.nome);
-        if (wa) {
-          const whatsappLink = document.createElement("a");
-          whatsappLink.className = "whatsapp-contato";
-          whatsappLink.href = wa;
-          whatsappLink.target = "_blank";
-          whatsappLink.rel = "noopener noreferrer";
-          whatsappLink.setAttribute("aria-label", `Conversar com ${texto(casa?.nome, "o terreiro")} pelo WhatsApp`);
-          whatsappLink.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.6 9.6 0 0 1-4.1-.9L3 20.5l1.4-4.7A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8.2 9.1c.6 2.6 2.1 4.1 4.7 4.7"/><path d="M8 7.5h.1M14.5 14h.1"/></svg><span>WhatsApp</span>';
-          whatsappLink.addEventListener("click", () => registrarCliqueWhatsapp(casa?.slug || slug));
-          row.appendChild(whatsappLink);
-        }
-        container.appendChild(row);
+        const whatsappLink = document.createElement("a");
+        whatsappLink.className = "whatsapp-contato";
+        whatsappLink.href = wa;
+        whatsappLink.target = "_blank";
+        whatsappLink.rel = "noopener noreferrer";
+        whatsappLink.setAttribute("aria-label", `Conversar com ${texto(casa?.nome, "o terreiro")} pelo WhatsApp`);
+        whatsappLink.innerHTML = '<img src="/whatsapp.svg" alt="" aria-hidden="true"><span>Conversar pelo WhatsApp</span>';
+        whatsappLink.addEventListener("click", () => registrarCliqueWhatsapp(casa?.slug || slug));
+        container.appendChild(whatsappLink);
       };
 
       const renderDiretorio = (casa) => {
@@ -232,7 +218,7 @@
           ? "Terreiro verificado e reivindicado"
           : "Diretório AxéCloud · casa mapeada";
         $("endereco").textContent = texto(casa.endereco, "Endereço não informado no Google Maps");
-        setTelefone(casa.telefone, casa);
+        setWhatsapp(casa);
         mostrarFoto(casa.fotoUrl, casa.nome);
         if (casa.linkMaps) $("mapa").href = casa.linkMaps; else $("mapa").hidden = true;
         $("lado-reivindicar").hidden = Boolean(casa.verificada);
@@ -248,7 +234,7 @@
         const canonical = `https://axecloud.com.br/terreiro/${encodeURIComponent(casa.slug || slug)}`;
         document.title = `${casa.nome}${casa.cidade ? ` — ${casa.cidade}` : ""} | Diretório AxéCloud`;
         document.querySelector('link[rel="canonical"]').href = canonical;
-        document.querySelector('meta[name="description"]').content = `Informações de ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""}: endereço, telefone e como chegar.`;
+        document.querySelector('meta[name="description"]').content = `Informações de ${casa.nome}${casa.cidade ? ` em ${casa.cidade}` : ""}: endereço, contato via WhatsApp e como chegar.`;
         $("estado").hidden = true; $("perfil").style.display = "block";
       };
 
@@ -268,7 +254,7 @@
           $("info-desc").hidden = false;
           $("descricao").textContent = casa.descricao;
         }
-        setTelefone(casa.whatsapp, casa);
+        setWhatsapp(casa);
         mostrarFoto(casa.fotoUrl, casa.nome);
         $("mapa").hidden = true;
         $("ver-eventos").hidden = false;

@@ -177,7 +177,6 @@ export function buildLocalBusinessJsonLd(terreiro: DiretorioSeoTerreiro): Record
           addressCountry: "BR",
         }
       : undefined,
-    telephone: terreiro.telefone || undefined,
     image: terreiro.fotoUrl ? `${SITE_ORIGIN}${terreiro.fotoUrl}` : undefined,
     sameAs: terreiro.linkMaps ? [terreiro.linkMaps] : undefined,
   };
@@ -222,9 +221,9 @@ const FEATURED_TERREIRO_COPY: Record<
   "e-u-j-a-espaco-universalista-dr-jose-de-arimateia": {
     title: "E.U.J.A. Espaço Universalista Dr. José de Arimateia — Terreiro em Sorocaba, SP | AxéCloud",
     description:
-      "E.U.J.A. (Espaço Universalista Dr. José de Arimateia), casa de axé em Vila Augusta, Sorocaba. Endereço na Rua Santa Catarina, telefone e rota no Google Maps.",
+      "E.U.J.A. (Espaço Universalista Dr. José de Arimateia), casa de axé em Vila Augusta, Sorocaba. Endereço, contato via WhatsApp e rota no Google Maps.",
     intro:
-      "O E.U.J.A. — Espaço Universalista Dr. José de Arimateia — é uma casa de axé em Vila Augusta, Sorocaba (SP). Este perfil público reúne o endereço na Rua Santa Catarina, 72, o telefone da casa e a rota no Google Maps para quem busca visitar com respeito.",
+      "O E.U.J.A. — Espaço Universalista Dr. José de Arimateia — é uma casa de axé em Vila Augusta, Sorocaba (SP). Este perfil público reúne o endereço na Rua Santa Catarina, 72, o contato via WhatsApp e a rota no Google Maps para quem busca visitar com respeito.",
     extraSections: [
       {
         heading: "Terreiro em Vila Augusta, Sorocaba",
@@ -232,7 +231,7 @@ const FEATURED_TERREIRO_COPY: Record<
       },
       {
         heading: "Como visitar o E.U.J.A.",
-        body: "Use o telefone público ou o mapa para planejar a chegada. Leve respeito à casa: vista-se de forma adequada, pergunte se a visita precisa de agendamento e siga as orientações de quem recebe na porteira.",
+        body: "Use o botão de WhatsApp ou o mapa para planejar a chegada. Leve respeito à casa: vista-se de forma adequada, pergunte se a visita precisa de agendamento e siga as orientações de quem recebe na porteira.",
       },
     ],
   },
@@ -265,7 +264,7 @@ export function buildTerreiroPrerenderPage(
   if (terreiro.telefone) {
     sections.push({
       heading: "Contato",
-      body: `Telefone público cadastrado: ${terreiro.telefone}. Prefira horários comerciais e linguagem respeitosa ao entrar em contato com a diretoria.`,
+      body: `Há um contato cadastrado para ${terreiro.nome}. Use o botão de WhatsApp exibido no perfil e prefira horários comerciais e linguagem respeitosa ao falar com a diretoria.`,
     });
   }
   if (terreiro.linkMaps) {
@@ -305,7 +304,7 @@ export function buildTerreiroPrerenderPage(
     `Informações de ${terreiro.nome}`,
     loc ? `em ${loc}` : null,
     terreiro.endereco ? "com endereço" : null,
-    terreiro.telefone ? "telefone" : null,
+    terreiro.telefone ? "contato via WhatsApp" : null,
     "no diretório AxéCloud",
   ].filter(Boolean);
 
