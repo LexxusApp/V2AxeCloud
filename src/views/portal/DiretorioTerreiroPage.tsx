@@ -186,11 +186,13 @@ function ServicosSection({
   servicos,
   whatsappAtendimento,
   terreiroNome,
+  terreiroSlug,
   verificada,
 }: {
   servicos: TerreiroServico[];
   whatsappAtendimento: string | null;
   terreiroNome: string;
+  terreiroSlug: string;
   verificada: boolean;
 }) {
   const rawWa = (whatsappAtendimento || '').replace(/\D/g, '');
@@ -244,6 +246,7 @@ function ServicosSection({
         {waHref ? (
           <a
             href={waHref}
+            onClick={() => trackDiretorioWhatsappClick(terreiroSlug)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#e5ae12] px-5 py-3 text-sm font-extrabold text-[#11150f] shadow-[0_10px_30px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
@@ -267,6 +270,7 @@ function ServicosSection({
           </p>
           <a
             href={waHref}
+            onClick={() => trackDiretorioWhatsappClick(terreiroSlug)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#e5ae12] px-7 py-3.5 text-sm font-extrabold text-[#11150f] shadow-[0_14px_35px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
@@ -469,6 +473,7 @@ export default function DiretorioTerreiroPage() {
           servicos={servicosData.servicos}
           whatsappAtendimento={servicosData.whatsappAtendimento}
           terreiroNome={terreiro.nome}
+          terreiroSlug={terreiro.slug}
           verificada={terreiro.verificada}
         />
 
