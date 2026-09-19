@@ -420,7 +420,7 @@ export function ClaimedDirectoryProfileSettings() {
                     { diaSemana: 5, horario: '19:00', titulo: null, observacao: null },
                   ],
                 })}
-                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#17251D] px-3.5 text-xs font-black text-white transition hover:bg-[#263A2E] disabled:opacity-45"
+                className="app-v5-primary-button inline-flex min-h-10 items-center gap-2 rounded-xl px-3.5 text-xs font-black disabled:opacity-45"
               >
                 <Plus className="h-4 w-4" /> Adicionar horário
               </button>

@@ -14,6 +14,7 @@ import {
   Newspaper,
   Package,
   PieChart,
+  Radar,
   ReceiptText,
   Settings as SettingsIcon,
   ShoppingBag,
@@ -83,6 +84,7 @@ export function navItemPlanFeature(itemId: string): string {
   if (itemId === 'financial' || itemId.startsWith('financial-')) return 'financial';
   if (itemId === 'obligations') return 'children';
   if (itemId === 'frequencia') return 'gestao_eventos';
+  if (itemId === 'radar') return 'radar';
   return itemId;
 }
 
@@ -111,6 +113,7 @@ const ZELADOR_CORE: AppNavItem[] = [
   { id: 'inventory', label: 'Almoxarifado', icon: Package },
   { id: 'library', label: 'Biblioteca', icon: BookOpen },
   { id: 'store', label: 'Loja', icon: ShoppingBag },
+  { id: 'radar', label: 'Radar', icon: Radar },
   { id: 'subscription', label: 'Minha assinatura', icon: ReceiptText },
   { id: 'settings', label: 'Configurações', icon: SettingsIcon },
   { id: 'suporte', label: 'Suporte', icon: LifeBuoy },

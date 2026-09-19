@@ -69,13 +69,14 @@ export const DEFAULT_PLAN_PRICES_REAIS: Record<string, number> = {
   vita: 49.9,
 };
 
-export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'chat' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'suporte' | 'subscription' | 'caixinha' | 'saude_axe' | 'atendimentos';
+export type Feature = 'dashboard' | 'children' | 'calendar' | 'gestao_eventos' | 'whatsapp_invites' | 'mural' | 'chat' | 'gallery' | 'inventory' | 'library' | 'notes' | 'financial' | 'store' | 'settings' | 'radar' | 'suporte' | 'subscription' | 'caixinha' | 'saude_axe' | 'atendimentos';
+
+/** Presença pública da casa — disponível em qualquer plano. */
+const PLAN_INDEPENDENT_FEATURES = new Set<string>(['library', 'radar']);
 
 export const hasPlanAccess = (plan: string | undefined, feature: string, isAdminGlobal: boolean = false): boolean => {
-  // A Biblioteca faz parte da experiência base de toda casa, inclusive durante o teste.
-  // Manter esta exceção na regra central evita que menu, rota e conteúdo a bloqueiem
-  // de formas diferentes quando o plano ainda está carregando ou tem um slug legado.
-  if (feature === 'library') return true;
+  // A Biblioteca e o Radar fazem parte da experiência base de toda casa.
+  if (PLAN_INDEPENDENT_FEATURES.has(feature)) return true;
   if (isAdminGlobal) return true;
   if (!plan) return PLAN_FEATURES.premium.includes(feature);
 

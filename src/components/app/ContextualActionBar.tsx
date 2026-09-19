@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Camera,
   HandHeart,
+  MapPinned,
   Megaphone,
   MessageCircle,
   PackageCheck,
@@ -133,6 +134,14 @@ const ADMIN_ACTIONS: Record<string, ContextAction> = {
     action: 'Ver início',
     target: 'dashboard',
     icon: Settings2,
+  },
+  radar: {
+    eyebrow: 'Sua casa no mapa',
+    title: 'Confira como o público encontra o terreiro',
+    detail: 'Revise a localização e mantenha os atendimentos atualizados.',
+    action: 'Ver configurações',
+    target: 'settings',
+    icon: MapPinned,
   },
   subscription: {
     eyebrow: 'Continuidade da casa',

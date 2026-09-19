@@ -23,6 +23,7 @@ const Inventory = lazy(() => import('./views/Inventory'));
 const Gallery = lazy(() => import('./views/Gallery.tsx'));
 const NoticeBoard = lazy(() => import('./views/NoticeBoard'));
 const Settings = lazy(() => import('./views/Settings'));
+const Radar = lazy(() => import('./views/Radar'));
 const ChildProfile = lazy(() => import('./views/ChildProfile'));
 const PerfilFilho = lazy(() => import('./views/PerfilFilho'));
 const ObrigacoesFilho = lazy(() => import('./views/ObrigacoesFilho'));
@@ -1298,6 +1299,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       mural: true,
       chat: true,
       settings: true,
+      radar: true,
       suporte: true,
       profile: true,
       inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
@@ -1366,6 +1368,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         );
       case 'settings': 
         return <Settings user={session.user} session={session} onRefresh={refreshAllData} tenantData={tenantData} setActiveTab={navigateToTab} />;
+      case 'radar':
+        return <Radar />;
       case 'suporte':
         return <Support user={session.user} tenantData={tenantData} setActiveTab={navigateToTab} />;
       case 'library':

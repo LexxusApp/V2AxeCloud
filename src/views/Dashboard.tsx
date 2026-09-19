@@ -945,7 +945,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       label: 'Perfil no mapa',
       detail: 'Ative o perfil público para sua casa ser encontrada',
       done: Boolean(profileSetup?.portal_publico_ativo && String(profileSetup?.public_slug || '').trim()),
-      tab: 'settings',
+      tab: 'radar',
     },
   ];
   const setupDoneCount = setupStepsV5.filter((step) => step.done).length;
