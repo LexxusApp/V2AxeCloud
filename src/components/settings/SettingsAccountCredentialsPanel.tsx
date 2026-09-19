@@ -119,6 +119,8 @@ export function SettingsAccountCredentialsPanel({
     <section className="animate-fadeIn space-y-4">
       {toast && (
         <div
+          role="status"
+          aria-live="polite"
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
             toast.type === 'error'
               ? 'border-red-500/30 bg-red-950/30 text-red-300'
@@ -137,7 +139,7 @@ export function SettingsAccountCredentialsPanel({
       </div>
 
       <div className="settings-security-workbench grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
-        <div className="settings-dark-surface flex h-full flex-col gap-4 rounded-[1.5rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
+        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Mail className="h-4 w-4 text-[#3B82F6]" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar e-mail</span>
@@ -194,7 +196,7 @@ export function SettingsAccountCredentialsPanel({
           </button>
         </div>
 
-        <div className="settings-dark-surface flex h-full flex-col gap-4 rounded-[1.5rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
+        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
           <div className="flex items-center gap-2 text-[#94A3B8]">
             <Lock className="h-4 w-4 text-amber-400" aria-hidden />
             <span className="text-[10px] font-bold uppercase tracking-wider">Alterar senha</span>

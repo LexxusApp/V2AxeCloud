@@ -34,7 +34,7 @@ export function SettingsProfilePanel({
   const [profileTerreiro, setProfileTerreiro] = useState('');
   const [profileCargo, setProfileCargo] = useState<string>(CARGO_OPTIONS[0]);
   const [profileFoto, setProfileFoto] = useState('');
-  const [tradicao, setTradicao] = useState('—');
+  const [tradicao, setTradicao] = useState('Mista');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -183,6 +183,8 @@ export function SettingsProfilePanel({
     <div className="animate-fadeIn space-y-4">
       {toast && (
         <div
+          role="status"
+          aria-live="polite"
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
             toast.type === 'error'
               ? 'border-red-500/30 bg-red-950/30 text-red-300'
@@ -195,7 +197,7 @@ export function SettingsProfilePanel({
         </div>
       )}
 
-      <section className="settings-dark-surface overflow-hidden rounded-[1.75rem] border border-[#252C35] bg-[#11151A] shadow-[0_24px_60px_-38px_rgba(0,0,0,0.95)]">
+      <section className="settings-dark-surface settings-profile-card overflow-hidden rounded-[1.5rem] border border-[#252C35] bg-[#11151A] shadow-[0_24px_60px_-38px_rgba(0,0,0,0.95)]">
         <div className="relative overflow-hidden border-b border-[#2A323D] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.24),transparent_42%),linear-gradient(135deg,#171C23_0%,#101419_65%)] px-5 py-6 sm:px-7">
           <div className="absolute -right-10 -top-16 h-44 w-44 rounded-full border border-blue-400/10" />
           <div className="absolute -right-3 -top-7 h-28 w-28 rounded-full border border-blue-400/10" />

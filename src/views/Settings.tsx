@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, MapPinned, MessageCircleMore, UserRound } from 'lucide-react';
+import { Loader2, MessageCircleMore, ShieldCheck, UserRound } from 'lucide-react';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
 import { SettingsAccountCredentialsPanel } from '../components/settings/SettingsAccountCredentialsPanel';
 import {
@@ -13,9 +13,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
-import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
-import { TerreiroServicosSettings } from '../components/settings/TerreiroServicosSettings';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import '../settings-v6.css';
 
 const SECTION_COPY: Record<SettingsSection, { title: string; description: string }> = {
   profile: {
@@ -26,16 +25,11 @@ const SECTION_COPY: Record<SettingsSection, { title: string; description: string
     title: 'WhatsApp e automações',
     description: 'Confira o canal oficial, escolha os avisos automáticos e acompanhe os envios recentes.',
   },
-  portal: {
-    title: 'Dados exibidos no mapa',
-    description: 'Atualize as informações públicas da casa apresentadas no mapa e no diretório.',
-  },
 };
 
 const SECTION_ICON = {
   profile: UserRound,
   whatsapp: MessageCircleMore,
-  portal: MapPinned,
 } satisfies Record<SettingsSection, typeof UserRound>;
 
 interface SettingsProps {
@@ -53,7 +47,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>(() => {
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:settings-section') : null;
-    return requested === 'whatsapp' || requested === 'portal' || requested === 'profile' ? requested : 'profile';
+    return requested === 'whatsapp' || requested === 'profile' ? requested : 'profile';
   });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
@@ -166,67 +160,70 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
   return (
     <AppPageShell>
-      <div className="settings-v5-page">
-      <div className="settings-render-shell animate-fadeIn overflow-hidden rounded-[2rem] border border-[#D8D0C4] bg-[#F8F3E9] shadow-[0_28px_80px_-52px_rgba(45,34,21,.7)]">
+      <div className="settings-v5-page settings-v6-page">
+      <div className="settings-render-shell animate-fadeIn overflow-hidden rounded-[1.75rem] border border-[#D8D0C4] bg-[#F7F2E8] shadow-[0_28px_80px_-52px_rgba(45,34,21,.7)]">
         <SettingsTabHeader />
 
-        <div className="px-4 pt-4 sm:px-6 sm:pt-6">
-          <SettingsSubNav active={activeSection} onChange={setActiveSection} />
-        </div>
-
-        <div className="mx-4 mt-5 flex items-start gap-3 rounded-2xl border border-[#DED5C7] bg-[#FFFDF8] p-4 shadow-sm sm:mx-6 sm:p-5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[#E5AE12]/30 bg-[#E5AE12]/10 text-[#8A6200]">
-            <ActiveSectionIcon className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9A7600]">
-              Central de configuração
-            </p>
-            <h2 className="mt-0.5 text-lg font-black text-[#17130D]">{activeSectionCopy.title}</h2>
-            <p className="mt-1 max-w-3xl text-xs font-semibold leading-relaxed text-[#665F55]">
-              {activeSectionCopy.description}
-            </p>
-          </div>
-        </div>
-
-        <div className="min-w-0 space-y-5 p-4 sm:p-6">
-        {activeSection === 'profile' ? (
-          <>
-            {error && (
-              <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400">
-                {error}
+        <div className="settings-v6-workspace grid min-w-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
+          <aside className="settings-v6-rail border-b border-[#D8D0C4] bg-[#EFE8DA] p-3 sm:p-4 lg:border-b-0 lg:border-r lg:p-5">
+            <SettingsSubNav active={activeSection} onChange={setActiveSection} />
+            <div className="settings-v6-rail-note mt-4 hidden rounded-2xl border border-[#D7C9AE] bg-[#FFF9ED] p-4 lg:block">
+              <ShieldCheck className="h-5 w-5 text-[#17633B]" aria-hidden />
+              <p className="mt-3 text-xs font-black text-[#29231A]">Sua casa protegida</p>
+              <p className="mt-1 text-[11px] font-semibold leading-relaxed text-[#706658]">
+                Dados de acesso e preferências são exibidos somente para pessoas autorizadas.
               </p>
-            )}
-            <SettingsProfilePanel
-              user={user}
-              tenantId={tenantId}
-              profile={profile}
-              onProfileChange={setProfile}
-              onRefresh={onRefresh}
-            />
-            <SettingsAccountCredentialsPanel
-              userEmail={accountEmail}
-              onEmailChanged={(email) => {
-                setAccountEmail(email);
-                if (profile) setProfile({ ...profile, email });
-              }}
-            />
-            <SettingsDangerZone
-              onDeleteAccount={() => {
-                setDeleteConfirmEmail('');
-                setDeleteError(null);
-                setDeleteModalOpen(true);
-              }}
-            />
-          </>
-        ) : activeSection === 'whatsapp' ? (
-          <SettingsWhatsAppPanel />
-        ) : activeSection === 'portal' ? (
-          <div className="space-y-5">
-            <ClaimedDirectoryProfileSettings />
-            <TerreiroServicosSettings />
-          </div>
-        ) : null}
+            </div>
+          </aside>
+
+          <main className="min-w-0 p-4 sm:p-6 lg:p-7">
+            <header className="settings-v6-section-header mb-5 flex items-start gap-3 border-b border-[#DDD4C7] pb-5">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#173323] text-[#F4C430] shadow-sm">
+                <ActiveSectionIcon className="h-5 w-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black tracking-tight text-[#1E1A14]">{activeSectionCopy.title}</h2>
+                <p className="mt-1 max-w-3xl text-sm font-medium leading-relaxed text-[#6C6459]">
+                  {activeSectionCopy.description}
+                </p>
+              </div>
+            </header>
+
+            <div className="min-w-0 space-y-5">
+              {activeSection === 'profile' ? (
+                <>
+                  {error && (
+                    <p className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-xs font-bold text-red-700" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  <SettingsProfilePanel
+                    user={user}
+                    tenantId={tenantId}
+                    profile={profile}
+                    onProfileChange={setProfile}
+                    onRefresh={onRefresh}
+                  />
+                  <SettingsAccountCredentialsPanel
+                    userEmail={accountEmail}
+                    onEmailChanged={(email) => {
+                      setAccountEmail(email);
+                      if (profile) setProfile({ ...profile, email });
+                    }}
+                  />
+                  <SettingsDangerZone
+                    onDeleteAccount={() => {
+                      setDeleteConfirmEmail('');
+                      setDeleteError(null);
+                      setDeleteModalOpen(true);
+                    }}
+                  />
+                </>
+              ) : (
+                <SettingsWhatsAppPanel />
+              )}
+            </div>
+          </main>
         </div>
       </div>
 

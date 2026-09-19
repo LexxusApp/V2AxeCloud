@@ -364,6 +364,8 @@ export function SettingsWhatsAppPanel() {
     <div className="wa-settings-panel space-y-6">
       {toast && (
         <div
+          role="status"
+          aria-live="polite"
           className={`rounded-xl border px-3 py-2 text-xs font-bold ${
             toast.type === 'error'
               ? 'border-red-500/30 bg-red-950/30 text-red-300'
@@ -477,7 +479,7 @@ export function SettingsWhatsAppPanel() {
                     <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
                       {connected ? 'Status: Ativo & Operante' : 'Status: Inicializando'}
                     </span>
-                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado — AxéCloud</h6>
+                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado · AxéCloud</h6>
                     <p className="text-[9.5px] text-gray-400">
                       {channelMessage ||
                         'Canal pronto para enviar mensagens automáticas da sua casa.'}
@@ -579,7 +581,7 @@ export function SettingsWhatsAppPanel() {
                   type="tel"
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="Seu celular com DDD — ex.: 11999999999"
+                  placeholder="Seu celular com DDD, ex.: 11999999999"
                   className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#10B981]"
                 />
                 <button
@@ -603,7 +605,7 @@ export function SettingsWhatsAppPanel() {
             </h6>
             <p className="text-[11px] leading-relaxed text-gray-400">
               Para avisar a corrente via WhatsApp, use o menu <strong className="text-gray-300">Comunicados</strong>.
-              Lá você publica o aviso no app e pode marcar a opção de transmitir automaticamente — com proteção anti-spam integrada.
+              Lá você publica o aviso no app e pode marcar a opção de transmitir automaticamente, com proteção anti-spam integrada.
             </p>
           </div>
           ) : null}
@@ -719,7 +721,7 @@ export function SettingsWhatsAppPanel() {
               <CheckCircle className="h-3.5 w-3.5 text-[#10B981]" /> Como testar no AxéCloud:
             </div>
             <p>
-              Conecte o WhatsApp no <strong>Passo 1</strong> acima. Depois, experimente criar uma nova Gira na aba{' '}
+              Confira se o canal oficial está ativo. Depois, experimente criar uma nova Gira na aba{' '}
               <strong>Giras</strong>, registrar um lançamento na aba <strong>Financeiro</strong> ou aceitar/rezar por um
               pedido na aba <strong>Pedidos de Reza</strong>. Você verá os envios automáticos e relatórios de fluxo
               surgindo neste painel em tempo real!
