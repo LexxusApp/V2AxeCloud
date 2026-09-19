@@ -356,3 +356,30 @@ admin.axecloud.com.br {
 		}
 	}
 }
+
+rota.axecloud.com.br {
+	log {
+		output file /var/log/caddy/rota-access.log {
+			roll_size 10MiB
+			roll_keep 5
+			mode 0640
+		}
+		format json
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+		-Server
+	}
+
+	encode zstd gzip
+	root * /srv/rota
+
+	# SPA privada: preserva rotas internas sem expor listagem de arquivos.
+	try_files {path} /index.html
+	file_server
+}
