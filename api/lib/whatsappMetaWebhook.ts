@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  applyTrackedWhatsAppStatus,
+  type WhatsAppDeliveryStatus,
+} from "./whatsappDeliveryTracking.js";
 
 /** Verify Token do painel Meta (GET hub.challenge). */
 export function resolveMetaWebhookVerifyToken(): string {
@@ -131,6 +135,17 @@ export async function applyMetaCloudStatusUpdates(
     const mapped = mapMetaStatus(event.status);
     const errText = formatMetaStatusError(event.errors);
     const patch: { status: string; mensagem?: string } = { status: mapped };
+
+    await applyTrackedWhatsAppStatus(
+      sb,
+      event.id,
+      mapped as WhatsAppDeliveryStatus,
+      {
+        metaStatus: event.status,
+        errorCode: event.errors?.[0]?.code != null ? String(event.errors[0].code) : null,
+        errorMessage: errText || null,
+      },
+    );
 
     if (mapped === "failed" && errText) {
       const { data: row } = await sb

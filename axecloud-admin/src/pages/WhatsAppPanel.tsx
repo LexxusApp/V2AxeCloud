@@ -16,6 +16,7 @@ import {
 import { apiJson, isApiUnreachable } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { MetaTemplateDispatchPanel } from "./MetaTemplateDispatchPanel";
+import { WhatsAppDeliveryCenter } from "./WhatsAppDeliveryCenter";
 
 type StatusPayload = {
   instanceName: string;
@@ -52,7 +53,7 @@ function maskPhone(value: string): string {
 }
 
 export function WhatsAppPanel() {
-  const [tab, setTab] = useState<"connect" | "templates" | "welcome">("templates");
+  const [tab, setTab] = useState<"deliveries" | "connect" | "templates" | "welcome">("deliveries");
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [phone, setPhone] = useState("");
   const [testPhone, setTestPhone] = useState("");
@@ -189,6 +190,7 @@ export function WhatsAppPanel() {
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--ac-paper-border)] pt-4">
           {(
             [
+              ["deliveries", "Central de envios"],
               ["templates", "Templates Meta"],
               ["connect", "Conexão Baileys"],
               ["welcome", "Boas-vindas auto"],
@@ -211,6 +213,7 @@ export function WhatsAppPanel() {
         </div>
       </header>
 
+      {tab === "deliveries" && <WhatsAppDeliveryCenter />}
       {tab === "templates" && <MetaTemplateDispatchPanel />}
 
       {tab === "connect" && (

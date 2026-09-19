@@ -17,6 +17,13 @@ import {
   assertPersistentGlobalQuota,
   waitForPersistentPhoneCooldown,
 } from "./whatsappPersistentLimits.js";
+import {
+  acceptWhatsAppDelivery,
+  beginWhatsAppDelivery,
+  failWhatsAppDelivery,
+  markWhatsAppDeliverySending,
+  type WhatsAppDeliveryContext,
+} from "./whatsappDeliveryTracking.js";
 
 export type WhatsAppQueueOptions = Partial<WhatsAppSendMeta> & {
   /** Cliente Supabase para cotas persistentes (recomendado em produção). */
@@ -25,6 +32,12 @@ export type WhatsAppQueueOptions = Partial<WhatsAppSendMeta> & {
   skipSendWindow?: boolean;
   /** Pula cooldown por telefone (ex.: 2ª mensagem de credenciais após template Meta). */
   skipPhoneCooldown?: boolean;
+  recipientName?: string | null;
+  source?: string;
+  sourceId?: string | null;
+  requestedBy?: string | null;
+  idempotencyKey?: string | null;
+  metadata?: Record<string, unknown>;
 };
 
 type QueueJob = {
@@ -39,7 +52,8 @@ type QueueJob = {
   sb?: SupabaseClient;
   skipSendWindow: boolean;
   skipPhoneCooldown: boolean;
-  resolve: (value: { messageId?: string }) => void;
+  deliveryId?: string;
+  resolve: (value: { messageId?: string; deliveryId?: string }) => void;
   reject: (error: Error) => void;
   retries: number;
   enqueuedAt: number;
@@ -191,25 +205,26 @@ async function waitForSendWindow(skip: boolean, meta: WhatsAppSendMeta): Promise
   await sleep(waitMs);
 }
 
-async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
-  const waitMs = Date.now() - job.enqueuedAt;
-  if (waitMs > MAX_QUEUE_WAIT_MS) {
-    throw quotaError("WA_QUEUE_TIMEOUT", "Mensagem expirou na fila (muita demanda). Tente novamente.");
-  }
-
-  await waitForCircuit();
-  await waitForSendWindow(job.skipSendWindow, job.meta);
-
-  if (job.sb) {
-    await assertPersistentGlobalQuota(job.sb);
-  } else {
-    assertInMemoryGlobalQuota();
-  }
-
-  await waitForSendSpacing(job.meta, job.phone);
-  await waitForPhoneCooldown(job.phone, job.sb, job.skipPhoneCooldown);
-
+async function executeJob(job: QueueJob): Promise<{ messageId?: string; deliveryId?: string }> {
   try {
+    const waitMs = Date.now() - job.enqueuedAt;
+    if (waitMs > MAX_QUEUE_WAIT_MS) {
+      throw quotaError("WA_QUEUE_TIMEOUT", "Mensagem expirou na fila (muita demanda). Tente novamente.");
+    }
+
+    await markWhatsAppDeliverySending(job.deliveryId);
+    await waitForCircuit();
+    await waitForSendWindow(job.skipSendWindow, job.meta);
+
+    if (job.sb) {
+      await assertPersistentGlobalQuota(job.sb);
+    } else {
+      assertInMemoryGlobalQuota();
+    }
+
+    await waitForSendSpacing(job.meta, job.phone);
+    await waitForPhoneCooldown(job.phone, job.sb, job.skipPhoneCooldown);
+
     const out =
       job.kind === "template"
         ? await sendEvolutionTemplateByInstance(
@@ -225,21 +240,33 @@ async function executeJob(job: QueueJob): Promise<{ messageId?: string }> {
     consecutiveFailures = 0;
     phoneLastSentAt.set(job.phone, Date.now());
     lastSendFinishedAt = Date.now();
-    return out;
+    await acceptWhatsAppDelivery(
+      job.deliveryId,
+      out.messageId,
+      { provider: "evolution", instanceName: job.instanceName },
+      "sent",
+    );
+    return { ...out, deliveryId: job.deliveryId };
   } catch (err) {
+    await failWhatsAppDelivery(job.deliveryId, err, {
+      provider: "evolution",
+      instanceName: job.instanceName,
+      retry: job.retries,
+    });
     consecutiveFailures += 1;
     lastSendFinishedAt = Date.now();
     if (consecutiveFailures >= CIRCUIT_FAIL_THRESHOLD) {
       circuitOpenUntil = Date.now() + CIRCUIT_PAUSE_MS;
       consecutiveFailures = 0;
       console.warn(
-        `[WHATSAPP_QUEUE] circuit breaker aberto por ${Math.round(CIRCUIT_PAUSE_MS / 1000)}s após falhas consecutivas`
+        "[WHATSAPP_QUEUE] circuit breaker aberto por " +
+          Math.round(CIRCUIT_PAUSE_MS / 1000) +
+          "s após falhas consecutivas"
       );
     }
     throw err;
   }
 }
-
 function sortQueueByPriority(): void {
   queue.sort((a, b) => {
     const pa = resolveSendPriority(a.meta.category);
@@ -298,16 +325,16 @@ function resolveJobMeta(options?: WhatsAppQueueOptions): WhatsAppSendMeta {
 }
 
 /** Enfileira envio com prioridade, espaçamento humano, cooldown e cotas globais. */
-export function sendEvolutionTextQueued(
+export async function sendEvolutionTextQueued(
   instanceName: string,
   phoneDigits: string,
   text: string,
   options?: WhatsAppQueueOptions
-): Promise<{ messageId?: string }> {
+): Promise<{ messageId?: string; deliveryId?: string }> {
   const phone = normalizePhone(phoneDigits);
   const body = String(text || "").trim();
-  if (!phone) return Promise.reject(new Error("Número inválido para envio WhatsApp."));
-  if (!body) return Promise.reject(new Error("Mensagem vazia."));
+  if (!phone) throw new Error("Número inválido para envio WhatsApp.");
+  if (!body) throw new Error("Mensagem vazia.");
 
   const meta = resolveJobMeta(options);
   if (
@@ -316,7 +343,34 @@ export function sendEvolutionTextQueued(
     !isWithinAllowedSendWindow()
   ) {
     const waitMin = Math.ceil(msUntilNextSendWindow() / 60_000);
-    console.warn(`[WHATSAPP_QUEUE] campanha fora da janela (${meta.tipo}) — enfileirado, envio em ~${waitMin} min`);
+    console.warn(
+      "[WHATSAPP_QUEUE] campanha fora da janela (" +
+        meta.tipo +
+        ") — enfileirado, envio em ~" +
+        waitMin +
+        " min"
+    );
+  }
+
+  const tracking: WhatsAppDeliveryContext = {
+    tenantId: meta.tenantId || null,
+    recipientName: options?.recipientName,
+    source: options?.source || meta.tipo || "evolution_queue",
+    sourceId: options?.sourceId || null,
+    requestedBy: options?.requestedBy || null,
+    idempotencyKey: options?.idempotencyKey || null,
+    metadata: options?.metadata || {},
+  };
+  const tracked = await beginWhatsAppDelivery({
+    ...tracking,
+    recipientPhone: phone,
+    channel: "evolution",
+    startImmediately: false,
+    messageKind: "text",
+    requestPayload: { text: body.slice(0, 4096), instanceName },
+  });
+  if (tracked?.duplicate && tracked.externalId) {
+    return { messageId: tracked.externalId, deliveryId: tracked.id };
   }
 
   return new Promise((resolve, reject) => {
@@ -329,6 +383,7 @@ export function sendEvolutionTextQueued(
       sb: options?.sb,
       skipSendWindow: Boolean(options?.skipSendWindow),
       skipPhoneCooldown: Boolean(options?.skipPhoneCooldown),
+      deliveryId: tracked?.id,
       resolve,
       reject,
       retries: 0,
@@ -339,27 +394,49 @@ export function sendEvolutionTextQueued(
 }
 
 /** Enfileira envio de template Meta via Evolution (Cloud API). */
-export function sendEvolutionTemplateQueued(
+export async function sendEvolutionTemplateQueued(
   instanceName: string,
   phoneDigits: string,
   templateName: string,
   language: string,
   components: MetaTemplateComponent[],
   options?: WhatsAppQueueOptions
-): Promise<{ messageId?: string }> {
+): Promise<{ messageId?: string; deliveryId?: string }> {
   const phone = normalizePhone(phoneDigits);
   const name = String(templateName || "").trim();
-  if (!phone) return Promise.reject(new Error("Número inválido para envio WhatsApp."));
-  if (!name) return Promise.reject(new Error("Nome do template Meta inválido."));
+  if (!phone) throw new Error("Número inválido para envio WhatsApp.");
+  if (!name) throw new Error("Nome do template Meta inválido.");
 
   const meta = resolveJobMeta(options);
+  const tracking: WhatsAppDeliveryContext = {
+    tenantId: meta.tenantId || null,
+    recipientName: options?.recipientName,
+    source: options?.source || meta.tipo || "evolution_queue",
+    sourceId: options?.sourceId || null,
+    requestedBy: options?.requestedBy || null,
+    idempotencyKey: options?.idempotencyKey || null,
+    metadata: options?.metadata || {},
+  };
+  const tracked = await beginWhatsAppDelivery({
+    ...tracking,
+    recipientPhone: phone,
+    channel: "evolution",
+    startImmediately: false,
+    messageKind: "template",
+    templateName: name,
+    templateLanguage: language,
+    requestPayload: { templateName: name, language, components, instanceName },
+  });
+  if (tracked?.duplicate && tracked.externalId) {
+    return { messageId: tracked.externalId, deliveryId: tracked.id };
+  }
 
   return new Promise((resolve, reject) => {
     queue.push({
       kind: "template",
       instanceName,
       phone,
-      text: `[template:${name}]`,
+      text: "[template:" + name + "]",
       templateName: name,
       templateLanguage: language,
       templateComponents: components,
@@ -367,6 +444,7 @@ export function sendEvolutionTemplateQueued(
       sb: options?.sb,
       skipSendWindow: Boolean(options?.skipSendWindow),
       skipPhoneCooldown: Boolean(options?.skipPhoneCooldown),
+      deliveryId: tracked?.id,
       resolve,
       reject,
       retries: 0,
@@ -375,7 +453,6 @@ export function sendEvolutionTemplateQueued(
     void processQueue();
   });
 }
-
 export function getEvolutionQueueStats(): EvolutionQueueStats {
   refreshQuotaWindows();
   return {

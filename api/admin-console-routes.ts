@@ -123,6 +123,75 @@ async function requireConsoleAdmin(
 export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRouteDeps) {
   registerDiretorioClaimAdminRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
 
+  app.get("/api/admin-console/whatsapp-deliveries/summary", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { summarizeWhatsAppDeliveries } = await import("./lib/whatsappDeliveryAdmin.js");
+      res.json(await summarizeWhatsAppDeliveries(deps.supabaseAdmin));
+    } catch (error: unknown) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao resumir os envios WhatsApp.") });
+    }
+  });
+
+  app.get("/api/admin-console/whatsapp-deliveries", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listWhatsAppDeliveries } = await import("./lib/whatsappDeliveryAdmin.js");
+      res.json(await listWhatsAppDeliveries(deps.supabaseAdmin, {
+        status: String(req.query.status || ""),
+        source: String(req.query.source || ""),
+        q: String(req.query.q || ""),
+        limit: Number(req.query.limit || 80),
+        offset: Number(req.query.offset || 0),
+      }));
+    } catch (error: unknown) {
+      res.status(500).json({ error: safeErrorMessage(error, "Erro ao carregar os envios WhatsApp.") });
+    }
+  });
+
+  app.get("/api/admin-console/whatsapp-deliveries/:id", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: "Mensagem inválida." });
+    try {
+      const { getWhatsAppDelivery } = await import("./lib/whatsappDeliveryAdmin.js");
+      res.json(await getWhatsAppDelivery(deps.supabaseAdmin, id));
+    } catch (error: any) {
+      res.status(Number(error?.status) || 500).json({
+        error: safeErrorMessage(error, "Erro ao carregar os detalhes da mensagem."),
+      });
+    }
+  });
+
+  app.post("/api/admin-console/whatsapp-deliveries/:id/retry", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const id = String(req.params.id || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: "Mensagem inválida." });
+    try {
+      const { retryWhatsAppDelivery } = await import("./lib/whatsappDeliveryAdmin.js");
+      const result = await retryWhatsAppDelivery(deps.supabaseAdmin, id, ctx.user.id);
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "whatsapp.delivery.retry",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "whatsapp_delivery",
+        targetId: id,
+        description: "Reenvio manual de mensagem WhatsApp.",
+        metadata: { newDeliveryId: result.deliveryId, wamid: result.messageId },
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(Number(error?.status) || 500).json({
+        error: safeErrorMessage(error, "Não foi possível reenviar a mensagem."),
+      });
+    }
+  });
+
   app.get("/api/admin-console/session", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;

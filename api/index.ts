@@ -38,6 +38,10 @@ import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
 import cronHandler from "./cron.js";
 import { sendWhatsAppForTenant } from "./lib/whatsappSendCore.js";
+import {
+  configureWhatsAppDeliveryTracking,
+  startWhatsAppDeliveryWatchdog,
+} from "./lib/whatsappDeliveryTracking.js";
 import { handleWhatsappRoute } from "./lib/whatsappRouter.js";
 import { dispatchGiraWhatsApp, dispatchTransmissaoAviso } from "./lib/cronWhatsAppJobs.js";
 import { loadPlansCatalog, normalizePlansCatalog, savePlansCatalog } from "./lib/plansCatalog.js";
@@ -1158,6 +1162,9 @@ if (!isValidSupabaseHttpUrl(SUPABASE_URL) || !SUPABASE_SERVER_KEY) {
     };
   }
 }
+
+configureWhatsAppDeliveryTracking(supabaseAdmin);
+startWhatsAppDeliveryWatchdog(supabaseAdmin);
 
 // Função para garantir que os buckets de storage existam
 async function ensureBucketsExist() {

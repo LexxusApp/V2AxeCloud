@@ -118,6 +118,35 @@ export function registerDiretorioClaimAdminRoutes(
       });
       if (error) throw error;
 
+      const { data: claimRow } = await deps.supabaseAdmin
+        .from("terreiro_claim_requests")
+        .select("id, requester_name, requester_phone, terreiro_id")
+        .eq("id", claimId)
+        .maybeSingle();
+      const claim = claimRow || (data && typeof data === "object" ? (data as Record<string, unknown>) : {});
+      let notify: { sent: boolean; reason?: string; error?: string; phoneMasked?: string } | null = null;
+      if (status === "approved") {
+        const { notifyApprovedTerreiroClaim } = await import("./diretorioClaimNotify.js");
+        let terreiroNome = "";
+        const terreiroId = String(claim.terreiro_id || "").trim();
+        if (terreiroId) {
+          const { data: terreiro } = await deps.supabaseAdmin
+            .from("terreiros_diretorio")
+            .select("nome")
+            .eq("id", terreiroId)
+            .maybeSingle();
+          terreiroNome = String(terreiro?.nome || "").trim();
+        }
+        notify = await notifyApprovedTerreiroClaim(deps.supabaseAdmin, {
+          claimId,
+          requesterName: String(claim.requester_name || ""),
+          requesterPhone: String(claim.requester_phone || ""),
+          terreiroNome,
+          linkedTenantId: tenantId,
+          requestedBy: ctx.user.id,
+        });
+      }
+
       void logEvent(deps.supabaseAdmin, {
         eventType: `directory.claim.${status}`,
         userId: ctx.user.id,
@@ -130,14 +159,74 @@ export function registerDiretorioClaimAdminRoutes(
             ? "Reivindicação aprovada e vinculada à conta."
             : "Reivindicação aprovada, aguardando criação da conta."
           : "Reivindicação de terreiro recusada.",
-        metadata: { claimId, tenantId, adminNotes },
+        metadata: { claimId, tenantId, adminNotes, notify },
         req,
       });
 
-      res.json({ success: true, claim: data });
+      res.json({ success: true, claim: data, notify });
     } catch (error: unknown) {
       console.error("[admin-console/diretorio-claims/review]", error);
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao analisar reivindicação.") });
     }
   });
-}
+
+  app.post("/api/admin-console/diretorio-claims/:id/resend-notification", async (req, res) => {
+    const ctx = await requireAdmin(req, res);
+    if (!ctx) return;
+    const claimId = String(req.params.id || "").trim();
+    if (!UUID_PATTERN.test(claimId)) return res.status(400).json({ error: "Solicitação inválida." });
+
+    try {
+      const { data: claim, error } = await deps.supabaseAdmin
+        .from("terreiro_claim_requests")
+        .select("id, status, requester_name, requester_phone, terreiro_id, claimed_tenant_id")
+        .eq("id", claimId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!claim) return res.status(404).json({ error: "Reivindicação não encontrada." });
+      if (String(claim.status) !== "approved") {
+        return res.status(409).json({ error: "A notificação só pode ser enviada após a aprovação." });
+      }
+
+      let terreiroNome = "";
+      if (claim.terreiro_id) {
+        const { data: terreiro } = await deps.supabaseAdmin
+          .from("terreiros_diretorio")
+          .select("nome")
+          .eq("id", claim.terreiro_id)
+          .maybeSingle();
+        terreiroNome = String(terreiro?.nome || "").trim();
+      }
+
+      const { notifyApprovedTerreiroClaim } = await import("./diretorioClaimNotify.js");
+      const notify = await notifyApprovedTerreiroClaim(deps.supabaseAdmin, {
+        claimId,
+        requesterName: String(claim.requester_name || ""),
+        requesterPhone: String(claim.requester_phone || ""),
+        terreiroNome,
+        linkedTenantId: claim.claimed_tenant_id ? String(claim.claimed_tenant_id) : null,
+        requestedBy: ctx.user.id,
+      });
+
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "directory.claim.notification_resend",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email || undefined,
+        targetType: "directory-claim",
+        targetId: claimId,
+        tenantId: claim.claimed_tenant_id || undefined,
+        description: notify.sent
+          ? "Notificação da reivindicação enviada ou já confirmada."
+          : "Tentativa de reenvio da notificação da reivindicação falhou.",
+        metadata: { claimId, notify },
+        req,
+      });
+
+      res.status(notify.sent ? 200 : 422).json({ success: notify.sent, notify });
+    } catch (error: unknown) {
+      console.error("[admin-console/diretorio-claims/resend-notification]", error);
+      res.status(500).json({
+        error: safeErrorMessage(error, "Erro ao reenviar a notificação da reivindicação."),
+      });
+    }
+  });}

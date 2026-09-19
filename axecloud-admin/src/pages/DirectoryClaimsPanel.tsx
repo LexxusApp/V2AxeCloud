@@ -108,7 +108,9 @@ export function DirectoryClaimsPanel({
     setWorkingId(row.id);
     onMessage(null);
     try {
-      await apiJson(`/api/admin-console/diretorio-claims/${row.id}/review`, {
+      const result = await apiJson<{
+        notify?: { sent?: boolean; reason?: string; error?: string; phoneMasked?: string };
+      }>(`/api/admin-console/diretorio-claims/${row.id}/review`, {
         method: "POST",
         body: JSON.stringify({
           status: nextStatus,
@@ -116,11 +118,23 @@ export function DirectoryClaimsPanel({
           adminNotes: notesByClaim[row.id] || null,
         }),
       });
-      onMessage(nextStatus === "approved"
-        ? tenantByClaim[row.id]
-          ? "Reivindicação aprovada e vinculada à conta do terreiro."
-          : "Reivindicação aprovada. O responsável poderá criar o acesso e conectar a casa."
-        : "Reivindicação recusada.");
+      if (nextStatus !== "approved") {
+        onMessage("Reivindicação recusada.");
+      } else if (tenantByClaim[row.id]) {
+        onMessage(result.notify?.sent
+          ? "Reivindicação aprovada, conectada à conta e avisada por WhatsApp."
+          : "Reivindicação aprovada e vinculada à conta do terreiro.");
+      } else if (result.notify?.sent) {
+        onMessage(`Reivindicação aprovada. WhatsApp enviado${result.notify.phoneMasked ? ` para ${result.notify.phoneMasked}` : ""} com o link de cadastro.`);
+      } else if (result.notify?.reason === "no_phone") {
+        onMessage("Reivindicação aprovada, mas o WhatsApp não foi enviado: telefone ausente ou inválido.");
+      } else if (result.notify?.reason === "meta_unconfigured") {
+        onMessage("Reivindicação aprovada. WhatsApp não enviado: Meta Cloud não configurada neste ambiente.");
+      } else if (result.notify?.reason === "send_failed") {
+        onMessage(`Reivindicação aprovada. Falha no WhatsApp: ${result.notify.error || "tente reenviar depois."}`);
+      } else {
+        onMessage("Reivindicação aprovada. O responsável poderá criar o acesso e conectar a casa.");
+      }
       await load();
     } catch (error) {
       onMessage(error instanceof Error ? error.message : "Erro ao analisar reivindicação.");
@@ -129,6 +143,37 @@ export function DirectoryClaimsPanel({
     }
   }
 
+  async function resendNotification(row: ClaimRow) {
+    if (!window.confirm("Reenviar a mensagem de aprovação para " + row.requester_name + "?")) return;
+    setWorkingId(row.id);
+    onMessage(null);
+    try {
+      const result = await apiJson<{
+        notify?: {
+          sent?: boolean;
+          reason?: string;
+          error?: string;
+          phoneMasked?: string;
+          deliveryId?: string;
+        };
+      }>("/api/admin-console/diretorio-claims/" + row.id + "/resend-notification", {
+        method: "POST",
+      });
+      onMessage(
+        result.notify?.sent
+          ? "Mensagem confirmada pela Meta" +
+              (result.notify.phoneMasked ? " para " + result.notify.phoneMasked : "") +
+              ". Acompanhe entrega e leitura na Central de envios."
+          : "Não foi possível enviar: " +
+              (result.notify?.error || result.notify?.reason || "falha desconhecida") +
+              ".",
+      );
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "Erro ao reenviar a notificação.");
+    } finally {
+      setWorkingId(null);
+    }
+  }
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -208,7 +253,7 @@ export function DirectoryClaimsPanel({
 
                   {row.status === "pending" ? (
                     <div className="space-y-3 border-t border-[var(--ac-paper-border)] pt-4">
-                      <label className="block"><span className="admin-label">Conta que administrará o perfil <span className="normal-case tracking-normal text-[var(--ac-text-faint)]">(opcional)</span></span><select value={tenantByClaim[row.id] || ""} onChange={(event) => setTenantByClaim({ ...tenantByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full"><option value="">Aprovar e aguardar o responsável criar o acesso</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.nome_terreiro || tenant.email || tenant.id}</option>)}</select><span className="mt-1.5 block text-[10px] text-[var(--ac-text-faint)]">Sem conta selecionada, o solicitante verá no protocolo a opção de criar o acesso e conectar a casa automaticamente.</span></label>
+                      <label className="block"><span className="admin-label">Conta que administrará o perfil <span className="normal-case tracking-normal text-[var(--ac-text-faint)]">(opcional)</span></span><select value={tenantByClaim[row.id] || ""} onChange={(event) => setTenantByClaim({ ...tenantByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full"><option value="">Aprovar e aguardar o responsável criar o acesso</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.nome_terreiro || tenant.email || tenant.id}</option>)}</select><span className="mt-1.5 block text-[10px] text-[var(--ac-text-faint)]">Sem conta selecionada, o solicitante recebe um WhatsApp com o link de cadastro. Ao criar o acesso com o mesmo e-mail, a casa é conectada automaticamente.</span></label>
                       <label className="block"><span className="admin-label">Nota interna</span><textarea rows={2} maxLength={1500} value={notesByClaim[row.id] || ""} onChange={(event) => setNotesByClaim({ ...notesByClaim, [row.id]: event.target.value })} className="admin-input mt-1.5 w-full" placeholder="Resultado da verificação ou motivo da recusa" /></label>
                       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                         <button type="button" disabled={working} onClick={() => void review(row, "rejected")} className="admin-btn-secondary text-[var(--ac-danger)]"><XCircle className="h-4 w-4" /> Recusar</button>
@@ -216,9 +261,22 @@ export function DirectoryClaimsPanel({
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-lg bg-[var(--ac-paper-elevated)] p-3 text-xs text-[var(--ac-text-muted)]">
-                      {row.tenant ? <>Vinculada a <strong className="text-[var(--ac-text)]">{row.tenant.nome_terreiro || row.tenant.email}</strong>.</> : row.status === "approved" ? "Perfil verificado sem conta vinculada." : "Solicitação recusada."}
-                      {row.admin_notes ? <p className="mt-1">Nota: {row.admin_notes}</p> : null}
+                    <div className="space-y-2">
+                      <div className="rounded-lg bg-[var(--ac-paper-elevated)] p-3 text-xs text-[var(--ac-text-muted)]">
+                        {row.tenant ? <>Vinculada a <strong className="text-[var(--ac-text)]">{row.tenant.nome_terreiro || row.tenant.email}</strong>.</> : row.status === "approved" ? "Perfil verificado sem conta vinculada." : "Solicitação recusada."}
+                        {row.admin_notes ? <p className="mt-1">Nota: {row.admin_notes}</p> : null}
+                      </div>
+                      {row.status === "approved" ? (
+                        <button
+                          type="button"
+                          disabled={working}
+                          onClick={() => void resendNotification(row)}
+                          className="admin-btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                          Reenviar e acompanhar no WhatsApp
+                        </button>
+                      ) : null}
                     </div>
                   )}
                 </div>
