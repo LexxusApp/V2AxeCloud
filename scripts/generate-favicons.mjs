@@ -21,6 +21,7 @@ const LOGO_LIGHT_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-logo-light.svg');
 const SYMBOL_SOURCE = path.join(PUBLIC, 'brand', 'axecloud-symbol.svg');
 const ADMIN_PUBLIC = path.join(ROOT, 'axecloud-admin', 'public');
 const ASSETS = path.join(ROOT, 'assets');
+const FAVICON_BACKGROUND = '#050505';
 
 for (const source of [FAVICON_SOURCE, PWA_SOURCE, LOGO_SOURCE, LOGO_LIGHT_SOURCE, SYMBOL_SOURCE]) {
   if (!fs.existsSync(source)) throw new Error(`Fonte ausente: ${source}`);
@@ -28,7 +29,7 @@ for (const source of [FAVICON_SOURCE, PWA_SOURCE, LOGO_SOURCE, LOGO_LIGHT_SOURCE
 
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
   <title id="title">AxéCloud</title>
-  <rect width="64" height="64" rx="15" fill="#102117"/>
+  <rect width="64" height="64" rx="15" fill="${FAVICON_BACKGROUND}"/>
   <image href="data:image/png;base64,${fs.readFileSync(FAVICON_SOURCE).toString('base64')}" x="7" y="7" width="50" height="50"/>
 </svg>\n`;
 fs.writeFileSync(path.join(PUBLIC, 'favicon.svg'), faviconSvg);
@@ -79,7 +80,7 @@ function pngsToIco(pngBuffers) {
   return out;
 }
 
-async function resizePng(source, size) {
+async function resizeTransparentPng(source, size) {
   return sharp(source, { density: 384 })
     .resize(size, size, {
       fit: 'contain',
@@ -89,9 +90,34 @@ async function resizePng(source, size) {
     .toBuffer();
 }
 
+async function resizeBrandIcon(size) {
+  const mark = await sharp(FAVICON_SOURCE, { density: 384 })
+    .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize({
+      width: Math.max(10, Math.round(size * 0.58)),
+      height: Math.max(12, Math.round(size * 0.76)),
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: FAVICON_BACKGROUND,
+    },
+  })
+    .composite([{ input: mark, gravity: 'centre' }])
+    .png()
+    .toBuffer();
+}
+
 async function resizeMaskablePng(size) {
   return sharp(PWA_SOURCE, { density: 384 })
-    .flatten({ background: '#17251D' })
+    .flatten({ background: FAVICON_BACKGROUND })
     .resize(size, size, { fit: 'cover' })
     .png()
     .toBuffer();
@@ -100,8 +126,8 @@ async function resizeMaskablePng(size) {
 const faviconPngs = new Map();
 const pwaPngs = new Map();
 for (const size of [16, 32, 48, 96, 192, 512]) {
-  faviconPngs.set(size, await resizePng(FAVICON_SOURCE, size));
-  pwaPngs.set(size, await resizePng(PWA_SOURCE, size));
+  faviconPngs.set(size, await resizeBrandIcon(size));
+  pwaPngs.set(size, await resizeBrandIcon(size));
 }
 
 const faviconIco = pngsToIco([faviconPngs.get(16), faviconPngs.get(32), faviconPngs.get(48)]);
@@ -112,6 +138,9 @@ for (const size of [32, 48, 96, 192, 512]) {
 }
 for (const size of [192, 512]) {
   fs.writeFileSync(path.join(PUBLIC, `pwa-maskable-${size}.png`), await resizeMaskablePng(size));
+}
+for (const size of [32, 48, 192, 512]) {
+  fs.writeFileSync(path.join(SITE_HOME_PUBLIC, `icon-${size}.png`), faviconPngs.get(size));
 }
 
 fs.mkdirSync(ADMIN_PUBLIC, { recursive: true });
@@ -125,7 +154,7 @@ fs.writeFileSync(path.join(PUBLIC, 'ile-ase-logo.png'), legacyLogo);
 fs.mkdirSync(ASSETS, { recursive: true });
 fs.writeFileSync(path.join(ASSETS, 'logo-axecloud.png'), legacyLogo);
 
-const matrixLogo = await resizePng(SYMBOL_SOURCE, 512);
+const matrixLogo = await resizeTransparentPng(SYMBOL_SOURCE, 512);
 fs.writeFileSync(path.join(PUBLIC, 'logo-topo-matriz.png'), matrixLogo);
 await sharp(matrixLogo).resize(128, 128).webp({ quality: 92 }).toFile(path.join(PUBLIC, 'logo-topo-matriz-128.webp'));
 

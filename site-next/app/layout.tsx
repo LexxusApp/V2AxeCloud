@@ -35,11 +35,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon-32.png?v=axecloud-tridente-2", sizes: "32x32", type: "image/png" },
-      { url: "/icon-48.png?v=axecloud-tridente-2", sizes: "48x48", type: "image/png" },
+      { url: "/icon-32.png?v=axecloud-tridente-preto-3", sizes: "32x32", type: "image/png" },
+      { url: "/icon-48.png?v=axecloud-tridente-preto-3", sizes: "48x48", type: "image/png" },
     ],
-    shortcut: "/icon-32.png?v=axecloud-tridente-2",
-    apple: [{ url: "/icon-192.png?v=axecloud-tridente-2", sizes: "192x192", type: "image/png" }],
+    shortcut: "/icon-32.png?v=axecloud-tridente-preto-3",
+    apple: [{ url: "/icon-192.png?v=axecloud-tridente-preto-3", sizes: "192x192", type: "image/png" }],
   },
 };
 
