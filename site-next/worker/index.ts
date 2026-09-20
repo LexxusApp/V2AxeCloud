@@ -42,6 +42,13 @@ function secureResponse(response: Response, url: URL): Response {
   headers.set("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self)");
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
 
+  if (url.pathname === "/") {
+    headers.set(
+      "Link",
+      '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </openapi.json>; rel="service-desc", </llms.txt>; rel="describedby", </auth.md>; rel="help"',
+    );
+  }
+
   const contentType = headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     headers.set("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=86400");
@@ -60,6 +67,11 @@ function secureResponse(response: Response, url: URL): Response {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Em produção o Worker fica na frente da VPS apenas na home. Se uma
+    // exceção inesperada ocorrer, o Cloudflare entrega a mesma requisição à
+    // origem em vez de derrubar a página pública.
+    ctx.passThroughOnException();
+
     const url = new URL(request.url);
 
     // O site legado usa este prefixo quando servido pelo proxy da VPS.
