@@ -13,23 +13,5 @@
   },
   "images": {
     "binding": "IMAGES"
-  },
-  "env": {
-    "production": {
-      "name": "axecloud-site-home",
-      "routes": [
-        {
-          "pattern": "axecloud.com.br/",
-          "zone_name": "axecloud.com.br"
-        },
-        {
-          "pattern": "axecloud.com.br/site-home-assets/*",
-          "zone_name": "axecloud.com.br"
-        }
-      ],
-      "images": {
-        "binding": "IMAGES"
-      }
-    }
   }
 }
