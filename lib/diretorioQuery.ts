@@ -48,7 +48,7 @@ export async function fetchAllTerreirosRows(
     if (error) throw error;
     const total = count || 0;
     if (total === 0) return [];
-    const pages = Math.min(20, Math.ceil(total / PAGE_SIZE));
+    const pages = Math.ceil(total / PAGE_SIZE);
     const batches = await Promise.all(
       Array.from({ length: pages }, (_, index) => {
         const from = index * PAGE_SIZE;
