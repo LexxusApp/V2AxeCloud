@@ -15,7 +15,23 @@ export type DiretorioQualityInput = {
   tipo?: unknown;
   verified_at?: unknown;
   verificada?: unknown;
+  latitude?: unknown;
+  longitude?: unknown;
 };
+
+const DIRETORIO_REMOVED_SLUGS = new Set([
+  "associacao-araxa",
+  "templo-de-umbanda-pai-jobim-da-guine",
+]);
+const DIRETORIO_REMOVED_PHONE_DIGITS = new Set([
+  "556696366731",
+  "5561991027638",
+]);
+const DIRETORIO_REMOVED_MAP_TOKENS = [
+  "11qg34f83g",
+  "0x9379b9f0f7d91423:0xd478f41fcc5d40d7",
+];
+const ASSOCIACAO_ARAXA_COORDINATES = { latitude: -16.4811664, longitude: -54.574702 };
 
 /** Casas que devem entrar no índice mesmo sem o nome “de axé” no título. */
 export const DIRETORIO_PRIORITY_INDEX_SLUGS = new Set([
@@ -54,6 +70,24 @@ function normalize(value: unknown): string {
     .trim();
 }
 
+/** Pedidos permanentes de retirada do diretório público. */
+export function isDiretorioRemovalBlocked(row: DiretorioQualityInput): boolean {
+  const slug = String(row.slug || '').trim().toLowerCase();
+  if (DIRETORIO_REMOVED_SLUGS.has(slug)) return true;
+
+  const phone = String(row.telefone || '').replace(/\D/g, '');
+  if (phone && DIRETORIO_REMOVED_PHONE_DIGITS.has(phone)) return true;
+
+  const mapsUrl = String(row.link_maps || row.linkMaps || '').toLowerCase();
+  if (DIRETORIO_REMOVED_MAP_TOKENS.some((token) => mapsUrl.includes(token))) return true;
+
+  const latitude = Number(row.latitude);
+  const longitude = Number(row.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    Math.abs(latitude - ASSOCIACAO_ARAXA_COORDINATES.latitude) < 0.00015 &&
+    Math.abs(longitude - ASSOCIACAO_ARAXA_COORDINATES.longitude) < 0.00015;
+}
+
 export function hasAxeContextInName(value: unknown): boolean {
   return AXE_CONTEXT_RE.test(normalize(value));
 }
@@ -89,6 +123,7 @@ export function isClearlyOutsideDiretorioScope(value: unknown): boolean {
  * Registros incompletos, mas plausíveis, continuam visíveis para poderem ser reivindicados.
  */
 export function isDiretorioListingPublishable(row: DiretorioQualityInput): boolean {
+  if (isDiretorioRemovalBlocked(row)) return false;
   const slug = String(row.slug || '').trim();
   const cidade = String(row.cidade || '').trim();
   const estado = String(row.estado || '').trim();

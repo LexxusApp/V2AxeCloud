@@ -68,6 +68,12 @@ axecloud.com.br, www.axecloud.com.br {
 			import app_upstream
 		}
 
+		# Retirada permanente solicitada pelo responsável da Associação Araxá.
+		@removed_associacao_araxa path /terreiro/associacao-araxa /terreiro/templo-de-umbanda-pai-jobim-da-guine
+		handle @removed_associacao_araxa {
+			respond "Perfil removido por solicitação do responsável." 410
+		}
+
 		@diretorio_crawlers {
 			path /terreiro/*
 			path /terreiros/*/*

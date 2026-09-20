@@ -6,6 +6,7 @@ import { omitSelectColumn, selectColumnFromSchemaError } from '../lib/diretorioQ
 import { PUBLIC_PRERENDER_PAGES } from '../src/constants/seoPublicPages';
 import { FEATURE_PAGE_PATHS } from '../src/constants/featurePagesContent';
 import { COMMERCIAL_PAGE_PATHS } from '../src/constants/commercialPagesContent';
+import { isDiretorioListingPublishable, isDiretorioRemovalBlocked } from '../lib/diretorioQuality';
 
 const RESOURCE_PATHS = [
   '/recursos',
@@ -37,6 +38,22 @@ test('select do diretório remove coluna ausente do PostgREST', () => {
     omitSelectColumn('nome, verified_at, slug', 'verified_at'),
     'nome, slug',
   );
+});
+
+test('pedido de remoção da Associação Araxá bloqueia perfil e futuras reimportações', () => {
+  const removed = {
+    slug: 'templo-de-umbanda-pai-jobim-da-guine',
+    nome: 'Templo de Umbanda Pai Jobim da Guiné',
+    endereco: 'R. Quatro, SN - Chácaras Paraíso',
+    cidade: 'Rondonópolis',
+    estado: 'MT',
+    telefone: '+5561991027638',
+    link_maps: 'https://www.google.com/maps/place/x/11qg34f83g',
+    latitude: -16.4811664,
+    longitude: -54.574702,
+  };
+  assert.equal(isDiretorioRemovalBlocked(removed), true);
+  assert.equal(isDiretorioListingPublishable(removed), false);
 });
 
 test('páginas públicas atualizadas declaram lastmod atual', () => {
