@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { LocateFixed, MapPin, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DiretorioMapPoint } from '../../lib/diretorioMap';
+import { fetchDiretorioTerreiro, type DiretorioTerreiro } from '../../lib/diretorioPublic';
 
 function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (value: number) => (value * Math.PI) / 180;
@@ -20,12 +21,13 @@ function escapeHtml(value: string) {
   })[char] || char);
 }
 
-function popupHtml(point: DiretorioMapPoint) {
-  const situation = point.verificada
-    ? 'Perfil verificado'
-    : point.gerenciada
-      ? 'Casa no AxéCloud'
-      : 'Casa mapeada';
+function popupHtml(point: DiretorioMapPoint, details?: DiretorioTerreiro | null) {
+  const photo = details?.fotoUrl
+    ? `<div class="axe-map-profile__media"><img src="${escapeHtml(details.fotoUrl)}" alt="Foto de ${escapeHtml(point.nome)}" loading="eager" decoding="async" /></div>`
+    : '';
+  const address = details?.endereco
+    ? `<p class="axe-map-profile__address">${escapeHtml(details.endereco)}</p>`
+    : '';
   const igLink = point.instagramUrl
     ? `<a class="axe-map-profile__social" href="${escapeHtml(point.instagramUrl)}" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
@@ -35,13 +37,11 @@ function popupHtml(point: DiretorioMapPoint) {
 
   return `
     <article class="axe-map-profile">
-      <header class="axe-map-profile__head">
-        <span class="axe-map-profile__mark"><img src="/favicon.svg?v=tridente-2026" alt="" /></span>
-        <div><p class="axe-map-profile__eyebrow">Diretório AxéCloud</p><p class="axe-map-profile__state">${situation}</p></div>
-      </header>
+      ${photo}
       <div class="axe-map-profile__body">
         <h2 class="axe-map-profile__name">${escapeHtml(point.nome)}</h2>
         <p class="axe-map-profile__location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${escapeHtml(point.cidade)} · ${escapeHtml(point.estado)}</p>
+        ${address}
         ${igLink}
         <div class="axe-map-profile__actions">
           <a class="axe-map-profile__action axe-map-profile__action--primary" href="${escapeHtml(point.perfilUrl)}">Conhecer esta casa <span>→</span></a>
@@ -49,6 +49,32 @@ function popupHtml(point: DiretorioMapPoint) {
       </div>
     </article>
   `;
+}
+
+const popupDetailsCache = new Map<string, DiretorioTerreiro>();
+
+function openPointPopup(map: L.Map, point: DiretorioMapPoint) {
+  const cached = popupDetailsCache.get(point.slug);
+  const popup = L.popup({
+    maxWidth: 360,
+    minWidth: 300,
+    className: 'axecloud-map-popup',
+    autoPanPaddingTopLeft: [32, 132],
+    autoPanPaddingBottomRight: [32, 48],
+  })
+    .setLatLng([point.lat, point.lng])
+    .setContent(popupHtml(point, cached))
+    .openOn(map);
+
+  if (cached) return;
+  void fetchDiretorioTerreiro(point.slug)
+    .then((details) => {
+      popupDetailsCache.set(point.slug, details);
+      if (!popup.isOpen()) return;
+      popup.setContent(popupHtml(point, details));
+      popup.update();
+    })
+    .catch(() => undefined);
 }
 
 type RenderedMapItem =
@@ -283,19 +309,6 @@ export function DirectoryCoverageMap({
     const layer = new CanvasPointsLayer().addTo(map) as InstanceType<typeof CanvasPointsLayer>;
     layerRef.current = layer;
 
-    const openPoint = (point: DiretorioMapPoint) => {
-      L.popup({
-        maxWidth: 360,
-        minWidth: 300,
-        className: 'axecloud-map-popup',
-        autoPanPaddingTopLeft: [32, 132],
-        autoPanPaddingBottomRight: [32, 48],
-      })
-        .setLatLng([point.lat, point.lng])
-        .setContent(popupHtml(point))
-        .openOn(map);
-    };
-
     map.on('mousemove', (event: L.LeafletMouseEvent) => {
       const hit = layer.hitTest(event.latlng);
       map.getContainer().style.cursor = hit ? 'pointer' : '';
@@ -314,7 +327,7 @@ export function DirectoryCoverageMap({
         });
         return;
       }
-      openPoint(hit.point);
+      openPointPopup(map, hit.point);
     });
 
     window.setTimeout(() => map.invalidateSize(), 80);
@@ -356,16 +369,7 @@ export function DirectoryCoverageMap({
           distanceKm(origin, point) < distanceKm(origin, best) ? point : best,
         );
         mapRef.current?.flyTo([nearest.lat, nearest.lng], 15, { duration: 1.1 });
-        L.popup({
-          maxWidth: 360,
-          minWidth: 300,
-          className: 'axecloud-map-popup',
-          autoPanPaddingTopLeft: [32, 132],
-          autoPanPaddingBottomRight: [32, 48],
-        })
-          .setLatLng([nearest.lat, nearest.lng])
-          .setContent(popupHtml(nearest))
-          .openOn(mapRef.current!);
+        openPointPopup(mapRef.current!, nearest);
         setLocationStatus(`${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`);
         window.setTimeout(() => setLocationStatus(null), 3600);
       },
