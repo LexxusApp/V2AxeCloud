@@ -16,7 +16,7 @@
   "containers": [
     {
       "class_name": "AxeCloudApiContainer",
-      "image": "./deploy/Dockerfile.cloudflare-api",
+      "image": "./Dockerfile.cloudflare-api",
       "max_instances": 1,
       "instance_type": "basic"
     }
