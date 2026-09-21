@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axecloud-marketing-preview",
+  "main": "cloudflare/marketing-preview-worker.js",
+  "compatibility_date": "2026-09-21",
+  "workers_dev": true,
+  "vars": {
+    "PREVIEW_MODE": "true"
+  },
+  "assets": {
+    "directory": "/tmp/axecloud-marketing-preview-20260921/assets",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
+}
