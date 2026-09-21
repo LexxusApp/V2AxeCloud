@@ -513,6 +513,12 @@ export type DispatchGiraWhatsAppOptions = {
   bypassFanoutCooldown?: boolean;
   /** Envia resumo atrasado ao zelador após o fan-out (criação manual / reenvio). */
   notifyZeladorSummary?: boolean;
+  /** Força um template Meta específico (painel admin). */
+  metaTemplateName?: string | null;
+  /** Restringe o fan-out a estes filhos (ex.: reenvio de falha). */
+  onlyFilhoIds?: string[];
+  /** Progresso por destinatário (painel admin). */
+  onProgress?: (p: { sent: number; errors: number; eligible: number; index: number }) => void;
 };
 
 export async function dispatchGiraWhatsApp(
@@ -563,12 +569,17 @@ export async function dispatchGiraWhatsApp(
     ctx = await resolveCronTerreiroContext(sb, tenantId);
     dataEvento = formatEventDateBr(event.data);
     horaEvento = String(event.hora || "").trim();
+    const eventYmd = String(event.data || "").trim().slice(0, 10);
+    const { resolveQuandoGiraLabel } = await import("./whatsappMetaCloud.js");
+    const quandoGira = resolveQuandoGiraLabel(eventYmd);
 
     let baseVariables: Record<string, string | number> = {
       event_id: event.id || "",
       nome_evento: event.titulo,
       data_evento: dataEvento,
+      data_evento_ymd: eventYmd,
       hora_evento: horaEvento,
+      quando_gira: quandoGira,
       nome_terreiro: ctx.nomeTerreiro,
     };
     const bannerUrl = String(event.banner_url || "").trim();
@@ -582,13 +593,20 @@ export async function dispatchGiraWhatsApp(
       .select("id, nome, whatsapp_phone, status, tenant_id, lider_id")
       .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
 
+    const onlyIds = new Set(
+      (options?.onlyFilhoIds || []).map((id) => String(id || "").trim()).filter(Boolean)
+    );
+
     const eligibleChildren = (children || []).filter((child) => {
+      if (onlyIds.size && !onlyIds.has(String(child.id))) return false;
       const st = String(child.status || "Ativo").trim().toLowerCase();
       if (st === "inativo" || st === "desligado" || st === "falecido") return false;
       return Boolean(child.whatsapp_phone);
     });
 
-    const batch = capAndShuffleRecipients(eligibleChildren, FANOUT_MAX_RECIPIENTS);
+    const batch = onlyIds.size
+      ? eligibleChildren
+      : capAndShuffleRecipients(eligibleChildren, FANOUT_MAX_RECIPIENTS);
     eligible = batch.length;
 
     for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
@@ -610,7 +628,7 @@ export async function dispatchGiraWhatsApp(
 
         const nomeMembro = String(child.nome || "Filho");
         const suffix = String(options?.messageSuffix || "").trim();
-        const baseMsg = `Gira: ${event.titulo} — ${dataEvento} ${horaEvento}`;
+        const baseMsg = `Gira: ${event.titulo} — ${dataEvento} ${horaEvento} (${quandoGira})`;
         const out = await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: String(child.id),
@@ -620,7 +638,8 @@ export async function dispatchGiraWhatsApp(
           nomeMembro,
           nomeTerreiro: ctx.nomeTerreiro,
           idTerreiro: ctx.idTerreiro,
-          variables: { ...baseVariables },
+          variables: { ...baseVariables, nome_membro: nomeMembro },
+          metaTemplateName: options?.metaTemplateName || null,
         });
         if (out.externalId) externalIds.push(out.externalId);
         sent++;
@@ -629,11 +648,13 @@ export async function dispatchGiraWhatsApp(
         console.error(`[GIRA WA] filho=${child.id}:`, err);
         const code = (err as { code?: string })?.code || "";
         if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
+          options?.onProgress?.({ sent, errors, eligible, index: batchIndex + 1 });
           break;
         }
       }
+      options?.onProgress?.({ sent, errors, eligible, index: batchIndex + 1 });
     }
-  } catch (err) {
+    } catch (err) {
     console.error("[GIRA WA] dispatch:", err);
     errors++;
   }

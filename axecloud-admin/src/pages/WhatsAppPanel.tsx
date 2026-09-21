@@ -16,6 +16,7 @@ import {
 import { apiJson, isApiUnreachable } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { MetaTemplateDispatchPanel } from "./MetaTemplateDispatchPanel";
+import { GiraDispatchPanel } from "./GiraDispatchPanel";
 import { WhatsAppDeliveryCenter } from "./WhatsAppDeliveryCenter";
 
 type StatusPayload = {
@@ -53,7 +54,7 @@ function maskPhone(value: string): string {
 }
 
 export function WhatsAppPanel() {
-  const [tab, setTab] = useState<"deliveries" | "connect" | "templates" | "welcome">("deliveries");
+  const [tab, setTab] = useState<"deliveries" | "connect" | "templates" | "giras" | "welcome">("deliveries");
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [phone, setPhone] = useState("");
   const [testPhone, setTestPhone] = useState("");
@@ -180,7 +181,7 @@ export function WhatsAppPanel() {
               Notificações WhatsApp
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--ac-text-muted)]">
-              Disparos Meta para zeladores (templates aprovados) ou conexão Baileys do console para testes.
+              Disparos de gira para a corrente, templates Meta para zeladores, ou conexão Baileys do console.
             </p>
           </div>
           {tab === "connect" && (
@@ -191,6 +192,7 @@ export function WhatsAppPanel() {
           {(
             [
               ["deliveries", "Central de envios"],
+              ["giras", "Disparo de gira"],
               ["templates", "Templates Meta"],
               ["connect", "Conexão Baileys"],
               ["welcome", "Boas-vindas auto"],
@@ -214,6 +216,7 @@ export function WhatsAppPanel() {
       </header>
 
       {tab === "deliveries" && <WhatsAppDeliveryCenter />}
+      {tab === "giras" && <GiraDispatchPanel />}
       {tab === "templates" && <MetaTemplateDispatchPanel />}
 
       {tab === "connect" && (

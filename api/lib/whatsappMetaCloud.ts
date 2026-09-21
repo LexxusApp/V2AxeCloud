@@ -10,6 +10,8 @@ const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
 /** Membros / corrente: aviso de gira ou evento no calendário */
 const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
+/** Lembrete humanizado de gira para membros da corrente */
+const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_membro_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
 /** Lembrete automático/manual de mensalidade pendente (cron semanal; fallback Meta) */
@@ -192,8 +194,45 @@ export function isConviteEventoTemplate(tipo: string): boolean {
 }
 
 export function isAvisoGiraTemplate(tipo: string): boolean {
-  // Aceita variantes (ex.: aviso_gira_util_axecloud em categoria Utility).
-  return resolveMetaTemplateName(tipo).startsWith("aviso_gira");
+  // Aceita variantes (ex.: aviso_gira_util_axecloud, aviso_gira_lembrete_membro_axecloud).
+  const name = resolveMetaTemplateName(tipo);
+  return name.startsWith("aviso_gira");
+}
+
+export function isAvisoGiraLembreteMembroTemplate(
+  tipo = "aviso_gira",
+  templateNameOverride?: string | null
+): boolean {
+  const name = String(templateNameOverride || "").trim() || resolveMetaTemplateName(tipo);
+  return (
+    name === AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE ||
+    name.includes("lembrete_membro")
+  );
+}
+
+/** "hoje" | "amanha" | "no dia DD/MM/AAAA" — para o template humanizado. */
+export function resolveQuandoGiraLabel(eventYmdRaw: string, now = new Date()): string {
+  const eventYmd = String(eventYmdRaw || "").trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventYmd)) return "em breve";
+
+  const br = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const y = br.getFullYear();
+  const m = br.getMonth() + 1;
+  const d = br.getDate();
+  const todayYmd = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+  const tomorrow = new Date(br);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const ty = tomorrow.getFullYear();
+  const tm = tomorrow.getMonth() + 1;
+  const td = tomorrow.getDate();
+  const tomorrowYmd = `${ty}-${String(tm).padStart(2, "0")}-${String(td).padStart(2, "0")}`;
+
+  if (eventYmd === todayYmd) return "hoje";
+  if (eventYmd === tomorrowYmd) return "amanha";
+
+  const [ey, em, ed] = eventYmd.split("-");
+  return `no dia ${ed}/${em}/${ey}`;
 }
 
 export function isMuralAvisoTemplate(tipo: string): boolean {
@@ -413,14 +452,40 @@ export function buildConviteEventoComponents(
 }
 
 /**
- * aviso_gira_axecloud — header: banner do evento; corpo: {{1}} título, {{2}} data, {{3}} horário
+ * aviso_gira_axecloud — header: banner; corpo: {{1}} título, {{2}} data, {{3}} horário
+ * aviso_gira_lembrete_membro_axecloud — corpo: {{1}} membro, {{2}} quando, {{3}} terreiro,
+ *   {{4}} gira, {{5}} horário (+ footer na Meta)
  */
 export function buildAvisoGiraComponents(
-  variables?: Record<string, string | number>
+  variables?: Record<string, string | number>,
+  nomeMembro?: string,
+  nomeTerreiro?: string,
+  templateNameOverride?: string | null
 ): MetaTemplateComponent[] {
   const titulo = String(variables?.nome_evento || variables?.titulo_evento || variables?.titulo || "Gira");
   const data = String(variables?.data_evento || "");
   const hora = String(variables?.hora_evento || "");
+  const resolvedName =
+    String(templateNameOverride || "").trim() || resolveMetaTemplateName("aviso_gira");
+
+  if (isAvisoGiraLembreteMembroTemplate("aviso_gira", resolvedName)) {
+    const eventYmd = String(variables?.data_evento_ymd || variables?.event_ymd || "").slice(0, 10);
+    const quando = String(
+      variables?.quando_gira || variables?.quando || resolveQuandoGiraLabel(eventYmd) || "em breve"
+    ).trim();
+    return [
+      {
+        type: "body",
+        parameters: [
+          textParam(String(variables?.nome_membro || variables?.nome_filho || nomeMembro || "Membro")),
+          textParam(quando),
+          textParam(String(variables?.nome_terreiro || nomeTerreiro || "Terreiro")),
+          textParam(titulo),
+          textParam(hora || "—"),
+        ],
+      },
+    ];
+  }
 
   const body: MetaTemplateComponent = {
     type: "body",
@@ -428,7 +493,7 @@ export function buildAvisoGiraComponents(
   };
 
   // Só o template original tem header de imagem; variantes Utility são corpo puro.
-  if (resolveMetaTemplateName("aviso_gira") !== AVISO_GIRA_TEMPLATE) {
+  if (resolvedName !== AVISO_GIRA_TEMPLATE) {
     return [body];
   }
 
@@ -442,10 +507,6 @@ export function buildAvisoGiraComponents(
   ];
 }
 
-/**
- * conta_ativa_axecloud — corpo: {{1}} filho, {{2}} terreiro, {{3}} registro (login)
- * Botão estático no template Meta: https://axecloud.com.br/entrar?modo=filho
- */
 export function buildContaAtivaComponents(
   nomeMembro: string,
   nomeTerreiro: string,
@@ -1076,7 +1137,8 @@ export function buildMetaTemplateComponentsForTipo(
   tipo: string,
   nomeMembro: string,
   nomeTerreiro: string,
-  variables?: Record<string, string | number>
+  variables?: Record<string, string | number>,
+  templateNameOverride?: string | null
 ): MetaTemplateComponent[] {
   const t = normalizeTipo(tipo);
 
@@ -1084,7 +1146,7 @@ export function buildMetaTemplateComponentsForTipo(
     return buildConviteEventoComponents(variables);
   }
   if (isAvisoGiraTemplate(tipo)) {
-    return buildAvisoGiraComponents(variables);
+    return buildAvisoGiraComponents(variables, nomeMembro, nomeTerreiro, templateNameOverride);
   }
   if (isContaAtivaTemplate(tipo) || isDadosAcessoTemplate(tipo)) {
     return buildContaAtivaComponents(nomeMembro, nomeTerreiro, variables);
@@ -1202,7 +1264,9 @@ export function buildWhatsAppAuditMessage(
     const titulo = String(v.nome_evento || v.titulo_evento || "Gira");
     const banner = String(v.banner_url || "");
     const bannerPart = banner ? ` · banner` : "";
-    return `Gira (corrente): ${titulo} — ${v.data_evento || ""} ${v.hora_evento || ""}${bannerPart}`.trim();
+    const quando = String(v.quando_gira || "").trim();
+    const quandoPart = quando ? ` · ${quando}` : "";
+    return `Gira (corrente): ${titulo} — ${v.data_evento || ""} ${v.hora_evento || ""}${quandoPart}${bannerPart}`.trim();
   }
 
   if (normalized === "dados_acesso") {

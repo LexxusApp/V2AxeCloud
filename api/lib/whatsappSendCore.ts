@@ -54,6 +54,8 @@ export type WhatsAppSendInput = {
   filhoId?: string | null;
   forcePhone?: string | null;
   variables?: Record<string, string | number>;
+  /** Sobrescreve o nome do template Meta (ex.: disparo admin escolhendo variante). */
+  metaTemplateName?: string | null;
 };
 
 export type TerreiroWhatsAppContext = {
@@ -410,9 +412,11 @@ async function sendMetaTemplateMessage(
     sb?: SupabaseClient;
     fallbackText?: string;
     zelador?: string;
+    metaTemplateName?: string | null;
   }
 ): Promise<{ messageId?: string }> {
-  const templateName = resolveMetaTemplateName(tipo);
+  const templateName =
+    String(opts?.metaTemplateName || "").trim() || resolveMetaTemplateName(tipo);
   const language = resolveMetaTemplateLanguage();
   const mergedVars: Record<string, string | number> = {
     ...(variables || {}),
@@ -423,7 +427,8 @@ async function sendMetaTemplateMessage(
     tipo,
     nomeMembro,
     nomeTerreiro,
-    mergedVars
+    mergedVars,
+    templateName
   );
   const meta = buildSendMeta(tipo, {
     tenantId: opts?.tenantId,
@@ -641,7 +646,7 @@ export async function logAndSendWhatsApp(
 ): Promise<{ messageId?: string; externalId: string }> {
   await ensureOfficialWhatsAppReady();
 
-  const { tipo, phone, message, deliverableText, filhoId, tenantId } = input;
+  const { tipo, phone, message, deliverableText, filhoId, tenantId, metaTemplateName } = input;
   const zelador = resolveZeladorFromVariables(input.variables, input.zelador);
   const variables = input.variables || {};
   const useCredentialsTwoStep = usesCredentialsTwoStepFlow(tipo);
@@ -721,6 +726,7 @@ export async function logAndSendWhatsApp(
         // Mural/transmissão: idem. Demais tipos: fallback texto se o template falhar.
         fallbackText: templateOnlyPortal || credentialsOnly ? undefined : textToSend,
         zelador,
+        metaTemplateName,
       }
     );
   } else {

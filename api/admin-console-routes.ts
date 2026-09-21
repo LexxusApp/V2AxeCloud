@@ -1036,6 +1036,151 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  // -------------- Disparo de gira (corrente) --------------------
+  app.get("/api/admin-console/gira-dispatch/templates", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listAdminGiraTemplateOptions } = await import("./lib/adminGiraDispatch.js");
+      const { isMetaCloudDirectConfigured } = await import("./lib/metaCloudSend.js");
+      res.json({
+        templates: listAdminGiraTemplateOptions(),
+        metaConfigured: isMetaCloudDirectConfigured(),
+        defaultTemplate: listAdminGiraTemplateOptions().find((t) => t.isDefault)?.name || null,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar templates de gira") });
+    }
+  });
+
+  app.get("/api/admin-console/gira-dispatch/tenants", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listAdminGiraTenants } = await import("./lib/adminGiraDispatch.js");
+      const out = await listAdminGiraTenants(deps.supabaseAdmin, {
+        q: String(req.query.q || ""),
+        limit: Number(req.query.limit || 80),
+      });
+      res.json(out);
+    } catch (e: any) {
+      console.error("[admin-console/gira-dispatch/tenants]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar terreiros") });
+    }
+  });
+
+  app.get("/api/admin-console/gira-dispatch/events", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const tenantId = String(req.query.tenantId || "").trim();
+    if (!tenantId) return res.status(400).json({ error: "Informe tenantId." });
+    try {
+      const { listAdminGiraEvents } = await import("./lib/adminGiraDispatch.js");
+      const events = await listAdminGiraEvents(deps.supabaseAdmin, tenantId, {
+        includePast: String(req.query.includePast || "") === "1",
+        limit: Number(req.query.limit || 40),
+      });
+      res.json({ events });
+    } catch (e: any) {
+      console.error("[admin-console/gira-dispatch/events]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar eventos") });
+    }
+  });
+
+  app.post("/api/admin-console/gira-dispatch/send", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const { startAdminGiraDispatchJob } = await import("./lib/adminGiraDispatch.js");
+      const job = await startAdminGiraDispatchJob(deps.supabaseAdmin, {
+        tenantId: String(body.tenantId || ""),
+        eventId: String(body.eventId || ""),
+        templateName: body.templateName != null ? String(body.templateName) : null,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "gira-dispatch.admin",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: String(body.tenantId || ""),
+        description: `Disparo gira iniciado (job ${job.id})`,
+        metadata: { jobId: job.id, templateName: job.templateName, eventId: body.eventId },
+        req,
+      });
+      res.json({ success: true, async: true, job });
+    } catch (e: any) {
+      const status = Number(e?.status) || Number(e?.statusCode) || 500;
+      console.error("[admin-console/gira-dispatch/send]", e);
+      res.status(status).json({ error: safeErrorMessage(e, "Falha ao disparar aviso de gira") });
+    }
+  });
+
+  app.get("/api/admin-console/gira-dispatch/jobs/:jobId", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { getAdminGiraDispatchJob } = await import("./lib/adminGiraDispatch.js");
+      const job = getAdminGiraDispatchJob(String(req.params.jobId || ""));
+      if (!job) return res.status(404).json({ error: "Job não encontrado." });
+      res.json({ job });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao consultar job") });
+    }
+  });
+
+  app.get("/api/admin-console/gira-dispatch/dispatch-log", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listAdminGiraDispatchLog } = await import("./lib/adminGiraDispatch.js");
+      const rows = await listAdminGiraDispatchLog(deps.supabaseAdmin, {
+        tenantId: String(req.query.tenantId || ""),
+        limit: Number(req.query.limit || 40),
+      });
+      res.json({ rows });
+    } catch (e: any) {
+      console.error("[admin-console/gira-dispatch/dispatch-log]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar histórico de gira") });
+    }
+  });
+
+  app.post("/api/admin-console/gira-dispatch/retry", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const { retryAdminGiraDispatch } = await import("./lib/adminGiraDispatch.js");
+      const result = await retryAdminGiraDispatch(deps.supabaseAdmin, {
+        tenantId: String(body.tenantId || ""),
+        eventId: String(body.eventId || ""),
+        filhoId: String(body.filhoId || ""),
+        templateName: body.templateName != null ? String(body.templateName) : null,
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "gira-dispatch.retry",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: String(body.tenantId || ""),
+        description: `Reenvio gira filho=${body.filhoId} status=${result.status}`,
+        metadata: {
+          eventId: body.eventId,
+          filhoId: body.filhoId,
+          templateName: result.templateName,
+          sent: result.sent,
+          errors: result.errors,
+        },
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      const status = Number(e?.status) || Number(e?.statusCode) || 500;
+      console.error("[admin-console/gira-dispatch/retry]", e);
+      res.status(status).json({ error: safeErrorMessage(e, "Falha ao reenviar aviso de gira") });
+    }
+  });
+
   // -------------- Caixa de entrada Meta Cloud (número oficial) --------------------
   app.get("/api/admin-console/whatsapp-inbox/conversations", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
