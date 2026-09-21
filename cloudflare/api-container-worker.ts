@@ -3,6 +3,7 @@ import { env as runtimeEnv } from "cloudflare:workers";
 
 type AxeCloudBindings = {
   AXECLOUD_API_CONTAINER: DurableObjectNamespace<AxeCloudApiContainer>;
+  AXECLOUD_STAGING_TOKEN?: string;
   [name: string]: unknown;
 };
 
@@ -38,7 +39,13 @@ export default {
       return Response.json({ status: "ok", service: "axecloud-api-container-worker" });
     }
 
+    const stagingToken = env.AXECLOUD_STAGING_TOKEN;
+    if (!stagingToken || request.headers.get("x-axecloud-staging-token") !== stagingToken) {
+      return new Response("Not Found", { status: 404 });
+    }
+
     const headers = new Headers(request.headers);
+    headers.delete("x-axecloud-staging-token");
     headers.set("x-forwarded-host", url.host);
     headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
     headers.set("x-axecloud-runtime", "cloudflare-container");
