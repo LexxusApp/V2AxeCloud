@@ -1,14 +1,19 @@
 const crawlerPattern = /googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider/i;
 const missingAssetPattern = /\.(?:png|jpe?g|gif|webp|ico|svg|woff2?|css|js|json|xml|txt|webmanifest|pdf|mp4|webm)$/i;
+const linkHeader = '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </openapi.json>; rel="service-desc", </llms.txt>; rel="describedby", </auth.md>; rel="help"';
 
 function redirect(location, status) {
   return new Response(null, { status, headers: { Location: location, 'Cache-Control': 'no-store' } });
 }
 
 function finish(response, preview) {
-  if (!preview) return response;
   const headers = new Headers(response.headers);
-  headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  if (response.status === 200 && (headers.get('Content-Type') || '').includes('text/html')) {
+    headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    headers.set('Vary', 'Accept');
+    headers.set('Link', linkHeader);
+  }
+  if (preview) headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -51,6 +56,9 @@ export default {
       const headers = new Headers(selected.headers);
       headers.set('Content-Type', 'text/markdown; charset=utf-8');
       headers.set('Vary', 'Accept');
+      headers.set('Cache-Control', 'public, max-age=300');
+      headers.set('Content-Signal', 'search=yes, ai-input=yes, ai-train=no');
+      headers.set('Link', linkHeader);
       return respond(new Response(selected.body, { status: selected.status, headers }));
     }
 
