@@ -25,9 +25,12 @@ async function loadPublicConfig() {
 }
 
 function runLandingBuild(config) {
-  const command = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const child = spawn(command, ['run', 'build:landing'], {
+  const npmCli = process.env.npm_execpath;
+  const command = npmCli ? process.execPath : process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const args = npmCli ? [npmCli, 'run', 'build:landing'] : ['run', 'build:landing'];
+  const child = spawn(command, args, {
     stdio: 'inherit',
+    shell: !npmCli && process.platform === 'win32',
     env: {
       ...process.env,
       PUBLIC_APP_URL: 'https://axecloud.com.br',
