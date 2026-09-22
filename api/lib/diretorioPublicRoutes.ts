@@ -452,6 +452,30 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     }
   });
 
+  app.get("/api/v1/public/diretorio/export", apiReadRateLimit, async (_req: Request, res: Response) => {
+    try {
+      const payload = await cachedJson<{ generatedAt: string; items: ReturnType<typeof mapRow>[] }>(
+        "export:public",
+        DIR_CACHE_TTL_SEC,
+        async () => {
+          const data = await fetchAllTerreirosRows(sb, TABLE, SELECT);
+          const items = (data || [])
+            .filter((row) => isDiretorioListingPublishable(row))
+            .map((row) => mapRow(row))
+            .filter((row) => row.tipo === "terreiro");
+          return { generatedAt: new Date().toISOString(), items };
+        },
+      );
+
+      res.setHeader("Cache-Control", "public, max-age=60, s-maxage=600");
+      res.setHeader("X-Dir-Cache", "enabled");
+      res.json(payload);
+    } catch (e: unknown) {
+      console.error("[public/diretorio/export]", e);
+      res.status(500).json({ error: "Erro ao exportar o diretorio publico." });
+    }
+  });
+
   app.get("/api/v1/public/diretorio/mapa", apiReadRateLimit, async (_req: Request, res: Response) => {
     try {
       const data = await fetchAllTerreirosRows(
