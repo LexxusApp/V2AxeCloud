@@ -1,13 +1,15 @@
-import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, MapPin, Search } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, Building2, Search, X } from 'lucide-react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditorialLayout';
-import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
-import type { DiretorioBairroGroup } from '../../lib/diretorioPublic';
-import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
-import { applyCustomPageSeo } from '../../lib/seo';
-import { ROUTES } from '../../lib/routes';
 import { DirectoryClaimAcquisitionCta } from '../../components/portal/DirectoryClaimAcquisitionCta';
+import { DiretorioTerreiroCard } from '../../components/portal/DiretorioTerreiroCard';
+import { ROUTES } from '../../lib/routes';
+import { applyCustomPageSeo } from '../../lib/seo';
+import { loadDiretorioCidadeDetail, type DiretorioCidadeSnapshot } from '../../lib/diretorioSnapshot';
+
+const RESULT_PAGE_SIZE = 18;
+const ALL_BAIRROS = 'todos';
 
 function parseCityRoute(): { estado: string; cidade: string } {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
@@ -26,92 +28,38 @@ function normalizeSearch(value: string) {
     .trim();
 }
 
-function BairroTerreirosCarousel({ bairro }: { bairro: DiretorioBairroGroup }) {
-  const listRef = useRef<HTMLUListElement>(null);
-
-  const scroll = (direction: -1 | 1) => {
-    listRef.current?.scrollBy({ left: direction * 420, behavior: 'smooth' });
-  };
-
+function DirectoryLoadingState() {
   return (
-    <motion.section
-      key={bairro.slug}
-      className="relative mt-8 overflow-hidden rounded-[1.5rem] border border-[#d8cdbb]/65 bg-[#fffaf1]/88 p-5 shadow-[0_22px_60px_rgba(63,49,27,.09)] backdrop-blur-sm sm:p-7"
-      initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <motion.div
-        className="pointer-events-none absolute inset-x-8 top-0 h-20 rounded-full bg-[#ffc107]/18 blur-3xl"
-        animate={{ x: [-28, 28, -28], opacity: [0.45, 0.75, 0.45] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        aria-hidden
-      />
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Casas neste bairro</p>
-          <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.03em] text-[#1b1813]">{bairro.nome}</h2>
-          <p className="mt-1 text-sm text-[#1b1813]/58">
-            {bairro.total} terreiro{bairro.total === 1 ? '' : 's'} neste bairro
-          </p>
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Carregando terreiros">
+      {Array.from({ length: 6 }, (_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden rounded-2xl border border-[#ddd4c5] bg-white"
+          aria-hidden
+        >
+          <div className="aspect-[16/10] animate-pulse bg-[#e8e0d3]" />
+          <div className="space-y-3 p-5">
+            <div className="h-5 w-3/4 animate-pulse rounded bg-[#e8e0d3]" />
+            <div className="h-4 w-full animate-pulse rounded bg-[#f0eadf]" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-[#f0eadf]" />
+            <div className="mt-5 h-11 animate-pulse rounded-xl bg-[#e8e0d3]" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <motion.button
-            type="button"
-            onClick={() => scroll(-1)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[#e8dfd0] bg-white text-[#1b1813] shadow-sm transition hover:border-[#ffc107]/60 hover:text-[#a87400]"
-            aria-label={`Voltar carrossel de ${bairro.nome}`}
-            whileHover={{ scale: 1.08, x: -2 }}
-            whileTap={{ scale: 0.94 }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </motion.button>
-          <motion.button
-            type="button"
-            onClick={() => scroll(1)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[#e8dfd0] bg-white text-[#1b1813] shadow-sm transition hover:border-[#ffc107]/60 hover:text-[#a87400]"
-            aria-label={`Avançar carrossel de ${bairro.nome}`}
-            whileHover={{ scale: 1.08, x: 2 }}
-            whileTap={{ scale: 0.94 }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </motion.button>
-        </div>
-      </div>
-
-      <motion.ul
-        ref={listRef}
-        className="relative flex snap-x gap-4 overflow-x-auto scroll-smooth pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        initial={{ x: 28, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {bairro.items.map((terreiro, index) => (
-          <motion.div
-            key={terreiro.slug}
-            className="w-[min(82vw,20rem)] flex-none snap-start"
-            initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            whileHover={{ y: -8, scale: 1.018 }}
-            whileTap={{ scale: 0.985 }}
-            transition={{ delay: Math.min(index * 0.035, 0.24), duration: 0.5 }}
-          >
-            <DiretorioTerreiroCard terreiro={terreiro} />
-          </motion.div>
-        ))}
-      </motion.ul>
-    </motion.section>
+      ))}
+    </div>
   );
 }
 
 export default function DiretorioCityPage() {
   const { estado, cidade: cidadeSlug } = parseCityRoute();
+  const reduceMotion = useReducedMotion();
   const [cidade, setCidade] = useState<DiretorioCidadeSnapshot | null>(null);
-  const [selectedBairroSlug, setSelectedBairroSlug] = useState<string | null>(null);
-  const [bairroQuery, setBairroQuery] = useState('');
-  const [visibleBairroCount, setVisibleBairroCount] = useState(48);
+  const [selectedBairroSlug, setSelectedBairroSlug] = useState(ALL_BAIRROS);
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,7 +83,7 @@ export default function DiretorioCityPage() {
         const uf = snapshotCity.estado || estado.toUpperCase();
         applyCustomPageSeo({
           title: `Terreiros em ${snapshotCity.cidade} - ${uf} | AxéCloud`,
-          description: `Escolha um bairro para ver terreiros mapeados em ${snapshotCity.cidade}, ${uf}.`,
+          description: `Encontre terreiros e casas de axé em ${snapshotCity.cidade}, ${uf}. Pesquise por nome, bairro ou endereço e acesse o perfil da casa.`,
           canonicalPath: `/terreiros/${estado.toLowerCase()}/${cidadeSlug}`,
         });
       } catch (e) {
@@ -151,158 +99,302 @@ export default function DiretorioCityPage() {
     };
   }, [cidadeSlug, estado]);
 
-  const bairros = cidade?.bairros || [];
+  useEffect(() => {
+    setSelectedBairroSlug(ALL_BAIRROS);
+    setQuery('');
+    setVisibleCount(RESULT_PAGE_SIZE);
+  }, [cidadeSlug, estado]);
 
-  const filteredBairros = useMemo(() => {
-    const term = normalizeSearch(bairroQuery);
-    if (!term) return bairros;
-    return bairros.filter((bairro) => normalizeSearch(bairro.nome).includes(term));
-  }, [bairroQuery, bairros]);
+  useEffect(() => {
+    setVisibleCount(RESULT_PAGE_SIZE);
+  }, [deferredQuery, selectedBairroSlug]);
+
+  const bairros = cidade?.bairros || [];
+  const bairroOptions = useMemo(
+    () => bairros.filter((bairro) => bairro.slug !== ALL_BAIRROS),
+    [bairros],
+  );
+
+  const allTerreiros = useMemo(() => {
+    const seen = new Set<string>();
+    const items = bairros.flatMap((bairro) => bairro.items);
+    return items.filter((terreiro) => {
+      if (seen.has(terreiro.slug)) return false;
+      seen.add(terreiro.slug);
+      return true;
+    });
+  }, [bairros]);
 
   const selectedBairro = useMemo(
     () => bairros.find((bairro) => bairro.slug === selectedBairroSlug) || null,
     [bairros, selectedBairroSlug],
   );
 
-  const visibleBairros = filteredBairros.slice(0, visibleBairroCount);
-  const hiddenBairros = filteredBairros.length - visibleBairros.length;
+  const filteredTerreiros = useMemo(() => {
+    const base = selectedBairroSlug === ALL_BAIRROS || !selectedBairro
+      ? allTerreiros
+      : selectedBairro.items;
+    const term = normalizeSearch(deferredQuery);
+    if (!term) return base;
+    return base.filter((terreiro) =>
+      [terreiro.nome, terreiro.bairro, terreiro.endereco]
+        .filter(Boolean)
+        .some((value) => normalizeSearch(String(value)).includes(term)),
+    );
+  }, [allTerreiros, deferredQuery, selectedBairro, selectedBairroSlug]);
 
-  useEffect(() => {
-    setSelectedBairroSlug(null);
-    setBairroQuery('');
-    setVisibleBairroCount(48);
-  }, [cidadeSlug, estado]);
+  const visibleTerreiros = filteredTerreiros.slice(0, visibleCount);
+  const remainingResults = Math.max(filteredTerreiros.length - visibleTerreiros.length, 0);
+  const cityName = cidade?.cidade || cidadeSlug.replace(/-/g, ' ');
+  const stateName = cidade?.estado || estado.toUpperCase();
+  const totalTerreiros = cidade?.totalTerreiros || allTerreiros.length;
+  const bairroLabel = selectedBairroSlug === ALL_BAIRROS ? 'toda a cidade' : selectedBairro?.nome || 'toda a cidade';
 
-  useEffect(() => {
-    setVisibleBairroCount(bairroQuery.trim() ? 96 : 48);
-  }, [bairroQuery]);
+  const clearFilters = () => {
+    setQuery('');
+    setSelectedBairroSlug(ALL_BAIRROS);
+  };
 
   return (
     <MatrizEditorialLayout>
-      <main className="relative z-[1] mx-auto w-full max-w-7xl px-5 pb-24 pt-32 md:px-8 md:pt-36">
-        <a href={ROUTES.terreiros} className="inline-flex items-center gap-2 text-sm font-black text-[#1b1813]/62 transition hover:text-[#a87400]">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para cidades
+      <main className="relative z-[1] mx-auto w-full max-w-7xl px-4 pb-24 pt-28 sm:px-6 md:px-8 md:pt-32">
+        <a
+          href={ROUTES.terreiros}
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-extrabold text-[#243127]/65 transition-colors duration-200 hover:text-[#8d6800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] focus-visible:ring-offset-4"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Voltar ao mapa de terreiros
         </a>
 
-        <header className="relative mt-6 overflow-hidden rounded-[1.75rem] bg-[#0d140f] px-6 py-8 text-[#f7f1e5] shadow-[0_30px_90px_rgba(20,25,18,.2)] sm:px-9 sm:py-10 lg:px-12 lg:py-12">
-          <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(229,174,18,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.14)_1px,transparent_1px)] [background-size:76px_76px]" aria-hidden />
-          <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border border-[#e5ae12]/25" aria-hidden />
-          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end lg:gap-x-12">
-            <div>
-              <p className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#e5ae12]">
-                <MapPin className="h-3.5 w-3.5" aria-hidden /> Cidade selecionada
-              </p>
-              <h1 className="mt-5 max-w-4xl text-balance text-[clamp(2.6rem,7vw,5.4rem)] font-extrabold leading-[0.92] tracking-[-0.055em]">
-                Terreiros em<br />
-                <span className="text-[#e5ae12]">{cidade?.cidade || cidadeSlug.replace(/-/g, ' ')}</span>
-                {cidade?.estado ? <span className="text-white/42">, {cidade.estado}</span> : null}
+        <motion.header
+          className="relative mt-4 overflow-hidden rounded-2xl bg-[#102117] text-[#f8f4e9] shadow-[0_24px_70px_rgba(16,33,23,.18)]"
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.42, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="px-6 pb-8 pt-8 sm:px-9 sm:pb-10 sm:pt-10 lg:px-12 lg:py-12">
+              <h1 className="max-w-4xl text-balance text-[clamp(2.5rem,6.5vw,5rem)] font-extrabold leading-[0.96] tracking-[-0.04em]">
+                Terreiros em <span className="text-[#efba18]">{cityName}</span>
+                <span className="text-white/45">, {stateName}</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-7 text-white/62">
-                Encontre casas de axé por bairro, com endereço, telefone e rota para chegar. Dados públicos organizados pelo AxéCloud.
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[#f8f4e9]/72 sm:text-lg">
+                Pesquise por nome, bairro ou endereço e encontre uma casa de axé perto de você.
               </p>
             </div>
-            <div className="rounded-[1.35rem] border border-white/12 bg-white/[0.055] p-5 backdrop-blur-sm">
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-2xl font-extrabold text-[#e5ae12]">{bairros.length}</p>
-                  <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-white/42">Bairros</p>
+
+            <div className="flex border-t border-white/10 lg:border-l lg:border-t-0">
+              <div className="grid w-full grid-cols-2 lg:grid-cols-1">
+                <div className="flex min-h-28 flex-col justify-center border-r border-white/10 px-6 lg:border-b lg:border-r-0">
+                  <strong className="text-3xl font-extrabold tabular-nums text-[#efba18]">{totalTerreiros}</strong>
+                  <span className="mt-1 text-sm font-semibold text-white/58">casas mapeadas</span>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-2xl font-extrabold text-[#e5ae12]">{cidade?.totalTerreiros || 0}</p>
-                  <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-white/42">Terreiros</p>
+                <div className="flex min-h-28 flex-col justify-center px-6">
+                  <strong className="text-2xl font-extrabold text-[#efba18]">
+                    {bairroOptions.length > 0 ? bairroOptions.length : 'Busca direta'}
+                  </strong>
+                  <span className="mt-1 text-sm font-semibold text-white/58">
+                    {bairroOptions.length > 0
+                      ? bairroOptions.length === 1 ? 'bairro identificado' : 'bairros identificados'
+                      : 'por nome e endereço'}
+                  </span>
                 </div>
               </div>
-              <label className="relative mt-5 block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" />
-                <input
-                  value={bairroQuery}
-                  onChange={(e) => setBairroQuery(e.target.value)}
-                  placeholder="Buscar bairro..."
-                  className="w-full rounded-full border border-white/14 bg-white/[0.08] py-3 pl-11 pr-4 text-sm font-semibold text-white outline-none transition placeholder:text-white/35 focus:border-[#e5ae12]/60 focus:ring-4 focus:ring-[#e5ae12]/10"
-                />
-              </label>
             </div>
           </div>
-        </header>
 
-        <div className="mt-8">
-          <DirectoryClaimAcquisitionCta cidade={cidade?.cidade || cidadeSlug.replace(/-/g, ' ')} total={cidade?.totalTerreiros || 0} />
-        </div>
-
-        <section className="mt-12" aria-labelledby="bairros-heading">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Explore a cidade</p>
-              <h2 id="bairros-heading" className="mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[#181a16]">Escolha um bairro</h2>
+          <div className="border-t border-white/10 bg-black/15 p-4 sm:p-6 lg:px-12">
+            <label htmlFor="city-directory-search" className="sr-only">
+              Buscar terreiro, bairro ou endereço
+            </label>
+            <div className="relative max-w-3xl">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#243127]/46" aria-hidden />
+              <input
+                id="city-directory-search"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Nome, bairro ou endereço"
+                className="min-h-14 w-full rounded-xl border border-transparent bg-[#fffdf7] py-3 pl-12 pr-12 text-base font-semibold text-[#172019] shadow-[0_8px_28px_rgba(0,0,0,.14)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-medium placeholder:text-[#243127]/48 focus:border-[#efba18] focus:ring-4 focus:ring-[#efba18]/18"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg text-[#243127]/58 transition-colors duration-200 hover:bg-[#243127]/8 hover:text-[#172019] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400]"
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              ) : null}
             </div>
-            <p className="text-sm font-semibold text-[#181a16]/50">Selecione para ver as casas mapeadas.</p>
           </div>
-          {loading ? (
-            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-[#e8dfd0] bg-white/70 py-20 shadow-sm">
-              <Loader2 className="h-8 w-8 animate-spin text-[#a87400]" />
-              <p className="mt-4 text-sm font-bold text-[#1b1813]/55">Carregando bairros...</p>
-            </div>
-          ) : error ? (
-            <div className="rounded-[2rem] border border-red-200 bg-white/80 p-8 text-center text-red-600">
-              {error}
-            </div>
-          ) : filteredBairros.length === 0 ? (
-            <div className="rounded-[2rem] border border-dashed border-[#e8dfd0] bg-white/70 p-10 text-center">
-              <p className="font-bold text-[#1b1813]/70">Nenhum bairro encontrado.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {visibleBairros.map((bairro, index) => (
-                  <motion.button
-                    key={bairro.slug}
-                    type="button"
-                    onClick={() => setSelectedBairroSlug(bairro.slug)}
-                    className={`rounded-[1.25rem] border p-4 text-left shadow-sm transition ${
-                      selectedBairroSlug === bairro.slug
-                        ? 'border-[#ffc107] bg-[#ffc107]/18 shadow-[#ffc107]/15'
-                        : 'border-[#e8dfd0] bg-white/78 hover:-translate-y-0.5 hover:border-[#ffc107]/55'
-                    }`}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -5, scale: 1.015 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ delay: Math.min(index * 0.02, 0.24), duration: 0.42 }}
-                  >
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#a87400]">
-                      <MapPin className="h-3.5 w-3.5" aria-hidden />
-                      Bairro
-                    </span>
-                    <span className="mt-2 block text-lg font-black text-[#1b1813]">{bairro.nome}</span>
-                    <span className="mt-1 block text-sm font-semibold text-[#1b1813]/55">
-                      {bairro.total} terreiro{bairro.total === 1 ? '' : 's'}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
+        </motion.header>
 
-              {hiddenBairros > 0 ? (
-                <div className="mt-5 text-center">
+        <div className="mt-10 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start xl:gap-12">
+          <aside
+            className="lg:sticky lg:top-28"
+            aria-labelledby={bairroOptions.length > 0 ? 'city-neighborhoods-title' : undefined}
+            aria-label={bairroOptions.length > 0 ? undefined : 'Reivindicação do perfil da casa'}
+          >
+            {bairroOptions.length > 0 ? (
+              <div className="rounded-2xl border border-[#dcd2c2] bg-[#fffdf7] p-4 shadow-[0_12px_36px_rgba(61,48,25,.07)] sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 id="city-neighborhoods-title" className="text-xl font-extrabold tracking-[-0.025em] text-[#172019]">
+                    Filtrar por bairro
+                  </h2>
+                  {selectedBairroSlug !== ALL_BAIRROS ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBairroSlug(ALL_BAIRROS)}
+                      className="text-xs font-extrabold text-[#8d6800] underline decoration-[#c99400]/45 underline-offset-4 hover:text-[#604700] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400]"
+                    >
+                      Limpar
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-2 lg:max-h-[28rem] lg:flex-col lg:overflow-y-auto lg:pr-1" role="group" aria-label="Bairros de terreiros">
                   <button
                     type="button"
-                    onClick={() => setVisibleBairroCount((count) => count + 48)}
-                    className="inline-flex items-center justify-center rounded-full border border-[#e8dfd0] bg-white px-5 py-2.5 text-sm font-black text-[#1b1813] transition hover:border-[#ffc107]/60 hover:text-[#a87400]"
+                    onClick={() => setSelectedBairroSlug(ALL_BAIRROS)}
+                    className={`flex min-h-12 shrink-0 items-center justify-between gap-4 rounded-xl px-4 py-3 text-left text-sm font-extrabold transition-[background-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] ${
+                      selectedBairroSlug === ALL_BAIRROS
+                        ? 'bg-[#172019] text-white'
+                        : 'bg-[#f3ede2] text-[#243127] hover:bg-[#eae1d3] active:scale-[0.98]'
+                    }`}
+                    aria-pressed={selectedBairroSlug === ALL_BAIRROS}
                   >
-                    Mostrar mais bairros ({hiddenBairros})
+                    <span>Todos</span>
+                    <span className={selectedBairroSlug === ALL_BAIRROS ? 'text-[#efba18]' : 'text-[#243127]/52'}>{totalTerreiros}</span>
+                  </button>
+
+                  {bairroOptions.map((bairro) => (
+                    <button
+                      key={bairro.slug}
+                      type="button"
+                      onClick={() => setSelectedBairroSlug(bairro.slug)}
+                      className={`flex min-h-12 shrink-0 items-center justify-between gap-4 rounded-xl px-4 py-3 text-left text-sm font-bold transition-[background-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] ${
+                        selectedBairroSlug === bairro.slug
+                          ? 'bg-[#172019] text-white'
+                          : 'bg-transparent text-[#243127]/78 hover:bg-[#f3ede2] active:scale-[0.98]'
+                      }`}
+                      aria-pressed={selectedBairroSlug === bairro.slug}
+                    >
+                      <span>{bairro.nome}</span>
+                      <span className={selectedBairroSlug === bairro.slug ? 'text-[#efba18]' : 'text-[#243127]/42'}>{bairro.total}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className={`${bairroOptions.length > 0 ? 'mt-5' : ''} hidden lg:block`}>
+              <DirectoryClaimAcquisitionCta cidade={cityName} total={totalTerreiros} />
+            </div>
+          </aside>
+
+          <section id="city-results" aria-labelledby="city-results-title">
+            <div className="flex flex-col gap-3 border-b border-[#dcd2c2] pb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 id="city-results-title" className="text-3xl font-extrabold tracking-[-0.035em] text-[#172019] sm:text-4xl">
+                  Casas em {bairroLabel}
+                </h2>
+                <p className="mt-2 text-sm font-semibold text-[#243127]/58" aria-live="polite">
+                  {loading ? 'Carregando casas...' : `${filteredTerreiros.length} ${filteredTerreiros.length === 1 ? 'terreiro encontrado' : 'terreiros encontrados'}`}
+                </p>
+              </div>
+              {(query || selectedBairroSlug !== ALL_BAIRROS) ? (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl border border-[#d0c4b1] bg-[#fffdf7] px-4 text-sm font-extrabold text-[#243127] transition-[background-color,border-color,transform] duration-200 hover:border-[#c99400] hover:bg-[#fff8df] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400]"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                  Limpar filtros
+                </button>
+              ) : null}
+            </div>
+
+            <div className="mt-6">
+              {loading ? (
+                <DirectoryLoadingState />
+              ) : error ? (
+                <div className="rounded-2xl border border-[#d99c92] bg-[#fff8f6] p-8 text-center">
+                  <p className="font-bold text-[#8b2d20]">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="mt-5 min-h-11 rounded-xl bg-[#172019] px-5 text-sm font-extrabold text-white transition-transform duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] focus-visible:ring-offset-4"
+                  >
+                    Tentar novamente
                   </button>
                 </div>
-              ) : null}
-
-              {selectedBairro ? (
-                <BairroTerreirosCarousel key={selectedBairro.slug} bairro={selectedBairro} />
-              ) : (
-                <div className="mt-8 rounded-[2rem] border border-dashed border-[#e8dfd0] bg-white/68 p-8 text-center">
-                  <p className="font-bold text-[#1b1813]/62">Selecione um bairro acima para ver os terreiros.</p>
+              ) : filteredTerreiros.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#cfc4b4] bg-[#fffdf7] px-6 py-14 text-center">
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#f0e8da] text-[#8d6800]">
+                    <Search className="h-5 w-5" aria-hidden />
+                  </span>
+                  <h3 className="mt-5 text-xl font-extrabold text-[#172019]">Nenhuma casa encontrada</h3>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#243127]/62">
+                    Tente outro nome ou endereço, ou volte a visualizar todos os bairros da cidade.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-5 min-h-11 rounded-xl bg-[#efba18] px-5 text-sm font-extrabold text-[#172019] transition-[background-color,transform] duration-150 hover:bg-[#ffd04b] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8d6800] focus-visible:ring-offset-4"
+                  >
+                    Ver todos os terreiros
+                  </button>
                 </div>
+              ) : (
+                <motion.div
+                  key={selectedBairroSlug}
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {visibleTerreiros.map((terreiro) => (
+                      <DiretorioTerreiroCard key={terreiro.slug} terreiro={terreiro} />
+                    ))}
+                  </ul>
+
+                  {remainingResults > 0 ? (
+                    <div className="mt-8 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount((count) => count + RESULT_PAGE_SIZE)}
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#172019] bg-[#172019] px-6 text-sm font-extrabold text-white transition-[background-color,color,transform] duration-200 hover:bg-[#efba18] hover:text-[#172019] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] focus-visible:ring-offset-4"
+                      >
+                        Mostrar mais {Math.min(remainingResults, RESULT_PAGE_SIZE)} casas
+                      </button>
+                    </div>
+                  ) : null}
+                </motion.div>
               )}
-            </>
-          )}
+            </div>
+          </section>
+        </div>
+
+        <div className="mt-10 lg:hidden">
+          <DirectoryClaimAcquisitionCta cidade={cityName} total={totalTerreiros} />
+        </div>
+
+        <section className="mt-14 border-t border-[#dcd2c2] pt-8" aria-labelledby="city-directory-help-title">
+          <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#172019] text-[#efba18]">
+              <Building2 className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <h2 id="city-directory-help-title" className="text-2xl font-extrabold tracking-[-0.025em] text-[#172019]">
+                Antes de visitar uma casa
+              </h2>
+              <p className="mt-2 max-w-3xl text-base leading-7 text-[#243127]/68">
+                Consulte o perfil, confirme horários e atendimentos diretamente com o terreiro. O diretório organiza dados públicos para facilitar o primeiro contato com respeito.
+              </p>
+            </div>
+          </div>
         </section>
       </main>
     </MatrizEditorialLayout>
