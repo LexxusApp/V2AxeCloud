@@ -6,10 +6,13 @@ function redirect(location, status) {
   return new Response(null, { status, headers: { Location: location, 'Cache-Control': 'no-store' } });
 }
 
-function finish(response, preview) {
+function finish(response, preview, path) {
   const headers = new Headers(response.headers);
   if (response.status === 200 && (headers.get('Content-Type') || '').includes('text/html')) {
-    headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const directoryDetail = /^\/terreiro\/[^/]+\/?$/.test(path) || /^\/terreiros\/[A-Za-z]{2}\/[^/]+\/?$/.test(path);
+    headers.set('Cache-Control', directoryDetail
+      ? 'public, max-age=300, stale-while-revalidate=86400, stale-if-error=604800'
+      : 'no-store, no-cache, must-revalidate');
     headers.set('Vary', 'Accept');
     headers.set('Link', linkHeader);
   }
@@ -22,7 +25,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const preview = env.PREVIEW_MODE === 'true';
-    const respond = (response) => finish(response, preview);
+    const respond = (response) => finish(response, preview, path);
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return respond(new Response('Method Not Allowed', { status: 405 }));

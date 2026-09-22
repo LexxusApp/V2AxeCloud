@@ -12,6 +12,8 @@
     "run_worker_first": true
   },
   "routes": [
-    { "pattern": "axecloud.com.br/conteudo*", "zone_name": "axecloud.com.br" }
+    { "pattern": "axecloud.com.br/conteudo*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/terreiros*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/terreiro*", "zone_name": "axecloud.com.br" }
   ]
 }
