@@ -31,6 +31,9 @@ export default {
     if (path === '/sitemap.xm') return respond(redirect('/sitemap.xml', 301));
     if (/^\/recursos\/(?:%3c|<)a/i.test(path)) return respond(redirect('/recursos', 301));
     if (path === '/terreiro') return respond(redirect('/terreiros', 302));
+    if (path === '/terreiro/associacao-araxa' || path === '/terreiro/templo-de-umbanda-pai-jobim-da-guine') {
+      return respond(new Response('Perfil removido por solicitação do responsável.', { status: 410 }));
+    }
     if (path === '/conteudo' && url.searchParams.get('aba') === 'glossario') {
       return respond(redirect('/conteudo/glossario', 301));
     }
@@ -74,10 +77,10 @@ export default {
     }
 
     const fallback = /^\/senhas\/[^/]+\/?$/.test(path)
-      ? '/senhas/index.html'
+      ? '/senhas'
       : /^\/evento\/[^/]+\/?$/.test(path)
-        ? '/evento/index.html'
-        : '/__react_shell.html';
+        ? '/evento'
+        : '/__react_shell';
     return respond(await asset(fallback));
   },
 };
