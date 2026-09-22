@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Building2, Search, X } from 'lucide-react';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditorialLayout';
 import { DirectoryClaimAcquisitionCta } from '../../components/portal/DirectoryClaimAcquisitionCta';
@@ -30,15 +30,15 @@ function normalizeSearch(value: string) {
 
 function DirectoryLoadingState() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Carregando terreiros">
+    <div className="grid gap-4 sm:grid-cols-2 min-[900px]:!grid-cols-3" aria-label="Carregando terreiros">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
           className="overflow-hidden rounded-2xl border border-[#ddd4c5] bg-white"
           aria-hidden
         >
-          <div className="aspect-[16/10] animate-pulse bg-[#e8e0d3]" />
-          <div className="space-y-3 p-5">
+          <div className="aspect-[16/9] animate-pulse bg-[#e8e0d3]" />
+          <div className="space-y-3 p-4">
             <div className="h-5 w-3/4 animate-pulse rounded bg-[#e8e0d3]" />
             <div className="h-4 w-full animate-pulse rounded bg-[#f0eadf]" />
             <div className="h-4 w-2/3 animate-pulse rounded bg-[#f0eadf]" />
@@ -231,9 +231,9 @@ export default function DiretorioCityPage() {
           </div>
         </motion.header>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start xl:gap-12">
+        <div className="mt-10 grid gap-8 xl:grid-cols-[16rem_minmax(0,1fr)] xl:items-start xl:gap-12">
           <aside
-            className="lg:sticky lg:top-28"
+            className="xl:sticky xl:top-28"
             aria-labelledby={bairroOptions.length > 0 ? 'city-neighborhoods-title' : undefined}
             aria-label={bairroOptions.length > 0 ? undefined : 'Reivindicação do perfil da casa'}
           >
@@ -254,7 +254,7 @@ export default function DiretorioCityPage() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-2 lg:max-h-[28rem] lg:flex-col lg:overflow-y-auto lg:pr-1" role="group" aria-label="Bairros de terreiros">
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-2 xl:max-h-[28rem] xl:flex-col xl:overflow-y-auto xl:pr-1" role="group" aria-label="Bairros de terreiros">
                   <button
                     type="button"
                     onClick={() => setSelectedBairroSlug(ALL_BAIRROS)}
@@ -289,7 +289,7 @@ export default function DiretorioCityPage() {
               </div>
             ) : null}
 
-            <div className={`${bairroOptions.length > 0 ? 'mt-5' : ''} hidden lg:block`}>
+            <div className={`${bairroOptions.length > 0 ? 'mt-5' : ''} hidden xl:block`}>
               <DirectoryClaimAcquisitionCta cidade={cityName} total={totalTerreiros} />
             </div>
           </aside>
@@ -354,7 +354,7 @@ export default function DiretorioCityPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
                 >
-                  <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  <ul className="grid gap-4 sm:grid-cols-2 min-[900px]:!grid-cols-3">
                     {visibleTerreiros.map((terreiro) => (
                       <DiretorioTerreiroCard key={terreiro.slug} terreiro={terreiro} />
                     ))}
@@ -377,25 +377,6 @@ export default function DiretorioCityPage() {
           </section>
         </div>
 
-        <div className="mt-10 lg:hidden">
-          <DirectoryClaimAcquisitionCta cidade={cityName} total={totalTerreiros} />
-        </div>
-
-        <section className="mt-14 border-t border-[#dcd2c2] pt-8" aria-labelledby="city-directory-help-title">
-          <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#172019] text-[#efba18]">
-              <Building2 className="h-5 w-5" aria-hidden />
-            </span>
-            <div>
-              <h2 id="city-directory-help-title" className="text-2xl font-extrabold tracking-[-0.025em] text-[#172019]">
-                Antes de visitar uma casa
-              </h2>
-              <p className="mt-2 max-w-3xl text-base leading-7 text-[#243127]/68">
-                Consulte o perfil, confirme horários e atendimentos diretamente com o terreiro. O diretório organiza dados públicos para facilitar o primeiro contato com respeito.
-              </p>
-            </div>
-          </div>
-        </section>
       </main>
     </MatrizEditorialLayout>
   );

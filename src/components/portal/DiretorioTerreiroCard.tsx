@@ -22,7 +22,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
         landingMockupCardClass,
       )}
     >
-      <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8]">
+      <div className="relative aspect-[16/9] shrink-0 overflow-hidden bg-gradient-to-br from-[#f3ebe0] to-[#e8dcc8]">
         {mostrarFoto ? (
           <img
             src={terreiro.fotoUrl!}
@@ -49,7 +49,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
         ) : null}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+      <div className="flex min-h-0 flex-1 flex-col p-4">
         {terreiro.tipo === 'loja' ? (
           <span className="mb-2 inline-flex w-fit rounded-full bg-[#1b1813]/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b1813]/55">
             Loja
@@ -59,7 +59,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
           {terreiro.nome}
         </h3>
 
-        <div className="mt-3 flex flex-1 flex-col gap-2.5">
+        <div className="mt-2.5 flex flex-1 flex-col gap-2">
           {terreiro.endereco ? (
             <p className="line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-[#1b1813]/68">
               <span className="flex items-start gap-1.5">
@@ -90,7 +90,7 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
         <a
           href={href}
           onClick={() => trackDiretorioProfileClick(terreiro.slug)}
-          className="mt-4 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#FFC107] px-4 py-2.5 text-sm font-black text-[#1b1813] transition group-hover:bg-[#ffcd38] hover:bg-[#e6ac00] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8d6800] focus-visible:ring-offset-4 motion-reduce:transition-none"
+          className="mt-3 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#FFC107] px-4 py-2.5 text-sm font-black text-[#1b1813] transition group-hover:bg-[#ffcd38] hover:bg-[#e6ac00] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8d6800] focus-visible:ring-offset-4 motion-reduce:transition-none"
         >
           {terreiro.verificada ? 'Abrir perfil verificado' : 'Conhecer esta casa'}
         </a>
