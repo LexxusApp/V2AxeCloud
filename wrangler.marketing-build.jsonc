@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axecloud-marketing-content",
+  "main": "cloudflare/marketing-preview-worker.js",
+  "compatibility_date": "2026-09-22",
+  "workers_dev": false,
+  "vars": { "PREVIEW_MODE": "false" },
+  "assets": {
+    "directory": "./landing-dist",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash",
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "axecloud.com.br/conteudo*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/terreiros*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/terreiro*", "zone_name": "axecloud.com.br" }
+  ]
+}
