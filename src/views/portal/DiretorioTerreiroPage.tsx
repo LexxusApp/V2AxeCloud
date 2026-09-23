@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -50,18 +50,48 @@ function slugFromPath(): string {
 
 function InfoRow({ icon: Icon, label, children }: { icon: typeof MapPin; label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-3 border-t border-[#cfc1ab]/60 py-5 first:border-t-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-7 sm:py-6">
-      <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.17em] text-[#8a6200]">
+    <div className="grid gap-2.5 border-t border-[#cfc1ab]/60 py-4 first:border-t-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-6 sm:py-5">
+      <p className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#8a6200]">
         <Icon className="h-4 w-4 shrink-0" aria-hidden />
         {label}
       </p>
-      <div className="min-w-0 text-base font-semibold leading-relaxed text-[#1b1813]/80 sm:text-lg">{children}</div>
+      <div className="min-w-0 text-sm font-semibold leading-relaxed text-[#1b1813]/80 sm:text-base">{children}</div>
     </div>
   );
 }
 
 function WhatsAppIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return <img src="/whatsapp.svg" alt="" aria-hidden className={`${className} shrink-0`} />;
+  const gradId = `wa_${useId().replace(/:/g, '')}`;
+  return (
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className={`${className} shrink-0`}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M16 31C23.732 31 30 24.732 30 17C30 9.26801 23.732 3 16 3C8.26801 3 2 9.26801 2 17C2 19.5109 2.661 21.8674 3.81847 23.905L2 31L9.31486 29.3038C11.3014 30.3854 13.5789 31 16 31ZM16 28.8462C22.5425 28.8462 27.8462 23.5425 27.8462 17C27.8462 10.4576 22.5425 5.15385 16 5.15385C9.45755 5.15385 4.15385 10.4576 4.15385 17C4.15385 19.5261 4.9445 21.8675 6.29184 23.7902L5.23077 27.7692L9.27993 26.7569C11.1894 28.0746 13.5046 28.8462 16 28.8462Z"
+        fill="#BFC8D0"
+      />
+      <path
+        d="M28 16C28 22.6274 22.6274 28 16 28C13.4722 28 11.1269 27.2184 9.19266 25.8837L5.09091 26.9091L6.16576 22.8784C4.80092 20.9307 4 18.5589 4 16C4 9.37258 9.37258 4 16 4C22.6274 4 28 9.37258 28 16Z"
+        fill={`url(#${gradId})`}
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M16 30C23.732 30 30 23.732 30 16C30 8.26801 23.732 2 16 2C8.26801 2 2 8.26801 2 16C2 18.5109 2.661 20.8674 3.81847 22.905L2 30L9.31486 28.3038C11.3014 29.3854 13.5789 30 16 30ZM16 27.8462C22.5425 27.8462 27.8462 22.5425 27.8462 16C27.8462 9.45755 22.5425 4.15385 16 4.15385C9.45755 4.15385 4.15385 9.45755 4.15385 16C4.15385 18.5261 4.9445 20.8675 6.29184 22.7902L5.23077 26.7692L9.27993 25.7569C11.1894 27.0746 13.5046 27.8462 16 27.8462Z"
+        fill="white"
+      />
+      <path
+        d="M12.5 9.49989C12.1672 8.83131 11.6565 8.8905 11.1407 8.8905C10.2188 8.8905 8.78125 9.99478 8.78125 12.05C8.78125 13.7343 9.52345 15.578 12.0244 18.3361C14.438 20.9979 17.6094 22.3748 20.2422 22.3279C22.875 22.2811 23.4167 20.0154 23.4167 19.2503C23.4167 18.9112 23.2062 18.742 23.0613 18.696C22.1641 18.2654 20.5093 17.4631 20.1328 17.3124C19.7563 17.1617 19.5597 17.3656 19.4375 17.4765C19.0961 17.8018 18.4193 18.7608 18.1875 18.9765C17.9558 19.1922 17.6103 19.083 17.4665 19.0015C16.9374 18.7892 15.5029 18.1511 14.3595 17.0426C12.9453 15.6718 12.8623 15.2001 12.5959 14.7803C12.3828 14.4444 12.5392 14.2384 12.6172 14.1483C12.9219 13.7968 13.3426 13.254 13.5313 12.9843C13.7199 12.7145 13.5702 12.305 13.4803 12.05C13.0938 10.953 12.7663 10.0347 12.5 9.49989Z"
+        fill="white"
+      />
+      <defs>
+        <linearGradient id={gradId} x1="26.5" y1="7" x2="4" y2="28" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5BD066" />
+          <stop offset="1" stopColor="#27B43E" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
 }
 
 function TerreiroPortrait({ fotoUrl, nome }: { fotoUrl: string | null; nome: string }) {
@@ -69,7 +99,7 @@ function TerreiroPortrait({ fotoUrl, nome }: { fotoUrl: string | null; nome: str
   const mostrarFoto = Boolean(fotoUrl) && !fotoFalhou;
 
   return (
-    <div className="relative min-h-[22rem] overflow-hidden bg-[#102117] lg:min-h-full">
+    <div className="relative min-h-[18rem] overflow-hidden bg-[#102117] min-[900px]:min-h-full">
       {mostrarFoto ? (
         <img
           src={fotoUrl!}
@@ -109,16 +139,16 @@ function GiraScheduleSection({ horarios }: { horarios: GiraScheduleItem[] }) {
     : '';
 
   return (
-    <section className="mt-8 overflow-hidden rounded-[2rem] border border-[#2b382f]/30 bg-[#102117] px-6 py-7 text-white shadow-[0_24px_70px_rgba(22,36,27,.16)] sm:px-9 sm:py-9" aria-labelledby="gira-schedule-heading">
-      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+    <section className="mt-5 overflow-hidden rounded-2xl border border-[#2b382f]/30 bg-[#102117] px-5 py-6 text-white shadow-[0_18px_48px_rgba(22,36,27,.14)] sm:px-7 sm:py-7" aria-labelledby="gira-schedule-heading">
+      <div className="grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_18rem] min-[900px]:items-start">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">
             <CalendarDays className="h-4 w-4" /> Horários habituais
           </p>
-          <h2 id="gira-schedule-heading" className="mt-2 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">Dias de gira.</h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <h2 id="gira-schedule-heading" className="mt-1.5 text-2xl font-extrabold tracking-[-0.04em] sm:text-3xl">Dias de gira.</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {horarios.map((horario, index) => (
-              <div key={`${horario.diaSemana}-${horario.horario}-${index}`} className="rounded-2xl border border-white/12 bg-white/[.055] p-4">
+              <div key={`${horario.diaSemana}-${horario.horario}-${index}`} className="rounded-xl border border-white/12 bg-white/[.055] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-sm text-white">{GIRA_WEEKDAYS[horario.diaSemana]}</strong>
                   <span className="rounded-full bg-[#e5ae12] px-3 py-1 text-xs font-black text-[#11150f]">{formatGiraTime(horario.horario)}</span>
@@ -131,7 +161,7 @@ function GiraScheduleSection({ horarios }: { horarios: GiraScheduleItem[] }) {
         </div>
 
         {next ? (
-          <aside className="rounded-2xl border border-[#e5ae12]/35 bg-[#e5ae12]/10 p-5">
+          <aside className="rounded-xl border border-[#e5ae12]/35 bg-[#e5ae12]/10 p-5">
             <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Próxima gira prevista</p>
             <p className="mt-2 text-xl font-extrabold leading-tight text-white">{nextWhen}</p>
             {next.item.titulo ? <p className="mt-2 text-sm font-semibold text-white/70">{next.item.titulo}</p> : null}
@@ -154,7 +184,7 @@ function formatValorServico(min: number | null, max: number | null): string {
 
 function ServicoCard({ servico }: { servico: TerreiroServico }) {
   return (
-    <div className="flex flex-col justify-between gap-3 rounded-2xl border border-[#d0c4ae] bg-[#fffaf1] p-5 shadow-sm">
+    <div className="flex flex-col justify-between gap-3 rounded-xl border border-[#d0c4ae] bg-[#fffaf1] p-4 shadow-sm">
       <div>
         <div className="flex items-start gap-3">
           <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#172018] text-[#e5ae12]">
@@ -206,7 +236,7 @@ function ServicosSection({
     if (!verificada) return null;
     return (
       <section
-        className="mt-8 overflow-hidden rounded-[2rem] border border-[#c9b990] bg-[#eadfbf]/60 px-6 py-8 sm:px-9 sm:py-10"
+        className="mt-5 overflow-hidden rounded-2xl border border-[#c9b990] bg-[#eadfbf]/60 px-5 py-6 sm:px-7 sm:py-7"
         aria-labelledby="servicos-cta-title"
       >
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -218,7 +248,7 @@ function ServicosSection({
               <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#8a6200]">
                 Atendimentos espirituais
               </p>
-              <h2 id="servicos-cta-title" className="mt-1.5 text-2xl font-extrabold tracking-[-0.035em] text-[#1b1813]">
+              <h2 id="servicos-cta-title" className="mt-1.5 text-xl font-extrabold tracking-[-0.03em] text-[#1b1813] sm:text-2xl">
                 Esta casa ainda não publicou seus atendimentos.
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[#1b1813]/60">
@@ -233,7 +263,7 @@ function ServicosSection({
 
   return (
     <section
-      className="mt-8 overflow-hidden rounded-[2rem] border border-[#d8cbb5] bg-[#fffaf1]/92 px-6 py-7 shadow-[0_22px_65px_rgba(63,49,27,.08)] sm:px-9 sm:py-9"
+      className="mt-5 overflow-hidden rounded-2xl border border-[#d8cbb5] bg-[#fffaf1]/92 px-5 py-6 shadow-[0_18px_48px_rgba(63,49,27,.07)] sm:px-7 sm:py-7"
       aria-labelledby="servicos-heading"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -241,7 +271,7 @@ function ServicosSection({
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">
             Atendimentos espirituais
           </p>
-          <h2 id="servicos-heading" className="mt-1 text-3xl font-extrabold tracking-[-0.045em] text-[#1b1813] sm:text-4xl">
+          <h2 id="servicos-heading" className="mt-1 text-2xl font-extrabold tracking-[-0.04em] text-[#1b1813] sm:text-3xl">
             O que esta casa oferece.
           </h2>
         </div>
@@ -259,30 +289,12 @@ function ServicosSection({
         ) : null}
       </div>
 
-      <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {servicos.map((s) => (
           <ServicoCard key={s.id} servico={s} />
         ))}
       </div>
 
-      {waHref ? (
-        <div className="mt-8 rounded-2xl border border-[#d8cbb5] bg-[#f8efe1] p-5 text-center sm:p-6">
-          <p className="text-sm font-semibold text-[#1b1813]/70">
-            Para agendar, tirar dúvidas ou saber a disponibilidade, entre em contato diretamente pelo WhatsApp.
-          </p>
-          <a
-            href={waHref}
-            onClick={() => trackDiretorioWhatsappClick(terreiroSlug)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#e5ae12] px-7 py-3.5 text-sm font-extrabold text-[#11150f] shadow-[0_14px_35px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e]"
-          >
-            <WhatsAppIcon className="h-5 w-5" />
-            Falar com a casa pelo WhatsApp
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-          </a>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -364,8 +376,8 @@ export default function DiretorioTerreiroPage() {
 
   return (
     <MatrizEditorialLayout>
-      <main className="relative z-[1] mx-auto w-full max-w-[1260px] px-4 pb-24 pt-28 sm:px-7 sm:pt-32 lg:px-8">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 px-1">
+      <main className="relative z-[1] mx-auto w-full max-w-[1180px] px-3 pb-20 pt-28 sm:px-6 sm:pt-28 lg:px-7">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
           <a href={mapHref} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#1b1813]/58 transition hover:text-[#8a6200]">
             <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
             Voltar para o Mapa
@@ -373,9 +385,9 @@ export default function DiretorioTerreiroPage() {
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#1b1813]/38">Informações públicas · confira antes de visitar</p>
         </div>
 
-        <article className="overflow-hidden rounded-[2rem] border border-[#2a342c]/25 bg-[#f8efe1] shadow-[0_35px_110px_rgba(45,37,25,.18)]">
-          <div className="grid lg:min-h-[37rem] lg:grid-cols-[1.08fr_.92fr]">
-            <header className="relative flex flex-col justify-between overflow-hidden px-6 py-9 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+        <article className="overflow-hidden rounded-2xl border border-[#2a342c]/25 bg-[#f8efe1] shadow-[0_24px_72px_rgba(45,37,25,.14)]">
+          <div className="grid min-[900px]:min-h-[24.5rem] min-[900px]:grid-cols-[1.08fr_.92fr]">
+            <header className="relative flex flex-col justify-between overflow-hidden px-5 py-7 sm:px-8 sm:py-8">
               <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(83,65,34,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(83,65,34,.08)_1px,transparent_1px)] [background-size:72px_72px]" aria-hidden />
               <div className="pointer-events-none absolute -bottom-40 -left-40 h-[32rem] w-[32rem] rounded-full border border-[#b98500]/15" aria-hidden />
               <div className="relative">
@@ -383,23 +395,23 @@ export default function DiretorioTerreiroPage() {
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.23em] text-[#8a6200]">Diretório AxéCloud · casa mapeada</p>
                   {terreiro.verificada ? <VerifiedBadge /> : null}
                 </div>
-                <h1 className="mt-6 max-w-[15ch] text-balance text-[clamp(2.5rem,6.3vw,5.4rem)] font-extrabold leading-[0.94] tracking-[-0.065em] text-[#181a16]">{terreiro.nome}</h1>
-                {localidade ? <p className="mt-7 flex items-center gap-2.5 text-sm font-bold text-[#1b1813]/58 sm:text-base"><MapPin className="h-4 w-4 shrink-0 text-[#a67300]" aria-hidden />{localidade}</p> : null}
+                <h1 className="mt-3.5 max-w-[16ch] text-balance text-[clamp(2.05rem,4.1vw,3.35rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-[#181a16]">{terreiro.nome}</h1>
+                {localidade ? <p className="mt-5 flex items-center gap-2 text-sm font-bold text-[#1b1813]/58"><MapPin className="h-4 w-4 shrink-0 text-[#a67300]" aria-hidden />{localidade}</p> : null}
                 {!terreiro.verificada ? (
                   <a
                     href="#reivindicar-perfil"
                     onClick={() => void trackConversionEvent('directory_action', { ctaId: 'directory-profile-hero-claim', ctaLabel: 'Sou responsável por esta casa', metadata: { slug: terreiro.slug } })}
-                    className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#b98500]/35 bg-[#fffaf1]/75 px-4 py-2.5 text-xs font-extrabold text-[#6f5000] transition hover:border-[#b98500] hover:bg-[#fffaf1]"
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl border border-[#b98500]/35 bg-[#fffaf1]/75 px-4 py-2.5 text-xs font-extrabold text-[#6f5000] transition hover:border-[#b98500] hover:bg-[#fffaf1]"
                   >
                     <BadgeCheck className="h-4 w-4" /> Sou responsável por esta casa <ArrowRight className="h-3.5 w-3.5" />
                   </a>
                 ) : null}
               </div>
 
-              <div className="relative mt-14 grid grid-cols-2 border-y border-[#cbbb9f]/65 sm:grid-cols-3">
-                <div className="py-4 pr-4 sm:py-5"><span className="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#1b1813]/38">Tipo de página</span><strong className="mt-1.5 block text-sm text-[#1b1813]">Perfil público</strong></div>
-                <div className="border-l border-[#cbbb9f]/65 px-4 py-4 sm:py-5"><span className="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#1b1813]/38">Localidade</span><strong className="mt-1.5 block truncate text-sm text-[#1b1813]">{terreiro.estado || 'Brasil'}</strong></div>
-                <div className="col-span-2 border-t border-[#cbbb9f]/65 py-4 sm:col-span-1 sm:border-l sm:border-t-0 sm:px-4 sm:py-5"><span className="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#1b1813]/38">Situação</span><strong className="mt-1.5 flex items-center gap-1.5 text-sm text-[#1b1813]"><span className="h-2 w-2 rounded-full bg-emerald-600" />Listado</strong></div>
+              <div className="relative mt-7 grid grid-cols-2 border-t border-[#cbbb9f]/65 sm:grid-cols-3">
+                <div className="pt-3.5 pr-3"><span className="block text-[8px] font-extrabold uppercase tracking-[0.16em] text-[#1b1813]/38">Tipo de página</span><strong className="mt-1 block text-xs text-[#1b1813] sm:text-sm">Perfil público</strong></div>
+                <div className="border-l border-[#cbbb9f]/65 px-3 pt-3.5"><span className="block text-[8px] font-extrabold uppercase tracking-[0.16em] text-[#1b1813]/38">Localidade</span><strong className="mt-1 block truncate text-xs text-[#1b1813] sm:text-sm">{terreiro.estado || 'Brasil'}</strong></div>
+                <div className="col-span-2 mt-3 border-t border-[#cbbb9f]/65 pt-3.5 sm:col-span-1 sm:mt-0 sm:border-l sm:border-t-0 sm:px-3"><span className="block text-[8px] font-extrabold uppercase tracking-[0.16em] text-[#1b1813]/38">Situação</span><strong className="mt-1 flex items-center gap-1.5 text-xs text-[#1b1813] sm:text-sm"><span className="h-2 w-2 rounded-full bg-emerald-600" />Listado</strong></div>
               </div>
             </header>
 
@@ -407,14 +419,14 @@ export default function DiretorioTerreiroPage() {
           </div>
         </article>
 
-        <section className="mt-8 rounded-[2rem] border border-[#d8cbb5] bg-[#fffaf1]/92 px-6 py-7 shadow-[0_22px_65px_rgba(63,49,27,.08)] sm:px-9 sm:py-9" aria-labelledby="visit-heading">
+        <section className="mt-5 rounded-2xl border border-[#d8cbb5] bg-[#fffaf1]/92 px-5 py-6 shadow-[0_18px_48px_rgba(63,49,27,.07)] sm:px-7 sm:py-7" aria-labelledby="visit-heading">
             <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9b6a00]">Dados disponíveis</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-              <h2 id="visit-heading" className="text-3xl font-extrabold tracking-[-0.045em] text-[#1b1813] sm:text-4xl">Planeje sua visita.</h2>
+              <h2 id="visit-heading" className="text-2xl font-extrabold tracking-[-0.04em] text-[#1b1813] sm:text-3xl">Planeje sua visita.</h2>
               <span className="text-xs font-semibold text-[#1b1813]/42">Confirme diretamente com a casa</span>
             </div>
 
-            <div className="mt-6 border-y border-[#cfc1ab]/60">
+            <div className="mt-5 border-y border-[#cfc1ab]/60">
               <InfoRow icon={MapPin} label="Endereço">{terreiro.endereco || <span className="font-medium text-[#1b1813]/45">Endereço não informado</span>}</InfoRow>
               <InfoRow icon={MessageCircle} label="WhatsApp">
                 {whatsappHref ? (
@@ -423,14 +435,15 @@ export default function DiretorioTerreiroPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Conversar com ${terreiro.nome} pelo WhatsApp`}
+                    title="Conversar pelo WhatsApp"
                     onClick={() => {
                       trackDiretorioWhatsappClick(terreiro.slug);
                       void trackConversionEvent('cta_click', { ctaId: 'directory-profile-whatsapp', ctaLabel: 'Conversar pelo WhatsApp', metadata: { slug: terreiro.slug } });
                     }}
-                    className="inline-flex min-h-12 items-center gap-3 rounded-full bg-[#168a47] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(22,138,71,.24)] transition hover:-translate-y-0.5 hover:bg-[#11753b] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25d366]/30"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:-translate-y-0.5 hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25d366]/35"
                   >
-                    <WhatsAppIcon className="h-6 w-6" />
-                    Conversar pelo WhatsApp
+                    <WhatsAppIcon className="h-11 w-11 drop-shadow-[0_8px_18px_rgba(39,180,62,.3)]" />
+                    <span className="sr-only">Conversar pelo WhatsApp</span>
                   </a>
                 ) : <span className="font-medium text-[#1b1813]/45">WhatsApp não disponível</span>}
               </InfoRow>
@@ -456,7 +469,7 @@ export default function DiretorioTerreiroPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-map', ctaLabel: 'Traçar rota no Google Maps', metadata: { slug: terreiro.slug } })}
-                className="mt-7 inline-flex w-full items-center justify-between gap-3 rounded-xl bg-[#e5ae12] px-5 py-4 text-sm font-extrabold text-[#11150f] shadow-[0_14px_35px_rgba(181,132,0,.18)] transition hover:bg-[#efb91e] sm:w-auto sm:min-w-72"
+                className="mt-5 inline-flex w-full items-center justify-between gap-3 rounded-xl bg-[#e5ae12] px-5 py-3.5 text-sm font-extrabold text-[#11150f] shadow-[0_12px_28px_rgba(181,132,0,.16)] transition hover:bg-[#efb91e] sm:w-auto sm:min-w-72"
               >
                 <span className="flex items-center gap-2"><Compass className="h-4 w-4" aria-hidden />Traçar rota no Google Maps</span><ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
               </a>
@@ -473,44 +486,29 @@ export default function DiretorioTerreiroPage() {
           verificada={terreiro.verificada}
         />
 
-        <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-[#c9b990] bg-[#eadfbf]/70 px-6 py-8 sm:px-9 sm:py-10" aria-labelledby="management-title">
-          <div className="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full border border-[#9b6a00]/15" aria-hidden />
-          <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex max-w-3xl gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#172018] text-[#e5ae12]"><ShieldCheck className="h-5 w-5" aria-hidden /></span>
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#8a6200]">Para dirigentes e zeladores</p>
-                <h2 id="management-title" className="mt-1.5 text-2xl font-extrabold tracking-[-0.035em] text-[#1b1813] sm:text-3xl">Organize a casa sem expor o fundamento.</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#1b1813]/62">Financeiro, filhos de santo, giras, comunicação e memória reunidos em um ambiente privado.</p>
-              </div>
-            </div>
-            <a href="/conteudo/gestao-de-terreiros" onClick={() => void trackConversionEvent('cta_click', { ctaId: 'directory-profile-management', ctaLabel: 'Conhecer o AxéCloud' })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#172018] px-6 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#28372d]">Conhecer o AxéCloud<ArrowRight className="h-4 w-4 text-[#e5ae12]" aria-hidden /></a>
-          </div>
-        </section>
-
-        <section id="reivindicar-perfil" className="relative mt-8 scroll-mt-28 overflow-hidden rounded-[2rem] border border-[#2b251d] bg-[#0c120e] p-6 text-white shadow-[0_25px_70px_rgba(20,25,18,.18)] sm:p-9" aria-labelledby="claim-house-title">
+        <section id="reivindicar-perfil" className="relative mt-5 scroll-mt-28 overflow-hidden rounded-2xl border border-[#2b251d] bg-[#0c120e] p-5 text-white shadow-[0_20px_56px_rgba(20,25,18,.16)] sm:p-7" aria-labelledby="claim-house-title">
           <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(229,174,18,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.14)_1px,transparent_1px)] [background-size:64px_64px]" aria-hidden />
-          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-center">
+          <div className="relative grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_20rem] min-[900px]:items-center">
             <div>
               <div className="flex gap-4">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e5ae12] text-[#1b1813]"><BadgeCheck className="h-5 w-5" aria-hidden /></span>
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#e5ae12]">Sistema AxéCloud de gestão de terreiros</p>
-                  <h2 id="claim-house-title" className="mt-1 max-w-2xl text-2xl font-extrabold tracking-[-0.035em] sm:text-3xl">Transforme este perfil na voz oficial da sua casa.</h2>
+                  <h2 id="claim-house-title" className="mt-1 max-w-2xl text-xl font-extrabold tracking-[-0.03em] sm:text-2xl">Transforme este perfil na voz oficial da sua casa.</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/62">
                     A reivindicação entra no sistema AxéCloud de gestão de terreiros: você assume os dados públicos e passa a administrar a casa no painel — financeiro, filhos de santo, giras e comunicação.
                     Teste {TRIAL_DAYS} dias grátis; depois, {PLAN_PRICE_STANDARD_LABEL}.
                   </p>
                 </div>
               </div>
-              <ul className="mt-6 grid gap-3 text-xs font-bold text-white/72 sm:grid-cols-3">
+              <ul className="mt-5 grid gap-3 text-xs font-bold text-white/72 sm:grid-cols-3">
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Gestão da casa no AxéCloud</li>
                 <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[#e5ae12]" /> {TRIAL_DAYS} dias de teste grátis</li>
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Depois {PLAN_PRICE_STANDARD_LABEL}</li>
               </ul>
               <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">{TRIAL_DAYS} dias grátis · depois {PLAN_PRICE_STANDARD_LABEL}</p>
             </div>
-            <div className="flex flex-col gap-3 lg:items-stretch">
+            <div className="flex flex-col gap-3 min-[900px]:items-stretch">
             {terreiro.verificada ? (
               <>
                 <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-6 py-3.5 text-sm font-extrabold text-emerald-200"><BadgeCheck className="h-4 w-4" aria-hidden />Perfil verificado</span>
