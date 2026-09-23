@@ -5,35 +5,33 @@ import { isMissingOrUnknownTable, isRememberedMissingTable } from "./adminConsol
 import { loadPlansCatalog } from "./plansCatalog.js";
 import { getFounderApplicationStats } from "./founderProgramAdmin.js";
 import { fetchAdminActivityStats } from "./adminActivityStats.js";
+import { fetchLoggedAppUsageStats } from "./loggedAppUsage.js";
 import { isSubscriptionExpired } from "./subscriptionAccess.js";
 
 const SHADOW_FILHO_EMAIL = /(^f_[a-f0-9-]{8,}@|@axecloud\.internal$)/i;
-const ACCESS_HEARTBEATS = "(access.session.activity,session.activity)";
 
 function isShadowFilhoEmail(email?: string | null) {
   return typeof email === "string" && SHADOW_FILHO_EMAIL.test(email);
 }
 
 export async function handleAdminOverview(sb: SupabaseClient) {
-  const since = new Date();
-  since.setDate(since.getDate() - 7);
-  const sinceIso = since.toISOString();
-
   const leadersPromise = sb.from("perfil_lider").select("id, email").is("deleted_at", null);
   const filhosCountPromise = sb.from("filhos_de_santo").select("id", { count: "exact", head: true });
   const subsPromise = sb.from("subscriptions").select("id, plan, status");
-  const accessPromise = isRememberedMissingTable("access_logs")
-    ? Promise.resolve({ count: 0, error: null, skipped: true as const })
-    : sb
-        .from("access_logs")
-        .select("id", { count: "estimated", head: true })
-        .gte("created_at", sinceIso)
-        .not("event_type", "in", ACCESS_HEARTBEATS);
   const founderPromise = getFounderApplicationStats(sb).catch(() => ({
     available: false,
     pending: 0,
     total: 0,
     remainingSlots: 20,
+  }));
+  const loggedUsagePromise = fetchLoggedAppUsageStats(sb).catch(() => ({
+    available: false,
+    uniqueUsersCurrentMonth: 0,
+    eventsCurrentMonth: 0,
+    loginsCurrentMonth: 0,
+    entriesCurrentMonth: 0,
+    uniqueUsersToday: 0,
+    eventsToday: 0,
   }));
 
   const leadersRes = await leadersPromise;
@@ -47,12 +45,12 @@ export async function handleAdminOverview(sb: SupabaseClient) {
       ? sb.from("filhos_de_santo").select("user_id").in("user_id", leaderIds)
       : Promise.resolve({ data: [] as { user_id?: string | null }[], error: null });
 
-  const [filhosCountRes, subsRes, accessRes, founderStats, childLeadersRes] = await Promise.all([
+  const [filhosCountRes, subsRes, founderStats, childLeadersRes, loggedUsage] = await Promise.all([
     filhosCountPromise,
     subsPromise,
-    accessPromise,
     founderPromise,
     childLeadersPromise,
+    loggedUsagePromise,
   ]);
 
   if (filhosCountRes.error) throw filhosCountRes.error;
@@ -85,25 +83,23 @@ export async function handleAdminOverview(sb: SupabaseClient) {
     realSubscriptionsCount++;
   }
 
-  let accessLast7d = 0;
-  let accessLogsAvailable = true;
-  if ("skipped" in accessRes && accessRes.skipped) {
-    accessLogsAvailable = false;
-  } else if (accessRes.error && isMissingOrUnknownTable(accessRes.error, "access_logs")) {
-    accessLogsAvailable = false;
-  } else if (accessRes.error) {
-    throw accessRes.error;
-  } else {
-    accessLast7d = accessRes.count ?? 0;
-  }
-
   return {
     leadersCount: realLeaderIdSet.size,
     filhosCount: filhosCountRes.count ?? 0,
     subscriptionsCount: realSubscriptionsCount,
     planHistogram,
-    accessLogsAvailable,
-    accessEventsLast7Days: accessLast7d,
+    accessLogsAvailable: loggedUsage.available,
+    /** @deprecated use loggedAppUsage — mantido para compat (agora = eventos do mês) */
+    accessEventsLast7Days: loggedUsage.eventsCurrentMonth,
+    loggedAppUsage: {
+      available: loggedUsage.available,
+      uniqueUsersCurrentMonth: loggedUsage.uniqueUsersCurrentMonth,
+      eventsCurrentMonth: loggedUsage.eventsCurrentMonth,
+      loginsCurrentMonth: loggedUsage.loginsCurrentMonth,
+      entriesCurrentMonth: loggedUsage.entriesCurrentMonth,
+      uniqueUsersToday: loggedUsage.uniqueUsersToday,
+      eventsToday: loggedUsage.eventsToday,
+    },
     founderApplications: {
       available: founderStats.available,
       pending: founderStats.pending,
@@ -379,6 +375,8 @@ export async function handleAdminAuditLogs(sb: SupabaseClient, query: URLSearchP
     "auth.login_failed",
     "auth.register_completed",
     "wa.dados_acesso",
+    "wa.boas_vindas_zelador",
+    "wa.falha_acesso_membro_zelador",
     "wa.convite_evento",
     "wa.aviso_gira",
     "wa.cobranca_mensalidade",

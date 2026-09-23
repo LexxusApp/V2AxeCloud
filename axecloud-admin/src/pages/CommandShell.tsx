@@ -39,6 +39,15 @@ type Overview = {
   planHistogram: Record<string, number>;
   accessLogsAvailable: boolean;
   accessEventsLast7Days: number;
+  loggedAppUsage?: {
+    available: boolean;
+    uniqueUsersCurrentMonth: number;
+    eventsCurrentMonth: number;
+    loginsCurrentMonth: number;
+    entriesCurrentMonth: number;
+    uniqueUsersToday: number;
+    eventsToday: number;
+  };
   founderApplications?: {
     available: boolean;
     pending: number;

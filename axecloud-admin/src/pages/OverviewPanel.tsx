@@ -35,6 +35,15 @@ type Overview = {
   planHistogram: Record<string, number>;
   accessLogsAvailable: boolean;
   accessEventsLast7Days: number;
+  loggedAppUsage?: {
+    available: boolean;
+    uniqueUsersCurrentMonth: number;
+    eventsCurrentMonth: number;
+    loginsCurrentMonth: number;
+    entriesCurrentMonth: number;
+    uniqueUsersToday: number;
+    eventsToday: number;
+  };
   founderApplications?: {
     available: boolean;
     pending: number;
@@ -491,15 +500,22 @@ export function OverviewPanel({
           }
         />
         <CompactMetric
-          label="Uso logado (7d)"
+          label="Uso logado (mês)"
           value={
             statLoading
               ? "…"
-              : overview?.accessLogsAvailable === false
+              : overview?.accessLogsAvailable === false && !overview?.loggedAppUsage?.available
                 ? "N/D"
-                : formatStatNumber(overview?.accessEventsLast7Days)
+                : formatStatNumber(
+                    overview?.loggedAppUsage?.uniqueUsersCurrentMonth ??
+                      overview?.accessEventsLast7Days
+                  )
           }
-          sub={activity?.totalEvents30d ? `${activity.totalEvents30d} eventos (30d)` : "sessões e logins"}
+          sub={
+            overview?.loggedAppUsage?.available
+              ? `${formatStatNumber(overview.loggedAppUsage.eventsCurrentMonth)} logins/entradas · hoje ${formatStatNumber(overview.loggedAppUsage.uniqueUsersToday)}`
+              : "zelador e filho (login ou entrada)"
+          }
         />
         <CompactMetric
           label="Programa Fundador"

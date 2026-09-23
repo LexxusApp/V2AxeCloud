@@ -36,6 +36,7 @@ test("painel usa o mês civil atual e oferece menu Visitantes", () => {
 
   assert.match(overview, /label="Visitantes \(mês\)"/);
   assert.match(overview, /publicSiteVisitorsCurrentMonth/);
+  assert.match(overview, /label="Uso logado \(mês\)"/);
   assert.match(layout, /id: "visitors", label: "Visitantes"/);
   assert.match(shell, /tab === "visitors"/);
   assert.match(panel, /Visitantes por mês/);

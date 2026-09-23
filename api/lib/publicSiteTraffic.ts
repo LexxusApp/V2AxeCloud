@@ -182,6 +182,55 @@ function buildTopPages(
   }));
 }
 
+const VISITOR_PAGE = 1000;
+
+/** PostgREST limita a 1000 linhas por request — pagina até esgotar. */
+async function fetchAllVisitDates(
+  sb: SupabaseClient,
+  sinceDate: string
+): Promise<{ visit_date?: string }[]> {
+  const rows: { visit_date?: string }[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await sb
+      .from("public_site_visitors")
+      .select("visit_date")
+      .gte("visit_date", sinceDate)
+      .order("visit_date", { ascending: true })
+      .range(offset, offset + VISITOR_PAGE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < VISITOR_PAGE) break;
+    offset += VISITOR_PAGE;
+    if (offset > 500_000) break;
+  }
+  return rows;
+}
+
+async function fetchAllPageViewRows(
+  sb: SupabaseClient,
+  monthStart: string
+): Promise<{ path_bucket?: string | null; visitor_id?: string | null }[]> {
+  const rows: { path_bucket?: string | null; visitor_id?: string | null }[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await sb
+      .from("public_site_page_views")
+      .select("path_bucket, visitor_id")
+      .gte("visit_date", monthStart)
+      .order("visit_date", { ascending: true })
+      .range(offset, offset + VISITOR_PAGE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < VISITOR_PAGE) break;
+    offset += VISITOR_PAGE;
+    if (offset > 500_000) break;
+  }
+  return rows;
+}
+
 export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<PublicSiteTrafficStats> {
   const empty: PublicSiteTrafficStats = {
     available: false,
@@ -207,15 +256,7 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
   if (isRememberedMissingTable("public_site_visitors")) return empty;
 
   try {
-    const { data, error } = await sb
-      .from("public_site_visitors")
-      .select("visit_date")
-      .gte("visit_date", sinceDate);
-
-    if (error) {
-      if (isMissingOrUnknownTable(error, "public_site_visitors")) return empty;
-      throw error;
-    }
+    const data = await fetchAllVisitDates(sb, sinceDate);
 
     const dailyVisitors: Record<string, number> = {};
     let visitorsLast30Days = 0;
@@ -223,8 +264,8 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
     let visitorsCurrentMonth = 0;
     let visitorsToday = 0;
 
-    for (const row of data || []) {
-      const d = String((row as { visit_date?: string }).visit_date || "");
+    for (const row of data) {
+      const d = String(row.visit_date || "");
       if (!d) continue;
       visitorsLast30Days++;
       if (d >= since7) visitorsLast7Days++;
@@ -239,16 +280,9 @@ export async function fetchPublicSiteTrafficStats(sb: SupabaseClient): Promise<P
     let pageViewsAvailable = false;
     if (!isRememberedMissingTable("public_site_page_views")) {
       try {
-        const pageRes = await sb
-          .from("public_site_page_views")
-          .select("path_bucket, visitor_id")
-          .gte("visit_date", monthStart);
-        if (pageRes.error) {
-          if (!isMissingOrUnknownTable(pageRes.error, "public_site_page_views")) throw pageRes.error;
-        } else {
-          pageViewsAvailable = true;
-          topPages = buildTopPages(pageRes.data || []);
-        }
+        const pageRows = await fetchAllPageViewRows(sb, monthStart);
+        pageViewsAvailable = true;
+        topPages = buildTopPages(pageRows);
       } catch (pageErr: unknown) {
         if (!isMissingOrUnknownTable(pageErr as { message?: string }, "public_site_page_views")) throw pageErr;
       }
