@@ -29,7 +29,7 @@ type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, whatsapp_atendimento, foto_url, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
+  "id, nome, endereco, telefone, whatsapp_atendimento, foto_url, owner_photo_url, link_maps, instagram_url, descricao_publica, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
 type DirectoryTrafficMetadata = {
@@ -153,6 +153,7 @@ function mapRow(row: Record<string, unknown>) {
         : null,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
     instagramUrl: row.instagram_url ? String(row.instagram_url).trim() : null,
+    descricao: row.descricao_publica ? String(row.descricao_publica).trim() : null,
     horariosGira: normalizeGiraSchedule(row.gira_horarios),
     cidade: cidade || null,
     estado,
@@ -165,6 +166,7 @@ function mapRow(row: Record<string, unknown>) {
     coordinateSource: hasCoords ? String(row.coordinate_source || "google_maps_url") : null,
     verificada: Boolean(row.verified_at),
     gerenciada: Boolean(row.claimed_by_tenant_id),
+    criadaEm: row.created_at ? String(row.created_at) : null,
     indexable: isDiretorioListingIndexable(row),
     perfilUrl: slug ? `/terreiro/${slug}` : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
@@ -560,8 +562,27 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           return res.status(404).json({ error: "Este perfil ainda não possui dados públicos confiáveis." });
         }
 
+        let tradicao: string | null = null;
+        const ownerId = String((data as Record<string, unknown>).claimed_by_tenant_id || "").trim();
+        if (ownerId) {
+          const { data: ownerProfile, error: ownerProfileError } = await sb
+            .from("perfil_lider")
+            .select("tradicao, descricao_publica")
+            .eq("id", ownerId)
+            .is("deleted_at", null)
+            .maybeSingle();
+          if (ownerProfileError) {
+            console.warn("[public/diretorio/terreiro] perfil vinculado:", ownerProfileError.message);
+          } else if (ownerProfile) {
+            tradicao = ownerProfile.tradicao ? String(ownerProfile.tradicao) : null;
+            if (!publicItem.descricao && ownerProfile.descricao_publica) {
+              publicItem.descricao = String(ownerProfile.descricao_publica).trim();
+            }
+          }
+        }
+
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
-        res.json(publicItem);
+        res.json({ ...publicItem, tradicao });
       } catch (e: unknown) {
         console.error("[public/diretorio/terreiro]", e);
         res.status(500).json({ error: "Erro ao carregar terreiro." });

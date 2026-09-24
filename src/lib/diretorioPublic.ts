@@ -11,6 +11,8 @@ export type DiretorioTerreiro = {
   hasWhatsapp?: boolean;
   fotoUrl: string | null;
   linkMaps: string | null;
+  instagramUrl?: string | null;
+  descricao?: string | null;
   cidade: string | null;
   estado: string | null;
   cidadeSlug: string | null;
@@ -18,6 +20,9 @@ export type DiretorioTerreiro = {
   bairroSlug: string | null;
   tipo: DiretorioEstabelecimentoTipo;
   verificada: boolean;
+  gerenciada?: boolean;
+  tradicao?: string | null;
+  criadaEm?: string | null;
   indexable?: boolean;
   perfilUrl: string | null;
   cidadeUrl: string | null;
