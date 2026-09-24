@@ -1575,6 +1575,12 @@ html:has(.landing-v3) body {
   background-color: #fdf8f0;
 }
 
+html:has(.landing-v3--stone),
+html:has(.landing-v3--stone) body,
+.landing-v3.landing-v3--stone {
+  background-color: #f2f3ef;
+}
+
 /* Seções abaixo da dobra: paint sob demanda sem cortar animações ao entrar. */
 .landing-section-cv {
   content-visibility: auto;

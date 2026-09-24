@@ -1,4 +1,25 @@
-export function MatrizPageBackground() {
+type MatrizPageBackgroundProps = {
+  variant?: 'warm' | 'stone';
+};
+
+export function MatrizPageBackground({ variant = 'warm' }: MatrizPageBackgroundProps) {
+  if (variant === 'stone') {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+        <div className="absolute inset-0 bg-[#f2f3ef]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 62% 38% at 14% 12%, rgba(16,33,24,0.055) 0%, transparent 62%), ' +
+              'radial-gradient(ellipse 54% 34% at 88% 82%, rgba(39,73,51,0.04) 0%, transparent 64%), ' +
+              'linear-gradient(180deg, #f6f7f3 0%, #f2f3ef 48%, #ecefea 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"

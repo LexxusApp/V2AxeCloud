@@ -357,11 +357,11 @@ export default function DiretorioTerreiroPage() {
     event.preventDefault(); activateTab(PROFILE_TABS[nextIndex].id);
   };
 
-  if (loading) return <MatrizEditorialLayout showFooter={false}><div className="relative z-[1] grid min-h-dvh place-items-center pt-24">
+  if (loading) return <MatrizEditorialLayout showFooter={false} backgroundVariant="stone"><div className="relative z-[1] grid min-h-dvh place-items-center pt-24">
     <div className="flex flex-col items-center gap-4"><Loader2 className="h-8 w-8 animate-spin text-[#b98500]" /><p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/45">Abrindo o perfil da casa</p></div>
   </div></MatrizEditorialLayout>;
 
-  if (error || !terreiro) return <MatrizEditorialLayout><main className="relative z-[1] mx-auto grid min-h-[72vh] w-full max-w-[1180px] place-items-center px-5 pb-24 pt-36 text-center">
+  if (error || !terreiro) return <MatrizEditorialLayout backgroundVariant="stone"><main className="relative z-[1] mx-auto grid min-h-[72vh] w-full max-w-[1180px] place-items-center px-5 pb-24 pt-36 text-center">
     <div className="max-w-xl rounded-2xl border border-[#d9ccb7] bg-[#fffaf1] p-8 shadow-xl">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9b6a00]">Diretório AxéCloud</p>
       <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#1b1813]">{error || 'Terreiro não encontrado'}</h1>
@@ -391,7 +391,7 @@ export default function DiretorioTerreiroPage() {
     } catch { setShareStatus(''); }
   };
 
-  return <MatrizEditorialLayout>
+  return <MatrizEditorialLayout backgroundVariant="stone">
     <main className="relative z-[1] mx-auto w-full max-w-[1180px] px-2 pb-20 pt-28 sm:px-5 lg:px-0">
       <article className="overflow-hidden rounded-2xl border border-[#d8cdb9] bg-white shadow-[0_22px_65px_rgba(48,39,23,.12)]">
         <header>
