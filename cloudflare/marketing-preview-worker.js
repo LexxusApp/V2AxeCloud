@@ -1,6 +1,7 @@
 const crawlerPattern = /googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider/i;
 const missingAssetPattern = /\.(?:png|jpe?g|gif|webp|ico|svg|woff2?|css|js|json|xml|txt|webmanifest|pdf|mp4|webm)$/i;
 const linkHeader = '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </openapi.json>; rel="service-desc", </llms.txt>; rel="describedby", </auth.md>; rel="help"';
+const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.backblazeb2.com https://s3.us-east-005.backblazeb2.com https://*.s3.us-east-005.backblazeb2.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://*.doubleclick.net https://*.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com.br; frame-src 'self' blob: https://vlaojhfwhqmwudqsumpi.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://www.googletagmanager.com https://*.doubleclick.net; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://*.efi.com.br https://*.gerencianet.com.br; upgrade-insecure-requests";
 
 function redirect(location, status) {
   return new Response(null, { status, headers: { Location: location, 'Cache-Control': 'no-store' } });
@@ -8,6 +9,12 @@ function redirect(location, status) {
 
 function finish(response, preview, path, fallback = false) {
   const headers = new Headers(response.headers);
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'SAMEORIGIN');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(self)');
+  headers.set('Content-Security-Policy', contentSecurityPolicy);
   if (response.status === 200 && (headers.get('Content-Type') || '').includes('text/html')) {
     const directoryDetail = !fallback && (/^\/terreiro\/[^/]+\/?$/.test(path) || /^\/terreiros\/[A-Za-z]{2}\/[^/]+\/?$/.test(path));
     headers.set('Cache-Control', directoryDetail
