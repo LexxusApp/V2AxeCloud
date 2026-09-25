@@ -7,6 +7,19 @@ type AxeCloudBindings = {
   [name: string]: unknown;
 };
 
+const PRODUCTION_HOST = "axecloud.com.br";
+const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
+  "/api/health-check",
+  "/api/public-config",
+  "/api/metrics/public-visit",
+]);
+
+function isProductionPublicRequest(url: URL): boolean {
+  if (url.hostname !== PRODUCTION_HOST) return false;
+  if (PRODUCTION_PUBLIC_EXACT_PATHS.has(url.pathname)) return true;
+  return url.pathname.startsWith("/api/v1/public/") || url.pathname.startsWith("/api/v1/landing/");
+}
+
 function stringBindings(bindings: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(bindings).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
@@ -39,13 +52,18 @@ export default {
       return Response.json({ status: "ok", service: "axecloud-api-container-worker" });
     }
 
-    const stagingToken = env.AXECLOUD_STAGING_TOKEN;
-    if (!stagingToken || request.headers.get("x-axecloud-staging-token") !== stagingToken) {
-      return new Response("Not Found", { status: 404 });
+    if (!isProductionPublicRequest(url)) {
+      const stagingToken = env.AXECLOUD_STAGING_TOKEN;
+      if (!stagingToken || request.headers.get("x-axecloud-staging-token") !== stagingToken) {
+        return new Response("Not Found", { status: 404 });
+      }
     }
 
     const headers = new Headers(request.headers);
     headers.delete("x-axecloud-staging-token");
+    headers.delete("x-axecloud-client-ip");
+    const clientIp = request.headers.get("cf-connecting-ip");
+    if (clientIp) headers.set("x-axecloud-client-ip", clientIp);
     headers.set("x-forwarded-host", url.host);
     headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
     headers.set("x-axecloud-runtime", "cloudflare-container");
