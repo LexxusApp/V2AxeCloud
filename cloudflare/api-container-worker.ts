@@ -28,7 +28,7 @@ function stringBindings(bindings: Record<string, unknown>): Record<string, strin
 
 export class AxeCloudApiContainer extends Container {
   defaultPort = 3000;
-  sleepAfter = "5m";
+  sleepAfter = "10m";
   envVars = stringBindings(runtimeEnv as unknown as Record<string, unknown>);
 
   override onStart() {
@@ -80,5 +80,16 @@ export default {
         { status: 503, headers: { "retry-after": "5" } },
       );
     }
+  },
+  async scheduled(_controller: ScheduledController, env: AxeCloudBindings, ctx: ExecutionContext) {
+    const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
+    ctx.waitUntil(
+      container
+        .fetch(new Request("http://axecloud-container/api/health-check"))
+        .then((response) => {
+          if (!response.ok) console.error("[axecloud-api] aquecimento falhou", response.status);
+        })
+        .catch((error) => console.error("[axecloud-api] aquecimento indisponivel", error)),
+    );
   },
 } satisfies ExportedHandler<AxeCloudBindings>;
