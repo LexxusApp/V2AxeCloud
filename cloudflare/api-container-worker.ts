@@ -12,6 +12,7 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/health-check",
   "/api/public-config",
   "/api/metrics/public-visit",
+  "/api/metrics/conversion-event",
 ]);
 
 function isProductionPublicRequest(url: URL): boolean {
