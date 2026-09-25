@@ -19,6 +19,10 @@
     '/conteudo',
     '/por-que-axecloud',
     '/recursos',
+    '/sistema-de-gestao-para-terreiros',
+    '/financeiro-para-terreiros',
+    '/mensalidades-para-terreiros',
+    '/gestao-de-filhos-de-santo',
   ];
 
   function isMarketingNavigate(url) {
