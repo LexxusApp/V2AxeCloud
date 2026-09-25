@@ -13,8 +13,21 @@
   },
   "routes": [
     { "pattern": "axecloud.com.br/m-assets*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/screenshots*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/conteudo*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/terreiros*", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/terreiro*", "zone_name": "axecloud.com.br" }
+    { "pattern": "axecloud.com.br/terreiro*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/recursos*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/por-que-axecloud*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/sistema-de-gestao-para-terreiros*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/financeiro-para-terreiros*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/mensalidades-para-terreiros*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/gestao-de-filhos-de-santo*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/espaco-do-fiel*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/eventos*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/evento*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/senhas*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/privacidade*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/termos*", "zone_name": "axecloud.com.br" }
   ]
 }
