@@ -1,0 +1,13 @@
+[Unit]
+Description=Restringe a origem AxeCloud aos proxies Cloudflare
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/axecloud/deploy/scripts/vps-cloudflare-origin-lock.sh apply
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
