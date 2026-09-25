@@ -72,7 +72,14 @@ export default {
     const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
 
     try {
-      return await container.fetch(forwarded);
+      const response = await container.fetch(forwarded);
+      const responseHeaders = new Headers(response.headers);
+      responseHeaders.set("x-axecloud-runtime", "cloudflare-container");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
     } catch (error) {
       console.error("[axecloud-api] falha ao encaminhar requisicao", error);
       return Response.json(

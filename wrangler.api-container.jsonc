@@ -7,9 +7,9 @@
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    { "pattern": "axecloud.com.br/api/health-check", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/api/public-config", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/api/metrics/public-visit", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/health-check*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/public-config*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/metrics/public-visit*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/landing/*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/public/*", "zone_name": "axecloud.com.br" }
   ],
