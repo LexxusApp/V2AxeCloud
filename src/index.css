@@ -12544,10 +12544,17 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .command-desktop-bar__profile strong { font-weight: 850; }
 
 .app-v5-identity .dashboard-command {
-  gap: .62rem;
+  gap: 0;
   margin: 0;
   align-content: start;
   padding-bottom: 4.75rem;
+}
+.app-v5-identity .command-desktop-bar {
+  margin: 0;
+  border-bottom: 0;
+}
+.app-v5-identity .command-journey {
+  margin-top: 0;
 }
 
 .app-v5-identity .command-journey {
@@ -13271,6 +13278,7 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-desktop-bar {
     border-bottom: 0;
     background: #07140f;
+    margin-bottom: -1px;
     padding-bottom: .2rem;
   }
   .app-v5-identity .command-journey {
