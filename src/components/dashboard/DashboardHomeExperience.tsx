@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
   Flame,
   Leaf,
   MapPin,
@@ -14,6 +15,7 @@ import {
   Mountain,
   Package,
   Plus,
+  Search,
   Send,
   Settings,
   Sparkles,
@@ -38,6 +40,9 @@ export type DashboardAttentionItem = {
 
 type Props = {
   firstName: string;
+  terreiroName: string;
+  tenantPhoto?: string | null;
+  statusLabel: string;
   setupProgress: number;
   setupComplete: boolean;
   nextEvent: DashboardNextEvent | null;
@@ -99,6 +104,9 @@ function GiraArtwork({ themeId }: { themeId: GiraVisualThemeId }) {
 
 export function DashboardHomeExperience({
   firstName,
+  terreiroName,
+  tenantPhoto,
+  statusLabel,
   setupProgress,
   setupComplete,
   nextEvent,
@@ -121,6 +129,24 @@ export function DashboardHomeExperience({
 
   return (
     <div className="dashboard-command" data-gira-theme={theme.id} data-gira-variant={theme.variant}>
+      <header className="command-desktop-bar" aria-label="Barra da casa">
+        <button type="button" className="command-desktop-bar__house" onClick={() => onNavigate('settings')}>
+          <span>{tenantPhoto ? <img src={tenantPhoto} alt="" /> : terreiroName.charAt(0)}</span>
+          <strong>{terreiroName}</strong>
+          <ChevronDown aria-hidden />
+        </button>
+        <p className="command-desktop-bar__status"><i />{statusLabel}</p>
+        <button type="button" className="command-desktop-bar__search" onClick={() => setQuickOpen(true)}>
+          <Search aria-hidden />
+          <span>Buscar ou criar...</span>
+          <kbd>⌘ K</kbd>
+        </button>
+        <button type="button" className="command-desktop-bar__profile" onClick={() => onNavigate('settings')}>
+          <span>{firstName.charAt(0)}</span>
+          <strong>{firstName}</strong>
+          <ChevronDown aria-hidden />
+        </button>
+      </header>
       <motion.section
         className="command-journey"
         initial={{ opacity: 0, y: 14 }}
@@ -194,6 +220,13 @@ export function DashboardHomeExperience({
 
         <aside className={`command-attention${attentionOpen ? ' is-expanded' : ''}`} aria-label="O que pede sua atenção">
           <div className="command-attention__header"><h2>Pede sua atenção</h2>{attentionItems.length > 2 ? <button type="button" onClick={() => setAttentionOpen((value) => !value)}>{attentionOpen ? 'Recolher' : 'Ver todas'} <ArrowRight aria-hidden /></button> : null}</div>
+          {attentionItems.length ? (
+            <button type="button" className="command-attention__mobile-summary" onClick={() => onNavigate(attentionItems[0].tab)}>
+              <span><AlertCircle aria-hidden /></span>
+              <span><strong>{attentionItems.length} {attentionItems.length === 1 ? 'ação pede' : 'ações pedem'} você</strong><small>Finalize as informações principais.</small></span>
+              <ChevronRight aria-hidden />
+            </button>
+          ) : null}
           {visibleAttention.length ? visibleAttention.map((item, index) => (
             <button key={`${item.label}-${index}`} type="button" onClick={() => onNavigate(item.tab)} className="command-attention__item" data-tone={item.tone || 'gold'}>
               <span>{item.tone === 'danger' ? <AlertCircle /> : item.tone === 'green' ? <CheckCircle2 /> : <MapPin />}</span>
@@ -225,7 +258,7 @@ export function DashboardHomeExperience({
         <div className="command-pulse__title"><span><Activity /></span><div><h2>Pulso da casa</h2><p>Em tempo real</p></div></div>
         <button type="button" onClick={() => onNavigate('children')}><span><Users /></span><strong>{membersCount}</strong><small>na corrente</small></button>
         <button type="button" onClick={() => onNavigate('financial')}><span><Wallet /></span><strong>{currency(cashBalance)}</strong><small>em caixa</small></button>
-        <button type="button" onClick={() => onNavigate('settings')}><span><Send /></span><strong>{whatsappHealthy ? 'OK' : whatsappFailed}</strong><small>{whatsappHealthy ? 'WhatsApp em dia' : 'envios para revisar'}</small></button>
+        <button type="button" onClick={() => onNavigate('settings')}><span><Send /></span><strong>{whatsappHealthy ? '100%' : whatsappFailed}</strong><small>{whatsappHealthy ? 'WhatsApp entregues' : 'envios para revisar'}</small></button>
       </motion.section>
 
       <div className="command-focus-grid">

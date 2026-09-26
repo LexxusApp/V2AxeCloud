@@ -1,4 +1,4 @@
-﻿import {
+import {
   Camera,
   ChevronDown,
   CircleHelp,
@@ -332,6 +332,7 @@ export default function AppTopNav({
   const [desktopHovered, setDesktopHovered] = useState(false);
   const desktopExpanded = desktopPinned || desktopHovered;
   const desktopCompact = !desktopExpanded;
+  const dashboardRail = activeTab === 'dashboard' && desktopCompact;
   const { isInstalled: isStandalonePwa, install } = usePwaInstall();
   const filhoPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFilhoPhoto, setIsUploadingFilhoPhoto] = useState(false);
@@ -371,12 +372,12 @@ export default function AppTopNav({
     localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
     document.documentElement.style.setProperty(
       '--app-sidebar-width',
-      desktopExpanded ? '15rem' : '4.75rem',
+      desktopExpanded ? '15rem' : dashboardRail ? '6.25rem' : '4.75rem',
     );
     return () => {
       document.documentElement.style.removeProperty('--app-sidebar-width');
     };
-  }, [desktopExpanded, desktopPinned]);
+  }, [dashboardRail, desktopExpanded, desktopPinned]);
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -574,7 +575,7 @@ export default function AppTopNav({
         data-expanded={desktopExpanded ? 'true' : 'false'}
         className={cn(
           'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] transition-[width,box-shadow] duration-300 ease-out min-[880px]:flex',
-          desktopCompact ? 'w-[4.75rem]' : 'w-60',
+          desktopCompact ? (dashboardRail ? 'w-[6.25rem]' : 'w-[4.75rem]') : 'w-60',
         )}
       >
         <button
@@ -593,10 +594,11 @@ export default function AppTopNav({
             <button
               type="button"
               onClick={() => setActiveTab('dashboard')}
-              className="group flex w-full items-center justify-center rounded-xl p-0.5 text-left transition-colors hover:bg-white/[0.04]"
+              className={cn('group flex w-full items-center justify-center rounded-xl p-0.5 text-left transition-colors hover:bg-white/[0.04]', dashboardRail && 'flex-col')}
               aria-label="Ir para o início"
             >
               <AxeCloudEmblem className="h-8 w-8" />
+              <span className={cn('mt-1 text-[8px] font-black tracking-[.12em] text-white', !dashboardRail && 'sr-only')}>AXÉCLOUD</span>
             </button>
           ) : (
             <div className="flex items-center">
@@ -662,13 +664,15 @@ export default function AppTopNav({
                     aria-current={active ? 'page' : undefined}
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      'relative grid h-10 w-10 shrink-0 place-items-center rounded-lg border transition-colors',
+                      'relative shrink-0 place-items-center rounded-lg border transition-colors',
+                      dashboardRail ? 'flex h-14 w-full flex-col gap-1' : 'grid h-10 w-10',
                       active
                         ? 'border-primary bg-primary text-[#080A0D]'
                         : 'border-transparent text-[#9AA6B7] hover:border-white/10 hover:bg-white/5 hover:text-white',
                     )}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
+                    <span className={cn('max-w-full truncate text-[8px] font-semibold leading-none', !dashboardRail && 'sr-only')}>{item.label}</span>
                     {badgeForItem(item.id) > 0 ? (
                       <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-[#0B0D11] bg-amber-400" aria-label="Requer atenção" />
                     ) : null}

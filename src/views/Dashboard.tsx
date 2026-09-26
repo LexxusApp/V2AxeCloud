@@ -1067,6 +1067,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
 
       <DashboardHomeExperience
         firstName={firstName}
+        terreiroName={terreiroNome || 'Minha casa'}
+        tenantPhoto={profileSetup?.foto_url || tenantData?.foto_url || null}
+        statusLabel={tenantData?.is_trial ? 'Teste ativo' : 'Casa ativa'}
         setupProgress={setupProgressV5}
         setupComplete={setupComplete}
         nextEvent={nextEvent}

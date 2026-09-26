@@ -25,7 +25,9 @@ export function AppContextPrompts({ userRole, session, permission, pushLoading, 
       {userRole !== 'filho' && activeTab !== 'subscription' ? (
         <SubscriptionDueNotice tenantData={tenantData} onOpen={() => onNavigate('subscription')} />
       ) : null}
-      <ContextualActionBar activeTab={activeTab} userRole={userRole} onNavigate={onNavigate} />
+      {activeTab !== 'dashboard' ? (
+        <ContextualActionBar activeTab={activeTab} userRole={userRole} onNavigate={onNavigate} />
+      ) : null}
     </>
   );
 }

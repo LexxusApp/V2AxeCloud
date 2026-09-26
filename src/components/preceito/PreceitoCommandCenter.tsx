@@ -282,7 +282,7 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
             <button type="button" disabled={loading} onClick={() => active ? void openDetail(active) : openWizard()}>
               {active ? 'Acompanhar preceito' : 'Iniciar preceito'} <ArrowRight aria-hidden />
             </button>
-            {error && !wizardOpen && !detailOpen ? <p className="preceito-command-art__error">{error}</p> : null}
+            {error && !wizardOpen && !detailOpen ? <p className="preceito-command-art__error">Dados temporariamente indisponíveis. Tente novamente em instantes.</p> : null}
           </div>
         </section>
       ) : (
