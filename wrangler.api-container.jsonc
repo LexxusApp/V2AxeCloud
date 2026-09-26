@@ -11,9 +11,13 @@
     { "pattern": "axecloud.com.br/api/ping*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/public-config*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/plans*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/tenant-info*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/auth/audit-log*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/auth/filho-login*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/metrics/public-visit*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/metrics/conversion-event*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/landing/*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/api/v1/auth/*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/public/*", "zone_name": "axecloud.com.br" }
   ],
   "triggers": {

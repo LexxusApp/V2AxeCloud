@@ -13,6 +13,9 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/ping",
   "/api/public-config",
   "/api/plans",
+  "/api/tenant-info",
+  "/api/auth/audit-log",
+  "/api/auth/filho-login",
   "/api/metrics/public-visit",
   "/api/metrics/conversion-event",
 ]);
@@ -20,7 +23,11 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
 function isProductionPublicRequest(url: URL): boolean {
   if (url.hostname !== PRODUCTION_HOST) return false;
   if (PRODUCTION_PUBLIC_EXACT_PATHS.has(url.pathname)) return true;
-  return url.pathname.startsWith("/api/v1/public/") || url.pathname.startsWith("/api/v1/landing/");
+  return (
+    url.pathname.startsWith("/api/v1/public/") ||
+    url.pathname.startsWith("/api/v1/landing/") ||
+    url.pathname.startsWith("/api/v1/auth/")
+  );
 }
 
 function stringBindings(bindings: Record<string, unknown>): Record<string, string> {
