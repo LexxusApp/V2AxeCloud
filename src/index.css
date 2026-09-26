@@ -12623,6 +12623,8 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .command-attention {
   top: 4.45rem;
   right: 1.2rem;
+  bottom: auto;
+  left: auto;
   width: min(27%, 22rem);
   padding: .75rem;
   border-radius: .75rem;
@@ -12642,9 +12644,21 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .command-attention__clear > svg { width: 1.95rem; height: 1.95rem; }
 .app-v5-identity .command-attention__item svg { width: .95rem; }
 .app-v5-identity .command-attention__item strong,
-.app-v5-identity .command-attention__clear strong { font-size: .59rem; }
+.app-v5-identity .command-attention__clear strong,
 .app-v5-identity .command-attention__item small,
-.app-v5-identity .command-attention__clear small { font-size: .49rem; }
+.app-v5-identity .command-attention__clear small {
+  overflow: visible;
+  font-size: .59rem;
+  line-height: 1.25;
+  text-overflow: unset;
+  white-space: normal;
+}
+.app-v5-identity .command-attention__item small,
+.app-v5-identity .command-attention__clear small {
+  margin-top: .12rem;
+  font-size: .49rem;
+  font-weight: 600;
+}
 .app-v5-identity .command-attention__mobile-summary { display: none; }
 
 .app-v5-identity .command-journey__values {
@@ -12792,13 +12806,20 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .command-timeline .house-timeline__content > small { font-size: .48rem; }
 
 @media (max-width: 1180px) and (min-width: 821px) {
-  .app-v5-identity .command-journey { min-height: 22rem; }
-  .app-v5-identity .command-journey__flow { right: 1.35rem; bottom: 7rem; }
+  .app-v5-identity .command-journey { min-height: 20.5rem; }
+  .app-v5-identity .command-journey__flow { right: 36%; bottom: 3.15rem; left: 1.15rem; }
   .app-v5-identity .command-attention {
-    right: 1.35rem;
-    bottom: 2.65rem;
-    left: 1.35rem;
+    top: 4.15rem;
+    right: .9rem;
+    bottom: auto;
+    left: auto;
+    width: min(34%, 18.5rem);
   }
+  .app-v5-identity .command-attention__header { display: flex; }
+  .app-v5-identity .command-attention__item,
+  .app-v5-identity .command-attention__clear,
+  .app-v5-identity .command-attention.is-expanded .command-attention__item { display: grid; width: 100%; }
+  .app-v5-identity .command-attention__item + .command-attention__item { margin: .35rem 0 0; }
 }
 
 @media (max-width: 820px) {
