@@ -33,6 +33,10 @@ import {
   type HouseTimelineEvent,
 } from '../components/dashboard/HouseTimeline';
 import {
+  DashboardHomeExperience,
+  type DashboardAttentionItem,
+} from '../components/dashboard/DashboardHomeExperience';
+import {
   pickNextUpcomingEvent,
   type DashboardNextEvent,
 } from '../components/dashboard/DashboardProximaGira';
@@ -968,6 +972,67 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       : null;
   })();
 
+  const dashboardAttentionItems = ([
+    !setupComplete && nextSetupStep
+      ? {
+          label: `Completar ${nextSetupStep.label.toLocaleLowerCase('pt-BR')}`,
+          detail: nextSetupStep.detail,
+          tab: nextSetupStep.tab,
+          tone: 'danger' as const,
+        }
+      : null,
+    attention.whatsappFailed > 0
+      ? {
+          label: `${attention.whatsappFailed} envio${attention.whatsappFailed === 1 ? '' : 's'} de WhatsApp com falha`,
+          detail: 'Confira o histórico e tente novamente.',
+          tab: 'settings',
+          tone: 'danger' as const,
+        }
+      : null,
+    attention.obligationsPending > 0
+      ? {
+          label: `${attention.obligationsPending} obrigação${attention.obligationsPending === 1 ? '' : 'ões'} para acompanhar`,
+          detail: attention.obligationsOverdue > 0 ? `${attention.obligationsOverdue} fora do prazo previsto.` : 'Há prazos ativos na corrente.',
+          tab: 'obligations',
+          tone: attention.obligationsOverdue > 0 ? 'danger' as const : 'gold' as const,
+        }
+      : null,
+    pendingMensalidades > 0
+      ? {
+          label: `${pendingMensalidades} mensalidade${pendingMensalidades === 1 ? '' : 's'} para confirmar`,
+          detail: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pendingMensalidadesValue),
+          tab: 'financial-mensalidades',
+          tone: 'gold' as const,
+        }
+      : null,
+    attention.lowStock > 0
+      ? {
+          label: `${attention.lowStock} item${attention.lowStock === 1 ? '' : 's'} para repor`,
+          detail: attention.outOfStock > 0 ? `${attention.outOfStock} sem estoque.` : 'Estoque abaixo do mínimo.',
+          tab: 'inventory',
+          tone: 'gold' as const,
+        }
+      : null,
+    withoutAppAccess > 0
+      ? {
+          label: `${withoutAppAccess} pessoa${withoutAppAccess === 1 ? '' : 's'} ainda sem acesso`,
+          detail: 'Envie os dados de entrada para a corrente.',
+          tab: 'children',
+          tone: 'gold' as const,
+        }
+      : null,
+    !nextEvent
+      ? {
+          label: 'Agendar a próxima gira',
+          detail: 'Marque a data e conecte a comunidade.',
+          tab: 'calendar',
+          tone: 'gold' as const,
+        }
+      : null,
+  ] as Array<DashboardAttentionItem | null>).filter(
+    (item): item is DashboardAttentionItem => item !== null,
+  );
+
   return (
     <AppPageShell>
       <div className="dashboard-v5">
@@ -1000,6 +1065,41 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
       )}
 
+      <DashboardHomeExperience
+        firstName={firstName}
+        setupProgress={setupProgressV5}
+        setupComplete={setupComplete}
+        nextEvent={nextEvent}
+        whatsappFailed={attention.whatsappFailed}
+        membersCount={allChildren.length}
+        cashBalance={stats.lucroLiquido}
+        attentionItems={dashboardAttentionItems}
+        memberAvatars={allChildren.map((child) => ({
+          id: String(child.id || child.nome),
+          name: String(child.nome || 'Membro'),
+          photo: child.foto_url,
+        }))}
+        onContinueSetup={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')}
+        onNavigate={(tab) => {
+          if (tab === 'settings') {
+            sessionStorage.setItem('axecloud:settings-section', 'whatsapp');
+            sessionStorage.setItem('axecloud:whatsapp-view', 'historico');
+          }
+          setActiveTab(tab);
+        }}
+        preceito={<PreceitoCommandCenter tenantId={tenantId} variant="dashboard-art" />}
+        timeline={(
+          <HouseTimeline
+            events={houseTimelineEvents.slice(0, 3)}
+            onNavigate={setActiveTab}
+            title="O que aconteceu na casa"
+            description="Atividades recentes da sua comunidade."
+          />
+        )}
+      />
+
+      {SHOW_LEGACY_DASHBOARD && (
+      <div className="dashboard-v5-previous-home">
       <section className="dashboard-v5-hero mb-6 overflow-hidden rounded-[2rem]" aria-labelledby="dashboard-v5-title">
         <div className="dashboard-v5-hero__content" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           <div className="min-w-0">
@@ -1338,6 +1438,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         title="Atividades recentes"
         description="Os três últimos movimentos registrados na casa."
       />
+      </div>
+      )}
 
       {/* Painel administrativo antigo: substituído pela home V5 e oculto via CSS.
           Não montar evita DOM morto e os warnings de 0x0 do Recharts no console. */}

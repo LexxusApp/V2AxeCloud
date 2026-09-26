@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   MessageCircleQuestion,
   ShieldCheck,
   Sparkles,
+  Swords,
   UserMinus,
   Users,
   X,
@@ -66,7 +67,7 @@ type CycleDetail = Cycle & {
   participantes: Participant[];
 };
 
-type Props = { tenantId: string };
+type Props = { tenantId: string; variant?: 'default' | 'dashboard-art' };
 
 const nowLocalInput = () => {
   const date = new Date();
@@ -105,7 +106,7 @@ function daysLeft(end: string) {
   return Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000));
 }
 
-export default function PreceitoCommandCenter({ tenantId }: Props) {
+export default function PreceitoCommandCenter({ tenantId, variant = 'default' }: Props) {
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [children, setChildren] = useState<ChildOption[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
@@ -256,6 +257,35 @@ export default function PreceitoCommandCenter({ tenantId }: Props) {
 
   return (
     <>
+      {variant === 'dashboard-art' ? (
+        <section className={cn('preceito-command-art', active && 'is-active')} aria-labelledby="preceito-command-art-title">
+          <div className="preceito-command-art__texture" aria-hidden>
+            <span /><span /><span />
+            <Swords />
+          </div>
+          <div className="preceito-command-art__content">
+            <p>Preceito</p>
+            {loading ? (
+              <div className="preceito-command-art__loading"><Loader2 className="animate-spin" /> Consultando a corrente</div>
+            ) : (
+              <div className="preceito-command-art__state">
+                <div className="preceito-command-art__ring" style={{ '--preceito-progress': active ? `${Math.max(36, Math.min(330, ((active.counts.cientes || 0) / Math.max(1, active.counts.total || 1)) * 360))}deg` : '42deg' } as CSSProperties}>
+                  <Swords aria-hidden />
+                </div>
+                <div>
+                  <h2 id="preceito-command-art-title">{active ? active.titulo : 'Nenhum ciclo ativo'}</h2>
+                  <strong>{active ? `${daysLeft(active.fim_em)} dias restantes` : 'Inicie quando a corrente precisar'}</strong>
+                  <blockquote>{active ? '“Disciplina é também um ato de fé.”' : 'Prepare a casa em conjunto, com orientação e confirmação.'}</blockquote>
+                </div>
+              </div>
+            )}
+            <button type="button" disabled={loading} onClick={() => active ? void openDetail(active) : openWizard()}>
+              {active ? 'Acompanhar preceito' : 'Iniciar preceito'} <ArrowRight aria-hidden />
+            </button>
+            {error && !wizardOpen && !detailOpen ? <p className="preceito-command-art__error">{error}</p> : null}
+          </div>
+        </section>
+      ) : (
       <section className={cn(
         'preceito-command relative mb-6 overflow-hidden rounded-[26px] border px-5 py-5 sm:px-7',
         active
@@ -310,6 +340,7 @@ export default function PreceitoCommandCenter({ tenantId }: Props) {
         </div>
         {error && !wizardOpen && !detailOpen ? <p className="relative mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500">{error}</p> : null}
       </section>
+      )}
 
       {/* Portal no body: ancestrais com transform (animações do dashboard) fariam
           o fixed ancorar na seção e o modal abrir fora da tela. */}
