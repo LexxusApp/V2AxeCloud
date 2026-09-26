@@ -20,13 +20,52 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/metrics/conversion-event",
 ]);
 
+const PRODUCTION_APP_PREFIXES = [
+  "/api/children",
+  "/api/events",
+  "/api/notices",
+  "/api/inventory",
+  "/api/transactions",
+  "/api/loja-pedidos",
+  "/api/library",
+  "/api/notifications",
+  "/api/event-guests",
+  "/api/push-subscribe",
+  "/api/push-broadcast",
+  "/api/push-direct",
+  "/api/v1/filho/",
+  "/api/v1/financial/",
+  "/api/v1/library/",
+  "/api/v1/gallery/",
+  "/api/v1/preceitos",
+  "/api/v1/fundamentos",
+  "/api/v1/events/",
+  "/api/v1/participacoes",
+  "/api/v1/frequencia",
+  "/api/v1/atendimentos/",
+  "/api/v1/chat/",
+  "/api/v1/gestao/",
+  "/api/v1/settings/",
+  "/api/v1/profile/",
+  "/api/v1/account/",
+  "/api/v1/support",
+  "/api/v1/store/",
+  "/api/store/",
+  "/api/v1/obrigacao-pdf/",
+  "/api/v1/event-banner",
+  "/api/v1/legal/",
+  "/api/v1/onboarding/",
+  "/api/v1/founder-program/",
+];
+
 function isProductionPublicRequest(url: URL): boolean {
   if (url.hostname !== PRODUCTION_HOST) return false;
   if (PRODUCTION_PUBLIC_EXACT_PATHS.has(url.pathname)) return true;
   return (
     url.pathname.startsWith("/api/v1/public/") ||
     url.pathname.startsWith("/api/v1/landing/") ||
-    url.pathname.startsWith("/api/v1/auth/")
+    url.pathname.startsWith("/api/v1/auth/") ||
+    PRODUCTION_APP_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
   );
 }
 
