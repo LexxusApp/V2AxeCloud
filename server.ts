@@ -4621,7 +4621,7 @@ async function startServer() {
     const indexPath = path.join(distPath, "index.html");
     const hasSpa = existsSync(indexPath);
     if (hasSpa) {
-      app.use(express.static(distPath));
+      app.use(express.static(distPath, { redirect: false }));
     } else {
       console.warn("[SERVER] dist/index.html ausente neste bundle.");
     }

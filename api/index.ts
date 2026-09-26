@@ -5119,7 +5119,9 @@ async function startServer() {
         }
       });
 
-      app.use(express.static(distPath));
+      // public/dashboard é pasta de imagens. redirect padrão manda /dashboard
+      // para /dashboard/, e o Cloudflare devolve sem a barra — loop.
+      app.use(express.static(distPath, { redirect: false }));
     } else {
       console.warn("[SERVER] dist/index.html ausente neste bundle.");
     }
