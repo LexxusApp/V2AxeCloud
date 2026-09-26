@@ -12546,7 +12546,8 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .dashboard-command {
   gap: .62rem;
   margin: 0;
-  padding-bottom: 5.5rem;
+  align-content: start;
+  padding-bottom: 4.75rem;
 }
 
 .app-v5-identity .command-journey {
@@ -13262,4 +13263,45 @@ html:has(.landing-mockup-nav) {
 @media (max-width: 820px) {
   .app-v5-identity .command-pulse > button { grid-template-columns: auto minmax(0, 1fr); }
   .app-v5-identity .command-pulse__trend { display: none; }
+}
+
+/* O card de atividades acompanha o texto. Sem a terceira coluna vazia e sem vão abaixo dos registros. */
+.app-v5-identity .command-timeline {
+  height: auto;
+  align-self: start;
+}
+.app-v5-identity .command-timeline .house-timeline {
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: .7rem .85rem .45rem;
+}
+.app-v5-identity .command-timeline .house-timeline__header {
+  margin-bottom: .2rem;
+  padding-bottom: 0;
+}
+.app-v5-identity .command-timeline .house-timeline__rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: start;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+}
+.app-v5-identity .command-timeline .house-timeline__event {
+  display: grid;
+  height: auto;
+  min-height: 0;
+  align-self: start;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: .35rem .55rem;
+}
+.app-v5-identity .command-timeline .house-timeline__node {
+  position: static;
+  top: auto;
+  left: auto;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-width: 0;
 }
