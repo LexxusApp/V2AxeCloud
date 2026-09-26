@@ -15,7 +15,6 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/plans",
   "/api/metrics/public-visit",
   "/api/metrics/conversion-event",
-  "/api/v1/app-build",
 ]);
 
 function isProductionPublicRequest(url: URL): boolean {

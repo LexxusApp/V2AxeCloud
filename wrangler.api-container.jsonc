@@ -13,7 +13,6 @@
     { "pattern": "axecloud.com.br/api/plans*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/metrics/public-visit*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/metrics/conversion-event*", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/api/v1/app-build*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/landing/*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/api/v1/public/*", "zone_name": "axecloud.com.br" }
   ],
