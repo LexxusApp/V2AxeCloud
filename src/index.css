@@ -13013,3 +13013,231 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-gira,
   .app-v5-identity .command-gira__content { min-height: 14.8rem; }
 }
+
+/* Dashboard approved mockup alignment — desktop 1280×801 and mobile reference. */
+@media (min-width: 880px) {
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button[aria-current="page"]::before {
+    position: absolute;
+    top: .6rem;
+    bottom: .6rem;
+    left: -.42rem;
+    width: 3px;
+    border-radius: 999px;
+    background: #f4c62e;
+    box-shadow: 0 0 12px rgba(244, 198, 46, .62);
+    content: '';
+  }
+  .app-v5-dashboard-rail-quote {
+    display: flex;
+    min-height: 10.5rem;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1rem .9rem 1.15rem;
+    border-top: 1px solid rgba(255, 255, 255, .06);
+    color: #78877d;
+  }
+  .app-v5-dashboard-rail-quote strong {
+    color: #c6a839;
+    font-size: .48rem;
+    font-weight: 800;
+    line-height: 1.65;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+  }
+  .app-v5-dashboard-rail-quote i {
+    display: block;
+    width: 1.4rem;
+    height: 2px;
+    margin: .8rem 0;
+    border-radius: 999px;
+    background: #d8ad37;
+  }
+  .app-v5-dashboard-rail-quote span {
+    font-size: .5rem;
+    font-weight: 650;
+    line-height: 1.45;
+  }
+
+  .axecloud-notification-root.is-fixed.is-dashboard {
+    top: .5rem;
+    right: 8.3rem;
+    width: 2.55rem;
+    z-index: 91;
+  }
+  .axecloud-notification-root.is-dashboard .axecloud-notification-trigger {
+    width: 2.55rem;
+    height: 2.55rem;
+    border-color: rgba(255, 255, 255, .12);
+    border-radius: .72rem;
+    background: rgba(4, 19, 14, .92);
+    color: #e3ece6;
+    box-shadow: none;
+  }
+  .axecloud-notification-root.is-dashboard .axecloud-notification-trigger:hover,
+  .axecloud-notification-root.is-dashboard .axecloud-notification-trigger.is-open {
+    border-color: rgba(226, 183, 52, .5);
+    background: #0b251b;
+    color: #ffd354;
+  }
+  .axecloud-notification-root.is-dashboard .axecloud-notification-popover {
+    top: 3.7rem;
+    right: 7.9rem;
+  }
+
+  .app-v5-identity .command-desktop-bar {
+    grid-template-columns: 14rem 8rem 21rem 6.3rem;
+    justify-content: space-between;
+    gap: 0;
+    padding: .42rem 1.05rem .42rem .75rem;
+  }
+  .app-v5-identity .command-desktop-bar__search { width: 21rem; transform: translateX(-2rem); }
+  .app-v5-identity .command-desktop-bar__profile { justify-self: end; transform: translateX(-.45rem); }
+
+  .app-v5-identity .command-journey { padding-left: 2rem; }
+  .app-v5-identity .command-journey__flow { right: 23%; left: 3.5rem; }
+  .app-v5-identity .command-attention { width: min(31%, 22rem); }
+
+  .app-v5-identity .command-pulse {
+    min-height: 4.85rem;
+    margin: .42rem 1.05rem 0;
+    padding: .5rem .8rem;
+  }
+  .app-v5-identity .command-pulse__title,
+  .app-v5-identity .command-pulse > button { padding-inline: .82rem; }
+  .app-v5-identity .command-pulse h2 { font-size: .9rem; }
+  .app-v5-identity .command-pulse > button strong { font-size: .96rem; }
+  .app-v5-identity .command-pulse p,
+  .app-v5-identity .command-pulse small { font-size: .55rem; }
+
+  .app-v5-identity .command-focus-grid {
+    grid-template-columns: minmax(0, 1.82fr) minmax(19.5rem, 1fr);
+    gap: .65rem;
+    margin-inline: 1.05rem;
+  }
+  .app-v5-identity .command-gira,
+  .app-v5-identity .preceito-command-art { min-height: 14.9rem; }
+  .app-v5-identity .command-gira__content {
+    max-width: 59%;
+    min-height: 14.9rem;
+    padding: 1rem 1.2rem;
+  }
+  .app-v5-identity .command-gira__content > p { font-size: .56rem; }
+  .app-v5-identity .command-gira__content h2 {
+    margin-top: .24rem;
+    font-size: clamp(1.58rem, 2.25vw, 2rem);
+    line-height: .98;
+  }
+  .app-v5-identity .command-gira__meta { font-size: .62rem; }
+  .app-v5-identity .command-gira__content blockquote {
+    margin-top: .45rem;
+    font-size: .62rem;
+  }
+  .app-v5-identity .command-gira__avatars img,
+  .app-v5-identity .command-gira__avatars > span,
+  .app-v5-identity .command-gira__avatars > i {
+    width: 1.62rem;
+    height: 1.62rem;
+  }
+  .app-v5-identity .command-gira__count { font-size: .58rem; }
+  .app-v5-identity .command-gira__content > button,
+  .app-v5-identity .preceito-command-art__content > button {
+    min-height: 2.35rem;
+    font-size: .66rem;
+  }
+  .app-v5-identity .command-gira__content > button { width: min(100%, 15.8rem); }
+
+  .app-v5-identity .preceito-command-art__content {
+    min-height: 14.9rem;
+    padding: 1rem 1.1rem;
+  }
+  .app-v5-identity .preceito-command-art__content > p { font-size: 1rem; }
+  .app-v5-identity .preceito-command-art__state {
+    grid-template-columns: 6.35rem 1fr;
+    gap: .85rem;
+    margin-top: .62rem;
+  }
+  .app-v5-identity .preceito-command-art__ring { width: 6.2rem; height: 6.2rem; }
+  .app-v5-identity .preceito-command-art__state h2 { font-size: .84rem; }
+  .app-v5-identity .preceito-command-art__state strong,
+  .app-v5-identity .preceito-command-art__state blockquote { font-size: .6rem; }
+  .app-v5-identity .preceito-command-art__content > button { width: 64%; }
+
+  .app-v5-identity .command-timeline { margin-inline: 1.05rem; }
+  .app-v5-identity .command-timeline .house-timeline { padding: .65rem 1rem; }
+  .app-v5-identity .command-timeline .house-timeline__header h2 { font-size: .76rem; }
+  .app-v5-identity .command-timeline .house-timeline__content > strong { font-size: .6rem; }
+}
+
+@media (max-width: 820px) {
+  .app-v5-identity .command-pulse h2 { font-size: .9rem; }
+  .app-v5-identity .command-pulse p { font-size: .56rem; }
+  .app-v5-identity .command-pulse > button strong { font-size: .82rem; }
+  .app-v5-identity .command-pulse > button small { font-size: .51rem; }
+  .app-v5-identity .command-gira__content h2 { font-size: clamp(1.5rem, 5.9vw, 1.9rem); }
+  .app-v5-identity .command-gira__meta,
+  .app-v5-identity .command-gira__content blockquote { font-size: .6rem; }
+  .app-v5-identity .command-gira__content > button,
+  .app-v5-identity .preceito-command-art__content > button {
+    min-height: 2.45rem;
+    font-size: .68rem;
+  }
+  .app-v5-identity .preceito-command-art__content > p { font-size: 1rem; }
+  .app-v5-identity .preceito-command-art__state h2 { font-size: .86rem; }
+  .app-v5-identity .preceito-command-art__state strong,
+  .app-v5-identity .preceito-command-art__state blockquote { font-size: .62rem; }
+}
+/* Dashboard pulse real-data trends and resilient preceito error state. */
+.app-v5-identity .command-pulse > button {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.app-v5-identity .command-pulse > button > .command-pulse__copy {
+  display: grid;
+  width: auto;
+  height: auto;
+  grid-row: auto;
+  place-items: initial;
+  border-radius: 0;
+  background: transparent;
+}
+.app-v5-identity .command-pulse__trend {
+  display: grid;
+  width: 4.3rem;
+  height: 2.35rem;
+  grid-row: auto;
+  place-items: end;
+  border-radius: 0;
+  background: transparent;
+}
+.app-v5-identity .command-pulse__trend em {
+  color: #12a96d;
+  font-size: .48rem;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1;
+}
+.app-v5-identity .command-pulse__trend em[data-tone="down"] { color: #d45145; }
+.app-v5-identity .command-pulse__trend svg {
+  width: 4.3rem;
+  height: 1.6rem;
+  overflow: visible;
+}
+.app-v5-identity .command-pulse__trend polyline {
+  fill: none;
+  stroke: #21bd83;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.app-v5-identity .preceito-command-art__content > .preceito-command-art__error {
+  margin-top: .35rem;
+  color: #f2ad9d;
+  font-family: inherit;
+  font-size: .55rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+@media (max-width: 820px) {
+  .app-v5-identity .command-pulse > button { grid-template-columns: auto minmax(0, 1fr); }
+  .app-v5-identity .command-pulse__trend { display: none; }
+}

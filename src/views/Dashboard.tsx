@@ -646,6 +646,31 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     };
   }, [transactions]);
 
+  const memberPulseTrend = useMemo(() => {
+    const anchor = new Date();
+    const monthRefs = Array.from({ length: 6 }, (_, index) => subMonths(anchor, 5 - index));
+    const createdTimes = allChildren
+      .map((child) => new Date(String(child?.created_at || '')).getTime())
+      .filter((time) => Number.isFinite(time));
+    const values = monthRefs.map((monthRef) => {
+      const cutoff = endOfMonth(monthRef).getTime();
+      return createdTimes.filter((time) => time <= cutoff).length;
+    });
+    const currentStart = startOfMonth(anchor).getTime();
+    const previousStart = startOfMonth(subMonths(anchor, 1)).getTime();
+    const currentAdded = createdTimes.filter((time) => time >= currentStart).length;
+    const previousAdded = createdTimes.filter((time) => time >= previousStart && time < currentStart).length;
+    const delta = previousAdded > 0
+      ? Math.round(((currentAdded - previousAdded) / previousAdded) * 100)
+      : currentAdded > 0 ? 100 : null;
+    return { values, delta };
+  }, [allChildren]);
+
+  const cashPulseTrend = useMemo(() => ({
+    values: flowChartData.monthly.map((point) => point.saldo),
+    delta: stats.growthPct,
+  }), [flowChartData.monthly, stats.growthPct]);
+
   const activeFlowChart = useMemo(
     () => (flowPeriod === 'month' ? flowChartData.daily : flowChartData.monthly),
     [flowChartData, flowPeriod]
@@ -1076,6 +1101,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         whatsappFailed={attention.whatsappFailed}
         membersCount={allChildren.length}
         cashBalance={stats.lucroLiquido}
+        memberTrend={memberPulseTrend}
+        cashTrend={cashPulseTrend}
         attentionItems={dashboardAttentionItems}
         memberAvatars={allChildren.map((child) => ({
           id: String(child.id || child.nome),

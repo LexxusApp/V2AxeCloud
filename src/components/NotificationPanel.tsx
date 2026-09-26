@@ -66,6 +66,7 @@ interface NotificationPanelProps {
   onNavigate?: (tab: string) => void;
   /** `inline` = preso no header mobile; `fixed` = flutuante (desktop). */
   placement?: 'fixed' | 'inline';
+  variant?: 'default' | 'dashboard';
 }
 
 const TYPE_META: Record<
@@ -559,6 +560,7 @@ export default function NotificationPanel({
   userId,
   onNavigate,
   placement = 'fixed',
+  variant = 'default',
 }: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -941,6 +943,7 @@ export default function NotificationPanel({
       className={cn(
         'axecloud-notification-root',
         placement === 'inline' ? 'is-inline' : 'is-fixed',
+        variant === 'dashboard' && 'is-dashboard',
       )}
     >
       <motion.button

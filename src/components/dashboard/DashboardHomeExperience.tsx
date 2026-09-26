@@ -49,6 +49,8 @@ type Props = {
   whatsappFailed: number;
   membersCount: number;
   cashBalance: number;
+  memberTrend?: { values: number[]; delta: number | null };
+  cashTrend?: { values: number[]; delta: number | null };
   attentionItems: DashboardAttentionItem[];
   memberAvatars: Array<{ id: string; name: string; photo?: string | null }>;
   onContinueSetup: () => void;
@@ -102,6 +104,25 @@ function GiraArtwork({ themeId }: { themeId: GiraVisualThemeId }) {
   );
 }
 
+function PulseSparkline({ trend }: { trend?: { values: number[]; delta: number | null } }) {
+  const values = (trend?.values || []).filter((value) => Number.isFinite(value));
+  if (values.length < 2 || values.every((value) => value === values[0])) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * 68;
+    const y = 25 - ((value - min) / range) * 20;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const delta = trend?.delta;
+  return (
+    <span className="command-pulse__trend" aria-label={delta == null ? 'Evolução recente' : `Variação recente de ${delta}%`}>
+      {delta != null ? <em data-tone={delta < 0 ? 'down' : 'up'}>{delta > 0 ? '+' : ''}{delta}%</em> : null}
+      <svg viewBox="0 0 68 30" aria-hidden focusable="false"><polyline points={points} /></svg>
+    </span>
+  );
+}
 export function DashboardHomeExperience({
   firstName,
   terreiroName,
@@ -113,6 +134,8 @@ export function DashboardHomeExperience({
   whatsappFailed,
   membersCount,
   cashBalance,
+  memberTrend,
+  cashTrend,
   attentionItems,
   memberAvatars,
   onContinueSetup,
@@ -256,9 +279,15 @@ export function DashboardHomeExperience({
 
       <motion.section className="command-pulse" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48 }} aria-label="Pulso da casa">
         <div className="command-pulse__title"><span><Activity /></span><div><h2>Pulso da casa</h2><p>Em tempo real</p></div></div>
-        <button type="button" onClick={() => onNavigate('children')}><span><Users /></span><strong>{membersCount}</strong><small>na corrente</small></button>
-        <button type="button" onClick={() => onNavigate('financial')}><span><Wallet /></span><strong>{currency(cashBalance)}</strong><small>em caixa</small></button>
-        <button type="button" onClick={() => onNavigate('settings')}><span><Send /></span><strong>{whatsappHealthy ? '100%' : whatsappFailed}</strong><small>{whatsappHealthy ? 'WhatsApp entregues' : 'envios para revisar'}</small></button>
+        <button type="button" onClick={() => onNavigate('children')}>
+          <span><Users /></span><span className="command-pulse__copy"><strong>{membersCount}</strong><small>na corrente</small></span><PulseSparkline trend={memberTrend} />
+        </button>
+        <button type="button" onClick={() => onNavigate('financial')}>
+          <span><Wallet /></span><span className="command-pulse__copy"><strong>{currency(cashBalance)}</strong><small>em caixa</small></span><PulseSparkline trend={cashTrend} />
+        </button>
+        <button type="button" onClick={() => onNavigate('settings')}>
+          <span><Send /></span><span className="command-pulse__copy"><strong>{whatsappHealthy ? '100%' : whatsappFailed}</strong><small>{whatsappHealthy ? 'WhatsApp entregues' : 'envios para revisar'}</small></span>
+        </button>
       </motion.section>
 
       <div className="command-focus-grid">
