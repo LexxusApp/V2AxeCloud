@@ -262,7 +262,12 @@ export function DashboardHomeExperience({
         </aside>
 
         <p className="command-journey__values">Terra · disciplina · caminho · evolução</p>
-        <div className="command-journey__waves" aria-hidden><i /><i /><i /></div>
+        <div className="command-journey__waves" aria-hidden>
+          <svg viewBox="0 0 1440 110" preserveAspectRatio="none">
+            <path fill="#F7F3EA" d="M0 68C150 86 250 36 430 50C640 68 760 14 940 34C1120 54 1280 28 1440 42V110H0Z" />
+            <path fill="none" stroke="rgba(226,186,62,.8)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" d="M0 68C150 86 250 36 430 50C640 68 760 14 940 34C1120 54 1280 28 1440 42" />
+          </svg>
+        </div>
         <div className="command-create">
           <button type="button" aria-expanded={quickOpen} onClick={() => setQuickOpen((value) => !value)}><Plus aria-hidden /><span>Criar</span></button>
           <AnimatePresence>

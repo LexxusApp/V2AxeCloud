@@ -7050,25 +7050,15 @@ html:has(.landing-mockup-nav) {
   right: 0;
   bottom: -1px;
   left: 0;
-  height: 2rem;
-  overflow: hidden;
+  height: 4.4rem;
   pointer-events: none;
 }
 
-.app-v5-identity .command-journey__waves i {
-  position: absolute;
-  right: -3%;
-  bottom: -2.2rem;
-  left: -3%;
-  height: 4rem;
-  border: 1px solid rgba(228, 191, 66, .55);
-  border-radius: 50% 50% 0 0;
-  background: #f7f5f0;
-  transform: rotate(.5deg);
+.app-v5-identity .command-journey__waves svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-
-.app-v5-identity .command-journey__waves i:nth-child(2) { bottom: -2rem; opacity: .5; transform: rotate(-1deg); }
-.app-v5-identity .command-journey__waves i:nth-child(3) { bottom: -1.8rem; opacity: .25; transform: rotate(.9deg); }
 
 .app-v5-identity .command-create {
   position: absolute;
@@ -12672,10 +12662,10 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .command-journey__values {
   right: 1.35rem;
-  bottom: 1.55rem;
+  bottom: 4.2rem;
   font-size: .44rem;
 }
-.app-v5-identity .command-journey__waves { height: 1.75rem; }
+.app-v5-identity .command-journey__waves { height: 4.6rem; }
 .app-v5-identity .command-create { bottom: -.95rem; }
 .app-v5-identity .command-create > button {
   min-width: 6.2rem;
@@ -13319,13 +13309,13 @@ html:has(.landing-mockup-nav) {
     left: auto;
     width: min(22.5rem, 27%);
   }
-  .app-v5-identity .command-journey__waves { height: 2.7rem; }
+  .app-v5-identity .command-journey__waves { height: 4.8rem; }
   .app-v5-identity .command-journey__values {
     right: 1.45rem;
-    bottom: 2.45rem;
+    bottom: 4.6rem;
     z-index: 4;
   }
-  .app-v5-identity .command-create { bottom: -1.05rem; z-index: 6; }
+  .app-v5-identity .command-create { bottom: 1.25rem; z-index: 6; }
 }
 
 /* O card de atividades acompanha o texto. Sem a terceira coluna vazia e sem vão abaixo dos registros. */
