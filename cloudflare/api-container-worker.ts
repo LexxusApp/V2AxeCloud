@@ -10,9 +10,12 @@ type AxeCloudBindings = {
 const PRODUCTION_HOST = "axecloud.com.br";
 const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/health-check",
+  "/api/ping",
   "/api/public-config",
+  "/api/plans",
   "/api/metrics/public-visit",
   "/api/metrics/conversion-event",
+  "/api/v1/app-build",
 ]);
 
 function isProductionPublicRequest(url: URL): boolean {
