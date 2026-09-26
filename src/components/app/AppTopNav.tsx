@@ -1,4 +1,4 @@
-import {
+﻿import {
   Camera,
   ChevronDown,
   CircleHelp,
@@ -332,7 +332,6 @@ export default function AppTopNav({
   const [desktopHovered, setDesktopHovered] = useState(false);
   const desktopExpanded = desktopPinned || desktopHovered;
   const desktopCompact = !desktopExpanded;
-  const dashboardRail = activeTab === 'dashboard' && desktopCompact;
   const { isInstalled: isStandalonePwa, install } = usePwaInstall();
   const filhoPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFilhoPhoto, setIsUploadingFilhoPhoto] = useState(false);
@@ -372,12 +371,12 @@ export default function AppTopNav({
     localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
     document.documentElement.style.setProperty(
       '--app-sidebar-width',
-      desktopExpanded ? '15rem' : dashboardRail ? '6.25rem' : '4.75rem',
+      desktopExpanded ? '15rem' : '4.75rem',
     );
     return () => {
       document.documentElement.style.removeProperty('--app-sidebar-width');
     };
-  }, [dashboardRail, desktopExpanded, desktopPinned]);
+  }, [desktopExpanded, desktopPinned]);
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -420,19 +419,6 @@ export default function AppTopNav({
     () => (userRole === 'filho' ? FILHO_NAV : buildZeladorNavItems(tenantData?.tradicao)),
     [userRole, tenantData?.tradicao],
   );
-  const dashboardRailItems = useMemo(() => {
-    const labels: Record<string, string> = {
-      dashboard: 'Início',
-      children: 'Corrente',
-      calendar: 'Giras',
-      mural: 'Comunicação',
-      settings: 'Casa',
-    };
-    return ['dashboard', 'children', 'calendar', 'mural', 'settings']
-      .map((id) => navItems.find((item) => item.id === id))
-      .filter((item): item is AppNavItem => item != null)
-      .map((item) => ({ ...item, label: labels[item.id] || item.label }));
-  }, [navItems]);
 
   const zeladorEntries = useMemo(
     () => (userRole === 'filho' ? null : buildZeladorNavEntries(tenantData?.tradicao)),
@@ -573,7 +559,6 @@ export default function AppTopNav({
           userId={userId}
           onNavigate={setActiveTab}
           placement="fixed"
-          variant={dashboardRail ? 'dashboard' : 'default'}
         />
       ) : null}
 
@@ -587,35 +572,31 @@ export default function AppTopNav({
           }
         }}
         data-expanded={desktopExpanded ? 'true' : 'false'}
-        data-dashboard-rail={dashboardRail ? 'true' : 'false'}
         className={cn(
           'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] transition-[width,box-shadow] duration-300 ease-out min-[880px]:flex',
-          desktopCompact ? (dashboardRail ? 'w-[6.25rem]' : 'w-[4.75rem]') : 'w-60',
+          desktopCompact ? 'w-[4.75rem]' : 'w-60',
         )}
       >
-        {!dashboardRail ? (
-          <button
-            type="button"
-            onClick={() => setDesktopPinned((value) => !value)}
-            title={desktopPinned ? 'Usar expansão automática' : 'Fixar menu aberto'}
-            aria-label={desktopPinned ? 'Desafixar menu lateral' : 'Fixar menu lateral aberto'}
-            aria-pressed={desktopPinned}
-            className="app-v5-sidebar-toggle absolute -right-3 top-5 z-10 grid h-8 w-8 place-items-center rounded-full border border-[#343C47] bg-[#151A21] text-[#CBD5E1] shadow-lg transition hover:border-primary/50 hover:bg-primary hover:text-[#17130D]"
-          >
-            {desktopPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => setDesktopPinned((value) => !value)}
+          title={desktopPinned ? 'Usar expansão automática' : 'Fixar menu aberto'}
+          aria-label={desktopPinned ? 'Desafixar menu lateral' : 'Fixar menu lateral aberto'}
+          aria-pressed={desktopPinned}
+          className="app-v5-sidebar-toggle absolute -right-3 top-5 z-10 grid h-8 w-8 place-items-center rounded-full border border-[#343C47] bg-[#151A21] text-[#CBD5E1] shadow-lg transition hover:border-primary/50 hover:bg-primary hover:text-[#17130D]"
+        >
+          {desktopPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </button>
 
         <div className={cn('app-v5-brand border-b border-[#242A32] py-2', desktopCompact ? 'px-2' : 'px-2.5')}>
           {desktopCompact ? (
             <button
               type="button"
               onClick={() => setActiveTab('dashboard')}
-              className={cn('group flex w-full items-center justify-center rounded-xl p-0.5 text-left transition-colors hover:bg-white/[0.04]', dashboardRail && 'flex-col')}
+              className="group flex w-full items-center justify-center rounded-xl p-0.5 text-left transition-colors hover:bg-white/[0.04]"
               aria-label="Ir para o início"
             >
-              {dashboardRail ? <img src="/axecloud-trident.png" alt="" aria-hidden className="h-9 w-9 object-contain" /> : <AxeCloudEmblem className="h-8 w-8" />}
-              <span className={cn('mt-1 text-[8px] font-black tracking-[.12em] text-white', !dashboardRail && 'sr-only')}>AXÉCLOUD</span>
+              <AxeCloudEmblem className="h-8 w-8" />
             </button>
           ) : (
             <div className="flex items-center">
@@ -654,7 +635,7 @@ export default function AppTopNav({
           )}
         </div>
 
-        <div className={cn('pb-1 pt-2', dashboardRail && 'hidden', desktopCompact ? 'px-1.5 text-center' : 'px-3')}>
+        <div className={cn('pb-1 pt-2', desktopCompact ? 'px-1.5 text-center' : 'px-3')}>
           <p className={cn('font-black uppercase tracking-[0.16em] text-[#738095]', desktopCompact ? 'text-[8px]' : 'px-1.5 text-[9px]')}>
             {desktopCompact ? 'Axé' : 'Gestão da casa'}
           </p>
@@ -669,7 +650,7 @@ export default function AppTopNav({
           aria-label="Módulos do AxéCloud"
         >
           {desktopCompact
-            ? (dashboardRail ? dashboardRailItems : navItems).map((item) => {
+            ? navItems.map((item) => {
                 const Icon = item.icon;
                 const active = navActiveTab === item.id;
                 return (
@@ -681,17 +662,13 @@ export default function AppTopNav({
                     aria-current={active ? 'page' : undefined}
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      'relative shrink-0 place-items-center rounded-lg border transition-colors',
-                      dashboardRail ? 'flex h-14 w-full flex-col gap-1' : 'grid h-10 w-10',
+                      'relative grid h-10 w-10 shrink-0 place-items-center rounded-lg border transition-colors',
                       active
-                        ? dashboardRail
-                          ? 'border-transparent bg-[#10231a] text-primary shadow-none'
-                          : 'border-primary bg-primary text-[#080A0D]'
+                        ? 'border-primary bg-primary text-[#080A0D]'
                         : 'border-transparent text-[#9AA6B7] hover:border-white/10 hover:bg-white/5 hover:text-white',
                     )}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
-                    <span className={cn('max-w-full truncate text-[8px] font-semibold leading-none', !dashboardRail && 'sr-only')}>{item.label}</span>
                     {badgeForItem(item.id) > 0 ? (
                       <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-[#0B0D11] bg-amber-400" aria-label="Requer atenção" />
                     ) : null}
@@ -718,14 +695,7 @@ export default function AppTopNav({
               )}
         </nav>
 
-        {dashboardRail ? (
-          <div className="app-v5-dashboard-rail-quote">
-            <strong>Tradição<br />organização<br />continuidade</strong>
-            <i aria-hidden />
-            <span>Axé que transforma<br />gestão em propósito.</span>
-          </div>
-        ) : (
-          <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-1.5 p-2' : 'space-y-1.5 p-2.5')}>
+        <div className={cn('app-v5-sidebar-footer border-t border-[#242A32]', desktopCompact ? 'space-y-1.5 p-2' : 'space-y-1.5 p-2.5')}>
           {userRole === 'filho' ? (
             <div className={cn(!desktopCompact && 'rounded-lg border border-white/[0.06] bg-white/[0.025] p-1.5')}>
               <button
@@ -770,8 +740,7 @@ export default function AppTopNav({
             <LogOut className="h-3.5 w-3.5" aria-hidden />
             {!desktopCompact ? 'Sair' : <span className="sr-only">Sair</span>}
           </button>
-          </div>
-        )}
+        </div>
       </aside>
 
       {mobileOpen && !isLgDesktop ? (

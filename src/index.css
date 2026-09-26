@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* Garante utilitÃ¡rios Tailwind no build da landing (vite root = marketing/). */
+/* Garante utilitÃƒÂ¡rios Tailwind no build da landing (vite root = marketing/). */
 @source "./**/*.{tsx,ts,jsx,js}";
 
 @theme {
@@ -58,7 +58,7 @@
 }
 
 .matriz-pattern-grain {
-  /* Padrão estático barato — evita feTurbulence (SVG filter) no viewport fixo. */
+  /* PadrÃ£o estÃ¡tico barato â€” evita feTurbulence (SVG filter) no viewport fixo. */
   background-image:
     radial-gradient(circle at 20% 20%, rgba(27, 24, 19, 0.045) 0.6px, transparent 0.7px),
     radial-gradient(circle at 70% 40%, rgba(27, 24, 19, 0.035) 0.55px, transparent 0.65px),
@@ -506,7 +506,7 @@
   @apply rounded-lg shadow-2xl overflow-hidden transition-all duration-500 bg-[#121212] border border-white/5;
 }
 
-/* IluminaÃ§Ã£o ambiente dourada â€” painel principal (todas as pÃ¡ginas autenticadas) */
+/* IluminaÃƒÂ§ÃƒÂ£o ambiente dourada Ã¢â‚¬â€ painel principal (todas as pÃƒÂ¡ginas autenticadas) */
 .app-content-panel {
   position: relative;
   isolation: isolate;
@@ -530,7 +530,7 @@
   z-index: 2;
 }
 
-/* Margem lateral consistente nas pÃ¡ginas autenticadas (mobile-first) */
+/* Margem lateral consistente nas pÃƒÂ¡ginas autenticadas (mobile-first) */
 .app-page-gutter,
 .page-header-shell {
   padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
@@ -595,7 +595,7 @@
   padding-top: 0.125rem;
 }
 
-/* RodapÃ© global â€” rola com o conteÃºdo */
+/* RodapÃƒÂ© global Ã¢â‚¬â€ rola com o conteÃƒÂºdo */
 .app-footer {
   position: relative;
   isolation: isolate;
@@ -758,7 +758,7 @@
   transform: scaleX(-1);
 }
 
-/* Fundo padrÃ£o das telas de bloqueio / sessÃ£o / loading (substitui style inline para CSP sem unsafe-inline). */
+/* Fundo padrÃƒÂ£o das telas de bloqueio / sessÃƒÂ£o / loading (substitui style inline para CSP sem unsafe-inline). */
 .login-bg-screen {
   background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login-bg-desktop.png');
   background-size: cover;
@@ -767,7 +767,7 @@
 }
 
 /* Landing (pasta landing/ integrada) */
-/* Menu mobile: fundo quase sÃ³lido (glass fraco demais no mobile) */
+/* Menu mobile: fundo quase sÃƒÂ³lido (glass fraco demais no mobile) */
 .landing-nav-menu {
   background: rgba(8, 8, 8, 0.98);
   backdrop-filter: blur(24px);
@@ -937,7 +937,7 @@
   }
 }
 
-/* SecÃ§Ãµes da landing â€” mesma linguagem do hero */
+/* SecÃƒÂ§ÃƒÂµes da landing Ã¢â‚¬â€ mesma linguagem do hero */
 .landing-section {
   position: relative;
   border-top: 1px solid rgba(42, 33, 8, 0.85);
@@ -1109,7 +1109,7 @@
   background: rgba(255, 255, 255, 0.07);
 }
 
-/* Grade de recursos â€” layout tipo showcase (referÃªncia de mercado), tema AxÃ©Cloud */
+/* Grade de recursos Ã¢â‚¬â€ layout tipo showcase (referÃƒÂªncia de mercado), tema AxÃƒÂ©Cloud */
 .landing-resource-card {
   display: flex;
   flex-direction: column;
@@ -1169,7 +1169,7 @@
   color: #475569;
 }
 
-/* Depoimentos â€” grade estilo mercado */
+/* Depoimentos Ã¢â‚¬â€ grade estilo mercado */
 .landing-testimonial-card {
   display: flex;
   height: 100%;
@@ -1288,7 +1288,7 @@
   color: #d4d4d4;
 }
 
-/* Apps & PWA â€” cards com mockup de celular (referÃªncia de mercado) */
+/* Apps & PWA Ã¢â‚¬â€ cards com mockup de celular (referÃƒÂªncia de mercado) */
 .landing-app-card {
   display: flex;
   flex-direction: column;
@@ -1515,7 +1515,7 @@
   background: linear-gradient(180deg, #050505 0%, #000 100%);
 }
 
-/* Landing: fundo bem mais discreto para nÃ£o competir com o conteÃºdo */
+/* Landing: fundo bem mais discreto para nÃƒÂ£o competir com o conteÃƒÂºdo */
 .landing-bg-screen {
   background-image:
     linear-gradient(180deg, rgba(6, 7, 8, 0.94) 0%, rgba(6, 7, 8, 0.88) 45%, rgba(6, 7, 8, 0.96) 100%),
@@ -1527,7 +1527,7 @@
   filter: saturate(0.35) brightness(0.45);
 }
 
-/* Variante com overlay mais escuro (usada na tela de "SessÃ£o expirada"). */
+/* Variante com overlay mais escuro (usada na tela de "SessÃƒÂ£o expirada"). */
 .login-bg-screen-dark {
   background-image: linear-gradient(rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.72)), url('/login-bg-desktop.png');
   background-size: cover;
@@ -1535,24 +1535,24 @@
   background-repeat: no-repeat;
 }
 
-/* Cover de PDF (Library) â€” alturas fixas via classe ao invÃ©s de style inline. */
+/* Cover de PDF (Library) Ã¢â‚¬â€ alturas fixas via classe ao invÃƒÂ©s de style inline. */
 .pdf-cover-compact { height: 120px; }
 .pdf-cover-normal { height: 200px; }
 
 /* Canvas de preview de PDF */
 .pdf-canvas { width: 100%; height: auto; }
 
-/* AnimaÃ§Ã£o ping com duraÃ§Ã£o customizada (avatar do filho no Dashboard) */
+/* AnimaÃƒÂ§ÃƒÂ£o ping com duraÃƒÂ§ÃƒÂ£o customizada (avatar do filho no Dashboard) */
 .animate-ping-slow {
   animation: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-/* Padroniza cantos do sistema em um Ãºnico raio (exceto formas circulares). */
+/* Padroniza cantos do sistema em um ÃƒÂºnico raio (exceto formas circulares). */
 [class*="rounded-["]:not([class*="rounded-full"]) {
   border-radius: 0.4rem !important;
 }
 
-/* Landing v3 â€” visual AI Studio com conteÃºdo AxÃ©Cloud */
+/* Landing v3 Ã¢â‚¬â€ visual AI Studio com conteÃƒÂºdo AxÃƒÂ©Cloud */
 html:has(.landing-v3) {
   font-size: 16px;
   scroll-behavior: auto;
@@ -1581,7 +1581,7 @@ html:has(.landing-v3--stone) body,
   background-color: #f2f3ef;
 }
 
-/* Seções abaixo da dobra: paint sob demanda sem cortar animações ao entrar. */
+/* SeÃ§Ãµes abaixo da dobra: paint sob demanda sem cortar animaÃ§Ãµes ao entrar. */
 .landing-section-cv {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
@@ -1903,7 +1903,7 @@ html[data-landing-scrolling] .matriz-wiggle {
   box-shadow: 0 10px 26px -12px rgba(40, 33, 12, 0.16), 0 2px 6px -2px rgba(40, 33, 12, 0.07);
 }
 
-/* v3 light overrides — títulos/labels que ainda nasceram do tema escuro */
+/* v3 light overrides â€” tÃ­tulos/labels que ainda nasceram do tema escuro */
 .landing-v3 .landing-app-card__title,
 .landing-v3 .landing-before-after-card__title {
   color: #0f172a;
@@ -2908,7 +2908,7 @@ html[data-landing-scrolling] .matriz-wiggle {
   }
 }
 
-/* App autenticado v3 â€” alinhado Ã  demo interativa da landing */
+/* App autenticado v3 Ã¢â‚¬â€ alinhado ÃƒÂ  demo interativa da landing */
 html:has(.app-v3) {
   font-size: 15px;
 }
@@ -3023,7 +3023,7 @@ html:has(.app-v3) {
   );
 }
 
-/* MigraÃ§Ã£o gradual: superfÃ­cies legadas â†’ paleta v3 */
+/* MigraÃƒÂ§ÃƒÂ£o gradual: superfÃƒÂ­cies legadas Ã¢â€ â€™ paleta v3 */
 .app-v3 .bg-\[\#121212\],
 .app-v3 .bg-\[\#111\],
 .app-v3 .bg-\[\#1a1a1a\],
@@ -3104,7 +3104,7 @@ html:has(.app-v3) {
   animation: fadeIn 0.2s ease-out forwards;
 }
 
-/* ——— Sem “zoom” ao clicar / abrir modais ——— */
+/* â€”â€”â€” Sem â€œzoomâ€ ao clicar / abrir modais â€”â€”â€” */
 .marketing-top-nav a,
 .marketing-top-nav button {
   -webkit-tap-highlight-color: transparent;
@@ -3188,12 +3188,12 @@ html:has(.app-v3) {
   transition-property: color, background-color, border-color, opacity, box-shadow, filter !important;
 }
 
-/* Android/Chrome — painel WhatsApp mobile.
-   Causa raiz da corrupção de GPU: o wrapper de Configurações usa `animate-fadeIn`
-   (animação de opacity) que promove TODA a página a uma única camada GPU. Numa
-   página alta essa textura passa do limite do Android e corrompe o miolo.
-   Solução: não animar a entrada no mobile. Nada mais precisa ser mexido no
-   compositor — hacks de de-promoção causavam fantasmas de repaint ao rolar. */
+/* Android/Chrome â€” painel WhatsApp mobile.
+   Causa raiz da corrupÃ§Ã£o de GPU: o wrapper de ConfiguraÃ§Ãµes usa `animate-fadeIn`
+   (animaÃ§Ã£o de opacity) que promove TODA a pÃ¡gina a uma Ãºnica camada GPU. Numa
+   pÃ¡gina alta essa textura passa do limite do Android e corrompe o miolo.
+   SoluÃ§Ã£o: nÃ£o animar a entrada no mobile. Nada mais precisa ser mexido no
+   compositor â€” hacks de de-promoÃ§Ã£o causavam fantasmas de repaint ao rolar. */
 @media (max-width: 1023px) {
   .app-v3 .recharts-responsive-container {
     contain: layout paint;
@@ -3333,7 +3333,7 @@ html:has(.app-v3) {
   }
 }
 
-/* Landing mockup — fidelidade visual ao hero aprovado */
+/* Landing mockup â€” fidelidade visual ao hero aprovado */
 html:has(.landing-mockup-nav) {
   --landing-mockup-nav-height: 4.5rem;
   --mockup-shell-max: 72rem;
@@ -3542,7 +3542,7 @@ html:has(.landing-mockup-nav) {
   color: #1b1813;
 }
 
-/* Adesivo pulsante — Programa Fundador no hero */
+/* Adesivo pulsante â€” Programa Fundador no hero */
 .founder-sticker-anchor {
   position: relative;
   z-index: 40;
@@ -4257,7 +4257,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* ── Landing mockup theme — harmoniza seções abaixo do hero ── */
+/* â”€â”€ Landing mockup theme â€” harmoniza seÃ§Ãµes abaixo do hero â”€â”€ */
 .landing-mockup-kicker {
   border-radius: 9999px;
   background: #ffc107;
@@ -4269,7 +4269,7 @@ html:has(.landing-mockup-nav) {
   color: #1b1813;
 }
 
-/* Contraste reforçado em textos utilitários do tema mockup (fundo claro). */
+/* Contraste reforÃ§ado em textos utilitÃ¡rios do tema mockup (fundo claro). */
 .landing-mockup-theme .text-neutral-500 {
   color: rgba(27, 24, 19, 0.68) !important;
 }
@@ -4286,7 +4286,7 @@ html:has(.landing-mockup-nav) {
   color: rgba(27, 24, 19, 0.48) !important;
 }
 
-/* Reforço extra para classes utilitárias com alpha no tema mockup. */
+/* ReforÃ§o extra para classes utilitÃ¡rias com alpha no tema mockup. */
 .landing-mockup-theme .text-\[\#1b1813\]\/45 {
   color: rgba(27, 24, 19, 0.72) !important;
 }
@@ -4337,7 +4337,7 @@ html:has(.landing-mockup-nav) {
   box-shadow: 0 2px 8px rgba(27, 24, 19, 0.05);
 }
 
-/* Espaço do Fiel — painéis destacados sobre fundo #fdf8f0. */
+/* EspaÃ§o do Fiel â€” painÃ©is destacados sobre fundo #fdf8f0. */
 .espaco-fiel-portal .espaco-fiel-panel {
   border-color: #b09878;
   background: #ffffff;
@@ -4488,7 +4488,7 @@ html:has(.landing-mockup-nav) {
   border-color: #ffc107;
 }
 
-/* Aplicativo interno: superfície clara e cartões de trabalho escuros. */
+/* Aplicativo interno: superfÃ­cie clara e cartÃµes de trabalho escuros. */
 .app-v3 .app-page-shell {
   color: #17130d;
 }
@@ -4505,7 +4505,7 @@ html:has(.landing-mockup-nav) {
   box-shadow: 0 18px 44px -34px rgba(0, 0, 0, 0.9);
 }
 
-/* AxéCloud v4 experimental — uma camada visual reversível.
+/* AxÃ©Cloud v4 experimental â€” uma camada visual reversÃ­vel.
    Remover `app-v4-experiment` do shell restaura o tratamento anterior. */
 .app-v4-experiment .app-editorial-header {
   position: relative;
@@ -4806,7 +4806,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Movimento v4 — rápido, funcional e seguro para aparelhos mais modestos. */
+/* Movimento v4 â€” rÃ¡pido, funcional e seguro para aparelhos mais modestos. */
 @keyframes axe-v4-view-in {
   from {
     opacity: 0;
@@ -4965,9 +4965,9 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Configurações: o fundo da página é claro, mas toda superfície escura
-   declara sua própria cor. Isso evita texto herdado do fundo claro e
-   mantém contraste consistente em campos, descrições e placeholders. */
+/* ConfiguraÃ§Ãµes: o fundo da pÃ¡gina Ã© claro, mas toda superfÃ­cie escura
+   declara sua prÃ³pria cor. Isso evita texto herdado do fundo claro e
+   mantÃ©m contraste consistente em campos, descriÃ§Ãµes e placeholders. */
 .app-v3 .settings-dark-surface {
   color: #f8fafc;
 }
@@ -4990,8 +4990,8 @@ html:has(.landing-mockup-nav) {
   opacity: 1;
 }
 
-/* Portal público: identidade de vitrine digital, separada das demais
-   configurações. Azul/ciano comunica presença pública e descoberta. */
+/* Portal pÃºblico: identidade de vitrine digital, separada das demais
+   configuraÃ§Ãµes. Azul/ciano comunica presenÃ§a pÃºblica e descoberta. */
 .app-v4-experiment .portal-identity-hero {
   position: relative;
   isolation: isolate;
@@ -5151,9 +5151,9 @@ html:has(.landing-mockup-nav) {
 }
 
 /* ==========================================================================
-   AXÉCLOUD V5 — identidade de produto
+   AXÃ‰CLOUD V5 â€” identidade de produto
    Marfim + verde terreiro + ouro envelhecido. A classe no shell permite
-   remover toda a experiência sem afetar a versão anterior.
+   remover toda a experiÃªncia sem afetar a versÃ£o anterior.
    ========================================================================== */
 .app-v5-identity {
   --axe-v5-ivory: #f7f3ea;
@@ -5562,7 +5562,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Componentes compartilhados: a identidade acompanha todos os módulos. */
+/* Componentes compartilhados: a identidade acompanha todos os mÃ³dulos. */
 /* Linha do tempo da casa: narrativa horizontal dos acontecimentos do terreiro. */
 .app-v5-identity .house-timeline {
   position: relative;
@@ -5891,7 +5891,7 @@ html:has(.landing-mockup-nav) {
     min-width: 0;
     max-width: none;
     /* Sem isso o flexbox espreme os cards para caber no max-height do rail,
-       cortando o conteúdo (cards "um em cima do outro"). */
+       cortando o conteÃºdo (cards "um em cima do outro"). */
     flex-shrink: 0;
     padding: 1rem 0.85rem 1rem 3.25rem;
   }
@@ -5914,7 +5914,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Ação contextual: próximo passo provável sem competir com o conteúdo da página. */
+/* AÃ§Ã£o contextual: prÃ³ximo passo provÃ¡vel sem competir com o conteÃºdo da pÃ¡gina. */
 .app-v5-identity .context-action-wrap {
   width: 100%;
   max-width: 1600px;
@@ -6001,7 +6001,7 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .app-view-transition {
   min-height: 100%;
-  /* fill-mode "backwards" (não "both"): manter transform/filter após a animação
+  /* fill-mode "backwards" (nÃ£o "both"): manter transform/filter apÃ³s a animaÃ§Ã£o
      transforma este wrapper em containing block e desancora todos os modais
      position:fixed renderizados dentro das telas. */
   animation: app-view-continuity 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -6055,7 +6055,7 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .library-empty-preview::before {
-  content: "Exemplo de material · Fundamentos de ervas · PDF";
+  content: "Exemplo de material Â· Fundamentos de ervas Â· PDF";
 }
 
 .app-v5-identity .atendimento-empty-preview::before {
@@ -6197,7 +6197,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Home estrutural V5 — substitui o painel administrativo antigo. */
+/* Home estrutural V5 â€” substitui o painel administrativo antigo. */
 .app-v5-identity .dashboard-v5-legacy {
   display: none;
 }
@@ -6559,7 +6559,7 @@ html:has(.landing-mockup-nav) {
   background: linear-gradient(145deg, #fffdf8, #f6efe3);
 }
 
-/* Navegação mobile em formato de aplicativo. */
+/* NavegaÃ§Ã£o mobile em formato de aplicativo. */
 .app-v5-identity .app-v5-bottom-nav {
   min-height: 4.4rem;
   padding: 0.35rem;
@@ -6670,7 +6670,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Dashboard command center — visual aprovado nos mockups de setembro/2026. */
+/* Dashboard command center â€” visual aprovado nos mockups de setembro/2026. */
 .app-v5-identity .dashboard-command {
   --command-gold: #f6c62e;
   --command-gold-soft: #ffe681;
@@ -7587,7 +7587,6 @@ html:has(.landing-mockup-nav) {
 }
 
 @media (max-width: 820px) {
-  .app-v5-identity .dashboard-v5 { margin: -.75rem; }
   .app-v5-identity .command-journey {
     min-height: 38.5rem;
     padding: 1.35rem 1.2rem 3rem;
@@ -7674,10 +7673,10 @@ html:has(.landing-mockup-nav) {
 }
 
 /* ==========================================================================
-   MÓDULOS V5 — cada página recebe uma composição ligada à sua função.
+   MÃ“DULOS V5 â€” cada pÃ¡gina recebe uma composiÃ§Ã£o ligada Ã  sua funÃ§Ã£o.
    ========================================================================== */
 
-/* Corrente: diretório humano, não planilha administrativa. */
+/* Corrente: diretÃ³rio humano, nÃ£o planilha administrativa. */
 .app-v5-identity .children-v5-page .app-metric-rail {
   gap: 0 !important;
   overflow: hidden;
@@ -7744,7 +7743,7 @@ html:has(.landing-mockup-nav) {
   color: var(--axe-v5-ink) !important;
 }
 
-/* Perfil: ficha viva com cabeçalho protagonista e conteúdo editorial. */
+/* Perfil: ficha viva com cabeÃ§alho protagonista e conteÃºdo editorial. */
 .app-v5-identity .child-profile-v5-page > div > div:nth-child(2) {
   border-color: rgba(232, 199, 103, 0.15) !important;
   border-radius: 1.55rem !important;
@@ -7782,7 +7781,7 @@ html:has(.landing-mockup-nav) {
   box-shadow: 0 14px 34px -30px rgba(45, 34, 21, 0.6);
 }
 
-/* Giras: agenda em fluxo, com calendário como ferramenta secundária. */
+/* Giras: agenda em fluxo, com calendÃ¡rio como ferramenta secundÃ¡ria. */
 .app-v5-identity .calendar-v5-page .app-metric-rail {
   gap: 1px !important;
   overflow: hidden;
@@ -7834,7 +7833,7 @@ html:has(.landing-mockup-nav) {
   background: var(--axe-v5-gold);
 }
 
-/* Financeiro: livro-caixa, dados primeiro e formulário como ferramenta. */
+/* Financeiro: livro-caixa, dados primeiro e formulÃ¡rio como ferramenta. */
 .app-v5-identity .financial-v5-page .app-metric-rail {
   gap: 0 !important;
   overflow: hidden;
@@ -7884,7 +7883,7 @@ html:has(.landing-mockup-nav) {
   color: #657083 !important;
 }
 
-/* Comunicados: mural editorial com abas de publicação. */
+/* Comunicados: mural editorial com abas de publicaÃ§Ã£o. */
 /* Pix: configuracao como uma estacao de recebimento, nao como formulario generico. */
 .app-v5-identity .financial-v5-page .financial-pix-console {
   position: relative;
@@ -8043,7 +8042,7 @@ html:has(.landing-mockup-nav) {
   box-shadow: 0 24px 44px -32px rgba(45, 34, 21, 0.55) !important;
 }
 
-/* Almoxarifado: console operacional, alerta de reposição em destaque. */
+/* Almoxarifado: console operacional, alerta de reposiÃ§Ã£o em destaque. */
 .app-v5-identity .inventory-v5-page > .space-y-5 > .grid:first-child {
   gap: 1px !important;
   overflow: hidden;
@@ -8065,7 +8064,7 @@ html:has(.landing-mockup-nav) {
   backdrop-filter: blur(14px);
 }
 
-/* Biblioteca: estante, não tabela. */
+/* Biblioteca: estante, nÃ£o tabela. */
 .app-v5-identity .library-v5-page .app-v5-panel {
   border-color: rgba(107, 94, 76, 0.13) !important;
 }
@@ -8095,7 +8094,7 @@ html:has(.landing-mockup-nav) {
   background: #fffdf8 !important;
 }
 
-/* Loja: vitrine comercial, imagem protagonista e ação consistente. */
+/* Loja: vitrine comercial, imagem protagonista e aÃ§Ã£o consistente. */
 /* Galeria: faixa cinematografica, mesa de curadoria e albuns como impressos. */
 .app-v5-identity .gallery-v5-page .gallery-archive-ribbon {
   gap: 0 !important;
@@ -8449,7 +8448,7 @@ html:has(.landing-mockup-nav) {
   background: #eee7dc !important;
 }
 
-/* Configurações: navegação como central de produto, conteúdo sem caixa duplicada. */
+/* ConfiguraÃ§Ãµes: navegaÃ§Ã£o como central de produto, conteÃºdo sem caixa duplicada. */
 .app-v5-identity .settings-v5-page .settings-subnav {
   position: sticky;
   z-index: 18;
@@ -8479,7 +8478,7 @@ html:has(.landing-mockup-nav) {
     position: static;
   }
 }
-/* Notification popover — referência 21st.dev, adaptada à identidade AxéCloud. */
+/* Notification popover â€” referÃªncia 21st.dev, adaptada Ã  identidade AxÃ©Cloud. */
 .axecloud-notification-root.is-fixed {
   position: fixed;
   right: 4.35rem;
@@ -8797,7 +8796,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Sidebar expansível — compacto em repouso e completo ao passar o mouse. */
+/* Sidebar expansÃ­vel â€” compacto em repouso e completo ao passar o mouse. */
 @media (min-width: 880px) {
   .app-v5-sidebar[data-expanded='true'] {
     box-shadow:
@@ -8851,7 +8850,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* ─── Mapa Vivo da Corrente ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Mapa Vivo da Corrente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .current-map {
   color: #18202a;
 }
@@ -9883,7 +9882,7 @@ html:has(.landing-mockup-nav) {
   box-shadow: 0 -14px 30px rgba(33, 25, 15, 0.05);
 }
 
-/* ─── Central de Operação Ritual / Giras ───────────────────────────────── */
+/* â”€â”€â”€ Central de OperaÃ§Ã£o Ritual / Giras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ritual-command { color:#18140f }
 .ritual-command__top { display:flex;align-items:end;justify-content:space-between;gap:2rem;padding:.5rem 0 1.5rem }
 .ritual-command__kicker,.ritual-timeline__heading p,.ritual-calendar header p { color:#a87900;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:.17em }
@@ -10174,7 +10173,7 @@ html:has(.landing-mockup-nav) {
 .filho-mobile-journey>span strong { color:#9b7600;font-size:1.8rem;font-weight:950;line-height:1 }.filho-mobile-journey>span small { margin-top:.2rem;color:#7e7467;font-size:.52rem;font-weight:750 }
 .filho-mobile-journey>button { position:absolute;right:1rem;bottom:1rem;z-index:1;display:flex;align-items:center;gap:.3rem;color:#3b4f42;font-size:.54rem;font-weight:950 }.filho-mobile-journey>button svg { width:.75rem;height:.75rem }
 
-/* Portal do Filho — uma única identidade da dashboard, do celular ao desktop. */
+/* Portal do Filho â€” uma Ãºnica identidade da dashboard, do celular ao desktop. */
 .app-page-shell[data-role='filho'] .context-action-wrap { display:none }
 .app-page-shell[data-role='filho'] .filho-push-prompt {
   border:1px solid #ddd5c7;
@@ -10201,7 +10200,7 @@ html:has(.landing-mockup-nav) {
   padding-bottom:4.5rem;
 }
 
-/* Tour de legendas (coachmarks) — 1º acesso do filho */
+/* Tour de legendas (coachmarks) â€” 1Âº acesso do filho */
 .filho-coach {
   position: fixed;
   inset: 0;
@@ -10484,7 +10483,7 @@ html:has(.landing-mockup-nav) {
   .app-page-shell[data-role='filho'] .app-footer { display:none }
 }
 
-/* Obrigações do Filho — Caderno de Caminhada */
+/* ObrigaÃ§Ãµes do Filho â€” Caderno de Caminhada */
 .filho-journey-page { display:flex;width:100%;max-width:1320px;flex-direction:column;gap:1rem;margin:0 auto;padding-bottom:4rem;color:#25251f }
 .filho-journey-hero {
   position:relative;
@@ -10584,7 +10583,7 @@ html:has(.landing-mockup-nav) {
   .filho-journey-list { padding:.1rem .9rem .4rem }.filho-journey-list article { grid-template-columns:1.6rem 3.15rem minmax(0,1fr);gap:.65rem;min-height:7.5rem }.filho-journey-list__rail>span { width:1.45rem;height:1.45rem;margin-top:2.8rem }.filho-journey-list__rail>i { top:4.2rem;bottom:-3.3rem }.filho-journey-list__date strong { font-size:1.35rem }.filho-journey-list__content h3 { font-size:.75rem }.filho-journey-list__description { font-size:.58rem;-webkit-line-clamp:1 }.filho-journey-list__action { grid-column:3 }.filho-journey-list__action button { padding:.5rem .6rem }.filho-journey-list__action button span { display:none }
 }
 
-/* Giras do Filho — Agenda da Corrente */
+/* Giras do Filho â€” Agenda da Corrente */
 .filho-giras-page { display:flex;width:100%;max-width:1320px;flex-direction:column;gap:1rem;margin:0 auto;padding-bottom:4rem;color:#25251f }
 .filho-giras-hero {
   position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:2rem;overflow:hidden;min-height:15rem;border-radius:1.9rem;padding:2rem 2.2rem;
@@ -10627,7 +10626,7 @@ html:has(.landing-mockup-nav) {
   .filho-giras-agenda { border-radius:1.35rem }.filho-giras-agenda>header { padding:1rem }.filho-giras-list { padding:.1rem .9rem .35rem }.filho-giras-list article { grid-template-columns:3.2rem minmax(0,1fr) auto;gap:.65rem;min-height:7.5rem }.filho-giras-list__answer { grid-column:2/4 }.filho-giras-list__open { grid-column:3;grid-row:1 }.filho-giras-response.is-compact { width:100% }.filho-giras-response.is-compact button:first-child { width:100% }
 }
 
-/* Conversas do Filho — Central de Acolhimento */
+/* Conversas do Filho â€” Central de Acolhimento */
 .filho-chat-page {
   display:flex;width:calc(100% - 2rem);max-width:1320px;min-height:calc(100dvh - 8rem);flex-direction:column;
   gap:1rem;margin:1rem auto 4.5rem;color:#27251f
@@ -10752,7 +10751,7 @@ html:has(.landing-mockup-nav) {
   .filho-chat-welcome { min-height:30rem }.filho-chat-conversations { max-height:none }
 }
 
-/* Comunicados do Filho — Mural da Corrente */
+/* Comunicados do Filho â€” Mural da Corrente */
 .filho-notice-page {
   display:flex;width:100%;max-width:1320px;flex-direction:column;gap:1rem;margin:0 auto;
   padding-bottom:4.5rem;color:#27251f
@@ -10896,7 +10895,7 @@ html:has(.landing-mockup-nav) {
   .filho-notice-dialog__body { padding:1.2rem }.filho-notice-dialog__body h2 { font-size:1.5rem }
 }
 
-/* Loja do Filho — Vitrine da Casa */
+/* Loja do Filho â€” Vitrine da Casa */
 .filho-store-page {
   display:flex;width:100%;max-width:1320px;flex-direction:column;gap:1rem;margin:0 auto;
   padding-bottom:4.5rem;color:#27251f
@@ -11063,7 +11062,7 @@ html:has(.landing-mockup-nav) {
   .filho-store-catalog>header>p { display:none }
 }
 
-/* Biblioteca do Filho — Casa de Estudos */
+/* Biblioteca do Filho â€” Casa de Estudos */
 .filho-library-page,
 .filho-reading-page {
   width:100%;max-width:1320px;margin:0 auto;padding-bottom:4.5rem;color:#24241e
@@ -11283,7 +11282,7 @@ html:has(.landing-mockup-nav) {
   .filho-library-grid { grid-template-columns:1fr 1fr }.filho-library-catalog>header>p { display:none }
 }
 
-/* Mensalidade do Filho — Carteira da Casa */
+/* Mensalidade do Filho â€” Carteira da Casa */
 .filho-wallet-page { display:flex;width:100%;max-width:1320px;flex-direction:column;gap:1rem;margin:0 auto;padding-bottom:4rem;color:#25251f }
 .filho-wallet-hero {
   position:relative;
@@ -11424,7 +11423,7 @@ html:has(.landing-mockup-nav) {
   .ritual-calendar__day button{font-size:.38rem;padding:.12rem .14rem}
 }
 
-/* Comunicados — feed oficial + central de envio */
+/* Comunicados â€” feed oficial + central de envio */
 .comms-page-header {
   display:flex;align-items:center;justify-content:space-between;gap:1.5rem;
   margin-bottom:1.25rem;padding:1.5rem 1.65rem;border:1px solid #252d37;
@@ -11474,7 +11473,7 @@ html:has(.landing-mockup-nav) {
 .comms-control__recent .is-sent { background:rgba(52,211,153,.1);color:#34d399 }.comms-control__recent .is-failed { background:rgba(251,113,133,.1);color:#fb7185 }
 .comms-control__recent strong,.comms-control__recent small { display:block }.comms-control__recent strong { font-size:.68rem }.comms-control__recent small { margin-top:.15rem;color:#707d8f;font-size:.58rem }
 
-/* Portal do Filho — revisão final de legibilidade e interação */
+/* Portal do Filho â€” revisÃ£o final de legibilidade e interaÃ§Ã£o */
 :is(
   .filho-home-experience,
   .filho-journey-page,
@@ -11627,7 +11626,7 @@ html:has(.landing-mockup-nav) {
 @media(max-width:980px){.comms-workspace{grid-template-columns:1fr}.comms-control{position:static}.comms-control__recent{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.comms-control__recent>p{grid-column:1/-1}.comms-control__recent>div{border:0}}
 @media(max-width:640px){.comms-page-header{align-items:flex-start;flex-direction:column;padding:1.15rem}.comms-page-header>button{width:100%;justify-content:center}.comms-page-header__identity h1{font-size:1.65rem}.comms-control__recent{grid-template-columns:1fr}.comms-feed>section>div{align-items:stretch!important}.comms-feed>section [class*='flex-wrap']{overflow-x:auto;flex-wrap:nowrap!important}.comms-feed>section button{flex:none}}
 
-/* —— Toast da casa (prova de sucesso) —— */
+/* â€”â€” Toast da casa (prova de sucesso) â€”â€” */
 .house-toast-host {
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));
@@ -11730,7 +11729,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* ─── Guias públicos (/instrucoes, /instrucoes/membro) ─── */
+/* â”€â”€â”€ Guias pÃºblicos (/instrucoes, /instrucoes/membro) â”€â”€â”€ */
 .guide-page {
   --guide-ink: #1a221c;
   --guide-muted: #5c665e;
@@ -12336,7 +12335,7 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Login institucional — mesma linguagem visual da nova home. */
+/* Login institucional â€” mesma linguagem visual da nova home. */
 .axe-login-page{display:grid;grid-template-columns:minmax(390px,.88fr) minmax(540px,1.12fr);font-family:Manrope,"Segoe UI",Arial,sans-serif}
 .axe-login-story{position:relative;min-height:100dvh;overflow:hidden;padding:38px clamp(32px,5vw,78px);display:flex;flex-direction:column;color:#f5f0e3;background:#0d100c}
 .axe-login-story::before{content:"";position:absolute;inset:0;opacity:.18;background-image:linear-gradient(rgba(229,174,18,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(229,174,18,.35) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(135deg,#000,transparent 78%)}
@@ -12350,7 +12349,7 @@ html:has(.landing-mockup-nav) {
 @media(max-width:980px){.axe-login-page{grid-template-columns:1fr}.axe-login-story{min-height:680px}.axe-login-panel{min-height:760px;overflow:visible}}
 @media(max-width:620px){.axe-login-story{min-height:640px;padding:26px 20px}.axe-login-story-copy h2{font-size:54px}.axe-login-signals{grid-template-columns:1fr}.axe-login-signals>span{min-height:82px}.axe-login-panel{padding:64px 20px 28px}.axe-login-choice-heading h2{font-size:43px}.axe-login-path{min-height:124px;padding:20px 12px;grid-template-columns:26px 42px 1fr 20px;gap:10px}.axe-login-path-icon{width:40px;height:40px}.axe-login-path-copy strong{font-size:20px}.axe-login-path-copy em{font-size:11px}.axe-login-form-surface{padding:28px 22px}}
 
-/* Portal de acesso — identidade AxéCloud e prioridade absoluta ao login no mobile. */
+/* Portal de acesso â€” identidade AxÃ©Cloud e prioridade absoluta ao login no mobile. */
 .axe-login-page{grid-template-columns:minmax(390px,.78fr) minmax(620px,1.22fr)}
 .axe-login-story{padding-inline:clamp(32px,4vw,68px)}
 .axe-login-panel{padding:70px clamp(28px,5.6vw,92px) 36px;background-color:#e9dfca;background-image:linear-gradient(rgba(70,74,49,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(70,74,49,.055) 1px,transparent 1px),radial-gradient(circle at 78% 12%,rgba(229,174,18,.18),transparent 30%);background-size:64px 64px,64px 64px,auto}
@@ -12415,7 +12414,7 @@ html:has(.landing-mockup-nav) {
   .axe-login-path-arrow{width:18px}.axe-login-help{margin-top:14px;font-size:9px;line-height:1.7}
   .axe-login-form-surface{padding:26px 19px 22px}
 }
-/* Cartografia editorial do diretório: reduz o aspecto de mapa genérico sem
+/* Cartografia editorial do diretÃ³rio: reduz o aspecto de mapa genÃ©rico sem
    comprometer a legibilidade dos nomes de cidades e vias. */
 .axecloud-directory-tiles {
   filter: sepia(0.14) saturate(0.78) contrast(0.96) brightness(1.025);
@@ -12482,7 +12481,7 @@ html:has(.landing-mockup-nav) {
   .axecloud-map-popup .leaflet-popup-content { width: min(310px, calc(100vw - 46px)) !important; }
   .axe-map-profile__actions { grid-template-columns: 1fr; }
 }
-/* Dashboard fidelity pass — source of truth: approved desktop and mobile mockups. */
+/* Dashboard fidelity pass â€” source of truth: approved desktop and mobile mockups. */
 .app-v5-identity .command-desktop-bar {
   display: grid;
   grid-template-columns: minmax(12rem, 17rem) auto minmax(18rem, 1fr) auto;
@@ -12822,7 +12821,6 @@ html:has(.landing-mockup-nav) {
 }
 
 @media (max-width: 820px) {
-  .app-v5-identity .dashboard-v5 { margin: -.75rem; }
   .app-v5-identity .dashboard-command { gap: .65rem; padding-bottom: 8.5rem; }
   .app-v5-identity .command-desktop-bar { display: none; }
   .app-v5-identity .command-journey {
@@ -13012,16 +13010,8 @@ html:has(.landing-mockup-nav) {
     scroll-behavior: auto !important;
   }
 }
-/* Dashboard viewport fit — exact approved mockup proportions. */
-.app-v5-identity .app-page-shell:has(.dashboard-v5) > footer { display: none; }
-@media (min-width: 880px) {
-  .app-v5-identity .dashboard-v5 { margin: -1.75rem -2rem 0; }
-}
-@media (min-width: 1280px) {
-  .app-v5-identity .dashboard-v5 { margin-inline: -2.5rem; }
-}
+/* Dashboard viewport fit. */
 @media (max-width: 820px) {
-  .app-v5-identity .dashboard-v5 { margin: -1.25rem -1rem 0; }
   .app-v5-identity .command-journey { min-height: 29.3rem; }
   .app-v5-identity .command-pulse { min-height: 8.8rem; }
   .app-v5-identity .command-gira,
@@ -13034,7 +13024,7 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-gira__content { min-height: 14.8rem; }
 }
 
-/* Dashboard approved mockup alignment — desktop 1280×801 and mobile reference. */
+/* Dashboard approved mockup alignment â€” desktop 1280Ã—801 and mobile reference. */
 @media (min-width: 880px) {
   .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button[aria-current="page"]::before {
     position: absolute;
@@ -13262,7 +13252,7 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-pulse__trend { display: none; }
 }
 
-/* Topo do painel no recorte aprovado: uma faixa só, atenção à direita, onda embaixo. */
+/* Topo do painel no recorte aprovado: uma faixa sÃ³, atenÃ§Ã£o Ã  direita, onda embaixo. */
 @media (min-width: 1100px) {
   .app-v5-identity .dashboard-command { gap: 0; }
   .app-v5-identity .command-desktop-bar {
@@ -13319,7 +13309,7 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-pulse { margin-top: .15rem; }
 }
 
-/* O card de atividades acompanha o texto. Sem a terceira coluna vazia e sem vão abaixo dos registros. */
+/* O card de atividades acompanha o texto. Sem a terceira coluna vazia e sem vÃ£o abaixo dos registros. */
 .app-v5-identity .command-timeline {
   height: auto;
   align-self: start;
@@ -13358,4 +13348,966 @@ html:has(.landing-mockup-nav) {
   width: 1.7rem;
   height: 1.7rem;
   border-width: 0;
+}
+/* Dashboard 2026 â€” reproduÃ§Ã£o da referÃªncia enviada pelo usuÃ¡rio em 26/09. */
+.app-v5-identity .app-view-canvas:has(.dashboard-reference) {
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.app-v5-identity .dashboard-v5:has(.dashboard-reference) {
+  width: 100%;
+  margin: 0 !important;
+}
+.app-v5-identity .dashboard-reference {
+  --ref-gold: #f5c62d;
+  --ref-green: #13dda0;
+  --ref-dark: #04150f;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #f3f1ec;
+  color: #f7faf8;
+  font-family: var(--font-body, "Manrope Variable", Manrope, sans-serif);
+}
+.app-v5-identity .reference-topbar {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  height: 64px;
+  grid-template-columns: 258px 1fr minmax(290px, 414px) 54px 120px;
+  align-items: center;
+  gap: 16px;
+  padding: 0 26px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: #041912;
+}
+.app-v5-identity .reference-topbar button { border: 0; outline: 0; }
+.app-v5-identity .reference-house-switcher {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: white;
+}
+.app-v5-identity .reference-house-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--ref-gold);
+  border-radius: 50%;
+  background: #17362a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.app-v5-identity .reference-house-avatar img,
+.app-v5-identity .reference-profile span img { width:100%;height:100%;object-fit:cover; }
+.app-v5-identity .reference-house-switcher strong {
+  min-width:0;flex:1;overflow:hidden;color:#f7f9f8;font-size:13px;font-weight:800;text-align:left;text-overflow:ellipsis;white-space:nowrap;
+}
+.app-v5-identity .reference-house-switcher > svg { width:14px;color:#cbd4cf; }
+.app-v5-identity .reference-status {
+  display:flex;align-items:center;gap:7px;color:#9eaaa3;font-size:12px;font-weight:650;white-space:nowrap;
+}
+.app-v5-identity .reference-status i {
+  width:9px;height:9px;border-radius:50%;background:#0ceaa0;box-shadow:0 0 13px rgba(12,234,160,.8);
+}
+.app-v5-identity .reference-status strong { color:#15e49b;font-weight:800; }
+.app-v5-identity .reference-search {
+  display:flex;height:44px;align-items:center;gap:12px;padding:0 14px;border:1px solid rgba(255,255,255,.12)!important;border-radius:10px;background:rgba(255,255,255,.025);color:#a9b4af;text-align:left;
+}
+.app-v5-identity .reference-search svg { width:18px;height:18px; }
+.app-v5-identity .reference-search span { flex:1;font-size:12px;font-weight:600; }
+.app-v5-identity .reference-search kbd { color:#acb8b2;font-size:10px;font-family:inherit; }
+.app-v5-identity .reference-notification {
+  position:relative;display:grid;width:44px;height:44px;place-items:center;border-radius:50%;background:transparent;color:#eef4f1;
+}
+.app-v5-identity .reference-notification svg { width:20px; }
+.app-v5-identity .reference-notification i {
+  position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:#ffc126;box-shadow:0 0 0 2px #041912;
+}
+.app-v5-identity .reference-profile {
+  display:flex;align-items:center;gap:9px;background:transparent;color:#fff;
+}
+.app-v5-identity .reference-profile span {
+  display:grid;width:38px;height:38px;place-items:center;overflow:hidden;border:1px solid #16bc84;border-radius:50%;background:#174330;font-size:12px;font-weight:900;
+}
+.app-v5-identity .reference-profile strong { min-width:0;max-width:58px;overflow:hidden;font-size:12px;font-weight:850;text-overflow:ellipsis;white-space:nowrap; }
+.app-v5-identity .reference-profile svg { width:13px;color:#b9c4be; }
+
+.app-v5-identity .reference-hero {
+  position: relative;
+  min-height: 480px;
+  padding: 22px 32px 88px;
+  overflow: visible;
+  background: #03150f;
+}
+.app-v5-identity .reference-hero__forest {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 16, 11, 0.98) 0%, rgba(2, 18, 12, 0.70) 50%, rgba(2, 15, 10, 0.85) 100%),
+    url("/dashboard/command-forest.webp") center right / cover no-repeat;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1;
+}
+.app-v5-identity .reference-hero__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 45% 42%, rgba(245, 198, 45, 0.09), transparent 28rem),
+    radial-gradient(circle at 75% 25%, rgba(19, 221, 160, 0.05), transparent 24rem);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.app-v5-identity .reference-hero__top {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.app-v5-identity .reference-greeting {
+  position: relative;
+  width: max-content;
+}
+.app-v5-identity .reference-greeting p {
+  margin: 0;
+  color: #d4af37;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.app-v5-identity .reference-greeting h1 {
+  margin: 6px 0 0;
+  color: #fff;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+.app-v5-identity .reference-greeting h1 span {
+  color: #f5c62d;
+}
+.app-v5-identity .reference-greeting > strong {
+  display: block;
+  margin-top: 6px;
+  color: #b7c5bd;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-v5-identity .reference-hero__quote-box {
+  text-align: right;
+}
+.app-v5-identity .reference-hero__quote-box blockquote {
+  margin: 0;
+  color: #a8b8b0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  font-style: normal;
+}
+.app-v5-identity .reference-hero__quote-line {
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin: 8px 0 0 auto;
+  border-radius: 99px;
+  background: #f5c62d;
+}
+
+.app-v5-identity .reference-hero-grid {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1.95fr) minmax(320px, 1fr);
+  gap: 28px;
+  margin-top: 24px;
+  align-items: flex-start;
+}
+
+/* 3 Nodes Journey Flow */
+.app-v5-identity .reference-journey {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 6px;
+}
+.app-v5-identity .reference-journey__path {
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 100%;
+  height: 130px;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.app-v5-identity .reference-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.app-v5-identity .reference-node__orb {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+.app-v5-identity .reference-node__progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.app-v5-identity .reference-node__orb-inner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #081a13;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.app-v5-identity .reference-node__orb--bordered {
+  background: #081a13;
+  border: 1px solid rgba(245, 198, 45, 0.35);
+  box-shadow: 0 0 20px rgba(245, 198, 45, 0.12);
+}
+.app-v5-identity .reference-node--wa .reference-node__orb--bordered {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+.app-v5-identity .reference-node__accent-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.app-v5-identity .reference-node__accent-dot--gold {
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f5c62d;
+  box-shadow: 0 0 8px #f5c62d;
+}
+.app-v5-identity .reference-node__accent-dot--green {
+  top: 1px;
+  right: 12px;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+}
+.app-v5-identity .reference-node__icon {
+  width: 22px;
+  height: 22px;
+  color: #ffffff;
+}
+.app-v5-identity .reference-node__tag {
+  color: #cda93d;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.app-v5-identity .reference-node__name {
+  margin: 0;
+  color: #ffffff;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.app-v5-identity .reference-node__detail {
+  margin-top: 3px;
+  color: #8e9f96;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.app-v5-identity .reference-node__btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 18px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5c62d;
+  color: #0d1611;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 4px 14px rgba(245, 198, 45, 0.4);
+}
+.app-v5-identity .reference-node__btn-gold:hover {
+  transform: scale(1.03);
+  background: #fcd54b;
+}
+.app-v5-identity .reference-node__btn-gold svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.4;
+}
+.app-v5-identity .reference-node__btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 18px;
+  margin-top: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.app-v5-identity .reference-node__btn-outline:hover {
+  border-color: rgba(245, 198, 45, 0.6);
+  color: #f5c62d;
+}
+.app-v5-identity .reference-node__btn-outline svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.4;
+}
+.app-v5-identity .reference-node__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 14px;
+  margin-top: 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.app-v5-identity .reference-node__status-badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+.app-v5-identity .reference-node__status-badge.is-warning {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ff5c5c;
+}
+.app-v5-identity .reference-node__status-badge.is-warning i {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px #ff5c5c;
+}
+
+/* Attention Card */
+.app-v5-identity .reference-attention {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(5, 20, 15, 0.88);
+  box-shadow: 0 16px 36px -18px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+}
+.app-v5-identity .reference-attention__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+}
+.app-v5-identity .reference-attention__header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+.app-v5-identity .reference-attention__header button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: #f5c62d;
+  font-size: 12px;
+  font-weight: 800;
+  border: 0;
+  cursor: pointer;
+}
+.app-v5-identity .reference-attention__header button svg {
+  width: 14px;
+  height: 14px;
+}
+.app-v5-identity .reference-attention__list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.app-v5-identity .reference-attention__item {
+  display: grid;
+  min-height: 60px;
+  grid-template-columns: 42px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.app-v5-identity .reference-attention__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.app-v5-identity .reference-attention__icon-box {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+}
+.app-v5-identity .reference-attention__item[data-tone="danger"] .reference-attention__icon-box {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ff5c5c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+}
+.app-v5-identity .reference-attention__item[data-tone="gold"] .reference-attention__icon-box {
+  background: rgba(245, 198, 45, 0.16);
+  color: #f5c62d;
+  border: 1px solid rgba(245, 198, 45, 0.32);
+  box-shadow: 0 0 16px rgba(245, 198, 45, 0.18);
+}
+.app-v5-identity .reference-attention__icon-box svg {
+  width: 20px;
+  height: 20px;
+}
+.app-v5-identity .reference-attention__copy strong {
+  display: block;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-v5-identity .reference-attention__copy small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #8a9c92;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-v5-identity .reference-attention__chevron {
+  width: 16px;
+  height: 16px;
+  color: #6b7c72;
+}
+
+/* Values inscription */
+.app-v5-identity .reference-values {
+  position: absolute;
+  z-index: 6;
+  right: 32px;
+  bottom: 84px;
+  margin: 0;
+  color: #c0a243;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Golden Wave & Centered Floating Pill Button */
+.app-v5-identity .reference-wave-wrap {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 86px;
+  pointer-events: none;
+}
+.app-v5-identity .reference-wave-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.app-v5-identity .reference-create-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: auto;
+}
+.app-v5-identity .reference-create-pill__btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 4px 20px 4px 5px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5c62d;
+  color: #0d1611;
+  font-size: 14px;
+  font-weight: 850;
+  box-shadow: 0 8px 24px -4px rgba(245, 198, 45, 0.65), 0 0 0 1px rgba(255, 235, 130, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.app-v5-identity .reference-create-pill__btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 28px -4px rgba(245, 198, 45, 0.8), 0 0 0 1px rgba(255, 240, 160, 0.6);
+}
+.app-v5-identity .reference-create-pill__plus {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffd95c;
+  color: #0d1611;
+}
+.app-v5-identity .reference-create-pill__plus svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.8;
+}
+.app-v5-identity .reference-create-pill__text {
+  font-family: inherit;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+.app-v5-identity .reference-create-menu {
+  position: absolute;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #061912;
+  border: 1px solid rgba(245, 198, 45, 0.35);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.8);
+  display: grid;
+  gap: 4px;
+  z-index: 30;
+}
+.app-v5-identity .reference-create-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #f4f6f5;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.app-v5-identity .reference-create-menu button:hover {
+  background: rgba(245, 198, 45, 0.15);
+  color: #f5c62d;
+}
+.app-v5-identity .reference-create-menu button svg {
+  width: 16px;
+  height: 16px;
+  color: #f5c62d;
+}
+
+/* Light zone below the wave */
+.app-v5-identity .reference-light-zone {
+  min-height: 480px;
+  padding: 24px 32px 50px;
+  background: #f3f1ec;
+  color: #121915;
+}
+
+/* Pulso da casa Bar */
+.app-v5-identity .reference-pulse-bar {
+  display: grid;
+  grid-template-columns: 220px repeat(4, 1fr);
+  align-items: center;
+  height: 68px;
+  padding: 0 20px;
+  border: 1px solid #e2dfd7;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+.app-v5-identity .reference-pulse-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.app-v5-identity .reference-pulse-bar__brand-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 10px;
+  background: #0d1712;
+  color: #f5c62d;
+}
+.app-v5-identity .reference-pulse-bar__brand-text strong {
+  display: block;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 14px;
+  font-weight: 900;
+  color: #0f1712;
+}
+.app-v5-identity .reference-pulse-bar__brand-text small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #76847d;
+}
+.app-v5-identity .reference-pulse-bar__stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-left: 1px solid #ebe8e1;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.app-v5-identity .reference-pulse-bar__stat:hover {
+  background: #faf8f5;
+  border-radius: 8px;
+}
+.app-v5-identity .reference-pulse-bar__stat-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 8px;
+  background: #f3f1ec;
+  color: #2d3831;
+}
+.app-v5-identity .reference-pulse-bar__stat-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.app-v5-identity .reference-pulse-bar__stat-text strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 18px;
+  font-weight: 900;
+  color: #111914;
+  line-height: 1;
+}
+.app-v5-identity .reference-pulse-bar__stat-text small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #718077;
+}
+.app-v5-identity .reference-pulse-bar__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+/* Lower section columns */
+.app-v5-identity .reference-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr);
+  gap: 24px;
+}
+.app-v5-identity .reference-timeline-col {
+  min-width: 0;
+}
+.app-v5-identity .reference-preceito-col {
+  min-width: 0;
+}
+
+/* Sidebar rail */
+@media (min-width: 880px) {
+  .app-v5-sidebar[data-dashboard-rail="true"] {
+    width: 156px !important;
+    border-right-color: rgba(255, 255, 255, 0.08) !important;
+    background: linear-gradient(180deg, #061a13 0%, #061712 72%, #061712 100%) !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand {
+    height: 102px;
+    padding: 16px 12px 12px !important;
+    border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand button {
+    justify-content: center !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand img {
+    width: 45px !important;
+    height: 45px !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand button > span {
+    margin-top: 4px !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    letter-spacing: 0.06em !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav {
+    align-items: stretch !important;
+    gap: 2px !important;
+    padding: 0 !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+    height: 52px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    padding: 0 28px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    color: #d9e1dd !important;
+    background: transparent !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button svg {
+    width: 22px !important;
+    height: 22px !important;
+    flex: 0 0 auto;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button span:not([aria-label]) {
+    display: block !important;
+    overflow: visible !important;
+    color: inherit !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    line-height: 1 !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button[aria-current="page"] {
+    background: linear-gradient(90deg, rgba(245, 198, 45, 0.13), rgba(245, 198, 45, 0.035)) !important;
+    color: #f8c928 !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button[aria-current="page"]::before {
+    left: 10px !important;
+    top: 13px !important;
+    bottom: 13px !important;
+    width: 4px !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote {
+    padding: 16px 26px 30px !important;
+    border-top: 0 !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote strong {
+    color: #c4a342 !important;
+    font-family: Georgia, serif !important;
+    font-size: 10px !important;
+    letter-spacing: 0.13em !important;
+    line-height: 1.65 !important;
+  }
+  .app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote span {
+    color: #8c9992 !important;
+    font-size: 9px !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* Responsiveness */
+@media (max-width: 1250px) {
+  .app-v5-identity .reference-topbar {
+    grid-template-columns: 220px 1fr minmax(230px, 320px) 45px 100px;
+    padding-inline: 18px;
+    gap: 10px;
+  }
+  .app-v5-identity .reference-hero {
+    padding-inline: 20px;
+  }
+  .app-v5-identity .reference-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .app-v5-identity .reference-pulse-bar {
+    grid-template-columns: 1fr 1fr;
+    height: auto;
+    padding: 12px;
+    gap: 10px;
+  }
+  .app-v5-identity .reference-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 879px) {
+  .app-v5-identity .dashboard-reference {
+    overflow: visible;
+  }
+  .app-v5-identity .reference-topbar {
+    display: none;
+  }
+  .app-v5-identity .reference-hero {
+    height: auto;
+    min-height: 720px;
+    padding: 20px 16px 80px;
+  }
+  .app-v5-identity .reference-hero__quote-box {
+    display: none;
+  }
+  .app-v5-identity .reference-greeting h1 {
+    font-size: 28px;
+  }
+  .app-v5-identity .reference-journey {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .app-v5-identity .reference-journey__path {
+    display: none;
+  }
+  .app-v5-identity .reference-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .app-v5-identity .reference-values {
+    display: none;
+  }
+  .app-v5-identity .reference-light-zone {
+    padding: 16px 14px 90px;
+  }
+  .app-v5-identity .reference-pulse-bar {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 10px;
+    gap: 8px;
+  }
+  .app-v5-identity .reference-pulse-bar__stat {
+    border-left: 0;
+    border-top: 1px solid #ebe8e1;
+  }
+  .app-v5-identity .reference-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Dashboard reference â€” notebook 1024px: mesma composiÃ§Ã£o, sem zoom/corte. */
+@media (min-width:880px) and (max-width:1499px), (min-width:880px) and (max-height:850px){
+html:has(.dashboard-reference){--app-sidebar-width:100px!important}
+.app-v5-sidebar[data-dashboard-rail="true"]{width:100px!important;transform:none!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand{height:74px!important;padding:10px 6px 7px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand img{width:32px!important;height:32px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-brand button>span{margin-top:2px!important;font-size:8px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button{height:42px!important;gap:9px!important;padding:0 17px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button svg{width:16px!important;height:16px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button span:not([aria-label]){font-size:9px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-primary-nav button[aria-current="page"]::before{left:7px!important;top:10px!important;bottom:10px!important;width:3px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote{padding:10px 17px 16px!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote strong{font-size:7px!important;line-height:1.55!important}
+.app-v5-sidebar[data-dashboard-rail="true"] .app-v5-dashboard-rail-quote span{font-size:6.5px!important;line-height:1.35!important}
+.app-v5-identity .app-view-canvas:has(.dashboard-reference),.app-v5-identity .dashboard-v5:has(.dashboard-reference),.app-v5-identity .dashboard-reference{width:100%!important;max-width:none!important;overflow-x:hidden!important;zoom:1!important;transform:none!important}
+.app-v5-identity .reference-topbar{height:42px;grid-template-columns:145px minmax(110px,1fr) 230px 36px 72px;gap:7px;padding:0 10px}
+.app-v5-identity .reference-house-switcher{height:30px;gap:7px;padding:0 8px;border-radius:8px}
+.app-v5-identity .reference-house-avatar{width:24px;height:24px;font-size:8px}
+.app-v5-identity .reference-house-switcher strong,.app-v5-identity .reference-status,.app-v5-identity .reference-search span,.app-v5-identity .reference-profile strong{font-size:8px}
+.app-v5-identity .reference-status{gap:5px}.app-v5-identity .reference-status i{width:6px;height:6px}
+.app-v5-identity .reference-search{height:30px;gap:7px;padding:0 9px;border-radius:8px}.app-v5-identity .reference-search svg{width:13px;height:13px}.app-v5-identity .reference-search kbd{font-size:7px}
+.app-v5-identity .reference-notification{width:30px;height:30px}.app-v5-identity .reference-notification svg{width:14px}.app-v5-identity .reference-notification i{top:4px;right:4px;width:6px;height:6px}
+.app-v5-identity .reference-profile{gap:6px}.app-v5-identity .reference-profile span{width:28px;height:28px;font-size:8px}.app-v5-identity .reference-profile svg,.app-v5-identity .reference-house-switcher>svg{width:10px}
+
+.app-v5-identity .reference-hero{height:330px;padding:10px 12px 0}
+.app-v5-identity .reference-greeting p{font-size:7px;letter-spacing:.16em}.app-v5-identity .reference-greeting h1{margin-top:2px;font-size:24px}.app-v5-identity .reference-greeting>strong{margin-top:3px;font-size:10px}
+.app-v5-identity .reference-hero>blockquote{top:20px;right:16px;font-size:9px;line-height:1.35}.app-v5-identity .reference-hero>blockquote::after{width:24px;height:1px;margin-top:6px}
+.app-v5-identity .reference-hero-grid{top:69px;right:12px;left:12px;height:184px;grid-template-columns:minmax(0,2.06fr) minmax(242px,1fr);gap:9px}
+.app-v5-identity .reference-gira-card{border-radius:8px}.app-v5-identity .reference-gira-card__copy{width:61%;padding:12px 15px 10px}
+.app-v5-identity .reference-gira-card__copy>p{font-size:7px}.app-v5-identity .reference-gira-card__copy>p i{width:5px;height:5px}.app-v5-identity .reference-gira-card__copy h2{margin-top:3px;font-size:20px}
+.app-v5-identity .reference-gira-meta{gap:13px;margin-top:6px;font-size:8px}.app-v5-identity .reference-gira-meta svg{width:13px;height:13px}
+.app-v5-identity .reference-gira-card__copy blockquote{max-width:230px;margin-top:6px;font-size:8px;line-height:1.3}
+.app-v5-identity .reference-gira-community{gap:9px}.app-v5-identity .reference-avatars img,.app-v5-identity .reference-avatars>span,.app-v5-identity .reference-avatars>i{width:23px;height:23px;margin-left:-5px;border-width:1px;font-size:6px}
+.app-v5-identity .reference-confirmed{gap:5px;font-size:7.5px}.app-v5-identity .reference-confirmed i{width:7px;height:7px}
+.app-v5-identity .reference-gira-card__copy>button{width:168px;height:28px;gap:6px;margin-top:6px;border-radius:6px;font-size:8px}.app-v5-identity .reference-gira-card__copy>button svg{width:12px;height:12px}
+.app-v5-identity .reference-gira-values{right:14px;bottom:12px;font-size:7px;line-height:1.45}.app-v5-identity .reference-gira-values::after{width:19px;height:1px;margin-top:5px}
+.app-v5-identity .reference-attention{padding:9px 10px;border-radius:8px}.app-v5-identity .reference-attention__header{height:20px}.app-v5-identity .reference-attention__header h2{font-size:12px}.app-v5-identity .reference-attention__header button{gap:4px;font-size:7px}.app-v5-identity .reference-attention__header button svg{width:10px}
+.app-v5-identity .reference-attention__list{gap:5px;margin-top:6px}.app-v5-identity .reference-attention__list>button{min-height:45px;grid-template-columns:31px minmax(0,1fr) 12px;gap:7px;padding:5px 7px;border-radius:7px}
+.app-v5-identity .reference-attention__list>button>span:first-child{width:29px;height:29px}.app-v5-identity .reference-attention__list>button>span:first-child svg{width:15px;height:15px}
+.app-v5-identity .reference-attention__list strong{font-size:8.5px}.app-v5-identity .reference-attention__list small{margin-top:2px;font-size:6.5px}.app-v5-identity .reference-attention__list>button>svg{width:12px}
+
+.app-v5-identity .reference-pulse{right:12px;bottom:5px;left:12px;height:65px;grid-template-columns:.92fr repeat(3,1fr);border-radius:8px}
+.app-v5-identity .reference-pulse-title{gap:8px;padding:0 12px}.app-v5-identity .reference-pulse-title h2{font-size:10px}.app-v5-identity .reference-pulse-title span{gap:5px;font-size:6.5px}.app-v5-identity .reference-pulse-title span i{width:6px;height:6px}
+.app-v5-identity .reference-pulse>button{height:40px;grid-template-columns:35px minmax(54px,1fr) 72px;gap:5px;padding:0 9px}
+.app-v5-identity .reference-pulse-icon{width:32px;height:32px}.app-v5-identity .reference-pulse-icon svg{width:16px;height:16px}.app-v5-identity .reference-pulse>button strong{font-size:14px}.app-v5-identity .reference-pulse>button small{margin-top:3px;font-size:6.5px}
+.app-v5-identity .reference-sparkline{width:68px;gap:3px}.app-v5-identity .reference-sparkline em{font-size:6px}.app-v5-identity .reference-sparkline svg{width:50px;height:25px}
+.app-v5-identity .reference-light-zone{min-height:280px;padding:7px 12px 16px}.app-v5-identity .reference-main-grid{height:158px;grid-template-columns:minmax(0,1.82fr) minmax(250px,1fr);gap:9px}
+.app-v5-identity .reference-finance{padding:9px 12px 6px;border-radius:8px}.app-v5-identity .reference-finance__head h2{font-size:11px}.app-v5-identity .reference-finance__head p{margin-top:2px;font-size:6.5px}
+.app-v5-identity .reference-period button{min-width:55px;height:21px;border-radius:5px;font-size:6.5px}.app-v5-identity .reference-finance__summary{gap:8px;margin-top:6px}.app-v5-identity .reference-finance__summary strong{font-size:17px}.app-v5-identity .reference-finance__summary span,.app-v5-identity .reference-finance__summary small{font-size:6.5px}
+.app-v5-identity .reference-chart{height:91px;padding-left:29px}.app-v5-identity .reference-chart>svg{bottom:14px;left:29px;width:calc(100% - 29px);height:75px}
+.app-v5-identity .reference-chart__axis{top:3px;bottom:15px;width:25px;font-size:5.5px}.app-v5-identity .reference-chart__dates{bottom:0;left:29px;font-size:5.5px}
+.app-v5-identity .reference-chart__tooltip{right:2px;top:-6px;padding:4px 7px;border-radius:5px}.app-v5-identity .reference-chart__tooltip strong{font-size:6.5px}.app-v5-identity .reference-chart__tooltip span{font-size:5.5px}
+.app-v5-identity .reference-preceito .preceito-command-art{border-radius:8px!important}.app-v5-identity .reference-preceito .preceito-command-art__content{padding:9px 12px 8px!important}.app-v5-identity .reference-preceito .preceito-command-art__content>p{font-size:12px!important}
+.app-v5-identity .reference-preceito .preceito-command-art__state{width:80%!important;grid-template-columns:72px minmax(0,1fr)!important;gap:10px!important;margin-top:5px!important}
+.app-v5-identity .reference-preceito .preceito-command-art__ring{width:63px!important;height:63px!important}.app-v5-identity .reference-preceito .preceito-command-art__ring svg{width:17px!important;height:17px!important}
+.app-v5-identity .reference-preceito .preceito-command-art__state h2{font-size:10px!important}.app-v5-identity .reference-preceito .preceito-command-art__state strong{margin-top:3px!important;font-size:6.5px!important}.app-v5-identity .reference-preceito .preceito-command-art__state blockquote{margin-top:7px!important;font-size:7px!important}
+
+.app-v5-identity .reference-preceito .preceito-command-art__content>button{right:12px;bottom:8px;left:12px;min-height:25px!important;border-radius:5px!important;font-size:7px!important}
+.app-v5-identity .reference-timeline-wrap{height:78px;margin-top:6px;padding-right:78px;border-radius:8px}.app-v5-identity .reference-timeline-wrap .house-timeline__header{min-height:25px;padding:6px 12px 0!important}
+.app-v5-identity .reference-timeline-wrap .house-timeline__header h2{font-size:8.5px!important}.app-v5-identity .reference-timeline-wrap .house-timeline__header p{font-size:5.5px!important}
+.app-v5-identity .reference-timeline-wrap .house-timeline__rail{min-height:45px!important;padding:1px 5px 5px!important}.app-v5-identity .reference-timeline-wrap .house-timeline__event{padding:4px 8px!important}
+.app-v5-identity .reference-timeline-wrap .house-timeline__node{width:24px!important;height:24px!important}.app-v5-identity .reference-timeline-wrap .house-timeline__event strong{font-size:6.5px!important}.app-v5-identity .reference-timeline-wrap .house-timeline__event small,.app-v5-identity .reference-timeline-wrap .house-timeline__event time{font-size:5.25px!important}
+.app-v5-identity .reference-create-button{right:9px;height:32px;gap:6px;padding:0 10px;border-radius:9px;font-size:7.5px}.app-v5-identity .reference-create-button svg{width:13px;height:13px;padding:7px}
 }
