@@ -242,7 +242,7 @@ export function DashboardHomeExperience({
         </div>
 
         <aside className={`command-attention${attentionOpen ? ' is-expanded' : ''}`} aria-label="O que pede sua atenção">
-          <div className="command-attention__header"><h2>Pede sua atenção</h2>{attentionItems.length > 2 ? <button type="button" onClick={() => setAttentionOpen((value) => !value)}>{attentionOpen ? 'Recolher' : 'Ver todas'} <ArrowRight aria-hidden /></button> : null}</div>
+          <div className="command-attention__header"><h2>Pede sua atenção</h2>{attentionItems.length ? <button type="button" onClick={() => setAttentionOpen((value) => !value)}>{attentionOpen ? 'Recolher' : 'Ver todas'} <ArrowRight aria-hidden /></button> : null}</div>
           {attentionItems.length ? (
             <button type="button" className="command-attention__mobile-summary" onClick={() => onNavigate(attentionItems[0].tab)}>
               <span><AlertCircle aria-hidden /></span>

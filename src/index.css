@@ -13265,6 +13265,61 @@ html:has(.landing-mockup-nav) {
   .app-v5-identity .command-pulse__trend { display: none; }
 }
 
+/* Topo do painel no recorte aprovado: uma faixa só, atenção à direita, onda embaixo. */
+@media (min-width: 1100px) {
+  .app-v5-identity .dashboard-command { gap: 0; }
+  .app-v5-identity .command-desktop-bar {
+    border-bottom: 0;
+    background: #07140f;
+    padding-bottom: .2rem;
+  }
+  .app-v5-identity .command-journey {
+    min-height: 24.75rem;
+    padding: 1.05rem 1.45rem 3.55rem;
+    border-radius: 0 0 2.35rem 2.35rem;
+    background:
+      linear-gradient(102deg, rgba(3, 20, 13, .94) 0%, rgba(4, 22, 15, .72) 38%, rgba(3, 14, 11, .38) 100%),
+      url("/dashboard/command-forest.webp") 62% 42% / cover no-repeat;
+  }
+  .app-v5-identity .command-journey__intro h1 {
+    font-size: clamp(2.2rem, 2.7vw, 2.9rem);
+  }
+  .app-v5-identity .command-journey__intro > strong {
+    font-size: .95rem;
+    color: #d5e0d8;
+  }
+  .app-v5-identity .command-journey > blockquote {
+    top: .2rem;
+    right: 1.35rem;
+    max-width: 11.5rem;
+    z-index: 5;
+  }
+  .app-v5-identity .command-journey__flow {
+    top: auto;
+    right: 31%;
+    bottom: 4.5rem;
+    left: 1.45rem;
+  }
+  .app-v5-identity .command-node__orb {
+    width: 5.2rem;
+    height: 5.2rem;
+  }
+  .app-v5-identity .command-attention {
+    top: 4.9rem;
+    right: 1.2rem;
+    bottom: auto;
+    left: auto;
+    width: min(22.5rem, 27%);
+  }
+  .app-v5-identity .command-journey__waves { height: 2.7rem; }
+  .app-v5-identity .command-journey__values {
+    right: 1.45rem;
+    bottom: 2.45rem;
+    z-index: 4;
+  }
+  .app-v5-identity .command-create { bottom: -1.05rem; z-index: 6; }
+}
+
 /* O card de atividades acompanha o texto. Sem a terceira coluna vazia e sem vão abaixo dos registros. */
 .app-v5-identity .command-timeline {
   height: auto;

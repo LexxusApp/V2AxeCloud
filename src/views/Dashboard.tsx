@@ -1094,7 +1094,15 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         firstName={firstName}
         terreiroName={terreiroNome || 'Minha casa'}
         tenantPhoto={profileSetup?.foto_url || tenantData?.foto_url || null}
-        statusLabel={tenantData?.is_trial ? 'Teste ativo' : 'Casa ativa'}
+        statusLabel={
+          tenantData?.is_trial
+            ? `Teste ativo${
+                tenantData.expires_at && Number.isFinite(new Date(String(tenantData.expires_at)).getTime())
+                  ? ` · vence ${format(new Date(String(tenantData.expires_at)), 'd MMM', { locale: ptBR }).replace('.', '')}`
+                  : ''
+              }`
+            : 'Casa ativa'
+        }
         setupProgress={setupProgressV5}
         setupComplete={setupComplete}
         nextEvent={nextEvent}
