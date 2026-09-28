@@ -684,6 +684,12 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const withoutAppAccess = allChildren.filter(
     (child) => !String(child?.user_id || '').trim(),
   ).length;
+  const withAppAccess = Math.max(0, allChildren.length - withoutAppAccess);
+  const pendingMensalidadesFormatted = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(pendingMensalidadesValue);
   const houseTimelineEvents = useMemo<HouseTimelineEvent[]>(() => {
     const events: HouseTimelineEvent[] = [];
 
@@ -1000,9 +1006,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
       )}
 
-      <section className="dashboard-v5-hero mb-6 overflow-hidden rounded-[2rem]" aria-labelledby="dashboard-v5-title">
-        <div className="dashboard-v5-hero__content" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
-          <div className="min-w-0">
+      <section className="dashboard-v5-hero" aria-labelledby="dashboard-v5-title">
+        <div className="dashboard-v5-hero__content">
+          <div className="dashboard-v5-hero__copy">
             <p className="dashboard-v5-eyebrow">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               {setupComplete
@@ -1011,55 +1017,75 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   ? `Ativação guiada · ${trialDaysRemaining} dias de teste`
                   : 'Primeiros passos da casa'}
             </p>
-            <h1 id="dashboard-v5-title" className="mt-3 font-display text-3xl font-black tracking-[-0.035em] text-[#FFFDF7] sm:text-4xl">
+            <h1 id="dashboard-v5-title">
               {timeGreeting}, {firstName}.
             </h1>
-            <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-[#D8E0D7]">
-              {formattedDate}. Aqui está o resumo mais importante da sua casa.
+            <p className="dashboard-v5-hero__description">
+              {formattedDate}. A corrente está em harmonia e as rotinas da sua casa estão sob sua condução.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')} className="dashboard-v5-hero__primary">
-                {setupComplete ? <Users className="h-4 w-4" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}
-                {setupComplete ? 'Ver corrente' : 'Continuar configuração'}
-              </button>
-            </div>
+          </div>
+          <div className="dashboard-v5-hero__actions" aria-label="Atalhos principais">
+            <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')} className="dashboard-v5-hero__primary">
+              {setupComplete ? <Users className="h-4 w-4" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}
+              {setupComplete ? 'Ver corrente' : 'Continuar configuração'}
+            </button>
+            <button type="button" onClick={() => setActiveTab('calendar')} className="dashboard-v5-hero__secondary">
+              <Plus className="h-4 w-4" aria-hidden />
+              Novo movimento
+            </button>
           </div>
         </div>
       </section>
 
-      <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Indicadores principais da casa">
+      <section className="dashboard-v5-metrics" aria-label="Indicadores principais da casa">
         {[
           {
             label: 'Corrente',
             value: String(allChildren.length),
-            detail: allChildren.length === 1 ? 'pessoa ativa' : 'pessoas ativas',
+            detail: allChildren.length === 1 ? 'Pessoa ativa na corrente' : 'Pessoas ativas na corrente',
             icon: Users,
             tab: 'children',
-            tone: 'text-sky-700 bg-sky-50',
+            tone: 'current',
+            status: 'Corrente ativa',
+            footerLeft: `${withoutAppAccess} sem app`,
+            footerRight: `${withAppAccess} com acesso`,
+            healthy: false,
           },
           {
             label: 'Mensalidades',
             value: String(pendingMensalidades),
-            detail: pendingMensalidades > 0 ? 'aguardando confirmação' : 'nenhuma pendência',
+            detail: pendingMensalidades > 0 ? 'Mensalidades para confirmação' : 'Nenhuma cobrança pendente',
             icon: Wallet,
             tab: 'financial-mensalidades',
-            tone: pendingMensalidades > 0 ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50',
+            tone: pendingMensalidades > 0 ? 'billing' : 'healthy',
+            status: pendingMensalidades > 0 ? 'Cobrança ativa' : 'Em dia',
+            footerLeft: `${pendingMensalidadesFormatted} saldo`,
+            footerRight: pendingMensalidades > 0 ? 'Pix e caixinha' : 'Ver financeiro',
+            healthy: false,
           },
           {
             label: 'Próxima gira',
             value: nextEvent ? format(new Date(`${nextEvent.data}T12:00:00`), 'dd/MM') : '—',
-            detail: nextEvent ? String(nextEvent.titulo || 'Gira agendada') : 'ainda não agendada',
+            detail: nextEvent ? String(nextEvent.titulo || 'Gira agendada') : 'Ainda não agendada',
             icon: CalendarDays,
             tab: 'calendar',
-            tone: 'text-[#8A6A16] bg-[#FFF8DF]',
+            tone: 'calendar',
+            status: nextEvent ? 'Agendada' : 'Agendar',
+            footerLeft: 'Calendário litúrgico',
+            footerRight: nextEvent ? 'Ver agenda' : 'Criar gira',
+            healthy: false,
           },
           {
             label: 'WhatsApp',
-            value: attention.whatsappFailed > 0 ? String(attention.whatsappFailed) : 'OK',
-            detail: attention.whatsappFailed > 0 ? 'envios para revisar' : 'últimos envios sem falha',
+            value: attention.whatsappFailed > 0 ? String(attention.whatsappFailed) : 'Conectado',
+            detail: attention.whatsappFailed > 0 ? 'Envios para revisar' : 'Últimos envios sem falha',
             icon: MessageCircle,
             tab: 'settings',
-            tone: attention.whatsappFailed > 0 ? 'text-rose-700 bg-rose-50' : 'text-emerald-700 bg-emerald-50',
+            tone: attention.whatsappFailed > 0 ? 'warning' : 'whatsapp',
+            status: attention.whatsappFailed > 0 ? 'Revisar agora' : '100% online',
+            footerLeft: 'Linha oficial Meta',
+            footerRight: 'Avisos e lembretes',
+            healthy: attention.whatsappFailed === 0,
           },
         ].map((metric) => {
           const Icon = metric.icon;
@@ -1074,14 +1100,27 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 }
                 setActiveTab(metric.tab);
               }}
-              className="min-w-0 rounded-2xl border border-[#DED6C8] bg-[#FFFDF8] p-4 text-left shadow-[0_18px_42px_-38px_rgba(46,36,24,.7)] transition hover:-translate-y-0.5 hover:border-[#C9B05B] sm:p-5"
+              className="dashboard-v5-metric-card"
+              data-tone={metric.tone}
+              data-online={metric.healthy ? 'true' : undefined}
+              aria-label={`${metric.label}: ${metric.value}. ${metric.detail}`}
             >
-              <span className={`grid h-9 w-9 place-items-center rounded-xl ${metric.tone}`}>
-                <Icon className="h-4 w-4" aria-hidden />
+              <span className="dashboard-v5-metric-card__head">
+                <span className="dashboard-v5-metric-card__icon">
+                  <Icon aria-hidden />
+                  {metric.healthy && <i className="dashboard-v5-whatsapp-pulse" aria-hidden />}
+                </span>
+                <span className="dashboard-v5-metric-card__status">{metric.status}</span>
               </span>
-              <span className="mt-4 block text-[9px] font-black uppercase tracking-[.16em] text-[#81786C]">{metric.label}</span>
-              <strong className="mt-1 block truncate font-display text-2xl font-black text-[#171A16]">{metric.value}</strong>
-              <small className="mt-1 block truncate text-[10px] font-semibold text-[#80786D]">{metric.detail}</small>
+              <span className="dashboard-v5-metric-card__body">
+                <span className="sr-only">{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.detail}</small>
+              </span>
+              <span className="dashboard-v5-metric-card__footer">
+                <span>{metric.footerLeft}</span>
+                <strong>{metric.footerRight}</strong>
+              </span>
             </button>
           );
         })}

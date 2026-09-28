@@ -12,6 +12,8 @@
     "run_worker_first": true
   },
   "routes": [
+    { "pattern": "axecloud.com.br/diretorio-cidades.json*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/diretorio-snapshot.json*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/m-assets*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/screenshots*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/conteudo*", "zone_name": "axecloud.com.br" },
@@ -27,6 +29,8 @@
     { "pattern": "axecloud.com.br/eventos*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/evento*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/senhas*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/sitemap.xml*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/robots.txt*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/privacidade*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/termos*", "zone_name": "axecloud.com.br" }
   ]

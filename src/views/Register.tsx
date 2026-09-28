@@ -93,6 +93,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
+  const [claimLoading, setClaimLoading] = useState(Boolean(claimId));
+  const [claimPrefillError, setClaimPrefillError] = useState<string | null>(null);
+  const [claimLockedEmail, setClaimLockedEmail] = useState(false);
+  const [claimCanRegister, setClaimCanRegister] = useState(!claimId);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const startedTracked = useRef(false);
@@ -117,6 +121,65 @@ export default function Register() {
       // O cadastro segue normalmente quando o navegador bloqueia o storage.
     }
   }, [billingCycle]);
+
+  useEffect(() => {
+    if (!claimId) {
+      setClaimLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setClaimLoading(true);
+    setClaimPrefillError(null);
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/v1/public/diretorio/reivindicacao/${encodeURIComponent(claimId)}/cadastro`,
+        );
+        const payload = await response.json().catch(() => ({})) as {
+          error?: string;
+          canRegister?: boolean;
+          nomeTerreiro?: string;
+          nomeZelador?: string;
+          email?: string;
+          whatsapp?: string;
+          endereco?: string;
+          cidade?: string;
+          estado?: string;
+          bairro?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error || 'Não foi possível carregar os dados da reivindicação.');
+        }
+        if (cancelled) return;
+        setClaimCanRegister(payload.canRegister !== false);
+        if (payload.nomeTerreiro) setNomeTerreiro(String(payload.nomeTerreiro));
+        if (payload.nomeZelador) setNomeZelador(String(payload.nomeZelador));
+        if (payload.email) {
+          setEmail(String(payload.email));
+          setClaimLockedEmail(true);
+        }
+        if (payload.whatsapp) setWhatsapp(formatBrazilPhone(String(payload.whatsapp)));
+        if (payload.endereco) setEndereco(String(payload.endereco));
+        if (payload.cidade) setCidade(String(payload.cidade));
+        if (payload.estado) setEstado(String(payload.estado).toUpperCase().slice(0, 2));
+        if (payload.bairro) setBairro(String(payload.bairro));
+      } catch (prefillError) {
+        if (!cancelled) {
+          setClaimCanRegister(false);
+          setClaimPrefillError(
+            prefillError instanceof Error
+              ? prefillError.message
+              : 'Não foi possível carregar os dados da reivindicação.',
+          );
+        }
+      } finally {
+        if (!cancelled) setClaimLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [claimId]);
 
   useEffect(() => {
     const normalizedCep = cep.replace(/\D/g, '');
@@ -189,6 +252,11 @@ export default function Register() {
     if (step !== 3) return;
     setError(null);
     setPasswordError(null);
+
+    if (claimId && !claimCanRegister) {
+      setError('Esta reivindicação ainda não está aprovada. Aprove no console antes de concluir o cadastro.');
+      return;
+    }
 
     if (!normalizeBrazilPhone(whatsapp)) {
       setError('Informe um WhatsApp brasileiro válido com DDD.');
@@ -344,6 +412,10 @@ export default function Register() {
 
   const continueRegistration = () => {
     setError(null);
+    if (claimId && !claimCanRegister) {
+      setError('Esta reivindicação ainda não está aprovada. Assim que for aprovada, o cadastro fica liberado com os dados já preenchidos.');
+      return;
+    }
     if (!nomeTerreiro.trim() || !nomeZelador.trim()) {
       setError('Informe o nome da casa e o nome de quem será responsável pela conta.');
       return;
@@ -467,8 +539,21 @@ export default function Register() {
             {claimId ? (
               <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-800">Reivindicação aprovada</p>
-                <p className="mt-1 text-sm font-bold text-zinc-900">Crie o acesso com o mesmo e-mail da solicitação.</p>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-600">Ao concluir, o perfil público será conectado automaticamente a esta conta.</p>
+                <p className="mt-1 text-sm font-bold text-zinc-900">
+                  {claimLoading
+                    ? 'Carregando os dados da sua casa…'
+                    : claimPrefillError
+                      ? 'Não foi possível carregar esta reivindicação.'
+                      : claimCanRegister
+                        ? 'Nome da casa e responsável já vieram preenchidos. Confira e continue.'
+                        : 'Dados preenchidos para conferência. Aprove a reivindicação no console para liberar o cadastro.'}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+                  Use o mesmo e-mail da solicitação. Ao concluir, o perfil público será conectado automaticamente a esta conta.
+                </p>
+                {claimPrefillError ? (
+                  <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{claimPrefillError}</p>
+                ) : null}
               </div>
             ) : null}
             <div className="mb-5" aria-label={`Etapa ${step} de 3`}>
@@ -531,6 +616,7 @@ export default function Register() {
                   placeholder="Ilê Axé Exemplo"
                   required
                   autoComplete="organization"
+                  disabled={claimLoading}
                 />
               </motion.div>
               <motion.div>
@@ -542,6 +628,7 @@ export default function Register() {
                   placeholder="Como você é conhecido(a) na casa"
                   required
                   autoComplete="name"
+                  disabled={claimLoading}
                 />
               </motion.div>
               <button
@@ -651,7 +738,13 @@ export default function Register() {
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <button type="button" onClick={() => { setError(null); setStep(1); }} className="h-[46px] rounded-xl border border-[#cfc2a6] px-5 text-[12px] font-black uppercase tracking-[0.05em] text-[#4f493d] sm:w-36">Voltar</button>
-                <button type="button" onClick={continueAddress} className="flex h-[46px] flex-1 items-center justify-center rounded-xl bg-[#123f2f] text-[13px] font-black uppercase tracking-[0.06em] text-white transition hover:bg-[#0d3326]">Continuar para o acesso</button>
+                <button
+                  type="button"
+                  onClick={continueAddress}
+                  className="flex min-h-[56px] w-full flex-none items-center justify-center rounded-xl bg-[#123f2f] px-5 py-3 text-center text-[13px] font-black uppercase leading-tight tracking-[0.05em] text-white shadow-[0_14px_28px_-20px_rgba(18,63,47,.9)] transition-colors duration-150 hover:bg-[#0d3326] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#c89d28]/30 active:bg-[#09291f] sm:min-h-[48px] sm:flex-1"
+                >
+                  Continuar para o acesso
+                </button>
               </div>
             </motion.div>
             ) : (
@@ -665,13 +758,20 @@ export default function Register() {
                 <label className={labelClass}>E-mail</label>
                 <input
                   type="email"
-                  className={fieldShell}
+                  className={cn(fieldShell, claimLockedEmail && 'bg-zinc-50 text-zinc-700')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="zelador@terreiro.com"
                   required
                   autoComplete="email"
+                  readOnly={claimLockedEmail}
+                  title={claimLockedEmail ? 'Use o mesmo e-mail da reivindicação aprovada.' : undefined}
                 />
+                {claimLockedEmail ? (
+                  <p className="mt-1 text-[11px] font-semibold text-[#746c60]">
+                    Prefill da reivindicação — precisa ser o mesmo e-mail do protocolo.
+                  </p>
+                ) : null}
               </motion.div>
               <motion.div>
                 <label className={labelClass}>WhatsApp</label>
