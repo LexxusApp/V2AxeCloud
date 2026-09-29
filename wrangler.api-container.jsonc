@@ -14,8 +14,7 @@
     { "pattern": "axecloud.com.br/auth.md*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/.well-known/auth.md*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap-terreiros.xml*", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/sitemap-terreiros-*", "zone_name": "axecloud.com.br" },
-    { "pattern": "axecloud.com.br/sitemap.xml*", "zone_name": "axecloud.com.br" }
+    { "pattern": "axecloud.com.br/sitemap-terreiros-*", "zone_name": "axecloud.com.br" }
   ],
   "triggers": {
     "crons": ["*/5 * * * *"]
