@@ -84,6 +84,30 @@ async function assertPendingSubscription(
 }
 
 export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps) {
+  // Health-check público, limitado por IP e sem detalhes sensíveis. Permite que
+  // a monitoração detecte falhas de certificado mTLS/OAuth antes do checkout.
+  app.get("/api/v1/checkout/efi/health", apiReadRateLimit, async (_req: Request, res: Response) => {
+    const pixEnv = resolveEfiPixEnv();
+    if (!pixEnv) {
+      return res.status(503).json({ status: "unavailable", provider: "efi-pix" });
+    }
+
+    try {
+      const accessToken = await efiPixGetAccessToken(pixEnv);
+      return res.status(accessToken ? 200 : 503).json({
+        status: accessToken ? "ok" : "unavailable",
+        provider: "efi-pix",
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("[EFI_PUBLIC_HEALTH] OAuth/mTLS indisponível:", safeErrorMessage(error));
+      return res.status(503).json({
+        status: "unavailable",
+        provider: "efi-pix",
+        checkedAt: new Date().toISOString(),
+      });
+    }
+  });
   // Diagnóstico administrativo e sem efeitos colaterais do canal PIX.
   // Valida certificado mTLS + OAuth na Efí, sem criar cobrança ou alterar assinatura.
   app.get("/api/admin/efi-health", async (req: Request, res: Response) => {
