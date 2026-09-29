@@ -15,6 +15,7 @@ import {
 import { EFI_CARD_CHECKOUT_ENABLED } from "../../lib/checkoutPaymentMethods.js";
 import {
   efiPixCreateImmediateCharge,
+  efiPixGetAccessToken,
   efiPixGetCob,
   getEfiPixSetupDiagnostics,
   resolveEfiPixEnv,
@@ -39,6 +40,7 @@ import { verifyUser } from "./verifyUser.js";
 import { getBearerToken } from "./requireAuth.js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
+import { secureCompare } from "./secureCompare.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -82,6 +84,52 @@ async function assertPendingSubscription(
 }
 
 export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps) {
+  // Diagnóstico administrativo e sem efeitos colaterais do canal PIX.
+  // Valida certificado mTLS + OAuth na Efí, sem criar cobrança ou alterar assinatura.
+  app.get("/api/admin/efi-health", async (req: Request, res: Response) => {
+    const expectedSecret = String(process.env.EFI_WEBHOOK_SECRET || "").trim();
+    const headerSecret = String(req.headers["x-efi-webhook-secret"] || "").trim();
+    const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
+    const suppliedSecret = headerSecret || bearer;
+
+    if (!expectedSecret || !suppliedSecret || !secureCompare(suppliedSecret, expectedSecret)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const pixEnv = resolveEfiPixEnv();
+    if (!pixEnv) {
+      return res.status(503).json({
+        ok: false,
+        configured: false,
+        oauth: false,
+        error: "efi_pix_not_configured",
+      });
+    }
+
+    const startedAt = Date.now();
+    try {
+      const accessToken = await efiPixGetAccessToken(pixEnv);
+      return res.json({
+        ok: Boolean(accessToken),
+        configured: true,
+        oauth: Boolean(accessToken),
+        sandbox: pixEnv.sandbox,
+        latencyMs: Date.now() - startedAt,
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("[EFI_HEALTH] OAuth/mTLS indisponível:", safeErrorMessage(error));
+      return res.status(503).json({
+        ok: false,
+        configured: true,
+        oauth: false,
+        sandbox: pixEnv.sandbox,
+        latencyMs: Date.now() - startedAt,
+        checkedAt: new Date().toISOString(),
+        error: "efi_oauth_unavailable",
+      });
+    }
+  });
   app.get("/api/v1/checkout/efi/config", apiReadRateLimit, async (req: Request, res: Response) => {
     const efi = resolveEfiEnv();
     const pix = resolveEfiPixEnv();
