@@ -3,6 +3,7 @@ import { env as runtimeEnv } from "cloudflare:workers";
 
 type AxeCloudBindings = {
   AXECLOUD_API_CONTAINER: DurableObjectNamespace<AxeCloudApiContainer>;
+  APP_ASSETS: Fetcher;
   AXECLOUD_STAGING_TOKEN?: string;
   CRON_SECRET?: string;
   [name: string]: unknown;
@@ -10,6 +11,12 @@ type AxeCloudBindings = {
 
 const PRODUCTION_HOST = "axecloud.com.br";
 const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
+  "/sitemap.xml",
+  "/.well-known/api-catalog",
+  "/openapi.json",
+  "/auth.md",
+  "/.well-known/auth.md",
+  "/sitemap-terreiros.xml",
   "/api/health-check",
   "/api/ping",
   "/api/public-config",
@@ -74,6 +81,13 @@ const PRODUCTION_APP_PREFIXES = [
 
 function isProductionPublicRequest(url: URL): boolean {
   if (url.hostname !== PRODUCTION_HOST) return false;
+  // Todo endpoint HTTP de producao pertence ao Container. A autorizacao e as
+  // permissoes continuam sendo aplicadas pela propria API Express.
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/webhook/") ||
+    url.pathname.startsWith("/sitemap-terreiros-")
+  ) return true;
   if (PRODUCTION_PUBLIC_EXACT_PATHS.has(url.pathname)) return true;
   return (
     url.pathname.startsWith("/api/v1/public/") ||
@@ -111,6 +125,18 @@ export default {
   async fetch(request: Request, env: AxeCloudBindings): Promise<Response> {
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/v1/app-build") {
+      const buildUrl = new URL("/build-info.json", request.url);
+      const response = await env.APP_ASSETS.fetch(new Request(buildUrl, request));
+      const headers = new Headers(response.headers);
+      headers.set("x-axecloud-runtime", "cloudflare-app-assets");
+      headers.set("cache-control", "no-store, no-cache, must-revalidate");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
     if (url.pathname === "/_worker/health") {
       return Response.json({ status: "ok", service: "axecloud-api-container-worker" });
     }
