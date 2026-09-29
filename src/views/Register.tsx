@@ -25,6 +25,7 @@ import { AuthScreenBackground } from '../components/AuthScreenBackground';
 import { getConversionContext, trackConversionEvent } from '../lib/trackConversion';
 import { PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
 import { formatBrazilPhone, normalizeBrazilPhone } from '../../lib/brazilPhone';
+import { ClaimActivationExperience } from '../components/claim/ClaimActivationExperience';
 
 const GOLD = '#f2b90f';
 const fontLogin = '[font-family:Outfit,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif]';
@@ -125,60 +126,11 @@ export default function Register() {
   useEffect(() => {
     if (!claimId) {
       setClaimLoading(false);
-      return;
+      return undefined;
     }
-    let cancelled = false;
-    setClaimLoading(true);
-    setClaimPrefillError(null);
-    void (async () => {
-      try {
-        const response = await fetch(
-          `/api/v1/public/diretorio/reivindicacao/${encodeURIComponent(claimId)}/cadastro`,
-        );
-        const payload = await response.json().catch(() => ({})) as {
-          error?: string;
-          canRegister?: boolean;
-          nomeTerreiro?: string;
-          nomeZelador?: string;
-          email?: string;
-          whatsapp?: string;
-          endereco?: string;
-          cidade?: string;
-          estado?: string;
-          bairro?: string;
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || 'Não foi possível carregar os dados da reivindicação.');
-        }
-        if (cancelled) return;
-        setClaimCanRegister(payload.canRegister !== false);
-        if (payload.nomeTerreiro) setNomeTerreiro(String(payload.nomeTerreiro));
-        if (payload.nomeZelador) setNomeZelador(String(payload.nomeZelador));
-        if (payload.email) {
-          setEmail(String(payload.email));
-          setClaimLockedEmail(true);
-        }
-        if (payload.whatsapp) setWhatsapp(formatBrazilPhone(String(payload.whatsapp)));
-        if (payload.endereco) setEndereco(String(payload.endereco));
-        if (payload.cidade) setCidade(String(payload.cidade));
-        if (payload.estado) setEstado(String(payload.estado).toUpperCase().slice(0, 2));
-        if (payload.bairro) setBairro(String(payload.bairro));
-      } catch (prefillError) {
-        if (!cancelled) {
-          setClaimCanRegister(false);
-          setClaimPrefillError(
-            prefillError instanceof Error
-              ? prefillError.message
-              : 'Não foi possível carregar os dados da reivindicação.',
-          );
-        }
-      } finally {
-        if (!cancelled) setClaimLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    // Reivindicações usam a experiência expressa abaixo; ela busca os dados
+    // uma única vez e não repete o prefill do cadastro público convencional.
+    return undefined;
   }, [claimId]);
 
   useEffect(() => {
@@ -438,6 +390,10 @@ export default function Register() {
     void trackConversionEvent('register_step_completed', { metadata: { step: 2 } });
     setStep(3);
   };
+
+  if (claimId) {
+    return <ClaimActivationExperience claimId={claimId} />;
+  }
 
   return (
     <motion.div

@@ -654,7 +654,7 @@ export async function dispatchGiraWhatsApp(
       }
       options?.onProgress?.({ sent, errors, eligible, index: batchIndex + 1 });
     }
-    } catch (err) {
+  } catch (err) {
     console.error("[GIRA WA] dispatch:", err);
     errors++;
   }
@@ -716,13 +716,14 @@ async function runGiraReminders(
     return { sent: 0, skipped: 0, errors: 0, events: 0 };
   }
 
-  const today = startOfDay(new Date());
-  const todayStr = format(today, "yyyy-MM-dd");
+  const { shouldSendGiraReminderToday } = await import("./giraReminderSchedule.js");
+  const { ymd: todayStr } = brazilTodayParts();
+  const today = startOfDay(parseISO(`${todayStr}T12:00:00`));
 
   const { data: rows, error } = await sb
     .from("calendario_axe")
     .select(
-      "id, titulo, data, hora, banner_url, tenant_id, lider_id, wa_reminder_interval_days, created_at"
+      "id, titulo, data, hora, banner_url, tenant_id, lider_id, wa_reminder_interval_days, wa_reminder_count, wa_reminder_mode, wa_reminder_window_kind, wa_reminder_window_start_days, wa_reminder_window_end_days, wa_reminder_window_start_date, wa_reminder_window_end_date, created_at"
     )
     .gte("data", todayStr)
     .not("wa_reminder_interval_days", "is", null)
@@ -735,8 +736,16 @@ async function runGiraReminders(
   }
 
   for (const row of rows || []) {
+    const mode = String((row as { wa_reminder_mode?: string | null }).wa_reminder_mode || "").trim();
     const interval = Math.floor(Number(row.wa_reminder_interval_days));
-    if (!Number.isFinite(interval) || interval < 1 || interval > 7) {
+    const count = Math.floor(Number((row as { wa_reminder_count?: number | null }).wa_reminder_count));
+    const isQuantidade = mode === "quantidade";
+    if (isQuantidade) {
+      if (!Number.isFinite(count) || count < 1) {
+        skipped++;
+        continue;
+      }
+    } else if (!Number.isFinite(interval) || interval < 1 || interval > 7) {
       skipped++;
       continue;
     }
@@ -755,12 +764,36 @@ async function runGiraReminders(
       continue;
     }
 
+    const eventYmd = format(eventDay, "yyyy-MM-dd");
     const daysUntil = differenceInCalendarDays(eventDay, today);
     if (daysUntil < 0) {
       skipped++;
       continue;
     }
-    if (daysUntil !== 0 && daysUntil % interval !== 0) {
+
+    const shouldSend = shouldSendGiraReminderToday({
+      todayYmd: todayStr,
+      eventYmd,
+      daysUntil,
+      config: {
+        intervalDays: interval,
+        count: Number.isFinite(count) ? count : null,
+        mode: (row as { wa_reminder_mode?: string | null }).wa_reminder_mode as
+          | "antes"
+          | "recorrente"
+          | "quantidade"
+          | null,
+        windowKind: (row as { wa_reminder_window_kind?: string | null }).wa_reminder_window_kind as
+          | "relativa"
+          | "absoluta"
+          | null,
+        windowStartDays: (row as { wa_reminder_window_start_days?: number | null }).wa_reminder_window_start_days,
+        windowEndDays: (row as { wa_reminder_window_end_days?: number | null }).wa_reminder_window_end_days,
+        windowStartDate: (row as { wa_reminder_window_start_date?: string | null }).wa_reminder_window_start_date,
+        windowEndDate: (row as { wa_reminder_window_end_date?: string | null }).wa_reminder_window_end_date,
+      },
+    });
+    if (!shouldSend) {
       skipped++;
       continue;
     }
@@ -826,10 +859,18 @@ async function runGiraReminders(
 }
 
 export async function runWhatsAppCronJobs(sb: SupabaseClient) {
+  // Dia 1 (e demais dias do cron): gera pendências sem o zelador abrir o Financeiro,
+  // para o disparo de mensalidade_disponivel / lembretes encontrar cobranças.
+  const { syncAllMensalidadePendenciasForCron } = await import("./mensalidadePendenciasCron.js");
+  const pendencias = await syncAllMensalidadePendenciasForCron(sb);
   const mensalidade = await runMensalidadeReminders(sb);
   // Estoque crítico desligado (WA_DISABLE_ESTOQUE_ALERTS=1 por padrão).
   const estoque = { sent: 0, skipped: 0, errors: 0 };
   void runEstoqueAlerts;
   const gira = await runGiraReminders(sb);
-  return { mensalidade, estoque, gira };
+  const { runSubscriptionBillingReminders } = await import("./subscriptionBillingWhatsApp.js");
+  const assinatura = await runSubscriptionBillingReminders(sb);
+  const { runDirectoryClaimActivationReminders } = await import("./directoryClaimActivation.js");
+  const reivindicacoes = await runDirectoryClaimActivationReminders(sb);
+  return { pendencias, mensalidade, estoque, gira, assinatura, reivindicacoes };
 }

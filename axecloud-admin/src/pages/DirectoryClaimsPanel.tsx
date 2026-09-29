@@ -5,7 +5,17 @@ import { cn } from "@/lib/cn";
 
 type TenantOption = { id: string; nome_terreiro: string | null; email: string | null };
 type ClaimStatus = "pending" | "approved" | "rejected";
-type ClaimSummary = { total: number; pending: number; approved: number; rejected: number; linked: number };
+type ClaimSummary = {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  linked: number;
+  awaitingActivation: number;
+  opened: number;
+  started: number;
+  stalled: number;
+};
 type ClaimRow = {
   id: string;
   requester_name: string;
@@ -29,6 +39,17 @@ type ClaimRow = {
     verified_at: string | null;
   } | null;
   tenant: TenantOption | null;
+  activation: Partial<Record<
+    "approved" | "notification_sent" | "activation_opened" | "activation_started" | "activation_completed" | "reminder_24h_sent" | "reminder_72h_sent",
+    string
+  >>;
+  latestDelivery: {
+    status: string;
+    template_name: string | null;
+    created_at: string;
+    delivered_at: string | null;
+    read_at: string | null;
+  } | null;
 };
 
 const STATUS_LABEL: Record<ClaimStatus, string> = {
@@ -52,6 +73,29 @@ function evidenceHref(value: string): string | null {
   }
 }
 
+const DELIVERY_LABEL: Record<string, string> = {
+  queued: "Na fila",
+  sending: "Enviando",
+  accepted: "Aceita pela Meta",
+  sent: "Enviada",
+  delivered: "Entregue",
+  read: "Lida",
+  failed: "Falhou",
+  unknown: "Sem confirmação",
+};
+
+const EMPTY_SUMMARY: ClaimSummary = {
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  linked: 0,
+  awaitingActivation: 0,
+  opened: 0,
+  started: 0,
+  stalled: 0,
+};
+
 export function DirectoryClaimsPanel({
   tenants,
   onMessage,
@@ -66,7 +110,7 @@ export function DirectoryClaimsPanel({
   const [search, setSearch] = useState("");
   const [tenantByClaim, setTenantByClaim] = useState<Record<string, string>>({});
   const [notesByClaim, setNotesByClaim] = useState<Record<string, string>>({});
-  const [summary, setSummary] = useState<ClaimSummary>({ total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 });
+  const [summary, setSummary] = useState<ClaimSummary>(EMPTY_SUMMARY);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,7 +119,7 @@ export function DirectoryClaimsPanel({
         `/api/admin-console/diretorio-claims?status=${encodeURIComponent(status)}`,
       );
       setRows(result.rows || []);
-      setSummary(result.summary || { total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 });
+      setSummary(result.summary || EMPTY_SUMMARY);
       setTenantByClaim((current) => {
         const next = { ...current };
         for (const row of result.rows || []) if (row.claimed_tenant_id) next[row.id] = row.claimed_tenant_id;
@@ -176,12 +220,15 @@ export function DirectoryClaimsPanel({
   }
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Recebidas", summary.total],
           ["Em análise", summary.pending],
-          ["Aprovadas", summary.approved],
+          ["Aguardando ativação", summary.awaitingActivation],
+          ["Link aberto", summary.opened],
+          ["Ativação iniciada", summary.started],
           ["Conectadas", summary.linked],
+          ["Paradas há 72h", summary.stalled],
           ["Recusadas", summary.rejected],
         ].map(([label, value]) => (
           <div key={String(label)} className="admin-panel !p-4">
@@ -266,6 +313,45 @@ export function DirectoryClaimsPanel({
                         {row.tenant ? <>Vinculada a <strong className="text-[var(--ac-text)]">{row.tenant.nome_terreiro || row.tenant.email}</strong>.</> : row.status === "approved" ? "Perfil verificado sem conta vinculada." : "Solicitação recusada."}
                         {row.admin_notes ? <p className="mt-1">Nota: {row.admin_notes}</p> : null}
                       </div>
+                      {row.status === "approved" ? (
+                        <div className="rounded-lg border border-[var(--ac-paper-border)] p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="admin-label">Conversão da reivindicação</p>
+                            <span className={cn(
+                              "rounded-full px-2.5 py-1 text-[10px] font-bold",
+                              row.latestDelivery?.status === "read" && "bg-[var(--ac-success-soft)] text-[var(--ac-success)]",
+                              row.latestDelivery?.status === "failed" && "bg-[var(--ac-danger-soft)] text-[var(--ac-danger)]",
+                              row.latestDelivery?.status !== "read" && row.latestDelivery?.status !== "failed" && "bg-[var(--ac-warning-soft)] text-[var(--ac-warning)]",
+                            )}>
+                              WhatsApp: {DELIVERY_LABEL[row.latestDelivery?.status || "unknown"] || row.latestDelivery?.status || "Não enviado"}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            {[
+                              ["Convite", Boolean(row.activation.notification_sent || row.latestDelivery)],
+                              ["Link aberto", Boolean(row.activation.activation_opened)],
+                              ["Acesso ativado", Boolean(row.claimed_tenant_id || row.activation.activation_completed)],
+                            ].map(([label, complete]) => (
+                              <div key={String(label)} className={cn(
+                                "rounded-md px-2 py-2 text-center text-[10px] font-semibold",
+                                complete ? "bg-[var(--ac-success-soft)] text-[var(--ac-success)]" : "bg-[var(--ac-paper-elevated)] text-[var(--ac-text-faint)]",
+                              )}>
+                                {complete ? "Concluído" : "Pendente"}<span className="mt-0.5 block">{label}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {row.activation.activation_started ? (
+                            <p className="mt-2 text-[10px] text-[var(--ac-text-muted)]">A pessoa começou a criar o acesso em {formatDate(row.activation.activation_started)}.</p>
+                          ) : null}
+                          {row.activation.reminder_24h_sent || row.activation.reminder_72h_sent ? (
+                            <p className="mt-1 text-[10px] text-[var(--ac-text-faint)]">
+                              Lembretes enviados:
+                              {row.activation.reminder_24h_sent ? " 24h" : ""}
+                              {row.activation.reminder_72h_sent ? " 72h" : ""}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {row.status === "approved" ? (
                         <button
                           type="button"

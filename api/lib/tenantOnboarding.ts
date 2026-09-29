@@ -56,6 +56,12 @@ export type RegisterTenantResult = {
   radarPublished: boolean;
 };
 
+export type ActivateApprovedClaimInput = {
+  claimId: string;
+  password: string;
+  billingCycle?: BillingCycle;
+};
+
 export function trialExpiresAtFromNow(days: number = TRIAL_DAYS): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
@@ -319,12 +325,15 @@ export async function registerNewTenant(
           nome_terreiro,
           email,
           site: cfg.loginUrl || resolvePublicAppUrl(),
+          sb: supabaseAdmin,
+          tenantId,
           // sem senha → só o template Meta (ou freeText), sem follow-up de credenciais
         })
           .then((r) =>
             console.log(
               `[onboarding] Welcome WhatsApp cadastro público (${r.channel}) → ${msisdn}`,
-              r?.messageId || ""
+              r?.messageId || "",
+              r?.logged ? "logged" : "no-log"
             )
           )
           .catch((err) =>
@@ -369,6 +378,197 @@ export async function registerNewTenant(
     trialDays: TRIAL_DAYS,
     radarPublished: radarPublicado,
   };
+}
+
+/**
+ * Cria a conta a partir de uma reivindicação já aprovada. Todos os dados da
+ * casa e do responsável são lidos novamente pelo servidor; o navegador envia
+ * somente o protocolo, a senha e a preferência de cobrança.
+ */
+export async function registerApprovedClaimTenant(
+  supabaseAdmin: SupabaseClient,
+  input: ActivateApprovedClaimInput,
+  efi?: EfiEnv | null,
+): Promise<RegisterTenantResult> {
+  const claimId = String(input.claimId || "").trim();
+  const password = String(input.password || "");
+  const billingCycle = normalizeBillingCycle(input.billingCycle);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claimId)) {
+    throw Object.assign(new Error("Convite de ativação inválido."), { status: 400 });
+  }
+  const passwordCheck = validateStrongPassword(password);
+  if (passwordCheck.ok === false) {
+    throw Object.assign(new Error(passwordCheck.message), { status: 400 });
+  }
+  await rejectCompromisedPassword(password);
+
+  const { data: claim, error: claimError } = await supabaseAdmin
+    .from("terreiro_claim_requests")
+    .select("id, status, requester_name, requester_email, requester_phone, claimed_tenant_id, terreiro_id")
+    .eq("id", claimId)
+    .maybeSingle();
+  if (claimError) throw claimError;
+  if (!claim) throw Object.assign(new Error("Reivindicação não encontrada."), { status: 404 });
+  if (String(claim.status) !== "approved") {
+    throw Object.assign(new Error("Esta reivindicação ainda não está liberada para ativação."), { status: 409 });
+  }
+  if (claim.claimed_tenant_id) {
+    throw Object.assign(new Error("Esta casa já está conectada. Entre no AxéCloud para continuar."), { status: 409 });
+  }
+
+  const { data: terreiro, error: terreiroError } = await supabaseAdmin
+    .from("terreiros_diretorio")
+    .select("id, nome, telefone, cidade, estado, descricao_publica, publicacao_status, claimed_by_tenant_id")
+    .eq("id", claim.terreiro_id)
+    .maybeSingle();
+  if (terreiroError) throw terreiroError;
+  if (!terreiro) throw Object.assign(new Error("Perfil público da casa não encontrado."), { status: 404 });
+  if (terreiro.claimed_by_tenant_id) {
+    throw Object.assign(new Error("Esta casa já está conectada. Entre no AxéCloud para continuar."), { status: 409 });
+  }
+
+  const email = String(claim.requester_email || "").trim().toLowerCase();
+  const nomeTerreiro = String(terreiro.nome || "").trim();
+  const nomeZelador = String(claim.requester_name || "").trim();
+  const whatsapp = normalizeBrazilPhone(claim.requester_phone || terreiro.telefone || "");
+  if (!email || !nomeTerreiro || !nomeZelador) {
+    throw Object.assign(new Error("A reivindicação aprovada está incompleta. Fale com o suporte para corrigir os dados."), { status: 409 });
+  }
+  if (!whatsapp) {
+    throw Object.assign(new Error("O WhatsApp da reivindicação é inválido. Fale com o suporte para corrigir."), { status: 409 });
+  }
+
+  const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      nome_terreiro: nomeTerreiro,
+      nome_zelador: nomeZelador,
+      whatsapp,
+      cidade: String(terreiro.cidade || ""),
+      estado: String(terreiro.estado || ""),
+      publicar_no_mapa: true,
+      onboarding: "directory_claim_activation",
+      directory_claim_id: claimId,
+      is_trial: true,
+      billing_cycle: billingCycle,
+    },
+  });
+  if (createError) {
+    if (createError.message?.toLowerCase().includes("already")) {
+      throw Object.assign(new Error("Este e-mail já possui acesso. Entre na conta ou recupere a senha para conectar a casa."), { status: 409 });
+    }
+    throw createError;
+  }
+  const tenantId = created.user?.id;
+  if (!tenantId) throw new Error("Falha ao criar usuário.");
+
+  const cleanup = async () => {
+    await Promise.allSettled([
+      supabaseAdmin.from("subscriptions").delete().eq("id", tenantId),
+      supabaseAdmin.from("perfil_lider").delete().eq("id", tenantId),
+      supabaseAdmin.auth.admin.deleteUser(tenantId),
+    ]);
+  };
+  const now = new Date().toISOString();
+  try {
+    const { error: profileError } = await supabaseAdmin.from("perfil_lider").upsert(
+      {
+        id: tenantId,
+        email,
+        nome_terreiro: nomeTerreiro,
+        cargo: nomeZelador,
+        role: "admin",
+        tenant_id: tenantId,
+        whatsapp_publico: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
+        descricao_publica: String(terreiro.descricao_publica || "").trim() || null,
+        casa_verificada: true,
+        updated_at: now,
+      },
+      { onConflict: "id" },
+    );
+    if (profileError) throw profileError;
+
+    const trialEndsAt = trialExpiresAtFromNow();
+    const { error: subError } = await upsertSubscriptionResilient(supabaseAdmin, {
+      id: tenantId,
+      tenant_id: tenantId,
+      plan: "premium",
+      status: "active",
+      expires_at: trialEndsAt,
+      efi_charge_id: null,
+      payment_provider: (efi ?? resolveEfiEnv()) ? "efi" : null,
+      billing_cycle: billingCycle,
+      pending_since: null,
+      updated_at: now,
+    });
+    if (subError) throw subError;
+
+    const { error: linkError } = await supabaseAdmin.rpc("connect_approved_terreiro_claim", {
+      p_claim_id: claimId,
+      p_requester_email: email,
+      p_tenant_id: tenantId,
+    });
+    if (linkError) throw linkError;
+
+    try {
+      const cfg = await loadWelcomeMessageConfig(supabaseAdmin);
+      const msisdn = normalizeBrazilMsisdn(whatsapp);
+      if (cfg.enabled && msisdn) {
+        const freeText = renderWelcomeMessage(
+          "Axé, {{nome_zelador}}! 🌿\nSua casa *{{nome_terreiro}}* foi ativada no AxéCloud.\n\nEntre com {{email}} e a senha que você criou.\nSite: {{site}}\n\n— {{assinatura}}",
+          {
+            nome_terreiro: nomeTerreiro,
+            nome_zelador: nomeZelador,
+            email,
+            site: cfg.loginUrl || resolvePublicAppUrl(),
+            assinatura: cfg.signature,
+          },
+        );
+        void dispatchZeladorWelcomeWhatsApp({
+          msisdn,
+          freeText,
+          nome_zelador: nomeZelador,
+          nome_terreiro: nomeTerreiro,
+          email,
+          site: cfg.loginUrl || resolvePublicAppUrl(),
+          sb: supabaseAdmin,
+          tenantId,
+        }).catch((error) => console.error("[claim-activation] welcome:", error instanceof Error ? error.message : error));
+      }
+    } catch (error) {
+      console.warn("[claim-activation] welcome setup:", error instanceof Error ? error.message : error);
+    }
+
+    void import("./opsAlertWhatsApp.js")
+      .then(({ notifyOpsNewTerreiro }) => notifyOpsNewTerreiro({
+        nome_terreiro: nomeTerreiro,
+        nome_zelador: nomeZelador,
+        email,
+        whatsapp,
+        source: "directory-claim-activation",
+        tenantId,
+      }))
+      .catch((error) => console.error("[claim-activation] ops alert:", error instanceof Error ? error.message : error));
+
+    return {
+      userId: tenantId,
+      tenantId,
+      email,
+      checkoutPath: "/checkout?tenant=" + encodeURIComponent(tenantId) + "&billing=" + billingCycle,
+      subscriptionStatus: "active",
+      trialEndsAt,
+      trialDays: TRIAL_DAYS,
+      radarPublished: String(terreiro.publicacao_status || "") === "publicado",
+    };
+  } catch (error) {
+    await cleanup();
+    if (String((error as { message?: string })?.message || "").includes("duplicate")) {
+      throw Object.assign(new Error("Esta casa acabou de ser conectada a outra conta. Atualize a página."), { status: 409 });
+    }
+    throw error;
+  }
 }
 
 const PAID_WELCOME_DEFAULT =

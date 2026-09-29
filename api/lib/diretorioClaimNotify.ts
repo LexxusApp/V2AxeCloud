@@ -3,6 +3,7 @@ import type { MetaTemplateComponent } from "../../src/services/evolution.service
 import { isMetaCloudDirectConfigured, sendMetaCloudTemplate } from "./metaCloudSend.js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { resolveMetaTemplateLanguage } from "./whatsappMetaCloud.js";
+import { resolveDirectoryClaimTemplateName } from "./directoryClaimMetaTemplates.js";
 
 
 export type DiretorioClaimNotifyResult = {
@@ -19,13 +20,17 @@ export type DiretorioClaimNotifyResult = {
 const PUBLIC_SITE = "https://axecloud.com.br";
 const CLAIM_APPROVED_TEMPLATE = "reivindicacao_aprovada_axecloud";
 const CLAIM_CONNECTED_TEMPLATE = "reivindicacao_conectada_axecloud";
+type ClaimNotificationKind = "approval" | "reminder_24h" | "reminder_72h" | "manual_resend";
 
-function claimTemplateName(linked: boolean): string {
-  return linked
-    ? String(process.env.WA_META_TEMPLATE_REIVINDICACAO_CONECTADA || "").trim() ||
-        CLAIM_CONNECTED_TEMPLATE
-    : String(process.env.WA_META_TEMPLATE_REIVINDICACAO_APROVADA || "").trim() ||
-        CLAIM_APPROVED_TEMPLATE;
+async function claimTemplateName(linked: boolean, kind: ClaimNotificationKind): Promise<string> {
+  if (linked) {
+    return String(process.env.WA_META_TEMPLATE_REIVINDICACAO_CONECTADA || "").trim() ||
+      CLAIM_CONNECTED_TEMPLATE;
+  }
+  if (kind === "reminder_24h" || kind === "reminder_72h") {
+    return resolveDirectoryClaimTemplateName(kind);
+  }
+  return resolveDirectoryClaimTemplateName("approval");
 }
 
 function textParam(value: string, max: number): { type: "text"; text: string } {
@@ -82,6 +87,8 @@ export async function notifyApprovedTerreiroClaim(
     requesterPhone: string | null | undefined;
     terreiroNome: string;
     linkedTenantId: string | null;
+    requestedBy?: string | null;
+    notificationKind?: ClaimNotificationKind;
   },
 ): Promise<DiretorioClaimNotifyResult> {
   const claimId = String(input.claimId || "").trim();
@@ -95,8 +102,9 @@ export async function notifyApprovedTerreiroClaim(
   }
 
   const linked = Boolean(input.linkedTenantId);
+  const notificationKind = input.notificationKind || "approval";
   const tipo = linked ? "reivindicacao_conectada" : "reivindicacao_aprovada";
-  const templateName = claimTemplateName(linked);
+  const templateName = await claimTemplateName(linked, notificationKind);
   const nome = directoryClaimFirstName(input.requesterName);
   const terreiro = String(input.terreiroNome || "Terreiro").trim() || "Terreiro";
   const components = claimComponents(linked, nome, terreiro, claimId);
@@ -114,8 +122,11 @@ export async function notifyApprovedTerreiroClaim(
         recipientName: input.requesterName,
         source: "directory_claim",
         sourceId: claimId,
-        idempotencyKey: "directory-claim-approved:" + claimId,
-        metadata: { terreiroNome: terreiro, linked },
+        requestedBy: input.requestedBy || null,
+        idempotencyKey: notificationKind === "manual_resend"
+          ? "directory-claim-manual:" + claimId + ":" + Date.now()
+          : "directory-claim-" + notificationKind + ":" + claimId,
+        metadata: { terreiroNome: terreiro, linked, notificationKind },
       },
     );
     const externalId = out.messageId || `claim_${Date.now()}_${claimId.slice(0, 8)}`;

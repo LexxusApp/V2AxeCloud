@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { directoryClaimFirstName, directoryClaimRegisterUrl } from "../api/lib/diretorioClaimNotify.ts";
+import { buildReivindicacaoAprovadaComponents } from "../api/lib/whatsappMetaCloud.ts";
 
 const publicRoutes = readFileSync("api/lib/diretorioPublicRoutes.ts", "utf8");
 const adminRoutes = readFileSync("api/lib/diretorioClaimAdminRoutes.ts", "utf8");
+const claimNotify = readFileSync("api/lib/diretorioClaimNotify.ts", "utf8");
+const metaCloud = readFileSync("api/lib/whatsappMetaCloud.ts", "utf8");
+const claimTemplates = readFileSync("scripts/meta-whatsapp-claim-templates.mjs", "utf8");
 const migration = readFileSync(
   "supabase/migrations/20260818120000_terreiros_diretorio_claims.sql",
   "utf8",
@@ -12,6 +17,16 @@ const acquisitionMigration = readFileSync(
   "supabase/migrations/20260826193000_directory_claim_acquisition.sql",
   "utf8",
 );
+const activationMigration = readFileSync(
+  "supabase/migrations/20260929210000_directory_claim_activation_funnel.sql",
+  "utf8",
+);
+const activationService = readFileSync("api/lib/directoryClaimActivation.ts", "utf8");
+const activationTemplates = readFileSync("api/lib/directoryClaimMetaTemplates.ts", "utf8");
+const onboardingRoutes = readFileSync("api/lib/onboardingRoutes.ts", "utf8");
+const tenantOnboarding = readFileSync("api/lib/tenantOnboarding.ts", "utf8");
+const activationExperience = readFileSync("src/components/claim/ClaimActivationExperience.tsx", "utf8");
+const cloudflareApiWorker = readFileSync("cloudflare/api-container-worker.ts", "utf8");
 const dialog = readFileSync("src/components/portal/TerreiroClaimDialog.tsx", "utf8");
 const statusDialog = readFileSync("src/components/portal/TerreiroClaimStatusDialog.tsx", "utf8");
 const directoryProfile = readFileSync("src/views/portal/DiretorioTerreiroPage.tsx", "utf8");
@@ -35,6 +50,29 @@ test("análise de reivindicações passa pelo administrador global e por operaç
   assert.match(adminRoutes, /directory\.claim\.\$\{status\}/);
   assert.doesNotMatch(adminRoutes, /status === "approved" && !tenantId/);
   assert.match(adminRoutes, /aguardando criação da conta/);
+  assert.match(adminRoutes, /notifyApprovedTerreiroClaim/);
+});
+
+test("aprovação dispara WhatsApp com link de cadastro vinculado ao protocolo", () => {
+  assert.equal(
+    directoryClaimRegisterUrl("11111111-1111-4111-8111-111111111111"),
+    "https://axecloud.com.br/register?claim=11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(directoryClaimFirstName("MAILSON RICELLI HERMOGENES DE OLIVEIRA"), "Mailson");
+  const components = buildReivindicacaoAprovadaComponents(
+    "Mailson",
+    "Terreiro de Umbanda Xango",
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(components[0]?.type, "body");
+  assert.equal(components[1]?.type, "button");
+  assert.equal(components[1]?.sub_type, "url");
+  const buttonParam = components[1]?.parameters?.[0];
+  assert.equal(buttonParam && "text" in buttonParam ? buttonParam.text : undefined, "11111111-1111-4111-8111-111111111111");
+  assert.match(claimNotify, /normalizeBrazilMsisdn/);
+  assert.match(metaCloud, /reivindicacao_aprovada_axecloud/);
+  assert.match(claimTemplates, /register\?claim=\{\{1\}\}/);
+  assert.match(claimTemplates, /category: "UTILITY"/);
 });
 
 test("responsável acompanha o protocolo sem exposição pública de dados", () => {
@@ -43,6 +81,48 @@ test("responsável acompanha o protocolo sem exposição pública de dados", () 
   assert.doesNotMatch(publicRoutes, /nextAction:[\s\S]{0,500}admin_notes/);
   assert.match(statusDialog, /Acompanhamento protegido/);
   assert.match(publicRoutes, /Criar acesso e conectar a casa/);
+});
+
+test("cadastro com claim aprovado abre ativação expressa sem repetir os dados da casa", () => {
+  assert.match(publicRoutes, /reivindicacao\/:claimId\/cadastro/);
+  assert.match(publicRoutes, /canRegister/);
+  assert.match(publicRoutes, /status !== "approved" && claim.status !== "pending"/);
+  assert.match(publicRoutes, /nomeTerreiro/);
+  assert.match(publicRoutes, /nomeZelador/);
+  const registerPage = readFileSync("src/views/Register.tsx", "utf8");
+  assert.match(registerPage, /<ClaimActivationExperience claimId=\{claimId\}/);
+  assert.match(activationExperience, /Falta apenas criar seu acesso/);
+  assert.match(activationExperience, /Não vamos pedir novamente endereço, fotos ou documentos/);
+  assert.match(activationExperience, /claimId,[\s\S]*password,[\s\S]*billingCycle/);
+  assert.doesNotMatch(activationExperience, /nome_terreiro\s*:/);
+});
+
+test("ativação valida a reivindicação no servidor antes de criar a conta", () => {
+  assert.match(onboardingRoutes, /registerApprovedClaimTenant/);
+  assert.match(tenantOnboarding, /\.from\("terreiro_claim_requests"\)/);
+  assert.match(tenantOnboarding, /String\(claim\.status\) !== "approved"/);
+  assert.match(tenantOnboarding, /\.from\("terreiros_diretorio"\)/);
+  assert.match(tenantOnboarding, /connect_approved_terreiro_claim/);
+  assert.match(tenantOnboarding, /const cleanup = async/);
+  assert.match(onboardingRoutes, /!claimActivation && !resolveEfiEnv\(\)/);
+});
+
+test("funil registra abertura, início, conclusão e lembretes automáticos", () => {
+  assert.match(activationMigration, /activation_opened/);
+  assert.match(activationMigration, /activation_started/);
+  assert.match(activationMigration, /activation_completed/);
+  assert.match(activationMigration, /reminder_24h_sent/);
+  assert.match(activationMigration, /reminder_72h_sent/);
+  assert.match(activationService, /ageHours >= 72/);
+  assert.match(activationService, /notificationKind: is72h \? "reminder_72h" : "reminder_24h"/);
+  assert.match(activationService, /stageEvents\.has\("activation_completed"\)/);
+  assert.match(activationService, /ensureDirectoryClaimTemplates/);
+  assert.match(activationTemplates, /status === "APPROVED" \? desired : LEGACY_APPROVAL_TEMPLATE/);
+  assert.match(activationTemplates, /reivindicacao_ativacao_v2_axecloud/);
+  assert.match(activationExperience, /recordProgress\(claimId, 'opened'\)/);
+  assert.match(activationExperience, /recordProgress\(claimId, 'started'\)/);
+  assert.match(cloudflareApiWorker, /hourInSaoPaulo === 12/);
+  assert.match(cloudflareApiWorker, /runJob\("whatsapp-jobs"\)/);
 });
 
 test("cadastro conecta somente reivindicação aprovada com o mesmo e-mail", () => {
@@ -74,7 +154,8 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(mapClient, /verificada/);
 
   const appMap = readFileSync("src/components/portal/DirectoryCoverageMap.tsx", "utf8");
-  assert.match(appMap, /point\.verificada \? '#16865f' : '#e5ae12'/);
+  assert.match(appMap, /const highlighted = point\.verificada \|\| point\.gerenciada/);
+  assert.match(appMap, /ctx\.fillStyle = highlighted \? '#16865f' : '#e5ae12'/);
   assert.match(appMap, /verifiedCount/);
 
   const marketingMap = readFileSync("cinematic-site/terreiros.html", "utf8");

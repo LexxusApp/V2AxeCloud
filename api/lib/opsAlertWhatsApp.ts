@@ -39,7 +39,7 @@ export async function notifyOpsNewTerreiro(opts: {
   nome_zelador?: string | null;
   email: string;
   whatsapp?: string | null;
-  source: "public-register" | "admin-create";
+  source: "public-register" | "admin-create" | "directory-claim-activation";
   tenantId?: string | null;
 }): Promise<{ sent: number; skipped: string }> {
   const phones = resolveOpsAlertPhones();
@@ -51,7 +51,11 @@ export async function notifyOpsNewTerreiro(opts: {
   const zelador = String(opts.nome_zelador || "").trim().slice(0, 60);
   const email = String(opts.email || "").trim().toLowerCase().slice(0, 120);
   const waCadastro = normalizeBrazilMsisdn(opts.whatsapp || "") || "sem WA";
-  const origem = opts.source === "admin-create" ? "admin" : "site";
+  const origem = opts.source === "admin-create"
+    ? "admin"
+    : opts.source === "directory-claim-activation"
+      ? "reivindicação"
+      : "site";
 
   const legacyPacked = packLegacyAlertLine([
     `Terreiro: ${terreiro}`,

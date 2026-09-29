@@ -188,13 +188,51 @@ Legado portal: `WA_META_TEMPLATE_DADOS_ACESSO=conta_ativa_axecloud`.
 
 ---
 
-## 4. `aviso_gira_axecloud`
+## 4c. `cobranca_assinatura_axecloud` — assinatura AxéCloud (zelador)
 
-**Uso:** ao criar evento/gira no Calendário com WhatsApp habilitado — avisa todos os filhos da corrente.
+**Uso:** cron WhatsApp — **somente D-1** (um dia antes do `expires_at`) e **D-0** (dia do vencimento), fuso Brasília. Destinatário: zelador do terreiro (não a corrente). Botão URL abre `/assinatura/renovar`.
 
-**Categoria Meta:** Utilidade (lembrete de evento / atualização de agenda).
+**Categoria sugerida:** Utility (`allow_category_change`).
 
-**Header:** Imagem (banner do evento; se o evento não tiver banner, o sistema usa `WA_META_EVENT_DEFAULT_BANNER_URL`).
+**Corpo:**
+
+```
+Ola, {{1}}.
+
+A assinatura do terreiro {{2}} {{3}}.
+Plano Premium.
+Valor: {{4}}
+
+Renove pelo botao abaixo para manter o painel liberado.
+Pix e cartao no checkout oficial do AxeCloud.
+```
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Joyce |
+| {{2}} | T.U. Casa de Oxossi… |
+| {{3}} | vence amanha, no dia 13/09/2026 |
+| {{4}} | R$ 69,90 |
+
+**Footer:** Mensagem automatica — nao responda.
+**Botão:** Pagar assinatura → `https://axecloud.com.br/assinatura/renovar`
+
+**Env:** `WA_META_TEMPLATE_COBRANCA_ASSINATURA=cobranca_assinatura_axecloud`
+**Submit:** `python3 scripts/submit-cobranca-assinatura-meta.py` (na VPS com `.env`)
+**Código:** `api/lib/subscriptionBillingWhatsApp.ts` (cron) + catálogo admin `cobranca_assinatura_zelador`
+
+---
+
+## 4. `aviso_gira_axecloud` / `aviso_gira_lembrete_membro_axecloud`
+
+**Uso:** ao criar evento/gira no Calendário (ou lembrete automático / reenvio) — avisa todos os filhos da corrente com WhatsApp.
+
+### 4a. Legado — `aviso_gira_axecloud` / `aviso_gira_util_axecloud`
+
+**Categoria Meta:** Utilidade.
+
+**Header (só `aviso_gira_axecloud`):** Imagem (banner do evento; fallback `WA_META_EVENT_DEFAULT_BANNER_URL`).
+**`aviso_gira_util_axecloud`:** sem header (produção atual até aprovar o lembrete humanizado).
 
 **Corpo:**
 
@@ -215,18 +253,49 @@ Consulte o AxéCloud para mais detalhes.
 | {{2}} | 15/07/2026 |
 | {{3}} | 20:00 |
 
-**Header (amostra na submissão):** use qualquer imagem quadrada/horizontal do terreiro ou o banner padrão `https://axecloud.com.br/og-image.png`.
+### 4b. Novo (humanizado) — `aviso_gira_lembrete_membro_axecloud`
 
-**Env:**
+**Categoria Meta:** Utilidade · sem header de imagem · footer fixo.
+
+**Corpo:**
+
+```
+Ola, {{1}}!
+
+O AxeCloud esta passando para lembrar que {{2}} tem gira no terreiro {{3}}:
+
+{{4}}
+Horario: {{5}}
+
+Consulte o AxeCloud para mais detalhes.
+```
+
+**Footer:** `Mensagem automatica — nao responda.`
+
+| Variável | Exemplo |
+|----------|---------|
+| {{1}} | Maria |
+| {{2}} | amanha / hoje / no dia 12/09/2026 |
+| {{3}} | T.U. Casa de Oxossi Caridade e Amor |
+| {{4}} | Caboclo |
+| {{5}} | 16:00 |
+
+**Env (quando APPROVED):**
 
 ```env
-# Em produção usamos a variante Utility (sem header de imagem) para evitar o
-# bloqueio #131049 aplicado a templates Marketing: aviso_gira_util_axecloud.
-WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
+WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_lembrete_membro_axecloud
 WA_META_EVENT_DEFAULT_BANNER_URL=https://axecloud.com.br/og-image.png
 ```
 
-**Disparo:** Calendário → novo evento com opção WhatsApp → `dispatchGiraWhatsApp` envia para filhos ativos com telefone.
+Até aprovar, manter:
+
+```env
+WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
+```
+
+**Submissão:** `python3 scripts/submit-aviso-gira-lembrete-membro-meta.py` (na VPS com `.env`).
+
+**Disparo:** Calendário → novo evento / lembrete cron / reenvio → `dispatchGiraWhatsApp` para filhos ativos com telefone.
 
 ---
 
@@ -591,6 +660,76 @@ Para mais instrucoes, use o botao abaixo.
 
 **Env:** `WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_v2_axecloud`
 
+---
+
+### `membro_acesso_falhou_zelador_axc` (Utility) — **REJECTED** (`INCORRECT_CATEGORY`)
+
+**Uso:** Aviso ao zelador quando `dados_acesso` do membro falha.
+
+**Layout desejado (linhas):**
+
+```
+Ola, {{1}}!
+
+Nao foi possivel entregar o WhatsApp de acesso ao membro.
+
+Membro: {{2}}
+Registro: {{3}}
+Senha (6 digitos do CPF): {{4}}
+
+Passe esses dados manualmente para ele. Use o botao abaixo para o link de entrada.
+```
+
+**Botão:** Entrar no app → `/entrar?modo=filho`
+
+**Produção enquanto rejeitado:** tenta template → **texto livre organizado** (se janela 24h) → `aviso_geral_axecloud` compacto.
+
+---
+
+## Reivindicação de terreiro (03/09/2026)
+
+### Funil de ativação expressa (29/09/2026)
+
+Depois da aprovação, o link abre uma ativação de uma etapa: os dados da casa são
+carregados da reivindicação validada no servidor e o responsável cria apenas a senha.
+O cron envia lembretes somente enquanto a casa não estiver conectada.
+
+| Template | Momento | CTA |
+|----------|---------|-----|
+| `reivindicacao_ativacao_v2_axecloud` | imediatamente após aprovação | Ativar minha casa |
+| `reivindicacao_lembrete_24h_axecloud` | 24h sem concluir | Continuar ativação |
+| `reivindicacao_lembrete_72h_axecloud` | 72h sem concluir | Ativar perfil da casa |
+
+Todos usam `{{1}}` para o primeiro nome, `{{2}}` para o nome da casa e o protocolo
+da reivindicação no sufixo dinâmico do botão.
+
+```env
+WA_META_TEMPLATE_REIVINDICACAO_ATIVACAO=reivindicacao_ativacao_v2_axecloud
+WA_META_TEMPLATE_REIVINDICACAO_LEMBRETE_24H=reivindicacao_lembrete_24h_axecloud
+WA_META_TEMPLATE_REIVINDICACAO_LEMBRETE_72H=reivindicacao_lembrete_72h_axecloud
+```
+
+Enquanto os novos templates aguardam aprovação da Meta, remova os três envs novos:
+o código recua com segurança para `reivindicacao_aprovada_axecloud`.
+
+### `reivindicacao_aprovada_axecloud` (Utilidade)
+
+**Uso:** após aprovar no console, sem conta AxéCloud selecionada.
+
+**Corpo:** `Olá, {{1}}!` + perfil `{{2}}` aprovado + criar acesso com o mesmo e-mail.
+
+**Botão URL (dinâmico):** `Criar acesso` → `https://axecloud.com.br/register?claim={{1}}`
+
+**Env:** `WA_META_TEMPLATE_REIVINDICACAO_APROVADA=reivindicacao_aprovada_axecloud`
+
+Criar/consultar na Meta: `node --env-file=.env scripts/meta-whatsapp-claim-templates.mjs`
+
+### `reivindicacao_conectada_axecloud` (Utilidade)
+
+**Uso:** aprovação já ligada a uma conta existente.
+
+**Botão URL (fixo):** `Entrar no painel` → `https://axecloud.com.br/entrar`
+
 > **Legado:** `boas_vindas_zelador_axecloud` (3 vars: zelador, terreiro, e-mail) — mantido se o env apontar para ele.
 
 ---
@@ -655,6 +794,7 @@ WA_META_TEMPLATE_FINANCEIRO=financeiro_axecloud
 WA_META_TEMPLATE_COBRANCA_MENSALIDADE=cobranca_mensalidade_axecloud
 WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA=mensalidade_confirmada_axecloud
 WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
+# Após APPROVED: WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_lembrete_membro_axecloud
 WA_META_TEMPLATE_CONVITE_EVENTO=convite_evento_axecloud
 WA_META_TEMPLATE_ESTOQUE_CRITICO=estoque_critico_axecloud
 WA_META_TEMPLATE_TRANSMISSAO_AVISO=aviso_portal_conta_axecloud
@@ -666,6 +806,7 @@ WA_META_TEMPLATE_FORGOT_PASSWORD=recuperar_senha_axec
 WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR=boas_vindas_zelador_v2_axecloud
 WA_META_TEMPLATE_DADOS_ACESSO=acesso_membro_guia_axecloud
 WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
+WA_META_TEMPLATE_FALHA_ACESSO_ZELADOR=acesso_falhou_avisar_zelador_axecloud
 ```
 
 2. `git pull` + rebuild/restart do container app.

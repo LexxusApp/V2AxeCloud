@@ -29,7 +29,7 @@ type Deps = { supabaseAdmin: SupabaseClient };
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "id, nome, endereco, telefone, whatsapp_atendimento, foto_url, owner_photo_url, link_maps, instagram_url, descricao_publica, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
+  "id, nome, endereco, telefone, whatsapp_atendimento, foto_url, owner_photo_url, cover_photo_url, gallery_photo_urls, link_maps, instagram_url, descricao_publica, orientacoes_visita, tradicao, publicacao_status, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, gira_horarios, created_at";
 const DIR_CACHE_TTL_SEC = Math.max(60, Number(process.env.DIR_CACHE_TTL_SEC || 600) || 600);
 
 type DirectoryTrafficMetadata = {
@@ -139,6 +139,12 @@ function mapRow(row: Record<string, unknown>) {
     longitude !== null &&
     isPlausibleDiretorioCoordinate(latitude, longitude);
   const whatsapp = resolveDiretorioWhatsapp(row.whatsapp_atendimento, row.telefone);
+  const galleryPhotoUrls = Array.isArray(row.gallery_photo_urls)
+    ? row.gallery_photo_urls
+        .map((value) => String(value || "").trim())
+        .filter((value) => value.startsWith("https://"))
+        .slice(0, 8)
+    : [];
   return {
     slug,
     nome,
@@ -151,9 +157,13 @@ function mapRow(row: Record<string, unknown>) {
       : row.foto_url && slug
         ? `${diretorioFotoProxyPath(slug)}?v=2`
         : null,
+    coverPhotoUrl: row.cover_photo_url ? String(row.cover_photo_url).trim() : null,
+    galleryPhotoUrls,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
     instagramUrl: row.instagram_url ? String(row.instagram_url).trim() : null,
     descricao: row.descricao_publica ? String(row.descricao_publica).trim() : null,
+    orientacoesVisita: row.orientacoes_visita ? String(row.orientacoes_visita).trim() : null,
+    tradicao: row.tradicao ? String(row.tradicao).trim() : null,
     horariosGira: normalizeGiraSchedule(row.gira_horarios),
     cidade: cidade || null,
     estado,
@@ -375,7 +385,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const { data: terreiro, error: terreiroError } = await sb
           .from(TABLE)
-          .select("id, nome, slug, endereco, cidade, estado, bairro, claimed_by_tenant_id")
+          .select("id, nome, slug, endereco, cidade, estado, bairro, foto_url, owner_photo_url, cover_photo_url, publicacao_status, claimed_by_tenant_id")
           .eq("id", claim.terreiro_id)
           .maybeSingle();
         if (terreiroError) throw terreiroError;
@@ -398,6 +408,13 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           cidade: terreiro.cidade ? String(terreiro.cidade).trim() : "",
           estado: terreiro.estado ? String(terreiro.estado).trim().toUpperCase() : "",
           bairro: terreiro.bairro ? String(terreiro.bairro).trim() : "",
+          photoUrl: terreiro.owner_photo_url
+            ? String(terreiro.owner_photo_url).trim()
+            : terreiro.foto_url
+              ? "/api/v1/public/diretorio/terreiro/" + encodeURIComponent(String(terreiro.slug || "")) + "/foto"
+              : null,
+          coverPhotoUrl: terreiro.cover_photo_url ? String(terreiro.cover_photo_url).trim() : null,
+          publicacaoStatus: String(terreiro.publicacao_status || ""),
           terreiro: { nome: terreiro.nome, slug: terreiro.slug },
         });
       } catch (e: unknown) {
@@ -562,7 +579,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           return res.status(404).json({ error: "Este perfil ainda não possui dados públicos confiáveis." });
         }
 
-        let tradicao: string | null = null;
+        let tradicao: string | null = publicItem.tradicao;
         const ownerId = String((data as Record<string, unknown>).claimed_by_tenant_id || "").trim();
         if (ownerId) {
           const { data: ownerProfile, error: ownerProfileError } = await sb
@@ -574,7 +591,9 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           if (ownerProfileError) {
             console.warn("[public/diretorio/terreiro] perfil vinculado:", ownerProfileError.message);
           } else if (ownerProfile) {
-            tradicao = ownerProfile.tradicao ? String(ownerProfile.tradicao) : null;
+            if (!tradicao && ownerProfile.tradicao) {
+              tradicao = String(ownerProfile.tradicao);
+            }
             if (!publicItem.descricao && ownerProfile.descricao_publica) {
               publicItem.descricao = String(ownerProfile.descricao_publica).trim();
             }
@@ -638,6 +657,46 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       } catch (e: unknown) {
         console.error("[public/diretorio/whatsapp-click]", e);
         res.status(500).json({ error: "Erro ao registrar contato." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/v1/public/diretorio/reivindicacao/:claimId/progresso",
+    publicFormRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const claimId = String(req.params.claimId || "").trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claimId)) {
+          return res.status(400).json({ error: "Protocolo inválido." });
+        }
+        const requestedEvent = String(req.body?.event || "").trim();
+        const eventType = requestedEvent === "opened"
+          ? "activation_opened"
+          : requestedEvent === "started"
+            ? "activation_started"
+            : null;
+        if (!eventType) return res.status(400).json({ error: "Etapa inválida." });
+
+        const { data: claim, error } = await sb
+          .from("terreiro_claim_requests")
+          .select("id, status, claimed_tenant_id")
+          .eq("id", claimId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!claim) return res.status(404).json({ error: "Reivindicação não encontrada." });
+        if (String(claim.status) !== "approved" || claim.claimed_tenant_id) {
+          return res.status(409).json({ error: "Esta ativação não está disponível." });
+        }
+
+        const { recordClaimActivationEvent } = await import("./directoryClaimActivation.js");
+        await recordClaimActivationEvent(sb, claimId, eventType, {
+          metadata: { userAgent: String(req.headers["user-agent"] || "").slice(0, 300) },
+        });
+        return res.status(204).end();
+      } catch (error) {
+        console.warn("[public/diretorio/reivindicacao/progresso]", error);
+        return res.status(204).end();
       }
     },
   );

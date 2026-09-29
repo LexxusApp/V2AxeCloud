@@ -14,6 +14,8 @@ const PUBLIC_EVENTS = new Set([
   'directory_view',
   'directory_action',
   'claim_started',
+  'claim_activation_opened',
+  'claim_activation_started',
   'register_view',
   'register_started',
   'register_step_completed',
@@ -89,7 +91,10 @@ export async function insertConversionEvent(
   options: { allowCompleted?: boolean; tenantId?: string | null } = {},
 ): Promise<boolean> {
   const eventName = cleanText(input.eventName, 40);
-  const serverConfirmedEvent = eventName === 'register_completed' || eventName === 'claim_completed';
+  const serverConfirmedEvent =
+    eventName === 'register_completed' ||
+    eventName === 'claim_completed' ||
+    eventName === 'claim_activation_completed';
   if (!eventName || (!PUBLIC_EVENTS.has(eventName) && !(options.allowCompleted && serverConfirmedEvent))) {
     return false;
   }
@@ -157,6 +162,9 @@ const FUNNEL_STAGE_EVENTS = [
   'directory_action',
   'claim_started',
   'claim_completed',
+  'claim_activation_opened',
+  'claim_activation_started',
+  'claim_activation_completed',
   'register_view',
   'register_started',
   'register_step_completed',

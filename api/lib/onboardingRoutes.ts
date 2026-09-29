@@ -4,6 +4,7 @@ import { resolveEfiEnv } from "./efiPay.js";
 import { isSubscriptionAccessActive } from "./subscriptionAccess.js";
 import {
   activateTenantSubscription,
+  registerApprovedClaimTenant,
   processEfiNotificationToken,
   registerNewTenant,
   resolvePublicAppUrl,
@@ -21,8 +22,6 @@ import { createAuditLog } from "./createAuditLog.js";
 type Deps = {
   supabaseAdmin: SupabaseClient;
 };
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) {
   app.get("/api/v1/public/cep/:cep", apiReadRateLimit, async (req: Request, res: Response) => {
@@ -97,53 +96,36 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         descricao_publica,
         publicar_no_mapa,
       } = req.body || {};
-      const result = await registerNewTenant(
-        supabaseAdmin,
-        {
-          email,
-          password,
-          nome_terreiro,
-          nome_zelador,
-          whatsapp,
-          billingCycle,
-          cep,
-          endereco,
-          numero,
-          complemento,
-          bairro,
-          cidade,
-          estado,
-          descricao_publica,
-          publicar_no_mapa,
-        },
-        resolveEfiEnv()
-      );
-
-      let claimLinked = false;
       const approvedClaimId = String(claimId || "").trim();
-      if (approvedClaimId && UUID_PATTERN.test(approvedClaimId)) {
-        const { error: claimLinkError } = await supabaseAdmin.rpc("connect_approved_terreiro_claim", {
-          p_claim_id: approvedClaimId,
-          p_requester_email: result.email,
-          p_tenant_id: result.tenantId,
-        });
-        if (claimLinkError) {
-          console.warn("[register] approved directory claim not linked:", claimLinkError.message);
-        } else {
-          claimLinked = true;
-          const { data: linkedProfiles } = await supabaseAdmin
-            .from("terreiros_diretorio")
-            .select("id, verified_at, publicacao_status")
-            .eq("claimed_by_tenant_id", result.tenantId);
-          const verifiedProfile = (linkedProfiles || []).find((row) => Boolean(row.verified_at));
-          const redundantDraftIds = (linkedProfiles || [])
-            .filter((row) => row.id !== verifiedProfile?.id && row.publicacao_status === "rascunho")
-            .map((row) => row.id);
-          if (verifiedProfile && redundantDraftIds.length > 0) {
-            await supabaseAdmin.from("terreiros_diretorio").delete().in("id", redundantDraftIds);
-          }
-        }
-      }
+      const claimActivation = Boolean(approvedClaimId);
+      const result = claimActivation
+        ? await registerApprovedClaimTenant(
+            supabaseAdmin,
+            { claimId: approvedClaimId, password, billingCycle },
+            resolveEfiEnv(),
+          )
+        : await registerNewTenant(
+            supabaseAdmin,
+            {
+              email,
+              password,
+              nome_terreiro,
+              nome_zelador,
+              whatsapp,
+              billingCycle,
+              cep,
+              endereco,
+              numero,
+              complemento,
+              bairro,
+              cidade,
+              estado,
+              descricao_publica,
+              publicar_no_mapa,
+            },
+            resolveEfiEnv(),
+          );
+      const claimLinked = claimActivation;
 
       try {
         const { insertConversionEvent } = await import('./publicConversionTracking.js');
@@ -153,7 +135,10 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
           {
             ...(conversion || {}),
             eventName: 'register_completed',
-            metadata: { registrationSource: 'public-register' },
+            metadata: {
+              registrationSource: claimActivation ? 'directory-claim-activation' : 'public-register',
+              claimId: approvedClaimId || undefined,
+            },
           },
           { allowCompleted: true, tenantId: result.tenantId },
         );
@@ -161,15 +146,37 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         console.warn('[register] conversion metric failed:', metricError);
       }
 
+      if (claimActivation) {
+        const { recordClaimActivationEvent } = await import("./directoryClaimActivation.js");
+        await recordClaimActivationEvent(supabaseAdmin, approvedClaimId, "activation_completed", {
+          metadata: { tenantId: result.tenantId },
+        });
+        try {
+          const { insertConversionEvent } = await import("./publicConversionTracking.js");
+          await insertConversionEvent(
+            supabaseAdmin,
+            req,
+            {
+              ...(conversion || {}),
+              eventName: "claim_activation_completed",
+              metadata: { claimId: approvedClaimId },
+            },
+            { allowCompleted: true, tenantId: result.tenantId },
+          );
+        } catch (metricError) {
+          console.warn("[claim-activation] conversion metric failed:", metricError);
+        }
+      }
+
       void createAuditLog(supabaseAdmin, req, "auth.register_completed", "success", result.tenantId, {
         surface: "app",
         mode: "zelador",
-        source: "public-register",
+        source: claimActivation ? "directory-claim-activation" : "public-register",
         email: result.email,
         userId: result.userId,
       });
 
-      if (!resolveEfiEnv()) {
+      if (!claimActivation && !resolveEfiEnv()) {
         return res.status(503).json({
           error:
             "Cadastro criado, mas o checkout EFI não está disponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET.",

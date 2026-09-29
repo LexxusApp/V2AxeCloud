@@ -8,6 +8,14 @@ type RequireAdmin = (req: Request, res: Response) => Promise<AdminContext | null
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function optionalTrackingRows<T>(result: { data?: T[] | null; error?: { message?: string } | null }): T[] {
+  if (!result.error) return result.data || [];
+  if (/terreiro_claim_activation_events|whatsapp_deliveries|schema cache|does not exist/i.test(String(result.error.message || ""))) {
+    return [];
+  }
+  throw result.error;
+}
+
 export function registerDiretorioClaimAdminRoutes(
   app: Express,
   deps: { supabaseAdmin: SupabaseClient },
@@ -31,7 +39,7 @@ export function registerDiretorioClaimAdminRoutes(
         query,
         deps.supabaseAdmin
           .from("terreiro_claim_requests")
-          .select("status, claimed_tenant_id")
+          .select("id, status, claimed_tenant_id, reviewed_at")
           .limit(5000),
       ]);
       if (error) throw error;
@@ -39,7 +47,8 @@ export function registerDiretorioClaimAdminRoutes(
 
       const terreiroIds = [...new Set((claims || []).map((row) => String(row.terreiro_id || "")).filter(Boolean))];
       const tenantIds = [...new Set((claims || []).map((row) => String(row.claimed_tenant_id || "")).filter(Boolean))];
-      const [terreirosResult, tenantsResult] = await Promise.all([
+      const claimIds = (claims || []).map((row) => String(row.id));
+      const [terreirosResult, tenantsResult, activationResult, deliveryResult, allActivationResult] = await Promise.all([
         terreiroIds.length
           ? deps.supabaseAdmin
               .from("terreiros_diretorio")
@@ -49,29 +58,79 @@ export function registerDiretorioClaimAdminRoutes(
         tenantIds.length
           ? deps.supabaseAdmin.from("perfil_lider").select("id, nome_terreiro, email").in("id", tenantIds)
           : Promise.resolve({ data: [], error: null }),
+        claimIds.length
+          ? deps.supabaseAdmin
+              .from("terreiro_claim_activation_events")
+              .select("claim_id, event_type, created_at")
+              .in("claim_id", claimIds)
+          : Promise.resolve({ data: [], error: null }),
+        claimIds.length
+          ? deps.supabaseAdmin
+              .from("whatsapp_deliveries")
+              .select("source_id, status, template_name, created_at, delivered_at, read_at")
+              .eq("source", "directory_claim")
+              .in("source_id", claimIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        deps.supabaseAdmin
+          .from("terreiro_claim_activation_events")
+          .select("claim_id, event_type, created_at")
+          .limit(10000),
       ]);
       if (terreirosResult.error) throw terreirosResult.error;
       if (tenantsResult.error) throw tenantsResult.error;
+      const activationRows = optionalTrackingRows(activationResult);
+      const deliveryRows = optionalTrackingRows(deliveryResult);
+      const allActivationRows = optionalTrackingRows(allActivationResult);
 
       const terreiroById = new Map((terreirosResult.data || []).map((row) => [String(row.id), row]));
       const tenantById = new Map((tenantsResult.data || []).map((row) => [String(row.id), row]));
+      const activationByClaim = new Map<string, Record<string, string>>();
+      for (const event of activationRows) {
+        const id = String(event.claim_id || "");
+        const current = activationByClaim.get(id) || {};
+        current[String(event.event_type || "")] = String(event.created_at || "");
+        activationByClaim.set(id, current);
+      }
+      const deliveryByClaim = new Map<string, (typeof deliveryRows)[number]>();
+      for (const delivery of deliveryRows) {
+        const id = String(delivery.source_id || "");
+        if (id && !deliveryByClaim.has(id)) deliveryByClaim.set(id, delivery);
+      }
       const rows = (claims || []).map((claim) => ({
         ...claim,
         terreiro: terreiroById.get(String(claim.terreiro_id)) || null,
         tenant: claim.claimed_tenant_id ? tenantById.get(String(claim.claimed_tenant_id)) || null : null,
+        activation: activationByClaim.get(String(claim.id)) || {},
+        latestDelivery: deliveryByClaim.get(String(claim.id)) || null,
       }));
 
+      const allEventsByClaim = new Map<string, Set<string>>();
+      for (const event of allActivationRows) {
+        const id = String(event.claim_id || "");
+        if (!allEventsByClaim.has(id)) allEventsByClaim.set(id, new Set());
+        allEventsByClaim.get(id)?.add(String(event.event_type || ""));
+      }
+      const stalledBefore = Date.now() - 72 * 60 * 60 * 1000;
       const summary = (summaryRows || []).reduce(
         (result, row) => {
           const itemStatus = String(row.status || "");
+          const events = allEventsByClaim.get(String(row.id)) || new Set<string>();
           result.total += 1;
           if (itemStatus === "pending") result.pending += 1;
           if (itemStatus === "approved") result.approved += 1;
           if (itemStatus === "rejected") result.rejected += 1;
-          if (row.claimed_tenant_id) result.linked += 1;
+          if (row.claimed_tenant_id || events.has("activation_completed")) result.linked += 1;
+          if (events.has("activation_opened")) result.opened += 1;
+          if (events.has("activation_started")) result.started += 1;
+          if (itemStatus === "approved" && !row.claimed_tenant_id) {
+            result.awaitingActivation += 1;
+            const reviewedAt = new Date(String(row.reviewed_at || "")).getTime();
+            if (reviewedAt > 0 && reviewedAt <= stalledBefore && !events.has("activation_completed")) result.stalled += 1;
+          }
           return result;
         },
-        { total: 0, pending: 0, approved: 0, rejected: 0, linked: 0 },
+        { total: 0, pending: 0, approved: 0, rejected: 0, linked: 0, awaitingActivation: 0, opened: 0, started: 0, stalled: 0 },
       );
 
       res.json({ rows, status, summary });
@@ -124,7 +183,15 @@ export function registerDiretorioClaimAdminRoutes(
         .eq("id", claimId)
         .maybeSingle();
       const claim = claimRow || (data && typeof data === "object" ? (data as Record<string, unknown>) : {});
-      let notify: { sent: boolean; reason?: string; error?: string; phoneMasked?: string } | null = null;
+      let notify: {
+        sent: boolean;
+        reason?: string;
+        error?: string;
+        phoneMasked?: string;
+        registerUrl?: string;
+        deliveryId?: string;
+        template?: string;
+      } | null = null;
       if (status === "approved") {
         const { notifyApprovedTerreiroClaim } = await import("./diretorioClaimNotify.js");
         let terreiroNome = "";
@@ -145,6 +212,16 @@ export function registerDiretorioClaimAdminRoutes(
           linkedTenantId: tenantId,
           requestedBy: ctx.user.id,
         });
+        const { recordClaimActivationEvent } = await import("./directoryClaimActivation.js");
+        await recordClaimActivationEvent(deps.supabaseAdmin, claimId, "approved", {
+          metadata: { linkedTenantId: tenantId },
+        });
+        if (notify.sent) {
+          await recordClaimActivationEvent(deps.supabaseAdmin, claimId, "notification_sent", {
+            deliveryId: notify.deliveryId,
+            metadata: { template: notify.template },
+          });
+        }
       }
 
       void logEvent(deps.supabaseAdmin, {
@@ -206,6 +283,7 @@ export function registerDiretorioClaimAdminRoutes(
         terreiroNome,
         linkedTenantId: claim.claimed_tenant_id ? String(claim.claimed_tenant_id) : null,
         requestedBy: ctx.user.id,
+        notificationKind: "manual_resend",
       });
 
       void logEvent(deps.supabaseAdmin, {

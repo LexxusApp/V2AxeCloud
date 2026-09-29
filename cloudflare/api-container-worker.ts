@@ -4,6 +4,7 @@ import { env as runtimeEnv } from "cloudflare:workers";
 type AxeCloudBindings = {
   AXECLOUD_API_CONTAINER: DurableObjectNamespace<AxeCloudApiContainer>;
   AXECLOUD_STAGING_TOKEN?: string;
+  CRON_SECRET?: string;
   [name: string]: unknown;
 };
 
@@ -12,6 +13,7 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/api/health-check",
   "/api/ping",
   "/api/public-config",
+  "/api/v1/app-build",
   "/api/plans",
   "/api/tenant-info",
   "/api/auth/audit-log",
@@ -21,6 +23,9 @@ const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
 ]);
 
 const PRODUCTION_APP_PREFIXES = [
+  "/api/admin/",
+  "/api/admin-console/",
+  "/api/metrics/",
   "/api/children",
   "/api/events",
   "/api/notices",
@@ -33,6 +38,15 @@ const PRODUCTION_APP_PREFIXES = [
   "/api/push-subscribe",
   "/api/push-broadcast",
   "/api/push-direct",
+  "/api/v1/cron/",
+  "/api/v1/checkout/",
+  "/api/v1/subscription/",
+  "/api/v1/financeiro/",
+  "/api/webhooks/",
+  "/api/whatsapp/",
+  "/api/cron",
+  "/api/test-db",
+  "/webhook/",
   "/api/v1/filho/",
   "/api/v1/financial/",
   "/api/v1/library/",
@@ -138,14 +152,41 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: AxeCloudBindings, ctx: ExecutionContext) {
+    const secret = typeof env.CRON_SECRET === "string" ? env.CRON_SECRET.trim() : "";
+    if (!secret) {
+      console.error("[axecloud-api] CRON_SECRET ausente; reconciliacao nao executada");
+      return;
+    }
+
     const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
-    ctx.waitUntil(
-      container
-        .fetch(new Request("http://axecloud-container/api/health-check"))
-        .then((response) => {
-          if (!response.ok) console.error("[axecloud-api] aquecimento falhou", response.status);
-        })
-        .catch((error) => console.error("[axecloud-api] aquecimento indisponivel", error)),
-    );
+    const runJob = async (job: "subscription-access" | "whatsapp-jobs") => {
+      const request = new Request(`http://axecloud-container/api/cron?job=${job}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${secret}` },
+      });
+      try {
+        const response = await container.fetch(request);
+        if (!response.ok) {
+          console.error(`[axecloud-api] cron ${job} falhou`, response.status, await response.text());
+          return;
+        }
+        console.log(`[axecloud-api] cron ${job} concluido`, await response.text());
+      } catch (error) {
+        console.error(`[axecloud-api] cron ${job} indisponivel`, error);
+      }
+    };
+
+    const hourInSaoPaulo = Number(new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date()));
+
+    // O gatilho continua horário para a reconciliação de assinaturas. Os jobs
+    // de WhatsApp — incluindo reivindicações em 24h/72h — rodam uma vez ao dia.
+    ctx.waitUntil(Promise.all([
+      runJob("subscription-access"),
+      ...(hourInSaoPaulo === 12 ? [runJob("whatsapp-jobs")] : []),
+    ]).then(() => undefined));
   },
 } satisfies ExportedHandler<AxeCloudBindings>;
