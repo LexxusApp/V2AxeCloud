@@ -80,6 +80,17 @@ export default {
     if (path === '/terreiro/associacao-araxa' || path === '/terreiro/templo-de-umbanda-pai-jobim-da-guine') {
       return respond(new Response('Perfil removido por solicitação do responsável.', { status: 410 }));
     }
+    // Directory HTML is pre-rendered, but crawler metadata can change after deploy.
+    // Use the live API render to avoid stale noindex on profiles in the sitemap.
+    const crawlerProfile = path.match(/^\/terreiro\/([^/]+)\/?$/);
+    if (crawlerProfile && crawlerPattern.test(request.headers.get('User-Agent') || '')) {
+      const renderUrl = new URL(
+        `/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(crawlerProfile[1]))}`,
+        url,
+      );
+      const rendered = await fetch(new Request(renderUrl, request));
+      if (rendered.ok || rendered.status === 404) return respond(rendered);
+    }
     if (path === '/conteudo' && url.searchParams.get('aba') === 'glossario') {
       return respond(redirect('/conteudo/glossario', 301));
     }
