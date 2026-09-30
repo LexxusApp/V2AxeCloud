@@ -16,7 +16,6 @@ import {
   MessageCircleQuestion,
   ShieldCheck,
   Sparkles,
-  Swords,
   UserMinus,
   Users,
   X,
@@ -148,6 +147,9 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
   }, [load]);
 
   const active = cycles.find((cycle) => cycle.status === 'ativo') || null;
+  const activeProgress = active
+    ? Math.round(((active.counts.cientes || 0) / Math.max(1, active.counts.total || 1)) * 100)
+    : 0;
   const audienceCount = useMemo(() => {
     const activeChildren = children.filter((child) => {
       const status = String(child.status || '').toLowerCase();
@@ -258,25 +260,63 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
   return (
     <>
       {variant === 'dashboard-art' ? (
-        <section className={cn('preceito-command-art', active && 'is-active')} aria-labelledby="preceito-command-art-title">
-          <div className="preceito-command-art__texture" aria-hidden>
-            <span /><span /><span />
-            <Swords />
+        <section
+          className={cn('preceito-command-art preceito-brasa', active ? 'is-active' : 'is-resting')}
+          aria-labelledby="preceito-command-art-title"
+          style={{ '--preceito-progress': `${Math.max(active ? 18 : 8, activeProgress * 3.6)}deg` } as CSSProperties}
+        >
+          <div className="preceito-brasa__visual" aria-hidden>
+            <span className="preceito-brasa__orbit preceito-brasa__orbit--outer" />
+            <span className="preceito-brasa__orbit preceito-brasa__orbit--inner" />
+            <span className="preceito-brasa__arc" />
+            <span className="preceito-brasa__core"><Flame /></span>
+            {Array.from({ length: 7 }, (_, index) => (
+              <span
+                key={`preceito-signal-${index}`}
+                className={`preceito-brasa__signal preceito-brasa__signal--${index + 1}`}
+                data-lit={active && activeProgress >= ((index + 1) / 7) * 100 ? 'true' : undefined}
+              />
+            ))}
+            <span className="preceito-brasa__ember preceito-brasa__ember--one" />
+            <span className="preceito-brasa__ember preceito-brasa__ember--two" />
+            <span className="preceito-brasa__ember preceito-brasa__ember--three" />
+            <span className="preceito-brasa__ember preceito-brasa__ember--four" />
           </div>
           <div className="preceito-command-art__content">
-            <p>Preceito</p>
+            <header className="preceito-brasa__header">
+              <span className="preceito-brasa__mark"><Flame aria-hidden /></span>
+              <div>
+                <h2 id="preceito-command-art-title">Preceito</h2>
+                <p>Energia interna da corrente</p>
+              </div>
+              <span className="preceito-brasa__status" data-active={active ? 'true' : undefined}>
+                {active ? 'Ciclo em andamento' : 'Em repouso'}
+              </span>
+            </header>
             {loading ? (
               <div className="preceito-command-art__loading"><Loader2 className="animate-spin" /> Consultando a corrente</div>
             ) : (
-              <div className="preceito-command-art__state">
-                <div className="preceito-command-art__ring" style={{ '--preceito-progress': active ? `${Math.max(36, Math.min(330, ((active.counts.cientes || 0) / Math.max(1, active.counts.total || 1)) * 360))}deg` : '42deg' } as CSSProperties}>
-                  <Swords aria-hidden />
+              <div className="preceito-brasa__state">
+                <div className="preceito-brasa__copy">
+                  <h3>{active ? active.titulo : 'A corrente está em repouso'}</h3>
+                  <strong>
+                    {active
+                      ? `${daysLeft(active.fim_em)} dias restantes · ${activeProgress}% ciente`
+                      : 'Nenhum ciclo de preceito ativo'}
+                  </strong>
+                  <p>
+                    {active
+                      ? 'Acompanhe a preparação e as confirmações da corrente.'
+                      : 'A brasa permanece acesa, aguardando o próximo ciclo da casa.'}
+                  </p>
                 </div>
-                <div>
-                  <h2 id="preceito-command-art-title">{active ? active.titulo : 'Nenhum ciclo ativo'}</h2>
-                  <strong>{active ? `${daysLeft(active.fim_em)} dias restantes` : 'Inicie quando a corrente precisar'}</strong>
-                  <blockquote>{active ? '“Disciplina é também um ato de fé.”' : 'Prepare a casa em conjunto, com orientação e confirmação.'}</blockquote>
-                </div>
+                {active ? (
+                  <div className="preceito-brasa__metrics" aria-label="Acompanhamento do ciclo">
+                    <span><strong>{active.counts.cientes}</strong><small>Cientes</small></span>
+                    <span><strong>{active.counts.pendentes}</strong><small>Pendentes</small></span>
+                    <span data-alert={active.counts.orientacao > 0 ? 'true' : undefined}><strong>{active.counts.orientacao}</strong><small>Orientação</small></span>
+                  </div>
+                ) : null}
               </div>
             )}
             <button type="button" disabled={loading} onClick={() => active ? void openDetail(active) : openWizard()}>

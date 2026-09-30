@@ -23,6 +23,10 @@ import {
   HandHeart,
   MessageCircle,
   TrendingUp,
+  Eye,
+  MapPinned,
+  Radio,
+  Search,
 } from 'lucide-react';
 import { DashboardPedidosRezaAltar, type DashboardPedidoReza } from '../components/dashboard/DashboardPedidosRezaAltar';
 import { DashboardAcoesAdministrativas } from '../components/dashboard/DashboardAcoesAdministrativas';
@@ -142,6 +146,21 @@ type DashboardBundle = {
     portal_publico_ativo?: boolean | null;
     public_slug?: string | null;
   } | null;
+  radarSummary: {
+    claimed?: boolean;
+    metrics?: {
+      viewsTotal?: number;
+      views30?: number;
+      views7?: number;
+      directoryClicks30?: number;
+      googleViews30?: number;
+      whatsappClicks30?: number;
+    };
+    profile?: {
+      publicacaoStatus?: string | null;
+      perfilUrl?: string | null;
+    } | null;
+  } | null;
   attention: {
     obligationsPending: number;
     obligationsOverdue: number;
@@ -211,7 +230,7 @@ async function fetchDashboardFinanceBundle(
 
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
     const today = format(new Date(), 'yyyy-MM-dd');
-    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes, profileSetupRes, inventoryRes, whatsappLogsRes] = await Promise.all([
+    const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes, profileSetupRes, inventoryRes, whatsappLogsRes, radarSummaryRes] = await Promise.all([
       authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
@@ -281,6 +300,11 @@ async function fetchDashboardFinanceBundle(
             parseApiJson<{ logs?: any[] }>(r, { logs: [] })
           )
         : Promise.resolve({ logs: [] as any[] }),
+      userRole !== 'filho'
+        ? authFetch('/api/v1/settings/directory-profile', { cache: 'no-store' }).then((r) =>
+            parseApiJson<DashboardBundle['radarSummary']>(r, null)
+          )
+        : Promise.resolve(null),
     ]);
 
     const children = (childrenRes.data || []).filter((c: any) => {
@@ -395,6 +419,7 @@ async function fetchDashboardFinanceBundle(
       upcomingEvents,
       pixConfig: pixConfigRes?.data || pixConfigRes || null,
       profileSetup: profileSetupRes?.data || null,
+      radarSummary: radarSummaryRes,
       attention: {
         obligationsPending: pendingObligations.length,
         obligationsOverdue: pendingObligations.filter((event) => String(event?.data || '') < todayIso).length,
@@ -420,6 +445,7 @@ async function fetchDashboardFinanceBundle(
       upcomingEvents: [],
       pixConfig: null,
       profileSetup: null,
+      radarSummary: null,
       attention: {
         obligationsPending: 0,
         obligationsOverdue: 0,
@@ -515,6 +541,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const upcomingEvents = resolvedBundle?.upcomingEvents ?? [];
   const pixConfig = resolvedBundle?.pixConfig ?? null;
   const profileSetup = resolvedBundle?.profileSetup ?? null;
+  const radarSummary = resolvedBundle?.radarSummary ?? null;
   const attention = resolvedBundle?.attention ?? {
     obligationsPending: 0,
     obligationsOverdue: 0,
@@ -896,6 +923,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const now = new Date();
   const hour = now.getHours();
   const timeGreeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const dayPart = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night';
   const firstName = (terreiroNome.split(' ')[0] || 'Zelador').trim();
   const formattedDate = (() => {
     const raw = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -973,6 +1001,17 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 86_400_000))
       : null;
   })();
+  const radarMetrics = radarSummary?.metrics;
+  const radarClaimed = radarSummary?.claimed === true;
+  const radarPublicationStatus = String(radarSummary?.profile?.publicacaoStatus || '').trim().toLowerCase();
+  const radarPublished = radarPublicationStatus === 'publicado';
+  const radarStatusLabel = radarSummary == null
+    ? 'Dados indisponíveis'
+    : radarClaimed
+      ? radarPublished
+        ? 'Perfil publicado'
+        : 'Perfil em preparação'
+      : 'Configuração pendente';
 
   return (
     <AppPageShell>
@@ -1006,7 +1045,24 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         </div>
       )}
 
-      <section className="dashboard-v5-hero" aria-labelledby="dashboard-v5-title">
+      <section className="dashboard-v5-hero" data-daypart={dayPart} aria-labelledby="dashboard-v5-title">
+        <span className="dashboard-v5-hero__forest" aria-hidden />
+        <span className="dashboard-v5-hero__foliage dashboard-v5-hero__foliage--canopy" aria-hidden />
+        <span className="dashboard-v5-hero__foliage dashboard-v5-hero__foliage--edge" aria-hidden />
+        <span className="dashboard-v5-hero__light" aria-hidden />
+        <span className="dashboard-v5-hero__embers" aria-hidden />
+        <svg className="dashboard-v5-hero__energy" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden>
+          <defs>
+            <linearGradient id="dashboard-hero-energy" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#EBCB56" stopOpacity="0" />
+              <stop offset="0.28" stopColor="#F2CE55" stopOpacity="0.78" />
+              <stop offset="0.62" stopColor="#FFF0A3" stopOpacity="0.94" />
+              <stop offset="1" stopColor="#E3B936" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path className="dashboard-v5-hero__energy-glow" pathLength="1" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" />
+          <path className="dashboard-v5-hero__energy-line" pathLength="1" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" />
+        </svg>
         <div className="dashboard-v5-hero__content">
           <div className="dashboard-v5-hero__copy">
             <p className="dashboard-v5-eyebrow">
@@ -1126,7 +1182,66 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         })}
       </section>
 
-      <PreceitoCommandCenter tenantId={tenantId} />
+      <section
+        className={cn('dashboard-v5-feature-grid', userRole === 'filho' && 'dashboard-v5-feature-grid--solo')}
+        aria-label="Estado litúrgico e presença pública"
+      >
+        <PreceitoCommandCenter tenantId={tenantId} variant="dashboard-art" />
+
+        {userRole !== 'filho' && (
+          <section className="dashboard-v5-radar-card" aria-labelledby="dashboard-v5-radar-title">
+            <div className="dashboard-v5-radar-card__visual" aria-hidden>
+              <span className="dashboard-v5-radar-card__ring dashboard-v5-radar-card__ring--outer" />
+              <span className="dashboard-v5-radar-card__ring dashboard-v5-radar-card__ring--middle" />
+              <span className="dashboard-v5-radar-card__ring dashboard-v5-radar-card__ring--inner" />
+              <span className="dashboard-v5-radar-card__axis dashboard-v5-radar-card__axis--horizontal" />
+              <span className="dashboard-v5-radar-card__axis dashboard-v5-radar-card__axis--vertical" />
+              <span className="dashboard-v5-radar-card__sweep" />
+              <span className="dashboard-v5-radar-card__signal dashboard-v5-radar-card__signal--one" />
+              <span className="dashboard-v5-radar-card__signal dashboard-v5-radar-card__signal--two" />
+            </div>
+
+            <div className="dashboard-v5-radar-card__content">
+              <header className="dashboard-v5-radar-card__header">
+                <span className="dashboard-v5-radar-card__mark"><Radio aria-hidden /></span>
+                <div>
+                  <h2 id="dashboard-v5-radar-title">Radar</h2>
+                  <p>Presença pública da casa</p>
+                </div>
+                <span className="dashboard-v5-radar-card__status" data-published={radarPublished ? 'true' : undefined}>
+                  {radarStatusLabel}
+                </span>
+              </header>
+
+              {radarClaimed ? (
+                <>
+                  <div className="dashboard-v5-radar-card__primary">
+                    <Eye aria-hidden />
+                    <strong>{radarMetrics?.views7 || 0}</strong>
+                    <span>visualizações nos últimos 7 dias</span>
+                  </div>
+                  <div className="dashboard-v5-radar-card__channels" aria-label="Origem das interações nos últimos 30 dias">
+                    <div><MapPinned aria-hidden /><strong>{radarMetrics?.directoryClicks30 || 0}</strong><span>Mapa</span></div>
+                    <div><Search aria-hidden /><strong>{radarMetrics?.googleViews30 || 0}</strong><span>Google</span></div>
+                    <div><MessageCircle aria-hidden /><strong>{radarMetrics?.whatsappClicks30 || 0}</strong><span>WhatsApp</span></div>
+                  </div>
+                </>
+              ) : (
+                <div className="dashboard-v5-radar-card__empty">
+                  <MapPinned aria-hidden />
+                  <strong>{radarSummary == null ? 'Não foi possível carregar agora' : 'Sua casa ainda não aparece no Radar'}</strong>
+                  <span>{radarSummary == null ? 'Abra o módulo para tentar novamente.' : 'Complete o perfil para começar a acompanhar sua visibilidade.'}</span>
+                </div>
+              )}
+
+              <button type="button" onClick={() => setActiveTab('radar')} className="dashboard-v5-radar-card__action">
+                {radarClaimed ? 'Ver desempenho no Radar' : 'Configurar Radar'}
+                <ArrowRight aria-hidden />
+              </button>
+            </div>
+          </section>
+        )}
+      </section>
 
       <DashboardSystemInsightCard
         tenantId={tenantId}
