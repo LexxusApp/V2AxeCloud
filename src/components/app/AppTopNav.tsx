@@ -371,12 +371,12 @@ export default function AppTopNav({
     localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
     document.documentElement.style.setProperty(
       '--app-sidebar-width',
-      desktopExpanded ? '15rem' : '4.75rem',
+      desktopPinned ? '15rem' : '4.75rem',
     );
     return () => {
       document.documentElement.style.removeProperty('--app-sidebar-width');
     };
-  }, [desktopExpanded, desktopPinned]);
+  }, [desktopPinned]);
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -573,8 +573,7 @@ export default function AppTopNav({
         }}
         data-expanded={desktopExpanded ? 'true' : 'false'}
         className={cn(
-          'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] transition-[width,box-shadow] duration-300 ease-out min-[880px]:flex',
-          desktopCompact ? 'w-[4.75rem]' : 'w-60',
+          'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden w-60 flex-col border-r border-[#242A32] bg-[#0B0D11] min-[880px]:flex',
         )}
       >
         <button
