@@ -6,11 +6,11 @@ import "./cinematic.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://axecloud.com.br"),
   title: {
-    default: "AxéCloud | Sistema de Gestão para Terreiros",
+    default: "Software para Terreiro | AxéCloud",
     template: "%s | AxéCloud",
   },
-  description: "O AxéCloud é um sistema de gestão para terreiros de Umbanda e Candomblé. Organize filhos de santo, mensalidades, giras, comunicados e documentos.",
-  keywords: ["gestão de terreiros", "sistema para terreiro", "software para terreiro", "gestão Umbanda", "gestão Candomblé", "mensalidade terreiro", "filhos de santo", "agenda de giras"],
+  description: "Software para terreiro de Umbanda, Candomblé e Jurema. Organize filhos de santo, mensalidades, giras, comunicados, patrimônio e memória no AxéCloud.",
+  keywords: ["software para terreiro", "sistema para terreiro", "AxéCloud", "software Umbanda", "software Candomblé", "mensalidade terreiro", "filhos de santo", "agenda de giras"],
   applicationName: "AxéCloud",
   creator: "AxéCloud",
   publisher: "AxéCloud",
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "/",
     siteName: "AxéCloud",
-    title: "AxéCloud | Sistema de Gestão para Terreiros",
-    description: "Sistema de gestão para terreiros de Umbanda e Candomblé: filhos de santo, mensalidades, giras, comunicados e documentos em um só lugar.",
+    title: "Software para Terreiro | AxéCloud",
+    description: "Software para terreiro de Umbanda, Candomblé e Jurema: filhos de santo, mensalidades, giras, comunicados, patrimônio e memória em um só lugar.",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "AxéCloud — Toda casa carrega uma história" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AxéCloud | Sistema de Gestão para Terreiros",
-    description: "Gestão completa para terreiros de Umbanda, Candomblé e Jurema.",
+    title: "Software para Terreiro | AxéCloud",
+    description: "Software completo para terreiros de Umbanda, Candomblé e Jurema.",
     images: ["/og.jpg"],
   },
   icons: {

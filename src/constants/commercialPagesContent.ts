@@ -45,12 +45,12 @@ export const COMMERCIAL_PAGES: readonly CommercialPageContent[] = [
     key: 'system',
     path: COMMERCIAL_ROUTES.system,
     kicker: 'Sistema de gestão para terreiros',
-    title: `Sistema para terreiro e gestão completa | ${BRAND_NAME}`,
+    title: `Gestão de Terreiros | Software Completo ${BRAND_NAME}`,
     description:
-      `Sistema para terreiro de Umbanda, Candomblé e Jurema: organize financeiro, filhos de santo, giras, estoque e memória. Teste o ${BRAND_NAME} por ${TRIAL_DAYS} dias.`,
-    h1: 'Sistema de gestão para terreiros, sem tirar a casa do seu fundamento.',
+      `Software de gestão de terreiros de Umbanda, Candomblé e Jurema: financeiro, filhos de santo, giras, estoque, comunicação e memória. Teste ${TRIAL_DAYS} dias.`,
+    h1: 'Gestão de terreiros completa, sem tirar a casa do seu fundamento.',
     lead:
-      'O AxéCloud é um software para terreiro que reúne a rotina administrativa de casas de Umbanda, Candomblé e Jurema em um único ambiente: claro para a zeladoria, simples para a corrente e respeitoso com o que é privado.',
+      'O AxéCloud é um software de gestão de terreiros que reúne a rotina administrativa de casas de Umbanda, Candomblé e Jurema em um único ambiente: claro para a zeladoria, simples para a corrente e respeitoso com o que é privado.',
     promise: 'Menos improviso administrativo. Mais tempo para cuidar da casa e das pessoas.',
     eyebrow: 'Uma casa · uma gestão',
     proof: sharedProof,

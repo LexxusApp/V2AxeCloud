@@ -27,7 +27,7 @@ export function linkifyAxecloudArticleBody(body: string): string {
     'https://axecloud.com.br/recursos/app-pwa-terreiro': 'app PWA para terreiro',
     'https://axecloud.com.br/recursos': 'recursos de gestão de terreiros',
     'https://axecloud.com.br/register': 'teste grátis de gestão de terreiros',
-    'https://axecloud.com.br/': 'gestão de terreiros',
+    'https://axecloud.com.br/': 'software para terreiro AxéCloud',
   };
 
   // Uma única passagem impede que uma regra posterior volte a processar o href

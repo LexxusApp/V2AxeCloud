@@ -14,12 +14,12 @@ export type ComparisonRow = {
 };
 
 export const COMPARISON_INTRO = {
-  title: `Por que ${BRAND_NAME}?`,
-  h1: `Por que escolher o ${BRAND_NAME} para gestão de terreiros`,
+  title: `Melhor software para terreiro? Compare | ${BRAND_NAME}`,
+  h1: `Qual é o melhor software para terreiro?`,
   description:
-    `Compare ${BRAND_NAME} com planilha e outros sistemas de terreiro: Pix, giras, PWA, WhatsApp Meta e portal do filho — tudo incluso. Teste 30 dias.`,
+    `Compare critérios para escolher o melhor software para terreiro e veja o que o ${BRAND_NAME} entrega: Pix, giras, PWA, WhatsApp Meta e portal do filho.`,
   lead:
-    'Zeladores merecem clareza antes de trocar o caderno por um sistema. Esta página mostra o que o AxéCloud já entrega hoje — sem prometer o que ainda não existe.',
+    'O melhor sistema é o que atende a rotina real da casa. Compare critérios objetivos e veja o que o AxéCloud já entrega hoje — sem prometer o que ainda não existe.',
 } as const;
 
 /** Página dedicada /por-que-axecloud/vs-planilhas */

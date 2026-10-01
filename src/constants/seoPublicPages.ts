@@ -533,18 +533,5 @@ export function buildPublicPageBodyInject(page: PublicPrerenderPage): string {
 }
 
 export function buildPublicPageNoscript(page: PublicPrerenderPage): string {
-  const sections = page.sections
-    .map((s) => `<h2>${escapeHtml(s.heading)}</h2><p>${escapeHtml(s.body)}</p>`)
-    .join('');
-  const nav = PUBLIC_SITE_NAV_LINKS.map(
-    (l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`,
-  ).join(' · ');
-
-  return [
-    `<h1>${escapeHtml(page.h1)}</h1>`,
-    `<p>${escapeHtml(page.intro)}</p>`,
-    sections,
-    `<p>${nav}</p>`,
-    `<p>Ative o JavaScript para acessar a plataforma completa.</p>`,
-  ].join('');
+  return `<p>Ative o JavaScript para usar os recursos interativos. O conteúdo principal desta página continua disponível acima.</p>`;
 }

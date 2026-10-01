@@ -28,7 +28,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O desafio da administração na casa de axé',
         body:
-          'Dirigir um terreiro exige cuidado espiritual e gestão de terreiros no dia a dia: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce. O software de gestão de terreiros do AxéCloud centraliza essa rotina em https://axecloud.com.br/.',
+          'Dirigir um terreiro exige cuidado espiritual e gestão de terreiros no dia a dia: mensalidades dos filhos de santo, registro de giras e momentos da casa, convocação de eventos, comunicação com a comunidade. Muitas casas ainda dependem de cadernos, planilhas espalhadas e grupos de WhatsApp — o que funciona no começo, mas se torna frágil quando a casa cresce. O software de gestão de terreiros do AxéCloud centraliza essa rotina em https://axecloud.com.br/sistema-de-gestao-para-terreiros.',
       },
       {
         title: 'Financeiro com transparência',
@@ -98,7 +98,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'Organização e espiritualidade',
         body:
-          'Casas que crescem precisam de gestão de terreiros com registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade. Saiba mais em https://axecloud.com.br/.',
+          'Casas que crescem precisam de gestão de terreiros com registro de mensalidades, calendário de eventos e comunicação clara com os filhos de santo. Ferramentas como o AxéCloud ajudam a diretoria a cuidar da parte prática sem misturar o sagrado com planilhas desorganizadas — sempre com privacidade e respeito aos dados da comunidade. Saiba mais em https://axecloud.com.br/sistema-de-gestao-para-terreiros.',
       },
     ],
   },
@@ -323,7 +323,7 @@ export const PORTAL_ARTICLES: readonly PortalArticle[] = [
       {
         title: 'O limite dos grupos',
         body:
-          'Grupos de WhatsApp são ótimos para conversa informal — mas péssimos como sistema de gestão de terreiros: mensagens somem, quem entrou tarde perde avisos, cobrança de mensalidade vira constrangimento público e fotos de gira poluem a timeline. Quando a casa passa de 30 filhos de santo, o caos é quase inevitável. Veja alternativas em https://axecloud.com.br/.',
+          'Grupos de WhatsApp são ótimos para conversa informal — mas péssimos como sistema de gestão de terreiros: mensagens somem, quem entrou tarde perde avisos, cobrança de mensalidade vira constrangimento público e fotos de gira poluem a timeline. Quando a casa passa de 30 filhos de santo, o caos é quase inevitável. Veja alternativas em https://axecloud.com.br/sistema-de-gestao-para-terreiros.',
       },
       {
         title: 'WhatsApp Business vs API Meta',

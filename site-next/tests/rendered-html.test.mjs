@@ -48,11 +48,11 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") || "", /^text\/html/i);
   assert.match(text, /<html[^>]+lang="pt-BR"/i);
-  assert.match(text, /<title>AxéCloud \| Sistema de Gestão para Terreiros<\/title>/i);
-  assert.match(text, /<meta[^>]+name="description"[^>]+O AxéCloud é um sistema de gestão para terreiros/i);
+  assert.match(text, /<title>Software para Terreiro \| AxéCloud<\/title>/i);
+  assert.match(text, /<meta[^>]+name="description"[^>]+Software para terreiro de Umbanda/i);
   assert.match(text, /<link[^>]+rel="canonical"[^>]+href="https:\/\/axecloud\.com\.br\/"/i);
   assert.equal((text.match(/<h1[\s>]/gi) || []).length, 1);
-  assert.match(text, /Sistema de gestão para terreiros/);
+  assert.match(text, /Software para terreiro/);
   assert.match(text, /Toda a casa em um só lugar/);
   assert.match(text, /<div[^>]+data-nosnippet/i);
   assert.match(text, /R\$ 69,90\/mês/);
